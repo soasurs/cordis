@@ -1,0 +1,7 @@
+edition = "2023";
+
+package internal.authenticator.v1;
+
+service AuthenticatorService {
+	
+}

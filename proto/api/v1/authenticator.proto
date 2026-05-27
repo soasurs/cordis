@@ -1,0 +1,16 @@
+edition = "2023";
+
+package api.v1;
+
+service AuthenticatorService {
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+	rpc Login (LoginRequest) returns (LoginResponse);
+}
+
+message LoginRequest {}
+
+message LoginResponse {}
+
+message RegisterRequest {}
+
+message RegisterResponse {}

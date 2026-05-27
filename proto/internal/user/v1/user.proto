@@ -1,0 +1,14 @@
+edition = "2023";
+
+package internal.user.v1;
+
+service UserService {
+	rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+}
+message CreateUserRequest {
+
+}
+
+message CreateUserResponse {
+
+}

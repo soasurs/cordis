@@ -1,0 +1,48 @@
+edition = "2023";
+
+package user.v1;
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse);
+}
+
+message User {
+  int64 user_id = 1;
+  string email = 2;
+  int64 created_at = 3;
+  int64 updated_at = 4;
+  int64 deleted_at = 5;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+}
+
+message CreateUserResponse {
+  User user = 1;
+}
+
+message GetUserRequest {
+  oneof identity {
+    int64 user_id = 1;
+    string email = 2;
+  }
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message VerifyPasswordRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message VerifyPasswordResponse {
+  bool ok = 1;
+  bool require_challenge = 2;
+}

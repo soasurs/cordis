@@ -18,4 +18,5 @@ managed:
 inputs:
   - directory: proto
     paths:
-      - proto/internal
+      - proto/authenticator
+      - proto/user

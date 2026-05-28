@@ -1,7 +1,8 @@
 BUF ?= buf
 
 EXTERNAL_PROTO_FILES := $(shell find proto/api -type f -name '*.proto')
-INTERNAL_PROTO_FILES := $(shell find proto/internal -type f -name '*.proto')
+INTERNAL_PROTO_DIRS := proto/authenticator proto/user
+INTERNAL_PROTO_FILES := $(shell find $(INTERNAL_PROTO_DIRS) -type f -name '*.proto')
 GENERATE_TOOLS := $(BUF) protoc-gen-go protoc-gen-connect-go protoc-gen-go-grpc protoc-gen-es
 
 .PHONY: all generate generate-external generate-internal gen check-generate-tools lint

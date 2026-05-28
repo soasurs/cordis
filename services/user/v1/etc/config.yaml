@@ -1,0 +1,3 @@
+name: user.v1
+listenOn: 0.0.0.0:3000
+timeout: 0

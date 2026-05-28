@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             (unknown)
-// source: internal/authenticator/v1/authenticator.proto
+// source: authenticator/v1/authenticator.proto
 
 package authenticatorv1
 
@@ -70,5 +70,5 @@ var AuthenticatorService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*AuthenticatorServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams:     []grpc.StreamDesc{},
-	Metadata:    "internal/authenticator/v1/authenticator.proto",
+	Metadata:    "authenticator/v1/authenticator.proto",
 }

@@ -1,6 +1,8 @@
 package svc
 
 import (
+	"errors"
+
 	sn "github.com/bwmarrin/snowflake"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/database"
@@ -19,19 +21,21 @@ type ServiceContext struct {
 	UserClient userv1.UserServiceClient
 }
 
-func NewServiceContext(cfg config.Config) *ServiceContext {
-	if cfg.Sessions.TTL <= 0 {
-		panic("session ttl must be positive")
-	}
+type Dependencies struct {
+	Store      store.Store
+	Tokens     *token.Manager
+	Snowflake  *sn.Node
+	UserClient userv1.UserServiceClient
+}
 
-	db, err := database.NewPostgres(cfg.Database)
-	if err != nil {
-		panic(err)
+func NewDependencies(cfg config.Config) (Dependencies, error) {
+	if cfg.Sessions.TTL <= 0 {
+		return Dependencies{}, errors.New("session ttl must be positive")
 	}
 
 	node, err := snowflake.New()
 	if err != nil {
-		panic(err)
+		return Dependencies{}, err
 	}
 
 	tokenManager, err := token.NewManager(token.Config{
@@ -42,16 +46,56 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 		RefreshTTL:    cfg.Tokens.Refresh.TTL,
 	})
 	if err != nil {
-		panic(err)
+		return Dependencies{}, err
 	}
 
-	userClient := userv1.NewUserServiceClient(zrpc.MustNewClient(cfg.Services.User).Conn())
+	userRPCClient, err := zrpc.NewClient(cfg.Services.User)
+	if err != nil {
+		return Dependencies{}, err
+	}
 
-	return &ServiceContext{
-		Cfg:        cfg,
+	db, err := database.NewPostgres(cfg.Database)
+	if err != nil {
+		return Dependencies{}, err
+	}
+
+	return Dependencies{
 		Store:      store.New(db),
 		Tokens:     tokenManager,
 		Snowflake:  node,
-		UserClient: userClient,
+		UserClient: userv1.NewUserServiceClient(userRPCClient.Conn()),
+	}, nil
+}
+
+func NewServiceContext(cfg config.Config) *ServiceContext {
+	deps, err := NewDependencies(cfg)
+	if err != nil {
+		panic(err)
+	}
+	return NewServiceContextWithDependencies(cfg, deps)
+}
+
+func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *ServiceContext {
+	if cfg.Sessions.TTL <= 0 {
+		panic("session ttl must be positive")
+	}
+	if deps.Store == nil {
+		panic("authenticator store is required")
+	}
+	if deps.Tokens == nil {
+		panic("token manager is required")
+	}
+	if deps.Snowflake == nil {
+		panic("snowflake node is required")
+	}
+	if deps.UserClient == nil {
+		panic("user client is required")
+	}
+	return &ServiceContext{
+		Cfg:        cfg,
+		Store:      deps.Store,
+		Tokens:     deps.Tokens,
+		Snowflake:  deps.Snowflake,
+		UserClient: deps.UserClient,
 	}
 }

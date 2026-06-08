@@ -5,7 +5,7 @@ INTERNAL_PROTO_DIRS := proto/authenticator proto/user
 INTERNAL_PROTO_FILES := $(shell find $(INTERNAL_PROTO_DIRS) -type f -name '*.proto')
 GENERATE_TOOLS := $(BUF) protoc-gen-go protoc-gen-connect-go protoc-gen-go-grpc protoc-gen-es
 
-.PHONY: all generate generate-external generate-internal gen check-generate-tools lint
+.PHONY: all generate generate-external generate-internal gen check-generate-tools lint test test-integration
 
 all: generate
 
@@ -26,3 +26,10 @@ gen: generate
 
 lint:
 	$(BUF) lint
+
+test:
+	go test ./...
+
+test-integration:
+	@test -n "$(CORDIS_TEST_POSTGRES_DSN)" || { echo "CORDIS_TEST_POSTGRES_DSN is required" >&2; exit 1; }
+	go test -tags=integration ./services/user/v1/internal/store ./services/authenticator/v1/internal/store

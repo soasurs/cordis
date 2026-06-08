@@ -2,10 +2,14 @@ package server
 
 import (
 	"context"
+	"log/slog"
+	"time"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.CreateMessageRequest) (*messagev1.CreateMessageResponse, error) {
@@ -55,6 +59,8 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 
 	messageID := s.svcCtx.Snowflake.Generate().Int64()
 	var created *model.Message
+	var outboxEvent outbox.Event
+
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.CreateMessage(ctx, store.CreateMessageParams{
 			MessageID:           messageID,
@@ -71,11 +77,24 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 			return err
 		}
 		created = message
-		return txStore.ReplaceMessageMentions(ctx, messageID, req.GetMentionUserIds())
+
+		if err := txStore.ReplaceMessageMentions(ctx, messageID, req.GetMentionUserIds()); err != nil {
+			return err
+		}
+
+		// Build and enqueue the outbox event within the same transaction.
+		outboxEvent, err = newMessageCreatedEvent(s.svcCtx.Cfg.Kafka.Topic, created)
+		if err != nil {
+			return err
+		}
+		return txStore.InsertOutboxEvent(ctx, outboxEvent)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+
+	// Transaction committed — immediately flush the event to Kafka.
+	s.flushOutboxEvent(outboxEvent.ID)
 
 	resp := new(messagev1.CreateMessageResponse)
 	resp.SetMessage(toPBMessage(created))
@@ -126,20 +145,33 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	}
 
 	var updated *model.Message
+	var outboxEvent outbox.Event
+
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.UpdateMessage(ctx, params)
 		if err != nil {
 			return err
 		}
 		updated = message
+
 		if req.HasMentions() {
-			return txStore.ReplaceMessageMentions(ctx, req.GetMessageId(), req.GetMentions().GetUserIds())
+			if err := txStore.ReplaceMessageMentions(ctx, req.GetMessageId(), req.GetMentions().GetUserIds()); err != nil {
+				return err
+			}
 		}
-		return nil
+
+		outboxEvent, err = newMessageUpdatedEvent(s.svcCtx.Cfg.Kafka.Topic, updated)
+		if err != nil {
+			return err
+		}
+		outboxEvent.ID = s.svcCtx.Snowflake.Generate().Int64()
+		return txStore.InsertOutboxEvent(ctx, outboxEvent)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+
+	s.flushOutboxEvent(outboxEvent.ID)
 
 	resp := new(messagev1.UpdateMessageResponse)
 	resp.SetMessage(toPBMessage(updated))
@@ -153,9 +185,33 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 	if req.GetActorUserId() <= 0 {
 		return nil, invalidRequest("actor user id is required")
 	}
-	if err := s.svcCtx.Store.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), req.GetHasPermission()); err != nil {
+
+	// Fetch the message first to get the channel_id for the event.
+	msg, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId())
+	if err != nil {
 		return nil, mapStoreError(err)
 	}
+
+	var outboxEvent outbox.Event
+
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		if err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), req.GetHasPermission()); err != nil {
+			return err
+		}
+
+		var err error
+		outboxEvent, err = newMessageDeletedEvent(s.svcCtx.Cfg.Kafka.Topic, msg.ID, msg.ChannelID)
+		if err != nil {
+			return err
+		}
+		outboxEvent.ID = s.svcCtx.Snowflake.Generate().Int64()
+		return txStore.InsertOutboxEvent(ctx, outboxEvent)
+	})
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+
+	s.flushOutboxEvent(outboxEvent.ID)
 
 	resp := new(messagev1.DeleteMessageResponse)
 	resp.SetOk(true)
@@ -231,6 +287,51 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 	resp.SetReactions(toPBReactionSummaryMap(summaries))
 	setListCursors(resp, messages)
 	return resp, nil
+}
+
+// flushOutboxEvent attempts to deliver a single outbox event immediately
+// after the transaction committed. This is the happy path — the relay
+// handles the cases where this goroutine fails or the process crashes.
+func (s *messageServer) flushOutboxEvent(eventID int64) {
+	if s.svcCtx.Kafka == nil {
+		return
+	}
+
+	s.svcCtx.ShutdownWg.Add(1)
+	go func() {
+		defer s.svcCtx.ShutdownWg.Done()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// CAS claim the event — the relay may also try to claim it.
+		// Whichever claims first wins.
+		evt, err := s.svcCtx.Store.ClaimOutboxEvent(ctx, eventID, outbox.Now())
+		if err != nil || evt == nil {
+			return // already claimed by relay, or error
+		}
+
+		rec := &kgo.Record{
+			Topic: evt.Topic,
+			Key:   evt.Key,
+			Value: evt.Payload,
+		}
+
+		results := s.svcCtx.Kafka.ProduceSync(ctx, rec)
+		if err := results.FirstErr(); err != nil {
+			slog.Error("flush outbox event failed",
+				"event_id", eventID,
+				"topic", evt.Topic,
+				"error", err,
+			)
+			// Release back to pending so the relay picks it up.
+			_ = s.svcCtx.Store.ReleaseOutboxEvent(ctx, evt.ID)
+			return
+		}
+
+		// Published successfully — delete from outbox.
+		_ = s.svcCtx.Store.DeleteOutboxEvent(ctx, evt.ID)
+	}()
 }
 
 func toPBMessages(messages []*model.Message) []*messagev1.Message {

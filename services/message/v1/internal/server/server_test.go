@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"sort"
+	"sync"
 	"testing"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
@@ -220,6 +222,8 @@ type fakeStore struct {
 	messages  map[int64]*model.Message
 	mentions  map[int64][]int64
 	reactions map[reactionKey]struct{}
+	outbox    map[int64]*outbox.Event
+	mu        sync.Mutex // guards outbox for concurrent claim
 }
 
 func newFakeStore() *fakeStore {
@@ -227,6 +231,7 @@ func newFakeStore() *fakeStore {
 		messages:  make(map[int64]*model.Message),
 		mentions:  make(map[int64][]int64),
 		reactions: make(map[reactionKey]struct{}),
+		outbox:    make(map[int64]*outbox.Event),
 	}
 }
 
@@ -385,6 +390,35 @@ func (s *fakeStore) ListReactionUsers(_ context.Context, key store.ReactionKey, 
 		userIDs = userIDs[:limit]
 	}
 	return userIDs, nil
+}
+
+func (s *fakeStore) InsertOutboxEvent(_ context.Context, evt outbox.Event) error {
+	s.outbox[evt.ID] = &evt
+	return nil
+}
+
+func (s *fakeStore) ClaimOutboxEvent(_ context.Context, id, now int64) (*outbox.Event, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	evt, ok := s.outbox[id]
+	if !ok || evt.LockedAt > 0 {
+		return nil, nil
+	}
+	evt.LockedAt = now
+	return evt, nil
+}
+
+func (s *fakeStore) ReleaseOutboxEvent(_ context.Context, id int64) error {
+	if evt, ok := s.outbox[id]; ok {
+		evt.LockedAt = 0
+		evt.RetryCount++
+	}
+	return nil
+}
+
+func (s *fakeStore) DeleteOutboxEvent(_ context.Context, id int64) error {
+	delete(s.outbox, id)
+	return nil
 }
 
 func cloneMessage(message *model.Message) *model.Message {

@@ -1,0 +1,25 @@
+name: authenticator.v1
+listenOn: 0.0.0.0:3001
+timeout: 0
+
+database:
+  dataSource: postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable
+  maxOpenConns: 10
+  maxIdleConns: 5
+
+tokens:
+  issuer: cordis.authenticator.v1
+  access:
+    secret: ${CORDIS_ACCESS_TOKEN_SECRET}
+    ttl: 15m
+  refresh:
+    secret: ${CORDIS_REFRESH_TOKEN_SECRET}
+    ttl: 720h
+
+sessions:
+  ttl: 720h
+
+services:
+  user:
+    endpoints:
+      - 127.0.0.1:3000

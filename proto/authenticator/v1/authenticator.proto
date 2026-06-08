@@ -1,7 +1,83 @@
 edition = "2023";
 
-package internal.authenticator.v1;
+package authenticator.v1;
 
 service AuthenticatorService {
-	
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc VerifyAccessToken(VerifyAccessTokenRequest) returns (VerifyAccessTokenResponse);
+}
+
+message Session {
+  int64 session_id = 1;
+  int64 user_id = 2;
+  int64 created_at = 3;
+  int64 updated_at = 4;
+  int64 expires_at = 5;
+  int64 revoked_at = 6;
+  string user_agent = 7;
+  string ip = 8;
+}
+
+message RegisterRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+  string user_agent = 4;
+  string ip = 5;
+}
+
+message RegisterResponse {
+  AuthenticationResult result = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string user_agent = 3;
+  string ip = 4;
+}
+
+message LoginResponse {
+  AuthenticationResult result = 1;
+}
+
+message AuthenticationResult {
+  bool ok = 1;
+  int64 user_id = 2;
+  int64 session_id = 3;
+  string access_token = 4;
+  int64 access_token_expires_at = 5;
+  string refresh_token = 6;
+  int64 refresh_token_expires_at = 7;
+  int64 session_expires_at = 8;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+}
+
+message RefreshResponse {
+  AuthenticationResult result = 1;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutResponse {
+  bool ok = 1;
+}
+
+message VerifyAccessTokenRequest {
+  string access_token = 1;
+}
+
+message VerifyAccessTokenResponse {
+  bool ok = 1;
+  int64 user_id = 2;
+  int64 session_id = 3;
+  int64 expires_at = 4;
 }

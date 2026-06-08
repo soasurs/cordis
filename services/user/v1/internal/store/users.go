@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -18,7 +19,7 @@ type userRow struct {
 	DeletedAt      int64  `db:"deleted_at"`
 }
 
-func (s *Store) CreateUser(ctx context.Context, userID int64, email, hashedPassword string) (*model.User, error) {
+func (s *SQLStore) CreateUser(ctx context.Context, userID int64, email, hashedPassword string) (*model.User, error) {
 	row := &userRow{
 		UserID:         userID,
 		Email:          email,
@@ -42,7 +43,7 @@ func (s *Store) CreateUser(ctx context.Context, userID int64, email, hashedPassw
 	}, nil
 }
 
-func (s *Store) GetUser(ctx context.Context, userID int64) (*model.User, error) {
+func (s *SQLStore) GetUser(ctx context.Context, userID int64) (*model.User, error) {
 	row := new(userRow)
 	err := sqlx.GetContext(ctx, s.q, row, GetUserQuery, userID, 0)
 	if err != nil {
@@ -58,9 +59,50 @@ func (s *Store) GetUser(ctx context.Context, userID int64) (*model.User, error) 
 	}, nil
 }
 
-func (s *Store) GetUserWithEmail(ctx context.Context, email string) (*model.User, error) {
+func (s *SQLStore) GetUserWithEmail(ctx context.Context, email string) (*model.User, error) {
 	row := new(userRow)
 	err := sqlx.GetContext(ctx, s.q, row, GetUserWithEmailQuery, email, 0)
+	if err != nil {
+		return nil, err
+	}
+	return &model.User{
+		UserID:         row.UserID,
+		Email:          row.Email,
+		HashedPassword: row.HashedPassword,
+		CreatedAt:      row.CreatedAt,
+		UpdatedAt:      row.UpdatedAt,
+		DeletedAt:      row.DeletedAt,
+	}, nil
+}
+
+func (s *SQLStore) CheckEmailAvailability(ctx context.Context, email string) (bool, error) {
+	var available bool
+	err := sqlx.GetContext(ctx, s.q, &available, CheckEmailAvailabilityQuery, email, 0)
+	if err != nil {
+		return false, err
+	}
+	return available, nil
+}
+
+func (s *SQLStore) UpdateUserPassword(ctx context.Context, userID int64, hashedPassword string) error {
+	res, err := s.q.ExecContext(ctx, UpdateUserPasswordStatement, hashedPassword, time.Now().UnixMilli(), userID, 0)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *SQLStore) UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error) {
+	row := new(userRow)
+	err := sqlx.GetContext(ctx, s.q, row, UpdateUserEmailQuery, email, time.Now().UnixMilli(), userID, 0)
 	if err != nil {
 		return nil, err
 	}

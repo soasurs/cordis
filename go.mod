@@ -4,8 +4,11 @@ go 1.26
 
 require (
 	connectrpc.com/connect v1.20.0
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/bwmarrin/snowflake v0.3.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jmoiron/sqlx v1.4.0
+	github.com/lib/pq v1.10.9
 	github.com/zeromicro/go-zero v1.10.1
 	golang.org/x/crypto v0.48.0
 	google.golang.org/grpc v1.81.1

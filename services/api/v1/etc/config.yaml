@@ -1,0 +1,7 @@
+name: api.v1
+listenOn: 0.0.0.0:8080
+
+services:
+  authenticator:
+    endpoints:
+      - 127.0.0.1:3001

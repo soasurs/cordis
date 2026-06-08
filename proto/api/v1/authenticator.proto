@@ -3,14 +3,54 @@ edition = "2023";
 package api.v1;
 
 service AuthenticatorService {
-  rpc Register (RegisterRequest) returns (RegisterResponse);
-	rpc Login (LoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
 }
 
-message LoginRequest {}
+message AuthenticationResult {
+  bool ok = 1;
+  int64 user_id = 2;
+  int64 session_id = 3;
+  string access_token = 4;
+  int64 access_token_expires_at = 5;
+  string refresh_token = 6;
+  int64 refresh_token_expires_at = 7;
+  int64 session_expires_at = 8;
+}
 
-message LoginResponse {}
+message RegisterRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+}
 
-message RegisterRequest {}
+message RegisterResponse {
+  AuthenticationResult result = 1;
+}
 
-message RegisterResponse {}
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  AuthenticationResult result = 1;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+}
+
+message RefreshResponse {
+  AuthenticationResult result = 1;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutResponse {
+  bool ok = 1;
+}

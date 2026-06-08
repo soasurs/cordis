@@ -21,26 +21,34 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type LoginRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+type AuthenticationResult struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Ok                    *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	UserId                *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	SessionId             *int64                 `protobuf:"varint,3,opt,name=session_id,json=sessionId" json:"session_id,omitempty"`
+	AccessToken           *string                `protobuf:"bytes,4,opt,name=access_token,json=accessToken" json:"access_token,omitempty"`
+	AccessTokenExpiresAt  *int64                 `protobuf:"varint,5,opt,name=access_token_expires_at,json=accessTokenExpiresAt" json:"access_token_expires_at,omitempty"`
+	RefreshToken          *string                `protobuf:"bytes,6,opt,name=refresh_token,json=refreshToken" json:"refresh_token,omitempty"`
+	RefreshTokenExpiresAt *int64                 `protobuf:"varint,7,opt,name=refresh_token_expires_at,json=refreshTokenExpiresAt" json:"refresh_token_expires_at,omitempty"`
+	SessionExpiresAt      *int64                 `protobuf:"varint,8,opt,name=session_expires_at,json=sessionExpiresAt" json:"session_expires_at,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
-func (x *LoginRequest) Reset() {
-	*x = LoginRequest{}
+func (x *AuthenticationResult) Reset() {
+	*x = AuthenticationResult{}
 	mi := &file_api_v1_authenticator_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LoginRequest) String() string {
+func (x *AuthenticationResult) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LoginRequest) ProtoMessage() {}
+func (*AuthenticationResult) ProtoMessage() {}
 
-func (x *LoginRequest) ProtoReflect() protoreflect.Message {
+func (x *AuthenticationResult) ProtoReflect() protoreflect.Message {
 	mi := &file_api_v1_authenticator_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -52,56 +60,79 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
-func (*LoginRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use AuthenticationResult.ProtoReflect.Descriptor instead.
+func (*AuthenticationResult) Descriptor() ([]byte, []int) {
 	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{0}
 }
 
-type LoginResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LoginResponse) Reset() {
-	*x = LoginResponse{}
-	mi := &file_api_v1_authenticator_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LoginResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LoginResponse) ProtoMessage() {}
-
-func (x *LoginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_authenticator_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+func (x *AuthenticationResult) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
 	}
-	return mi.MessageOf(x)
+	return false
 }
 
-// Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
-func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{1}
+func (x *AuthenticationResult) GetUserId() int64 {
+	if x != nil && x.UserId != nil {
+		return *x.UserId
+	}
+	return 0
+}
+
+func (x *AuthenticationResult) GetSessionId() int64 {
+	if x != nil && x.SessionId != nil {
+		return *x.SessionId
+	}
+	return 0
+}
+
+func (x *AuthenticationResult) GetAccessToken() string {
+	if x != nil && x.AccessToken != nil {
+		return *x.AccessToken
+	}
+	return ""
+}
+
+func (x *AuthenticationResult) GetAccessTokenExpiresAt() int64 {
+	if x != nil && x.AccessTokenExpiresAt != nil {
+		return *x.AccessTokenExpiresAt
+	}
+	return 0
+}
+
+func (x *AuthenticationResult) GetRefreshToken() string {
+	if x != nil && x.RefreshToken != nil {
+		return *x.RefreshToken
+	}
+	return ""
+}
+
+func (x *AuthenticationResult) GetRefreshTokenExpiresAt() int64 {
+	if x != nil && x.RefreshTokenExpiresAt != nil {
+		return *x.RefreshTokenExpiresAt
+	}
+	return 0
+}
+
+func (x *AuthenticationResult) GetSessionExpiresAt() int64 {
+	if x != nil && x.SessionExpiresAt != nil {
+		return *x.SessionExpiresAt
+	}
+	return 0
 }
 
 type RegisterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Email         *string                `protobuf:"bytes,2,opt,name=email" json:"email,omitempty"`
+	Password      *string                `protobuf:"bytes,3,opt,name=password" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RegisterRequest) Reset() {
 	*x = RegisterRequest{}
-	mi := &file_api_v1_authenticator_proto_msgTypes[2]
+	mi := &file_api_v1_authenticator_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -113,7 +144,7 @@ func (x *RegisterRequest) String() string {
 func (*RegisterRequest) ProtoMessage() {}
 
 func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_authenticator_proto_msgTypes[2]
+	mi := &file_api_v1_authenticator_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,18 +157,40 @@ func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
 func (*RegisterRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{2}
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *RegisterRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *RegisterRequest) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
+	}
+	return ""
+}
+
+func (x *RegisterRequest) GetPassword() string {
+	if x != nil && x.Password != nil {
+		return *x.Password
+	}
+	return ""
 }
 
 type RegisterResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *AuthenticationResult  `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RegisterResponse) Reset() {
 	*x = RegisterResponse{}
-	mi := &file_api_v1_authenticator_proto_msgTypes[3]
+	mi := &file_api_v1_authenticator_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -149,7 +202,7 @@ func (x *RegisterResponse) String() string {
 func (*RegisterResponse) ProtoMessage() {}
 
 func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_authenticator_proto_msgTypes[3]
+	mi := &file_api_v1_authenticator_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -162,21 +215,327 @@ func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
 func (*RegisterResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RegisterResponse) GetResult() *AuthenticationResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type LoginRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         *string                `protobuf:"bytes,1,opt,name=email" json:"email,omitempty"`
+	Password      *string                `protobuf:"bytes,2,opt,name=password" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoginRequest) Reset() {
+	*x = LoginRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginRequest) ProtoMessage() {}
+
+func (x *LoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
+func (*LoginRequest) Descriptor() ([]byte, []int) {
 	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *LoginRequest) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
+	}
+	return ""
+}
+
+func (x *LoginRequest) GetPassword() string {
+	if x != nil && x.Password != nil {
+		return *x.Password
+	}
+	return ""
+}
+
+type LoginResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *AuthenticationResult  `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoginResponse) Reset() {
+	*x = LoginResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginResponse) ProtoMessage() {}
+
+func (x *LoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
+func (*LoginResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LoginResponse) GetResult() *AuthenticationResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type RefreshRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefreshToken  *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshRequest) Reset() {
+	*x = RefreshRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshRequest) ProtoMessage() {}
+
+func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshRequest.ProtoReflect.Descriptor instead.
+func (*RefreshRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RefreshRequest) GetRefreshToken() string {
+	if x != nil && x.RefreshToken != nil {
+		return *x.RefreshToken
+	}
+	return ""
+}
+
+type RefreshResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *AuthenticationResult  `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefreshResponse) Reset() {
+	*x = RefreshResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshResponse) ProtoMessage() {}
+
+func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefreshResponse.ProtoReflect.Descriptor instead.
+func (*RefreshResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RefreshResponse) GetResult() *AuthenticationResult {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type LogoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RefreshToken  *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken" json:"refresh_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogoutRequest) Reset() {
+	*x = LogoutRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogoutRequest) ProtoMessage() {}
+
+func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
+func (*LogoutRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *LogoutRequest) GetRefreshToken() string {
+	if x != nil && x.RefreshToken != nil {
+		return *x.RefreshToken
+	}
+	return ""
+}
+
+type LogoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LogoutResponse) Reset() {
+	*x = LogoutResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LogoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LogoutResponse) ProtoMessage() {}
+
+func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
+func (*LogoutResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *LogoutResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
 }
 
 var File_api_v1_authenticator_proto protoreflect.FileDescriptor
 
 const file_api_v1_authenticator_proto_rawDesc = "" +
 	"\n" +
-	"\x1aapi/v1/authenticator.proto\x12\x06api.v1\"\x0e\n" +
-	"\fLoginRequest\"\x0f\n" +
-	"\rLoginResponse\"\x11\n" +
-	"\x0fRegisterRequest\"\x12\n" +
-	"\x10RegisterResponse2\x8b\x01\n" +
+	"\x1aapi/v1/authenticator.proto\x12\x06api.v1\"\xc4\x02\n" +
+	"\x14AuthenticationResult\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\x03R\tsessionId\x12!\n" +
+	"\faccess_token\x18\x04 \x01(\tR\vaccessToken\x125\n" +
+	"\x17access_token_expires_at\x18\x05 \x01(\x03R\x14accessTokenExpiresAt\x12#\n" +
+	"\rrefresh_token\x18\x06 \x01(\tR\frefreshToken\x127\n" +
+	"\x18refresh_token_expires_at\x18\a \x01(\x03R\x15refreshTokenExpiresAt\x12,\n" +
+	"\x12session_expires_at\x18\b \x01(\x03R\x10sessionExpiresAt\"W\n" +
+	"\x0fRegisterRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\"H\n" +
+	"\x10RegisterResponse\x124\n" +
+	"\x06result\x18\x01 \x01(\v2\x1c.api.v1.AuthenticationResultR\x06result\"@\n" +
+	"\fLoginRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"E\n" +
+	"\rLoginResponse\x124\n" +
+	"\x06result\x18\x01 \x01(\v2\x1c.api.v1.AuthenticationResultR\x06result\"5\n" +
+	"\x0eRefreshRequest\x12#\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"G\n" +
+	"\x0fRefreshResponse\x124\n" +
+	"\x06result\x18\x01 \x01(\v2\x1c.api.v1.AuthenticationResultR\x06result\"4\n" +
+	"\rLogoutRequest\x12#\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\" \n" +
+	"\x0eLogoutResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok2\x80\x02\n" +
 	"\x14AuthenticatorService\x12=\n" +
 	"\bRegister\x12\x17.api.v1.RegisterRequest\x1a\x18.api.v1.RegisterResponse\x124\n" +
-	"\x05Login\x12\x14.api.v1.LoginRequest\x1a\x15.api.v1.LoginResponseB\x85\x01\n" +
+	"\x05Login\x12\x14.api.v1.LoginRequest\x1a\x15.api.v1.LoginResponse\x12:\n" +
+	"\aRefresh\x12\x16.api.v1.RefreshRequest\x1a\x17.api.v1.RefreshResponse\x127\n" +
+	"\x06Logout\x12\x15.api.v1.LogoutRequest\x1a\x16.api.v1.LogoutResponseB\x85\x01\n" +
 	"\n" +
 	"com.api.v1B\x12AuthenticatorProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
@@ -192,23 +551,35 @@ func file_api_v1_authenticator_proto_rawDescGZIP() []byte {
 	return file_api_v1_authenticator_proto_rawDescData
 }
 
-var file_api_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_api_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_api_v1_authenticator_proto_goTypes = []any{
-	(*LoginRequest)(nil),     // 0: api.v1.LoginRequest
-	(*LoginResponse)(nil),    // 1: api.v1.LoginResponse
-	(*RegisterRequest)(nil),  // 2: api.v1.RegisterRequest
-	(*RegisterResponse)(nil), // 3: api.v1.RegisterResponse
+	(*AuthenticationResult)(nil), // 0: api.v1.AuthenticationResult
+	(*RegisterRequest)(nil),      // 1: api.v1.RegisterRequest
+	(*RegisterResponse)(nil),     // 2: api.v1.RegisterResponse
+	(*LoginRequest)(nil),         // 3: api.v1.LoginRequest
+	(*LoginResponse)(nil),        // 4: api.v1.LoginResponse
+	(*RefreshRequest)(nil),       // 5: api.v1.RefreshRequest
+	(*RefreshResponse)(nil),      // 6: api.v1.RefreshResponse
+	(*LogoutRequest)(nil),        // 7: api.v1.LogoutRequest
+	(*LogoutResponse)(nil),       // 8: api.v1.LogoutResponse
 }
 var file_api_v1_authenticator_proto_depIdxs = []int32{
-	2, // 0: api.v1.AuthenticatorService.Register:input_type -> api.v1.RegisterRequest
-	0, // 1: api.v1.AuthenticatorService.Login:input_type -> api.v1.LoginRequest
-	3, // 2: api.v1.AuthenticatorService.Register:output_type -> api.v1.RegisterResponse
-	1, // 3: api.v1.AuthenticatorService.Login:output_type -> api.v1.LoginResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: api.v1.RegisterResponse.result:type_name -> api.v1.AuthenticationResult
+	0, // 1: api.v1.LoginResponse.result:type_name -> api.v1.AuthenticationResult
+	0, // 2: api.v1.RefreshResponse.result:type_name -> api.v1.AuthenticationResult
+	1, // 3: api.v1.AuthenticatorService.Register:input_type -> api.v1.RegisterRequest
+	3, // 4: api.v1.AuthenticatorService.Login:input_type -> api.v1.LoginRequest
+	5, // 5: api.v1.AuthenticatorService.Refresh:input_type -> api.v1.RefreshRequest
+	7, // 6: api.v1.AuthenticatorService.Logout:input_type -> api.v1.LogoutRequest
+	2, // 7: api.v1.AuthenticatorService.Register:output_type -> api.v1.RegisterResponse
+	4, // 8: api.v1.AuthenticatorService.Login:output_type -> api.v1.LoginResponse
+	6, // 9: api.v1.AuthenticatorService.Refresh:output_type -> api.v1.RefreshResponse
+	8, // 10: api.v1.AuthenticatorService.Logout:output_type -> api.v1.LogoutResponse
+	7, // [7:11] is the sub-list for method output_type
+	3, // [3:7] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_authenticator_proto_init() }
@@ -222,7 +593,7 @@ func file_api_v1_authenticator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_authenticator_proto_rawDesc), len(file_api_v1_authenticator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

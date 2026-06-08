@@ -5,24 +5,41 @@ import (
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
+
+	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
 
-type Store struct {
+type Store interface {
+	Transact(ctx context.Context, fn func(txStore Store) error) error
+	CreateUser(ctx context.Context, userID int64, email, hashedPassword string) (*model.User, error)
+	GetUser(ctx context.Context, userID int64) (*model.User, error)
+	GetUserWithEmail(ctx context.Context, email string) (*model.User, error)
+	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
+	UpdateUserPassword(ctx context.Context, userID int64, hashedPassword string) error
+	UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error)
+	CreateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)
+	GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error)
+}
+
+type SQLStore struct {
 	db *sqlx.DB
 	q  sqlx.ExtContext
 }
 
-func New(db *sqlx.DB) *Store {
-	return &Store{db: db}
+func New(db *sqlx.DB) Store {
+	return &SQLStore{
+		db: db,
+		q:  db,
+	}
 }
 
-func (s *Store) Transact(ctx context.Context, fn func(txStore *Store) error) error {
+func (s *SQLStore) Transact(ctx context.Context, fn func(txStore Store) error) error {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
 	}
 
-	txStore := &Store{
+	txStore := &SQLStore{
 		db: s.db,
 		q:  tx,
 	}

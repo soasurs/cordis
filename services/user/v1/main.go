@@ -16,6 +16,8 @@ import (
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")
 
 func main() {
+	flag.Parse()
+
 	cfg := new(config.Config)
 	if err := conf.LoadConfig(*configPath, cfg); err != nil {
 		panic(err)

@@ -10,38 +10,78 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file api/v1/authenticator.proto.
  */
 export const file_api_v1_authenticator: GenFile = /*@__PURE__*/
-  fileDesc("ChphcGkvdjEvYXV0aGVudGljYXRvci5wcm90bxIGYXBpLnYxIg4KDExvZ2luUmVxdWVzdCIPCg1Mb2dpblJlc3BvbnNlIhEKD1JlZ2lzdGVyUmVxdWVzdCISChBSZWdpc3RlclJlc3BvbnNlMosBChRBdXRoZW50aWNhdG9yU2VydmljZRI9CghSZWdpc3RlchIXLmFwaS52MS5SZWdpc3RlclJlcXVlc3QaGC5hcGkudjEuUmVnaXN0ZXJSZXNwb25zZRI0CgVMb2dpbhIULmFwaS52MS5Mb2dpblJlcXVlc3QaFS5hcGkudjEuTG9naW5SZXNwb25zZUKFAQoKY29tLmFwaS52MUISQXV0aGVudGljYXRvclByb3RvUAFaKmdpdGh1Yi5jb20vc29hc3Vycy9jb3JkaXMvZ2VuL2FwaS92MTthcGl2MaICA0FYWKoCBkFwaS5WMcoCBkFwaVxWMeICEkFwaVxWMVxHUEJNZXRhZGF0YeoCB0FwaTo6VjFiCGVkaXRpb25zcOgH");
+  fileDesc("ChphcGkvdjEvYXV0aGVudGljYXRvci5wcm90bxIGYXBpLnYxItMBChRBdXRoZW50aWNhdGlvblJlc3VsdBIKCgJvaxgBIAEoCBIPCgd1c2VyX2lkGAIgASgDEhIKCnNlc3Npb25faWQYAyABKAMSFAoMYWNjZXNzX3Rva2VuGAQgASgJEh8KF2FjY2Vzc190b2tlbl9leHBpcmVzX2F0GAUgASgDEhUKDXJlZnJlc2hfdG9rZW4YBiABKAkSIAoYcmVmcmVzaF90b2tlbl9leHBpcmVzX2F0GAcgASgDEhoKEnNlc3Npb25fZXhwaXJlc19hdBgIIAEoAyJACg9SZWdpc3RlclJlcXVlc3QSDAoEbmFtZRgBIAEoCRINCgVlbWFpbBgCIAEoCRIQCghwYXNzd29yZBgDIAEoCSJAChBSZWdpc3RlclJlc3BvbnNlEiwKBnJlc3VsdBgBIAEoCzIcLmFwaS52MS5BdXRoZW50aWNhdGlvblJlc3VsdCIvCgxMb2dpblJlcXVlc3QSDQoFZW1haWwYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiPQoNTG9naW5SZXNwb25zZRIsCgZyZXN1bHQYASABKAsyHC5hcGkudjEuQXV0aGVudGljYXRpb25SZXN1bHQiJwoOUmVmcmVzaFJlcXVlc3QSFQoNcmVmcmVzaF90b2tlbhgBIAEoCSI/Cg9SZWZyZXNoUmVzcG9uc2USLAoGcmVzdWx0GAEgASgLMhwuYXBpLnYxLkF1dGhlbnRpY2F0aW9uUmVzdWx0IiYKDUxvZ291dFJlcXVlc3QSFQoNcmVmcmVzaF90b2tlbhgBIAEoCSIcCg5Mb2dvdXRSZXNwb25zZRIKCgJvaxgBIAEoCDKAAgoUQXV0aGVudGljYXRvclNlcnZpY2USPQoIUmVnaXN0ZXISFy5hcGkudjEuUmVnaXN0ZXJSZXF1ZXN0GhguYXBpLnYxLlJlZ2lzdGVyUmVzcG9uc2USNAoFTG9naW4SFC5hcGkudjEuTG9naW5SZXF1ZXN0GhUuYXBpLnYxLkxvZ2luUmVzcG9uc2USOgoHUmVmcmVzaBIWLmFwaS52MS5SZWZyZXNoUmVxdWVzdBoXLmFwaS52MS5SZWZyZXNoUmVzcG9uc2USNwoGTG9nb3V0EhUuYXBpLnYxLkxvZ291dFJlcXVlc3QaFi5hcGkudjEuTG9nb3V0UmVzcG9uc2VChQEKCmNvbS5hcGkudjFCEkF1dGhlbnRpY2F0b3JQcm90b1ABWipnaXRodWIuY29tL3NvYXN1cnMvY29yZGlzL2dlbi9hcGkvdjE7YXBpdjGiAgNBWFiqAgZBcGkuVjHKAgZBcGlcVjHiAhJBcGlcVjFcR1BCTWV0YWRhdGHqAgdBcGk6OlYxYghlZGl0aW9uc3DoBw");
 
 /**
- * @generated from message api.v1.LoginRequest
+ * @generated from message api.v1.AuthenticationResult
  */
-export type LoginRequest = Message<"api.v1.LoginRequest"> & {
+export type AuthenticationResult = Message<"api.v1.AuthenticationResult"> & {
+  /**
+   * @generated from field: bool ok = 1;
+   */
+  ok: boolean;
+
+  /**
+   * @generated from field: int64 user_id = 2;
+   */
+  userId: bigint;
+
+  /**
+   * @generated from field: int64 session_id = 3;
+   */
+  sessionId: bigint;
+
+  /**
+   * @generated from field: string access_token = 4;
+   */
+  accessToken: string;
+
+  /**
+   * @generated from field: int64 access_token_expires_at = 5;
+   */
+  accessTokenExpiresAt: bigint;
+
+  /**
+   * @generated from field: string refresh_token = 6;
+   */
+  refreshToken: string;
+
+  /**
+   * @generated from field: int64 refresh_token_expires_at = 7;
+   */
+  refreshTokenExpiresAt: bigint;
+
+  /**
+   * @generated from field: int64 session_expires_at = 8;
+   */
+  sessionExpiresAt: bigint;
 };
 
 /**
- * Describes the message api.v1.LoginRequest.
- * Use `create(LoginRequestSchema)` to create a new message.
+ * Describes the message api.v1.AuthenticationResult.
+ * Use `create(AuthenticationResultSchema)` to create a new message.
  */
-export const LoginRequestSchema: GenMessage<LoginRequest> = /*@__PURE__*/
+export const AuthenticationResultSchema: GenMessage<AuthenticationResult> = /*@__PURE__*/
   messageDesc(file_api_v1_authenticator, 0);
-
-/**
- * @generated from message api.v1.LoginResponse
- */
-export type LoginResponse = Message<"api.v1.LoginResponse"> & {
-};
-
-/**
- * Describes the message api.v1.LoginResponse.
- * Use `create(LoginResponseSchema)` to create a new message.
- */
-export const LoginResponseSchema: GenMessage<LoginResponse> = /*@__PURE__*/
-  messageDesc(file_api_v1_authenticator, 1);
 
 /**
  * @generated from message api.v1.RegisterRequest
  */
 export type RegisterRequest = Message<"api.v1.RegisterRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string email = 2;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string password = 3;
+   */
+  password: string;
 };
 
 /**
@@ -49,12 +89,16 @@ export type RegisterRequest = Message<"api.v1.RegisterRequest"> & {
  * Use `create(RegisterRequestSchema)` to create a new message.
  */
 export const RegisterRequestSchema: GenMessage<RegisterRequest> = /*@__PURE__*/
-  messageDesc(file_api_v1_authenticator, 2);
+  messageDesc(file_api_v1_authenticator, 1);
 
 /**
  * @generated from message api.v1.RegisterResponse
  */
 export type RegisterResponse = Message<"api.v1.RegisterResponse"> & {
+  /**
+   * @generated from field: api.v1.AuthenticationResult result = 1;
+   */
+  result?: AuthenticationResult | undefined;
 };
 
 /**
@@ -62,7 +106,114 @@ export type RegisterResponse = Message<"api.v1.RegisterResponse"> & {
  * Use `create(RegisterResponseSchema)` to create a new message.
  */
 export const RegisterResponseSchema: GenMessage<RegisterResponse> = /*@__PURE__*/
+  messageDesc(file_api_v1_authenticator, 2);
+
+/**
+ * @generated from message api.v1.LoginRequest
+ */
+export type LoginRequest = Message<"api.v1.LoginRequest"> & {
+  /**
+   * @generated from field: string email = 1;
+   */
+  email: string;
+
+  /**
+   * @generated from field: string password = 2;
+   */
+  password: string;
+};
+
+/**
+ * Describes the message api.v1.LoginRequest.
+ * Use `create(LoginRequestSchema)` to create a new message.
+ */
+export const LoginRequestSchema: GenMessage<LoginRequest> = /*@__PURE__*/
   messageDesc(file_api_v1_authenticator, 3);
+
+/**
+ * @generated from message api.v1.LoginResponse
+ */
+export type LoginResponse = Message<"api.v1.LoginResponse"> & {
+  /**
+   * @generated from field: api.v1.AuthenticationResult result = 1;
+   */
+  result?: AuthenticationResult | undefined;
+};
+
+/**
+ * Describes the message api.v1.LoginResponse.
+ * Use `create(LoginResponseSchema)` to create a new message.
+ */
+export const LoginResponseSchema: GenMessage<LoginResponse> = /*@__PURE__*/
+  messageDesc(file_api_v1_authenticator, 4);
+
+/**
+ * @generated from message api.v1.RefreshRequest
+ */
+export type RefreshRequest = Message<"api.v1.RefreshRequest"> & {
+  /**
+   * @generated from field: string refresh_token = 1;
+   */
+  refreshToken: string;
+};
+
+/**
+ * Describes the message api.v1.RefreshRequest.
+ * Use `create(RefreshRequestSchema)` to create a new message.
+ */
+export const RefreshRequestSchema: GenMessage<RefreshRequest> = /*@__PURE__*/
+  messageDesc(file_api_v1_authenticator, 5);
+
+/**
+ * @generated from message api.v1.RefreshResponse
+ */
+export type RefreshResponse = Message<"api.v1.RefreshResponse"> & {
+  /**
+   * @generated from field: api.v1.AuthenticationResult result = 1;
+   */
+  result?: AuthenticationResult | undefined;
+};
+
+/**
+ * Describes the message api.v1.RefreshResponse.
+ * Use `create(RefreshResponseSchema)` to create a new message.
+ */
+export const RefreshResponseSchema: GenMessage<RefreshResponse> = /*@__PURE__*/
+  messageDesc(file_api_v1_authenticator, 6);
+
+/**
+ * @generated from message api.v1.LogoutRequest
+ */
+export type LogoutRequest = Message<"api.v1.LogoutRequest"> & {
+  /**
+   * @generated from field: string refresh_token = 1;
+   */
+  refreshToken: string;
+};
+
+/**
+ * Describes the message api.v1.LogoutRequest.
+ * Use `create(LogoutRequestSchema)` to create a new message.
+ */
+export const LogoutRequestSchema: GenMessage<LogoutRequest> = /*@__PURE__*/
+  messageDesc(file_api_v1_authenticator, 7);
+
+/**
+ * @generated from message api.v1.LogoutResponse
+ */
+export type LogoutResponse = Message<"api.v1.LogoutResponse"> & {
+  /**
+   * @generated from field: bool ok = 1;
+   */
+  ok: boolean;
+};
+
+/**
+ * Describes the message api.v1.LogoutResponse.
+ * Use `create(LogoutResponseSchema)` to create a new message.
+ */
+export const LogoutResponseSchema: GenMessage<LogoutResponse> = /*@__PURE__*/
+  messageDesc(file_api_v1_authenticator, 8);
 
 /**
  * @generated from service api.v1.AuthenticatorService
@@ -83,6 +234,22 @@ export const AuthenticatorService: GenService<{
     methodKind: "unary";
     input: typeof LoginRequestSchema;
     output: typeof LoginResponseSchema;
+  },
+  /**
+   * @generated from rpc api.v1.AuthenticatorService.Refresh
+   */
+  refresh: {
+    methodKind: "unary";
+    input: typeof RefreshRequestSchema;
+    output: typeof RefreshResponseSchema;
+  },
+  /**
+   * @generated from rpc api.v1.AuthenticatorService.Logout
+   */
+  logout: {
+    methodKind: "unary";
+    input: typeof LogoutRequestSchema;
+    output: typeof LogoutResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_api_v1_authenticator, 0);

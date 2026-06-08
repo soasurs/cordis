@@ -33,6 +33,46 @@ const (
 	LIMIT
 		1
 	`
+
+	CheckEmailAvailabilityQuery = `
+	SELECT
+		NOT EXISTS (
+			SELECT
+				1
+			FROM
+				users
+			WHERE
+				email = $1
+			AND
+				deleted_at = $2
+		)
+	`
+
+	UpdateUserPasswordStatement = `
+	UPDATE
+		users
+	SET
+		hashed_password = $1,
+		updated_at = $2
+	WHERE
+		user_id = $3
+	AND
+		deleted_at = $4
+	`
+
+	UpdateUserEmailQuery = `
+	UPDATE
+		users
+	SET
+		email = $1,
+		updated_at = $2
+	WHERE
+		user_id = $3
+	AND
+		deleted_at = $4
+	RETURNING
+		user_id, email, hashed_password, created_at, updated_at, deleted_at
+	`
 )
 
 const (

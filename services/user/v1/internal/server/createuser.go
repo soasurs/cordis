@@ -17,7 +17,7 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 	}
 
 	var user *model.User
-	err = s.svcCtx.Store.Transact(ctx, func(txStore *store.Store) error {
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		createdUser, err := txStore.CreateUser(ctx, userID, req.GetEmail(), hashedPassword)
 		if err != nil {
 			return err
@@ -33,14 +33,7 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 		return nil, err
 	}
 
-	pbUser := &userv1.User{}
-	pbUser.SetUserId(user.UserID)
-	pbUser.SetEmail(user.Email)
-	pbUser.SetCreatedAt(user.CreatedAt)
-	pbUser.SetUpdatedAt(user.UpdatedAt)
-	pbUser.SetDeletedAt(user.DeletedAt)
-
 	resp := &userv1.CreateUserResponse{}
-	resp.SetUser(pbUser)
+	resp.SetUser(toPBUser(user))
 	return resp, nil
 }

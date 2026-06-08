@@ -22,15 +22,9 @@ func (s *userServer) getUserWithUserID(ctx context.Context, userID int64) (*user
 	if err != nil {
 		return nil, err
 	}
-	pbUser := new(userv1.User)
-	pbUser.SetUserId(user.UserID)
-	pbUser.SetEmail(user.Email)
-	pbUser.SetCreatedAt(user.CreatedAt)
-	pbUser.SetUpdatedAt(user.UpdatedAt)
-	pbUser.SetDeletedAt(user.DeletedAt)
 
 	resp := new(userv1.GetUserResponse)
-	resp.SetUser(pbUser)
+	resp.SetUser(toPBUser(user))
 	return resp, nil
 }
 
@@ -39,14 +33,8 @@ func (s *userServer) getUserWithEmail(ctx context.Context, email string) (*userv
 	if err != nil {
 		return nil, err
 	}
-	pbUser := new(userv1.User)
-	pbUser.SetUserId(user.UserID)
-	pbUser.SetEmail(user.Email)
-	pbUser.SetCreatedAt(user.CreatedAt)
-	pbUser.SetUpdatedAt(user.UpdatedAt)
-	pbUser.SetDeletedAt(user.DeletedAt)
 
 	resp := new(userv1.GetUserResponse)
-	resp.SetUser(pbUser)
+	resp.SetUser(toPBUser(user))
 	return resp, nil
 }

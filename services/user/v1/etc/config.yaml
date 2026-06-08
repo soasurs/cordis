@@ -1,3 +1,7 @@
 name: user.v1
 listenOn: 0.0.0.0:3000
 timeout: 0
+database:
+  dataSource: postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable
+  maxOpenConns: 10
+  maxIdleConns: 5

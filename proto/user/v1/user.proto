@@ -5,7 +5,11 @@ package user.v1;
 service UserService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
   rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
+  rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
 }
 
 message User {
@@ -14,6 +18,15 @@ message User {
   int64 created_at = 3;
   int64 updated_at = 4;
   int64 deleted_at = 5;
+}
+
+message UserProfile {
+  int64 user_id = 1;
+  string name = 2;
+  string avatar_uri = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+  int64 deleted_at = 6;
 }
 
 message CreateUserRequest {
@@ -37,6 +50,14 @@ message GetUserResponse {
   User user = 1;
 }
 
+message GetUserProfileRequest {
+  int64 user_id = 1;
+}
+
+message GetUserProfileResponse {
+  UserProfile profile = 1;
+}
+
 message VerifyPasswordRequest {
   string email = 1;
   string password = 2;
@@ -45,4 +66,32 @@ message VerifyPasswordRequest {
 message VerifyPasswordResponse {
   bool ok = 1;
   bool require_challenge = 2;
+  int64 user_id = 3;
+}
+
+message ChangePasswordRequest {
+  int64 user_id = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {
+  bool ok = 1;
+}
+
+message CheckEmailAvailabilityRequest {
+  string email = 1;
+}
+
+message CheckEmailAvailabilityResponse {
+  bool available = 1;
+}
+
+message UpdateEmailRequest {
+  int64 user_id = 1;
+  string email = 2;
+}
+
+message UpdateEmailResponse {
+  User user = 1;
 }

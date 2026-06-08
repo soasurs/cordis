@@ -39,12 +39,20 @@ const (
 	// AuthenticatorServiceLoginProcedure is the fully-qualified name of the AuthenticatorService's
 	// Login RPC.
 	AuthenticatorServiceLoginProcedure = "/api.v1.AuthenticatorService/Login"
+	// AuthenticatorServiceRefreshProcedure is the fully-qualified name of the AuthenticatorService's
+	// Refresh RPC.
+	AuthenticatorServiceRefreshProcedure = "/api.v1.AuthenticatorService/Refresh"
+	// AuthenticatorServiceLogoutProcedure is the fully-qualified name of the AuthenticatorService's
+	// Logout RPC.
+	AuthenticatorServiceLogoutProcedure = "/api.v1.AuthenticatorService/Logout"
 )
 
 // AuthenticatorServiceClient is a client for the api.v1.AuthenticatorService service.
 type AuthenticatorServiceClient interface {
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
+	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 }
 
 // NewAuthenticatorServiceClient constructs a client for the api.v1.AuthenticatorService service. By
@@ -70,6 +78,18 @@ func NewAuthenticatorServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(authenticatorServiceMethods.ByName("Login")),
 			connect.WithClientOptions(opts...),
 		),
+		refresh: connect.NewClient[v1.RefreshRequest, v1.RefreshResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceRefreshProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("Refresh")),
+			connect.WithClientOptions(opts...),
+		),
+		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceLogoutProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -77,6 +97,8 @@ func NewAuthenticatorServiceClient(httpClient connect.HTTPClient, baseURL string
 type authenticatorServiceClient struct {
 	register *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
 	login    *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	refresh  *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
+	logout   *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 }
 
 // Register calls api.v1.AuthenticatorService.Register.
@@ -97,10 +119,30 @@ func (c *authenticatorServiceClient) Login(ctx context.Context, req *v1.LoginReq
 	return nil, err
 }
 
+// Refresh calls api.v1.AuthenticatorService.Refresh.
+func (c *authenticatorServiceClient) Refresh(ctx context.Context, req *v1.RefreshRequest) (*v1.RefreshResponse, error) {
+	response, err := c.refresh.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// Logout calls api.v1.AuthenticatorService.Logout.
+func (c *authenticatorServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (*v1.LogoutResponse, error) {
+	response, err := c.logout.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthenticatorServiceHandler is an implementation of the api.v1.AuthenticatorService service.
 type AuthenticatorServiceHandler interface {
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
+	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
 }
 
 // NewAuthenticatorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -122,12 +164,28 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 		connect.WithSchema(authenticatorServiceMethods.ByName("Login")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authenticatorServiceRefreshHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceRefreshProcedure,
+		svc.Refresh,
+		connect.WithSchema(authenticatorServiceMethods.ByName("Refresh")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceLogoutHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceLogoutProcedure,
+		svc.Logout,
+		connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.AuthenticatorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthenticatorServiceRegisterProcedure:
 			authenticatorServiceRegisterHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceLoginProcedure:
 			authenticatorServiceLoginHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceRefreshProcedure:
+			authenticatorServiceRefreshHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceLogoutProcedure:
+			authenticatorServiceLogoutHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -143,4 +201,12 @@ func (UnimplementedAuthenticatorServiceHandler) Register(context.Context, *v1.Re
 
 func (UnimplementedAuthenticatorServiceHandler) Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Login is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Refresh is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Logout is not implemented"))
 }

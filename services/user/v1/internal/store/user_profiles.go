@@ -18,7 +18,7 @@ type userProfileRow struct {
 	DeletedAt int64  `db:"deleted_at"`
 }
 
-func (s *Store) CreateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
+func (s *SQLStore) CreateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
 	row := &userProfileRow{
 		UserID:    userID,
 		Name:      name,
@@ -43,7 +43,7 @@ func (s *Store) CreateUserProfile(ctx context.Context, userID int64, name, avata
 	}, nil
 }
 
-func (s *Store) GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error) {
+func (s *SQLStore) GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error) {
 	row := new(userProfileRow)
 	err := sqlx.GetContext(ctx, s.q, row, GetUserProfileQuery, userID, 0)
 	if err != nil {

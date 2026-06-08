@@ -156,41 +156,59 @@ func (r *Relay) claimAndSend() int {
 		return 0
 	}
 
+	// Enqueue all events asynchronously. Partitions are assigned by
+	// key hash (franz-go StickyPartitioner default).
 	for _, evt := range events {
-		r.sendOne(ctx, evt)
+		r.produceAsync(ctx, evt)
+	}
+
+	// Flush waits for all buffered records to reach the broker and
+	// their promises to complete (MarkSent or Release).
+	if err := r.Producer.Flush(ctx); err != nil {
+		r.Logger.Error("relay flush failed", "error", err)
 	}
 
 	return len(events)
 }
 
-func (r *Relay) sendOne(ctx context.Context, evt Event) {
+func (r *Relay) produceAsync(ctx context.Context, evt Event) {
 	rec := &kgo.Record{
 		Topic: evt.Topic,
 		Key:   evt.Key,
 		Value: evt.Payload,
 	}
 
-	results := r.Producer.ProduceSync(ctx, rec)
-	if err := results.FirstErr(); err != nil {
-		r.Logger.Error("relay publish failed",
-			"event_id", evt.ID,
-			"topic", evt.Topic,
-			"retry_count", evt.RetryCount,
-			"error", err,
-		)
-
-		if evt.RetryCount+1 > r.cfg.MaxRetries {
-			r.Logger.Error("relay retries exhausted, marking dead",
+	// Promise is called serially by kgo after the broker responds.
+	r.Producer.Produce(ctx, rec, func(_ *kgo.Record, err error) {
+		if err != nil {
+			r.Logger.Error("relay publish failed",
 				"event_id", evt.ID,
+				"topic", evt.Topic,
 				"retry_count", evt.RetryCount,
+				"error", err,
 			)
+
+			if evt.RetryCount+1 > r.cfg.MaxRetries {
+				r.Logger.Error("relay retries exhausted, marking dead",
+					"event_id", evt.ID,
+					"retry_count", evt.RetryCount,
+				)
+			}
+
+			if err := Release(context.Background(), r.DB, evt.ID); err != nil {
+				r.Logger.Error("relay release failed",
+					"event_id", evt.ID, "error", err,
+				)
+			}
+			return
 		}
 
-		_ = Release(ctx, r.DB, evt.ID)
-		return
-	}
-
-	_ = MarkSent(ctx, r.DB, evt.ID, Now())
+		if err := MarkSent(context.Background(), r.DB, evt.ID, Now()); err != nil {
+			r.Logger.Error("relay mark sent failed",
+				"event_id", evt.ID, "error", err,
+			)
+		}
+	})
 }
 
 func (r *Relay) runHousekeeping() {

@@ -10,6 +10,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
 	"google.golang.org/grpc/codes"
@@ -64,7 +65,7 @@ func (s *authenticatorServer) Login(ctx context.Context, req *authenticatorv1.Lo
 		return nil, err
 	}
 	if !verifyResp.GetOk() {
-		return new(authenticatorv1.LoginResponse), nil
+		return nil, invalidCredentialsError()
 	}
 
 	result, err := s.createSession(ctx, verifyResp.GetUserId(), req.GetUserAgent(), req.GetIp())
@@ -82,12 +83,9 @@ func (s *authenticatorServer) Refresh(ctx context.Context, req *authenticatorv1.
 		return nil, status.Error(codes.InvalidArgument, "refresh token is required")
 	}
 
-	_, session, ok, err := s.getSessionWithRefreshToken(ctx, req.GetRefreshToken())
+	_, session, err := s.getSessionWithRefreshToken(ctx, req.GetRefreshToken())
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		return new(authenticatorv1.RefreshResponse), nil
 	}
 
 	now := time.Now()
@@ -103,7 +101,7 @@ func (s *authenticatorServer) Refresh(ctx context.Context, req *authenticatorv1.
 	oldRefreshTokenHash := token.Hash(req.GetRefreshToken())
 	if err := s.svcCtx.Store.RotateRefreshToken(ctx, session.SessionID, oldRefreshTokenHash, token.Hash(newRefreshToken.Raw)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return new(authenticatorv1.RefreshResponse), nil
+			return nil, invalidRefreshTokenError()
 		}
 		return nil, err
 	}
@@ -119,12 +117,9 @@ func (s *authenticatorServer) Logout(ctx context.Context, req *authenticatorv1.L
 		return nil, status.Error(codes.InvalidArgument, "refresh token is required")
 	}
 
-	_, session, ok, err := s.getSessionWithRefreshToken(ctx, req.GetRefreshToken())
+	_, session, err := s.getSessionWithRefreshToken(ctx, req.GetRefreshToken())
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		return new(authenticatorv1.LogoutResponse), nil
 	}
 
 	if err := s.svcCtx.Store.RevokeSession(ctx, session.SessionID); err != nil {
@@ -139,18 +134,21 @@ func (s *authenticatorServer) Logout(ctx context.Context, req *authenticatorv1.L
 func (s *authenticatorServer) VerifyAccessToken(ctx context.Context, req *authenticatorv1.VerifyAccessTokenRequest) (*authenticatorv1.VerifyAccessTokenResponse, error) {
 	accessToken, err := s.svcCtx.Tokens.ParseAccessToken(req.GetAccessToken())
 	if err != nil {
-		return new(authenticatorv1.VerifyAccessTokenResponse), nil
+		return nil, invalidAccessTokenError()
 	}
 
 	session, err := s.svcCtx.Store.GetSession(ctx, accessToken.SessionID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return new(authenticatorv1.VerifyAccessTokenResponse), nil
+			return nil, invalidAccessTokenError()
 		}
 		return nil, err
 	}
-	if !isActiveSession(session, time.Now().UnixMilli()) || session.UserID != accessToken.UserID {
-		return new(authenticatorv1.VerifyAccessTokenResponse), nil
+	if err := checkSession(session, time.Now().UnixMilli()); err != nil {
+		return nil, err
+	}
+	if session.UserID != accessToken.UserID {
+		return nil, invalidAccessTokenError()
 	}
 
 	resp := new(authenticatorv1.VerifyAccessTokenResponse)
@@ -184,31 +182,51 @@ func (s *authenticatorServer) createSession(ctx context.Context, userID int64, u
 	return newAuthenticationResult(userID, session.SessionID, accessToken, refreshToken, session.ExpiresAt), nil
 }
 
-func (s *authenticatorServer) getSessionWithRefreshToken(ctx context.Context, rawRefreshToken string) (token.Token, *model.Session, bool, error) {
+func (s *authenticatorServer) getSessionWithRefreshToken(ctx context.Context, rawRefreshToken string) (token.Token, *model.Session, error) {
 	refreshToken, err := s.svcCtx.Tokens.ParseRefreshToken(rawRefreshToken)
 	if err != nil {
-		return token.Token{}, nil, false, nil
+		return token.Token{}, nil, invalidRefreshTokenError()
 	}
 
 	session, err := s.svcCtx.Store.GetSession(ctx, refreshToken.SessionID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return token.Token{}, nil, false, nil
+			return token.Token{}, nil, invalidRefreshTokenError()
 		}
-		return token.Token{}, nil, false, err
+		return token.Token{}, nil, err
 	}
 
-	if !isActiveSession(session, time.Now().UnixMilli()) ||
-		session.UserID != refreshToken.UserID ||
+	if err := checkSession(session, time.Now().UnixMilli()); err != nil {
+		return token.Token{}, nil, err
+	}
+	if session.UserID != refreshToken.UserID ||
 		subtle.ConstantTimeCompare([]byte(session.RefreshTokenHash), []byte(token.Hash(rawRefreshToken))) != 1 {
-		return token.Token{}, nil, false, nil
+		return token.Token{}, nil, invalidRefreshTokenError()
 	}
 
-	return refreshToken, session, true, nil
+	return refreshToken, session, nil
 }
 
-func isActiveSession(session *model.Session, now int64) bool {
-	return session.RevokedAt == 0 && session.ExpiresAt > now
+func checkSession(session *model.Session, now int64) error {
+	if session.RevokedAt != 0 {
+		return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionRevoked, "session revoked")
+	}
+	if session.ExpiresAt <= now {
+		return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionExpired, "session expired")
+	}
+	return nil
+}
+
+func invalidCredentialsError() error {
+	return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials, "invalid credentials")
+}
+
+func invalidAccessTokenError() error {
+	return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidAccessToken, "invalid access token")
+}
+
+func invalidRefreshTokenError() error {
+	return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken, "invalid refresh token")
 }
 
 func newAuthenticationResult(userID, sessionID int64, accessToken, refreshToken token.Token, sessionExpiresAt int64) *authenticatorv1.AuthenticationResult {

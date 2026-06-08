@@ -7,8 +7,7 @@ import (
 	"connectrpc.com/connect"
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/soasurs/cordis/pkg/apierror"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,7 +20,7 @@ func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterR
 
 	internalResp, err := s.svcCtx.AuthenticatorClient.Register(ctx, internalReq)
 	if err != nil {
-		return nil, toConnectError(err)
+		return nil, apierror.FromRPC(err)
 	}
 
 	return &apiv1.RegisterResponse{
@@ -37,7 +36,7 @@ func (s *authenticatorServer) Login(ctx context.Context, req *apiv1.LoginRequest
 
 	internalResp, err := s.svcCtx.AuthenticatorClient.Login(ctx, internalReq)
 	if err != nil {
-		return nil, toConnectError(err)
+		return nil, apierror.FromRPC(err)
 	}
 
 	return &apiv1.LoginResponse{
@@ -51,7 +50,7 @@ func (s *authenticatorServer) Refresh(ctx context.Context, req *apiv1.RefreshReq
 
 	internalResp, err := s.svcCtx.AuthenticatorClient.Refresh(ctx, internalReq)
 	if err != nil {
-		return nil, toConnectError(err)
+		return nil, apierror.FromRPC(err)
 	}
 
 	return &apiv1.RefreshResponse{
@@ -65,7 +64,7 @@ func (s *authenticatorServer) Logout(ctx context.Context, req *apiv1.LogoutReque
 
 	internalResp, err := s.svcCtx.AuthenticatorClient.Logout(ctx, internalReq)
 	if err != nil {
-		return nil, toConnectError(err)
+		return nil, apierror.FromRPC(err)
 	}
 
 	return &apiv1.LogoutResponse{
@@ -108,33 +107,4 @@ func toAPIAuthenticationResult(result *authenticatorv1.AuthenticationResult) *ap
 		RefreshTokenExpiresAt: proto.Int64(result.GetRefreshTokenExpiresAt()),
 		SessionExpiresAt:      proto.Int64(result.GetSessionExpiresAt()),
 	}
-}
-
-func toConnectError(err error) error {
-	code := connect.CodeInternal
-	switch status.Code(err) {
-	case codes.Canceled:
-		code = connect.CodeCanceled
-	case codes.InvalidArgument:
-		code = connect.CodeInvalidArgument
-	case codes.DeadlineExceeded:
-		code = connect.CodeDeadlineExceeded
-	case codes.NotFound:
-		code = connect.CodeNotFound
-	case codes.AlreadyExists:
-		code = connect.CodeAlreadyExists
-	case codes.PermissionDenied:
-		code = connect.CodePermissionDenied
-	case codes.ResourceExhausted:
-		code = connect.CodeResourceExhausted
-	case codes.FailedPrecondition:
-		code = connect.CodeFailedPrecondition
-	case codes.Aborted:
-		code = connect.CodeAborted
-	case codes.Unavailable:
-		code = connect.CodeUnavailable
-	case codes.Unauthenticated:
-		code = connect.CodeUnauthenticated
-	}
-	return connect.NewError(code, err)
 }

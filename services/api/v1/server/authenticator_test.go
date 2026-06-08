@@ -2,16 +2,21 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"connectrpc.com/connect"
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	"github.com/soasurs/cordis/pkg/apierror"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -19,6 +24,7 @@ type fakeAuthenticatorClient struct {
 	authenticatorv1.AuthenticatorServiceClient
 	registerRequest *authenticatorv1.RegisterRequest
 	loginResponse   *authenticatorv1.LoginResponse
+	loginError      error
 }
 
 func (f *fakeAuthenticatorClient) Register(_ context.Context, req *authenticatorv1.RegisterRequest, _ ...grpc.CallOption) (*authenticatorv1.RegisterResponse, error) {
@@ -40,6 +46,9 @@ func (f *fakeAuthenticatorClient) Register(_ context.Context, req *authenticator
 }
 
 func (f *fakeAuthenticatorClient) Login(_ context.Context, _ *authenticatorv1.LoginRequest, _ ...grpc.CallOption) (*authenticatorv1.LoginResponse, error) {
+	if f.loginError != nil {
+		return nil, f.loginError
+	}
 	return f.loginResponse, nil
 }
 
@@ -95,22 +104,45 @@ func TestRegister(t *testing.T) {
 
 func TestLoginFailure(t *testing.T) {
 	internalClient := &fakeAuthenticatorClient{
-		loginResponse: new(authenticatorv1.LoginResponse),
+		loginError: rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials, "invalid credentials"),
 	}
 	server := NewAuthenticator(&svc.ServiceContext{
 		AuthenticatorClient: internalClient,
 	})
 
-	resp, err := server.Login(context.Background(), &apiv1.LoginRequest{
+	_, err := server.Login(context.Background(), &apiv1.LoginRequest{
 		Email:    proto.String("user@example.com"),
 		Password: proto.String("wrong-password"),
 	})
-	if err != nil {
-		t.Fatalf("Login returned error: %v", err)
+	if connect.CodeOf(err) != connect.CodeUnauthenticated {
+		t.Fatalf("Login error code = %v, want %v: %v", connect.CodeOf(err), connect.CodeUnauthenticated, err)
 	}
-	if resp.GetResult() == nil || resp.GetResult().GetOk() {
-		t.Fatalf("expected failed authentication result: %v", resp.GetResult())
+
+	publicInfo := publicErrorInfo(t, err)
+	if publicInfo.GetCode() != apierror.CodeInvalidCredentials {
+		t.Fatalf("public error code = %q, want %q", publicInfo.GetCode(), apierror.CodeInvalidCredentials)
 	}
+}
+
+func publicErrorInfo(t *testing.T, err error) *apiv1.PublicErrorInfo {
+	t.Helper()
+
+	var connectErr *connect.Error
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error: %v", err)
+	}
+	for _, detail := range connectErr.Details() {
+		value, err := detail.Value()
+		if err != nil {
+			t.Fatalf("decode error detail: %v", err)
+		}
+		publicInfo, ok := value.(*apiv1.PublicErrorInfo)
+		if ok {
+			return publicInfo
+		}
+	}
+	t.Fatal("missing public error info detail")
+	return nil
 }
 
 type userAgentRoundTripper struct {

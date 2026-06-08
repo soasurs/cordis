@@ -1,0 +1,8 @@
+edition = "2023";
+
+package api.v1;
+
+message PublicErrorInfo {
+  string code = 1;
+  string message = 2;
+}

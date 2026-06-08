@@ -2,14 +2,30 @@ package server
 
 import (
 	"context"
+	"errors"
+	"strings"
 
+	"github.com/lib/pq"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/password"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.CreateUserResponse, error) {
+	if strings.TrimSpace(req.GetName()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	if strings.TrimSpace(req.GetEmail()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "email is required")
+	}
+	if req.GetPassword() == "" {
+		return nil, status.Error(codes.InvalidArgument, "password is required")
+	}
+
 	userID := s.svcCtx.Snowflake.Generate().Int64()
 	hashedPassword, err := password.Hash(req.GetPassword())
 	if err != nil {
@@ -30,10 +46,18 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 		return nil
 	})
 	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists, "email already exists")
+		}
 		return nil, err
 	}
 
 	resp := &userv1.CreateUserResponse{}
 	resp.SetUser(toPBUser(user))
 	return resp, nil
+}
+
+func isUniqueViolation(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "23505"
 }

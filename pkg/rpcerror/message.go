@@ -1,0 +1,9 @@
+package rpcerror
+
+const (
+	MessageDomain = "message.cordis"
+
+	MessageNotFound         = "message_not_found"
+	MessagePermissionDenied = "message_permission_denied"
+	MessageInvalidRequest   = "message_invalid_request"
+)

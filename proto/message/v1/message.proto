@@ -1,0 +1,293 @@
+edition = "2023";
+
+package message.v1;
+
+// MessageService manages messages and reactions within a channel.
+// Channels and threads are owned by the guild service; this service
+// receives only channel_id as an opaque reference.
+service MessageService {
+  // Message
+  rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
+  rpc UpdateMessage(UpdateMessageRequest) returns (UpdateMessageResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  // ListMessages returns messages in a channel ordered by id descending
+  // (newest first). Uses cursor-based pagination.
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+
+  // Reaction
+  // AddReaction is idempotent — adding the same emoji twice is a no-op.
+  rpc AddReaction(AddReactionRequest) returns (AddReactionResponse);
+  rpc RemoveReaction(RemoveReactionRequest) returns (RemoveReactionResponse);
+  // ListReactionUsers returns users who reacted with the same emoji.
+  rpc ListReactionUsers(ListReactionUsersRequest) returns (ListReactionUsersResponse);
+}
+
+// ============================================================
+// Enums
+// ============================================================
+
+// MessageType distinguishes user messages from system messages and replies.
+enum MessageType {
+  // Zero value, not used in requests.
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  // A regular message.
+  MESSAGE_TYPE_DEFAULT = 1;
+  // A reply to another message. referenced_message_id must be set.
+  MESSAGE_TYPE_REPLY = 19;
+  // The first message of a thread, auto-generated when a thread is created.
+  MESSAGE_TYPE_THREAD_STARTER = 21;
+}
+
+// MessageFlag is a bitmask applied to Message.flags.
+enum MessageFlag {
+  // Zero value, not used in requests.
+  MESSAGE_FLAG_UNSPECIFIED = 0;
+  // This message has an associated thread (thread id == message id).
+  MESSAGE_FLAG_HAS_THREAD = 32;
+  // Do not send push or desktop notifications for this message.
+  MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS = 4096;
+}
+
+// ============================================================
+// Shared objects
+// ============================================================
+
+// Message represents a single message in a channel or thread.
+message Message {
+  int64 id = 1;
+  // Opaque reference to the channel or thread this message belongs to.
+  int64 channel_id = 2;
+  // The user who sent this message.
+  int64 author_id = 3;
+  // Message body text. May be empty for attachment-only messages.
+  string content = 4;
+
+  MessageType type = 5;
+  // Bitmask of MessageFlag values.
+  int32 flags = 6;
+
+  // ---- Reply / Forward ----
+  // ID of the message being replied to or forwarded.
+  int64 referenced_message_id = 10;
+  // Channel of the referenced message. May differ from channel_id for
+  // cross-channel forwards.
+  int64 referenced_channel_id = 11;
+
+  // Object storage keys for attached files.
+  repeated Attachment attachments = 20;
+
+  // Non-zero if the message has been edited (Unix milliseconds).
+  int64 edited_at = 30;
+  int64 created_at = 31;
+  int64 updated_at = 32;
+}
+
+// Attachment describes a file attached to a message. The frontend uploads
+// the file to object storage first, then includes the resulting key when
+// sending the message. The backend prepends a CDN base URL when returning
+// attachments to clients.
+message Attachment {
+  // Object storage key (e.g., "attachments/123/abc.png").
+  string key = 1;
+  // Original filename shown to users.
+  string filename = 2;
+  // File size in bytes.
+  int64 size = 3;
+  // MIME type (e.g., "image/png").
+  string content_type = 4;
+  // Image dimensions, 0 if not applicable.
+  int32 width = 5;
+  int32 height = 6;
+}
+
+// AttachmentList is used on updates to distinguish "leave unchanged" from
+// "replace with an empty attachment list".
+message AttachmentList {
+  // Complete set of attachments that should remain on the message after edit.
+  repeated Attachment attachments = 1;
+}
+
+// MentionList is used on updates to distinguish "leave unchanged" from
+// "replace with no mentions".
+message MentionList {
+  // User IDs mentioned after parsing the edited message content.
+  repeated int64 user_ids = 1;
+}
+
+// Emoji represents an emoji that can be used in a reaction.
+// For Unicode emoji, id=0 and image_url is unset.
+// For custom guild emoji, id is a snowflake and image_url is the CDN URL.
+message Emoji {
+  int64 id = 1;
+  // Unicode character (e.g., "🔥") or custom emoji name (e.g., "LUL").
+  string name = 2;
+  bool animated = 3;
+  // Full CDN URL resolved by the backend at read time. Empty for Unicode.
+  string image_url = 4;
+}
+
+// ReactionSummary is the compact reaction shape returned with message pages.
+message ReactionSummary {
+  Emoji emoji = 1;
+  // Total users who reacted with this emoji.
+  int64 count = 2;
+  // True when the viewer reacted with this emoji.
+  bool me = 3;
+}
+
+// ============================================================
+// Message RPCs
+// ============================================================
+
+message CreateMessageRequest {
+  int64 channel_id = 1;
+  int64 author_id = 2;
+  string content = 3;
+  MessageType type = 4;
+  // Initial editable flags, such as MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS.
+  int32 flags = 5;
+
+  // Set when type is MESSAGE_TYPE_REPLY.
+  int64 referenced_message_id = 10;
+  // Channel of the referenced message. Required when referenced_message_id is set.
+  int64 referenced_channel_id = 11;
+
+  repeated Attachment attachments = 20;
+
+  // User IDs mentioned in this message. Parsed by the caller from content.
+  repeated int64 mention_user_ids = 30;
+}
+
+message CreateMessageResponse {
+  Message message = 1;
+}
+
+message UpdateMessageRequest {
+  int64 message_id = 1;
+  // If present, replaces message content. An explicit empty string clears it.
+  string content = 2;
+  // User performing the edit. The service uses this for ownership checks and audit.
+  int64 actor_user_id = 3;
+  // When true, the author_id ownership check is skipped — the caller
+  // has already verified the actor holds moderator permission.
+  // If present, replaces editable flags. Include all flags that should remain set.
+  int32 flags = 4;
+  // When true, the author_id ownership check is skipped — the caller
+  // has already verified the actor holds moderator permission.
+  bool has_permission = 5;
+  // If present, replaces the attachment list with this complete list.
+  AttachmentList attachments = 20;
+  // If present, replaces stored mentions with the parsed mentions for the
+  // edited message content.
+  MentionList mentions = 30;
+}
+
+message UpdateMessageResponse {
+  Message message = 1;
+}
+
+message DeleteMessageRequest {
+  int64 message_id = 1;
+  // User performing the delete. May differ from author_id for moderation actions.
+  int64 actor_user_id = 2;
+  // When true, the author_id ownership check is skipped — the caller
+  // has already verified the actor holds moderator permission.
+  bool has_permission = 3;
+}
+
+message DeleteMessageResponse {
+  bool ok = 1;
+}
+
+message GetMessageRequest {
+  int64 message_id = 1;
+  // Optional viewer used to populate ReactionSummary.me.
+  int64 viewer_user_id = 2;
+}
+
+message GetMessageResponse {
+  Message message = 1;
+  // Aggregated reactions on this message.
+  repeated ReactionSummary reactions = 2;
+}
+
+message ListMessagesRequest {
+  int64 channel_id = 1;
+  // Cursor-based pagination. before, after, and around are mutually exclusive.
+  oneof cursor {
+    // Return messages before this message ID.
+    int64 before = 2;
+    // Return messages after this message ID.
+    int64 after = 3;
+    // Return messages around this message ID.
+    int64 around = 4;
+  }
+  // Maximum results per page. Default 50, max 100.
+  int32 limit = 5;
+  // Optional viewer used to populate ReactionSummary.me.
+  int64 viewer_user_id = 6;
+}
+
+message ListMessagesResponse {
+  repeated Message messages = 1;
+  // Aggregated reactions keyed by message id for this page.
+  map<int64, ReactionSummaryList> reactions = 2;
+  // The smallest message id in this page. Use as ListMessagesRequest.before
+  // to fetch older messages. 0 means this page is empty.
+  int64 before_cursor = 3;
+  // The largest message id in this page. Use as ListMessagesRequest.after
+  // to fetch newer messages. 0 means this page is empty.
+  int64 after_cursor = 4;
+}
+
+// Wrapper for repeated ReactionSummary to allow map-of-repeated.
+message ReactionSummaryList {
+  repeated ReactionSummary reactions = 1;
+}
+
+// ============================================================
+// Reaction RPCs
+// ============================================================
+
+message AddReactionRequest {
+  int64 message_id = 1;
+  int64 user_id = 2;
+  // 0 for a Unicode emoji.
+  int64 emoji_id = 3;
+  // Unicode character or custom emoji name.
+  string emoji_name = 4;
+}
+
+message AddReactionResponse {
+  bool ok = 1;
+}
+
+message RemoveReactionRequest {
+  int64 message_id = 1;
+  int64 user_id = 2;
+  int64 emoji_id = 3;
+  string emoji_name = 4;
+}
+
+message RemoveReactionResponse {
+  bool ok = 1;
+}
+
+message ListReactionUsersRequest {
+  int64 message_id = 1;
+  int64 emoji_id = 2;
+  string emoji_name = 3;
+  // Cursor-based pagination: return user ids greater than cursor.
+  // Omit (or 0) for the first page.
+  int64 cursor = 4;
+  // Maximum results per page. Default 100, max 500.
+  int32 limit = 5;
+}
+
+message ListReactionUsersResponse {
+  repeated int64 user_ids = 1;
+  // The largest user id in this page, used as cursor for the next request.
+  // 0 means no more results.
+  int64 next_cursor = 2;
+}

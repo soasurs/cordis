@@ -20,3 +20,4 @@ inputs:
     paths:
       - proto/authenticator
       - proto/user
+      - proto/message

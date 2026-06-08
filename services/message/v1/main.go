@@ -3,11 +3,10 @@ package main
 import (
 	"flag"
 
-	userv1 "github.com/soasurs/cordis/gen/user/v1"
-	"github.com/soasurs/cordis/services/user/v1/config"
-	"github.com/soasurs/cordis/services/user/v1/internal/server"
-	"github.com/soasurs/cordis/services/user/v1/internal/svc"
-
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	"github.com/soasurs/cordis/services/message/v1/config"
+	"github.com/soasurs/cordis/services/message/v1/internal/server"
+	"github.com/soasurs/cordis/services/message/v1/internal/svc"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -26,7 +25,7 @@ func main() {
 	svc := svc.NewServiceContext(*cfg)
 	server := server.New(svc)
 	s, err := zrpc.NewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
-		userv1.RegisterUserServiceServer(grpcServer, server)
+		messagev1.RegisterMessageServiceServer(grpcServer, server)
 	})
 	if err != nil {
 		panic(err)

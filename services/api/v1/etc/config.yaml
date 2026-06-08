@@ -1,7 +1,25 @@
 name: api.v1
 listenOn: 0.0.0.0:8080
 
+observability:
+  log:
+    level: error
+  metrics:
+    enabled: true
+    listenOn: 0.0.0.0:6060
+    path: /metrics
+  tracing:
+    endpoint: "${CORDIS_OTEL_ENDPOINT}"
+    sampler: 1.0
+    insecure: true
+
 services:
   authenticator:
     endpoints:
       - 127.0.0.1:3001
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true

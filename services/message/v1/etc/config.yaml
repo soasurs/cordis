@@ -1,5 +1,5 @@
-name: user.v1
-listenOn: 0.0.0.0:3000
+name: message.v1
+listenOn: 0.0.0.0:3002
 timeout: 0
 
 log:
@@ -9,7 +9,7 @@ log:
 devServer:
   enabled: true
   host: 0.0.0.0
-  port: 6062
+  port: 6063
   enableMetrics: true
   enablePprof: false
 

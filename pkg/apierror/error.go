@@ -66,6 +66,21 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeEmailAlreadyExists,
 		message:     "Email already exists.",
 	},
+	{Domain: rpcerror.MessageDomain, Reason: rpcerror.MessageNotFound}: {
+		connectCode: connect.CodeNotFound,
+		publicCode:  CodeNotFound,
+		message:     "Resource not found.",
+	},
+	{Domain: rpcerror.MessageDomain, Reason: rpcerror.MessagePermissionDenied}: {
+		connectCode: connect.CodePermissionDenied,
+		publicCode:  CodePermissionDenied,
+		message:     "Permission denied.",
+	},
+	{Domain: rpcerror.MessageDomain, Reason: rpcerror.MessageInvalidRequest}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Invalid request.",
+	},
 }
 
 var codeMappings = map[codes.Code]mapping{
@@ -142,6 +157,36 @@ func FromRPC(err error) error {
 		return newConnectError(mapping)
 	}
 	return newConnectError(internalMapping())
+}
+
+func PublicCode(err error) string {
+	info, ok := PublicInfo(err)
+	if !ok {
+		return ""
+	}
+	return info.GetCode()
+}
+
+func PublicInfo(err error) (*apiv1.PublicErrorInfo, bool) {
+	if err == nil {
+		return nil, false
+	}
+
+	var connectErr *connect.Error
+	if !errors.As(err, &connectErr) {
+		return nil, false
+	}
+	for _, detail := range connectErr.Details() {
+		value, err := detail.Value()
+		if err != nil {
+			continue
+		}
+		publicInfo, ok := value.(*apiv1.PublicErrorInfo)
+		if ok {
+			return publicInfo, true
+		}
+	}
+	return nil, false
 }
 
 func newConnectError(mapping mapping) error {

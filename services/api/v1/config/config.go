@@ -1,11 +1,15 @@
 package config
 
-import "github.com/zeromicro/go-zero/zrpc"
+import (
+	"github.com/soasurs/cordis/services/api/v1/observability"
+	"github.com/zeromicro/go-zero/zrpc"
+)
 
 type Config struct {
-	Name     string
-	ListenOn string
-	Services ServiceConfig
+	Name          string
+	ListenOn      string
+	Observability observability.Config
+	Services      ServiceConfig
 }
 
 type ServiceConfig struct {

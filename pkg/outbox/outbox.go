@@ -1,6 +1,7 @@
 // Package outbox provides a transactional outbox for reliably publishing
 // events to Kafka. Events are inserted in the same database transaction as
-// business data, then asynchronously flushed to Kafka after commit.
+// business data, then asynchronously flushed to Kafka after commit via a
+// background relay.
 //
 // Each service that needs the outbox pattern creates its own outbox_messages
 // table and uses this package to manage the lifecycle.
@@ -9,28 +10,21 @@ package outbox
 import "encoding/json"
 
 // Event is a Kafka message waiting to be sent.
-// It is stored in the outbox_messages table within the same transaction
-// as the business data that produced it.
 type Event struct {
-	ID int64 // snowflake, primary key
-
-	// Topic is the Kafka topic to publish to (e.g. "message.events").
-	Topic string
-	// Key is the Kafka message key used for partition routing.
-	// For message events, this is typically the channel_id serialized as a string.
-	Key []byte
+	ID    int64  // snowflake, primary key
+	Topic string // Kafka topic (e.g. "message.events")
+	Key   []byte // Kafka message key for partition routing
 	// Payload is the Kafka message value — the serialized JSON event body.
-	Payload json.RawMessage
-
+	Payload    json.RawMessage
 	RetryCount int
 	MaxRetries int
-
 	// LockedAt is a unix-millis timestamp.
-	// 0 means the event is pending and available for claiming.
-	// > 0 means the event is being processed by a worker identified by LockedBy.
+	// 0 = pending, > 0 = being processed by a relay worker.
 	LockedAt int64
-
-	CreatedAt int64 // unix-millis
+	// DeletedAt is a unix-millis timestamp.
+	// 0 = not yet sent, > 0 = successfully published and waiting cleanup.
+	DeletedAt int64
+	CreatedAt int64
 }
 
 // TableSQL returns the CREATE TABLE statement for outbox_messages.
@@ -44,14 +38,17 @@ CREATE TABLE IF NOT EXISTS outbox_messages (
 	retry_count  INT NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
 	max_retries  INT NOT NULL DEFAULT 5 CHECK (max_retries >= 0),
 	locked_at    BIGINT NOT NULL DEFAULT 0 CHECK (locked_at >= 0),
+	deleted_at   BIGINT NOT NULL DEFAULT 0 CHECK (deleted_at >= 0),
 	created_at   BIGINT NOT NULL CHECK (created_at > 0)
 );
 
-CREATE INDEX IF NOT EXISTS idx_outbox_messages_fetch
+-- Relay dispatcher: finds pending events to send.
+CREATE INDEX IF NOT EXISTS idx_outbox_fetch
 	ON outbox_messages (id)
 	WHERE locked_at = 0;
 
-CREATE INDEX IF NOT EXISTS idx_outbox_messages_locked
-	ON outbox_messages (locked_at)
-	WHERE locked_at > 0;
+-- Cleanup: finds sent events past their retention to delete.
+CREATE INDEX IF NOT EXISTS idx_outbox_cleanup
+	ON outbox_messages (deleted_at)
+	WHERE deleted_at > 0;
 `

@@ -3,34 +3,33 @@ package outbox
 import (
 	"context"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-// RelayConfig controls the relay's polling behavior.
+// RelayConfig controls the relay's behavior.
 type RelayConfig struct {
-	// NumWorkers is the number of concurrent poller goroutines.
-	// Defaults to 4.
-	NumWorkers int
-
-	// BatchSize is the maximum number of events each worker claims per
-	// poll. Defaults to 100.
+	// BatchSize is the maximum number of events to claim per dispatch
+	// cycle. Defaults to 100.
 	BatchSize int
 
-	// PollInterval is how long a worker sleeps when no events are found.
-	// Defaults to 100ms.
+	// PollInterval is how long the dispatcher waits when there are no
+	// pending events. Defaults to 50ms.
 	PollInterval time.Duration
 
 	// StaleThreshold is how long after locked_at an event is considered
 	// stale and will be recovered back to pending. Defaults to 60s.
 	StaleThreshold time.Duration
 
-	// StaleInterval is how often the stale recovery goroutine runs.
-	// Defaults to 30s.
-	StaleInterval time.Duration
+	// Retention is how long successfully-sent events are kept before
+	// cleanup deletes them. Defaults to 1h.
+	Retention time.Duration
+
+	// CleanupBatch is the max rows to delete per cleanup cycle.
+	// Defaults to 10000.
+	CleanupBatch int
 
 	// MaxRetries is the default max_retries for outbox events.
 	// Defaults to 5.
@@ -40,81 +39,105 @@ type RelayConfig struct {
 // DefaultRelayConfig returns a reasonable default configuration.
 func DefaultRelayConfig() RelayConfig {
 	return RelayConfig{
-		NumWorkers:     4,
 		BatchSize:      100,
-		PollInterval:   100 * time.Millisecond,
+		PollInterval:   50 * time.Millisecond,
 		StaleThreshold: 60 * time.Second,
-		StaleInterval:  30 * time.Second,
+		Retention:      1 * time.Hour,
+		CleanupBatch:   10000,
 		MaxRetries:     5,
 	}
 }
 
 // Relay polls the outbox table and publishes events to Kafka.
+//
+// The relay uses a single dispatcher goroutine that is woken by either
+// a Notify() call (after a handler writes a new event) or a periodic
+// ticker (to handle retries and edge cases). Because all events flow
+// through one ORDER BY id path, ordering is naturally preserved and
+// no per-entity version tracking is needed.
 type Relay struct {
 	cfg      RelayConfig
 	DB       *sqlx.DB
 	Producer Producer
 	Logger   *slog.Logger
 
-	// WaitGroup tracks in-flight ProduceSync + DB operations.
-	// The caller should Wait() on this during graceful shutdown.
-	Wg sync.WaitGroup
+	// notifyCh wakes the dispatcher. Buffered with capacity 1;
+	// sends are non-blocking — if the channel is full, the
+	// dispatcher is already awake or will wake on the next tick.
+	notifyCh chan struct{}
 
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
-// NewRelay creates a Relay. The caller must call Start() to begin polling.
+// NewRelay creates a Relay. The caller must call Start() to begin.
 func NewRelay(cfg RelayConfig, db *sqlx.DB, producer Producer, logger *slog.Logger) *Relay {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &Relay{
 		cfg:      cfg,
 		DB:       db,
 		Producer: producer,
 		Logger:   logger,
+		notifyCh: make(chan struct{}, 1),
 	}
 }
 
-// Start launches the poller workers and stale recovery goroutine.
-// Call Stop() (or cancel the parent context) to shut down gracefully.
+// Notify wakes the dispatcher. Safe for concurrent use. Handlers call
+// this after committing a transaction that inserted outbox events.
+// Safe to call on a nil Relay (e.g. in tests or when Kafka is disabled).
+func (r *Relay) Notify() {
+	if r == nil {
+		return
+	}
+	select {
+	case r.notifyCh <- struct{}{}:
+	default:
+		// Channel full — dispatcher is already awake or will
+		// wake on the next tick.
+	}
+}
+
+// Start launches the dispatcher and housekeeping goroutines.
 func (r *Relay) Start(parent context.Context) {
 	r.ctx, r.cancel = context.WithCancel(parent)
-
-	// Primary workers: claim pending events and publish to Kafka.
-	for i := 0; i < r.cfg.NumWorkers; i++ {
-		go r.runWorker(i)
-	}
-
-	// Stale recovery: periodically reset stuck events.
-	go r.runStaleRecovery()
+	go r.runDispatcher()
+	go r.runHousekeeping()
 }
 
-// Stop cancels the relay's context. In-flight operations (already-claimed
-// events being published) will complete. Call Wg.Wait() after Stop() to
-// wait for them, then close the Kafka client and database.
+// Stop cancels the relay's background goroutines. Safe to call on nil.
 func (r *Relay) Stop() {
-	if r.cancel != nil {
-		r.cancel()
+	if r == nil || r.cancel == nil {
+		return
 	}
+	r.cancel()
 }
 
-func (r *Relay) runWorker(_ int) {
+func (r *Relay) runDispatcher() {
+	ticker := time.NewTicker(r.cfg.PollInterval)
+	defer ticker.Stop()
+
 	for {
 		select {
+		case <-r.notifyCh:
+		case <-ticker.C:
 		case <-r.ctx.Done():
 			return
-		default:
 		}
 
-		claimed := r.claimAndSend()
-		if claimed == 0 {
-			// Nothing pending — sleep briefly.
+		n := r.claimAndSend()
+
+		// If we claimed a full batch there may be more pending
+		// events — loop immediately without waiting.
+		if n < r.cfg.BatchSize {
 			select {
+			case <-r.notifyCh:
+			case <-ticker.C:
 			case <-r.ctx.Done():
 				return
-			case <-time.After(r.cfg.PollInterval):
 			}
 		}
-		// If we claimed a full batch, don't sleep — there may be more.
 	}
 }
 
@@ -125,7 +148,7 @@ func (r *Relay) claimAndSend() int {
 	events, err := ClaimBatch(ctx, r.DB, Now(), r.cfg.BatchSize)
 	if err != nil {
 		if r.ctx.Err() == nil {
-			r.Logger.Error("outbox relay claim failed", "error", err)
+			r.Logger.Error("relay claim failed", "error", err)
 		}
 		return 0
 	}
@@ -134,15 +157,13 @@ func (r *Relay) claimAndSend() int {
 	}
 
 	for _, evt := range events {
-		r.Wg.Add(1)
-		r.publishOne(ctx, evt)
-		r.Wg.Done()
+		r.sendOne(ctx, evt)
 	}
 
 	return len(events)
 }
 
-func (r *Relay) publishOne(ctx context.Context, evt Event) {
+func (r *Relay) sendOne(ctx context.Context, evt Event) {
 	rec := &kgo.Record{
 		Topic: evt.Topic,
 		Key:   evt.Key,
@@ -151,66 +172,81 @@ func (r *Relay) publishOne(ctx context.Context, evt Event) {
 
 	results := r.Producer.ProduceSync(ctx, rec)
 	if err := results.FirstErr(); err != nil {
-		r.Logger.Error("outbox relay publish failed",
+		r.Logger.Error("relay publish failed",
 			"event_id", evt.ID,
 			"topic", evt.Topic,
 			"retry_count", evt.RetryCount,
 			"error", err,
 		)
 
-		// If retries exhausted, leave it as dead so DropDead can clean
-		// it later and an alert can fire.
 		if evt.RetryCount+1 > r.cfg.MaxRetries {
-			r.Logger.Error("outbox event retries exhausted, marking dead",
+			r.Logger.Error("relay retries exhausted, marking dead",
 				"event_id", evt.ID,
 				"retry_count", evt.RetryCount,
 			)
 		}
 
-		if err := Release(ctx, r.DB, evt.ID); err != nil {
-			r.Logger.Error("outbox relay release failed", "event_id", evt.ID, "error", err)
-		}
+		_ = Release(ctx, r.DB, evt.ID)
 		return
 	}
 
-	if err := Delete(ctx, r.DB, evt.ID); err != nil {
-		r.Logger.Error("outbox relay delete failed", "event_id", evt.ID, "error", err)
-		// The event was published, so the delete failure results in
-		// at worst a duplicate (consumer must be idempotent). The
-		// next stale recovery will release it and it will be
-		// re-published.
-	}
+	_ = MarkSent(ctx, r.DB, evt.ID, Now())
 }
 
-func (r *Relay) runStaleRecovery() {
-	ticker := time.NewTicker(r.cfg.StaleInterval)
-	defer ticker.Stop()
+func (r *Relay) runHousekeeping() {
+	// Stale recovery: run every 30s.
+	staleTicker := time.NewTicker(30 * time.Second)
+	defer staleTicker.Stop()
+
+	// Cleanup: run every 5min.
+	cleanupTicker := time.NewTicker(5 * time.Minute)
+	defer cleanupTicker.Stop()
 
 	for {
 		select {
 		case <-r.ctx.Done():
 			return
-		case <-ticker.C:
+		case <-staleTicker.C:
+			r.recoverStale()
+		case <-cleanupTicker.C:
+			r.cleanup()
 		}
+	}
+}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func (r *Relay) recoverStale() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-		staleBefore := time.Now().Add(-r.cfg.StaleThreshold).UnixMilli()
-		if err := RecoverStale(ctx, r.DB, staleBefore); err != nil {
-			if r.ctx.Err() == nil {
-				r.Logger.Error("outbox stale recovery failed", "error", err)
-			}
+	staleBefore := time.Now().Add(-r.cfg.StaleThreshold).UnixMilli()
+	if err := RecoverStale(ctx, r.DB, staleBefore); err != nil {
+		if r.ctx.Err() == nil {
+			r.Logger.Error("relay stale recovery failed", "error", err)
 		}
+	}
+}
 
-		deadBefore := time.Now().Add(-1 * time.Hour).UnixMilli()
-		if n, err := DropDead(ctx, r.DB, deadBefore); err != nil {
-			if r.ctx.Err() == nil {
-				r.Logger.Error("outbox drop dead failed", "error", err)
-			}
-		} else if n > 0 {
-			r.Logger.Error("outbox dropped dead events", "count", n)
+func (r *Relay) cleanup() {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	olderThan := time.Now().Add(-r.cfg.Retention).UnixMilli()
+	n, err := Cleanup(ctx, r.DB, olderThan, r.cfg.CleanupBatch)
+	if err != nil {
+		if r.ctx.Err() == nil {
+			r.Logger.Error("relay cleanup failed", "error", err)
 		}
+		return
+	}
+	if n > 0 {
+		r.Logger.Info("relay cleaned up sent events", "count", n)
+	}
 
-		cancel()
+	// Also drop dead events (retries exhausted).
+	deadBefore := time.Now().Add(-1 * time.Hour).UnixMilli()
+	if m, err := DropDead(ctx, r.DB, deadBefore); err != nil {
+		r.Logger.Error("relay drop dead failed", "error", err)
+	} else if m > 0 {
+		r.Logger.Error("relay dropped dead events", "count", m)
 	}
 }

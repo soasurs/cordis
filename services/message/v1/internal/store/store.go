@@ -62,20 +62,10 @@ type Store interface {
 	ListReactionSummaries(ctx context.Context, messageIDs []int64, viewerUserID int64) (map[int64][]*model.ReactionSummary, error)
 	ListReactionUsers(ctx context.Context, key ReactionKey, cursor int64, limit int) ([]int64, error)
 
-	// Outbox operations for the transactional outbox pattern.
 	// InsertOutboxEvent is called inside Transact to atomically enqueue an
-	// event alongside business data.
+	// outbox event alongside business data. The relay picks it up and
+	// publishes to Kafka.
 	InsertOutboxEvent(ctx context.Context, evt outbox.Event) error
-
-	// ClaimOutboxEvent atomically locks a single outbox event for processing.
-	// Returns nil if another worker already claimed it.
-	ClaimOutboxEvent(ctx context.Context, id, now int64) (*outbox.Event, error)
-
-	// ReleaseOutboxEvent returns an event to pending and increments retries.
-	ReleaseOutboxEvent(ctx context.Context, id int64) error
-
-	// DeleteOutboxEvent removes a successfully published event.
-	DeleteOutboxEvent(ctx context.Context, id int64) error
 }
 
 type SQLStore struct {
@@ -124,21 +114,4 @@ func checkRowsAffected(res sql.Result) error {
 // event within the current transaction (s.q).
 func (s *SQLStore) InsertOutboxEvent(ctx context.Context, evt outbox.Event) error {
 	return outbox.Insert(ctx, s.q, evt)
-}
-
-// ClaimOutboxEvent atomically claims a single event. Uses s.q (the
-// non-transactional DB connection) since this is called outside of
-// Transact by the flush goroutine.
-func (s *SQLStore) ClaimOutboxEvent(ctx context.Context, id, now int64) (*outbox.Event, error) {
-	return outbox.ClaimOne(ctx, s.q, id, now)
-}
-
-// ReleaseOutboxEvent returns an event to pending state.
-func (s *SQLStore) ReleaseOutboxEvent(ctx context.Context, id int64) error {
-	return outbox.Release(ctx, s.q, id)
-}
-
-// DeleteOutboxEvent removes a successfully published event.
-func (s *SQLStore) DeleteOutboxEvent(ctx context.Context, id int64) error {
-	return outbox.Delete(ctx, s.q, id)
 }

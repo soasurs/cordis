@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"sort"
-	"sync"
 	"testing"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
@@ -223,7 +222,6 @@ type fakeStore struct {
 	mentions  map[int64][]int64
 	reactions map[reactionKey]struct{}
 	outbox    map[int64]*outbox.Event
-	mu        sync.Mutex // guards outbox for concurrent claim
 }
 
 func newFakeStore() *fakeStore {
@@ -394,30 +392,6 @@ func (s *fakeStore) ListReactionUsers(_ context.Context, key store.ReactionKey, 
 
 func (s *fakeStore) InsertOutboxEvent(_ context.Context, evt outbox.Event) error {
 	s.outbox[evt.ID] = &evt
-	return nil
-}
-
-func (s *fakeStore) ClaimOutboxEvent(_ context.Context, id, now int64) (*outbox.Event, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	evt, ok := s.outbox[id]
-	if !ok || evt.LockedAt > 0 {
-		return nil, nil
-	}
-	evt.LockedAt = now
-	return evt, nil
-}
-
-func (s *fakeStore) ReleaseOutboxEvent(_ context.Context, id int64) error {
-	if evt, ok := s.outbox[id]; ok {
-		evt.LockedAt = 0
-		evt.RetryCount++
-	}
-	return nil
-}
-
-func (s *fakeStore) DeleteOutboxEvent(_ context.Context, id int64) error {
-	delete(s.outbox, id)
 	return nil
 }
 

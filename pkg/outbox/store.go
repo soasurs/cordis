@@ -8,18 +8,20 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Queryer abstracts *sqlx.DB / *sqlx.Tx so that Store methods can be called
-// both inside and outside a transaction.
+// Queryer abstracts *sqlx.DB / *sqlx.Tx so that Store functions can be
+// called both inside and outside a transaction.
 type Queryer = sqlx.ExtContext
 
-// Insert records a new outbox event. Call this inside a transaction alongside
-// the business operation that produced the event.
+// Insert records a new outbox event. Call this inside a transaction
+// alongside the business data that produced the event.
 func Insert(ctx context.Context, q Queryer, evt Event) error {
 	query := `
 	INSERT INTO outbox_messages (
-		id, topic, key, payload, retry_count, max_retries, locked_at, created_at
+		id, topic, key, payload, retry_count, max_retries,
+		locked_at, deleted_at, created_at
 	) VALUES (
-		:id, :topic, :key, :payload, :retry_count, :max_retries, :locked_at, :created_at
+		:id, :topic, :key, :payload, :retry_count, :max_retries,
+		:locked_at, :deleted_at, :created_at
 	)
 	`
 	_, err := sqlx.NamedExecContext(ctx, q, query, eventRow{
@@ -30,34 +32,20 @@ func Insert(ctx context.Context, q Queryer, evt Event) error {
 		RetryCount: evt.RetryCount,
 		MaxRetries: evt.MaxRetries,
 		LockedAt:   evt.LockedAt,
+		DeletedAt:  evt.DeletedAt,
 		CreatedAt:  evt.CreatedAt,
 	})
 	return err
 }
 
-// ClaimOne attempts to claim a single outbox event by ID using CAS semantics.
-// Returns the event if claimed, nil if another worker already claimed it.
-func ClaimOne(ctx context.Context, q Queryer, id int64, now int64) (*Event, error) {
-	events, err := claim(ctx, q, now, 1, `AND id = $2`, id)
-	if err != nil {
-		return nil, err
-	}
-	if len(events) == 0 {
-		return nil, nil
-	}
-	return &events[0], nil
-}
-
-// ClaimBatch attempts to claim up to limit pending events.
-// Uses FOR UPDATE SKIP LOCKED so multiple workers can claim concurrently
-// without blocking each other.
+// ClaimBatch claims up to limit pending events, locking them with the
+// current timestamp. Uses FOR UPDATE SKIP LOCKED so concurrent relay
+// workers don't block each other.
 func ClaimBatch(ctx context.Context, q Queryer, now int64, limit int) ([]Event, error) {
 	return claim(ctx, q, now, limit, "")
 }
 
 func claim(ctx context.Context, q Queryer, now int64, limit int, extraWhere string, extraArgs ...any) ([]Event, error) {
-	// positional: $1 = locked_at new value
-	// extraWhere may add $2, ... — so we pass now last in the extraArgs
 	args := []any{now}
 	args = append(args, extraArgs...)
 	args = append(args, limit)
@@ -73,7 +61,7 @@ func claim(ctx context.Context, q Queryer, now int64, limit int, extraWhere stri
 		LIMIT $%d
 		FOR UPDATE SKIP LOCKED
 	)
-	RETURNING id, topic, key, payload, retry_count, max_retries, locked_at, created_at
+	RETURNING id, topic, key, payload, retry_count, max_retries, locked_at, deleted_at, created_at
 	`, extraWhere, len(args))
 
 	var rows []eventRow
@@ -84,47 +72,64 @@ func claim(ctx context.Context, q Queryer, now int64, limit int, extraWhere stri
 }
 
 // Release returns an event to the pending state and increments its retry
-// count. Use this when Kafka delivery failed and the event should be retried
-// later.
+// count. Use when Kafka delivery failed and the event should be retried.
 func Release(ctx context.Context, q Queryer, id int64) error {
-	query := `
+	_, err := q.ExecContext(ctx, `
 	UPDATE outbox_messages
 	SET locked_at = 0, retry_count = retry_count + 1
 	WHERE id = $1
-	`
-	_, err := q.ExecContext(ctx, query, id)
+	`, id)
 	return err
 }
 
-// Delete removes an event from the outbox table. Call this after the event
-// has been successfully published to Kafka.
-func Delete(ctx context.Context, q Queryer, id int64) error {
-	query := `DELETE FROM outbox_messages WHERE id = $1`
-	_, err := q.ExecContext(ctx, query, id)
+// MarkSent marks an event as successfully published to Kafka.
+// The row stays in the table for retention-period cleanup.
+func MarkSent(ctx context.Context, q Queryer, id, now int64) error {
+	_, err := q.ExecContext(ctx, `
+	UPDATE outbox_messages
+	SET deleted_at = $1
+	WHERE id = $2
+	`, now, id)
 	return err
+}
+
+// Cleanup removes events that were successfully sent and are past the
+// retention period. Batch size limits the number of rows deleted at once
+// to keep autovacuum overhead manageable.
+func Cleanup(ctx context.Context, q Queryer, olderThan int64, batchSize int) (int64, error) {
+	res, err := q.ExecContext(ctx, `
+	DELETE FROM outbox_messages
+	WHERE deleted_at > 0 AND deleted_at < $1
+	LIMIT $2
+	`, olderThan, batchSize)
+	if err != nil {
+		return 0, err
+	}
+	n, _ := res.RowsAffected()
+	return n, nil
 }
 
 // RecoverStale resets events that have been locked for longer than
-// staleBefore back to the pending state, unless they have exhausted their
-// retries. This prevents events from being stuck if a worker crashes while
-// processing.
+// staleBefore back to pending. This handles the case where a relay worker
+// crashes while holding a lock.
 func RecoverStale(ctx context.Context, q Queryer, staleBefore int64) error {
-	query := `
+	_, err := q.ExecContext(ctx, `
 	UPDATE outbox_messages
 	SET locked_at = 0
 	WHERE locked_at > 0
 	  AND locked_at < $1
 	  AND retry_count < max_retries
-	`
-	_, err := q.ExecContext(ctx, query, staleBefore)
+	`, staleBefore)
 	return err
 }
 
-// DropDead removes events that have exhausted their retries and are past the
-// given retention period. These are events that failed to publish even after
-// multiple retries and should be logged/alerted on.
+// DropDead removes events that have exhausted their retries and are past
+// the given time threshold, returning the count of removed rows.
 func DropDead(ctx context.Context, q Queryer, olderThan int64) (int64, error) {
-	res, err := q.ExecContext(ctx, `DELETE FROM outbox_messages WHERE retry_count >= max_retries AND created_at < $1`, olderThan)
+	res, err := q.ExecContext(ctx, `
+	DELETE FROM outbox_messages
+	WHERE retry_count >= max_retries AND created_at < $1
+	`, olderThan)
 	if err != nil {
 		return 0, err
 	}
@@ -142,6 +147,7 @@ type eventRow struct {
 	RetryCount int    `db:"retry_count"`
 	MaxRetries int    `db:"max_retries"`
 	LockedAt   int64  `db:"locked_at"`
+	DeletedAt  int64  `db:"deleted_at"`
 	CreatedAt  int64  `db:"created_at"`
 }
 
@@ -156,14 +162,14 @@ func toEvents(rows []eventRow) []Event {
 			RetryCount: r.RetryCount,
 			MaxRetries: r.MaxRetries,
 			LockedAt:   r.LockedAt,
+			DeletedAt:  r.DeletedAt,
 			CreatedAt:  r.CreatedAt,
 		})
 	}
 	return events
 }
 
-// Now returns the current unix-millis timestamp. A thin wrapper so all
-// outbox operations use the same time source.
+// Now returns the current unix-millis timestamp.
 func Now() int64 {
 	return time.Now().UnixMilli()
 }

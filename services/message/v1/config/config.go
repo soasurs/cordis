@@ -34,15 +34,15 @@ func (c KafkaConfig) ProducerConfig() kafka.ProducerConfig {
 	return kafka.ProducerConfig{Seeds: c.Seeds}
 }
 
-// OutboxConfig controls the outbox relay (background poller).
+// OutboxConfig controls the outbox relay (background dispatcher).
 // All fields are optional — zero values use defaults from
 // outbox.DefaultRelayConfig.
 type OutboxConfig struct {
-	NumWorkers     int `json:",optional"`
 	BatchSize      int `json:",optional"`
 	PollIntervalMs int `json:",optional"`
 	StaleThreshold int `json:",optional"` // seconds
-	StaleInterval  int `json:",optional"` // seconds
+	RetentionMin   int `json:",optional"` // minutes, default 60
+	CleanupBatch   int `json:",optional"`
 	MaxRetries     int `json:",optional"`
 }
 
@@ -50,9 +50,6 @@ type OutboxConfig struct {
 // defaults from DefaultRelayConfig where values are unset.
 func (c OutboxConfig) RelayConfig() outbox.RelayConfig {
 	cfg := outbox.DefaultRelayConfig()
-	if c.NumWorkers > 0 {
-		cfg.NumWorkers = c.NumWorkers
-	}
 	if c.BatchSize > 0 {
 		cfg.BatchSize = c.BatchSize
 	}
@@ -62,8 +59,11 @@ func (c OutboxConfig) RelayConfig() outbox.RelayConfig {
 	if c.StaleThreshold > 0 {
 		cfg.StaleThreshold = time.Duration(c.StaleThreshold) * time.Second
 	}
-	if c.StaleInterval > 0 {
-		cfg.StaleInterval = time.Duration(c.StaleInterval) * time.Second
+	if c.RetentionMin > 0 {
+		cfg.Retention = time.Duration(c.RetentionMin) * time.Minute
+	}
+	if c.CleanupBatch > 0 {
+		cfg.CleanupBatch = c.CleanupBatch
 	}
 	if c.MaxRetries > 0 {
 		cfg.MaxRetries = c.MaxRetries

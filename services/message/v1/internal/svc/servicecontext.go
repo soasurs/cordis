@@ -2,7 +2,6 @@ package svc
 
 import (
 	"log/slog"
-	"sync"
 
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jmoiron/sqlx"
@@ -25,14 +24,10 @@ type ServiceContext struct {
 	// Nil if Kafka is not configured.
 	Kafka *kgo.Client
 
-	// Relay is the background outbox poller. It recovers stale events
-	// that were not flushed immediately after commit.
+	// Relay is the background outbox dispatcher. It picks up pending
+	// events and publishes them to Kafka. Handlers wake it via Notify()
+	// after committing a transaction that inserts outbox events.
 	Relay *outbox.Relay
-
-	// ShutdownWg tracks in-flight flush goroutines and relay operations.
-	// The main goroutine should Wait() on this during graceful shutdown
-	// before closing Kafka and database connections.
-	ShutdownWg *sync.WaitGroup
 }
 
 type Dependencies struct {
@@ -87,16 +82,12 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	}
 
 	svcCtx := &ServiceContext{
-		Cfg:        cfg,
-		Store:      deps.Store,
-		Snowflake:  deps.Snowflake,
-		Kafka:      deps.Kafka,
-		ShutdownWg: &sync.WaitGroup{},
+		Cfg:       cfg,
+		Store:     deps.Store,
+		Snowflake: deps.Snowflake,
+		Kafka:     deps.Kafka,
 	}
 
-	// Start the outbox relay if both Kafka and the outbox config are present.
-	// The relay handles stale event recovery — events that were written to
-	// the outbox but never flushed (e.g. due to a crash).
 	if deps.Kafka != nil && deps.DB != nil {
 		relayCfg := cfg.Outbox.RelayConfig()
 		producer := &outbox.FranzProducer{Client: deps.Kafka}

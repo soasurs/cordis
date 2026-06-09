@@ -80,23 +80,27 @@ func New(db *sqlx.DB) Store {
 	}
 }
 
-func (s *SQLStore) Transact(ctx context.Context, fn func(txStore Store) error) error {
+func (s *SQLStore) Transact(ctx context.Context, fn func(txStore Store) error) (err error) {
 	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
-		return err
+		return
 	}
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		}
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
 
-	txStore := &SQLStore{
-		db: s.db,
-		q:  tx,
+	err = fn(&SQLStore{db: s.db, q: tx})
+	if err != nil {
+		return
 	}
-
-	if err := fn(txStore); err != nil {
-		_ = tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
+	err = tx.Commit()
+	return
 }
 
 func checkRowsAffected(res sql.Result) error {

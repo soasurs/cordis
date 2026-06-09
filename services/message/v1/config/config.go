@@ -11,9 +11,10 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database database.Config `json:",optional"`
-	Kafka    KafkaConfig     `json:",optional"`
-	Outbox   OutboxConfig    `json:",optional"`
+	Database        database.Config `json:",optional"`
+	Kafka           KafkaConfig     `json:",optional"`
+	Outbox          OutboxConfig    `json:",optional"`
+	EmojiCDNBaseURL string          `json:",optional"`
 }
 
 // KafkaConfig controls the Kafka producer connection and the event topic
@@ -38,6 +39,7 @@ func (c KafkaConfig) ProducerConfig() kafka.ProducerConfig {
 // All fields are optional — zero values use defaults from
 // outbox.DefaultRelayConfig.
 type OutboxConfig struct {
+	PartitionCount int `json:",optional"`
 	BatchSize      int `json:",optional"`
 	PollIntervalMs int `json:",optional"`
 	StaleThreshold int `json:",optional"` // seconds
@@ -50,6 +52,9 @@ type OutboxConfig struct {
 // defaults from DefaultRelayConfig where values are unset.
 func (c OutboxConfig) RelayConfig() outbox.RelayConfig {
 	cfg := outbox.DefaultRelayConfig()
+	if c.PartitionCount > 0 {
+		cfg.PartitionCount = c.PartitionCount
+	}
 	if c.BatchSize > 0 {
 		cfg.BatchSize = c.BatchSize
 	}

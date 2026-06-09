@@ -1778,8 +1778,6 @@ type UpdateMessageRequest_builder struct {
 	Content *string
 	// User performing the edit. The service uses this for ownership checks and audit.
 	ActorUserId *int64
-	// When true, the author_id ownership check is skipped — the caller
-	// has already verified the actor holds moderator permission.
 	// If present, replaces editable flags. Include all flags that should remain set.
 	Flags *int32
 	// When true, the author_id ownership check is skipped — the caller

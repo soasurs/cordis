@@ -12,6 +12,7 @@ type Producer interface {
 	// Produce enqueues a record for asynchronous delivery. The promise
 	// is called with the result when the broker responds (success or
 	// failure). Records are keyed for hash-based partition assignment.
+	// The promise is always called, even for immediate failures.
 	Produce(ctx context.Context, r *kgo.Record, promise func(*kgo.Record, error))
 
 	// Flush waits for all buffered records to be delivered and their

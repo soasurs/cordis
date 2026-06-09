@@ -13,9 +13,11 @@ import (
 	"strconv"
 )
 
-// PartitionCount is the immutable number of logical outbox partitions.
-// Changing it requires an explicit data migration before deploying writers.
-const PartitionCount = 64
+// DefaultPartitionCount is the default number of logical outbox partitions.
+// It may be overridden per-service via [RelayConfig.PartitionCount].
+// Changing the partition count at runtime requires an explicit data migration
+// before deploying writers.
+const DefaultPartitionCount = 64
 
 // Event is a Kafka message waiting to be sent.
 type Event struct {
@@ -72,12 +74,12 @@ const TableSQL = `
 `
 
 // PartitionForKey deterministically maps a routing key to a logical outbox
-// partition.
-func PartitionForKey(key []byte) int {
+// partition in the range [0, partitionCount).
+func PartitionForKey(key []byte, partitionCount int) int {
 	if value, err := strconv.ParseUint(string(key), 10, 64); err == nil {
-		return int(value % PartitionCount)
+		return int(value % uint64(partitionCount))
 	}
 	hash := fnv.New32a()
 	_, _ = hash.Write(key)
-	return int(hash.Sum32() % PartitionCount)
+	return int(hash.Sum32() % uint32(partitionCount))
 }

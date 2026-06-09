@@ -209,19 +209,22 @@ const (
 
 	ListReactionSummariesQuery = `
 	SELECT
-		message_id,
-		emoji_id,
-		emoji_name,
+		r.message_id,
+		r.emoji_id,
+		r.emoji_name,
+		COALESCE(e.animated, FALSE) AS animated,
+		COALESCE(e.image_key, '') AS image_key,
 		COUNT(*)::BIGINT AS count,
-		BOOL_OR(user_id = $2) AS me
+		BOOL_OR(r.user_id = $2) AS me
 	FROM
-		reactions
+		reactions r
+		LEFT JOIN emojis e ON r.emoji_id = e.id
 	WHERE
-		message_id = ANY($1)
+		r.message_id = ANY($1)
 	GROUP BY
-		message_id, emoji_id, emoji_name
+		r.message_id, r.emoji_id, r.emoji_name, e.animated, e.image_key
 	ORDER BY
-		message_id DESC, count DESC, emoji_id ASC, emoji_name ASC
+		r.message_id DESC, count DESC, r.emoji_id ASC, r.emoji_name ASC
 	`
 
 	ListReactionUsersQuery = `

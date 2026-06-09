@@ -234,27 +234,36 @@ func (s *SQLStore) selectMessages(ctx context.Context, query string, args ...any
 }
 
 func (s *SQLStore) listMessagesAround(ctx context.Context, params ListMessagesParams) ([]*model.Message, error) {
-	newerLimit := params.Limit / 2
-	olderLimit := params.Limit - newerLimit
-
-	older, err := s.selectMessages(ctx, ListMessagesAroundOlderQuery, params.ChannelID, 0, params.Around, olderLimit)
+	older, err := s.selectMessages(ctx, ListMessagesAroundOlderQuery, params.ChannelID, 0, params.Around, params.Limit)
 	if err != nil {
 		return nil, err
 	}
-	newer, err := s.selectMessages(ctx, ListMessagesAroundNewerQuery, params.ChannelID, 0, params.Around, newerLimit)
+	newer, err := s.selectMessages(ctx, ListMessagesAroundNewerQuery, params.ChannelID, 0, params.Around, params.Limit)
 	if err != nil {
 		return nil, err
 	}
 	reverseMessages(newer)
 
-	messages := append(newer, older...)
-	sort.SliceStable(messages, func(i, j int) bool {
-		return messages[i].ID > messages[j].ID
-	})
-	if len(messages) > params.Limit {
-		messages = messages[:params.Limit]
+	all := append(newer, older...)
+	if len(all) <= params.Limit {
+		return all, nil
 	}
-	return messages, nil
+
+	anchorIdx := len(newer)
+	half := params.Limit / 2
+	start := anchorIdx - half
+	if start < 0 {
+		start = 0
+	}
+	end := start + params.Limit
+	if end > len(all) {
+		end = len(all)
+		start = end - params.Limit
+		if start < 0 {
+			start = 0
+		}
+	}
+	return all[start:end], nil
 }
 
 func (s *SQLStore) noRowsForActor(ctx context.Context, messageID int64) error {

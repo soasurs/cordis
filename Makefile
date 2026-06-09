@@ -1,7 +1,7 @@
 BUF ?= buf
 
 EXTERNAL_PROTO_FILES := $(shell find proto/api -type f -name '*.proto')
-INTERNAL_PROTO_DIRS := proto/authenticator proto/user
+INTERNAL_PROTO_DIRS := proto/authenticator proto/user proto/message
 INTERNAL_PROTO_FILES := $(shell find $(INTERNAL_PROTO_DIRS) -type f -name '*.proto')
 GENERATE_TOOLS := $(BUF) protoc-gen-go protoc-gen-connect-go protoc-gen-go-grpc protoc-gen-es
 
@@ -32,4 +32,4 @@ test:
 
 test-integration:
 	@test -n "$(CORDIS_TEST_POSTGRES_DSN)" || { echo "CORDIS_TEST_POSTGRES_DSN is required" >&2; exit 1; }
-	go test -tags=integration ./services/user/v1/internal/store ./services/authenticator/v1/internal/store
+	go test -tags=integration ./services/user/v1/internal/store ./services/authenticator/v1/internal/store ./services/message/v1/internal/store

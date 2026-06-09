@@ -15,6 +15,7 @@ type reactionSummaryRow struct {
 	EmojiID   int64  `db:"emoji_id"`
 	EmojiName string `db:"emoji_name"`
 	Animated  bool   `db:"animated"`
+	ImageKey  string `db:"image_key"`
 	Count     int64  `db:"count"`
 	Me        bool   `db:"me"`
 }
@@ -47,6 +48,7 @@ func (s *SQLStore) ListReactionSummaries(ctx context.Context, messageIDs []int64
 				ID:       row.EmojiID,
 				Name:     row.EmojiName,
 				Animated: row.Animated,
+				ImageKey: row.ImageKey,
 			},
 			Count: row.Count,
 			Me:    row.Me,

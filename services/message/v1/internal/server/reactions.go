@@ -17,12 +17,42 @@ func (s *messageServer) AddReaction(ctx context.Context, req *messagev1.AddReact
 	if err := validateEmoji(req.GetEmojiId(), req.GetEmojiName()); err != nil {
 		return nil, err
 	}
-	if _, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId()); err != nil {
+
+	var channelID int64
+	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		msg, err := txStore.GetMessage(ctx, req.GetMessageId())
+		if err != nil {
+			return err
+		}
+		channelID = msg.ChannelID
+
+		if err := txStore.AddReaction(ctx, req.GetMessageId(), req.GetUserId(), req.GetEmojiId(), req.GetEmojiName()); err != nil {
+			return err
+		}
+
+		eventID := s.svcCtx.Snowflake.Generate().Int64()
+		outboxEvent, err := newReactionEvent(
+			s.svcCtx.Cfg.Kafka.Topic,
+			eventID,
+			EventTypeReactionAdded,
+			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
+			req.GetMessageId(),
+			channelID,
+			req.GetUserId(),
+			req.GetEmojiId(),
+			req.GetEmojiName(),
+		)
+		if err != nil {
+			return err
+		}
+		return txStore.InsertOutboxEvent(ctx, outboxEvent)
+	})
+	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	if err := s.svcCtx.Store.AddReaction(ctx, req.GetMessageId(), req.GetUserId(), req.GetEmojiId(), req.GetEmojiName()); err != nil {
-		return nil, mapStoreError(err)
-	}
+
+	s.svcCtx.Relay.Notify()
 
 	resp := new(messagev1.AddReactionResponse)
 	resp.SetOk(true)
@@ -39,12 +69,42 @@ func (s *messageServer) RemoveReaction(ctx context.Context, req *messagev1.Remov
 	if err := validateEmoji(req.GetEmojiId(), req.GetEmojiName()); err != nil {
 		return nil, err
 	}
-	if _, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId()); err != nil {
+
+	var channelID int64
+	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		msg, err := txStore.GetMessage(ctx, req.GetMessageId())
+		if err != nil {
+			return err
+		}
+		channelID = msg.ChannelID
+
+		if err := txStore.RemoveReaction(ctx, req.GetMessageId(), req.GetUserId(), req.GetEmojiId(), req.GetEmojiName()); err != nil {
+			return err
+		}
+
+		eventID := s.svcCtx.Snowflake.Generate().Int64()
+		outboxEvent, err := newReactionEvent(
+			s.svcCtx.Cfg.Kafka.Topic,
+			eventID,
+			EventTypeReactionRemoved,
+			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
+			req.GetMessageId(),
+			channelID,
+			req.GetUserId(),
+			req.GetEmojiId(),
+			req.GetEmojiName(),
+		)
+		if err != nil {
+			return err
+		}
+		return txStore.InsertOutboxEvent(ctx, outboxEvent)
+	})
+	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	if err := s.svcCtx.Store.RemoveReaction(ctx, req.GetMessageId(), req.GetUserId(), req.GetEmojiId(), req.GetEmojiName()); err != nil {
-		return nil, mapStoreError(err)
-	}
+
+	s.svcCtx.Relay.Notify()
 
 	resp := new(messagev1.RemoveReactionResponse)
 	resp.SetOk(true)

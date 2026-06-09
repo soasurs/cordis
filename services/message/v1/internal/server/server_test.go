@@ -59,7 +59,7 @@ func TestCreateMessage(t *testing.T) {
 	}
 	if evt.Topic != "message.events" ||
 		string(evt.Key) != "10" ||
-		evt.Partition != outbox.PartitionForKey(evt.Key) ||
+		evt.Partition != outbox.PartitionForKey(evt.Key, outbox.DefaultPartitionCount) ||
 		evt.MaxRetries != 7 {
 		t.Fatalf("unexpected outbox metadata: %+v", evt)
 	}

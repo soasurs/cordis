@@ -36,6 +36,7 @@ type Emoji struct {
 	ID       int64
 	Name     string
 	Animated bool
+	ImageKey string // object storage key for custom emoji, empty for Unicode
 	ImageURL string // resolved CDN URL, empty for Unicode
 }
 

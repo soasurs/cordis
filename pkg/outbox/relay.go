@@ -15,6 +15,12 @@ import (
 
 // RelayConfig controls the relay's behavior.
 type RelayConfig struct {
+	// PartitionCount is the number of logical outbox partitions.
+	// Every writer and relay must agree on this value — changing it
+	// requires a data migration before deploying writers.
+	// Defaults to [DefaultPartitionCount] (64).
+	PartitionCount int
+
 	// BatchSize is the maximum number of events to claim per dispatch
 	// cycle. Defaults to 100.
 	BatchSize int
@@ -43,6 +49,7 @@ type RelayConfig struct {
 // DefaultRelayConfig returns a reasonable default configuration.
 func DefaultRelayConfig() RelayConfig {
 	return RelayConfig{
+		PartitionCount: DefaultPartitionCount,
 		BatchSize:      100,
 		PollInterval:   50 * time.Millisecond,
 		StaleThreshold: 60 * time.Second,
@@ -96,7 +103,7 @@ func NewRelay(cfg RelayConfig, db *sqlx.DB, producer Producer, logger *slog.Logg
 		Logger:   logger,
 		notifyCh: make(chan struct{}, 1),
 	}
-	relay.nextPartition.Store(rand.Uint64() % PartitionCount)
+	relay.nextPartition.Store(rand.Uint64() % uint64(cfg.PartitionCount))
 	return relay
 }
 
@@ -189,7 +196,7 @@ func (r *Relay) claimAndSend() int {
 	}
 	defer conn.Close()
 
-	partitions, err := ReadyPartitions(ctx, conn, Now(), PartitionCount)
+	partitions, err := ReadyPartitions(ctx, conn, Now(), r.cfg.PartitionCount)
 	if err != nil {
 		if r.ctx.Err() == nil {
 			r.Logger.Error("relay ready partitions query failed", "error", err)
@@ -197,7 +204,7 @@ func (r *Relay) claimAndSend() int {
 		return 0
 	}
 
-	start := int(r.nextPartition.Add(1)-1) % PartitionCount
+	start := int(r.nextPartition.Add(1)-1) % r.cfg.PartitionCount
 	for _, partition := range rotatedPartitions(partitions, start) {
 		n, err := r.claimPartitionAndSend(ctx, conn, partition)
 		if err != nil {
@@ -210,7 +217,7 @@ func (r *Relay) claimAndSend() int {
 			continue
 		}
 		if n > 0 {
-			r.nextPartition.Store(uint64((partition + 1) % PartitionCount))
+			r.nextPartition.Store(uint64((partition + 1) % r.cfg.PartitionCount))
 			return n
 		}
 	}
@@ -371,24 +378,34 @@ func (r *Relay) recoverStale() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	conn, err := r.DB.Conn(ctx)
+	if err != nil {
+		if r.ctx.Err() == nil {
+			r.Logger.Error("relay stale recovery connection failed", "error", err)
+		}
+		return
+	}
+	defer conn.Close()
+
 	staleBefore := time.Now().Add(-r.cfg.StaleThreshold).UnixMilli()
-	for partition := range PartitionCount {
-		conn, err := r.DB.Conn(ctx)
-		if err != nil {
-			return
+	for partition := range r.cfg.PartitionCount {
+		locked, lockErr := tryPartitionLock(ctx, conn, partition)
+		if lockErr != nil || !locked {
+			if lockErr != nil && r.ctx.Err() == nil {
+				r.Logger.Error("relay stale recovery lock failed",
+					"partition", partition,
+					"error", lockErr,
+				)
+			}
+			continue
 		}
-		locked, err := tryPartitionLock(ctx, conn, partition)
-		if err == nil && locked {
-			err = RecoverStale(ctx, conn, staleBefore, partition)
-			r.unlockPartition(conn, partition)
-		}
-		_ = conn.Close()
-		if err != nil && r.ctx.Err() == nil {
+		if recoverErr := RecoverStale(ctx, conn, staleBefore, partition); recoverErr != nil && r.ctx.Err() == nil {
 			r.Logger.Error("relay stale recovery failed",
 				"partition", partition,
-				"error", err,
+				"error", recoverErr,
 			)
 		}
+		r.unlockPartition(conn, partition)
 	}
 }
 

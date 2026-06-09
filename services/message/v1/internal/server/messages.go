@@ -36,6 +36,9 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if messageType == messagev1.MessageType_MESSAGE_TYPE_REPLY && req.GetReferencedMessageId() <= 0 {
 		return nil, invalidRequest("referenced message id is required")
 	}
+	if messageType != messagev1.MessageType_MESSAGE_TYPE_REPLY && req.GetReferencedMessageId() != 0 {
+		return nil, invalidRequest("referenced message is only valid for reply messages")
+	}
 	if (req.GetReferencedMessageId() == 0) != (req.GetReferencedChannelId() == 0) {
 		return nil, invalidRequest("referenced message and channel must be set together")
 	}
@@ -83,7 +86,9 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 			s.svcCtx.Cfg.Kafka.Topic,
 			eventID,
 			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
 			created,
+			req.GetMentionUserIds(),
 		)
 		if err != nil {
 			return err
@@ -160,12 +165,24 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 			}
 		}
 
+		var mentionUserIDs []int64
+		if req.HasMentions() {
+			mentionUserIDs = req.GetMentions().GetUserIds()
+		} else {
+			mentionUserIDs, err = txStore.ListMentionUserIDs(ctx, req.GetMessageId())
+			if err != nil {
+				return err
+			}
+		}
+
 		eventID := s.svcCtx.Snowflake.Generate().Int64()
 		outboxEvent, err := newMessageUpdatedEvent(
 			s.svcCtx.Cfg.Kafka.Topic,
 			eventID,
 			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
 			updated,
+			mentionUserIDs,
 		)
 		if err != nil {
 			return err
@@ -209,6 +226,7 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 			msg.ID,
 			msg.ChannelID,
 			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
 		)
 		if err != nil {
 			return err
@@ -239,6 +257,8 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 	if err != nil {
 		return nil, err
 	}
+
+	s.resolveEmojiImageURLs(summaries[message.ID])
 
 	resp := new(messagev1.GetMessageResponse)
 	resp.SetMessage(toPBMessage(message))
@@ -290,6 +310,10 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 		return nil, err
 	}
 
+	for _, messageSummaries := range summaries {
+		s.resolveEmojiImageURLs(messageSummaries)
+	}
+
 	resp := new(messagev1.ListMessagesResponse)
 	resp.SetMessages(toPBMessages(messages))
 	resp.SetReactions(toPBReactionSummaryMap(summaries))
@@ -339,4 +363,16 @@ func setListCursors(resp *messagev1.ListMessagesResponse, messages []*model.Mess
 	}
 	resp.SetBeforeCursor(minID)
 	resp.SetAfterCursor(maxID)
+}
+
+func (s *messageServer) resolveEmojiImageURLs(summaries []*model.ReactionSummary) {
+	baseURL := s.svcCtx.Cfg.EmojiCDNBaseURL
+	if baseURL == "" {
+		return
+	}
+	for _, summary := range summaries {
+		if summary.Emoji.ImageURL == "" && summary.Emoji.ImageKey != "" {
+			summary.Emoji.ImageURL = baseURL + "/" + summary.Emoji.ImageKey
+		}
+	}
 }

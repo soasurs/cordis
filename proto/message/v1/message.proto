@@ -169,8 +169,6 @@ message UpdateMessageRequest {
   string content = 2;
   // User performing the edit. The service uses this for ownership checks and audit.
   int64 actor_user_id = 3;
-  // When true, the author_id ownership check is skipped — the caller
-  // has already verified the actor holds moderator permission.
   // If present, replaces editable flags. Include all flags that should remain set.
   int32 flags = 4;
   // When true, the author_id ownership check is skipped — the caller

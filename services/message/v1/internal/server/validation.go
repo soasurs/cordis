@@ -21,8 +21,7 @@ func normalizeMessageType(messageType messagev1.MessageType) (messagev1.MessageT
 	}
 	switch messageType {
 	case messagev1.MessageType_MESSAGE_TYPE_DEFAULT,
-		messagev1.MessageType_MESSAGE_TYPE_REPLY,
-		messagev1.MessageType_MESSAGE_TYPE_THREAD_STARTER:
+		messagev1.MessageType_MESSAGE_TYPE_REPLY:
 		return messageType, nil
 	default:
 		return messagev1.MessageType_MESSAGE_TYPE_UNSPECIFIED, invalidRequest("invalid message type")
@@ -30,7 +29,7 @@ func normalizeMessageType(messageType messagev1.MessageType) (messagev1.MessageT
 }
 
 func validateFlags(flags int32) error {
-	const allowedFlags = int32(messagev1.MessageFlag_MESSAGE_FLAG_HAS_THREAD | messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS)
+	const allowedFlags = int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS)
 	if flags < 0 || flags&^allowedFlags != 0 {
 		return invalidRequest("invalid message flags")
 	}

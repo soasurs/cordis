@@ -1,5 +1,9 @@
 # AGENTS.md
 
+## Git
+
+- Always commit with `git commit -s` (sign-off). Never add co-author trailers.
+
 ## Commands
 
 ```bash
@@ -16,7 +20,7 @@ go test ./services/message/v1/internal/store/... -v -count=1
 go build ./services/message/v1/...
 ```
 
-`make test-integration` runs integration tests (`//go:build integration`) for all three internal services: user, authenticator, message.
+`make test-integration` runs integration tests (`//go:build integration`) for all three internal services (user, authenticator, message) and outbox relay.
 
 The only required env var for integration tests is `CORDIS_TEST_POSTGRES_DSN`, e.g.:
 ```
@@ -68,7 +72,7 @@ Every service: `Config → NewDependencies(cfg) → NewServiceContextWithDepende
 
 - Each store defines an `interface`. `SQLStore` holds `*sqlx.DB` and `sqlx.ExtContext` (`q` field).
 - `q` is `*sqlx.DB` normally, `*sqlx.Tx` inside `Transact`.
-- `Transact`: begins tx, creates child `SQLStore` with `q = tx`, calls callback. Deferred rollback on panic or error.
+- `Transact`: begins tx, creates child `SQLStore` with `q = tx`, calls callback. Deferred rollback on panic or error (both User and Message stores).
 - Dynamic SQL uses positional params (`$1, $2, ...`).
 - Migrations embedded via `//go:embed *.sql`, applied by `pkg/migration.Apply()` lexicographically.
 
@@ -118,6 +122,13 @@ Event types: `message_created`, `message_updated`, `message_deleted`, `reaction_
 
 Domain/reason constants: `pkg/rpcerror/{authenticator,user,message}.go`. Mappings: `pkg/apierror/error.go`.
 
+## Input validation
+
+- Email format validated in User service (`isValidEmail` in `services/user/v1/internal/server/validation.go`) and Authenticator (`services/authenticator/v1/server/validation.go`).
+- Name: trimmed, max 64 chars (`validateName` in user server).
+- Password: non-empty check in `ChangePassword` before hashing.
+- `GetUser` and other User handlers map `sql.ErrNoRows` → gRPC `NotFound` via `mapStoreError()`.
+
 ## Test patterns
 
 Three isolation layers:
@@ -125,6 +136,10 @@ Three isolation layers:
 - **Fake stores**: in-memory maps implementing store interface. Used by server tests. No dependencies.
 - **sqlmock**: `sqlmock.QueryMatcherRegexp` mode with `sqlPattern()` helpers. Exact query verification.
 - **Integration tests** (`//go:build integration`): per-test Postgres schemas via `search_path` (`cordis_test_<nanos>`). Use `internal/testpostgres.New(t, migrationsFS)`. Requires `CORDIS_TEST_POSTGRES_DSN`.
+
+Test assertions use `github.com/stretchr/testify/require` (not manual `if/t.Fatalf`). The `require` package fails immediately on assertion failure; use it for all test checks.
+
+Outbox relay tests use `FakeProducer` (`pkg/outbox/fake_producer.go`) — an async mock that matches `kgo.Client` semantics (buffer on `Produce`, call promises on `Flush`). Supports `Err` for global failure and `FailTopics` for per-topic control.
 
 ## Observability
 

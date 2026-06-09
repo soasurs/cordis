@@ -32,4 +32,4 @@ test:
 
 test-integration:
 	@test -n "$(CORDIS_TEST_POSTGRES_DSN)" || { echo "CORDIS_TEST_POSTGRES_DSN is required" >&2; exit 1; }
-	go test -tags=integration ./services/user/v1/internal/store ./services/authenticator/v1/internal/store ./services/message/v1/internal/store
+	go test -tags=integration ./services/user/v1/internal/store ./services/authenticator/v1/internal/store ./services/message/v1/internal/store ./pkg/outbox/...

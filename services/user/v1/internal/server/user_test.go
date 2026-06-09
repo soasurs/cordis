@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	"github.com/lib/pq"
-	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 	"github.com/soasurs/cordis/services/user/v1/internal/svc"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,21 +29,13 @@ func TestCreateUser(t *testing.T) {
 	req.SetPassword("password")
 
 	resp, err := server.CreateUser(context.Background(), req)
-	if err != nil {
-		t.Fatalf("CreateUser returned error: %v", err)
-	}
-	if resp.GetUser().GetUserId() == 0 {
-		t.Fatal("expected user id")
-	}
-	if resp.GetUser().GetEmail() != "user@example.com" {
-		t.Fatalf("email = %q, want user@example.com", resp.GetUser().GetEmail())
-	}
-	if store.profile == nil || store.profile.Name != "display name" {
-		t.Fatalf("expected profile creation, got %+v", store.profile)
-	}
-	if store.user.HashedPassword == "" || store.user.HashedPassword == "password" {
-		t.Fatalf("expected hashed password, got %q", store.user.HashedPassword)
-	}
+	require.NoError(t, err)
+	require.NotZero(t, resp.GetUser().GetUserId())
+	require.Equal(t, "user@example.com", resp.GetUser().GetEmail())
+	require.NotNil(t, store.profile)
+	require.Equal(t, "display name", store.profile.Name)
+	require.NotEmpty(t, store.user.HashedPassword)
+	require.NotEqual(t, "password", store.user.HashedPassword)
 }
 
 func TestCreateUserValidation(t *testing.T) {
@@ -53,9 +46,7 @@ func TestCreateUserValidation(t *testing.T) {
 	req.SetPassword("password")
 
 	_, err := server.CreateUser(context.Background(), req)
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("CreateUser code = %v, want %v: %v", status.Code(err), codes.InvalidArgument, err)
-	}
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestCreateUserEmailAlreadyExists(t *testing.T) {
@@ -69,19 +60,13 @@ func TestCreateUserEmailAlreadyExists(t *testing.T) {
 	req.SetPassword("password")
 
 	_, err := server.CreateUser(context.Background(), req)
-	if status.Code(err) != codes.AlreadyExists {
-		t.Fatalf("CreateUser code = %v, want %v: %v", status.Code(err), codes.AlreadyExists, err)
-	}
-	if !rpcerror.Is(err, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists) {
-		t.Fatalf("expected email already exists reason: %v", err)
-	}
+	require.Equal(t, codes.AlreadyExists, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists))
 }
 
 func TestVerifyPassword(t *testing.T) {
 	hashedPassword, err := password.Hash("password")
-	if err != nil {
-		t.Fatalf("hash password: %v", err)
-	}
+	require.NoError(t, err)
 
 	store := newFakeStore()
 	store.user = &model.User{
@@ -96,19 +81,14 @@ func TestVerifyPassword(t *testing.T) {
 	req.SetPassword("password")
 
 	resp, err := server.VerifyPassword(context.Background(), req)
-	if err != nil {
-		t.Fatalf("VerifyPassword returned error: %v", err)
-	}
-	if !resp.GetOk() || resp.GetUserId() != 1001 {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Equal(t, int64(1001), resp.GetUserId())
 }
 
 func TestVerifyPasswordMismatch(t *testing.T) {
 	hashedPassword, err := password.Hash("password")
-	if err != nil {
-		t.Fatalf("hash password: %v", err)
-	}
+	require.NoError(t, err)
 
 	store := newFakeStore()
 	store.user = &model.User{
@@ -123,12 +103,9 @@ func TestVerifyPasswordMismatch(t *testing.T) {
 	req.SetPassword("wrong-password")
 
 	resp, err := server.VerifyPassword(context.Background(), req)
-	if err != nil {
-		t.Fatalf("VerifyPassword returned error: %v", err)
-	}
-	if resp.GetOk() || resp.GetUserId() != 0 {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.False(t, resp.GetOk())
+	require.Zero(t, resp.GetUserId())
 }
 
 func TestVerifyPasswordUnknownEmail(t *testing.T) {
@@ -141,12 +118,9 @@ func TestVerifyPasswordUnknownEmail(t *testing.T) {
 	req.SetPassword("password")
 
 	resp, err := server.VerifyPassword(context.Background(), req)
-	if err != nil {
-		t.Fatalf("VerifyPassword returned error: %v", err)
-	}
-	if resp.GetOk() || resp.GetUserId() != 0 {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.False(t, resp.GetOk())
+	require.Zero(t, resp.GetUserId())
 }
 
 func TestGetUser(t *testing.T) {
@@ -161,12 +135,9 @@ func TestGetUser(t *testing.T) {
 	req.SetUserId(1001)
 
 	resp, err := server.GetUser(context.Background(), req)
-	if err != nil {
-		t.Fatalf("GetUser returned error: %v", err)
-	}
-	if resp.GetUser().GetUserId() != 1001 || resp.GetUser().GetEmail() != "user@example.com" {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), resp.GetUser().GetUserId())
+	require.Equal(t, "user@example.com", resp.GetUser().GetEmail())
 }
 
 func TestGetUserWithEmail(t *testing.T) {
@@ -181,12 +152,9 @@ func TestGetUserWithEmail(t *testing.T) {
 	req.SetEmail("user@example.com")
 
 	resp, err := server.GetUser(context.Background(), req)
-	if err != nil {
-		t.Fatalf("GetUser returned error: %v", err)
-	}
-	if resp.GetUser().GetUserId() != 1001 || resp.GetUser().GetEmail() != "user@example.com" {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), resp.GetUser().GetUserId())
+	require.Equal(t, "user@example.com", resp.GetUser().GetEmail())
 }
 
 func TestGetUserProfile(t *testing.T) {
@@ -202,21 +170,15 @@ func TestGetUserProfile(t *testing.T) {
 	req.SetUserId(1001)
 
 	resp, err := server.GetUserProfile(context.Background(), req)
-	if err != nil {
-		t.Fatalf("GetUserProfile returned error: %v", err)
-	}
-	if resp.GetProfile().GetUserId() != 1001 ||
-		resp.GetProfile().GetName() != "display name" ||
-		resp.GetProfile().GetAvatarUri() != "avatar://1" {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), resp.GetProfile().GetUserId())
+	require.Equal(t, "display name", resp.GetProfile().GetName())
+	require.Equal(t, "avatar://1", resp.GetProfile().GetAvatarUri())
 }
 
 func TestChangePassword(t *testing.T) {
 	hashedPassword, err := password.Hash("old-password")
-	if err != nil {
-		t.Fatalf("hash password: %v", err)
-	}
+	require.NoError(t, err)
 
 	store := newFakeStore()
 	store.user = &model.User{
@@ -232,22 +194,15 @@ func TestChangePassword(t *testing.T) {
 	req.SetNewPassword("new-password")
 
 	resp, err := server.ChangePassword(context.Background(), req)
-	if err != nil {
-		t.Fatalf("ChangePassword returned error: %v", err)
-	}
-	if !resp.GetOk() {
-		t.Fatalf("unexpected response: %v", resp)
-	}
-	if store.updatedPasswordHash == "" || store.updatedPasswordHash == "new-password" {
-		t.Fatalf("expected stored password hash, got %q", store.updatedPasswordHash)
-	}
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.NotEmpty(t, store.updatedPasswordHash)
+	require.NotEqual(t, "new-password", store.updatedPasswordHash)
 }
 
 func TestChangePasswordMismatch(t *testing.T) {
 	hashedPassword, err := password.Hash("old-password")
-	if err != nil {
-		t.Fatalf("hash password: %v", err)
-	}
+	require.NoError(t, err)
 
 	store := newFakeStore()
 	store.user = &model.User{
@@ -263,12 +218,9 @@ func TestChangePasswordMismatch(t *testing.T) {
 	req.SetNewPassword("new-password")
 
 	resp, err := server.ChangePassword(context.Background(), req)
-	if err != nil {
-		t.Fatalf("ChangePassword returned error: %v", err)
-	}
-	if resp.GetOk() || store.updatedPasswordHash != "" {
-		t.Fatalf("unexpected response=%v updated_hash=%q", resp, store.updatedPasswordHash)
-	}
+	require.NoError(t, err)
+	require.False(t, resp.GetOk())
+	require.Empty(t, store.updatedPasswordHash)
 }
 
 func TestCheckEmailAvailability(t *testing.T) {
@@ -280,12 +232,8 @@ func TestCheckEmailAvailability(t *testing.T) {
 	req.SetEmail("user@example.com")
 
 	resp, err := server.CheckEmailAvailability(context.Background(), req)
-	if err != nil {
-		t.Fatalf("CheckEmailAvailability returned error: %v", err)
-	}
-	if !resp.GetAvailable() {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.True(t, resp.GetAvailable())
 }
 
 func TestUpdateEmail(t *testing.T) {
@@ -301,21 +249,91 @@ func TestUpdateEmail(t *testing.T) {
 	req.SetEmail("new@example.com")
 
 	resp, err := server.UpdateEmail(context.Background(), req)
-	if err != nil {
-		t.Fatalf("UpdateEmail returned error: %v", err)
-	}
-	if resp.GetUser().GetEmail() != "new@example.com" {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "new@example.com", resp.GetUser().GetEmail())
+}
+
+func TestUpdateEmailValidation(t *testing.T) {
+	store := newFakeStore()
+	store.user = &model.User{UserID: 1001, Email: "old@example.com"}
+	server := newTestUserServer(t, store)
+
+	t.Run("missing user id", func(t *testing.T) {
+		req := new(userv1.UpdateEmailRequest)
+		req.SetEmail("new@example.com")
+		_, err := server.UpdateEmail(context.Background(), req)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	t.Run("empty email", func(t *testing.T) {
+		req := new(userv1.UpdateEmailRequest)
+		req.SetUserId(1001)
+		_, err := server.UpdateEmail(context.Background(), req)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	t.Run("invalid email format", func(t *testing.T) {
+		req := new(userv1.UpdateEmailRequest)
+		req.SetUserId(1001)
+		req.SetEmail("not-an-email")
+		_, err := server.UpdateEmail(context.Background(), req)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+}
+
+func TestCreateUserNameTooLong(t *testing.T) {
+	server := newTestUserServer(t, newFakeStore())
+
+	req := new(userv1.CreateUserRequest)
+	req.SetName(string(make([]byte, 65)))
+	req.SetEmail("user@example.com")
+	req.SetPassword("password")
+
+	_, err := server.CreateUser(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestCreateUserInvalidEmail(t *testing.T) {
+	server := newTestUserServer(t, newFakeStore())
+
+	req := new(userv1.CreateUserRequest)
+	req.SetName("name")
+	req.SetEmail("no-at-sign")
+	req.SetPassword("password")
+
+	_, err := server.CreateUser(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestChangePasswordEmptyNewPassword(t *testing.T) {
+	hashedPassword, _ := password.Hash("old-password")
+	store := newFakeStore()
+	store.user = &model.User{UserID: 1001, HashedPassword: hashedPassword}
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.ChangePasswordRequest)
+	req.SetUserId(1001)
+	req.SetOldPassword("old-password")
+
+	_, err := server.ChangePassword(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGetUserNotFound(t *testing.T) {
+	server := newTestUserServer(t, newFakeStore())
+
+	req := new(userv1.GetUserRequest)
+	req.SetUserId(9999)
+
+	_, err := server.GetUser(context.Background(), req)
+	require.Equal(t, codes.NotFound, status.Code(err))
 }
 
 func newTestUserServer(t *testing.T, store store.Store) userv1.UserServiceServer {
 	t.Helper()
 
 	node, err := snowflake.New()
-	if err != nil {
-		t.Fatalf("new snowflake node: %v", err)
-	}
+	require.NoError(t, err)
 
 	return New(&svc.ServiceContext{
 		Store:     store,

@@ -2,13 +2,14 @@ package server
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
@@ -96,29 +97,20 @@ func TestRegisterOverConnectHTTP(t *testing.T) {
 		Email:    proto.String("user@example.com"),
 		Password: proto.String("password"),
 	})
-	if err != nil {
-		t.Fatalf("Register returned error: %v", err)
-	}
+	require.NoError(t, err)
 
-	if internalClient.registerRequest.GetName() != "display name" ||
-		internalClient.registerRequest.GetEmail() != "user@example.com" ||
-		internalClient.registerRequest.GetPassword() != "password" {
-		t.Fatalf("unexpected internal request: %v", internalClient.registerRequest)
-	}
-	if internalClient.registerRequest.GetUserAgent() != "cordis-test-client" {
-		t.Fatalf("unexpected user agent: %q", internalClient.registerRequest.GetUserAgent())
-	}
-	if internalClient.registerRequest.GetIp() == "" {
-		t.Fatal("expected client ip")
-	}
+	require.Equal(t, "display name", internalClient.registerRequest.GetName())
+	require.Equal(t, "user@example.com", internalClient.registerRequest.GetEmail())
+	require.Equal(t, "password", internalClient.registerRequest.GetPassword())
+	require.Equal(t, "cordis-test-client", internalClient.registerRequest.GetUserAgent())
+	require.NotEmpty(t, internalClient.registerRequest.GetIp())
 
 	result := resp.GetResult()
-	if !result.GetOk() || result.GetUserId() != 1001 || result.GetSessionId() != 2001 {
-		t.Fatalf("unexpected result: %v", result)
-	}
-	if result.GetAccessToken() != "access-token" || result.GetRefreshToken() != "refresh-token" {
-		t.Fatalf("unexpected tokens: %v", result)
-	}
+	require.True(t, result.GetOk())
+	require.Equal(t, int64(1001), result.GetUserId())
+	require.Equal(t, int64(2001), result.GetSessionId())
+	require.Equal(t, "access-token", result.GetAccessToken())
+	require.Equal(t, "refresh-token", result.GetRefreshToken())
 }
 
 func TestLoginMapsRequestAndResponse(t *testing.T) {
@@ -133,13 +125,9 @@ func TestLoginMapsRequestAndResponse(t *testing.T) {
 		Email:    proto.String("user@example.com"),
 		Password: proto.String("password"),
 	})
-	if err != nil {
-		t.Fatalf("Login returned error: %v", err)
-	}
-	if internalClient.loginRequest.GetEmail() != "user@example.com" ||
-		internalClient.loginRequest.GetPassword() != "password" {
-		t.Fatalf("unexpected internal request: %v", internalClient.loginRequest)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "user@example.com", internalClient.loginRequest.GetEmail())
+	require.Equal(t, "password", internalClient.loginRequest.GetPassword())
 	assertAPIAuthenticationResult(t, resp.GetResult())
 }
 
@@ -154,12 +142,8 @@ func TestRefreshMapsRequestAndResponse(t *testing.T) {
 	resp, err := server.Refresh(context.Background(), &apiv1.RefreshRequest{
 		RefreshToken: proto.String("refresh-token"),
 	})
-	if err != nil {
-		t.Fatalf("Refresh returned error: %v", err)
-	}
-	if internalClient.refreshRequest.GetRefreshToken() != "refresh-token" {
-		t.Fatalf("unexpected internal request: %v", internalClient.refreshRequest)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "refresh-token", internalClient.refreshRequest.GetRefreshToken())
 	assertAPIAuthenticationResult(t, resp.GetResult())
 }
 
@@ -177,15 +161,9 @@ func TestLogoutMapsRequestAndResponse(t *testing.T) {
 	resp, err := server.Logout(context.Background(), &apiv1.LogoutRequest{
 		RefreshToken: proto.String("refresh-token"),
 	})
-	if err != nil {
-		t.Fatalf("Logout returned error: %v", err)
-	}
-	if internalClient.logoutRequest.GetRefreshToken() != "refresh-token" {
-		t.Fatalf("unexpected internal request: %v", internalClient.logoutRequest)
-	}
-	if !resp.GetOk() {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "refresh-token", internalClient.logoutRequest.GetRefreshToken())
+	require.True(t, resp.GetOk())
 }
 
 func TestLoginFailure(t *testing.T) {
@@ -200,14 +178,10 @@ func TestLoginFailure(t *testing.T) {
 		Email:    proto.String("user@example.com"),
 		Password: proto.String("wrong-password"),
 	})
-	if connect.CodeOf(err) != connect.CodeUnauthenticated {
-		t.Fatalf("Login error code = %v, want %v: %v", connect.CodeOf(err), connect.CodeUnauthenticated, err)
-	}
+	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
 	publicInfo := publicErrorInfo(t, err)
-	if publicInfo.GetCode() != apierror.CodeInvalidCredentials {
-		t.Fatalf("public error code = %q, want %q", publicInfo.GetCode(), apierror.CodeInvalidCredentials)
-	}
+	require.Equal(t, apierror.CodeInvalidCredentials, publicInfo.GetCode())
 }
 
 func TestErrorMappings(t *testing.T) {
@@ -251,14 +225,10 @@ func TestErrorMappings(t *testing.T) {
 				Email:    proto.String("user@example.com"),
 				Password: proto.String("password"),
 			})
-			if connect.CodeOf(err) != tt.connectCode {
-				t.Fatalf("connect code = %v, want %v: %v", connect.CodeOf(err), tt.connectCode, err)
-			}
+			require.Equal(t, tt.connectCode, connect.CodeOf(err))
 
 			publicInfo := publicErrorInfo(t, err)
-			if publicInfo.GetCode() != tt.publicCode {
-				t.Fatalf("public error code = %q, want %q", publicInfo.GetCode(), tt.publicCode)
-			}
+			require.Equal(t, tt.publicCode, publicInfo.GetCode())
 		})
 	}
 }
@@ -297,36 +267,30 @@ func refreshResponse(result *authenticatorv1.AuthenticationResult) *authenticato
 func assertAPIAuthenticationResult(t *testing.T, result *apiv1.AuthenticationResult) {
 	t.Helper()
 
-	if !result.GetOk() ||
-		result.GetUserId() != 1001 ||
-		result.GetSessionId() != 2001 ||
-		result.GetAccessToken() != "access-token" ||
-		result.GetAccessTokenExpiresAt() != 3001 ||
-		result.GetRefreshToken() != "refresh-token" ||
-		result.GetRefreshTokenExpiresAt() != 4001 ||
-		result.GetSessionExpiresAt() != 5001 {
-		t.Fatalf("unexpected result: %v", result)
-	}
+	require.True(t, result.GetOk())
+	require.Equal(t, int64(1001), result.GetUserId())
+	require.Equal(t, int64(2001), result.GetSessionId())
+	require.Equal(t, "access-token", result.GetAccessToken())
+	require.Equal(t, int64(3001), result.GetAccessTokenExpiresAt())
+	require.Equal(t, "refresh-token", result.GetRefreshToken())
+	require.Equal(t, int64(4001), result.GetRefreshTokenExpiresAt())
+	require.Equal(t, int64(5001), result.GetSessionExpiresAt())
 }
 
 func publicErrorInfo(t *testing.T, err error) *apiv1.PublicErrorInfo {
 	t.Helper()
 
 	var connectErr *connect.Error
-	if !errors.As(err, &connectErr) {
-		t.Fatalf("expected connect error: %v", err)
-	}
+	require.ErrorAs(t, err, &connectErr)
 	for _, detail := range connectErr.Details() {
 		value, err := detail.Value()
-		if err != nil {
-			t.Fatalf("decode error detail: %v", err)
-		}
+		require.NoError(t, err)
 		publicInfo, ok := value.(*apiv1.PublicErrorInfo)
 		if ok {
 			return publicInfo
 		}
 	}
-	t.Fatal("missing public error info detail")
+	require.Fail(t, "missing public error info detail")
 	return nil
 }
 
@@ -351,9 +315,7 @@ func TestClientIP(t *testing.T) {
 
 	for address, expected := range tests {
 		t.Run(strings.ReplaceAll(address, ":", "_"), func(t *testing.T) {
-			if actual := clientIP(address); actual != expected {
-				t.Fatalf("clientIP(%q) = %q, want %q", address, actual, expected)
-			}
+			require.Equal(t, expected, clientIP(address))
 		})
 	}
 }

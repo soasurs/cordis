@@ -35,8 +35,8 @@ func (s *messageServer) AddReaction(ctx context.Context, req *messagev1.AddReact
 			s.svcCtx.Cfg.Kafka.Topic,
 			eventID,
 			EventTypeReactionAdded,
-			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
-			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
+			s.svcCtx.OutboxMaxRetries,
+			s.svcCtx.OutboxPartitionCount,
 			req.GetMessageId(),
 			channelID,
 			req.GetUserId(),
@@ -87,8 +87,8 @@ func (s *messageServer) RemoveReaction(ctx context.Context, req *messagev1.Remov
 			s.svcCtx.Cfg.Kafka.Topic,
 			eventID,
 			EventTypeReactionRemoved,
-			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
-			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
+			s.svcCtx.OutboxMaxRetries,
+			s.svcCtx.OutboxPartitionCount,
 			req.GetMessageId(),
 			channelID,
 			req.GetUserId(),
@@ -140,7 +140,7 @@ func (s *messageServer) ListReactionUsers(ctx context.Context, req *messagev1.Li
 
 	var nextCursor int64
 	if len(userIDs) > limit {
-		nextCursor = userIDs[limit-1]
+		nextCursor = userIDs[limit]
 		userIDs = userIDs[:limit]
 	}
 

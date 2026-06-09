@@ -1,10 +1,11 @@
 package apierror
 
 import (
-	"errors"
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/stretchr/testify/require"
+
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"google.golang.org/grpc/codes"
@@ -15,56 +16,40 @@ func TestFromRPCReason(t *testing.T) {
 	err := rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists, "email already exists")
 	connectErr := FromRPC(err)
 
-	if connect.CodeOf(connectErr) != connect.CodeAlreadyExists {
-		t.Fatalf("connect code = %v, want %v", connect.CodeOf(connectErr), connect.CodeAlreadyExists)
-	}
-	if publicErrorInfo(t, connectErr).GetCode() != CodeEmailAlreadyExists {
-		t.Fatalf("public code = %q, want %q", publicErrorInfo(t, connectErr).GetCode(), CodeEmailAlreadyExists)
-	}
+	require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(connectErr))
+	require.Equal(t, CodeEmailAlreadyExists, publicErrorInfo(t, connectErr).GetCode())
 }
 
 func TestFromRPCStatusCode(t *testing.T) {
 	connectErr := FromRPC(status.Error(codes.InvalidArgument, "bad request"))
 
-	if connect.CodeOf(connectErr) != connect.CodeInvalidArgument {
-		t.Fatalf("connect code = %v, want %v", connect.CodeOf(connectErr), connect.CodeInvalidArgument)
-	}
-	if publicErrorInfo(t, connectErr).GetCode() != CodeInvalidArgument {
-		t.Fatalf("public code = %q, want %q", publicErrorInfo(t, connectErr).GetCode(), CodeInvalidArgument)
-	}
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(connectErr))
+	require.Equal(t, CodeInvalidArgument, publicErrorInfo(t, connectErr).GetCode())
 }
 
 func TestFromRPCUnknownReasonIsInternal(t *testing.T) {
 	err := rpcerror.New(codes.NotFound, "unknown.cordis", "missing", "missing")
 	connectErr := FromRPC(err)
 
-	if connect.CodeOf(connectErr) != connect.CodeInternal {
-		t.Fatalf("connect code = %v, want %v", connect.CodeOf(connectErr), connect.CodeInternal)
-	}
-	if publicErrorInfo(t, connectErr).GetCode() != CodeInternal {
-		t.Fatalf("public code = %q, want %q", publicErrorInfo(t, connectErr).GetCode(), CodeInternal)
-	}
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(connectErr))
+	require.Equal(t, CodeInternal, publicErrorInfo(t, connectErr).GetCode())
 }
 
 func publicErrorInfo(t *testing.T, err error) *apiv1.PublicErrorInfo {
 	t.Helper()
 
 	var connectErr *connect.Error
-	if !errors.As(err, &connectErr) {
-		t.Fatalf("expected connect error: %v", err)
-	}
+	require.ErrorAs(t, err, &connectErr)
 
 	for _, detail := range connectErr.Details() {
 		value, err := detail.Value()
-		if err != nil {
-			t.Fatalf("decode detail: %v", err)
-		}
+		require.NoError(t, err, "decode detail")
 		publicInfo, ok := value.(*apiv1.PublicErrorInfo)
 		if ok {
 			return publicInfo
 		}
 	}
 
-	t.Fatal("missing public error info")
+	require.FailNow(t, "missing public error info")
 	return nil
 }

@@ -13,6 +13,8 @@ func (s *userServer) VerifyPassword(ctx context.Context, req *userv1.VerifyPassw
 	user, err := s.svcCtx.Store.GetUserWithEmail(ctx, req.GetEmail())
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			// Hash a dummy password to prevent timing side-channel that reveals email existence.
+			_, _ = password.Verify("$argon2id$v=19$m=19456,t=2,p=1$c2FsdHNhbHRzYWx0c2FsdA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", req.GetPassword())
 			return new(userv1.VerifyPasswordResponse), nil
 		}
 		return nil, err

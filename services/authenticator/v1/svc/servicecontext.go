@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	sn "github.com/bwmarrin/snowflake"
+	"github.com/jmoiron/sqlx"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -26,6 +27,7 @@ type Dependencies struct {
 	Tokens     *token.Manager
 	Snowflake  *sn.Node
 	UserClient userv1.UserServiceClient
+	DB *sqlx.DB
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -64,6 +66,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		Tokens:     tokenManager,
 		Snowflake:  node,
 		UserClient: userv1.NewUserServiceClient(userRPCClient.Conn()),
+		DB:         db,
 	}, nil
 }
 

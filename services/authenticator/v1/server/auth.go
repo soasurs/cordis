@@ -17,12 +17,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const maxNameLength = 64
+
 func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1.RegisterRequest) (*authenticatorv1.RegisterResponse, error) {
-	if strings.TrimSpace(req.GetName()) == "" {
+	name := strings.TrimSpace(req.GetName())
+	if name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	if len(name) > maxNameLength {
+		return nil, status.Error(codes.InvalidArgument, "name is too long")
 	}
 	if strings.TrimSpace(req.GetEmail()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "email is required")
+	}
+	if !isValidEmail(req.GetEmail()) {
+		return nil, status.Error(codes.InvalidArgument, "invalid email format")
 	}
 	if req.GetPassword() == "" {
 		return nil, status.Error(codes.InvalidArgument, "password is required")

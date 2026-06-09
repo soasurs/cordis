@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strings"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
@@ -85,8 +86,8 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		outboxEvent, err := newMessageCreatedEvent(
 			s.svcCtx.Cfg.Kafka.Topic,
 			eventID,
-			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
-			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
+			s.svcCtx.OutboxMaxRetries,
+			s.svcCtx.OutboxPartitionCount,
 			created,
 			req.GetMentionUserIds(),
 		)
@@ -179,8 +180,8 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		outboxEvent, err := newMessageUpdatedEvent(
 			s.svcCtx.Cfg.Kafka.Topic,
 			eventID,
-			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
-			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
+			s.svcCtx.OutboxMaxRetries,
+			s.svcCtx.OutboxPartitionCount,
 			updated,
 			mentionUserIDs,
 		)
@@ -225,8 +226,8 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 			eventID,
 			msg.ID,
 			msg.ChannelID,
-			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
-			s.svcCtx.Cfg.Outbox.RelayConfig().PartitionCount,
+			s.svcCtx.OutboxMaxRetries,
+			s.svcCtx.OutboxPartitionCount,
 		)
 		if err != nil {
 			return err
@@ -370,9 +371,10 @@ func (s *messageServer) resolveEmojiImageURLs(summaries []*model.ReactionSummary
 	if baseURL == "" {
 		return
 	}
+	baseURL = strings.TrimRight(baseURL, "/")
 	for _, summary := range summaries {
 		if summary.Emoji.ImageURL == "" && summary.Emoji.ImageKey != "" {
-			summary.Emoji.ImageURL = baseURL + "/" + summary.Emoji.ImageKey
+			summary.Emoji.ImageURL = baseURL + "/" + strings.TrimLeft(summary.Emoji.ImageKey, "/")
 		}
 	}
 }

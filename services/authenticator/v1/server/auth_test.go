@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
 	"github.com/soasurs/cordis/services/authenticator/v1/svc"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -37,21 +37,18 @@ func TestRegister(t *testing.T) {
 	req.SetIp("127.0.0.1")
 
 	resp, err := server.Register(context.Background(), req)
-	if err != nil {
-		t.Fatalf("Register returned error: %v", err)
-	}
-	if userClient.createUserRequest.GetName() != "display name" ||
-		userClient.createUserRequest.GetEmail() != "user@example.com" ||
-		userClient.createUserRequest.GetPassword() != "password" {
-		t.Fatalf("unexpected create user request: %v", userClient.createUserRequest)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "display name", userClient.createUserRequest.GetName())
+	require.Equal(t, "user@example.com", userClient.createUserRequest.GetEmail())
+	require.Equal(t, "password", userClient.createUserRequest.GetPassword())
 	result := resp.GetResult()
-	if !result.GetOk() || result.GetUserId() != 1001 || result.GetAccessToken() == "" || result.GetRefreshToken() == "" {
-		t.Fatalf("unexpected result: %v", result)
-	}
-	if store.createdSession == nil || store.createdSession.UserAgent != "test-agent" || store.createdSession.IP != "127.0.0.1" {
-		t.Fatalf("unexpected created session: %+v", store.createdSession)
-	}
+	require.True(t, result.GetOk())
+	require.Equal(t, int64(1001), result.GetUserId())
+	require.NotEmpty(t, result.GetAccessToken())
+	require.NotEmpty(t, result.GetRefreshToken())
+	require.NotNil(t, store.createdSession)
+	require.Equal(t, "test-agent", store.createdSession.UserAgent)
+	require.Equal(t, "127.0.0.1", store.createdSession.IP)
 }
 
 func TestRegisterUserError(t *testing.T) {
@@ -66,9 +63,7 @@ func TestRegisterUserError(t *testing.T) {
 	req.SetPassword("password")
 
 	_, err := server.Register(context.Background(), req)
-	if !errors.Is(err, expectedErr) {
-		t.Fatalf("Register error = %v, want %v", err, expectedErr)
-	}
+	require.ErrorIs(t, err, expectedErr)
 }
 
 func TestLogin(t *testing.T) {
@@ -85,19 +80,16 @@ func TestLogin(t *testing.T) {
 	req.SetIp("127.0.0.1")
 
 	resp, err := server.Login(context.Background(), req)
-	if err != nil {
-		t.Fatalf("Login returned error: %v", err)
-	}
+	require.NoError(t, err)
 	result := resp.GetResult()
-	if !result.GetOk() || result.GetUserId() != 1001 || result.GetSessionId() == 0 {
-		t.Fatalf("unexpected result: %v", result)
-	}
-	if result.GetAccessToken() == "" || result.GetRefreshToken() == "" {
-		t.Fatalf("expected tokens: %v", result)
-	}
-	if store.createdSession == nil || store.createdSession.UserAgent != "test-agent" || store.createdSession.IP != "127.0.0.1" {
-		t.Fatalf("unexpected created session: %+v", store.createdSession)
-	}
+	require.True(t, result.GetOk())
+	require.Equal(t, int64(1001), result.GetUserId())
+	require.NotZero(t, result.GetSessionId())
+	require.NotEmpty(t, result.GetAccessToken())
+	require.NotEmpty(t, result.GetRefreshToken())
+	require.NotNil(t, store.createdSession)
+	require.Equal(t, "test-agent", store.createdSession.UserAgent)
+	require.Equal(t, "127.0.0.1", store.createdSession.IP)
 }
 
 func TestLoginInvalidCredentials(t *testing.T) {
@@ -110,12 +102,8 @@ func TestLoginInvalidCredentials(t *testing.T) {
 	req.SetPassword("wrong-password")
 
 	_, err := server.Login(context.Background(), req)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("Login code = %v, want %v: %v", status.Code(err), codes.Unauthenticated, err)
-	}
-	if !rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials) {
-		t.Fatalf("expected invalid credentials reason: %v", err)
-	}
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials))
 }
 
 func TestRefresh(t *testing.T) {
@@ -128,19 +116,14 @@ func TestRefresh(t *testing.T) {
 	req.SetRefreshToken(session.refreshToken.Raw)
 
 	resp, err := server.Refresh(context.Background(), req)
-	if err != nil {
-		t.Fatalf("Refresh returned error: %v", err)
-	}
+	require.NoError(t, err)
 	result := resp.GetResult()
-	if !result.GetOk() || result.GetUserId() != 1001 || result.GetSessionId() != 2001 {
-		t.Fatalf("unexpected result: %v", result)
-	}
-	if result.GetRefreshToken() == session.refreshToken.Raw {
-		t.Fatal("expected rotated refresh token")
-	}
-	if store.rotatedOldHash != token.Hash(session.refreshToken.Raw) || store.rotatedNewHash != token.Hash(result.GetRefreshToken()) {
-		t.Fatalf("unexpected rotation old=%q new=%q", store.rotatedOldHash, store.rotatedNewHash)
-	}
+	require.True(t, result.GetOk())
+	require.Equal(t, int64(1001), result.GetUserId())
+	require.Equal(t, int64(2001), result.GetSessionId())
+	require.NotEqual(t, session.refreshToken.Raw, result.GetRefreshToken())
+	require.Equal(t, token.Hash(session.refreshToken.Raw), store.rotatedOldHash)
+	require.Equal(t, token.Hash(result.GetRefreshToken()), store.rotatedNewHash)
 }
 
 func TestRefreshInvalidToken(t *testing.T) {
@@ -150,12 +133,8 @@ func TestRefreshInvalidToken(t *testing.T) {
 	req.SetRefreshToken("invalid-token")
 
 	_, err := server.Refresh(context.Background(), req)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("Refresh code = %v, want %v: %v", status.Code(err), codes.Unauthenticated, err)
-	}
-	if !rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken) {
-		t.Fatalf("expected invalid refresh token reason: %v", err)
-	}
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken))
 }
 
 func TestRefreshHashMismatch(t *testing.T) {
@@ -169,12 +148,8 @@ func TestRefreshHashMismatch(t *testing.T) {
 	req.SetRefreshToken(session.refreshToken.Raw)
 
 	_, err := server.Refresh(context.Background(), req)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("Refresh code = %v, want %v: %v", status.Code(err), codes.Unauthenticated, err)
-	}
-	if !rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken) {
-		t.Fatalf("expected invalid refresh token reason: %v", err)
-	}
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken))
 }
 
 func TestRefreshExpiredSession(t *testing.T) {
@@ -188,12 +163,8 @@ func TestRefreshExpiredSession(t *testing.T) {
 	req.SetRefreshToken(session.refreshToken.Raw)
 
 	_, err := server.Refresh(context.Background(), req)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("Refresh code = %v, want %v: %v", status.Code(err), codes.Unauthenticated, err)
-	}
-	if !rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionExpired) {
-		t.Fatalf("expected session expired reason: %v", err)
-	}
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionExpired))
 }
 
 func TestRefreshRevokedSession(t *testing.T) {
@@ -207,12 +178,8 @@ func TestRefreshRevokedSession(t *testing.T) {
 	req.SetRefreshToken(session.refreshToken.Raw)
 
 	_, err := server.Refresh(context.Background(), req)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("Refresh code = %v, want %v: %v", status.Code(err), codes.Unauthenticated, err)
-	}
-	if !rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionRevoked) {
-		t.Fatalf("expected session revoked reason: %v", err)
-	}
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionRevoked))
 }
 
 func TestLogout(t *testing.T) {
@@ -225,15 +192,9 @@ func TestLogout(t *testing.T) {
 	req.SetRefreshToken(session.refreshToken.Raw)
 
 	resp, err := server.Logout(context.Background(), req)
-	if err != nil {
-		t.Fatalf("Logout returned error: %v", err)
-	}
-	if !resp.GetOk() {
-		t.Fatalf("unexpected response: %v", resp)
-	}
-	if store.revokedSessionID != 2001 {
-		t.Fatalf("revoked session id = %d, want 2001", store.revokedSessionID)
-	}
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Equal(t, int64(2001), store.revokedSessionID)
 }
 
 func TestLogoutInvalidToken(t *testing.T) {
@@ -243,12 +204,8 @@ func TestLogoutInvalidToken(t *testing.T) {
 	req.SetRefreshToken("invalid-token")
 
 	_, err := server.Logout(context.Background(), req)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("Logout code = %v, want %v: %v", status.Code(err), codes.Unauthenticated, err)
-	}
-	if !rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken) {
-		t.Fatalf("expected invalid refresh token reason: %v", err)
-	}
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken))
 }
 
 func TestVerifyAccessToken(t *testing.T) {
@@ -256,9 +213,7 @@ func TestVerifyAccessToken(t *testing.T) {
 	tokens := newTestTokenManager(t)
 	sessionExpiresAt := time.Now().Add(time.Hour).UnixMilli()
 	accessToken, err := tokens.IssueAccessToken(1001, 2001, time.Now())
-	if err != nil {
-		t.Fatalf("issue access token: %v", err)
-	}
+	require.NoError(t, err)
 	store.sessions[2001] = &model.Session{
 		SessionID: 2001,
 		UserID:    1001,
@@ -270,12 +225,10 @@ func TestVerifyAccessToken(t *testing.T) {
 	req.SetAccessToken(accessToken.Raw)
 
 	resp, err := server.VerifyAccessToken(context.Background(), req)
-	if err != nil {
-		t.Fatalf("VerifyAccessToken returned error: %v", err)
-	}
-	if !resp.GetOk() || resp.GetUserId() != 1001 || resp.GetSessionId() != 2001 {
-		t.Fatalf("unexpected response: %v", resp)
-	}
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Equal(t, int64(1001), resp.GetUserId())
+	require.Equal(t, int64(2001), resp.GetSessionId())
 }
 
 func TestVerifyAccessTokenInvalidToken(t *testing.T) {
@@ -285,21 +238,15 @@ func TestVerifyAccessTokenInvalidToken(t *testing.T) {
 	req.SetAccessToken("invalid-token")
 
 	_, err := server.VerifyAccessToken(context.Background(), req)
-	if status.Code(err) != codes.Unauthenticated {
-		t.Fatalf("VerifyAccessToken code = %v, want %v: %v", status.Code(err), codes.Unauthenticated, err)
-	}
-	if !rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidAccessToken) {
-		t.Fatalf("expected invalid access token reason: %v", err)
-	}
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidAccessToken))
 }
 
 func newTestAuthenticatorServer(t *testing.T, store store.Store, tokens *token.Manager, userClient userv1.UserServiceClient) authenticatorv1.AuthenticatorServiceServer {
 	t.Helper()
 
 	node, err := snowflake.New()
-	if err != nil {
-		t.Fatalf("new snowflake node: %v", err)
-	}
+	require.NoError(t, err)
 
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
@@ -324,9 +271,7 @@ func newTestTokenManager(t *testing.T) *token.Manager {
 		AccessTTL:     15 * time.Minute,
 		RefreshTTL:    time.Hour,
 	})
-	if err != nil {
-		t.Fatalf("new token manager: %v", err)
-	}
+	require.NoError(t, err)
 	return manager
 }
 
@@ -437,9 +382,7 @@ func createRefreshSession(t *testing.T, store *fakeSessionStore, tokens *token.M
 	t.Helper()
 
 	refreshToken, err := tokens.IssueRefreshToken(userID, sessionID, sessionExpiresAt, time.Now())
-	if err != nil {
-		t.Fatalf("issue refresh token: %v", err)
-	}
+	require.NoError(t, err)
 
 	session := &model.Session{
 		SessionID:        sessionID,

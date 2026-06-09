@@ -2,6 +2,7 @@ package svc
 
 import (
 	sn "github.com/bwmarrin/snowflake"
+	"github.com/jmoiron/sqlx"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/snowflake"
 
@@ -18,6 +19,7 @@ type ServiceContext struct {
 type Dependencies struct {
 	Store     store.Store
 	Snowflake *sn.Node
+	DB        *sqlx.DB
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -34,6 +36,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	return Dependencies{
 		Store:     store.New(db),
 		Snowflake: node,
+		DB:        db,
 	}, nil
 }
 

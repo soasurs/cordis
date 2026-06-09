@@ -9,6 +9,7 @@ import (
 	"github.com/soasurs/cordis/services/authenticator/v1/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/proc"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 )
@@ -23,8 +24,19 @@ func main() {
 		panic(err)
 	}
 
-	svc := svc.NewServiceContext(*cfg)
-	server := server.New(svc)
+	deps, err := svc.NewDependencies(*cfg)
+	if err != nil {
+		panic(err)
+	}
+	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
+
+	proc.AddShutdownListener(func() {
+		if deps.DB != nil {
+			deps.DB.Close()
+		}
+	})
+
+	server := server.New(svcCtx)
 	s, err := zrpc.NewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
 		authenticatorv1.RegisterAuthenticatorServiceServer(grpcServer, server)
 	})

@@ -1,9 +1,10 @@
 package token
 
 import (
-	"errors"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestIssueAndParseAccessToken(t *testing.T) {
@@ -11,17 +12,13 @@ func TestIssueAndParseAccessToken(t *testing.T) {
 	now := time.Now()
 
 	issued, err := manager.IssueAccessToken(1001, 2001, now)
-	if err != nil {
-		t.Fatalf("IssueAccessToken returned error: %v", err)
-	}
+	require.NoError(t, err)
 
 	parsed, err := manager.ParseAccessToken(issued.Raw)
-	if err != nil {
-		t.Fatalf("ParseAccessToken returned error: %v", err)
-	}
-	if parsed.UserID != 1001 || parsed.SessionID != 2001 || parsed.ExpiresAt <= now.UnixMilli() {
-		t.Fatalf("unexpected token: %+v", parsed)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), parsed.UserID)
+	require.Equal(t, int64(2001), parsed.SessionID)
+	require.Greater(t, parsed.ExpiresAt, now.UnixMilli())
 }
 
 func TestRefreshTokenDoesNotParseAsAccessToken(t *testing.T) {
@@ -29,14 +26,10 @@ func TestRefreshTokenDoesNotParseAsAccessToken(t *testing.T) {
 	now := time.Now()
 
 	issued, err := manager.IssueRefreshToken(1001, 2001, now.Add(time.Hour).UnixMilli(), now)
-	if err != nil {
-		t.Fatalf("IssueRefreshToken returned error: %v", err)
-	}
+	require.NoError(t, err)
 
 	_, err = manager.ParseAccessToken(issued.Raw)
-	if !errors.Is(err, ErrInvalidToken) {
-		t.Fatalf("expected ErrInvalidToken, got %v", err)
-	}
+	require.ErrorIs(t, err, ErrInvalidToken)
 }
 
 func TestAccessTokenDoesNotParseAsRefreshToken(t *testing.T) {
@@ -44,14 +37,10 @@ func TestAccessTokenDoesNotParseAsRefreshToken(t *testing.T) {
 	now := time.Now()
 
 	issued, err := manager.IssueAccessToken(1001, 2001, now)
-	if err != nil {
-		t.Fatalf("IssueAccessToken returned error: %v", err)
-	}
+	require.NoError(t, err)
 
 	_, err = manager.ParseRefreshToken(issued.Raw)
-	if !errors.Is(err, ErrInvalidToken) {
-		t.Fatalf("expected ErrInvalidToken, got %v", err)
-	}
+	require.ErrorIs(t, err, ErrInvalidToken)
 }
 
 func TestRefreshTokenExpiresNoLaterThanSession(t *testing.T) {
@@ -60,12 +49,8 @@ func TestRefreshTokenExpiresNoLaterThanSession(t *testing.T) {
 	sessionExpiresAt := now.Add(15 * time.Minute).UnixMilli()
 
 	issued, err := manager.IssueRefreshToken(1001, 2001, sessionExpiresAt, now)
-	if err != nil {
-		t.Fatalf("IssueRefreshToken returned error: %v", err)
-	}
-	if issued.ExpiresAt > sessionExpiresAt {
-		t.Fatalf("expected refresh token to expire no later than session expiry, got %d", issued.ExpiresAt)
-	}
+	require.NoError(t, err)
+	require.LessOrEqual(t, issued.ExpiresAt, sessionExpiresAt)
 }
 
 func TestHash(t *testing.T) {
@@ -73,9 +58,9 @@ func TestHash(t *testing.T) {
 	second := Hash("token")
 	other := Hash("other")
 
-	if first == "" || first != second || first == other {
-		t.Fatalf("unexpected hashes: first=%q second=%q other=%q", first, second, other)
-	}
+	require.NotEmpty(t, first)
+	require.Equal(t, first, second)
+	require.NotEqual(t, first, other)
 }
 
 func newTestManager(t *testing.T) *Manager {
@@ -88,9 +73,7 @@ func newTestManager(t *testing.T) *Manager {
 		AccessTTL:     15 * time.Minute,
 		RefreshTTL:    24 * time.Hour,
 	})
-	if err != nil {
-		t.Fatalf("NewManager returned error: %v", err)
-	}
+	require.NoError(t, err)
 	return manager
 }
 
@@ -102,7 +85,5 @@ func TestNewManagerRejectsSharedSecret(t *testing.T) {
 		AccessTTL:     15 * time.Minute,
 		RefreshTTL:    24 * time.Hour,
 	})
-	if err == nil {
-		t.Fatal("expected shared secrets to be rejected")
-	}
+	require.Error(t, err)
 }

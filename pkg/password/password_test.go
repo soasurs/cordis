@@ -4,93 +4,59 @@ import (
 	"encoding/base64"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestHashReturnsArgon2IDPHCString(t *testing.T) {
 	hashedPassword, err := Hash("correct horse battery staple")
-	if err != nil {
-		t.Fatalf("Hash() error = %v", err)
-	}
+	require.NoError(t, err)
 
 	const prefix = "$argon2id$v=19$m=19456,t=2,p=1$"
-	if !strings.HasPrefix(hashedPassword, prefix) {
-		t.Fatalf("Hash() = %q, want prefix %q", hashedPassword, prefix)
-	}
+	require.True(t, strings.HasPrefix(hashedPassword, prefix), "Hash() = %q, want prefix %q", hashedPassword, prefix)
 
 	parts := strings.Split(hashedPassword, "$")
-	if len(parts) != 6 {
-		t.Fatalf("Hash() split into %d parts, want 6: %q", len(parts), hashedPassword)
-	}
+	require.Len(t, parts, 6)
 
 	salt, err := base64.RawStdEncoding.DecodeString(parts[4])
-	if err != nil {
-		t.Fatalf("decode salt: %v", err)
-	}
-	if len(salt) != saltLength {
-		t.Fatalf("salt length = %d, want %d", len(salt), saltLength)
-	}
+	require.NoError(t, err)
+	require.Len(t, salt, saltLength)
 
 	hash, err := base64.RawStdEncoding.DecodeString(parts[5])
-	if err != nil {
-		t.Fatalf("decode hash: %v", err)
-	}
-	if len(hash) != keyLength {
-		t.Fatalf("hash length = %d, want %d", len(hash), keyLength)
-	}
+	require.NoError(t, err)
+	require.Len(t, hash, keyLength)
 }
 
 func TestHashUsesRandomSalt(t *testing.T) {
 	first, err := Hash("same password")
-	if err != nil {
-		t.Fatalf("Hash() first error = %v", err)
-	}
+	require.NoError(t, err)
 
 	second, err := Hash("same password")
-	if err != nil {
-		t.Fatalf("Hash() second error = %v", err)
-	}
+	require.NoError(t, err)
 
-	if first == second {
-		t.Fatal("Hash() returned identical values for the same password")
-	}
+	require.NotEqual(t, first, second, "Hash() returned identical values for the same password")
 }
 
 func TestVerifyAcceptsCorrectPassword(t *testing.T) {
 	hashedPassword, err := Hash("correct horse battery staple")
-	if err != nil {
-		t.Fatalf("Hash() error = %v", err)
-	}
+	require.NoError(t, err)
 
 	ok, err := Verify(hashedPassword, "correct horse battery staple")
-	if err != nil {
-		t.Fatalf("Verify() error = %v", err)
-	}
-	if !ok {
-		t.Fatal("Verify() = false, want true")
-	}
+	require.NoError(t, err)
+	require.True(t, ok)
 }
 
 func TestVerifyRejectsWrongPassword(t *testing.T) {
 	hashedPassword, err := Hash("correct horse battery staple")
-	if err != nil {
-		t.Fatalf("Hash() error = %v", err)
-	}
+	require.NoError(t, err)
 
 	ok, err := Verify(hashedPassword, "wrong password")
-	if err != nil {
-		t.Fatalf("Verify() error = %v", err)
-	}
-	if ok {
-		t.Fatal("Verify() = true, want false")
-	}
+	require.NoError(t, err)
+	require.False(t, ok)
 }
 
 func TestVerifyRejectsInvalidHash(t *testing.T) {
 	ok, err := Verify("not-a-password-hash", "password")
-	if err == nil {
-		t.Fatal("Verify() error = nil, want error")
-	}
-	if ok {
-		t.Fatal("Verify() = true, want false")
-	}
+	require.Error(t, err)
+	require.False(t, ok)
 }

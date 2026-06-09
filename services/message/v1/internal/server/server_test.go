@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"testing"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 	"github.com/soasurs/cordis/services/message/v1/internal/svc"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -34,35 +36,26 @@ func TestCreateMessage(t *testing.T) {
 	req.SetMentionUserIds([]int64{30, 31})
 
 	resp, err := server.CreateMessage(t.Context(), req)
-	if err != nil {
-		t.Fatalf("CreateMessage returned error: %v", err)
-	}
-	if resp.GetMessage().GetId() == 0 ||
-		resp.GetMessage().GetContent() != "hello" ||
-		resp.GetMessage().GetFlags() != int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS) {
-		t.Fatalf("unexpected response: %v", resp)
-	}
-	if got := fake.mentions[resp.GetMessage().GetId()]; len(got) != 2 || got[0] != 30 || got[1] != 31 {
-		t.Fatalf("unexpected mentions: %v", got)
-	}
+	require.NoError(t, err)
+	require.NotZero(t, resp.GetMessage().GetId())
+	require.Equal(t, "hello", resp.GetMessage().GetContent())
+	require.Equal(t, int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS), resp.GetMessage().GetFlags())
+	got := fake.mentions[resp.GetMessage().GetId()]
+	require.Len(t, got, 2)
+	require.Equal(t, int64(30), got[0])
+	require.Equal(t, int64(31), got[1])
 	evt := onlyOutboxEvent(t, fake)
 	var envelope eventEnvelope[messageCreatedPayload]
-	if err := json.Unmarshal(evt.Payload, &envelope); err != nil {
-		t.Fatalf("unmarshal created event: %v", err)
-	}
-	if envelope.EventID != evt.ID ||
-		envelope.EventType != EventTypeMessageCreated ||
-		envelope.SchemaVersion != eventSchemaVersion ||
-		envelope.Data.MessageID != resp.GetMessage().GetId() ||
-		envelope.Data.ChannelID != 10 {
-		t.Fatalf("unexpected created event: %+v", envelope)
-	}
-	if evt.Topic != "message.events" ||
-		string(evt.Key) != "10" ||
-		evt.Partition != outbox.PartitionForKey(evt.Key, outbox.DefaultPartitionCount) ||
-		evt.MaxRetries != 7 {
-		t.Fatalf("unexpected outbox metadata: %+v", evt)
-	}
+	require.NoError(t, json.Unmarshal(evt.Payload, &envelope))
+	require.Equal(t, evt.ID, envelope.EventID)
+	require.Equal(t, EventTypeMessageCreated, envelope.EventType)
+	require.Equal(t, eventSchemaVersion, envelope.SchemaVersion)
+	require.Equal(t, resp.GetMessage().GetId(), envelope.Data.MessageID)
+	require.Equal(t, int64(10), envelope.Data.ChannelID)
+	require.Equal(t, "message.events", evt.Topic)
+	require.Equal(t, "10", string(evt.Key))
+	require.Equal(t, outbox.PartitionForKey(evt.Key, outbox.DefaultPartitionCount), evt.Partition)
+	require.Equal(t, 7, evt.MaxRetries)
 }
 
 func TestCreateReplyValidatesReferencedChannel(t *testing.T) {
@@ -79,9 +72,7 @@ func TestCreateReplyValidatesReferencedChannel(t *testing.T) {
 	req.SetReferencedChannelId(11)
 
 	_, err := server.CreateMessage(t.Context(), req)
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("CreateMessage code = %v, want %v: %v", status.Code(err), codes.InvalidArgument, err)
-	}
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestUpdateMessageReplacesAttachmentsAndMentions(t *testing.T) {
@@ -108,23 +99,17 @@ func TestUpdateMessageReplacesAttachmentsAndMentions(t *testing.T) {
 	req.SetMentions(mentionList)
 
 	resp, err := server.UpdateMessage(t.Context(), req)
-	if err != nil {
-		t.Fatalf("UpdateMessage returned error: %v", err)
-	}
-	if resp.GetMessage().GetContent() != "edited" || len(resp.GetMessage().GetAttachments()) != 1 {
-		t.Fatalf("unexpected response: %v", resp)
-	}
-	if got := fake.mentions[100]; len(got) != 1 || got[0] != 30 {
-		t.Fatalf("unexpected mentions: %v", got)
-	}
+	require.NoError(t, err)
+	require.Equal(t, "edited", resp.GetMessage().GetContent())
+	require.Len(t, resp.GetMessage().GetAttachments(), 1)
+	mentionGot := fake.mentions[100]
+	require.Len(t, mentionGot, 1)
+	require.Equal(t, int64(30), mentionGot[0])
 	evt := onlyOutboxEvent(t, fake)
 	var envelope eventEnvelope[messageUpdatedPayload]
-	if err := json.Unmarshal(evt.Payload, &envelope); err != nil {
-		t.Fatalf("unmarshal updated event: %v", err)
-	}
-	if envelope.EventType != EventTypeMessageUpdated || envelope.Data.MessageID != 100 {
-		t.Fatalf("unexpected updated event: %+v", envelope)
-	}
+	require.NoError(t, json.Unmarshal(evt.Payload, &envelope))
+	require.Equal(t, EventTypeMessageUpdated, envelope.EventType)
+	require.Equal(t, int64(100), envelope.Data.MessageID)
 }
 
 func TestUpdateMessagePermissionDenied(t *testing.T) {
@@ -138,12 +123,8 @@ func TestUpdateMessagePermissionDenied(t *testing.T) {
 	req.SetContent("edited")
 
 	_, err := server.UpdateMessage(t.Context(), req)
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("UpdateMessage code = %v, want %v: %v", status.Code(err), codes.PermissionDenied, err)
-	}
-	if !rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessagePermissionDenied) {
-		t.Fatalf("expected message permission error info: %v", err)
-	}
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessagePermissionDenied))
 }
 
 func TestListMessagesWithReactionSummaries(t *testing.T) {
@@ -159,19 +140,18 @@ func TestListMessagesWithReactionSummaries(t *testing.T) {
 	req.SetViewerUserId(30)
 
 	resp, err := server.ListMessages(t.Context(), req)
-	if err != nil {
-		t.Fatalf("ListMessages returned error: %v", err)
-	}
-	if len(resp.GetMessages()) != 2 || resp.GetMessages()[0].GetId() != 101 || resp.GetMessages()[1].GetId() != 100 {
-		t.Fatalf("unexpected messages: %v", resp.GetMessages())
-	}
-	if resp.GetBeforeCursor() != 100 || resp.GetAfterCursor() != 101 {
-		t.Fatalf("unexpected cursors before=%d after=%d", resp.GetBeforeCursor(), resp.GetAfterCursor())
-	}
+	require.NoError(t, err)
+	require.Len(t, resp.GetMessages(), 2)
+	require.Equal(t, int64(101), resp.GetMessages()[0].GetId())
+	require.Equal(t, int64(100), resp.GetMessages()[1].GetId())
+	require.Equal(t, int64(100), resp.GetBeforeCursor())
+	require.Equal(t, int64(101), resp.GetAfterCursor())
 	reactions := resp.GetReactions()[101].GetReactions()
-	if len(reactions) != 1 || reactions[0].GetCount() != 1 || !reactions[0].GetMe() || reactions[0].GetEmoji().GetId() != 0 || reactions[0].GetEmoji().GetName() != "🔥" {
-		t.Fatalf("unexpected reactions: %v", reactions)
-	}
+	require.Len(t, reactions, 1)
+	require.Equal(t, int64(1), reactions[0].GetCount())
+	require.True(t, reactions[0].GetMe())
+	require.Equal(t, int64(0), reactions[0].GetEmoji().GetId())
+	require.Equal(t, "🔥", reactions[0].GetEmoji().GetName())
 }
 
 func TestReactionLifecycle(t *testing.T) {
@@ -184,58 +164,385 @@ func TestReactionLifecycle(t *testing.T) {
 	addReq.SetUserId(30)
 	addReq.SetEmojiId(0)
 	addReq.SetEmojiName("🔥")
-	if _, err := server.AddReaction(t.Context(), addReq); err != nil {
-		t.Fatalf("AddReaction returned error: %v", err)
-	}
+	_, err := server.AddReaction(t.Context(), addReq)
+	require.NoError(t, err)
 
 	listReq := new(messagev1.ListReactionUsersRequest)
 	listReq.SetMessageId(100)
 	listReq.SetEmojiId(0)
 	listReq.SetEmojiName("🔥")
 	resp, err := server.ListReactionUsers(t.Context(), listReq)
-	if err != nil {
-		t.Fatalf("ListReactionUsers returned error: %v", err)
-	}
-	if len(resp.GetUserIds()) != 1 || resp.GetUserIds()[0] != 30 {
-		t.Fatalf("unexpected users: %v", resp.GetUserIds())
-	}
+	require.NoError(t, err)
+	require.Len(t, resp.GetUserIds(), 1)
+	require.Equal(t, int64(30), resp.GetUserIds()[0])
 
 	removeReq := new(messagev1.RemoveReactionRequest)
 	removeReq.SetMessageId(100)
 	removeReq.SetUserId(30)
 	removeReq.SetEmojiId(0)
 	removeReq.SetEmojiName("🔥")
-	if _, err := server.RemoveReaction(t.Context(), removeReq); err != nil {
-		t.Fatalf("RemoveReaction returned error: %v", err)
+	_, err = server.RemoveReaction(t.Context(), removeReq)
+	require.NoError(t, err)
+	require.Empty(t, fake.reactions)
+}
+
+func TestDeleteMessage(t *testing.T) {
+	fake := newFakeStore()
+	fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "hello", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+	server := newTestMessageServer(t, fake)
+
+	req := new(messagev1.DeleteMessageRequest)
+	req.SetMessageId(100)
+	req.SetActorUserId(20)
+
+	resp, err := server.DeleteMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.NotZero(t, fake.messages[100].DeletedAt)
+
+	evt := onlyOutboxEvent(t, fake)
+	var envelope eventEnvelope[messageDeletedPayload]
+	require.NoError(t, json.Unmarshal(evt.Payload, &envelope))
+	require.Equal(t, EventTypeMessageDeleted, envelope.EventType)
+	require.Equal(t, int64(100), envelope.Data.MessageID)
+	require.Equal(t, int64(10), envelope.Data.ChannelID)
+}
+
+func TestDeleteMessagePermissionDenied(t *testing.T) {
+	fake := newFakeStore()
+	fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "hello", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+	server := newTestMessageServer(t, fake)
+
+	req := new(messagev1.DeleteMessageRequest)
+	req.SetMessageId(100)
+	req.SetActorUserId(21)
+
+	_, err := server.DeleteMessage(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestDeleteMessageNotFound(t *testing.T) {
+	fake := newFakeStore()
+	server := newTestMessageServer(t, fake)
+
+	req := new(messagev1.DeleteMessageRequest)
+	req.SetMessageId(999)
+	req.SetActorUserId(20)
+
+	_, err := server.DeleteMessage(t.Context(), req)
+	require.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestGetMessage(t *testing.T) {
+	fake := newFakeStore()
+	fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "hello", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+	fake.reactions[reactionKey{messageID: 100, userID: 30, emojiID: 0, emojiName: "🔥"}] = struct{}{}
+	server := newTestMessageServer(t, fake)
+
+	req := new(messagev1.GetMessageRequest)
+	req.SetMessageId(100)
+	req.SetViewerUserId(30)
+
+	resp, err := server.GetMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(100), resp.GetMessage().GetId())
+	require.Equal(t, "hello", resp.GetMessage().GetContent())
+	reactions := resp.GetReactions()
+	require.Len(t, reactions, 1)
+	require.Equal(t, "🔥", reactions[0].GetEmoji().GetName())
+	require.Equal(t, int64(1), reactions[0].GetCount())
+	require.True(t, reactions[0].GetMe())
+}
+
+func TestGetMessageNotFound(t *testing.T) {
+	fake := newFakeStore()
+	server := newTestMessageServer(t, fake)
+
+	req := new(messagev1.GetMessageRequest)
+	req.SetMessageId(999)
+
+	_, err := server.GetMessage(t.Context(), req)
+	require.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestCreateMessageValidation(t *testing.T) {
+	fake := newFakeStore()
+	server := newTestMessageServer(t, fake)
+
+	tests := []struct {
+		name string
+		req  *messagev1.CreateMessageRequest
+	}{
+		{
+			name: "missing channel id",
+			req:  func() *messagev1.CreateMessageRequest { r := new(messagev1.CreateMessageRequest); r.SetAuthorId(1); r.SetContent("hi"); return r }(),
+		},
+		{
+			name: "missing author id",
+			req:  func() *messagev1.CreateMessageRequest { r := new(messagev1.CreateMessageRequest); r.SetChannelId(1); r.SetContent("hi"); return r }(),
+		},
+		{
+			name: "empty content no attachments",
+			req:  func() *messagev1.CreateMessageRequest { r := new(messagev1.CreateMessageRequest); r.SetChannelId(1); r.SetAuthorId(1); return r }(),
+		},
+		{
+			name: "content too long",
+			req: func() *messagev1.CreateMessageRequest {
+				r := new(messagev1.CreateMessageRequest)
+				r.SetChannelId(1)
+				r.SetAuthorId(1)
+				r.SetContent(string(make([]byte, 2001)))
+				return r
+			}(),
+		},
+		{
+			name: "invalid flags",
+			req: func() *messagev1.CreateMessageRequest {
+				r := new(messagev1.CreateMessageRequest)
+				r.SetChannelId(1)
+				r.SetAuthorId(1)
+				r.SetContent("hi")
+				r.SetFlags(-1)
+				return r
+			}(),
+		},
+		{
+			name: "reply without referenced message",
+			req: func() *messagev1.CreateMessageRequest {
+				r := new(messagev1.CreateMessageRequest)
+				r.SetChannelId(1)
+				r.SetAuthorId(1)
+				r.SetContent("hi")
+				r.SetType(messagev1.MessageType_MESSAGE_TYPE_REPLY)
+				return r
+			}(),
+		},
+		{
+			name: "non-reply with referenced message",
+			req: func() *messagev1.CreateMessageRequest {
+				r := new(messagev1.CreateMessageRequest)
+				r.SetChannelId(1)
+				r.SetAuthorId(1)
+				r.SetContent("hi")
+				r.SetReferencedMessageId(100)
+				r.SetReferencedChannelId(1)
+				return r
+			}(),
+		},
+		{
+			name: "invalid mention user id",
+			req: func() *messagev1.CreateMessageRequest {
+				r := new(messagev1.CreateMessageRequest)
+				r.SetChannelId(1)
+				r.SetAuthorId(1)
+				r.SetContent("hi")
+				r.SetMentionUserIds([]int64{-1})
+				return r
+			}(),
+		},
 	}
-	if len(fake.reactions) != 0 {
-		t.Fatalf("expected reaction to be removed: %v", fake.reactions)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := server.CreateMessage(t.Context(), tt.req)
+			require.Equal(t, codes.InvalidArgument, status.Code(err))
+		})
 	}
+}
+
+func TestUpdateMessageValidation(t *testing.T) {
+	t.Run("missing message id", func(t *testing.T) {
+		server := newTestMessageServer(t, newFakeStore())
+		req := new(messagev1.UpdateMessageRequest)
+		req.SetActorUserId(20)
+		req.SetContent("new")
+		_, err := server.UpdateMessage(t.Context(), req)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	t.Run("missing actor user id", func(t *testing.T) {
+		fake := newFakeStore()
+		fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "old", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+		server := newTestMessageServer(t, fake)
+		req := new(messagev1.UpdateMessageRequest)
+		req.SetMessageId(100)
+		req.SetContent("new")
+		_, err := server.UpdateMessage(t.Context(), req)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	t.Run("no fields to update", func(t *testing.T) {
+		fake := newFakeStore()
+		fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "old", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+		server := newTestMessageServer(t, fake)
+		req := new(messagev1.UpdateMessageRequest)
+		req.SetMessageId(100)
+		req.SetActorUserId(20)
+		_, err := server.UpdateMessage(t.Context(), req)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+
+	t.Run("message not found", func(t *testing.T) {
+		server := newTestMessageServer(t, newFakeStore())
+		req := new(messagev1.UpdateMessageRequest)
+		req.SetMessageId(999)
+		req.SetActorUserId(20)
+		req.SetContent("new")
+		_, err := server.UpdateMessage(t.Context(), req)
+		require.Equal(t, codes.NotFound, status.Code(err))
+	})
+
+	t.Run("mod permission bypasses ownership", func(t *testing.T) {
+		fake := newFakeStore()
+		fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "old", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+		server := newTestMessageServer(t, fake)
+		req := new(messagev1.UpdateMessageRequest)
+		req.SetMessageId(100)
+		req.SetActorUserId(21)
+		req.SetContent("mod-edited")
+		req.SetHasPermission(true)
+		resp, err := server.UpdateMessage(t.Context(), req)
+		require.NoError(t, err)
+		require.Equal(t, "mod-edited", resp.GetMessage().GetContent())
+	})
+
+	t.Run("update only mentions without content", func(t *testing.T) {
+		fake := newFakeStore()
+		fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "old", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+		server := newTestMessageServer(t, fake)
+		req := new(messagev1.UpdateMessageRequest)
+		req.SetMessageId(100)
+		req.SetActorUserId(20)
+		mentionList := new(messagev1.MentionList)
+		mentionList.SetUserIds([]int64{50})
+		req.SetMentions(mentionList)
+		resp, err := server.UpdateMessage(t.Context(), req)
+		require.NoError(t, err)
+		require.Equal(t, "old", resp.GetMessage().GetContent())
+		mentionGot := fake.mentions[100]
+		require.Len(t, mentionGot, 1)
+		require.Equal(t, int64(50), mentionGot[0])
+	})
+}
+
+func TestListReactionUsersPagination(t *testing.T) {
+	fake := newFakeStore()
+	fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "msg", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+	for i := int64(1); i <= 5; i++ {
+		fake.reactions[reactionKey{messageID: 100, userID: i, emojiID: 0, emojiName: "🔥"}] = struct{}{}
+	}
+	server := newTestMessageServer(t, fake)
+
+	t.Run("first page with next cursor", func(t *testing.T) {
+		req := new(messagev1.ListReactionUsersRequest)
+		req.SetMessageId(100)
+		req.SetEmojiId(0)
+		req.SetEmojiName("🔥")
+		req.SetLimit(3)
+
+		resp, err := server.ListReactionUsers(t.Context(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetUserIds(), 3)
+		require.Equal(t, int64(1), resp.GetUserIds()[0])
+		require.Equal(t, int64(2), resp.GetUserIds()[1])
+		require.Equal(t, int64(3), resp.GetUserIds()[2])
+		require.Equal(t, int64(4), resp.GetNextCursor())
+	})
+
+	t.Run("second page from cursor", func(t *testing.T) {
+		req := new(messagev1.ListReactionUsersRequest)
+		req.SetMessageId(100)
+		req.SetEmojiId(0)
+		req.SetEmojiName("🔥")
+		req.SetCursor(3)
+		req.SetLimit(3)
+
+		resp, err := server.ListReactionUsers(t.Context(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetUserIds(), 2)
+		require.Equal(t, int64(4), resp.GetUserIds()[0])
+		require.Equal(t, int64(5), resp.GetUserIds()[1])
+		require.Equal(t, int64(0), resp.GetNextCursor())
+	})
+}
+
+func TestResolveEmojiImageURLs(t *testing.T) {
+	fake := newFakeStore()
+	fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "msg", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+	fake.reactions[reactionKey{messageID: 100, userID: 30, emojiID: 42, emojiName: "blob"}] = struct{}{}
+
+	node, _ := snowflake.New()
+	svcCtx := &svc.ServiceContext{
+		Cfg: config.Config{
+			Kafka:           config.KafkaConfig{Topic: "message.events"},
+			EmojiCDNBaseURL: "https://cdn.example.com/emojis",
+		},
+		Store:                fake,
+		Snowflake:            node,
+		OutboxMaxRetries:     7,
+		OutboxPartitionCount: outbox.DefaultPartitionCount,
+	}
+	srv := New(svcCtx)
+
+	req := new(messagev1.GetMessageRequest)
+	req.SetMessageId(100)
+	req.SetViewerUserId(30)
+
+	resp, err := srv.GetMessage(t.Context(), req)
+	require.NoError(t, err)
+	reactions := resp.GetReactions()
+	require.Len(t, reactions, 1)
+	require.Equal(t, "https://cdn.example.com/emojis/42", reactions[0].GetEmoji().GetImageUrl())
+}
+
+func TestResolveEmojiImageURLsTrailingSlash(t *testing.T) {
+	fake := newFakeStore()
+	fake.messages[100] = &model.Message{ID: 100, ChannelID: 10, AuthorID: 20, Content: "msg", Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)}
+	fake.reactions[reactionKey{messageID: 100, userID: 30, emojiID: 1, emojiName: "x"}] = struct{}{}
+
+	node, _ := snowflake.New()
+	svcCtx := &svc.ServiceContext{
+		Cfg: config.Config{
+			Kafka:           config.KafkaConfig{Topic: "message.events"},
+			EmojiCDNBaseURL: "https://cdn.example.com/",
+		},
+		Store:                fake,
+		Snowflake:            node,
+		OutboxMaxRetries:     7,
+		OutboxPartitionCount: outbox.DefaultPartitionCount,
+	}
+	srv := New(svcCtx)
+
+	req := new(messagev1.GetMessageRequest)
+	req.SetMessageId(100)
+	req.SetViewerUserId(30)
+
+	resp, err := srv.GetMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, "https://cdn.example.com/1", resp.GetReactions()[0].GetEmoji().GetImageUrl())
 }
 
 func newTestMessageServer(t *testing.T, fakeStore store.Store) messagev1.MessageServiceServer {
 	t.Helper()
 
 	node, err := snowflake.New()
-	if err != nil {
-		t.Fatalf("new snowflake node: %v", err)
-	}
+	require.NoError(t, err)
 
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
 			Kafka:  config.KafkaConfig{Topic: "message.events"},
 			Outbox: config.OutboxConfig{MaxRetries: 7},
 		},
-		Store:     fakeStore,
-		Snowflake: node,
+		Store:                fakeStore,
+		Snowflake:            node,
+		OutboxMaxRetries:     7,
+		OutboxPartitionCount: outbox.DefaultPartitionCount,
 	})
 }
 
 func onlyOutboxEvent(t *testing.T, fake *fakeStore) outbox.Event {
 	t.Helper()
-	if len(fake.outbox) != 1 {
-		t.Fatalf("outbox event count = %d, want 1", len(fake.outbox))
-	}
+	require.Len(t, fake.outbox, 1)
 	for _, evt := range fake.outbox {
 		return *evt
 	}
@@ -401,7 +708,9 @@ func (s *fakeStore) ListReactionSummaries(_ context.Context, messageIDs []int64,
 		summaryKey := store.ReactionKey{MessageID: key.messageID, EmojiID: key.emojiID, EmojiName: key.emojiName}
 		summary := byEmoji[summaryKey]
 		if summary == nil {
-			summary = &model.ReactionSummary{Emoji: model.Emoji{ID: key.emojiID, Name: key.emojiName}}
+			summary = &model.ReactionSummary{
+				Emoji: model.Emoji{ID: key.emojiID, Name: key.emojiName, ImageKey: fmt.Sprintf("%d", key.emojiID)},
+			}
 			byEmoji[summaryKey] = summary
 		}
 		summary.Count++

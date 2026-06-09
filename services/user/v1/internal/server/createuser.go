@@ -16,11 +16,14 @@ import (
 )
 
 func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserRequest) (*userv1.CreateUserResponse, error) {
-	if strings.TrimSpace(req.GetName()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
+	if err := validateName(req.GetName()); err != nil {
+		return nil, err
 	}
 	if strings.TrimSpace(req.GetEmail()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "email is required")
+	}
+	if err := isValidEmail(req.GetEmail()); err != nil {
+		return nil, err
 	}
 	if req.GetPassword() == "" {
 		return nil, status.Error(codes.InvalidArgument, "password is required")

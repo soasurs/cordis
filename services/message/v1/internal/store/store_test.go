@@ -1,8 +1,9 @@
 package store
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -20,22 +21,14 @@ func TestMarshalAttachmentsRoundTrip(t *testing.T) {
 	}
 
 	value, err := marshalAttachments(attachments)
-	if err != nil {
-		t.Fatalf("marshalAttachments returned error: %v", err)
-	}
+	require.NoError(t, err)
+
 	got, err := unmarshalAttachments(value)
-	if err != nil {
-		t.Fatalf("unmarshalAttachments returned error: %v", err)
-	}
-	if !reflect.DeepEqual(got, attachments) {
-		t.Fatalf("attachments = %+v, want %+v", got, attachments)
-	}
+	require.NoError(t, err)
+	require.Equal(t, attachments, got)
 }
 
 func TestUniquePositiveIDs(t *testing.T) {
 	got := uniquePositiveIDs([]int64{3, 0, 2, 3, -1, 1})
-	want := []int64{1, 2, 3}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("uniquePositiveIDs() = %v, want %v", got, want)
-	}
+	require.Equal(t, []int64{1, 2, 3}, got)
 }

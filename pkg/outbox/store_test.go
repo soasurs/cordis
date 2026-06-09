@@ -8,21 +8,18 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestDB(t *testing.T) (*sqlx.DB, sqlmock.Sqlmock, func()) {
 	t.Helper()
 
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
-	if err != nil {
-		t.Fatalf("new sqlmock: %v", err)
-	}
+	require.NoError(t, err)
 
 	sqlxDB := sqlx.NewDb(db, "postgres")
 	return sqlxDB, mock, func() {
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("unmet sql expectations: %v", err)
-		}
+		require.NoError(t, mock.ExpectationsWereMet())
 		_ = sqlxDB.Close()
 	}
 }
@@ -139,9 +136,7 @@ func TestInsert(t *testing.T) {
 		AvailableAt: now,
 		CreatedAt:   now,
 	}
-	if err := Insert(t.Context(), db, evt); err != nil {
-		t.Fatalf("Insert returned error: %v", err)
-	}
+	require.NoError(t, Insert(t.Context(), db, evt))
 }
 
 func TestInsertNilKey(t *testing.T) {
@@ -168,9 +163,7 @@ func TestInsertNilKey(t *testing.T) {
 		AvailableAt: now,
 		CreatedAt:   now,
 	}
-	if err := Insert(t.Context(), db, evt); err != nil {
-		t.Fatalf("Insert with nil key returned error: %v", err)
-	}
+	require.NoError(t, Insert(t.Context(), db, evt))
 }
 
 func TestClaimBatch(t *testing.T) {
@@ -215,21 +208,13 @@ func TestClaimBatch(t *testing.T) {
 		WillReturnRows(rows)
 
 	events, err := ClaimBatch(t.Context(), db, Now(), 10, 2)
-	if err != nil {
-		t.Fatalf("ClaimBatch returned error: %v", err)
-	}
-	if len(events) != 2 {
-		t.Fatalf("ClaimBatch returned %d events, want 2", len(events))
-	}
-	if events[0].ID != 1 || events[1].ID != 2 {
-		t.Fatalf("unexpected event IDs: %d, %d", events[0].ID, events[1].ID)
-	}
-	if events[1].RetryCount != 1 {
-		t.Fatalf("unexpected retry count: %d", events[1].RetryCount)
-	}
-	if events[0].Partition != 2 || events[1].Partition != 2 {
-		t.Fatalf("unexpected partitions: %d, %d", events[0].Partition, events[1].Partition)
-	}
+	require.NoError(t, err)
+	require.Len(t, events, 2)
+	require.Equal(t, int64(1), events[0].ID)
+	require.Equal(t, int64(2), events[1].ID)
+	require.Equal(t, 1, events[1].RetryCount)
+	require.Equal(t, 2, events[0].Partition)
+	require.Equal(t, 2, events[1].Partition)
 }
 
 func TestClaimBatchEmpty(t *testing.T) {
@@ -266,12 +251,8 @@ func TestClaimBatchEmpty(t *testing.T) {
 		WillReturnRows(rows)
 
 	events, err := ClaimBatch(t.Context(), db, Now(), 5, 3)
-	if err != nil {
-		t.Fatalf("ClaimBatch returned error: %v", err)
-	}
-	if len(events) != 0 {
-		t.Fatalf("ClaimBatch returned %d events, want 0", len(events))
-	}
+	require.NoError(t, err)
+	require.Empty(t, events)
 }
 
 func TestReadyPartitions(t *testing.T) {
@@ -285,12 +266,8 @@ func TestReadyPartitions(t *testing.T) {
 			AddRow(7))
 
 	partitions, err := ReadyPartitions(t.Context(), db, 1700000000000, 64)
-	if err != nil {
-		t.Fatalf("ReadyPartitions returned error: %v", err)
-	}
-	if len(partitions) != 2 || partitions[0] != 3 || partitions[1] != 7 {
-		t.Fatalf("ReadyPartitions = %v, want [3 7]", partitions)
-	}
+	require.NoError(t, err)
+	require.Equal(t, []int{3, 7}, partitions)
 }
 
 func TestRelease(t *testing.T) {
@@ -301,9 +278,7 @@ func TestRelease(t *testing.T) {
 		WithArgs(int64(1700000000000), int64(1700000001000), int64(1)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	if err := Release(t.Context(), db, 1, 1700000000000, 1700000001000); err != nil {
-		t.Fatalf("Release returned error: %v", err)
-	}
+	require.NoError(t, Release(t.Context(), db, 1, 1700000000000, 1700000001000))
 }
 
 func TestMarkSent(t *testing.T) {
@@ -315,9 +290,7 @@ func TestMarkSent(t *testing.T) {
 		WithArgs(now, int64(1)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	if err := MarkSent(t.Context(), db, 1, now); err != nil {
-		t.Fatalf("MarkSent returned error: %v", err)
-	}
+	require.NoError(t, MarkSent(t.Context(), db, 1, now))
 }
 
 func TestCleanup(t *testing.T) {
@@ -329,12 +302,8 @@ func TestCleanup(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(3, 3))
 
 	n, err := Cleanup(t.Context(), db, 1700000000000, 10000)
-	if err != nil {
-		t.Fatalf("Cleanup returned error: %v", err)
-	}
-	if n != 3 {
-		t.Fatalf("Cleanup returned %d, want 3", n)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(3), n)
 }
 
 func TestRecoverStale(t *testing.T) {
@@ -345,7 +314,5 @@ func TestRecoverStale(t *testing.T) {
 		WithArgs(int64(1700000000000), 2).
 		WillReturnResult(sqlmock.NewResult(2, 2))
 
-	if err := RecoverStale(t.Context(), db, 1700000000000, 2); err != nil {
-		t.Fatalf("RecoverStale returned error: %v", err)
-	}
+	require.NoError(t, RecoverStale(t.Context(), db, 1700000000000, 2))
 }

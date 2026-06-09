@@ -20,7 +20,7 @@ func (s *userServer) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*
 func (s *userServer) getUserWithUserID(ctx context.Context, userID int64) (*userv1.GetUserResponse, error) {
 	user, err := s.svcCtx.Store.GetUser(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, mapStoreError(err)
 	}
 
 	resp := new(userv1.GetUserResponse)
@@ -31,7 +31,7 @@ func (s *userServer) getUserWithUserID(ctx context.Context, userID int64) (*user
 func (s *userServer) getUserWithEmail(ctx context.Context, email string) (*userv1.GetUserResponse, error) {
 	user, err := s.svcCtx.Store.GetUserWithEmail(ctx, email)
 	if err != nil {
-		return nil, err
+		return nil, mapStoreError(err)
 	}
 
 	resp := new(userv1.GetUserResponse)

@@ -1,9 +1,10 @@
 package outbox
 
 import (
-	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRetryDelay(t *testing.T) {
@@ -19,18 +20,16 @@ func TestRetryDelay(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := retryDelay(tt.retryCount); got != tt.want {
-			t.Fatalf("retryDelay(%d) = %s, want %s", tt.retryCount, got, tt.want)
-		}
+		got := retryDelay(tt.retryCount)
+		require.Equal(t, tt.want, got, "retryDelay(%d)", tt.retryCount)
 	}
 }
 
 func TestBatchYieldDelay(t *testing.T) {
 	for range 100 {
 		delay := batchYieldDelay()
-		if delay < 5*time.Millisecond || delay > 20*time.Millisecond {
-			t.Fatalf("batchYieldDelay() = %s, want [5ms, 20ms]", delay)
-		}
+		require.GreaterOrEqual(t, delay, 5*time.Millisecond)
+		require.LessOrEqual(t, delay, 20*time.Millisecond)
 	}
 }
 
@@ -46,8 +45,6 @@ func TestRotatedPartitions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		got := rotatedPartitions([]int{1, 3, 7}, tt.start)
-		if !reflect.DeepEqual(got, tt.want) {
-			t.Fatalf("rotatedPartitions(start=%d) = %v, want %v", tt.start, got, tt.want)
-		}
+		require.Equal(t, tt.want, got, "rotatedPartitions(start=%d)", tt.start)
 	}
 }

@@ -6,13 +6,12 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 )
 
 func TestApplySkipsDownMigrations(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("new sqlmock: %v", err)
-	}
+	require.NoError(t, err)
 	sqlxDB := sqlx.NewDb(db, "postgres")
 	defer sqlxDB.Close()
 
@@ -25,10 +24,6 @@ func TestApplySkipsDownMigrations(t *testing.T) {
 	mock.ExpectExec("CREATE TABLE first_table").WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectExec("CREATE TABLE second_table").WillReturnResult(sqlmock.NewResult(0, 0))
 
-	if err := Apply(t.Context(), sqlxDB, files); err != nil {
-		t.Fatalf("Apply returned error: %v", err)
-	}
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Fatalf("unexpected migration execution: %v", err)
-	}
+	require.NoError(t, Apply(t.Context(), sqlxDB, files))
+	require.NoError(t, mock.ExpectationsWereMet())
 }

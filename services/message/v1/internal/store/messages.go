@@ -209,12 +209,30 @@ func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, 
 	if _, err := s.q.ExecContext(ctx, DeleteMessageMentionsStatement, messageID); err != nil {
 		return err
 	}
-	for _, userID := range uniquePositiveIDs(userIDs) {
-		if _, err := s.q.ExecContext(ctx, CreateMessageMentionStatement, messageID, userID); err != nil {
-			return err
-		}
+	ids := uniquePositiveIDs(userIDs)
+	if len(ids) == 0 {
+		return nil
 	}
-	return nil
+	return s.batchInsertMentions(ctx, messageID, ids)
+}
+
+func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, userIDs []int64) error {
+	args := make([]any, 0, len(userIDs)+1)
+	args = append(args, messageID)
+	valueClauses := make([]string, 0, len(userIDs))
+	for i, userID := range userIDs {
+		args = append(args, userID)
+		valueClauses = append(valueClauses, fmt.Sprintf("($1, $%d)", i+2))
+	}
+	query := fmt.Sprintf(`
+	INSERT INTO
+		message_mentions (message_id, user_id)
+	VALUES
+		%s
+	ON CONFLICT DO NOTHING
+	`, strings.Join(valueClauses, ", "))
+	_, err := s.q.ExecContext(ctx, query, args...)
+	return err
 }
 
 func (s *SQLStore) ListMentionUserIDs(ctx context.Context, messageID int64) ([]int64, error) {

@@ -28,6 +28,10 @@ type ServiceContext struct {
 	// events and publishes them to Kafka. Handlers wake it via Notify()
 	// after committing a transaction that inserts outbox events.
 	Relay *outbox.Relay
+
+	// Cached outbox config values to avoid repeated allocations in handlers.
+	OutboxMaxRetries     int
+	OutboxPartitionCount int
 }
 
 type Dependencies struct {
@@ -81,15 +85,17 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		panic("snowflake node is required")
 	}
 
+	relayCfg := cfg.Outbox.RelayConfig()
 	svcCtx := &ServiceContext{
-		Cfg:       cfg,
-		Store:     deps.Store,
-		Snowflake: deps.Snowflake,
-		Kafka:     deps.Kafka,
+		Cfg:                  cfg,
+		Store:                deps.Store,
+		Snowflake:            deps.Snowflake,
+		Kafka:                deps.Kafka,
+		OutboxMaxRetries:     relayCfg.MaxRetries,
+		OutboxPartitionCount: relayCfg.PartitionCount,
 	}
 
 	if deps.Kafka != nil && deps.DB != nil {
-		relayCfg := cfg.Outbox.RelayConfig()
 		producer := &outbox.FranzProducer{Client: deps.Kafka}
 		svcCtx.Relay = outbox.NewRelay(relayCfg, deps.DB, producer, slog.Default())
 	}

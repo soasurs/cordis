@@ -3,28 +3,24 @@ package store
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestStore(t *testing.T) (*SQLStore, sqlmock.Sqlmock, func()) {
 	t.Helper()
 
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
-	if err != nil {
-		t.Fatalf("new sqlmock: %v", err)
-	}
+	require.NoError(t, err)
 
 	sqlxDB := sqlx.NewDb(db, "postgres")
 	return &SQLStore{db: sqlxDB, q: sqlxDB}, mock, func() {
-		if err := mock.ExpectationsWereMet(); err != nil {
-			t.Errorf("unmet sql expectations: %v", err)
-		}
+		require.NoError(t, mock.ExpectationsWereMet())
 		_ = sqlxDB.Close()
 	}
 }
@@ -55,15 +51,13 @@ func TestCreateSession(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	session, err := store.CreateSession(context.Background(), 2001, 1001, "refresh-hash", "agent", "127.0.0.1", 3000)
-	if err != nil {
-		t.Fatalf("CreateSession returned error: %v", err)
-	}
-	if session.SessionID != 2001 || session.UserID != 1001 || session.RefreshTokenHash != "refresh-hash" {
-		t.Fatalf("unexpected session: %+v", session)
-	}
-	if session.UserAgent != "agent" || session.IP != "127.0.0.1" || session.ExpiresAt != 3000 {
-		t.Fatalf("unexpected session metadata: %+v", session)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(2001), session.SessionID)
+	require.Equal(t, int64(1001), session.UserID)
+	require.Equal(t, "refresh-hash", session.RefreshTokenHash)
+	require.Equal(t, "agent", session.UserAgent)
+	require.Equal(t, "127.0.0.1", session.IP)
+	require.Equal(t, int64(3000), session.ExpiresAt)
 }
 
 func TestGetSession(t *testing.T) {
@@ -79,12 +73,10 @@ func TestGetSession(t *testing.T) {
 		WillReturnRows(rows)
 
 	session, err := store.GetSession(context.Background(), 2001)
-	if err != nil {
-		t.Fatalf("GetSession returned error: %v", err)
-	}
-	if session.SessionID != 2001 || session.UserID != 1001 || session.RefreshTokenHash != "refresh-hash" {
-		t.Fatalf("unexpected session: %+v", session)
-	}
+	require.NoError(t, err)
+	require.Equal(t, int64(2001), session.SessionID)
+	require.Equal(t, int64(1001), session.UserID)
+	require.Equal(t, "refresh-hash", session.RefreshTokenHash)
 }
 
 func TestRotateRefreshToken(t *testing.T) {
@@ -95,9 +87,7 @@ func TestRotateRefreshToken(t *testing.T) {
 		WithArgs("new-refresh-hash", sqlmock.AnyArg(), int64(2001), 0, "old-refresh-hash").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	if err := store.RotateRefreshToken(context.Background(), 2001, "old-refresh-hash", "new-refresh-hash"); err != nil {
-		t.Fatalf("RotateRefreshToken returned error: %v", err)
-	}
+	require.NoError(t, store.RotateRefreshToken(context.Background(), 2001, "old-refresh-hash", "new-refresh-hash"))
 }
 
 func TestRotateRefreshTokenNoRows(t *testing.T) {
@@ -109,9 +99,7 @@ func TestRotateRefreshTokenNoRows(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	err := store.RotateRefreshToken(context.Background(), 2001, "old-refresh-hash", "new-refresh-hash")
-	if !errors.Is(err, sql.ErrNoRows) {
-		t.Fatalf("expected sql.ErrNoRows, got %v", err)
-	}
+	require.ErrorIs(t, err, sql.ErrNoRows)
 }
 
 func TestRevokeSession(t *testing.T) {
@@ -122,7 +110,5 @@ func TestRevokeSession(t *testing.T) {
 		WithArgs(sqlmock.AnyArg(), int64(2001), 0).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	if err := store.RevokeSession(context.Background(), 2001); err != nil {
-		t.Fatalf("RevokeSession returned error: %v", err)
-	}
+	require.NoError(t, store.RevokeSession(context.Background(), 2001))
 }

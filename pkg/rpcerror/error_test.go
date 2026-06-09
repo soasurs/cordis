@@ -3,24 +3,19 @@ package rpcerror
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 )
 
 func TestNewAndParse(t *testing.T) {
 	err := New(codes.AlreadyExists, UserDomain, UserEmailAlreadyExists, "email already exists")
 
-	if Code(err) != codes.AlreadyExists {
-		t.Fatalf("Code() = %v, want %v", Code(err), codes.AlreadyExists)
-	}
+	require.Equal(t, codes.AlreadyExists, Code(err))
 
 	info, ok := Parse(err)
-	if !ok {
-		t.Fatal("expected error info")
-	}
-	if info.Domain != UserDomain || info.Reason != UserEmailAlreadyExists {
-		t.Fatalf("unexpected error info: %+v", info)
-	}
-	if !Is(err, UserDomain, UserEmailAlreadyExists) {
-		t.Fatal("expected Is to match")
-	}
+	require.True(t, ok, "expected error info")
+	require.Equal(t, UserDomain, info.Domain)
+	require.Equal(t, UserEmailAlreadyExists, info.Reason)
+
+	require.True(t, Is(err, UserDomain, UserEmailAlreadyExists), "expected Is to match")
 }

@@ -25,7 +25,11 @@ func main() {
 		panic(err)
 	}
 
-	svcCtx := svc.NewServiceContext(*cfg)
+	deps, err := svc.NewDependencies(*cfg)
+	if err != nil {
+		panic(err)
+	}
+	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
 
 	// Start the outbox relay if Kafka is configured.
@@ -47,6 +51,9 @@ func main() {
 			svcCtx.Kafka.Close()
 		}
 		svcCtx.Relay.WaitCallbacks()
+		if deps.DB != nil {
+			deps.DB.Close()
+		}
 	})
 
 	slog.Info("starting message service", "listenOn", cfg.ListenOn)

@@ -52,8 +52,8 @@ func New(t *testing.T, migrations fs.FS) *sqlx.DB {
 
 	db, err := database.NewPostgres(database.Config{
 		DataSource:   testDataSource,
-		MaxOpenConns: 1,
-		MaxIdleConns: 1,
+		MaxOpenConns: 4,
+		MaxIdleConns: 4,
 	})
 	if err != nil {
 		dropSchema(adminDB, schema)

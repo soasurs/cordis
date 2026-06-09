@@ -3,7 +3,6 @@
 package store
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"testing"
@@ -15,7 +14,7 @@ import (
 )
 
 func TestSQLStoreMessageLifecycle(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := New(testpostgres.New(t, migrations.Files))
 
 	root, err := store.CreateMessage(ctx, CreateMessageParams{
@@ -89,7 +88,10 @@ func TestSQLStoreMessageLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("update message: %v", err)
 	}
-	if updated.Content != "edited" || len(updated.Attachments) != 1 || updated.Attachments[0].Key != "attachments/edited.png" || updated.EditedAt == 0 {
+	if updated.Content != "edited" ||
+		len(updated.Attachments) != 1 ||
+		updated.Attachments[0].Key != "attachments/edited.png" ||
+		updated.EditedAt == 0 {
 		t.Fatalf("unexpected updated message: %+v", updated)
 	}
 
@@ -106,7 +108,7 @@ func TestSQLStoreMessageLifecycle(t *testing.T) {
 }
 
 func TestSQLStoreReactionLifecycle(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := New(testpostgres.New(t, migrations.Files))
 
 	if _, err := store.CreateMessage(ctx, CreateMessageParams{
@@ -158,7 +160,7 @@ func TestSQLStoreReactionLifecycle(t *testing.T) {
 }
 
 func TestSQLStoreDeletePermission(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	store := New(testpostgres.New(t, migrations.Files))
 
 	if _, err := store.CreateMessage(ctx, CreateMessageParams{

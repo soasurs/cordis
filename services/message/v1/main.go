@@ -46,6 +46,7 @@ func main() {
 		if svcCtx.Kafka != nil {
 			svcCtx.Kafka.Close()
 		}
+		svcCtx.Relay.WaitCallbacks()
 	})
 
 	slog.Info("starting message service", "listenOn", cfg.ListenOn)

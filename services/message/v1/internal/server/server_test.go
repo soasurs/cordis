@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"sort"
 	"testing"
@@ -11,6 +12,7 @@ import (
 	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
+	"github.com/soasurs/cordis/services/message/v1/config"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 	"github.com/soasurs/cordis/services/message/v1/internal/svc"
@@ -31,7 +33,7 @@ func TestCreateMessage(t *testing.T) {
 	req.SetAttachments([]*messagev1.Attachment{pbAttachment("attachments/1/a.png")})
 	req.SetMentionUserIds([]int64{30, 31})
 
-	resp, err := server.CreateMessage(context.Background(), req)
+	resp, err := server.CreateMessage(t.Context(), req)
 	if err != nil {
 		t.Fatalf("CreateMessage returned error: %v", err)
 	}
@@ -42,6 +44,24 @@ func TestCreateMessage(t *testing.T) {
 	}
 	if got := fake.mentions[resp.GetMessage().GetId()]; len(got) != 2 || got[0] != 30 || got[1] != 31 {
 		t.Fatalf("unexpected mentions: %v", got)
+	}
+	evt := onlyOutboxEvent(t, fake)
+	var envelope eventEnvelope[messageCreatedPayload]
+	if err := json.Unmarshal(evt.Payload, &envelope); err != nil {
+		t.Fatalf("unmarshal created event: %v", err)
+	}
+	if envelope.EventID != evt.ID ||
+		envelope.EventType != EventTypeMessageCreated ||
+		envelope.SchemaVersion != eventSchemaVersion ||
+		envelope.Data.MessageID != resp.GetMessage().GetId() ||
+		envelope.Data.ChannelID != 10 {
+		t.Fatalf("unexpected created event: %+v", envelope)
+	}
+	if evt.Topic != "message.events" ||
+		string(evt.Key) != "10" ||
+		evt.Partition != outbox.PartitionForKey(evt.Key) ||
+		evt.MaxRetries != 7 {
+		t.Fatalf("unexpected outbox metadata: %+v", evt)
 	}
 }
 
@@ -58,7 +78,7 @@ func TestCreateReplyValidatesReferencedChannel(t *testing.T) {
 	req.SetReferencedMessageId(100)
 	req.SetReferencedChannelId(11)
 
-	_, err := server.CreateMessage(context.Background(), req)
+	_, err := server.CreateMessage(t.Context(), req)
 	if status.Code(err) != codes.InvalidArgument {
 		t.Fatalf("CreateMessage code = %v, want %v: %v", status.Code(err), codes.InvalidArgument, err)
 	}
@@ -87,7 +107,7 @@ func TestUpdateMessageReplacesAttachmentsAndMentions(t *testing.T) {
 	mentionList.SetUserIds([]int64{30})
 	req.SetMentions(mentionList)
 
-	resp, err := server.UpdateMessage(context.Background(), req)
+	resp, err := server.UpdateMessage(t.Context(), req)
 	if err != nil {
 		t.Fatalf("UpdateMessage returned error: %v", err)
 	}
@@ -96,6 +116,14 @@ func TestUpdateMessageReplacesAttachmentsAndMentions(t *testing.T) {
 	}
 	if got := fake.mentions[100]; len(got) != 1 || got[0] != 30 {
 		t.Fatalf("unexpected mentions: %v", got)
+	}
+	evt := onlyOutboxEvent(t, fake)
+	var envelope eventEnvelope[messageUpdatedPayload]
+	if err := json.Unmarshal(evt.Payload, &envelope); err != nil {
+		t.Fatalf("unmarshal updated event: %v", err)
+	}
+	if envelope.EventType != EventTypeMessageUpdated || envelope.Data.MessageID != 100 {
+		t.Fatalf("unexpected updated event: %+v", envelope)
 	}
 }
 
@@ -109,7 +137,7 @@ func TestUpdateMessagePermissionDenied(t *testing.T) {
 	req.SetActorUserId(21)
 	req.SetContent("edited")
 
-	_, err := server.UpdateMessage(context.Background(), req)
+	_, err := server.UpdateMessage(t.Context(), req)
 	if status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("UpdateMessage code = %v, want %v: %v", status.Code(err), codes.PermissionDenied, err)
 	}
@@ -130,7 +158,7 @@ func TestListMessagesWithReactionSummaries(t *testing.T) {
 	req.SetBefore(200)
 	req.SetViewerUserId(30)
 
-	resp, err := server.ListMessages(context.Background(), req)
+	resp, err := server.ListMessages(t.Context(), req)
 	if err != nil {
 		t.Fatalf("ListMessages returned error: %v", err)
 	}
@@ -156,7 +184,7 @@ func TestReactionLifecycle(t *testing.T) {
 	addReq.SetUserId(30)
 	addReq.SetEmojiId(0)
 	addReq.SetEmojiName("🔥")
-	if _, err := server.AddReaction(context.Background(), addReq); err != nil {
+	if _, err := server.AddReaction(t.Context(), addReq); err != nil {
 		t.Fatalf("AddReaction returned error: %v", err)
 	}
 
@@ -164,7 +192,7 @@ func TestReactionLifecycle(t *testing.T) {
 	listReq.SetMessageId(100)
 	listReq.SetEmojiId(0)
 	listReq.SetEmojiName("🔥")
-	resp, err := server.ListReactionUsers(context.Background(), listReq)
+	resp, err := server.ListReactionUsers(t.Context(), listReq)
 	if err != nil {
 		t.Fatalf("ListReactionUsers returned error: %v", err)
 	}
@@ -177,7 +205,7 @@ func TestReactionLifecycle(t *testing.T) {
 	removeReq.SetUserId(30)
 	removeReq.SetEmojiId(0)
 	removeReq.SetEmojiName("🔥")
-	if _, err := server.RemoveReaction(context.Background(), removeReq); err != nil {
+	if _, err := server.RemoveReaction(t.Context(), removeReq); err != nil {
 		t.Fatalf("RemoveReaction returned error: %v", err)
 	}
 	if len(fake.reactions) != 0 {
@@ -194,9 +222,24 @@ func newTestMessageServer(t *testing.T, fakeStore store.Store) messagev1.Message
 	}
 
 	return New(&svc.ServiceContext{
+		Cfg: config.Config{
+			Kafka:  config.KafkaConfig{Topic: "message.events"},
+			Outbox: config.OutboxConfig{MaxRetries: 7},
+		},
 		Store:     fakeStore,
 		Snowflake: node,
 	})
+}
+
+func onlyOutboxEvent(t *testing.T, fake *fakeStore) outbox.Event {
+	t.Helper()
+	if len(fake.outbox) != 1 {
+		t.Fatalf("outbox event count = %d, want 1", len(fake.outbox))
+	}
+	for _, evt := range fake.outbox {
+		return *evt
+	}
+	panic("unreachable")
 }
 
 func pbAttachment(key string) *messagev1.Attachment {

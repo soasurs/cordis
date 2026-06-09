@@ -29,6 +29,9 @@ func NewProducer(cfg ProducerConfig) (*kgo.Client, error) {
 
 	opts := []kgo.Opt{
 		kgo.SeedBrokers(cfg.Seeds...),
+		// Keep the ordering contract explicit: records with the same key
+		// always map to the same partition.
+		kgo.RecordPartitioner(kgo.StickyKeyPartitioner(nil)),
 		// Idempotent producer is enabled by default (acks=all, retries forever).
 		// This gives us at-least-once within a single producer session.
 	}

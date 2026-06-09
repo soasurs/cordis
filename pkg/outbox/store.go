@@ -2,83 +2,160 @@ package outbox
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
+	"sort"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
-// Queryer abstracts *sqlx.DB / *sqlx.Tx so that Store functions can be
-// called both inside and outside a transaction.
-type Queryer = sqlx.ExtContext
+// Queryer is implemented by *sqlx.DB, *sqlx.Tx, and *sql.Conn.
+type Queryer interface {
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
 
 // Insert records a new outbox event. Call this inside a transaction
 // alongside the business data that produced the event.
 func Insert(ctx context.Context, q Queryer, evt Event) error {
 	query := `
 	INSERT INTO outbox_messages (
-		id, topic, key, payload, retry_count, max_retries,
-		locked_at, deleted_at, created_at
+		id, topic, key, partition_id, payload, retry_count, max_retries,
+		available_at, locked_at, dead_at, deleted_at, created_at
 	) VALUES (
-		:id, :topic, :key, :payload, :retry_count, :max_retries,
-		:locked_at, :deleted_at, :created_at
+		$1, $2, $3, $4, $5::jsonb, $6, $7, $8, $9, $10, $11, $12
 	)
 	`
-	_, err := sqlx.NamedExecContext(ctx, q, query, eventRow{
-		ID:         evt.ID,
-		Topic:      evt.Topic,
-		Key:        evt.Key,
-		Payload:    evt.Payload,
-		RetryCount: evt.RetryCount,
-		MaxRetries: evt.MaxRetries,
-		LockedAt:   evt.LockedAt,
-		DeletedAt:  evt.DeletedAt,
-		CreatedAt:  evt.CreatedAt,
-	})
+	_, err := q.ExecContext(
+		ctx,
+		query,
+		evt.ID,
+		evt.Topic,
+		evt.Key,
+		evt.Partition,
+		[]byte(evt.Payload),
+		evt.RetryCount,
+		evt.MaxRetries,
+		evt.AvailableAt,
+		evt.LockedAt,
+		evt.DeadAt,
+		evt.DeletedAt,
+		evt.CreatedAt,
+	)
 	return err
 }
 
-// ClaimBatch claims up to limit pending events, locking them with the
-// current timestamp. Uses FOR UPDATE SKIP LOCKED so concurrent relay
-// workers don't block each other.
-func ClaimBatch(ctx context.Context, q Queryer, now int64, limit int) ([]Event, error) {
-	return claim(ctx, q, now, limit, "")
-}
-
-func claim(ctx context.Context, q Queryer, now int64, limit int, extraWhere string, extraArgs ...any) ([]Event, error) {
-	args := []any{now}
-	args = append(args, extraArgs...)
-	args = append(args, limit)
-
-	query := fmt.Sprintf(`
-	UPDATE outbox_messages
+// ClaimBatch claims up to limit pending events from one partition, locking
+// them with the current timestamp. The caller must hold that partition's
+// advisory lock until publishing and state updates complete.
+func ClaimBatch(ctx context.Context, q Queryer, now int64, limit, partition int) ([]Event, error) {
+	query := `
+	UPDATE outbox_messages AS claimed
 	SET locked_at = $1
 	WHERE id IN (
-		SELECT id FROM outbox_messages
-		WHERE locked_at = 0
-		%s
-		ORDER BY id
-		LIMIT $%d
-		FOR UPDATE SKIP LOCKED
+		SELECT candidate.id
+		FROM outbox_messages AS candidate
+		WHERE candidate.locked_at = 0
+		  AND candidate.dead_at = 0
+		  AND candidate.deleted_at = 0
+		  AND candidate.retry_count <= candidate.max_retries
+		  AND candidate.available_at <= $1
+		  AND candidate.partition_id = $2
+		ORDER BY candidate.id
+		LIMIT $3
+		FOR UPDATE OF candidate SKIP LOCKED
 	)
-	RETURNING id, topic, key, payload, retry_count, max_retries, locked_at, deleted_at, created_at
-	`, extraWhere, len(args))
+	RETURNING id, topic, key, partition_id, payload, retry_count, max_retries,
+		available_at, locked_at, dead_at, deleted_at, created_at
+	`
 
-	var rows []eventRow
-	if err := sqlx.SelectContext(ctx, q, &rows, query, args...); err != nil {
+	result, err := q.QueryContext(ctx, query, now, partition, limit)
+	if err != nil {
 		return nil, err
 	}
-	return toEvents(rows), nil
+	defer result.Close()
+
+	var rows []eventRow
+	for result.Next() {
+		var row eventRow
+		if err := result.Scan(
+			&row.ID,
+			&row.Topic,
+			&row.Key,
+			&row.Partition,
+			&row.Payload,
+			&row.RetryCount,
+			&row.MaxRetries,
+			&row.AvailableAt,
+			&row.LockedAt,
+			&row.DeadAt,
+			&row.DeletedAt,
+			&row.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		rows = append(rows, row)
+	}
+	if err := result.Err(); err != nil {
+		return nil, err
+	}
+	events := toEvents(rows)
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].ID < events[j].ID
+	})
+	return events, nil
 }
 
-// Release returns an event to the pending state and increments its retry
-// count. Use when Kafka delivery failed and the event should be retried.
-func Release(ctx context.Context, q Queryer, id int64) error {
+// ReadyPartitions returns partitions with claimable events. Relay workers use
+// this to avoid probing every advisory lock when the outbox is idle.
+func ReadyPartitions(ctx context.Context, q Queryer, now int64, limit int) ([]int, error) {
+	rows, err := q.QueryContext(ctx, `
+	SELECT partition_id
+	FROM outbox_messages
+	WHERE locked_at = 0
+	  AND dead_at = 0
+	  AND deleted_at = 0
+	  AND retry_count <= max_retries
+	  AND available_at <= $1
+	GROUP BY partition_id
+	ORDER BY partition_id
+	LIMIT $2
+	`, now, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	partitions := make([]int, 0, limit)
+	for rows.Next() {
+		var partition int
+		if err := rows.Scan(&partition); err != nil {
+			return nil, err
+		}
+		partitions = append(partitions, partition)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return partitions, nil
+}
+
+// Release records a failed attempt. Events below max_retries are returned to
+// pending with retry backoff; exhausted events are retained as dead records.
+func Release(ctx context.Context, q Queryer, id, now, nextAttemptAt int64) error {
 	_, err := q.ExecContext(ctx, `
 	UPDATE outbox_messages
-	SET locked_at = 0, retry_count = retry_count + 1
-	WHERE id = $1
-	`, id)
+	SET
+		locked_at = 0,
+		retry_count = retry_count + 1,
+		available_at = CASE
+			WHEN retry_count + 1 <= max_retries THEN $2
+			ELSE available_at
+		END,
+		dead_at = CASE
+			WHEN retry_count + 1 > max_retries THEN $1
+			ELSE dead_at
+		END
+	WHERE id = $3 AND deleted_at = 0
+	`, now, nextAttemptAt, id)
 	return err
 }
 
@@ -87,8 +164,8 @@ func Release(ctx context.Context, q Queryer, id int64) error {
 func MarkSent(ctx context.Context, q Queryer, id, now int64) error {
 	_, err := q.ExecContext(ctx, `
 	UPDATE outbox_messages
-	SET deleted_at = $1
-	WHERE id = $2
+	SET deleted_at = $1, locked_at = 0
+	WHERE id = $2 AND dead_at = 0
 	`, now, id)
 	return err
 }
@@ -98,9 +175,15 @@ func MarkSent(ctx context.Context, q Queryer, id, now int64) error {
 // to keep autovacuum overhead manageable.
 func Cleanup(ctx context.Context, q Queryer, olderThan int64, batchSize int) (int64, error) {
 	res, err := q.ExecContext(ctx, `
+	WITH expired AS (
+		SELECT id
+		FROM outbox_messages
+		WHERE deleted_at > 0 AND deleted_at < $1
+		ORDER BY deleted_at
+		LIMIT $2
+	)
 	DELETE FROM outbox_messages
-	WHERE deleted_at > 0 AND deleted_at < $1
-	LIMIT $2
+	WHERE id IN (SELECT id FROM expired)
 	`, olderThan, batchSize)
 	if err != nil {
 		return 0, err
@@ -112,58 +195,53 @@ func Cleanup(ctx context.Context, q Queryer, olderThan int64, batchSize int) (in
 // RecoverStale resets events that have been locked for longer than
 // staleBefore back to pending. This handles the case where a relay worker
 // crashes while holding a lock.
-func RecoverStale(ctx context.Context, q Queryer, staleBefore int64) error {
+func RecoverStale(ctx context.Context, q Queryer, staleBefore int64, partition int) error {
 	_, err := q.ExecContext(ctx, `
 	UPDATE outbox_messages
 	SET locked_at = 0
 	WHERE locked_at > 0
 	  AND locked_at < $1
-	  AND retry_count < max_retries
-	`, staleBefore)
+	  AND dead_at = 0
+	  AND deleted_at = 0
+	  AND retry_count <= max_retries
+	  AND partition_id = $2
+	`, staleBefore, partition)
 	return err
-}
-
-// DropDead removes events that have exhausted their retries and are past
-// the given time threshold, returning the count of removed rows.
-func DropDead(ctx context.Context, q Queryer, olderThan int64) (int64, error) {
-	res, err := q.ExecContext(ctx, `
-	DELETE FROM outbox_messages
-	WHERE retry_count >= max_retries AND created_at < $1
-	`, olderThan)
-	if err != nil {
-		return 0, err
-	}
-	n, _ := res.RowsAffected()
-	return n, nil
 }
 
 // --- Internal row types ---
 
 type eventRow struct {
-	ID         int64  `db:"id"`
-	Topic      string `db:"topic"`
-	Key        []byte `db:"key"`
-	Payload    []byte `db:"payload"`
-	RetryCount int    `db:"retry_count"`
-	MaxRetries int    `db:"max_retries"`
-	LockedAt   int64  `db:"locked_at"`
-	DeletedAt  int64  `db:"deleted_at"`
-	CreatedAt  int64  `db:"created_at"`
+	ID          int64  `db:"id"`
+	Topic       string `db:"topic"`
+	Key         []byte `db:"key"`
+	Partition   int    `db:"partition_id"`
+	Payload     []byte `db:"payload"`
+	RetryCount  int    `db:"retry_count"`
+	MaxRetries  int    `db:"max_retries"`
+	AvailableAt int64  `db:"available_at"`
+	LockedAt    int64  `db:"locked_at"`
+	DeadAt      int64  `db:"dead_at"`
+	DeletedAt   int64  `db:"deleted_at"`
+	CreatedAt   int64  `db:"created_at"`
 }
 
 func toEvents(rows []eventRow) []Event {
 	events := make([]Event, 0, len(rows))
 	for _, r := range rows {
 		events = append(events, Event{
-			ID:         r.ID,
-			Topic:      r.Topic,
-			Key:        r.Key,
-			Payload:    r.Payload,
-			RetryCount: r.RetryCount,
-			MaxRetries: r.MaxRetries,
-			LockedAt:   r.LockedAt,
-			DeletedAt:  r.DeletedAt,
-			CreatedAt:  r.CreatedAt,
+			ID:          r.ID,
+			Topic:       r.Topic,
+			Key:         r.Key,
+			Partition:   r.Partition,
+			Payload:     r.Payload,
+			RetryCount:  r.RetryCount,
+			MaxRetries:  r.MaxRetries,
+			AvailableAt: r.AvailableAt,
+			LockedAt:    r.LockedAt,
+			DeadAt:      r.DeadAt,
+			DeletedAt:   r.DeletedAt,
+			CreatedAt:   r.CreatedAt,
 		})
 	}
 	return events

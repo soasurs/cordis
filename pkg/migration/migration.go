@@ -21,16 +21,19 @@ func Apply(ctx context.Context, db *sqlx.DB, migrations fs.FS) error {
 	})
 
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+		name := entry.Name()
+		if entry.IsDir() ||
+			!strings.HasSuffix(name, ".sql") ||
+			strings.HasSuffix(name, ".down.sql") {
 			continue
 		}
 
-		query, err := fs.ReadFile(migrations, entry.Name())
+		query, err := fs.ReadFile(migrations, name)
 		if err != nil {
-			return fmt.Errorf("read migration %s: %w", entry.Name(), err)
+			return fmt.Errorf("read migration %s: %w", name, err)
 		}
 		if _, err := db.ExecContext(ctx, string(query)); err != nil {
-			return fmt.Errorf("apply migration %s: %w", entry.Name(), err)
+			return fmt.Errorf("apply migration %s: %w", name, err)
 		}
 	}
 	return nil

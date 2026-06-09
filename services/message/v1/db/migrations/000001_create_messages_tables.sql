@@ -25,24 +25,24 @@ CREATE TABLE IF NOT EXISTS messages (
         (referenced_message_id IS NULL AND referenced_channel_id IS NULL)
         OR (referenced_message_id IS NOT NULL AND referenced_channel_id IS NOT NULL)
     ),
-    CHECK (type <> 19 OR referenced_message_id IS NOT NULL),
+    CHECK (type <> 19 OR referenced_message_id IS NOT NULL)
 );
 
-CREATE INDEX messages_channel_id_id_desc_idx
+CREATE INDEX IF NOT EXISTS messages_channel_id_id_desc_idx
     ON messages (channel_id, id DESC)
     WHERE deleted_at = 0;
 
-CREATE INDEX messages_referenced_idx
+CREATE INDEX IF NOT EXISTS messages_referenced_idx
     ON messages (referenced_message_id)
     WHERE referenced_message_id IS NOT NULL AND deleted_at = 0;
 
 CREATE TABLE IF NOT EXISTS message_mentions (
     message_id  BIGINT NOT NULL,
     user_id     BIGINT NOT NULL CHECK (user_id > 0),
-    PRIMARY KEY (message_id, user_id),
+    PRIMARY KEY (message_id, user_id)
 );
 
-CREATE INDEX message_mentions_user_idx
+CREATE INDEX IF NOT EXISTS message_mentions_user_idx
     ON message_mentions (user_id, message_id DESC);
 
 CREATE TABLE IF NOT EXISTS reactions (
@@ -51,10 +51,10 @@ CREATE TABLE IF NOT EXISTS reactions (
     emoji_id    BIGINT NOT NULL DEFAULT 0 CHECK (emoji_id >= 0),
     emoji_name  TEXT NOT NULL CHECK (emoji_name <> ''),
     created_at  BIGINT NOT NULL CHECK (created_at > 0),
-    PRIMARY KEY (message_id, user_id, emoji_id, emoji_name),
+    PRIMARY KEY (message_id, user_id, emoji_id, emoji_name)
 );
 
-CREATE INDEX reactions_message_emoji_user_idx
+CREATE INDEX IF NOT EXISTS reactions_message_emoji_user_idx
     ON reactions (message_id, emoji_id, emoji_name, user_id);
 
 -- Only custom guild emojis are stored here; Unicode emojis have id=0
@@ -69,5 +69,5 @@ CREATE TABLE IF NOT EXISTS emojis (
     created_at  BIGINT NOT NULL CHECK (created_at > 0)
 );
 
-CREATE INDEX emojis_guild_name_idx
+CREATE INDEX IF NOT EXISTS emojis_guild_name_idx
     ON emojis (guild_id, name);

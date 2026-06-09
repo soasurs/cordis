@@ -4,7 +4,6 @@ import (
 	"context"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
-	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
@@ -56,7 +55,6 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 
 	messageID := s.svcCtx.Snowflake.Generate().Int64()
 	var created *model.Message
-	var outboxEvent outbox.Event
 
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.CreateMessage(ctx, store.CreateMessageParams{
@@ -80,7 +78,13 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		}
 
 		// Build and enqueue the outbox event within the same transaction.
-		outboxEvent, err = newMessageCreatedEvent(s.svcCtx.Cfg.Kafka.Topic, created)
+		eventID := s.svcCtx.Snowflake.Generate().Int64()
+		outboxEvent, err := newMessageCreatedEvent(
+			s.svcCtx.Cfg.Kafka.Topic,
+			eventID,
+			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+			created,
+		)
 		if err != nil {
 			return err
 		}
@@ -142,7 +146,6 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	}
 
 	var updated *model.Message
-	var outboxEvent outbox.Event
 
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.UpdateMessage(ctx, params)
@@ -157,11 +160,16 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 			}
 		}
 
-		outboxEvent, err = newMessageUpdatedEvent(s.svcCtx.Cfg.Kafka.Topic, updated)
+		eventID := s.svcCtx.Snowflake.Generate().Int64()
+		outboxEvent, err := newMessageUpdatedEvent(
+			s.svcCtx.Cfg.Kafka.Topic,
+			eventID,
+			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+			updated,
+		)
 		if err != nil {
 			return err
 		}
-		outboxEvent.ID = s.svcCtx.Snowflake.Generate().Int64()
 		return txStore.InsertOutboxEvent(ctx, outboxEvent)
 	})
 	if err != nil {
@@ -189,19 +197,22 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 		return nil, mapStoreError(err)
 	}
 
-	var outboxEvent outbox.Event
-
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		if err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), req.GetHasPermission()); err != nil {
 			return err
 		}
 
-		var err error
-		outboxEvent, err = newMessageDeletedEvent(s.svcCtx.Cfg.Kafka.Topic, msg.ID, msg.ChannelID)
+		eventID := s.svcCtx.Snowflake.Generate().Int64()
+		outboxEvent, err := newMessageDeletedEvent(
+			s.svcCtx.Cfg.Kafka.Topic,
+			eventID,
+			msg.ID,
+			msg.ChannelID,
+			s.svcCtx.Cfg.Outbox.RelayConfig().MaxRetries,
+		)
 		if err != nil {
 			return err
 		}
-		outboxEvent.ID = s.svcCtx.Snowflake.Generate().Int64()
 		return txStore.InsertOutboxEvent(ctx, outboxEvent)
 	})
 	if err != nil {
@@ -285,7 +296,6 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 	setListCursors(resp, messages)
 	return resp, nil
 }
-
 
 func toPBMessages(messages []*model.Message) []*messagev1.Message {
 	values := make([]*messagev1.Message, 0, len(messages))

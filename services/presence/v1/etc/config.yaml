@@ -1,0 +1,10 @@
+Name: presence.rpc
+ListenOn: 0.0.0.0:3003
+
+Redis:
+  Host: 127.0.0.1:6379
+  Type: node
+
+Presence:
+  GatewayTTLSeconds: 30
+  RouteTTLSeconds: 30

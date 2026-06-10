@@ -23,6 +23,11 @@ const (
 	PresenceService_RefreshChannelRoutes_FullMethodName   = "/presence.v1.PresenceService/RefreshChannelRoutes"
 	PresenceService_DetachChannelRoute_FullMethodName     = "/presence.v1.PresenceService/DetachChannelRoute"
 	PresenceService_ResolveChannelGateways_FullMethodName = "/presence.v1.PresenceService/ResolveChannelGateways"
+	PresenceService_RegisterUserSession_FullMethodName    = "/presence.v1.PresenceService/RegisterUserSession"
+	PresenceService_RefreshUserSession_FullMethodName     = "/presence.v1.PresenceService/RefreshUserSession"
+	PresenceService_UpdateUserPresence_FullMethodName     = "/presence.v1.PresenceService/UpdateUserPresence"
+	PresenceService_RemoveUserSession_FullMethodName      = "/presence.v1.PresenceService/RemoveUserSession"
+	PresenceService_ResolveUsersPresence_FullMethodName   = "/presence.v1.PresenceService/ResolveUsersPresence"
 )
 
 // PresenceServiceClient is the client API for PresenceService service.
@@ -47,6 +52,21 @@ type PresenceServiceClient interface {
 	// ResolveChannelGateways returns live gateway instances that currently
 	// carry sessions interested in a channel.
 	ResolveChannelGateways(ctx context.Context, in *ResolveChannelGatewaysRequest, opts ...grpc.CallOption) (*ResolveChannelGatewaysResponse, error)
+	// RegisterUserSession records a websocket gateway session for a user.
+	// Gateways call this after IDENTIFY/RESUME has authenticated the user.
+	RegisterUserSession(ctx context.Context, in *RegisterUserSessionRequest, opts ...grpc.CallOption) (*RegisterUserSessionResponse, error)
+	// RefreshUserSession renews a websocket session heartbeat and may update
+	// client state such as foreground/background.
+	RefreshUserSession(ctx context.Context, in *RefreshUserSessionRequest, opts ...grpc.CallOption) (*RefreshUserSessionResponse, error)
+	// UpdateUserPresence updates a websocket session's visible presence state.
+	UpdateUserPresence(ctx context.Context, in *UpdateUserPresenceRequest, opts ...grpc.CallOption) (*UpdateUserPresenceResponse, error)
+	// RemoveUserSession removes a websocket session when the gateway observes a
+	// normal disconnect. Abnormal disconnects are cleaned up by TTL.
+	RemoveUserSession(ctx context.Context, in *RemoveUserSessionRequest, opts ...grpc.CallOption) (*RemoveUserSessionResponse, error)
+	// ResolveUsersPresence returns aggregated live presence for the requested
+	// users. Membership and channel visibility remain owned by the channel
+	// service, not presence.
+	ResolveUsersPresence(ctx context.Context, in *ResolveUsersPresenceRequest, opts ...grpc.CallOption) (*ResolveUsersPresenceResponse, error)
 }
 
 type presenceServiceClient struct {
@@ -97,6 +117,56 @@ func (c *presenceServiceClient) ResolveChannelGateways(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *presenceServiceClient) RegisterUserSession(ctx context.Context, in *RegisterUserSessionRequest, opts ...grpc.CallOption) (*RegisterUserSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterUserSessionResponse)
+	err := c.cc.Invoke(ctx, PresenceService_RegisterUserSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *presenceServiceClient) RefreshUserSession(ctx context.Context, in *RefreshUserSessionRequest, opts ...grpc.CallOption) (*RefreshUserSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshUserSessionResponse)
+	err := c.cc.Invoke(ctx, PresenceService_RefreshUserSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *presenceServiceClient) UpdateUserPresence(ctx context.Context, in *UpdateUserPresenceRequest, opts ...grpc.CallOption) (*UpdateUserPresenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserPresenceResponse)
+	err := c.cc.Invoke(ctx, PresenceService_UpdateUserPresence_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *presenceServiceClient) RemoveUserSession(ctx context.Context, in *RemoveUserSessionRequest, opts ...grpc.CallOption) (*RemoveUserSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveUserSessionResponse)
+	err := c.cc.Invoke(ctx, PresenceService_RemoveUserSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *presenceServiceClient) ResolveUsersPresence(ctx context.Context, in *ResolveUsersPresenceRequest, opts ...grpc.CallOption) (*ResolveUsersPresenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveUsersPresenceResponse)
+	err := c.cc.Invoke(ctx, PresenceService_ResolveUsersPresence_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PresenceServiceServer is the server API for PresenceService service.
 // All implementations should embed UnimplementedPresenceServiceServer
 // for forward compatibility.
@@ -119,6 +189,21 @@ type PresenceServiceServer interface {
 	// ResolveChannelGateways returns live gateway instances that currently
 	// carry sessions interested in a channel.
 	ResolveChannelGateways(context.Context, *ResolveChannelGatewaysRequest) (*ResolveChannelGatewaysResponse, error)
+	// RegisterUserSession records a websocket gateway session for a user.
+	// Gateways call this after IDENTIFY/RESUME has authenticated the user.
+	RegisterUserSession(context.Context, *RegisterUserSessionRequest) (*RegisterUserSessionResponse, error)
+	// RefreshUserSession renews a websocket session heartbeat and may update
+	// client state such as foreground/background.
+	RefreshUserSession(context.Context, *RefreshUserSessionRequest) (*RefreshUserSessionResponse, error)
+	// UpdateUserPresence updates a websocket session's visible presence state.
+	UpdateUserPresence(context.Context, *UpdateUserPresenceRequest) (*UpdateUserPresenceResponse, error)
+	// RemoveUserSession removes a websocket session when the gateway observes a
+	// normal disconnect. Abnormal disconnects are cleaned up by TTL.
+	RemoveUserSession(context.Context, *RemoveUserSessionRequest) (*RemoveUserSessionResponse, error)
+	// ResolveUsersPresence returns aggregated live presence for the requested
+	// users. Membership and channel visibility remain owned by the channel
+	// service, not presence.
+	ResolveUsersPresence(context.Context, *ResolveUsersPresenceRequest) (*ResolveUsersPresenceResponse, error)
 }
 
 // UnimplementedPresenceServiceServer should be embedded to have
@@ -139,6 +224,21 @@ func (UnimplementedPresenceServiceServer) DetachChannelRoute(context.Context, *D
 }
 func (UnimplementedPresenceServiceServer) ResolveChannelGateways(context.Context, *ResolveChannelGatewaysRequest) (*ResolveChannelGatewaysResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ResolveChannelGateways not implemented")
+}
+func (UnimplementedPresenceServiceServer) RegisterUserSession(context.Context, *RegisterUserSessionRequest) (*RegisterUserSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterUserSession not implemented")
+}
+func (UnimplementedPresenceServiceServer) RefreshUserSession(context.Context, *RefreshUserSessionRequest) (*RefreshUserSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshUserSession not implemented")
+}
+func (UnimplementedPresenceServiceServer) UpdateUserPresence(context.Context, *UpdateUserPresenceRequest) (*UpdateUserPresenceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserPresence not implemented")
+}
+func (UnimplementedPresenceServiceServer) RemoveUserSession(context.Context, *RemoveUserSessionRequest) (*RemoveUserSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveUserSession not implemented")
+}
+func (UnimplementedPresenceServiceServer) ResolveUsersPresence(context.Context, *ResolveUsersPresenceRequest) (*ResolveUsersPresenceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResolveUsersPresence not implemented")
 }
 func (UnimplementedPresenceServiceServer) testEmbeddedByValue() {}
 
@@ -232,6 +332,96 @@ func _PresenceService_ResolveChannelGateways_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PresenceService_RegisterUserSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterUserSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PresenceServiceServer).RegisterUserSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PresenceService_RegisterUserSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PresenceServiceServer).RegisterUserSession(ctx, req.(*RegisterUserSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PresenceService_RefreshUserSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshUserSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PresenceServiceServer).RefreshUserSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PresenceService_RefreshUserSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PresenceServiceServer).RefreshUserSession(ctx, req.(*RefreshUserSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PresenceService_UpdateUserPresence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserPresenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PresenceServiceServer).UpdateUserPresence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PresenceService_UpdateUserPresence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PresenceServiceServer).UpdateUserPresence(ctx, req.(*UpdateUserPresenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PresenceService_RemoveUserSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveUserSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PresenceServiceServer).RemoveUserSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PresenceService_RemoveUserSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PresenceServiceServer).RemoveUserSession(ctx, req.(*RemoveUserSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PresenceService_ResolveUsersPresence_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveUsersPresenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PresenceServiceServer).ResolveUsersPresence(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PresenceService_ResolveUsersPresence_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PresenceServiceServer).ResolveUsersPresence(ctx, req.(*ResolveUsersPresenceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PresenceService_ServiceDesc is the grpc.ServiceDesc for PresenceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -254,6 +444,26 @@ var PresenceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ResolveChannelGateways",
 			Handler:    _PresenceService_ResolveChannelGateways_Handler,
+		},
+		{
+			MethodName: "RegisterUserSession",
+			Handler:    _PresenceService_RegisterUserSession_Handler,
+		},
+		{
+			MethodName: "RefreshUserSession",
+			Handler:    _PresenceService_RefreshUserSession_Handler,
+		},
+		{
+			MethodName: "UpdateUserPresence",
+			Handler:    _PresenceService_UpdateUserPresence_Handler,
+		},
+		{
+			MethodName: "RemoveUserSession",
+			Handler:    _PresenceService_RemoveUserSession_Handler,
+		},
+		{
+			MethodName: "ResolveUsersPresence",
+			Handler:    _PresenceService_ResolveUsersPresence_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

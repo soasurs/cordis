@@ -20,6 +20,103 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type PresenceStatus int32
+
+const (
+	PresenceStatus_PRESENCE_STATUS_UNSPECIFIED PresenceStatus = 0
+	PresenceStatus_PRESENCE_STATUS_OFFLINE     PresenceStatus = 1
+	PresenceStatus_PRESENCE_STATUS_ONLINE      PresenceStatus = 2
+	PresenceStatus_PRESENCE_STATUS_IDLE        PresenceStatus = 3
+	PresenceStatus_PRESENCE_STATUS_DND         PresenceStatus = 4
+	PresenceStatus_PRESENCE_STATUS_INVISIBLE   PresenceStatus = 5
+)
+
+// Enum value maps for PresenceStatus.
+var (
+	PresenceStatus_name = map[int32]string{
+		0: "PRESENCE_STATUS_UNSPECIFIED",
+		1: "PRESENCE_STATUS_OFFLINE",
+		2: "PRESENCE_STATUS_ONLINE",
+		3: "PRESENCE_STATUS_IDLE",
+		4: "PRESENCE_STATUS_DND",
+		5: "PRESENCE_STATUS_INVISIBLE",
+	}
+	PresenceStatus_value = map[string]int32{
+		"PRESENCE_STATUS_UNSPECIFIED": 0,
+		"PRESENCE_STATUS_OFFLINE":     1,
+		"PRESENCE_STATUS_ONLINE":      2,
+		"PRESENCE_STATUS_IDLE":        3,
+		"PRESENCE_STATUS_DND":         4,
+		"PRESENCE_STATUS_INVISIBLE":   5,
+	}
+)
+
+func (x PresenceStatus) Enum() *PresenceStatus {
+	p := new(PresenceStatus)
+	*p = x
+	return p
+}
+
+func (x PresenceStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PresenceStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_presence_v1_presence_proto_enumTypes[0].Descriptor()
+}
+
+func (PresenceStatus) Type() protoreflect.EnumType {
+	return &file_presence_v1_presence_proto_enumTypes[0]
+}
+
+func (x PresenceStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+type ClientState int32
+
+const (
+	ClientState_CLIENT_STATE_UNSPECIFIED ClientState = 0
+	ClientState_CLIENT_STATE_FOREGROUND  ClientState = 1
+	ClientState_CLIENT_STATE_BACKGROUND  ClientState = 2
+)
+
+// Enum value maps for ClientState.
+var (
+	ClientState_name = map[int32]string{
+		0: "CLIENT_STATE_UNSPECIFIED",
+		1: "CLIENT_STATE_FOREGROUND",
+		2: "CLIENT_STATE_BACKGROUND",
+	}
+	ClientState_value = map[string]int32{
+		"CLIENT_STATE_UNSPECIFIED": 0,
+		"CLIENT_STATE_FOREGROUND":  1,
+		"CLIENT_STATE_BACKGROUND":  2,
+	}
+)
+
+func (x ClientState) Enum() *ClientState {
+	p := new(ClientState)
+	*p = x
+	return p
+}
+
+func (x ClientState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ClientState) Descriptor() protoreflect.EnumDescriptor {
+	return file_presence_v1_presence_proto_enumTypes[1].Descriptor()
+}
+
+func (ClientState) Type() protoreflect.EnumType {
+	return &file_presence_v1_presence_proto_enumTypes[1]
+}
+
+func (x ClientState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
 type GatewayInstance struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GatewayId   *string                `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId"`
@@ -956,6 +1053,1707 @@ func (b0 ResolveChannelGatewaysResponse_builder) Build() *ResolveChannelGateways
 	return m0
 }
 
+type UserSession struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
+	xxx_hidden_GatewayId   *string                `protobuf:"bytes,3,opt,name=gateway_id,json=gatewayId"`
+	xxx_hidden_Generation  *string                `protobuf:"bytes,4,opt,name=generation"`
+	xxx_hidden_DeviceType  *string                `protobuf:"bytes,5,opt,name=device_type,json=deviceType"`
+	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,6,opt,name=status,enum=presence.v1.PresenceStatus"`
+	xxx_hidden_ClientState ClientState            `protobuf:"varint,7,opt,name=client_state,json=clientState,enum=presence.v1.ClientState"`
+	xxx_hidden_LastSeenAt  int64                  `protobuf:"varint,8,opt,name=last_seen_at,json=lastSeenAt"`
+	xxx_hidden_ExpiresAt   int64                  `protobuf:"varint,9,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *UserSession) Reset() {
+	*x = UserSession{}
+	mi := &file_presence_v1_presence_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserSession) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserSession) ProtoMessage() {}
+
+func (x *UserSession) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UserSession) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *UserSession) GetSessionId() string {
+	if x != nil {
+		if x.xxx_hidden_SessionId != nil {
+			return *x.xxx_hidden_SessionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UserSession) GetGatewayId() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayId != nil {
+			return *x.xxx_hidden_GatewayId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UserSession) GetGeneration() string {
+	if x != nil {
+		if x.xxx_hidden_Generation != nil {
+			return *x.xxx_hidden_Generation
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UserSession) GetDeviceType() string {
+	if x != nil {
+		if x.xxx_hidden_DeviceType != nil {
+			return *x.xxx_hidden_DeviceType
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UserSession) GetStatus() PresenceStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 5) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *UserSession) GetClientState() ClientState {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 6) {
+			return x.xxx_hidden_ClientState
+		}
+	}
+	return ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+func (x *UserSession) GetLastSeenAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_LastSeenAt
+	}
+	return 0
+}
+
+func (x *UserSession) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *UserSession) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+}
+
+func (x *UserSession) SetSessionId(v string) {
+	x.xxx_hidden_SessionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+}
+
+func (x *UserSession) SetGatewayId(v string) {
+	x.xxx_hidden_GatewayId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+}
+
+func (x *UserSession) SetGeneration(v string) {
+	x.xxx_hidden_Generation = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+}
+
+func (x *UserSession) SetDeviceType(v string) {
+	x.xxx_hidden_DeviceType = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
+}
+
+func (x *UserSession) SetStatus(v PresenceStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+}
+
+func (x *UserSession) SetClientState(v ClientState) {
+	x.xxx_hidden_ClientState = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+}
+
+func (x *UserSession) SetLastSeenAt(v int64) {
+	x.xxx_hidden_LastSeenAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *UserSession) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
+}
+
+func (x *UserSession) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UserSession) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UserSession) HasGatewayId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UserSession) HasGeneration() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *UserSession) HasDeviceType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *UserSession) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *UserSession) HasClientState() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *UserSession) HasLastSeenAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *UserSession) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
+func (x *UserSession) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *UserSession) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SessionId = nil
+}
+
+func (x *UserSession) ClearGatewayId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_GatewayId = nil
+}
+
+func (x *UserSession) ClearGeneration() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Generation = nil
+}
+
+func (x *UserSession) ClearDeviceType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_DeviceType = nil
+}
+
+func (x *UserSession) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Status = PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *UserSession) ClearClientState() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ClientState = ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+func (x *UserSession) ClearLastSeenAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_LastSeenAt = 0
+}
+
+func (x *UserSession) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type UserSession_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId      *int64
+	SessionId   *string
+	GatewayId   *string
+	Generation  *string
+	DeviceType  *string
+	Status      *PresenceStatus
+	ClientState *ClientState
+	LastSeenAt  *int64
+	ExpiresAt   *int64
+}
+
+func (b0 UserSession_builder) Build() *UserSession {
+	m0 := &UserSession{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		x.xxx_hidden_SessionId = b.SessionId
+	}
+	if b.GatewayId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		x.xxx_hidden_GatewayId = b.GatewayId
+	}
+	if b.Generation != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		x.xxx_hidden_Generation = b.Generation
+	}
+	if b.DeviceType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
+		x.xxx_hidden_DeviceType = b.DeviceType
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.ClientState != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		x.xxx_hidden_ClientState = *b.ClientState
+	}
+	if b.LastSeenAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
+		x.xxx_hidden_LastSeenAt = *b.LastSeenAt
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
+type UserPresence struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,2,opt,name=status,enum=presence.v1.PresenceStatus"`
+	xxx_hidden_LastSeenAt  int64                  `protobuf:"varint,3,opt,name=last_seen_at,json=lastSeenAt"`
+	xxx_hidden_Sessions    *[]*UserSession        `protobuf:"bytes,4,rep,name=sessions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *UserPresence) Reset() {
+	*x = UserPresence{}
+	mi := &file_presence_v1_presence_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserPresence) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserPresence) ProtoMessage() {}
+
+func (x *UserPresence) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UserPresence) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *UserPresence) GetStatus() PresenceStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *UserPresence) GetLastSeenAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_LastSeenAt
+	}
+	return 0
+}
+
+func (x *UserPresence) GetSessions() []*UserSession {
+	if x != nil {
+		if x.xxx_hidden_Sessions != nil {
+			return *x.xxx_hidden_Sessions
+		}
+	}
+	return nil
+}
+
+func (x *UserPresence) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *UserPresence) SetStatus(v PresenceStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *UserPresence) SetLastSeenAt(v int64) {
+	x.xxx_hidden_LastSeenAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *UserPresence) SetSessions(v []*UserSession) {
+	x.xxx_hidden_Sessions = &v
+}
+
+func (x *UserPresence) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UserPresence) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UserPresence) HasLastSeenAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UserPresence) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *UserPresence) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Status = PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *UserPresence) ClearLastSeenAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_LastSeenAt = 0
+}
+
+type UserPresence_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId     *int64
+	Status     *PresenceStatus
+	LastSeenAt *int64
+	Sessions   []*UserSession
+}
+
+func (b0 UserPresence_builder) Build() *UserPresence {
+	m0 := &UserPresence{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.LastSeenAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_LastSeenAt = *b.LastSeenAt
+	}
+	x.xxx_hidden_Sessions = &b.Sessions
+	return m0
+}
+
+type RegisterUserSessionRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
+	xxx_hidden_GatewayId   *string                `protobuf:"bytes,3,opt,name=gateway_id,json=gatewayId"`
+	xxx_hidden_Generation  *string                `protobuf:"bytes,4,opt,name=generation"`
+	xxx_hidden_DeviceType  *string                `protobuf:"bytes,5,opt,name=device_type,json=deviceType"`
+	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,6,opt,name=status,enum=presence.v1.PresenceStatus"`
+	xxx_hidden_ClientState ClientState            `protobuf:"varint,7,opt,name=client_state,json=clientState,enum=presence.v1.ClientState"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *RegisterUserSessionRequest) Reset() {
+	*x = RegisterUserSessionRequest{}
+	mi := &file_presence_v1_presence_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterUserSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterUserSessionRequest) ProtoMessage() {}
+
+func (x *RegisterUserSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RegisterUserSessionRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *RegisterUserSessionRequest) GetSessionId() string {
+	if x != nil {
+		if x.xxx_hidden_SessionId != nil {
+			return *x.xxx_hidden_SessionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RegisterUserSessionRequest) GetGatewayId() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayId != nil {
+			return *x.xxx_hidden_GatewayId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RegisterUserSessionRequest) GetGeneration() string {
+	if x != nil {
+		if x.xxx_hidden_Generation != nil {
+			return *x.xxx_hidden_Generation
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RegisterUserSessionRequest) GetDeviceType() string {
+	if x != nil {
+		if x.xxx_hidden_DeviceType != nil {
+			return *x.xxx_hidden_DeviceType
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RegisterUserSessionRequest) GetStatus() PresenceStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 5) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *RegisterUserSessionRequest) GetClientState() ClientState {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 6) {
+			return x.xxx_hidden_ClientState
+		}
+	}
+	return ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+func (x *RegisterUserSessionRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+}
+
+func (x *RegisterUserSessionRequest) SetSessionId(v string) {
+	x.xxx_hidden_SessionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+}
+
+func (x *RegisterUserSessionRequest) SetGatewayId(v string) {
+	x.xxx_hidden_GatewayId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+}
+
+func (x *RegisterUserSessionRequest) SetGeneration(v string) {
+	x.xxx_hidden_Generation = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+}
+
+func (x *RegisterUserSessionRequest) SetDeviceType(v string) {
+	x.xxx_hidden_DeviceType = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+}
+
+func (x *RegisterUserSessionRequest) SetStatus(v PresenceStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *RegisterUserSessionRequest) SetClientState(v ClientState) {
+	x.xxx_hidden_ClientState = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
+func (x *RegisterUserSessionRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RegisterUserSessionRequest) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RegisterUserSessionRequest) HasGatewayId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *RegisterUserSessionRequest) HasGeneration() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *RegisterUserSessionRequest) HasDeviceType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *RegisterUserSessionRequest) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *RegisterUserSessionRequest) HasClientState() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *RegisterUserSessionRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RegisterUserSessionRequest) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SessionId = nil
+}
+
+func (x *RegisterUserSessionRequest) ClearGatewayId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_GatewayId = nil
+}
+
+func (x *RegisterUserSessionRequest) ClearGeneration() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Generation = nil
+}
+
+func (x *RegisterUserSessionRequest) ClearDeviceType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_DeviceType = nil
+}
+
+func (x *RegisterUserSessionRequest) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Status = PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *RegisterUserSessionRequest) ClearClientState() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ClientState = ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+type RegisterUserSessionRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId      *int64
+	SessionId   *string
+	GatewayId   *string
+	Generation  *string
+	DeviceType  *string
+	Status      *PresenceStatus
+	ClientState *ClientState
+}
+
+func (b0 RegisterUserSessionRequest_builder) Build() *RegisterUserSessionRequest {
+	m0 := &RegisterUserSessionRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		x.xxx_hidden_SessionId = b.SessionId
+	}
+	if b.GatewayId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		x.xxx_hidden_GatewayId = b.GatewayId
+	}
+	if b.Generation != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		x.xxx_hidden_Generation = b.Generation
+	}
+	if b.DeviceType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		x.xxx_hidden_DeviceType = b.DeviceType
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.ClientState != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_ClientState = *b.ClientState
+	}
+	return m0
+}
+
+type RegisterUserSessionResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Presence *UserPresence          `protobuf:"bytes,1,opt,name=presence"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RegisterUserSessionResponse) Reset() {
+	*x = RegisterUserSessionResponse{}
+	mi := &file_presence_v1_presence_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterUserSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterUserSessionResponse) ProtoMessage() {}
+
+func (x *RegisterUserSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RegisterUserSessionResponse) GetPresence() *UserPresence {
+	if x != nil {
+		return x.xxx_hidden_Presence
+	}
+	return nil
+}
+
+func (x *RegisterUserSessionResponse) SetPresence(v *UserPresence) {
+	x.xxx_hidden_Presence = v
+}
+
+func (x *RegisterUserSessionResponse) HasPresence() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Presence != nil
+}
+
+func (x *RegisterUserSessionResponse) ClearPresence() {
+	x.xxx_hidden_Presence = nil
+}
+
+type RegisterUserSessionResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Presence *UserPresence
+}
+
+func (b0 RegisterUserSessionResponse_builder) Build() *RegisterUserSessionResponse {
+	m0 := &RegisterUserSessionResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Presence = b.Presence
+	return m0
+}
+
+type RefreshUserSessionRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
+	xxx_hidden_GatewayId   *string                `protobuf:"bytes,3,opt,name=gateway_id,json=gatewayId"`
+	xxx_hidden_Generation  *string                `protobuf:"bytes,4,opt,name=generation"`
+	xxx_hidden_DeviceType  *string                `protobuf:"bytes,5,opt,name=device_type,json=deviceType"`
+	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,6,opt,name=status,enum=presence.v1.PresenceStatus"`
+	xxx_hidden_ClientState ClientState            `protobuf:"varint,7,opt,name=client_state,json=clientState,enum=presence.v1.ClientState"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *RefreshUserSessionRequest) Reset() {
+	*x = RefreshUserSessionRequest{}
+	mi := &file_presence_v1_presence_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshUserSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshUserSessionRequest) ProtoMessage() {}
+
+func (x *RefreshUserSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RefreshUserSessionRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *RefreshUserSessionRequest) GetSessionId() string {
+	if x != nil {
+		if x.xxx_hidden_SessionId != nil {
+			return *x.xxx_hidden_SessionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RefreshUserSessionRequest) GetGatewayId() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayId != nil {
+			return *x.xxx_hidden_GatewayId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RefreshUserSessionRequest) GetGeneration() string {
+	if x != nil {
+		if x.xxx_hidden_Generation != nil {
+			return *x.xxx_hidden_Generation
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RefreshUserSessionRequest) GetDeviceType() string {
+	if x != nil {
+		if x.xxx_hidden_DeviceType != nil {
+			return *x.xxx_hidden_DeviceType
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RefreshUserSessionRequest) GetStatus() PresenceStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 5) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *RefreshUserSessionRequest) GetClientState() ClientState {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 6) {
+			return x.xxx_hidden_ClientState
+		}
+	}
+	return ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+func (x *RefreshUserSessionRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+}
+
+func (x *RefreshUserSessionRequest) SetSessionId(v string) {
+	x.xxx_hidden_SessionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+}
+
+func (x *RefreshUserSessionRequest) SetGatewayId(v string) {
+	x.xxx_hidden_GatewayId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+}
+
+func (x *RefreshUserSessionRequest) SetGeneration(v string) {
+	x.xxx_hidden_Generation = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+}
+
+func (x *RefreshUserSessionRequest) SetDeviceType(v string) {
+	x.xxx_hidden_DeviceType = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+}
+
+func (x *RefreshUserSessionRequest) SetStatus(v PresenceStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *RefreshUserSessionRequest) SetClientState(v ClientState) {
+	x.xxx_hidden_ClientState = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
+func (x *RefreshUserSessionRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RefreshUserSessionRequest) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RefreshUserSessionRequest) HasGatewayId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *RefreshUserSessionRequest) HasGeneration() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *RefreshUserSessionRequest) HasDeviceType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *RefreshUserSessionRequest) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *RefreshUserSessionRequest) HasClientState() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *RefreshUserSessionRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RefreshUserSessionRequest) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SessionId = nil
+}
+
+func (x *RefreshUserSessionRequest) ClearGatewayId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_GatewayId = nil
+}
+
+func (x *RefreshUserSessionRequest) ClearGeneration() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Generation = nil
+}
+
+func (x *RefreshUserSessionRequest) ClearDeviceType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_DeviceType = nil
+}
+
+func (x *RefreshUserSessionRequest) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Status = PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *RefreshUserSessionRequest) ClearClientState() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ClientState = ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+type RefreshUserSessionRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId      *int64
+	SessionId   *string
+	GatewayId   *string
+	Generation  *string
+	DeviceType  *string
+	Status      *PresenceStatus
+	ClientState *ClientState
+}
+
+func (b0 RefreshUserSessionRequest_builder) Build() *RefreshUserSessionRequest {
+	m0 := &RefreshUserSessionRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		x.xxx_hidden_SessionId = b.SessionId
+	}
+	if b.GatewayId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		x.xxx_hidden_GatewayId = b.GatewayId
+	}
+	if b.Generation != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		x.xxx_hidden_Generation = b.Generation
+	}
+	if b.DeviceType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		x.xxx_hidden_DeviceType = b.DeviceType
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.ClientState != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_ClientState = *b.ClientState
+	}
+	return m0
+}
+
+type RefreshUserSessionResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Presence *UserPresence          `protobuf:"bytes,1,opt,name=presence"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RefreshUserSessionResponse) Reset() {
+	*x = RefreshUserSessionResponse{}
+	mi := &file_presence_v1_presence_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefreshUserSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefreshUserSessionResponse) ProtoMessage() {}
+
+func (x *RefreshUserSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RefreshUserSessionResponse) GetPresence() *UserPresence {
+	if x != nil {
+		return x.xxx_hidden_Presence
+	}
+	return nil
+}
+
+func (x *RefreshUserSessionResponse) SetPresence(v *UserPresence) {
+	x.xxx_hidden_Presence = v
+}
+
+func (x *RefreshUserSessionResponse) HasPresence() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Presence != nil
+}
+
+func (x *RefreshUserSessionResponse) ClearPresence() {
+	x.xxx_hidden_Presence = nil
+}
+
+type RefreshUserSessionResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Presence *UserPresence
+}
+
+func (b0 RefreshUserSessionResponse_builder) Build() *RefreshUserSessionResponse {
+	m0 := &RefreshUserSessionResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Presence = b.Presence
+	return m0
+}
+
+type UpdateUserPresenceRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
+	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,3,opt,name=status,enum=presence.v1.PresenceStatus"`
+	xxx_hidden_ClientState ClientState            `protobuf:"varint,4,opt,name=client_state,json=clientState,enum=presence.v1.ClientState"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *UpdateUserPresenceRequest) Reset() {
+	*x = UpdateUserPresenceRequest{}
+	mi := &file_presence_v1_presence_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserPresenceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserPresenceRequest) ProtoMessage() {}
+
+func (x *UpdateUserPresenceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UpdateUserPresenceRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *UpdateUserPresenceRequest) GetSessionId() string {
+	if x != nil {
+		if x.xxx_hidden_SessionId != nil {
+			return *x.xxx_hidden_SessionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UpdateUserPresenceRequest) GetStatus() PresenceStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *UpdateUserPresenceRequest) GetClientState() ClientState {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
+			return x.xxx_hidden_ClientState
+		}
+	}
+	return ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+func (x *UpdateUserPresenceRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *UpdateUserPresenceRequest) SetSessionId(v string) {
+	x.xxx_hidden_SessionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *UpdateUserPresenceRequest) SetStatus(v PresenceStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *UpdateUserPresenceRequest) SetClientState(v ClientState) {
+	x.xxx_hidden_ClientState = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *UpdateUserPresenceRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateUserPresenceRequest) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateUserPresenceRequest) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpdateUserPresenceRequest) HasClientState() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *UpdateUserPresenceRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *UpdateUserPresenceRequest) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SessionId = nil
+}
+
+func (x *UpdateUserPresenceRequest) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Status = PresenceStatus_PRESENCE_STATUS_UNSPECIFIED
+}
+
+func (x *UpdateUserPresenceRequest) ClearClientState() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ClientState = ClientState_CLIENT_STATE_UNSPECIFIED
+}
+
+type UpdateUserPresenceRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId      *int64
+	SessionId   *string
+	Status      *PresenceStatus
+	ClientState *ClientState
+}
+
+func (b0 UpdateUserPresenceRequest_builder) Build() *UpdateUserPresenceRequest {
+	m0 := &UpdateUserPresenceRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_SessionId = b.SessionId
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.ClientState != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_ClientState = *b.ClientState
+	}
+	return m0
+}
+
+type UpdateUserPresenceResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Presence *UserPresence          `protobuf:"bytes,1,opt,name=presence"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UpdateUserPresenceResponse) Reset() {
+	*x = UpdateUserPresenceResponse{}
+	mi := &file_presence_v1_presence_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserPresenceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserPresenceResponse) ProtoMessage() {}
+
+func (x *UpdateUserPresenceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UpdateUserPresenceResponse) GetPresence() *UserPresence {
+	if x != nil {
+		return x.xxx_hidden_Presence
+	}
+	return nil
+}
+
+func (x *UpdateUserPresenceResponse) SetPresence(v *UserPresence) {
+	x.xxx_hidden_Presence = v
+}
+
+func (x *UpdateUserPresenceResponse) HasPresence() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Presence != nil
+}
+
+func (x *UpdateUserPresenceResponse) ClearPresence() {
+	x.xxx_hidden_Presence = nil
+}
+
+type UpdateUserPresenceResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Presence *UserPresence
+}
+
+func (b0 UpdateUserPresenceResponse_builder) Build() *UpdateUserPresenceResponse {
+	m0 := &UpdateUserPresenceResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Presence = b.Presence
+	return m0
+}
+
+type RemoveUserSessionRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *RemoveUserSessionRequest) Reset() {
+	*x = RemoveUserSessionRequest{}
+	mi := &file_presence_v1_presence_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveUserSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveUserSessionRequest) ProtoMessage() {}
+
+func (x *RemoveUserSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RemoveUserSessionRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *RemoveUserSessionRequest) GetSessionId() string {
+	if x != nil {
+		if x.xxx_hidden_SessionId != nil {
+			return *x.xxx_hidden_SessionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RemoveUserSessionRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *RemoveUserSessionRequest) SetSessionId(v string) {
+	x.xxx_hidden_SessionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *RemoveUserSessionRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RemoveUserSessionRequest) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RemoveUserSessionRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RemoveUserSessionRequest) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SessionId = nil
+}
+
+type RemoveUserSessionRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId    *int64
+	SessionId *string
+}
+
+func (b0 RemoveUserSessionRequest_builder) Build() *RemoveUserSessionRequest {
+	m0 := &RemoveUserSessionRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_SessionId = b.SessionId
+	}
+	return m0
+}
+
+type RemoveUserSessionResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *RemoveUserSessionResponse) Reset() {
+	*x = RemoveUserSessionResponse{}
+	mi := &file_presence_v1_presence_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveUserSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveUserSessionResponse) ProtoMessage() {}
+
+func (x *RemoveUserSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RemoveUserSessionResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *RemoveUserSessionResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RemoveUserSessionResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RemoveUserSessionResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type RemoveUserSessionResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 RemoveUserSessionResponse_builder) Build() *RemoveUserSessionResponse {
+	m0 := &RemoveUserSessionResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
+type ResolveUsersPresenceRequest struct {
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ResolveUsersPresenceRequest) Reset() {
+	*x = ResolveUsersPresenceRequest{}
+	mi := &file_presence_v1_presence_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveUsersPresenceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveUsersPresenceRequest) ProtoMessage() {}
+
+func (x *ResolveUsersPresenceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ResolveUsersPresenceRequest) GetUserIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_UserIds
+	}
+	return nil
+}
+
+func (x *ResolveUsersPresenceRequest) SetUserIds(v []int64) {
+	x.xxx_hidden_UserIds = v
+}
+
+type ResolveUsersPresenceRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserIds []int64
+}
+
+func (b0 ResolveUsersPresenceRequest_builder) Build() *ResolveUsersPresenceRequest {
+	m0 := &ResolveUsersPresenceRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_UserIds = b.UserIds
+	return m0
+}
+
+type ResolveUsersPresenceResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Presences *[]*UserPresence       `protobuf:"bytes,1,rep,name=presences"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ResolveUsersPresenceResponse) Reset() {
+	*x = ResolveUsersPresenceResponse{}
+	mi := &file_presence_v1_presence_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResolveUsersPresenceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResolveUsersPresenceResponse) ProtoMessage() {}
+
+func (x *ResolveUsersPresenceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_presence_v1_presence_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ResolveUsersPresenceResponse) GetPresences() []*UserPresence {
+	if x != nil {
+		if x.xxx_hidden_Presences != nil {
+			return *x.xxx_hidden_Presences
+		}
+	}
+	return nil
+}
+
+func (x *ResolveUsersPresenceResponse) SetPresences(v []*UserPresence) {
+	x.xxx_hidden_Presences = &v
+}
+
+type ResolveUsersPresenceResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Presences []*UserPresence
+}
+
+func (b0 ResolveUsersPresenceResponse_builder) Build() *ResolveUsersPresenceResponse {
+	m0 := &ResolveUsersPresenceResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Presences = &b.Presences
+	return m0
+}
+
 var File_presence_v1_presence_proto protoreflect.FileDescriptor
 
 const file_presence_v1_presence_proto_rawDesc = "" +
@@ -1003,42 +2801,168 @@ const file_presence_v1_presence_proto_rawDesc = "" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\"Z\n" +
 	"\x1eResolveChannelGatewaysResponse\x128\n" +
-	"\bgateways\x18\x01 \x03(\v2\x1c.presence.v1.GatewayInstanceR\bgateways2\xb6\x03\n" +
+	"\bgateways\x18\x01 \x03(\v2\x1c.presence.v1.GatewayInstanceR\bgateways\"\xd8\x02\n" +
+	"\vUserSession\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x03 \x01(\tR\tgatewayId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x04 \x01(\tR\n" +
+	"generation\x12\x1f\n" +
+	"\vdevice_type\x18\x05 \x01(\tR\n" +
+	"deviceType\x123\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12;\n" +
+	"\fclient_state\x18\a \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\x12 \n" +
+	"\flast_seen_at\x18\b \x01(\x03R\n" +
+	"lastSeenAt\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\t \x01(\x03R\texpiresAt\"\xb4\x01\n" +
+	"\fUserPresence\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x123\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12 \n" +
+	"\flast_seen_at\x18\x03 \x01(\x03R\n" +
+	"lastSeenAt\x124\n" +
+	"\bsessions\x18\x04 \x03(\v2\x18.presence.v1.UserSessionR\bsessions\"\xa6\x02\n" +
+	"\x1aRegisterUserSessionRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x03 \x01(\tR\tgatewayId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x04 \x01(\tR\n" +
+	"generation\x12\x1f\n" +
+	"\vdevice_type\x18\x05 \x01(\tR\n" +
+	"deviceType\x123\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12;\n" +
+	"\fclient_state\x18\a \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\"T\n" +
+	"\x1bRegisterUserSessionResponse\x125\n" +
+	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"\xa5\x02\n" +
+	"\x19RefreshUserSessionRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x03 \x01(\tR\tgatewayId\x12\x1e\n" +
+	"\n" +
+	"generation\x18\x04 \x01(\tR\n" +
+	"generation\x12\x1f\n" +
+	"\vdevice_type\x18\x05 \x01(\tR\n" +
+	"deviceType\x123\n" +
+	"\x06status\x18\x06 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12;\n" +
+	"\fclient_state\x18\a \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\"S\n" +
+	"\x1aRefreshUserSessionResponse\x125\n" +
+	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"\xc5\x01\n" +
+	"\x19UpdateUserPresenceRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x123\n" +
+	"\x06status\x18\x03 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12;\n" +
+	"\fclient_state\x18\x04 \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\"S\n" +
+	"\x1aUpdateUserPresenceResponse\x125\n" +
+	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"R\n" +
+	"\x18RemoveUserSessionRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\"+\n" +
+	"\x19RemoveUserSessionResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"8\n" +
+	"\x1bResolveUsersPresenceRequest\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\x03R\auserIds\"W\n" +
+	"\x1cResolveUsersPresenceResponse\x127\n" +
+	"\tpresences\x18\x01 \x03(\v2\x19.presence.v1.UserPresenceR\tpresences*\xbc\x01\n" +
+	"\x0ePresenceStatus\x12\x1f\n" +
+	"\x1bPRESENCE_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17PRESENCE_STATUS_OFFLINE\x10\x01\x12\x1a\n" +
+	"\x16PRESENCE_STATUS_ONLINE\x10\x02\x12\x18\n" +
+	"\x14PRESENCE_STATUS_IDLE\x10\x03\x12\x17\n" +
+	"\x13PRESENCE_STATUS_DND\x10\x04\x12\x1d\n" +
+	"\x19PRESENCE_STATUS_INVISIBLE\x10\x05*e\n" +
+	"\vClientState\x12\x1c\n" +
+	"\x18CLIENT_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17CLIENT_STATE_FOREGROUND\x10\x01\x12\x1b\n" +
+	"\x17CLIENT_STATE_BACKGROUND\x10\x022\xbf\a\n" +
 	"\x0fPresenceService\x12\\\n" +
 	"\x0fRegisterGateway\x12#.presence.v1.RegisterGatewayRequest\x1a$.presence.v1.RegisterGatewayResponse\x12k\n" +
 	"\x14RefreshChannelRoutes\x12(.presence.v1.RefreshChannelRoutesRequest\x1a).presence.v1.RefreshChannelRoutesResponse\x12e\n" +
 	"\x12DetachChannelRoute\x12&.presence.v1.DetachChannelRouteRequest\x1a'.presence.v1.DetachChannelRouteResponse\x12q\n" +
-	"\x16ResolveChannelGateways\x12*.presence.v1.ResolveChannelGatewaysRequest\x1a+.presence.v1.ResolveChannelGatewaysResponseB\xa3\x01\n" +
+	"\x16ResolveChannelGateways\x12*.presence.v1.ResolveChannelGatewaysRequest\x1a+.presence.v1.ResolveChannelGatewaysResponse\x12h\n" +
+	"\x13RegisterUserSession\x12'.presence.v1.RegisterUserSessionRequest\x1a(.presence.v1.RegisterUserSessionResponse\x12e\n" +
+	"\x12RefreshUserSession\x12&.presence.v1.RefreshUserSessionRequest\x1a'.presence.v1.RefreshUserSessionResponse\x12e\n" +
+	"\x12UpdateUserPresence\x12&.presence.v1.UpdateUserPresenceRequest\x1a'.presence.v1.UpdateUserPresenceResponse\x12b\n" +
+	"\x11RemoveUserSession\x12%.presence.v1.RemoveUserSessionRequest\x1a&.presence.v1.RemoveUserSessionResponse\x12k\n" +
+	"\x14ResolveUsersPresence\x12(.presence.v1.ResolveUsersPresenceRequest\x1a).presence.v1.ResolveUsersPresenceResponseB\xa3\x01\n" +
 	"\x0fcom.presence.v1B\rPresenceProtoP\x01Z4github.com/soasurs/cordis/gen/presence/v1;presencev1\xa2\x02\x03PXX\xaa\x02\vPresence.V1\xca\x02\vPresence\\V1\xe2\x02\x17Presence\\V1\\GPBMetadata\xea\x02\fPresence::V1b\beditionsp\xe8\a"
 
-var file_presence_v1_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_presence_v1_presence_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_presence_v1_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_presence_v1_presence_proto_goTypes = []any{
-	(*GatewayInstance)(nil),                // 0: presence.v1.GatewayInstance
-	(*RegisterGatewayRequest)(nil),         // 1: presence.v1.RegisterGatewayRequest
-	(*RegisterGatewayResponse)(nil),        // 2: presence.v1.RegisterGatewayResponse
-	(*RefreshChannelRoutesRequest)(nil),    // 3: presence.v1.RefreshChannelRoutesRequest
-	(*RefreshChannelRoutesResponse)(nil),   // 4: presence.v1.RefreshChannelRoutesResponse
-	(*DetachChannelRouteRequest)(nil),      // 5: presence.v1.DetachChannelRouteRequest
-	(*DetachChannelRouteResponse)(nil),     // 6: presence.v1.DetachChannelRouteResponse
-	(*ResolveChannelGatewaysRequest)(nil),  // 7: presence.v1.ResolveChannelGatewaysRequest
-	(*ResolveChannelGatewaysResponse)(nil), // 8: presence.v1.ResolveChannelGatewaysResponse
+	(PresenceStatus)(0),                    // 0: presence.v1.PresenceStatus
+	(ClientState)(0),                       // 1: presence.v1.ClientState
+	(*GatewayInstance)(nil),                // 2: presence.v1.GatewayInstance
+	(*RegisterGatewayRequest)(nil),         // 3: presence.v1.RegisterGatewayRequest
+	(*RegisterGatewayResponse)(nil),        // 4: presence.v1.RegisterGatewayResponse
+	(*RefreshChannelRoutesRequest)(nil),    // 5: presence.v1.RefreshChannelRoutesRequest
+	(*RefreshChannelRoutesResponse)(nil),   // 6: presence.v1.RefreshChannelRoutesResponse
+	(*DetachChannelRouteRequest)(nil),      // 7: presence.v1.DetachChannelRouteRequest
+	(*DetachChannelRouteResponse)(nil),     // 8: presence.v1.DetachChannelRouteResponse
+	(*ResolveChannelGatewaysRequest)(nil),  // 9: presence.v1.ResolveChannelGatewaysRequest
+	(*ResolveChannelGatewaysResponse)(nil), // 10: presence.v1.ResolveChannelGatewaysResponse
+	(*UserSession)(nil),                    // 11: presence.v1.UserSession
+	(*UserPresence)(nil),                   // 12: presence.v1.UserPresence
+	(*RegisterUserSessionRequest)(nil),     // 13: presence.v1.RegisterUserSessionRequest
+	(*RegisterUserSessionResponse)(nil),    // 14: presence.v1.RegisterUserSessionResponse
+	(*RefreshUserSessionRequest)(nil),      // 15: presence.v1.RefreshUserSessionRequest
+	(*RefreshUserSessionResponse)(nil),     // 16: presence.v1.RefreshUserSessionResponse
+	(*UpdateUserPresenceRequest)(nil),      // 17: presence.v1.UpdateUserPresenceRequest
+	(*UpdateUserPresenceResponse)(nil),     // 18: presence.v1.UpdateUserPresenceResponse
+	(*RemoveUserSessionRequest)(nil),       // 19: presence.v1.RemoveUserSessionRequest
+	(*RemoveUserSessionResponse)(nil),      // 20: presence.v1.RemoveUserSessionResponse
+	(*ResolveUsersPresenceRequest)(nil),    // 21: presence.v1.ResolveUsersPresenceRequest
+	(*ResolveUsersPresenceResponse)(nil),   // 22: presence.v1.ResolveUsersPresenceResponse
 }
 var file_presence_v1_presence_proto_depIdxs = []int32{
-	0, // 0: presence.v1.RegisterGatewayResponse.gateway:type_name -> presence.v1.GatewayInstance
-	0, // 1: presence.v1.ResolveChannelGatewaysResponse.gateways:type_name -> presence.v1.GatewayInstance
-	1, // 2: presence.v1.PresenceService.RegisterGateway:input_type -> presence.v1.RegisterGatewayRequest
-	3, // 3: presence.v1.PresenceService.RefreshChannelRoutes:input_type -> presence.v1.RefreshChannelRoutesRequest
-	5, // 4: presence.v1.PresenceService.DetachChannelRoute:input_type -> presence.v1.DetachChannelRouteRequest
-	7, // 5: presence.v1.PresenceService.ResolveChannelGateways:input_type -> presence.v1.ResolveChannelGatewaysRequest
-	2, // 6: presence.v1.PresenceService.RegisterGateway:output_type -> presence.v1.RegisterGatewayResponse
-	4, // 7: presence.v1.PresenceService.RefreshChannelRoutes:output_type -> presence.v1.RefreshChannelRoutesResponse
-	6, // 8: presence.v1.PresenceService.DetachChannelRoute:output_type -> presence.v1.DetachChannelRouteResponse
-	8, // 9: presence.v1.PresenceService.ResolveChannelGateways:output_type -> presence.v1.ResolveChannelGatewaysResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	2,  // 0: presence.v1.RegisterGatewayResponse.gateway:type_name -> presence.v1.GatewayInstance
+	2,  // 1: presence.v1.ResolveChannelGatewaysResponse.gateways:type_name -> presence.v1.GatewayInstance
+	0,  // 2: presence.v1.UserSession.status:type_name -> presence.v1.PresenceStatus
+	1,  // 3: presence.v1.UserSession.client_state:type_name -> presence.v1.ClientState
+	0,  // 4: presence.v1.UserPresence.status:type_name -> presence.v1.PresenceStatus
+	11, // 5: presence.v1.UserPresence.sessions:type_name -> presence.v1.UserSession
+	0,  // 6: presence.v1.RegisterUserSessionRequest.status:type_name -> presence.v1.PresenceStatus
+	1,  // 7: presence.v1.RegisterUserSessionRequest.client_state:type_name -> presence.v1.ClientState
+	12, // 8: presence.v1.RegisterUserSessionResponse.presence:type_name -> presence.v1.UserPresence
+	0,  // 9: presence.v1.RefreshUserSessionRequest.status:type_name -> presence.v1.PresenceStatus
+	1,  // 10: presence.v1.RefreshUserSessionRequest.client_state:type_name -> presence.v1.ClientState
+	12, // 11: presence.v1.RefreshUserSessionResponse.presence:type_name -> presence.v1.UserPresence
+	0,  // 12: presence.v1.UpdateUserPresenceRequest.status:type_name -> presence.v1.PresenceStatus
+	1,  // 13: presence.v1.UpdateUserPresenceRequest.client_state:type_name -> presence.v1.ClientState
+	12, // 14: presence.v1.UpdateUserPresenceResponse.presence:type_name -> presence.v1.UserPresence
+	12, // 15: presence.v1.ResolveUsersPresenceResponse.presences:type_name -> presence.v1.UserPresence
+	3,  // 16: presence.v1.PresenceService.RegisterGateway:input_type -> presence.v1.RegisterGatewayRequest
+	5,  // 17: presence.v1.PresenceService.RefreshChannelRoutes:input_type -> presence.v1.RefreshChannelRoutesRequest
+	7,  // 18: presence.v1.PresenceService.DetachChannelRoute:input_type -> presence.v1.DetachChannelRouteRequest
+	9,  // 19: presence.v1.PresenceService.ResolveChannelGateways:input_type -> presence.v1.ResolveChannelGatewaysRequest
+	13, // 20: presence.v1.PresenceService.RegisterUserSession:input_type -> presence.v1.RegisterUserSessionRequest
+	15, // 21: presence.v1.PresenceService.RefreshUserSession:input_type -> presence.v1.RefreshUserSessionRequest
+	17, // 22: presence.v1.PresenceService.UpdateUserPresence:input_type -> presence.v1.UpdateUserPresenceRequest
+	19, // 23: presence.v1.PresenceService.RemoveUserSession:input_type -> presence.v1.RemoveUserSessionRequest
+	21, // 24: presence.v1.PresenceService.ResolveUsersPresence:input_type -> presence.v1.ResolveUsersPresenceRequest
+	4,  // 25: presence.v1.PresenceService.RegisterGateway:output_type -> presence.v1.RegisterGatewayResponse
+	6,  // 26: presence.v1.PresenceService.RefreshChannelRoutes:output_type -> presence.v1.RefreshChannelRoutesResponse
+	8,  // 27: presence.v1.PresenceService.DetachChannelRoute:output_type -> presence.v1.DetachChannelRouteResponse
+	10, // 28: presence.v1.PresenceService.ResolveChannelGateways:output_type -> presence.v1.ResolveChannelGatewaysResponse
+	14, // 29: presence.v1.PresenceService.RegisterUserSession:output_type -> presence.v1.RegisterUserSessionResponse
+	16, // 30: presence.v1.PresenceService.RefreshUserSession:output_type -> presence.v1.RefreshUserSessionResponse
+	18, // 31: presence.v1.PresenceService.UpdateUserPresence:output_type -> presence.v1.UpdateUserPresenceResponse
+	20, // 32: presence.v1.PresenceService.RemoveUserSession:output_type -> presence.v1.RemoveUserSessionResponse
+	22, // 33: presence.v1.PresenceService.ResolveUsersPresence:output_type -> presence.v1.ResolveUsersPresenceResponse
+	25, // [25:34] is the sub-list for method output_type
+	16, // [16:25] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_presence_v1_presence_proto_init() }
@@ -1051,13 +2975,14 @@ func file_presence_v1_presence_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_presence_v1_presence_proto_rawDesc), len(file_presence_v1_presence_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   9,
+			NumEnums:      2,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_presence_v1_presence_proto_goTypes,
 		DependencyIndexes: file_presence_v1_presence_proto_depIdxs,
+		EnumInfos:         file_presence_v1_presence_proto_enumTypes,
 		MessageInfos:      file_presence_v1_presence_proto_msgTypes,
 	}.Build()
 	File_presence_v1_presence_proto = out.File

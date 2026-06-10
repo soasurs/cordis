@@ -23,7 +23,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	}
 
 	return Dependencies{
-		Store: store.NewRedisStore(rds, cfg.Presence.GatewayTTL(), cfg.Presence.RouteTTL()),
+		Store: store.NewRedisStore(rds, cfg.Presence.GatewayTTL(), cfg.Presence.RouteTTL(), cfg.Presence.UserSessionTTL()),
 		Redis: rds,
 	}, nil
 }

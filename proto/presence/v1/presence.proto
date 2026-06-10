@@ -23,6 +23,41 @@ service PresenceService {
   // ResolveChannelGateways returns live gateway instances that currently
   // carry sessions interested in a channel.
   rpc ResolveChannelGateways(ResolveChannelGatewaysRequest) returns (ResolveChannelGatewaysResponse);
+
+  // RegisterUserSession records a websocket gateway session for a user.
+  // Gateways call this after IDENTIFY/RESUME has authenticated the user.
+  rpc RegisterUserSession(RegisterUserSessionRequest) returns (RegisterUserSessionResponse);
+
+  // RefreshUserSession renews a websocket session heartbeat and may update
+  // client state such as foreground/background.
+  rpc RefreshUserSession(RefreshUserSessionRequest) returns (RefreshUserSessionResponse);
+
+  // UpdateUserPresence updates a websocket session's visible presence state.
+  rpc UpdateUserPresence(UpdateUserPresenceRequest) returns (UpdateUserPresenceResponse);
+
+  // RemoveUserSession removes a websocket session when the gateway observes a
+  // normal disconnect. Abnormal disconnects are cleaned up by TTL.
+  rpc RemoveUserSession(RemoveUserSessionRequest) returns (RemoveUserSessionResponse);
+
+  // ResolveUsersPresence returns aggregated live presence for the requested
+  // users. Membership and channel visibility remain owned by the channel
+  // service, not presence.
+  rpc ResolveUsersPresence(ResolveUsersPresenceRequest) returns (ResolveUsersPresenceResponse);
+}
+
+enum PresenceStatus {
+  PRESENCE_STATUS_UNSPECIFIED = 0;
+  PRESENCE_STATUS_OFFLINE = 1;
+  PRESENCE_STATUS_ONLINE = 2;
+  PRESENCE_STATUS_IDLE = 3;
+  PRESENCE_STATUS_DND = 4;
+  PRESENCE_STATUS_INVISIBLE = 5;
+}
+
+enum ClientState {
+  CLIENT_STATE_UNSPECIFIED = 0;
+  CLIENT_STATE_FOREGROUND = 1;
+  CLIENT_STATE_BACKGROUND = 2;
 }
 
 message GatewayInstance {
@@ -68,4 +103,79 @@ message ResolveChannelGatewaysRequest {
 
 message ResolveChannelGatewaysResponse {
   repeated GatewayInstance gateways = 1;
+}
+
+message UserSession {
+  int64 user_id = 1;
+  string session_id = 2;
+  string gateway_id = 3;
+  string generation = 4;
+  string device_type = 5;
+  PresenceStatus status = 6;
+  ClientState client_state = 7;
+  int64 last_seen_at = 8;
+  int64 expires_at = 9;
+}
+
+message UserPresence {
+  int64 user_id = 1;
+  PresenceStatus status = 2;
+  int64 last_seen_at = 3;
+  repeated UserSession sessions = 4;
+}
+
+message RegisterUserSessionRequest {
+  int64 user_id = 1;
+  string session_id = 2;
+  string gateway_id = 3;
+  string generation = 4;
+  string device_type = 5;
+  PresenceStatus status = 6;
+  ClientState client_state = 7;
+}
+
+message RegisterUserSessionResponse {
+  UserPresence presence = 1;
+}
+
+message RefreshUserSessionRequest {
+  int64 user_id = 1;
+  string session_id = 2;
+  string gateway_id = 3;
+  string generation = 4;
+  string device_type = 5;
+  PresenceStatus status = 6;
+  ClientState client_state = 7;
+}
+
+message RefreshUserSessionResponse {
+  UserPresence presence = 1;
+}
+
+message UpdateUserPresenceRequest {
+  int64 user_id = 1;
+  string session_id = 2;
+  PresenceStatus status = 3;
+  ClientState client_state = 4;
+}
+
+message UpdateUserPresenceResponse {
+  UserPresence presence = 1;
+}
+
+message RemoveUserSessionRequest {
+  int64 user_id = 1;
+  string session_id = 2;
+}
+
+message RemoveUserSessionResponse {
+  bool ok = 1;
+}
+
+message ResolveUsersPresenceRequest {
+  repeated int64 user_ids = 1;
+}
+
+message ResolveUsersPresenceResponse {
+  repeated UserPresence presences = 1;
 }

@@ -5,7 +5,6 @@ package outbox
 import (
 	"encoding/json"
 	"io/fs"
-	"log/slog"
 	"sort"
 	"testing"
 	"testing/fstest"
@@ -207,7 +206,7 @@ func TestPartitionAdvisoryLocksCoordinateWorkers(t *testing.T) {
 		}
 	}
 
-	testRelay := &Relay{Logger: slog.Default()}
+	testRelay := &Relay{}
 	testRelay.unlockPartition(workerOne, 0)
 	testRelay.unlockPartition(workerTwo, 1)
 	locked, err = tryPartitionLock(ctx, workerTwo, 0)

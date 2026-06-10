@@ -8,9 +8,9 @@ package kafka
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // ProducerConfig holds the configuration for creating a Kafka producer.
@@ -47,6 +47,8 @@ func NewProducer(cfg ProducerConfig) (*kgo.Client, error) {
 		return nil, fmt.Errorf("kafka ping: %w", err)
 	}
 
-	slog.Info("kafka producer connected", "seeds", cfg.Seeds)
+	logx.Infow("kafka producer connected",
+		logx.Field("seeds", cfg.Seeds),
+	)
 	return cl, nil
 }

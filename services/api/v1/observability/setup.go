@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/zeromicro/go-zero/core/logx"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -21,13 +19,8 @@ import (
 )
 
 type Config struct {
-	Log     LogConfig
 	Metrics MetricsConfig
 	Tracing TracingConfig
-}
-
-type LogConfig struct {
-	Level string `json:",default=error,options=[debug,info,warn,error]"`
 }
 
 type MetricsConfig struct {
@@ -50,7 +43,6 @@ type Runtime struct {
 }
 
 func SetUp(ctx context.Context, serviceName string, cfg Config) (*Runtime, error) {
-	setUpLogger(cfg.Log)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{}, propagation.Baggage{}))
 
@@ -98,23 +90,6 @@ func (r *Runtime) Shutdown(ctx context.Context) error {
 	return errors.Join(errs...)
 }
 
-func setUpLogger(cfg LogConfig) {
-	var level slog.Level
-	switch strings.ToLower(cfg.Level) {
-	case "debug":
-		level = slog.LevelDebug
-	case "info":
-		level = slog.LevelInfo
-	case "warn":
-		level = slog.LevelWarn
-	default:
-		level = slog.LevelError
-	}
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: level,
-	})))
-}
-
 func setUpTracing(ctx context.Context, serviceName string, cfg TracingConfig) (*sdktrace.TracerProvider, error) {
 	if cfg.Disabled {
 		return nil, nil
@@ -148,7 +123,7 @@ func setUpTracing(ctx context.Context, serviceName string, cfg TracingConfig) (*
 	provider := sdktrace.NewTracerProvider(opts...)
 	otel.SetTracerProvider(provider)
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-		slog.Error("otel error", "error", err)
+		logx.Errorw("otel error", logx.Field("error", err))
 	}))
 	return provider, nil
 }
@@ -180,7 +155,10 @@ func startMetricsServer(cfg MetricsConfig) (*http.Server, error) {
 
 	go func() {
 		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("serve metrics", "listen_on", cfg.ListenOn, "error", err)
+			logx.Errorw("serve metrics",
+				logx.Field("listen_on", cfg.ListenOn),
+				logx.Field("error", err),
+			)
 		}
 	}()
 	return server, nil

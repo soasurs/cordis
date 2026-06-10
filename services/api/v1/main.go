@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,6 +17,7 @@ import (
 	"github.com/soasurs/cordis/services/api/v1/server"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")
@@ -29,6 +29,9 @@ func main() {
 	if err := conf.LoadConfig(*configPath, cfg, conf.UseEnv()); err != nil {
 		panic(err)
 	}
+	cfg.Log.ServiceName = cfg.Name
+	logx.MustSetup(cfg.Log)
+	defer logx.Close()
 
 	obsRuntime, err := observability.SetUp(context.Background(), cfg.Name, cfg.Observability)
 	if err != nil {
@@ -38,7 +41,9 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := obsRuntime.Shutdown(shutdownCtx); err != nil {
-			log.Printf("shutdown api observability: %v", err)
+			logx.Errorw("shutdown api observability",
+				logx.Field("error", err),
+			)
 		}
 	}()
 
@@ -65,11 +70,15 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
-			log.Printf("shutdown api server: %v", err)
+			logx.Errorw("shutdown api server",
+				logx.Field("error", err),
+			)
 		}
 	}()
 
-	log.Printf("%s listening on %s", cfg.Name, cfg.ListenOn)
+	logx.Infow("api server listening",
+		logx.Field("listen_on", cfg.ListenOn),
+	)
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		panic(err)
 	}

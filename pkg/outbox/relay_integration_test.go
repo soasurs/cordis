@@ -20,7 +20,7 @@ func TestRelayProducesEvents(t *testing.T) {
 	cfg := DefaultRelayConfig()
 	cfg.PollInterval = 10 * time.Millisecond
 
-	relay := NewRelay(cfg, db, producer, nil)
+	relay := NewRelay(cfg, db, producer)
 	relay.Start(ctx)
 	defer func() {
 		relay.Stop()
@@ -59,7 +59,7 @@ func TestRelayMarksEventSent(t *testing.T) {
 	cfg := DefaultRelayConfig()
 	cfg.PollInterval = 10 * time.Millisecond
 
-	relay := NewRelay(cfg, db, producer, nil)
+	relay := NewRelay(cfg, db, producer)
 	relay.Start(ctx)
 	defer func() {
 		relay.Stop()
@@ -101,7 +101,7 @@ func TestRelayReleasesOnProduceFailure(t *testing.T) {
 	cfg.PollInterval = 10 * time.Millisecond
 	cfg.MaxRetries = 2
 
-	relay := NewRelay(cfg, db, producer, nil)
+	relay := NewRelay(cfg, db, producer)
 	relay.Start(ctx)
 	defer func() {
 		relay.Stop()
@@ -146,7 +146,7 @@ func TestRelayDeadLettersAfterMaxRetries(t *testing.T) {
 	cfg.PollInterval = 10 * time.Millisecond
 	cfg.MaxRetries = 0 // fail on first attempt = dead letter
 
-	relay := NewRelay(cfg, db, producer, nil)
+	relay := NewRelay(cfg, db, producer)
 	relay.Start(ctx)
 	defer func() {
 		relay.Stop()
@@ -188,7 +188,7 @@ func TestRelayMultipleEventsInBatch(t *testing.T) {
 	cfg.PollInterval = 10 * time.Millisecond
 	cfg.BatchSize = 10
 
-	relay := NewRelay(cfg, db, producer, nil)
+	relay := NewRelay(cfg, db, producer)
 	relay.Start(ctx)
 	defer func() {
 		relay.Stop()

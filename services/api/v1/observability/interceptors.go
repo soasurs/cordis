@@ -2,7 +2,6 @@ package observability
 
 import (
 	"context"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/soasurs/cordis/pkg/apierror"
+	"github.com/zeromicro/go-zero/core/logx"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	otelcodes "go.opentelemetry.io/otel/codes"
@@ -100,14 +100,12 @@ func UnaryErrorLogInterceptor() connect.Interceptor {
 			resp, err := next(ctx, req)
 			if err != nil && shouldLogConnectError(connect.CodeOf(err)) {
 				code, publicCode := errorCodes(err)
-				attrs := []any{
-					"procedure", req.Spec().Procedure,
-					"connect_code", code,
-					"public_code", publicCode,
-					"duration_ms", time.Since(start).Milliseconds(),
-				}
-				attrs = appendTraceAttrs(ctx, attrs)
-				slog.ErrorContext(ctx, "connect request failed", attrs...)
+				logx.WithContext(ctx).Errorw("connect request failed",
+					logx.Field("procedure", req.Spec().Procedure),
+					logx.Field("connect_code", code),
+					logx.Field("public_code", publicCode),
+					logx.Field("duration_ms", time.Since(start).Milliseconds()),
+				)
 			}
 			return resp, err
 		}
@@ -132,17 +130,6 @@ func errorCodes(err error) (string, string) {
 		return "ok", ""
 	}
 	return connect.CodeOf(err).String(), apierror.PublicCode(err)
-}
-
-func appendTraceAttrs(ctx context.Context, attrs []any) []any {
-	spanCtx := trace.SpanContextFromContext(ctx)
-	if !spanCtx.IsValid() {
-		return attrs
-	}
-	return append(attrs,
-		"trace_id", spanCtx.TraceID().String(),
-		"span_id", spanCtx.SpanID().String(),
-	)
 }
 
 func connectSpanAttributes(req connect.AnyRequest) []attribute.KeyValue {

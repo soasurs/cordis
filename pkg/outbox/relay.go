@@ -3,7 +3,6 @@ package outbox
 import (
 	"context"
 	"database/sql"
-	"log/slog"
 	"math/rand/v2"
 	"sync"
 	"sync/atomic"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // RelayConfig controls the relay's behavior.
@@ -72,7 +72,6 @@ type Relay struct {
 	cfg      RelayConfig
 	DB       *sqlx.DB
 	Producer Producer
-	Logger   *slog.Logger
 
 	// notifyCh wakes the dispatcher. Buffered with capacity 1;
 	// sends are non-blocking — if the channel is full, the
@@ -92,19 +91,22 @@ type Relay struct {
 }
 
 // NewRelay creates a Relay. The caller must call Start() to begin.
-func NewRelay(cfg RelayConfig, db *sqlx.DB, producer Producer, logger *slog.Logger) *Relay {
-	if logger == nil {
-		logger = slog.Default()
-	}
+func NewRelay(cfg RelayConfig, db *sqlx.DB, producer Producer) *Relay {
 	relay := &Relay{
 		cfg:      cfg,
 		DB:       db,
 		Producer: producer,
-		Logger:   logger,
 		notifyCh: make(chan struct{}, 1),
 	}
 	relay.nextPartition.Store(rand.Uint64() % uint64(cfg.PartitionCount))
 	return relay
+}
+
+func (r *Relay) logger() logx.Logger {
+	if r != nil && r.ctx != nil {
+		return logx.WithContext(r.ctx)
+	}
+	return logx.WithContext(context.Background())
 }
 
 // Notify wakes the dispatcher. Safe for concurrent use. Handlers call
@@ -190,7 +192,9 @@ func (r *Relay) claimAndSend() int {
 	conn, err := r.DB.Conn(ctx)
 	if err != nil {
 		if r.ctx.Err() == nil {
-			r.Logger.Error("relay database connection failed", "error", err)
+			r.logger().Errorw("relay database connection failed",
+				logx.Field("error", err),
+			)
 		}
 		return 0
 	}
@@ -199,7 +203,9 @@ func (r *Relay) claimAndSend() int {
 	partitions, err := ReadyPartitions(ctx, conn, Now(), r.cfg.PartitionCount)
 	if err != nil {
 		if r.ctx.Err() == nil {
-			r.Logger.Error("relay ready partitions query failed", "error", err)
+			r.logger().Errorw("relay ready partitions query failed",
+				logx.Field("error", err),
+			)
 		}
 		return 0
 	}
@@ -209,9 +215,9 @@ func (r *Relay) claimAndSend() int {
 		n, err := r.claimPartitionAndSend(ctx, conn, partition)
 		if err != nil {
 			if r.ctx.Err() == nil {
-				r.Logger.Error("relay partition dispatch failed",
-					"partition", partition,
-					"error", err,
+				r.logger().Errorw("relay partition dispatch failed",
+					logx.Field("partition", partition),
+					logx.Field("error", err),
 				)
 			}
 			continue
@@ -282,18 +288,18 @@ func (r *Relay) produceAsync(ctx context.Context, q Queryer, evt Event, batchDon
 		defer batchDone()
 
 		if err != nil {
-			r.Logger.Error("relay publish failed",
-				"event_id", evt.ID,
-				"topic", evt.Topic,
-				"retry_count", evt.RetryCount,
-				"error", err,
+			r.logger().Errorw("relay publish failed",
+				logx.Field("event_id", evt.ID),
+				logx.Field("topic", evt.Topic),
+				logx.Field("retry_count", evt.RetryCount),
+				logx.Field("error", err),
 			)
 
 			now := Now()
 			if evt.RetryCount+1 > evt.MaxRetries {
-				r.Logger.Error("relay retries exhausted, marking dead",
-					"event_id", evt.ID,
-					"attempts", evt.RetryCount+1,
+				r.logger().Errorw("relay retries exhausted, marking dead",
+					logx.Field("event_id", evt.ID),
+					logx.Field("attempts", evt.RetryCount+1),
 				)
 			}
 
@@ -301,8 +307,9 @@ func (r *Relay) produceAsync(ctx context.Context, q Queryer, evt Event, batchDon
 			defer cancel()
 			nextAttemptAt := now + retryDelay(evt.RetryCount).Milliseconds()
 			if err := Release(dbCtx, q, evt.ID, now, nextAttemptAt); err != nil {
-				r.Logger.Error("relay release failed",
-					"event_id", evt.ID, "error", err,
+				r.logger().Errorw("relay release failed",
+					logx.Field("event_id", evt.ID),
+					logx.Field("error", err),
 				)
 			}
 			return
@@ -311,8 +318,9 @@ func (r *Relay) produceAsync(ctx context.Context, q Queryer, evt Event, batchDon
 		dbCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := MarkSent(dbCtx, q, evt.ID, Now()); err != nil {
-			r.Logger.Error("relay mark sent failed",
-				"event_id", evt.ID, "error", err,
+			r.logger().Errorw("relay mark sent failed",
+				logx.Field("event_id", evt.ID),
+				logx.Field("error", err),
 			)
 		}
 	})
@@ -381,7 +389,9 @@ func (r *Relay) recoverStale() {
 	conn, err := r.DB.Conn(ctx)
 	if err != nil {
 		if r.ctx.Err() == nil {
-			r.Logger.Error("relay stale recovery connection failed", "error", err)
+			r.logger().Errorw("relay stale recovery connection failed",
+				logx.Field("error", err),
+			)
 		}
 		return
 	}
@@ -392,17 +402,17 @@ func (r *Relay) recoverStale() {
 		locked, lockErr := tryPartitionLock(ctx, conn, partition)
 		if lockErr != nil || !locked {
 			if lockErr != nil && r.ctx.Err() == nil {
-				r.Logger.Error("relay stale recovery lock failed",
-					"partition", partition,
-					"error", lockErr,
+				r.logger().Errorw("relay stale recovery lock failed",
+					logx.Field("partition", partition),
+					logx.Field("error", lockErr),
 				)
 			}
 			continue
 		}
 		if recoverErr := RecoverStale(ctx, conn, staleBefore, partition); recoverErr != nil && r.ctx.Err() == nil {
-			r.Logger.Error("relay stale recovery failed",
-				"partition", partition,
-				"error", recoverErr,
+			r.logger().Errorw("relay stale recovery failed",
+				logx.Field("partition", partition),
+				logx.Field("error", recoverErr),
 			)
 		}
 		r.unlockPartition(conn, partition)
@@ -417,12 +427,16 @@ func (r *Relay) cleanup() {
 	n, err := Cleanup(ctx, r.DB, olderThan, r.cfg.CleanupBatch)
 	if err != nil {
 		if r.ctx.Err() == nil {
-			r.Logger.Error("relay cleanup failed", "error", err)
+			r.logger().Errorw("relay cleanup failed",
+				logx.Field("error", err),
+			)
 		}
 		return
 	}
 	if n > 0 {
-		r.Logger.Info("relay cleaned up sent events", "count", n)
+		r.logger().Infow("relay cleaned up sent events",
+			logx.Field("count", n),
+		)
 	}
 }
 
@@ -452,10 +466,10 @@ func (r *Relay) unlockPartition(conn *sql.Conn, partition int) {
 		)`,
 		partition,
 	).Scan(&unlocked); err != nil || !unlocked {
-		r.Logger.Error("relay partition unlock failed",
-			"partition", partition,
-			"unlocked", unlocked,
-			"error", err,
+		r.logger().Errorw("relay partition unlock failed",
+			logx.Field("partition", partition),
+			logx.Field("unlocked", unlocked),
+			logx.Field("error", err),
 		)
 	}
 }

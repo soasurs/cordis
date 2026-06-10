@@ -1,8 +1,6 @@
 package svc
 
 import (
-	"log/slog"
-
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jmoiron/sqlx"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -97,7 +95,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 
 	if deps.Kafka != nil && deps.DB != nil {
 		producer := &outbox.FranzProducer{Client: deps.Kafka}
-		svcCtx.Relay = outbox.NewRelay(relayCfg, deps.DB, producer, slog.Default())
+		svcCtx.Relay = outbox.NewRelay(relayCfg, deps.DB, producer)
 	}
 
 	return svcCtx

@@ -1,9 +1,11 @@
 name: api.v1
 listenOn: 0.0.0.0:8080
 
+log:
+  level: error
+  stat: false
+
 observability:
-  log:
-    level: error
   metrics:
     enabled: true
     listenOn: 0.0.0.0:6060

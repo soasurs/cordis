@@ -22,3 +22,4 @@ inputs:
       - proto/user
       - proto/message
       - proto/presence
+      - proto/gateway

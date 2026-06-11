@@ -1,0 +1,53 @@
+edition = "2023";
+
+package gateway.v1;
+
+// GatewayService receives realtime events from internal services and fans them
+// out to websocket sessions connected to this gateway instance.
+service GatewayService {
+  // DispatchChannelEvent delivers an event to local websocket sessions that
+  // subscribed to the channel. Callers resolve target gateways through
+  // presence.v1 before calling this RPC.
+  rpc DispatchChannelEvent(DispatchChannelEventRequest) returns (DispatchChannelEventResponse);
+
+  // DispatchUserEvent delivers an event to all local websocket sessions for a
+  // user. Callers remain responsible for visibility and authorization checks.
+  rpc DispatchUserEvent(DispatchUserEventRequest) returns (DispatchUserEventResponse);
+
+  // DispatchSessionEvent delivers an event to one local gateway session.
+  rpc DispatchSessionEvent(DispatchSessionEventRequest) returns (DispatchSessionEventResponse);
+}
+
+message EventEnvelope {
+  // Event type used as the websocket dispatch name.
+  string type = 1;
+  // JSON object payload forwarded as the websocket dispatch data.
+  string json_payload = 2;
+}
+
+message DispatchChannelEventRequest {
+  int64 channel_id = 1;
+  EventEnvelope event = 2;
+}
+
+message DispatchUserEventRequest {
+  int64 user_id = 1;
+  EventEnvelope event = 2;
+}
+
+message DispatchSessionEventRequest {
+  string session_id = 1;
+  EventEnvelope event = 2;
+}
+
+message DispatchChannelEventResponse {
+  int32 delivered = 1;
+}
+
+message DispatchUserEventResponse {
+  int32 delivered = 1;
+}
+
+message DispatchSessionEventResponse {
+  int32 delivered = 1;
+}

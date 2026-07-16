@@ -50,6 +50,18 @@ func (s *SQLStore) GetSession(ctx context.Context, sessionID int64) (*model.Sess
 	return row.toModel(), nil
 }
 
+func (s *SQLStore) ListSessions(ctx context.Context, userID int64) ([]*model.Session, error) {
+	rows := make([]sessionRow, 0)
+	if err := sqlx.SelectContext(ctx, s.q, &rows, ListSessionsQuery, userID, 0, time.Now().UnixMilli()); err != nil {
+		return nil, err
+	}
+	sessions := make([]*model.Session, 0, len(rows))
+	for i := range rows {
+		sessions = append(sessions, rows[i].toModel())
+	}
+	return sessions, nil
+}
+
 func (s *SQLStore) RotateRefreshToken(ctx context.Context, sessionID int64, oldRefreshTokenHash, newRefreshTokenHash string) error {
 	res, err := s.q.ExecContext(ctx, RotateRefreshTokenStatement, newRefreshTokenHash, time.Now().UnixMilli(), sessionID, 0, oldRefreshTokenHash)
 	if err != nil {
@@ -65,6 +77,24 @@ func (s *SQLStore) RevokeSession(ctx context.Context, sessionID int64) error {
 		return err
 	}
 	return checkRowsAffected(res)
+}
+
+func (s *SQLStore) RevokeUserSession(ctx context.Context, userID, sessionID int64) error {
+	now := time.Now().UnixMilli()
+	res, err := s.q.ExecContext(ctx, RevokeUserSessionStatement, now, userID, sessionID, 0)
+	if err != nil {
+		return err
+	}
+	return checkRowsAffected(res)
+}
+
+func (s *SQLStore) RevokeOtherSessions(ctx context.Context, userID, currentSessionID int64) (int64, error) {
+	now := time.Now().UnixMilli()
+	res, err := s.q.ExecContext(ctx, RevokeOtherSessionsStatement, now, userID, currentSessionID, 0)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 func (r *sessionRow) toModel() *model.Session {

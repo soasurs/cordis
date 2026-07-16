@@ -10,6 +10,8 @@ service UserService {
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
+  // UpdateUserProfile replaces all mutable public profile fields.
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
 }
 
 message User {
@@ -94,4 +96,14 @@ message UpdateEmailRequest {
 
 message UpdateEmailResponse {
   User user = 1;
+}
+
+message UpdateUserProfileRequest {
+  int64 user_id = 1;
+  string name = 2;
+  string avatar_uri = 3;
+}
+
+message UpdateUserProfileResponse {
+  UserProfile profile = 1;
 }

@@ -45,14 +45,28 @@ const (
 	// AuthenticatorServiceLogoutProcedure is the fully-qualified name of the AuthenticatorService's
 	// Logout RPC.
 	AuthenticatorServiceLogoutProcedure = "/api.v1.AuthenticatorService/Logout"
+	// AuthenticatorServiceListSessionsProcedure is the fully-qualified name of the
+	// AuthenticatorService's ListSessions RPC.
+	AuthenticatorServiceListSessionsProcedure = "/api.v1.AuthenticatorService/ListSessions"
+	// AuthenticatorServiceRevokeSessionProcedure is the fully-qualified name of the
+	// AuthenticatorService's RevokeSession RPC.
+	AuthenticatorServiceRevokeSessionProcedure = "/api.v1.AuthenticatorService/RevokeSession"
 )
 
 // AuthenticatorServiceClient is a client for the api.v1.AuthenticatorService service.
 type AuthenticatorServiceClient interface {
+	// Register creates an account and returns a new authenticated session.
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
+	// Login verifies credentials and returns a new authenticated session.
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	// Refresh rotates the refresh token and issues a new access token.
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
+	// Logout revokes the session identified by the refresh token.
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	// ListSessions returns the bearer token owner's active sessions.
+	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
+	// RevokeSession revokes one session owned by the bearer token owner.
+	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
 }
 
 // NewAuthenticatorServiceClient constructs a client for the api.v1.AuthenticatorService service. By
@@ -90,15 +104,29 @@ func NewAuthenticatorServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
 			connect.WithClientOptions(opts...),
 		),
+		listSessions: connect.NewClient[v1.ListSessionsRequest, v1.ListSessionsResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceListSessionsProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("ListSessions")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeSession: connect.NewClient[v1.RevokeSessionRequest, v1.RevokeSessionResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceRevokeSessionProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("RevokeSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authenticatorServiceClient implements AuthenticatorServiceClient.
 type authenticatorServiceClient struct {
-	register *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
-	login    *connect.Client[v1.LoginRequest, v1.LoginResponse]
-	refresh  *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
-	logout   *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	register      *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
+	login         *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	refresh       *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
+	logout        *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	listSessions  *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	revokeSession *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
 }
 
 // Register calls api.v1.AuthenticatorService.Register.
@@ -137,12 +165,38 @@ func (c *authenticatorServiceClient) Logout(ctx context.Context, req *v1.LogoutR
 	return nil, err
 }
 
+// ListSessions calls api.v1.AuthenticatorService.ListSessions.
+func (c *authenticatorServiceClient) ListSessions(ctx context.Context, req *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error) {
+	response, err := c.listSessions.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RevokeSession calls api.v1.AuthenticatorService.RevokeSession.
+func (c *authenticatorServiceClient) RevokeSession(ctx context.Context, req *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error) {
+	response, err := c.revokeSession.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthenticatorServiceHandler is an implementation of the api.v1.AuthenticatorService service.
 type AuthenticatorServiceHandler interface {
+	// Register creates an account and returns a new authenticated session.
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
+	// Login verifies credentials and returns a new authenticated session.
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	// Refresh rotates the refresh token and issues a new access token.
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
+	// Logout revokes the session identified by the refresh token.
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	// ListSessions returns the bearer token owner's active sessions.
+	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
+	// RevokeSession revokes one session owned by the bearer token owner.
+	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
 }
 
 // NewAuthenticatorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -176,6 +230,18 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 		connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authenticatorServiceListSessionsHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceListSessionsProcedure,
+		svc.ListSessions,
+		connect.WithSchema(authenticatorServiceMethods.ByName("ListSessions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceRevokeSessionHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceRevokeSessionProcedure,
+		svc.RevokeSession,
+		connect.WithSchema(authenticatorServiceMethods.ByName("RevokeSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.AuthenticatorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthenticatorServiceRegisterProcedure:
@@ -186,6 +252,10 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 			authenticatorServiceRefreshHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceLogoutProcedure:
 			authenticatorServiceLogoutHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceListSessionsProcedure:
+			authenticatorServiceListSessionsHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceRevokeSessionProcedure:
+			authenticatorServiceRevokeSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -209,4 +279,12 @@ func (UnimplementedAuthenticatorServiceHandler) Refresh(context.Context, *v1.Ref
 
 func (UnimplementedAuthenticatorServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Logout is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.ListSessions is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.RevokeSession is not implemented"))
 }

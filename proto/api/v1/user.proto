@@ -1,3 +1,90 @@
 edition = "2023";
 
 package api.v1;
+
+// UserService exposes public account and profile operations.
+service UserService {
+  // GetCurrentUser returns the private account and profile for the bearer token owner.
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+  // GetUserProfile returns another user's public profile.
+  rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
+  // CheckEmailAvailability supports registration flows without requiring authentication.
+  rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
+  // UpdateEmail changes the bearer token owner's email address.
+  rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
+  // UpdateUserProfile replaces the bearer token owner's public profile fields.
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+  // ChangePassword changes the bearer token owner's password after verifying the old password.
+  // A successful change revokes every other session owned by the user.
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+}
+
+// User contains private account fields and is only returned to the account owner.
+// All timestamps are Unix time in milliseconds.
+message User {
+  int64 user_id = 1;
+  string email = 2;
+  int64 created_at = 3;
+  int64 updated_at = 4;
+}
+
+// UserProfile contains fields safe to expose to other users.
+// All timestamps are Unix time in milliseconds.
+message UserProfile {
+  int64 user_id = 1;
+  string name = 2;
+  string avatar_uri = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+}
+
+// The current user is derived from the Authorization bearer token.
+message GetCurrentUserRequest {}
+
+message GetCurrentUserResponse {
+  User user = 1;
+  UserProfile profile = 2;
+}
+
+message GetUserProfileRequest {
+  int64 user_id = 1;
+}
+
+message GetUserProfileResponse {
+  UserProfile profile = 1;
+}
+
+message CheckEmailAvailabilityRequest {
+  string email = 1;
+}
+
+message CheckEmailAvailabilityResponse {
+  bool available = 1;
+}
+
+message UpdateEmailRequest {
+  string email = 1;
+}
+
+message UpdateEmailResponse {
+  User user = 1;
+}
+
+// UpdateUserProfile uses replacement semantics for all public profile fields.
+message UpdateUserProfileRequest {
+  string name = 1;
+  string avatar_uri = 2;
+}
+
+message UpdateUserProfileResponse {
+  UserProfile profile = 1;
+}
+
+message ChangePasswordRequest {
+  string old_password = 1;
+  string new_password = 2;
+}
+
+message ChangePasswordResponse {
+  bool ok = 1;
+}

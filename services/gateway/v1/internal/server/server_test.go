@@ -362,6 +362,18 @@ func (f *fakeAuthenticatorClient) VerifyAccessToken(_ context.Context, req *auth
 	return resp, nil
 }
 
+func (f *fakeAuthenticatorClient) ListSessions(context.Context, *authenticatorv1.ListSessionsRequest, ...grpc.CallOption) (*authenticatorv1.ListSessionsResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeAuthenticatorClient) RevokeUserSession(context.Context, *authenticatorv1.RevokeUserSessionRequest, ...grpc.CallOption) (*authenticatorv1.RevokeUserSessionResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeAuthenticatorClient) RevokeOtherSessions(context.Context, *authenticatorv1.RevokeOtherSessionsRequest, ...grpc.CallOption) (*authenticatorv1.RevokeOtherSessionsResponse, error) {
+	return nil, nil
+}
+
 type fakePresenceClient struct {
 	mu sync.Mutex
 

@@ -176,6 +176,36 @@ func TestGetUserProfile(t *testing.T) {
 	require.Equal(t, "avatar://1", resp.GetProfile().GetAvatarUri())
 }
 
+func TestUpdateUserProfile(t *testing.T) {
+	store := newFakeStore()
+	store.profile = &model.UserProfile{
+		UserID:    1001,
+		Name:      "old name",
+		AvatarURI: "avatar://1",
+	}
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.UpdateUserProfileRequest)
+	req.SetUserId(1001)
+	req.SetName(" new name ")
+	req.SetAvatarUri("avatar://2")
+
+	resp, err := server.UpdateUserProfile(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, "new name", resp.GetProfile().GetName())
+	require.Equal(t, "avatar://2", resp.GetProfile().GetAvatarUri())
+}
+
+func TestUpdateUserProfileValidation(t *testing.T) {
+	server := newTestUserServer(t, newFakeStore())
+
+	req := new(userv1.UpdateUserProfileRequest)
+	req.SetUserId(1001)
+
+	_, err := server.UpdateUserProfile(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestChangePassword(t *testing.T) {
 	hashedPassword, err := password.Hash("old-password")
 	require.NoError(t, err)
@@ -424,5 +454,14 @@ func (s *fakeStore) GetUserProfile(_ context.Context, userID int64) (*model.User
 	if s.profile == nil || s.profile.UserID != userID {
 		return nil, sql.ErrNoRows
 	}
+	return s.profile, nil
+}
+
+func (s *fakeStore) UpdateUserProfile(_ context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
+	if s.profile == nil || s.profile.UserID != userID {
+		return nil, sql.ErrNoRows
+	}
+	s.profile.Name = name
+	s.profile.AvatarURI = avatarURI
 	return s.profile, nil
 }

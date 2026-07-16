@@ -2,13 +2,24 @@ edition = "2023";
 
 package api.v1;
 
+// AuthenticatorService manages public authentication and session lifecycle operations.
 service AuthenticatorService {
+  // Register creates an account and returns a new authenticated session.
   rpc Register(RegisterRequest) returns (RegisterResponse);
+  // Login verifies credentials and returns a new authenticated session.
   rpc Login(LoginRequest) returns (LoginResponse);
+  // Refresh rotates the refresh token and issues a new access token.
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  // Logout revokes the session identified by the refresh token.
   rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // ListSessions returns the bearer token owner's active sessions.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  // RevokeSession revokes one session owned by the bearer token owner.
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
 }
 
+// AuthenticationResult contains the tokens and expiration times for an authenticated session.
+// All expiration timestamps are Unix time in milliseconds.
 message AuthenticationResult {
   bool ok = 1;
   int64 user_id = 2;
@@ -52,5 +63,31 @@ message LogoutRequest {
 }
 
 message LogoutResponse {
+  bool ok = 1;
+}
+
+// Session contains client-visible metadata for an active authenticated session.
+// All timestamps are Unix time in milliseconds.
+message Session {
+  int64 session_id = 1;
+  string user_agent = 2;
+  string ip = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+  int64 expires_at = 6;
+  bool current = 7;
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message RevokeSessionRequest {
+  int64 session_id = 1;
+}
+
+message RevokeSessionResponse {
   bool ok = 1;
 }

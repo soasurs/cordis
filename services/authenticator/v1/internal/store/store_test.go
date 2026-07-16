@@ -79,6 +79,26 @@ func TestGetSession(t *testing.T) {
 	require.Equal(t, "refresh-hash", session.RefreshTokenHash)
 }
 
+func TestListSessions(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"session_id", "user_id", "refresh_token_hash", "user_agent", "ip", "created_at", "updated_at", "expires_at", "revoked_at",
+	}).
+		AddRow(int64(2002), int64(1001), "refresh-hash-2", "agent-2", "127.0.0.2", int64(20), int64(0), int64(4000), int64(0)).
+		AddRow(int64(2001), int64(1001), "refresh-hash-1", "agent-1", "127.0.0.1", int64(10), int64(0), int64(3000), int64(0))
+
+	mock.ExpectQuery(sqlPattern(ListSessionsQuery)).
+		WithArgs(int64(1001), 0, sqlmock.AnyArg()).
+		WillReturnRows(rows)
+
+	sessions, err := store.ListSessions(context.Background(), 1001)
+	require.NoError(t, err)
+	require.Len(t, sessions, 2)
+	require.Equal(t, int64(2002), sessions[0].SessionID)
+}
+
 func TestRotateRefreshToken(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()
@@ -111,4 +131,28 @@ func TestRevokeSession(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	require.NoError(t, store.RevokeSession(context.Background(), 2001))
+}
+
+func TestRevokeUserSession(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	mock.ExpectExec(sqlPattern(RevokeUserSessionStatement)).
+		WithArgs(sqlmock.AnyArg(), int64(1001), int64(2001), 0).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	require.NoError(t, store.RevokeUserSession(context.Background(), 1001, 2001))
+}
+
+func TestRevokeOtherSessions(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	mock.ExpectExec(sqlPattern(RevokeOtherSessionsStatement)).
+		WithArgs(sqlmock.AnyArg(), int64(1001), int64(2001), 0).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+
+	revoked, err := store.RevokeOtherSessions(context.Background(), 1001, 2001)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), revoked)
 }

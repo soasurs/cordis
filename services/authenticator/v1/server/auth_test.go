@@ -242,6 +242,58 @@ func TestVerifyAccessTokenInvalidToken(t *testing.T) {
 	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidAccessToken))
 }
 
+func TestListSessions(t *testing.T) {
+	store := newFakeSessionStore()
+	store.sessions[2001] = &model.Session{
+		SessionID: 2001,
+		UserID:    1001,
+		UserAgent: "agent",
+		ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
+	}
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), new(fakeUserClient))
+
+	req := new(authenticatorv1.ListSessionsRequest)
+	req.SetUserId(1001)
+	resp, err := server.ListSessions(context.Background(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.GetSessions(), 1)
+	require.Equal(t, int64(2001), resp.GetSessions()[0].GetSessionId())
+}
+
+func TestRevokeUserSessionChecksOwner(t *testing.T) {
+	store := newFakeSessionStore()
+	store.sessions[2001] = &model.Session{
+		SessionID: 2001,
+		UserID:    1002,
+		ExpiresAt: time.Now().Add(time.Hour).UnixMilli(),
+	}
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), new(fakeUserClient))
+
+	req := new(authenticatorv1.RevokeUserSessionRequest)
+	req.SetUserId(1001)
+	req.SetSessionId(2001)
+	_, err := server.RevokeUserSession(context.Background(), req)
+	require.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestRevokeOtherSessionsKeepsCurrent(t *testing.T) {
+	store := newFakeSessionStore()
+	store.sessions[2001] = &model.Session{SessionID: 2001, UserID: 1001}
+	store.sessions[2002] = &model.Session{SessionID: 2002, UserID: 1001}
+	store.sessions[2003] = &model.Session{SessionID: 2003, UserID: 1002}
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), new(fakeUserClient))
+
+	req := new(authenticatorv1.RevokeOtherSessionsRequest)
+	req.SetUserId(1001)
+	req.SetCurrentSessionId(2001)
+	resp, err := server.RevokeOtherSessions(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.GetRevoked())
+	require.Zero(t, store.sessions[2001].RevokedAt)
+	require.NotZero(t, store.sessions[2002].RevokedAt)
+	require.Zero(t, store.sessions[2003].RevokedAt)
+}
+
 func newTestAuthenticatorServer(t *testing.T, store store.Store, tokens *token.Manager, userClient userv1.UserServiceClient) authenticatorv1.AuthenticatorServiceServer {
 	t.Helper()
 
@@ -317,11 +369,13 @@ func (c *fakeUserClient) VerifyPassword(context.Context, *userv1.VerifyPasswordR
 }
 
 type fakeSessionStore struct {
-	sessions         map[int64]*model.Session
-	createdSession   *model.Session
-	rotatedOldHash   string
-	rotatedNewHash   string
-	revokedSessionID int64
+	sessions           map[int64]*model.Session
+	createdSession     *model.Session
+	rotatedOldHash     string
+	rotatedNewHash     string
+	revokedSessionID   int64
+	revokedOtherUserID int64
+	currentSessionID   int64
 }
 
 func newFakeSessionStore() *fakeSessionStore {
@@ -352,6 +406,16 @@ func (s *fakeSessionStore) GetSession(_ context.Context, sessionID int64) (*mode
 	return session, nil
 }
 
+func (s *fakeSessionStore) ListSessions(_ context.Context, userID int64) ([]*model.Session, error) {
+	sessions := make([]*model.Session, 0)
+	for _, session := range s.sessions {
+		if session.UserID == userID && session.RevokedAt == 0 && session.ExpiresAt > time.Now().UnixMilli() {
+			sessions = append(sessions, session)
+		}
+	}
+	return sessions, nil
+}
+
 func (s *fakeSessionStore) RotateRefreshToken(_ context.Context, sessionID int64, oldRefreshTokenHash, newRefreshTokenHash string) error {
 	session, ok := s.sessions[sessionID]
 	if !ok || session.RefreshTokenHash != oldRefreshTokenHash {
@@ -371,6 +435,29 @@ func (s *fakeSessionStore) RevokeSession(_ context.Context, sessionID int64) err
 	s.revokedSessionID = sessionID
 	session.RevokedAt = time.Now().UnixMilli()
 	return nil
+}
+
+func (s *fakeSessionStore) RevokeUserSession(_ context.Context, userID, sessionID int64) error {
+	session, ok := s.sessions[sessionID]
+	if !ok || session.UserID != userID || session.RevokedAt != 0 {
+		return sql.ErrNoRows
+	}
+	s.revokedSessionID = sessionID
+	session.RevokedAt = time.Now().UnixMilli()
+	return nil
+}
+
+func (s *fakeSessionStore) RevokeOtherSessions(_ context.Context, userID, currentSessionID int64) (int64, error) {
+	s.revokedOtherUserID = userID
+	s.currentSessionID = currentSessionID
+	var revoked int64
+	for _, session := range s.sessions {
+		if session.UserID == userID && session.SessionID != currentSessionID && session.RevokedAt == 0 {
+			session.RevokedAt = time.Now().UnixMilli()
+			revoked++
+		}
+	}
+	return revoked, nil
 }
 
 type refreshSession struct {

@@ -12,8 +12,11 @@ import (
 type Store interface {
 	CreateSession(ctx context.Context, sessionID, userID int64, refreshTokenHash, userAgent, ip string, expiresAt int64) (*model.Session, error)
 	GetSession(ctx context.Context, sessionID int64) (*model.Session, error)
+	ListSessions(ctx context.Context, userID int64) ([]*model.Session, error)
 	RotateRefreshToken(ctx context.Context, sessionID int64, oldRefreshTokenHash, newRefreshTokenHash string) error
 	RevokeSession(ctx context.Context, sessionID int64) error
+	RevokeUserSession(ctx context.Context, userID, sessionID int64) error
+	RevokeOtherSessions(ctx context.Context, userID, currentSessionID int64) (int64, error)
 }
 
 type SQLStore struct {

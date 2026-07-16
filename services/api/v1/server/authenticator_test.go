@@ -23,18 +23,30 @@ import (
 
 type fakeAuthenticatorClient struct {
 	authenticatorv1.AuthenticatorServiceClient
-	registerRequest  *authenticatorv1.RegisterRequest
-	registerResponse *authenticatorv1.RegisterResponse
-	registerError    error
-	loginRequest     *authenticatorv1.LoginRequest
-	loginResponse    *authenticatorv1.LoginResponse
-	loginError       error
-	refreshRequest   *authenticatorv1.RefreshRequest
-	refreshResponse  *authenticatorv1.RefreshResponse
-	refreshError     error
-	logoutRequest    *authenticatorv1.LogoutRequest
-	logoutResponse   *authenticatorv1.LogoutResponse
-	logoutError      error
+	registerRequest             *authenticatorv1.RegisterRequest
+	registerResponse            *authenticatorv1.RegisterResponse
+	registerError               error
+	loginRequest                *authenticatorv1.LoginRequest
+	loginResponse               *authenticatorv1.LoginResponse
+	loginError                  error
+	refreshRequest              *authenticatorv1.RefreshRequest
+	refreshResponse             *authenticatorv1.RefreshResponse
+	refreshError                error
+	logoutRequest               *authenticatorv1.LogoutRequest
+	logoutResponse              *authenticatorv1.LogoutResponse
+	logoutError                 error
+	verifyRequest               *authenticatorv1.VerifyAccessTokenRequest
+	verifyResponse              *authenticatorv1.VerifyAccessTokenResponse
+	verifyError                 error
+	listSessionsRequest         *authenticatorv1.ListSessionsRequest
+	listSessionsResponse        *authenticatorv1.ListSessionsResponse
+	listSessionsError           error
+	revokeUserSessionRequest    *authenticatorv1.RevokeUserSessionRequest
+	revokeUserSessionResponse   *authenticatorv1.RevokeUserSessionResponse
+	revokeUserSessionError      error
+	revokeOtherSessionsRequest  *authenticatorv1.RevokeOtherSessionsRequest
+	revokeOtherSessionsResponse *authenticatorv1.RevokeOtherSessionsResponse
+	revokeOtherSessionsError    error
 }
 
 func (f *fakeAuthenticatorClient) Register(_ context.Context, req *authenticatorv1.RegisterRequest, _ ...grpc.CallOption) (*authenticatorv1.RegisterResponse, error) {
@@ -67,6 +79,29 @@ func (f *fakeAuthenticatorClient) Logout(_ context.Context, req *authenticatorv1
 		return nil, f.logoutError
 	}
 	return f.logoutResponse, nil
+}
+
+func (f *fakeAuthenticatorClient) VerifyAccessToken(_ context.Context, req *authenticatorv1.VerifyAccessTokenRequest, _ ...grpc.CallOption) (*authenticatorv1.VerifyAccessTokenResponse, error) {
+	f.verifyRequest = req
+	if f.verifyError != nil {
+		return nil, f.verifyError
+	}
+	return f.verifyResponse, nil
+}
+
+func (f *fakeAuthenticatorClient) ListSessions(_ context.Context, req *authenticatorv1.ListSessionsRequest, _ ...grpc.CallOption) (*authenticatorv1.ListSessionsResponse, error) {
+	f.listSessionsRequest = req
+	return f.listSessionsResponse, f.listSessionsError
+}
+
+func (f *fakeAuthenticatorClient) RevokeUserSession(_ context.Context, req *authenticatorv1.RevokeUserSessionRequest, _ ...grpc.CallOption) (*authenticatorv1.RevokeUserSessionResponse, error) {
+	f.revokeUserSessionRequest = req
+	return f.revokeUserSessionResponse, f.revokeUserSessionError
+}
+
+func (f *fakeAuthenticatorClient) RevokeOtherSessions(_ context.Context, req *authenticatorv1.RevokeOtherSessionsRequest, _ ...grpc.CallOption) (*authenticatorv1.RevokeOtherSessionsResponse, error) {
+	f.revokeOtherSessionsRequest = req
+	return f.revokeOtherSessionsResponse, f.revokeOtherSessionsError
 }
 
 func TestRegisterOverConnectHTTP(t *testing.T) {
@@ -147,11 +182,11 @@ func TestRefreshMapsRequestAndResponse(t *testing.T) {
 }
 
 func TestLogoutMapsRequestAndResponse(t *testing.T) {
-	internalResp := new(authenticatorv1.LogoutResponse)
-	internalResp.SetOk(true)
+	svcResp := new(authenticatorv1.LogoutResponse)
+	svcResp.SetOk(true)
 
 	internalClient := &fakeAuthenticatorClient{
-		logoutResponse: internalResp,
+		logoutResponse: svcResp,
 	}
 	server := NewAuthenticator(&svc.ServiceContext{
 		AuthenticatorClient: internalClient,
@@ -162,6 +197,48 @@ func TestLogoutMapsRequestAndResponse(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "refresh-token", internalClient.logoutRequest.GetRefreshToken())
+	require.True(t, resp.GetOk())
+}
+
+func TestListSessionsMarksCurrentSession(t *testing.T) {
+	internalSession := new(authenticatorv1.Session)
+	internalSession.SetSessionId(2001)
+	internalSession.SetUserId(1001)
+	internalSession.SetUserAgent("agent")
+	internalSession.SetExpiresAt(3001)
+	svcResp := new(authenticatorv1.ListSessionsResponse)
+	svcResp.SetSessions([]*authenticatorv1.Session{internalSession})
+
+	internalClient := &fakeAuthenticatorClient{
+		verifyResponse:       verifyAccessTokenResponse(1001),
+		listSessionsResponse: svcResp,
+	}
+	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.ListSessions(context.Background(), &apiv1.ListSessionsRequest{})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), internalClient.listSessionsRequest.GetUserId())
+	require.Len(t, resp.GetSessions(), 1)
+	require.True(t, resp.GetSessions()[0].GetCurrent())
+}
+
+func TestRevokeSessionUsesAuthenticatedUser(t *testing.T) {
+	svcResp := new(authenticatorv1.RevokeUserSessionResponse)
+	svcResp.SetOk(true)
+	internalClient := &fakeAuthenticatorClient{
+		verifyResponse:            verifyAccessTokenResponse(1001),
+		revokeUserSessionResponse: svcResp,
+	}
+	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.RevokeSession(context.Background(), &apiv1.RevokeSessionRequest{
+		SessionId: new(int64(2002)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), internalClient.revokeUserSessionRequest.GetUserId())
+	require.Equal(t, int64(2002), internalClient.revokeUserSessionRequest.GetSessionId())
 	require.True(t, resp.GetOk())
 }
 
@@ -317,4 +394,25 @@ func TestClientIP(t *testing.T) {
 			require.Equal(t, expected, clientIP(address))
 		})
 	}
+}
+
+func newAuthenticatorHTTPClient(
+	t *testing.T,
+	internalClient *fakeAuthenticatorClient,
+	accessToken string,
+) (apiv1connect.AuthenticatorServiceClient, func()) {
+	t.Helper()
+
+	path, handler := apiv1connect.NewAuthenticatorServiceHandler(NewAuthenticator(&svc.ServiceContext{
+		AuthenticatorClient: internalClient,
+	}))
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+
+	httpClient := &http.Client{Transport: bearerRoundTripper{
+		base:        http.DefaultTransport,
+		accessToken: accessToken,
+	}}
+	return apiv1connect.NewAuthenticatorServiceClient(httpClient, httpServer.URL), httpServer.Close
 }

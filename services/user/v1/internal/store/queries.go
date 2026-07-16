@@ -95,4 +95,19 @@ const (
 	LIMIT
 		1
 	`
+
+	UpdateUserProfileQuery = `
+	UPDATE
+		user_profiles
+	SET
+		name = $1,
+		avatar_uri = $2,
+		updated_at = $3
+	WHERE
+		user_id = $4
+	AND
+		deleted_at = $5
+	RETURNING
+		user_id, name, avatar_uri, created_at, updated_at, deleted_at
+	`
 )

@@ -19,6 +19,7 @@ type Store interface {
 	UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error)
 	CreateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)
 	GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error)
+	UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)
 }
 
 type SQLStore struct {

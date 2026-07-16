@@ -1826,6 +1826,215 @@ func (b0 UpdateEmailResponse_builder) Build() *UpdateEmailResponse {
 	return m0
 }
 
+type UpdateUserProfileRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_AvatarUri   *string                `protobuf:"bytes,3,opt,name=avatar_uri,json=avatarUri"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *UpdateUserProfileRequest) Reset() {
+	*x = UpdateUserProfileRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserProfileRequest) ProtoMessage() {}
+
+func (x *UpdateUserProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UpdateUserProfileRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *UpdateUserProfileRequest) GetName() string {
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UpdateUserProfileRequest) GetAvatarUri() string {
+	if x != nil {
+		if x.xxx_hidden_AvatarUri != nil {
+			return *x.xxx_hidden_AvatarUri
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UpdateUserProfileRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *UpdateUserProfileRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *UpdateUserProfileRequest) SetAvatarUri(v string) {
+	x.xxx_hidden_AvatarUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *UpdateUserProfileRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateUserProfileRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateUserProfileRequest) HasAvatarUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpdateUserProfileRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *UpdateUserProfileRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *UpdateUserProfileRequest) ClearAvatarUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_AvatarUri = nil
+}
+
+type UpdateUserProfileRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId    *int64
+	Name      *string
+	AvatarUri *string
+}
+
+func (b0 UpdateUserProfileRequest_builder) Build() *UpdateUserProfileRequest {
+	m0 := &UpdateUserProfileRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.AvatarUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_AvatarUri = b.AvatarUri
+	}
+	return m0
+}
+
+type UpdateUserProfileResponse struct {
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *UpdateUserProfileResponse) Reset() {
+	*x = UpdateUserProfileResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUserProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUserProfileResponse) ProtoMessage() {}
+
+func (x *UpdateUserProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UpdateUserProfileResponse) GetProfile() *UserProfile {
+	if x != nil {
+		return x.xxx_hidden_Profile
+	}
+	return nil
+}
+
+func (x *UpdateUserProfileResponse) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
+}
+
+func (x *UpdateUserProfileResponse) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
+func (x *UpdateUserProfileResponse) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
+type UpdateUserProfileResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Profile *UserProfile
+}
+
+func (b0 UpdateUserProfileResponse_builder) Build() *UpdateUserProfileResponse {
+	m0 := &UpdateUserProfileResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Profile = b.Profile
+	return m0
+}
+
 var File_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_user_v1_user_proto_rawDesc = "" +
@@ -1889,7 +2098,14 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\"8\n" +
 	"\x13UpdateEmailResponse\x12!\n" +
-	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user2\xc0\x04\n" +
+	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"f\n" +
+	"\x18UpdateUserProfileRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"avatar_uri\x18\x03 \x01(\tR\tavatarUri\"K\n" +
+	"\x19UpdateUserProfileResponse\x12.\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile2\x9c\x05\n" +
 	"\vUserService\x12E\n" +
 	"\n" +
 	"CreateUser\x12\x1a.user.v1.CreateUserRequest\x1a\x1b.user.v1.CreateUserResponse\x12<\n" +
@@ -1898,10 +2114,11 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x0eVerifyPassword\x12\x1e.user.v1.VerifyPasswordRequest\x1a\x1f.user.v1.VerifyPasswordResponse\x12Q\n" +
 	"\x0eChangePassword\x12\x1e.user.v1.ChangePasswordRequest\x1a\x1f.user.v1.ChangePasswordResponse\x12i\n" +
 	"\x16CheckEmailAvailability\x12&.user.v1.CheckEmailAvailabilityRequest\x1a'.user.v1.CheckEmailAvailabilityResponse\x12H\n" +
-	"\vUpdateEmail\x12\x1b.user.v1.UpdateEmailRequest\x1a\x1c.user.v1.UpdateEmailResponseB\x83\x01\n" +
+	"\vUpdateEmail\x12\x1b.user.v1.UpdateEmailRequest\x1a\x1c.user.v1.UpdateEmailResponse\x12Z\n" +
+	"\x11UpdateUserProfile\x12!.user.v1.UpdateUserProfileRequest\x1a\".user.v1.UpdateUserProfileResponseB\x83\x01\n" +
 	"\vcom.user.v1B\tUserProtoP\x01Z,github.com/soasurs/cordis/gen/user/v1;userv1\xa2\x02\x03UXX\xaa\x02\aUser.V1\xca\x02\aUser\\V1\xe2\x02\x13User\\V1\\GPBMetadata\xea\x02\bUser::V1b\beditionsp\xe8\a"
 
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_user_v1_user_proto_goTypes = []any{
 	(*User)(nil),                           // 0: user.v1.User
 	(*UserProfile)(nil),                    // 1: user.v1.UserProfile
@@ -1919,31 +2136,36 @@ var file_user_v1_user_proto_goTypes = []any{
 	(*CheckEmailAvailabilityResponse)(nil), // 13: user.v1.CheckEmailAvailabilityResponse
 	(*UpdateEmailRequest)(nil),             // 14: user.v1.UpdateEmailRequest
 	(*UpdateEmailResponse)(nil),            // 15: user.v1.UpdateEmailResponse
+	(*UpdateUserProfileRequest)(nil),       // 16: user.v1.UpdateUserProfileRequest
+	(*UpdateUserProfileResponse)(nil),      // 17: user.v1.UpdateUserProfileResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	0,  // 0: user.v1.CreateUserResponse.user:type_name -> user.v1.User
 	0,  // 1: user.v1.GetUserResponse.user:type_name -> user.v1.User
 	1,  // 2: user.v1.GetUserProfileResponse.profile:type_name -> user.v1.UserProfile
 	0,  // 3: user.v1.UpdateEmailResponse.user:type_name -> user.v1.User
-	2,  // 4: user.v1.UserService.CreateUser:input_type -> user.v1.CreateUserRequest
-	4,  // 5: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
-	6,  // 6: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
-	8,  // 7: user.v1.UserService.VerifyPassword:input_type -> user.v1.VerifyPasswordRequest
-	10, // 8: user.v1.UserService.ChangePassword:input_type -> user.v1.ChangePasswordRequest
-	12, // 9: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
-	14, // 10: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
-	3,  // 11: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
-	5,  // 12: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	7,  // 13: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
-	9,  // 14: user.v1.UserService.VerifyPassword:output_type -> user.v1.VerifyPasswordResponse
-	11, // 15: user.v1.UserService.ChangePassword:output_type -> user.v1.ChangePasswordResponse
-	13, // 16: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
-	15, // 17: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
-	11, // [11:18] is the sub-list for method output_type
-	4,  // [4:11] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	1,  // 4: user.v1.UpdateUserProfileResponse.profile:type_name -> user.v1.UserProfile
+	2,  // 5: user.v1.UserService.CreateUser:input_type -> user.v1.CreateUserRequest
+	4,  // 6: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
+	6,  // 7: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
+	8,  // 8: user.v1.UserService.VerifyPassword:input_type -> user.v1.VerifyPasswordRequest
+	10, // 9: user.v1.UserService.ChangePassword:input_type -> user.v1.ChangePasswordRequest
+	12, // 10: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
+	14, // 11: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
+	16, // 12: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
+	3,  // 13: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
+	5,  // 14: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	7,  // 15: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
+	9,  // 16: user.v1.UserService.VerifyPassword:output_type -> user.v1.VerifyPasswordResponse
+	11, // 17: user.v1.UserService.ChangePassword:output_type -> user.v1.ChangePasswordResponse
+	13, // 18: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
+	15, // 19: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
+	17, // 20: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
+	13, // [13:21] is the sub-list for method output_type
+	5,  // [5:13] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_user_v1_user_proto_init() }
@@ -1961,7 +2183,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

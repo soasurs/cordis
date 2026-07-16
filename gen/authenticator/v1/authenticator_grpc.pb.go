@@ -19,11 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AuthenticatorService_Register_FullMethodName          = "/authenticator.v1.AuthenticatorService/Register"
-	AuthenticatorService_Login_FullMethodName             = "/authenticator.v1.AuthenticatorService/Login"
-	AuthenticatorService_Refresh_FullMethodName           = "/authenticator.v1.AuthenticatorService/Refresh"
-	AuthenticatorService_Logout_FullMethodName            = "/authenticator.v1.AuthenticatorService/Logout"
-	AuthenticatorService_VerifyAccessToken_FullMethodName = "/authenticator.v1.AuthenticatorService/VerifyAccessToken"
+	AuthenticatorService_Register_FullMethodName            = "/authenticator.v1.AuthenticatorService/Register"
+	AuthenticatorService_Login_FullMethodName               = "/authenticator.v1.AuthenticatorService/Login"
+	AuthenticatorService_Refresh_FullMethodName             = "/authenticator.v1.AuthenticatorService/Refresh"
+	AuthenticatorService_Logout_FullMethodName              = "/authenticator.v1.AuthenticatorService/Logout"
+	AuthenticatorService_VerifyAccessToken_FullMethodName   = "/authenticator.v1.AuthenticatorService/VerifyAccessToken"
+	AuthenticatorService_ListSessions_FullMethodName        = "/authenticator.v1.AuthenticatorService/ListSessions"
+	AuthenticatorService_RevokeUserSession_FullMethodName   = "/authenticator.v1.AuthenticatorService/RevokeUserSession"
+	AuthenticatorService_RevokeOtherSessions_FullMethodName = "/authenticator.v1.AuthenticatorService/RevokeOtherSessions"
 )
 
 // AuthenticatorServiceClient is the client API for AuthenticatorService service.
@@ -35,6 +38,12 @@ type AuthenticatorServiceClient interface {
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	VerifyAccessToken(ctx context.Context, in *VerifyAccessTokenRequest, opts ...grpc.CallOption) (*VerifyAccessTokenResponse, error)
+	// ListSessions returns sessions that are neither revoked nor expired.
+	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
+	// RevokeUserSession only revokes the session when it belongs to the supplied user.
+	RevokeUserSession(ctx context.Context, in *RevokeUserSessionRequest, opts ...grpc.CallOption) (*RevokeUserSessionResponse, error)
+	// RevokeOtherSessions keeps current_session_id active and revokes the user's other sessions.
+	RevokeOtherSessions(ctx context.Context, in *RevokeOtherSessionsRequest, opts ...grpc.CallOption) (*RevokeOtherSessionsResponse, error)
 }
 
 type authenticatorServiceClient struct {
@@ -95,6 +104,36 @@ func (c *authenticatorServiceClient) VerifyAccessToken(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *authenticatorServiceClient) ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSessionsResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_ListSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) RevokeUserSession(ctx context.Context, in *RevokeUserSessionRequest, opts ...grpc.CallOption) (*RevokeUserSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeUserSessionResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_RevokeUserSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) RevokeOtherSessions(ctx context.Context, in *RevokeOtherSessionsRequest, opts ...grpc.CallOption) (*RevokeOtherSessionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeOtherSessionsResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_RevokeOtherSessions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthenticatorServiceServer is the server API for AuthenticatorService service.
 // All implementations should embed UnimplementedAuthenticatorServiceServer
 // for forward compatibility.
@@ -104,6 +143,12 @@ type AuthenticatorServiceServer interface {
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error)
+	// ListSessions returns sessions that are neither revoked nor expired.
+	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
+	// RevokeUserSession only revokes the session when it belongs to the supplied user.
+	RevokeUserSession(context.Context, *RevokeUserSessionRequest) (*RevokeUserSessionResponse, error)
+	// RevokeOtherSessions keeps current_session_id active and revokes the user's other sessions.
+	RevokeOtherSessions(context.Context, *RevokeOtherSessionsRequest) (*RevokeOtherSessionsResponse, error)
 }
 
 // UnimplementedAuthenticatorServiceServer should be embedded to have
@@ -127,6 +172,15 @@ func (UnimplementedAuthenticatorServiceServer) Logout(context.Context, *LogoutRe
 }
 func (UnimplementedAuthenticatorServiceServer) VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyAccessToken not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) RevokeUserSession(context.Context, *RevokeUserSessionRequest) (*RevokeUserSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeUserSession not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) RevokeOtherSessions(context.Context, *RevokeOtherSessionsRequest) (*RevokeOtherSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RevokeOtherSessions not implemented")
 }
 func (UnimplementedAuthenticatorServiceServer) testEmbeddedByValue() {}
 
@@ -238,6 +292,60 @@ func _AuthenticatorService_VerifyAccessToken_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthenticatorService_ListSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).ListSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_ListSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).ListSessions(ctx, req.(*ListSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_RevokeUserSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeUserSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).RevokeUserSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_RevokeUserSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).RevokeUserSession(ctx, req.(*RevokeUserSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_RevokeOtherSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeOtherSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).RevokeOtherSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_RevokeOtherSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).RevokeOtherSessions(ctx, req.(*RevokeOtherSessionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthenticatorService_ServiceDesc is the grpc.ServiceDesc for AuthenticatorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -264,6 +372,18 @@ var AuthenticatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyAccessToken",
 			Handler:    _AuthenticatorService_VerifyAccessToken_Handler,
+		},
+		{
+			MethodName: "ListSessions",
+			Handler:    _AuthenticatorService_ListSessions_Handler,
+		},
+		{
+			MethodName: "RevokeUserSession",
+			Handler:    _AuthenticatorService_RevokeUserSession_Handler,
+		},
+		{
+			MethodName: "RevokeOtherSessions",
+			Handler:    _AuthenticatorService_RevokeOtherSessions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

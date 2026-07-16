@@ -21,6 +21,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AuthenticationResult contains the tokens and expiration times for an authenticated session.
+// All expiration timestamps are Unix time in milliseconds.
 type AuthenticationResult struct {
 	state                 protoimpl.MessageState `protogen:"open.v1"`
 	Ok                    *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
@@ -497,6 +499,268 @@ func (x *LogoutResponse) GetOk() bool {
 	return false
 }
 
+// Session contains client-visible metadata for an active authenticated session.
+// All timestamps are Unix time in milliseconds.
+type Session struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     *int64                 `protobuf:"varint,1,opt,name=session_id,json=sessionId" json:"session_id,omitempty"`
+	UserAgent     *string                `protobuf:"bytes,2,opt,name=user_agent,json=userAgent" json:"user_agent,omitempty"`
+	Ip            *string                `protobuf:"bytes,3,opt,name=ip" json:"ip,omitempty"`
+	CreatedAt     *int64                 `protobuf:"varint,4,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	UpdatedAt     *int64                 `protobuf:"varint,5,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	ExpiresAt     *int64                 `protobuf:"varint,6,opt,name=expires_at,json=expiresAt" json:"expires_at,omitempty"`
+	Current       *bool                  `protobuf:"varint,7,opt,name=current" json:"current,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Session) Reset() {
+	*x = Session{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Session) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Session) ProtoMessage() {}
+
+func (x *Session) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Session.ProtoReflect.Descriptor instead.
+func (*Session) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Session) GetSessionId() int64 {
+	if x != nil && x.SessionId != nil {
+		return *x.SessionId
+	}
+	return 0
+}
+
+func (x *Session) GetUserAgent() string {
+	if x != nil && x.UserAgent != nil {
+		return *x.UserAgent
+	}
+	return ""
+}
+
+func (x *Session) GetIp() string {
+	if x != nil && x.Ip != nil {
+		return *x.Ip
+	}
+	return ""
+}
+
+func (x *Session) GetCreatedAt() int64 {
+	if x != nil && x.CreatedAt != nil {
+		return *x.CreatedAt
+	}
+	return 0
+}
+
+func (x *Session) GetUpdatedAt() int64 {
+	if x != nil && x.UpdatedAt != nil {
+		return *x.UpdatedAt
+	}
+	return 0
+}
+
+func (x *Session) GetExpiresAt() int64 {
+	if x != nil && x.ExpiresAt != nil {
+		return *x.ExpiresAt
+	}
+	return 0
+}
+
+func (x *Session) GetCurrent() bool {
+	if x != nil && x.Current != nil {
+		return *x.Current
+	}
+	return false
+}
+
+type ListSessionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSessionsRequest) Reset() {
+	*x = ListSessionsRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsRequest) ProtoMessage() {}
+
+func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSessionsRequest.ProtoReflect.Descriptor instead.
+func (*ListSessionsRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{10}
+}
+
+type ListSessionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sessions      []*Session             `protobuf:"bytes,1,rep,name=sessions" json:"sessions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSessionsResponse) Reset() {
+	*x = ListSessionsResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsResponse) ProtoMessage() {}
+
+func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSessionsResponse.ProtoReflect.Descriptor instead.
+func (*ListSessionsResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ListSessionsResponse) GetSessions() []*Session {
+	if x != nil {
+		return x.Sessions
+	}
+	return nil
+}
+
+type RevokeSessionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     *int64                 `protobuf:"varint,1,opt,name=session_id,json=sessionId" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeSessionRequest) Reset() {
+	*x = RevokeSessionRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeSessionRequest) ProtoMessage() {}
+
+func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeSessionRequest.ProtoReflect.Descriptor instead.
+func (*RevokeSessionRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *RevokeSessionRequest) GetSessionId() int64 {
+	if x != nil && x.SessionId != nil {
+		return *x.SessionId
+	}
+	return 0
+}
+
+type RevokeSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RevokeSessionResponse) Reset() {
+	*x = RevokeSessionResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeSessionResponse) ProtoMessage() {}
+
+func (x *RevokeSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RevokeSessionResponse.ProtoReflect.Descriptor instead.
+func (*RevokeSessionResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RevokeSessionResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
 var File_api_v1_authenticator_proto protoreflect.FileDescriptor
 
 const file_api_v1_authenticator_proto_rawDesc = "" +
@@ -530,12 +794,35 @@ const file_api_v1_authenticator_proto_rawDesc = "" +
 	"\rLogoutRequest\x12#\n" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\" \n" +
 	"\x0eLogoutResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok2\x80\x02\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\xce\x01\n" +
+	"\aSession\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\x03R\tsessionId\x12\x1d\n" +
+	"\n" +
+	"user_agent\x18\x02 \x01(\tR\tuserAgent\x12\x0e\n" +
+	"\x02ip\x18\x03 \x01(\tR\x02ip\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x05 \x01(\x03R\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x06 \x01(\x03R\texpiresAt\x12\x18\n" +
+	"\acurrent\x18\a \x01(\bR\acurrent\"\x15\n" +
+	"\x13ListSessionsRequest\"C\n" +
+	"\x14ListSessionsResponse\x12+\n" +
+	"\bsessions\x18\x01 \x03(\v2\x0f.api.v1.SessionR\bsessions\"5\n" +
+	"\x14RevokeSessionRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\x03R\tsessionId\"'\n" +
+	"\x15RevokeSessionResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok2\x99\x03\n" +
 	"\x14AuthenticatorService\x12=\n" +
 	"\bRegister\x12\x17.api.v1.RegisterRequest\x1a\x18.api.v1.RegisterResponse\x124\n" +
 	"\x05Login\x12\x14.api.v1.LoginRequest\x1a\x15.api.v1.LoginResponse\x12:\n" +
 	"\aRefresh\x12\x16.api.v1.RefreshRequest\x1a\x17.api.v1.RefreshResponse\x127\n" +
-	"\x06Logout\x12\x15.api.v1.LogoutRequest\x1a\x16.api.v1.LogoutResponseB\x85\x01\n" +
+	"\x06Logout\x12\x15.api.v1.LogoutRequest\x1a\x16.api.v1.LogoutResponse\x12I\n" +
+	"\fListSessions\x12\x1b.api.v1.ListSessionsRequest\x1a\x1c.api.v1.ListSessionsResponse\x12L\n" +
+	"\rRevokeSession\x12\x1c.api.v1.RevokeSessionRequest\x1a\x1d.api.v1.RevokeSessionResponseB\x85\x01\n" +
 	"\n" +
 	"com.api.v1B\x12AuthenticatorProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
@@ -551,35 +838,45 @@ func file_api_v1_authenticator_proto_rawDescGZIP() []byte {
 	return file_api_v1_authenticator_proto_rawDescData
 }
 
-var file_api_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_api_v1_authenticator_proto_goTypes = []any{
-	(*AuthenticationResult)(nil), // 0: api.v1.AuthenticationResult
-	(*RegisterRequest)(nil),      // 1: api.v1.RegisterRequest
-	(*RegisterResponse)(nil),     // 2: api.v1.RegisterResponse
-	(*LoginRequest)(nil),         // 3: api.v1.LoginRequest
-	(*LoginResponse)(nil),        // 4: api.v1.LoginResponse
-	(*RefreshRequest)(nil),       // 5: api.v1.RefreshRequest
-	(*RefreshResponse)(nil),      // 6: api.v1.RefreshResponse
-	(*LogoutRequest)(nil),        // 7: api.v1.LogoutRequest
-	(*LogoutResponse)(nil),       // 8: api.v1.LogoutResponse
+	(*AuthenticationResult)(nil),  // 0: api.v1.AuthenticationResult
+	(*RegisterRequest)(nil),       // 1: api.v1.RegisterRequest
+	(*RegisterResponse)(nil),      // 2: api.v1.RegisterResponse
+	(*LoginRequest)(nil),          // 3: api.v1.LoginRequest
+	(*LoginResponse)(nil),         // 4: api.v1.LoginResponse
+	(*RefreshRequest)(nil),        // 5: api.v1.RefreshRequest
+	(*RefreshResponse)(nil),       // 6: api.v1.RefreshResponse
+	(*LogoutRequest)(nil),         // 7: api.v1.LogoutRequest
+	(*LogoutResponse)(nil),        // 8: api.v1.LogoutResponse
+	(*Session)(nil),               // 9: api.v1.Session
+	(*ListSessionsRequest)(nil),   // 10: api.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),  // 11: api.v1.ListSessionsResponse
+	(*RevokeSessionRequest)(nil),  // 12: api.v1.RevokeSessionRequest
+	(*RevokeSessionResponse)(nil), // 13: api.v1.RevokeSessionResponse
 }
 var file_api_v1_authenticator_proto_depIdxs = []int32{
-	0, // 0: api.v1.RegisterResponse.result:type_name -> api.v1.AuthenticationResult
-	0, // 1: api.v1.LoginResponse.result:type_name -> api.v1.AuthenticationResult
-	0, // 2: api.v1.RefreshResponse.result:type_name -> api.v1.AuthenticationResult
-	1, // 3: api.v1.AuthenticatorService.Register:input_type -> api.v1.RegisterRequest
-	3, // 4: api.v1.AuthenticatorService.Login:input_type -> api.v1.LoginRequest
-	5, // 5: api.v1.AuthenticatorService.Refresh:input_type -> api.v1.RefreshRequest
-	7, // 6: api.v1.AuthenticatorService.Logout:input_type -> api.v1.LogoutRequest
-	2, // 7: api.v1.AuthenticatorService.Register:output_type -> api.v1.RegisterResponse
-	4, // 8: api.v1.AuthenticatorService.Login:output_type -> api.v1.LoginResponse
-	6, // 9: api.v1.AuthenticatorService.Refresh:output_type -> api.v1.RefreshResponse
-	8, // 10: api.v1.AuthenticatorService.Logout:output_type -> api.v1.LogoutResponse
-	7, // [7:11] is the sub-list for method output_type
-	3, // [3:7] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: api.v1.RegisterResponse.result:type_name -> api.v1.AuthenticationResult
+	0,  // 1: api.v1.LoginResponse.result:type_name -> api.v1.AuthenticationResult
+	0,  // 2: api.v1.RefreshResponse.result:type_name -> api.v1.AuthenticationResult
+	9,  // 3: api.v1.ListSessionsResponse.sessions:type_name -> api.v1.Session
+	1,  // 4: api.v1.AuthenticatorService.Register:input_type -> api.v1.RegisterRequest
+	3,  // 5: api.v1.AuthenticatorService.Login:input_type -> api.v1.LoginRequest
+	5,  // 6: api.v1.AuthenticatorService.Refresh:input_type -> api.v1.RefreshRequest
+	7,  // 7: api.v1.AuthenticatorService.Logout:input_type -> api.v1.LogoutRequest
+	10, // 8: api.v1.AuthenticatorService.ListSessions:input_type -> api.v1.ListSessionsRequest
+	12, // 9: api.v1.AuthenticatorService.RevokeSession:input_type -> api.v1.RevokeSessionRequest
+	2,  // 10: api.v1.AuthenticatorService.Register:output_type -> api.v1.RegisterResponse
+	4,  // 11: api.v1.AuthenticatorService.Login:output_type -> api.v1.LoginResponse
+	6,  // 12: api.v1.AuthenticatorService.Refresh:output_type -> api.v1.RefreshResponse
+	8,  // 13: api.v1.AuthenticatorService.Logout:output_type -> api.v1.LogoutResponse
+	11, // 14: api.v1.AuthenticatorService.ListSessions:output_type -> api.v1.ListSessionsResponse
+	13, // 15: api.v1.AuthenticatorService.RevokeSession:output_type -> api.v1.RevokeSessionResponse
+	10, // [10:16] is the sub-list for method output_type
+	4,  // [4:10] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_authenticator_proto_init() }
@@ -593,7 +890,7 @@ func file_api_v1_authenticator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_authenticator_proto_rawDesc), len(file_api_v1_authenticator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

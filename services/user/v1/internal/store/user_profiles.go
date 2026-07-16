@@ -58,3 +58,29 @@ func (s *SQLStore) GetUserProfile(ctx context.Context, userID int64) (*model.Use
 		DeletedAt: row.DeletedAt,
 	}, nil
 }
+
+func (s *SQLStore) UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
+	row := new(userProfileRow)
+	err := sqlx.GetContext(
+		ctx,
+		s.q,
+		row,
+		UpdateUserProfileQuery,
+		name,
+		avatarURI,
+		time.Now().UnixMilli(),
+		userID,
+		0,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &model.UserProfile{
+		UserID:    row.UserID,
+		Name:      row.Name,
+		AvatarURI: row.AvatarURI,
+		CreatedAt: row.CreatedAt,
+		UpdatedAt: row.UpdatedAt,
+		DeletedAt: row.DeletedAt,
+	}, nil
+}

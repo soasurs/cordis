@@ -1667,6 +1667,500 @@ func (b0 VerifyAccessTokenResponse_builder) Build() *VerifyAccessTokenResponse {
 	return m0
 }
 
+type ListSessionsRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ListSessionsRequest) Reset() {
+	*x = ListSessionsRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsRequest) ProtoMessage() {}
+
+func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListSessionsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *ListSessionsRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ListSessionsRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListSessionsRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+type ListSessionsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId *int64
+}
+
+func (b0 ListSessionsRequest_builder) Build() *ListSessionsRequest {
+	m0 := &ListSessionsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
+type ListSessionsResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Sessions *[]*Session            `protobuf:"bytes,1,rep,name=sessions"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ListSessionsResponse) Reset() {
+	*x = ListSessionsResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsResponse) ProtoMessage() {}
+
+func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListSessionsResponse) GetSessions() []*Session {
+	if x != nil {
+		if x.xxx_hidden_Sessions != nil {
+			return *x.xxx_hidden_Sessions
+		}
+	}
+	return nil
+}
+
+func (x *ListSessionsResponse) SetSessions(v []*Session) {
+	x.xxx_hidden_Sessions = &v
+}
+
+type ListSessionsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Sessions []*Session
+}
+
+func (b0 ListSessionsResponse_builder) Build() *ListSessionsResponse {
+	m0 := &ListSessionsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Sessions = &b.Sessions
+	return m0
+}
+
+type RevokeUserSessionRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId   int64                  `protobuf:"varint,2,opt,name=session_id,json=sessionId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *RevokeUserSessionRequest) Reset() {
+	*x = RevokeUserSessionRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeUserSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeUserSessionRequest) ProtoMessage() {}
+
+func (x *RevokeUserSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RevokeUserSessionRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *RevokeUserSessionRequest) GetSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_SessionId
+	}
+	return 0
+}
+
+func (x *RevokeUserSessionRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *RevokeUserSessionRequest) SetSessionId(v int64) {
+	x.xxx_hidden_SessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *RevokeUserSessionRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RevokeUserSessionRequest) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RevokeUserSessionRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RevokeUserSessionRequest) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SessionId = 0
+}
+
+type RevokeUserSessionRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId    *int64
+	SessionId *int64
+}
+
+func (b0 RevokeUserSessionRequest_builder) Build() *RevokeUserSessionRequest {
+	m0 := &RevokeUserSessionRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_SessionId = *b.SessionId
+	}
+	return m0
+}
+
+type RevokeUserSessionResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *RevokeUserSessionResponse) Reset() {
+	*x = RevokeUserSessionResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeUserSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeUserSessionResponse) ProtoMessage() {}
+
+func (x *RevokeUserSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RevokeUserSessionResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *RevokeUserSessionResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RevokeUserSessionResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RevokeUserSessionResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type RevokeUserSessionResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 RevokeUserSessionResponse_builder) Build() *RevokeUserSessionResponse {
+	m0 := &RevokeUserSessionResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
+type RevokeOtherSessionsRequest struct {
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_CurrentSessionId int64                  `protobuf:"varint,2,opt,name=current_session_id,json=currentSessionId"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *RevokeOtherSessionsRequest) Reset() {
+	*x = RevokeOtherSessionsRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeOtherSessionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeOtherSessionsRequest) ProtoMessage() {}
+
+func (x *RevokeOtherSessionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RevokeOtherSessionsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *RevokeOtherSessionsRequest) GetCurrentSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_CurrentSessionId
+	}
+	return 0
+}
+
+func (x *RevokeOtherSessionsRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *RevokeOtherSessionsRequest) SetCurrentSessionId(v int64) {
+	x.xxx_hidden_CurrentSessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *RevokeOtherSessionsRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RevokeOtherSessionsRequest) HasCurrentSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RevokeOtherSessionsRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RevokeOtherSessionsRequest) ClearCurrentSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_CurrentSessionId = 0
+}
+
+type RevokeOtherSessionsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId           *int64
+	CurrentSessionId *int64
+}
+
+func (b0 RevokeOtherSessionsRequest_builder) Build() *RevokeOtherSessionsRequest {
+	m0 := &RevokeOtherSessionsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.CurrentSessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_CurrentSessionId = *b.CurrentSessionId
+	}
+	return m0
+}
+
+type RevokeOtherSessionsResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Revoked     int32                  `protobuf:"varint,1,opt,name=revoked"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *RevokeOtherSessionsResponse) Reset() {
+	*x = RevokeOtherSessionsResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RevokeOtherSessionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RevokeOtherSessionsResponse) ProtoMessage() {}
+
+func (x *RevokeOtherSessionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RevokeOtherSessionsResponse) GetRevoked() int32 {
+	if x != nil {
+		return x.xxx_hidden_Revoked
+	}
+	return 0
+}
+
+func (x *RevokeOtherSessionsResponse) SetRevoked(v int32) {
+	x.xxx_hidden_Revoked = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RevokeOtherSessionsResponse) HasRevoked() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RevokeOtherSessionsResponse) ClearRevoked() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Revoked = 0
+}
+
+type RevokeOtherSessionsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Revoked *int32
+}
+
+func (b0 RevokeOtherSessionsResponse_builder) Build() *RevokeOtherSessionsResponse {
+	m0 := &RevokeOtherSessionsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Revoked != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Revoked = *b.Revoked
+	}
+	return m0
+}
+
 var File_authenticator_v1_authenticator_proto protoreflect.FileDescriptor
 
 const file_authenticator_v1_authenticator_proto_rawDesc = "" +
@@ -1730,49 +2224,80 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x03 \x01(\x03R\tsessionId\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\x03R\texpiresAt2\xbe\x03\n" +
+	"expires_at\x18\x04 \x01(\x03R\texpiresAt\".\n" +
+	"\x13ListSessionsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"M\n" +
+	"\x14ListSessionsResponse\x125\n" +
+	"\bsessions\x18\x01 \x03(\v2\x19.authenticator.v1.SessionR\bsessions\"R\n" +
+	"\x18RevokeUserSessionRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\x03R\tsessionId\"+\n" +
+	"\x19RevokeUserSessionResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"c\n" +
+	"\x1aRevokeOtherSessionsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12,\n" +
+	"\x12current_session_id\x18\x02 \x01(\x03R\x10currentSessionId\"7\n" +
+	"\x1bRevokeOtherSessionsResponse\x12\x18\n" +
+	"\arevoked\x18\x01 \x01(\x05R\arevoked2\xff\x05\n" +
 	"\x14AuthenticatorService\x12Q\n" +
 	"\bRegister\x12!.authenticator.v1.RegisterRequest\x1a\".authenticator.v1.RegisterResponse\x12H\n" +
 	"\x05Login\x12\x1e.authenticator.v1.LoginRequest\x1a\x1f.authenticator.v1.LoginResponse\x12N\n" +
 	"\aRefresh\x12 .authenticator.v1.RefreshRequest\x1a!.authenticator.v1.RefreshResponse\x12K\n" +
 	"\x06Logout\x12\x1f.authenticator.v1.LogoutRequest\x1a .authenticator.v1.LogoutResponse\x12l\n" +
-	"\x11VerifyAccessToken\x12*.authenticator.v1.VerifyAccessTokenRequest\x1a+.authenticator.v1.VerifyAccessTokenResponseB\xcb\x01\n" +
+	"\x11VerifyAccessToken\x12*.authenticator.v1.VerifyAccessTokenRequest\x1a+.authenticator.v1.VerifyAccessTokenResponse\x12]\n" +
+	"\fListSessions\x12%.authenticator.v1.ListSessionsRequest\x1a&.authenticator.v1.ListSessionsResponse\x12l\n" +
+	"\x11RevokeUserSession\x12*.authenticator.v1.RevokeUserSessionRequest\x1a+.authenticator.v1.RevokeUserSessionResponse\x12r\n" +
+	"\x13RevokeOtherSessions\x12,.authenticator.v1.RevokeOtherSessionsRequest\x1a-.authenticator.v1.RevokeOtherSessionsResponseB\xcb\x01\n" +
 	"\x14com.authenticator.v1B\x12AuthenticatorProtoP\x01Z>github.com/soasurs/cordis/gen/authenticator/v1;authenticatorv1\xa2\x02\x03AXX\xaa\x02\x10Authenticator.V1\xca\x02\x10Authenticator\\V1\xe2\x02\x1cAuthenticator\\V1\\GPBMetadata\xea\x02\x11Authenticator::V1b\beditionsp\xe8\a"
 
-var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_authenticator_v1_authenticator_proto_goTypes = []any{
-	(*Session)(nil),                   // 0: authenticator.v1.Session
-	(*RegisterRequest)(nil),           // 1: authenticator.v1.RegisterRequest
-	(*RegisterResponse)(nil),          // 2: authenticator.v1.RegisterResponse
-	(*LoginRequest)(nil),              // 3: authenticator.v1.LoginRequest
-	(*LoginResponse)(nil),             // 4: authenticator.v1.LoginResponse
-	(*AuthenticationResult)(nil),      // 5: authenticator.v1.AuthenticationResult
-	(*RefreshRequest)(nil),            // 6: authenticator.v1.RefreshRequest
-	(*RefreshResponse)(nil),           // 7: authenticator.v1.RefreshResponse
-	(*LogoutRequest)(nil),             // 8: authenticator.v1.LogoutRequest
-	(*LogoutResponse)(nil),            // 9: authenticator.v1.LogoutResponse
-	(*VerifyAccessTokenRequest)(nil),  // 10: authenticator.v1.VerifyAccessTokenRequest
-	(*VerifyAccessTokenResponse)(nil), // 11: authenticator.v1.VerifyAccessTokenResponse
+	(*Session)(nil),                     // 0: authenticator.v1.Session
+	(*RegisterRequest)(nil),             // 1: authenticator.v1.RegisterRequest
+	(*RegisterResponse)(nil),            // 2: authenticator.v1.RegisterResponse
+	(*LoginRequest)(nil),                // 3: authenticator.v1.LoginRequest
+	(*LoginResponse)(nil),               // 4: authenticator.v1.LoginResponse
+	(*AuthenticationResult)(nil),        // 5: authenticator.v1.AuthenticationResult
+	(*RefreshRequest)(nil),              // 6: authenticator.v1.RefreshRequest
+	(*RefreshResponse)(nil),             // 7: authenticator.v1.RefreshResponse
+	(*LogoutRequest)(nil),               // 8: authenticator.v1.LogoutRequest
+	(*LogoutResponse)(nil),              // 9: authenticator.v1.LogoutResponse
+	(*VerifyAccessTokenRequest)(nil),    // 10: authenticator.v1.VerifyAccessTokenRequest
+	(*VerifyAccessTokenResponse)(nil),   // 11: authenticator.v1.VerifyAccessTokenResponse
+	(*ListSessionsRequest)(nil),         // 12: authenticator.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),        // 13: authenticator.v1.ListSessionsResponse
+	(*RevokeUserSessionRequest)(nil),    // 14: authenticator.v1.RevokeUserSessionRequest
+	(*RevokeUserSessionResponse)(nil),   // 15: authenticator.v1.RevokeUserSessionResponse
+	(*RevokeOtherSessionsRequest)(nil),  // 16: authenticator.v1.RevokeOtherSessionsRequest
+	(*RevokeOtherSessionsResponse)(nil), // 17: authenticator.v1.RevokeOtherSessionsResponse
 }
 var file_authenticator_v1_authenticator_proto_depIdxs = []int32{
 	5,  // 0: authenticator.v1.RegisterResponse.result:type_name -> authenticator.v1.AuthenticationResult
 	5,  // 1: authenticator.v1.LoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
 	5,  // 2: authenticator.v1.RefreshResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	1,  // 3: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
-	3,  // 4: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
-	6,  // 5: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
-	8,  // 6: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
-	10, // 7: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
-	2,  // 8: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
-	4,  // 9: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
-	7,  // 10: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
-	9,  // 11: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
-	11, // 12: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	0,  // 3: authenticator.v1.ListSessionsResponse.sessions:type_name -> authenticator.v1.Session
+	1,  // 4: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
+	3,  // 5: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
+	6,  // 6: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
+	8,  // 7: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
+	10, // 8: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
+	12, // 9: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
+	14, // 10: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
+	16, // 11: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
+	2,  // 12: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
+	4,  // 13: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
+	7,  // 14: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
+	9,  // 15: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
+	11, // 16: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
+	13, // 17: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
+	15, // 18: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
+	17, // 19: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
+	12, // [12:20] is the sub-list for method output_type
+	4,  // [4:12] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_authenticator_v1_authenticator_proto_init() }
@@ -1786,7 +2311,7 @@ func file_authenticator_v1_authenticator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_authenticator_v1_authenticator_proto_rawDesc), len(file_authenticator_v1_authenticator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

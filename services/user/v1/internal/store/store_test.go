@@ -177,6 +177,24 @@ func TestGetUserProfile(t *testing.T) {
 	require.Equal(t, "avatar://1", profile.AvatarURI)
 }
 
+func TestUpdateUserProfile(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{"user_id", "name", "avatar_uri", "created_at", "updated_at", "deleted_at"}).
+		AddRow(int64(1001), "new name", "avatar://2", int64(10), int64(30), int64(0))
+
+	mock.ExpectQuery(sqlPattern(UpdateUserProfileQuery)).
+		WithArgs("new name", "avatar://2", sqlmock.AnyArg(), int64(1001), 0).
+		WillReturnRows(rows)
+
+	profile, err := store.UpdateUserProfile(context.Background(), 1001, "new name", "avatar://2")
+	require.NoError(t, err)
+	require.Equal(t, "new name", profile.Name)
+	require.Equal(t, "avatar://2", profile.AvatarURI)
+	require.Equal(t, int64(30), profile.UpdatedAt)
+}
+
 func TestTransactCommit(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()

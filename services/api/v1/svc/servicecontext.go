@@ -2,6 +2,7 @@ package svc
 
 import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/services/api/v1/config"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -9,19 +10,26 @@ import (
 type ServiceContext struct {
 	Cfg                 config.Config
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
+	UserClient          userv1.UserServiceClient
 }
 
 type Dependencies struct {
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
+	UserClient          userv1.UserServiceClient
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
-	client, err := zrpc.NewClient(cfg.Services.Authenticator)
+	authenticatorClient, err := zrpc.NewClient(cfg.Services.Authenticator)
+	if err != nil {
+		return Dependencies{}, err
+	}
+	userClient, err := zrpc.NewClient(cfg.Services.User)
 	if err != nil {
 		return Dependencies{}, err
 	}
 	return Dependencies{
-		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(client.Conn()),
+		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(authenticatorClient.Conn()),
+		UserClient:          userv1.NewUserServiceClient(userClient.Conn()),
 	}, nil
 }
 
@@ -37,8 +45,12 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.AuthenticatorClient == nil {
 		panic("authenticator client is required")
 	}
+	if deps.UserClient == nil {
+		panic("user client is required")
+	}
 	return &ServiceContext{
 		Cfg:                 cfg,
 		AuthenticatorClient: deps.AuthenticatorClient,
+		UserClient:          deps.UserClient,
 	}
 }

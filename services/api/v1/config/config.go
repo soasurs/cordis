@@ -16,4 +16,5 @@ type Config struct {
 
 type ServiceConfig struct {
 	Authenticator zrpc.RpcClientConf
+	User          zrpc.RpcClientConf
 }

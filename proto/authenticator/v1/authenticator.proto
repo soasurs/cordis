@@ -8,6 +8,12 @@ service AuthenticatorService {
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc VerifyAccessToken(VerifyAccessTokenRequest) returns (VerifyAccessTokenResponse);
+  // ListSessions returns sessions that are neither revoked nor expired.
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+  // RevokeUserSession only revokes the session when it belongs to the supplied user.
+  rpc RevokeUserSession(RevokeUserSessionRequest) returns (RevokeUserSessionResponse);
+  // RevokeOtherSessions keeps current_session_id active and revokes the user's other sessions.
+  rpc RevokeOtherSessions(RevokeOtherSessionsRequest) returns (RevokeOtherSessionsResponse);
 }
 
 message Session {
@@ -80,4 +86,30 @@ message VerifyAccessTokenResponse {
   int64 user_id = 2;
   int64 session_id = 3;
   int64 expires_at = 4;
+}
+
+message ListSessionsRequest {
+  int64 user_id = 1;
+}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message RevokeUserSessionRequest {
+  int64 user_id = 1;
+  int64 session_id = 2;
+}
+
+message RevokeUserSessionResponse {
+  bool ok = 1;
+}
+
+message RevokeOtherSessionsRequest {
+  int64 user_id = 1;
+  int64 current_session_id = 2;
+}
+
+message RevokeOtherSessionsResponse {
+  int32 revoked = 1;
 }

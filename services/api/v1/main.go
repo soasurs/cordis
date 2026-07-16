@@ -52,9 +52,14 @@ func main() {
 		server.NewAuthenticator(svcCtx),
 		connect.WithInterceptors(observability.ConnectInterceptors()...),
 	)
+	userPath, userHandler := apiv1connect.NewUserServiceHandler(
+		server.NewUser(svcCtx),
+		connect.WithInterceptors(observability.ConnectInterceptors()...),
+	)
 
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
+	mux.Handle(userPath, userHandler)
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenOn,

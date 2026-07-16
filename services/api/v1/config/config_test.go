@@ -18,4 +18,5 @@ func TestLoadConfig(t *testing.T) {
 	require.True(t, cfg.Observability.Metrics.Enabled)
 	require.NotEmpty(t, cfg.Observability.Metrics.ListenOn)
 	require.False(t, cfg.Services.Authenticator.Middlewares.Duration)
+	require.False(t, cfg.Services.User.Middlewares.Duration)
 }

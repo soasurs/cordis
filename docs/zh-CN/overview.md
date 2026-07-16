@@ -51,7 +51,7 @@ flowchart LR
 
 ## 代码组织
 
-- `proto/api`：公开 API，生成 Go、Connect-Go 和 protobuf-es 代码。
+- `proto/api`：公开 API，生成开放 Go API 和 Connect-Go 代码。
 - `proto/<service>`：内部 gRPC 协议，使用 protobuf edition 2023 opaque Go API。
 - `services/<service>/v1`：服务入口、配置、依赖、业务逻辑和存储。
 - `pkg`：跨服务复用的数据库、Kafka、迁移、错误、密码、ID 和实时事件定义。

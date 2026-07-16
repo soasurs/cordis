@@ -14,7 +14,7 @@ import (
 func TestDispatchRecordUsesDotSeparatedMessageEvent(t *testing.T) {
 	resolver := &fakeResolver{}
 	server := &Server{resolver: resolver}
-	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":1,"channel_id":7001}}`)
+	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"}}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.NoError(t, err)
 	require.False(t, permanent)

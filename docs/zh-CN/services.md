@@ -28,7 +28,7 @@
 
 监听 `:3002`，拥有消息、附件、提及和回复关系。创建、读取、更新和删除操作先调用 Guild 授权。列表使用 `before`、`after` 或 `around` 游标分页。当前没有反应或自定义 emoji RPC。
 
-允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `message.events` 发布事件；发布失败只记录日志。
+允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `cordis.message.events.v1` 发布事件；发布失败只记录日志。
 
 ## Gateway
 
@@ -50,9 +50,9 @@
 
 ## Dispatcher
 
-独立后台服务，使用同一 consumer group 消费 `cordis.guild.events.v1` 和 `message.events`。它解析统一事件 envelope，根据 Guild、频道或用户路由从 Redis 找到 Session 节点，并调用 `DispatchGuildEvent`、`DispatchChannelEvent` 或 `DispatchUserEvent`。
+独立后台服务，使用 consumer group `cordis.dispatcher.v1` 消费 `cordis.guild.events.v1` 和 `cordis.message.events.v1`。它解析统一事件 envelope，根据 Guild、频道或用户路由从 Redis 找到 Session 节点，并调用 `DispatchGuildEvent`、`DispatchChannelEvent` 或 `DispatchUserEvent`。
 
-消费采用手工提交。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误按指数退避重试，成功后提交。每条事件对同一目标节点最多调用一次。
+消费采用手工提交。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误按指数退避重试，成功后提交。单次尝试会合并重复目标节点，但整条记录重试时可能再次调用已经成功的节点，因此投递是至少一次语义，且当前没有通用 event ID 去重。
 
 ## Presence
 

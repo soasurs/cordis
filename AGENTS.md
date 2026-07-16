@@ -24,7 +24,7 @@ go build ./services/guild/v1/...
 ```
 
 - Go module is `github.com/soasurs/cordis`; `go.mod` declares Go `1.26`.
-- Codegen needs `buf`, `protoc-gen-go`, `protoc-gen-connect-go`, `protoc-gen-go-grpc`, and `protoc-gen-es` on `PATH`.
+- Codegen tools are pinned by the `tool` block in `go.mod` and invoked through `go tool`; no separate `PATH` installation is required.
 - After editing any `.proto`, run `make generate`; generated outputs under `gen/` are not hand-edited.
 
 ## Services
@@ -42,13 +42,13 @@ go build ./services/guild/v1/...
 ## Proto
 
 - Protos use edition 2023. Internal generation uses opaque Go API (`default_api_level=API_OPAQUE`), so use generated getters/setters/builders instead of field access or struct literals for `gen/{authenticator,user,message,guild,presence,session}`.
-- External `proto/api` generation is open Go API plus Connect-Go and protobuf-es TypeScript under `gen/web`; existing API code uses pointer fields and struct literals there.
+- External `proto/api` generation is open Go API plus Connect-Go under `gen/api`; existing API code uses pointer fields and struct literals there.
 - `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, and `proto/session`.
 
 ## Service Wiring
 
-- Service construction pattern is `Config -> NewDependencies(cfg) -> NewServiceContextWithDependencies(cfg, deps)`.
-- `NewDependencies` creates real DB/RPC/Redis/Kafka/Snowflake/token dependencies; tests inject fakes via `NewServiceContextWithDependencies` or direct `ServiceContext` literals instead.
+- Services other than Dispatcher use the construction pattern `Config -> NewDependencies(cfg) -> NewServiceContextWithDependencies(cfg, deps)`; Dispatcher constructs its Kafka consumer and route resolver directly.
+- For ServiceContext-based services, `NewDependencies` creates real DB/RPC/Redis/Kafka/Snowflake/token dependencies; tests inject fakes via `NewServiceContextWithDependencies` or direct `ServiceContext` literals instead.
 - `NewServiceContextWithDependencies` is fail-fast and panics on missing required deps.
 - Config is loaded with `conf.LoadConfig(..., conf.UseEnv())`, so `${CORDIS_*}` values in YAML are environment-expanded.
 
@@ -62,6 +62,7 @@ go build ./services/guild/v1/...
 ## Message Service
 
 - Message mutations commit their database transaction before publishing directly to Kafka; do not introduce a transactional outbox unless explicitly requested.
+- Message has an independent Kafka topic, defaulting to `cordis.message.events.v1`.
 - Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope and are keyed by decimal `channel_id`.
 - Realtime domain event names use dot-separated hierarchy only. Shared names live in `pkg/realtime`; do not introduce underscore variants such as `message_created`.
 - Kafka publication is best-effort: publication failures are logged but do not turn an already-committed mutation into an RPC failure.
@@ -98,21 +99,22 @@ go build ./services/guild/v1/...
 - Guild publishes directly to Kafka after the database transaction commits and does not use an outbox.
 - Guild event values use the same lightweight envelope as Message: `{"t":"guild.updated","d":{...}}`. The Kafka key is the decimal `guild_id`.
 - Snowflake IDs and permission bitsets in Kafka JSON are strings; revisions, timestamps, and enums remain JSON numbers.
-- Current event types additionally include `guild.member.banned`, `guild.member.unbanned`, `guild.channel.created`, `guild.channel.updated`, `guild.channel.deleted`, `guild.channel.overwrite.updated`, and `guild.channel.overwrite.deleted`.
+- Guild publishes metadata, member, ban, role, channel, and channel-overwrite events; `pkg/realtime/events.go` is the canonical list of event names.
 - Message calls Guild `AuthorizeGuildChannel` for every create/read/list/update/delete operation. Message no longer trusts a caller-provided moderator boolean; non-author edits/deletes require `MANAGE_MESSAGES`.
 - Later Guild phases own invitations, permission-change-driven immediate subscription revocation, limits, and richer ordering.
 
 ## Gateway, Session, Dispatcher, And Presence
 
 - Gateway websocket protocol opcodes are in `services/gateway/v1/internal/server/protocol.go`; the first client message after `HELLO` may be `IDENTIFY` (`op=2`) or `RESUME` (`op=6`).
+- Snowflake IDs in WebSocket JSON are decimal strings. This includes `READY` IDs, `SUBSCRIBE.channel_ids` input, `SUBSCRIBED.channel_ids`, and domain event payload IDs; sequences, revisions, and timestamps remain JSON numbers.
 - Gateway is a transport adapter. It forwards `connection_id`, Gateway ID/generation, and client operations to Session, then writes Session's `op/s/t/d` frames to the websocket.
 - IDENTIFY selects a ready Session node from the etcd `/cordis/session/nodes` directory. RESUME resolves `session:owners:{session_id}` in Redis and the exact node ID/generation in etcd, then connects directly to the owning Session node.
 - Session stores state in process memory. A disconnected Session remains resumable for two minutes; a Session-node crash loses its Sessions and clients must IDENTIFY again.
 - Each Session has an independent monotonically increasing sequence and a 2048-entry sliding replay window. Heartbeat `d` is the acknowledged sequence and removes acknowledged replay entries.
 - Session owns `user/guild/channel -> local sessions` indexes and checks Guild `VIEW_CHANNEL` when adding Channel subscriptions or distributing visibility-sensitive Channel metadata events.
-- Session nodes register with leases under etcd `/cordis/session/nodes/{node_id}`. Redis owners use `session:owners:{session_id}`; aggregate ZSET routes use `gateway:routes:users:{id}:nodes`, `gateway:routes:guilds:{id}:nodes`, and `gateway:routes:channels:{id}:nodes`.
+- Session nodes register with leases under etcd `/cordis/session/nodes/{node_id}`. Redis owners use `session:owners:{session_id}`; aggregate ZSET routes use `gateway:routes:users:{id}:nodes`, `gateway:routes:guilds:{id}:nodes`, and `gateway:routes:channels:{id}:nodes`. The braces around each Redis ID are literal Cluster hash tags.
 - etcd stores only the low-cardinality live Session-node directory and is configured with multiple endpoints in production. Redis stores resume ownership and aggregate routing metadata and must remain Redis Cluster compatible. Neither stores replay payloads.
-- Dispatcher instances share one consumer group, consume `cordis.guild.events.v1` and `message.events`, and call each target Session node at most once per event.
+- Dispatcher instances share consumer group `cordis.dispatcher.v1` and consume `cordis.guild.events.v1` and `cordis.message.events.v1`. Aggregate routes are deduplicated per dispatch attempt, but retrying a record can call a previously successful Session node again; delivery is at least once and has no general event-ID deduplication.
 - Session graceful drain marks the node `draining`, rejects new attachments, and spreads `INVALID_SESSION(false)` notifications across the configured drain window. It does not transfer in-memory Session state.
 - Presence is updated by Session and continues to aggregate per-device user status. Invisible presence resolves as offline and hides sessions.
 

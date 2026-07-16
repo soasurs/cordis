@@ -79,7 +79,7 @@ func New(cfg config.Config, resolver discovery.Resolver) *Server {
 		kgo.ConsumerGroup(defaultString(cfg.Kafka.ConsumerGroup, "cordis.dispatcher.v1")),
 		kgo.ConsumeTopics(
 			defaultString(cfg.Kafka.GuildTopic, "cordis.guild.events.v1"),
-			defaultString(cfg.Kafka.MessageTopic, "message.events"),
+			defaultString(cfg.Kafka.MessageTopic, "cordis.message.events.v1"),
 		),
 		kgo.DisableAutoCommit(),
 	)

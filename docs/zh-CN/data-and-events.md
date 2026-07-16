@@ -37,4 +37,4 @@ Kafka 事件统一为：
 
 ## 直接发布 Kafka
 
-Message 和 Guild 都不使用 Outbox。业务事务成功后，Message best-effort 发布到 `message.events`，Guild best-effort 发布到 `cordis.guild.events.v1`。发布使用业务 ID 作为 Kafka key，以保持同一频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。
+Message 和 Guild 都不使用 Outbox。业务事务成功后，Message best-effort 发布到 `cordis.message.events.v1`，Guild best-effort 发布到 `cordis.guild.events.v1`。发布使用业务 ID 作为 Kafka key，以保持同一频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。

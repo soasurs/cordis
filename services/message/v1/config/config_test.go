@@ -23,4 +23,7 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.ListenOn == "" || cfg.Database.DataSource == "" {
 		t.Fatalf("unexpected config: %+v", cfg)
 	}
+	if cfg.Kafka.Topic != "cordis.message.events.v1" {
+		t.Fatalf("unexpected Kafka topic: %q", cfg.Kafka.Topic)
+	}
 }

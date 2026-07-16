@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
@@ -25,16 +26,16 @@ type messageEvent struct {
 }
 
 type messagePayload struct {
-	MessageID           int64            `json:"id"`
-	ChannelID           int64            `json:"channel_id"`
-	AuthorID            int64            `json:"author_id"`
+	MessageID           string           `json:"id"`
+	ChannelID           string           `json:"channel_id"`
+	AuthorID            string           `json:"author_id"`
 	Content             string           `json:"content"`
 	Type                int32            `json:"type"`
 	Flags               int32            `json:"flags"`
-	ReferencedMessageID int64            `json:"referenced_message_id,omitempty"`
-	ReferencedChannelID int64            `json:"referenced_channel_id,omitempty"`
+	ReferencedMessageID string           `json:"referenced_message_id,omitempty"`
+	ReferencedChannelID string           `json:"referenced_channel_id,omitempty"`
 	Attachments         []attachmentJSON `json:"attachments"`
-	MentionUserIDs      []int64          `json:"mention_user_ids"`
+	MentionUserIDs      []string         `json:"mention_user_ids"`
 	EditedAt            int64            `json:"edited_at"`
 	CreatedAt           int64            `json:"created_at"`
 	UpdatedAt           int64            `json:"updated_at"`
@@ -51,10 +52,10 @@ type attachmentJSON struct {
 }
 
 type messageDeletedPayload struct {
-	MessageID int64 `json:"id"`
-	ChannelID int64 `json:"channel_id"`
-	Revision  int64 `json:"revision"`
-	DeletedAt int64 `json:"deleted_at"`
+	MessageID string `json:"id"`
+	ChannelID string `json:"channel_id"`
+	Revision  int64  `json:"revision"`
+	DeletedAt int64  `json:"deleted_at"`
 }
 
 func newMessageCreatedEvent(message *model.Message, mentionUserIDs []int64) (messageEvent, error) {
@@ -67,8 +68,8 @@ func newMessageUpdatedEvent(message *model.Message, mentionUserIDs []int64) (mes
 
 func newMessageDeletedEvent(message *model.Message) (messageEvent, error) {
 	return newEvent(EventTypeMessageDeleted, message.ChannelID, messageDeletedPayload{
-		MessageID: message.ID,
-		ChannelID: message.ChannelID,
+		MessageID: strconv.FormatInt(message.ID, 10),
+		ChannelID: strconv.FormatInt(message.ChannelID, 10),
 		Revision:  message.Revision,
 		DeletedAt: message.DeletedAt,
 	})
@@ -76,21 +77,39 @@ func newMessageDeletedEvent(message *model.Message) (messageEvent, error) {
 
 func messagePayloadFromModel(message *model.Message, mentionUserIDs []int64) messagePayload {
 	return messagePayload{
-		MessageID:           message.ID,
-		ChannelID:           message.ChannelID,
-		AuthorID:            message.AuthorID,
+		MessageID:           strconv.FormatInt(message.ID, 10),
+		ChannelID:           strconv.FormatInt(message.ChannelID, 10),
+		AuthorID:            strconv.FormatInt(message.AuthorID, 10),
 		Content:             message.Content,
 		Type:                message.Type,
 		Flags:               message.Flags,
-		ReferencedMessageID: message.ReferencedMessageID,
-		ReferencedChannelID: message.ReferencedChannelID,
+		ReferencedMessageID: optionalIDString(message.ReferencedMessageID),
+		ReferencedChannelID: optionalIDString(message.ReferencedChannelID),
 		Attachments:         attachmentsForEvent(message.Attachments),
-		MentionUserIDs:      mentionUserIDs,
+		MentionUserIDs:      idStrings(mentionUserIDs),
 		EditedAt:            message.EditedAt,
 		CreatedAt:           message.CreatedAt,
 		UpdatedAt:           message.UpdatedAt,
 		Revision:            message.Revision,
 	}
+}
+
+func optionalIDString(id int64) string {
+	if id == 0 {
+		return ""
+	}
+	return strconv.FormatInt(id, 10)
+}
+
+func idStrings(ids []int64) []string {
+	if ids == nil {
+		return nil
+	}
+	values := make([]string, len(ids))
+	for i, id := range ids {
+		values[i] = strconv.FormatInt(id, 10)
+	}
+	return values
 }
 
 func newEvent[T any](eventType string, channelID int64, data T) (messageEvent, error) {

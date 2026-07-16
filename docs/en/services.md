@@ -40,7 +40,7 @@ are not currently implemented.
 
 Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a
-write transaction commits, the service publishes directly to `message.events`
+write transaction commits, the service publishes directly to `cordis.message.events.v1`
 on a best-effort basis; failures are logged.
 
 ## Gateway
@@ -65,11 +65,13 @@ existing clients to identify again.
 
 ## Dispatcher
 
-Background Kafka consumer for `cordis.guild.events.v1` and `message.events`,
-using one consumer group. It resolves user/guild/channel routes in Redis and
-calls the Session node's dispatch RPC. Offsets are committed manually. Invalid
-events are dropped and committed; transient failures retry with exponential
-backoff. A node is called at most once per event.
+Background Kafka consumer for `cordis.guild.events.v1` and `cordis.message.events.v1`,
+using consumer group `cordis.dispatcher.v1`. It resolves user/guild/channel
+routes in Redis and calls the Session node's dispatch RPC. Offsets are committed
+manually. Invalid events are dropped and committed; transient failures retry
+with exponential backoff. Routes are deduplicated within one attempt, but a
+record retry can call an already successful node again. Delivery is at least
+once and there is no general event-ID deduplication.
 
 ## Presence
 

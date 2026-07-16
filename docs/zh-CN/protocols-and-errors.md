@@ -2,7 +2,7 @@
 
 ## Protobuf 与代码生成
 
-公开协议位于 `proto/api`，生成开放 Go API、Connect-Go 和 protobuf-es。内部协议位于各服务目录，使用 edition 2023 和 opaque Go API，因此代码通过 getter、setter 和 builder 访问字段，不能依赖生成 struct 字段。
+公开协议位于 `proto/api`，生成开放 Go API 和 Connect-Go。内部协议位于各服务目录，使用 edition 2023 和 opaque Go API，因此代码通过 getter、setter 和 builder 访问字段，不能依赖生成 struct 字段。
 
 修改 `.proto` 后运行：
 
@@ -26,6 +26,8 @@ WebSocket 消息采用 `op`、可选 `s`、可选 `t` 和 `d`。主要 opcode：
 - `11`：heartbeat ACK。
 
 领域事件的 `t` 使用小写点分名称；Gateway 生命周期事件使用 `HELLO`、`READY`、`RESUMED`、`SUBSCRIBED`、`HEARTBEAT_ACK` 和 `ERROR`。
+
+WebSocket JSON 中的 Snowflake ID 使用十进制字符串。`SUBSCRIBE.channel_ids` 只接受字符串，`READY`、`SUBSCRIBED` 和领域事件 payload 中的 ID 也输出为字符串；sequence、revision 和时间戳仍使用 JSON number。
 
 ## 内部错误
 

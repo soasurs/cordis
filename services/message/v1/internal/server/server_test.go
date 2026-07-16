@@ -7,6 +7,7 @@ import (
 	"errors"
 	"slices"
 	"sort"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -48,8 +49,27 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	var envelope eventEnvelope[messagePayload]
 	require.NoError(t, json.Unmarshal(record.payload, &envelope))
 	require.Equal(t, EventTypeMessageCreated, envelope.Type)
-	require.Equal(t, resp.GetMessage().GetId(), envelope.Data.MessageID)
+	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), envelope.Data.MessageID)
 	require.Equal(t, int64(1), envelope.Data.Revision)
+}
+
+func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
+	message := &model.Message{
+		ID: 9007199254740993, ChannelID: 9007199254740994, AuthorID: 9007199254740995,
+		ReferencedMessageID: 9007199254740996, ReferencedChannelID: 9007199254740997,
+		Revision: 1,
+	}
+	event, err := newMessageCreatedEvent(message, []int64{9007199254740998})
+	require.NoError(t, err)
+
+	var envelope eventEnvelope[map[string]json.RawMessage]
+	require.NoError(t, json.Unmarshal(event.Payload, &envelope))
+	require.Equal(t, `"9007199254740993"`, string(envelope.Data["id"]))
+	require.Equal(t, `"9007199254740994"`, string(envelope.Data["channel_id"]))
+	require.Equal(t, `"9007199254740995"`, string(envelope.Data["author_id"]))
+	require.Equal(t, `"9007199254740996"`, string(envelope.Data["referenced_message_id"]))
+	require.Equal(t, `"9007199254740997"`, string(envelope.Data["referenced_channel_id"]))
+	require.JSONEq(t, `["9007199254740998"]`, string(envelope.Data["mention_user_ids"]))
 }
 
 func TestCreateMessagePublishFailureIsBestEffort(t *testing.T) {
@@ -146,7 +166,7 @@ func TestUpdateMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
 	require.Equal(t, EventTypeMessageUpdated, envelope.Type)
 	require.Equal(t, int64(2), envelope.Data.Revision)
-	require.Equal(t, []int64{30}, envelope.Data.MentionUserIDs)
+	require.Equal(t, []string{"30"}, envelope.Data.MentionUserIDs)
 }
 
 func TestUpdateMessagePermissionDenied(t *testing.T) {
@@ -320,7 +340,7 @@ func newTestMessageServerWithGuild(
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
 			Kafka: config.KafkaConfig{
-				Topic:            "message.events",
+				Topic:            "cordis.message.events.v1",
 				PublishTimeoutMs: 100,
 			},
 		},

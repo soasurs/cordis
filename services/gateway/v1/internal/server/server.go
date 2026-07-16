@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -276,8 +277,16 @@ func (c *client) toGatewayFrame(msg envelope) (*sessionv1.ConnectRequest, error)
 		if err := json.Unmarshal(msg.D, &data); err != nil {
 			return nil, err
 		}
+		channelIDs := make([]int64, len(data.ChannelIDs))
+		for i, value := range data.ChannelIDs {
+			channelID, err := strconv.ParseInt(value, 10, 64)
+			if err != nil || channelID <= 0 {
+				return nil, errors.New("channel id is invalid")
+			}
+			channelIDs[i] = channelID
+		}
 		subscribe := new(sessionv1.SubscribeChannels)
-		subscribe.SetChannelIds(data.ChannelIDs)
+		subscribe.SetChannelIds(channelIDs)
 		frame.SetSubscribe(subscribe)
 	default:
 		return nil, errors.New("unsupported gateway op")

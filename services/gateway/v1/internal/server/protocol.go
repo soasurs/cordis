@@ -47,7 +47,7 @@ type presenceData struct {
 }
 
 type subscribeData struct {
-	ChannelIDs []int64 `json:"channel_ids"`
+	ChannelIDs []string `json:"channel_ids"`
 }
 
 type errorData struct {

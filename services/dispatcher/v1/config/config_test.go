@@ -14,7 +14,7 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "dispatcher.v1", cfg.Name)
 	require.Equal(t, "error", cfg.Log.Level)
 	require.Equal(t, "cordis.guild.events.v1", cfg.Kafka.GuildTopic)
-	require.Equal(t, "message.events", cfg.Kafka.MessageTopic)
+	require.Equal(t, "cordis.message.events.v1", cfg.Kafka.MessageTopic)
 	require.Equal(t, "127.0.0.1:6379", cfg.Redis.Host)
 	require.Equal(t, []string{"127.0.0.1:2379"}, cfg.SessionRegistry.Hosts)
 }

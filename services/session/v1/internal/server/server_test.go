@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -50,6 +51,30 @@ func TestIdentifyAndResumeReplay(t *testing.T) {
 		frames[0].GetSequence(), frames[1].GetSequence(), frames[2].GetSequence(),
 	})
 	require.Equal(t, realtime.GatewayEventResumed, frames[2].GetType())
+}
+
+func TestGatewayPayloadEncodesSnowflakeIDsAsStrings(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	var ready map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal([]byte(session.replay[0].frame.GetJsonPayload()), &ready))
+	require.Equal(t, `"1001"`, string(ready["user_id"]))
+	require.Equal(t, `"2002"`, string(ready["auth_session_id"]))
+	require.Equal(t, `3003`, string(ready["access_token_expires_at"]))
+
+	const channelID = int64(9007199254740993)
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{channelID}))
+
+	var subscribed map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal([]byte(session.replay[len(session.replay)-1].frame.GetJsonPayload()), &subscribed))
+	require.JSONEq(t, `["9007199254740993"]`, string(subscribed["channel_ids"]))
 }
 
 func TestReplayWindowKeepsLatestEvents(t *testing.T) {

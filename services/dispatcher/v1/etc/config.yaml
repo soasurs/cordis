@@ -8,7 +8,7 @@ kafka:
   seeds:
     - 127.0.0.1:9092
   guildTopic: cordis.guild.events.v1
-  messageTopic: message.events
+  messageTopic: cordis.message.events.v1
   consumerGroup: cordis.dispatcher.v1
 
 redis:

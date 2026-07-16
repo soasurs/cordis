@@ -32,7 +32,7 @@ database:
 
 kafka:
   seeds: []
-  topic: message.events
+  topic: cordis.message.events.v1
   publishTimeoutMs: 1000
 
 services:

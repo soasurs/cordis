@@ -286,8 +286,8 @@ func (s *Server) identify(
 	s.refreshAllRoutes(ctx)
 
 	ready, _ := json.Marshal(map[string]any{
-		"user_id":                 session.userID,
-		"auth_session_id":         session.authSessionID,
+		"user_id":                 strconv.FormatInt(session.userID, 10),
+		"auth_session_id":         strconv.FormatInt(session.authSessionID, 10),
 		"session_id":              session.id,
 		"session_node_id":         s.nodeID,
 		"access_token_expires_at": auth.GetExpiresAt(),
@@ -467,7 +467,7 @@ func (s *Server) subscribeChannels(ctx context.Context, session *logicalSession,
 	s.addChannelIndexes(session, ids)
 	s.refreshAllRoutes(ctx)
 
-	payload, _ := json.Marshal(map[string]any{"channel_ids": ids})
+	payload, _ := json.Marshal(map[string]any{"channel_ids": stringifyIDs(ids)})
 	session.mu.Lock()
 	s.appendDispatchLocked(session, realtime.GatewayEventSubscribed, payload)
 	session.mu.Unlock()
@@ -845,6 +845,14 @@ func normalizeIDs(ids []int64) ([]int64, error) {
 		return nil, status.Error(codes.InvalidArgument, "channel ids are required")
 	}
 	return result, nil
+}
+
+func stringifyIDs(ids []int64) []string {
+	values := make([]string, len(ids))
+	for i, id := range ids {
+		values[i] = strconv.FormatInt(id, 10)
+	}
+	return values
 }
 
 func statusFromString(value string) presencev1.PresenceStatus {

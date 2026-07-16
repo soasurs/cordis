@@ -27,8 +27,8 @@ type KafkaConfig struct {
 	// Required when the Kafka section is present.
 	Seeds []string
 
-	// Topic is the Kafka topic for message events, e.g. "message.events".
-	Topic string `json:",default=message.events"`
+	// Topic is the Kafka topic for message events.
+	Topic string `json:",default=cordis.message.events.v1"`
 
 	// PublishTimeoutMs bounds how long a handler waits for a broker
 	// acknowledgement. Publication failure does not fail the message RPC.

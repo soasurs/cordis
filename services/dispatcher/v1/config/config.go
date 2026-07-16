@@ -19,7 +19,7 @@ type Config struct {
 type KafkaConfig struct {
 	Seeds         []string
 	GuildTopic    string `json:",default=cordis.guild.events.v1"`
-	MessageTopic  string `json:",default=message.events"`
+	MessageTopic  string `json:",default=cordis.message.events.v1"`
 	ConsumerGroup string `json:",default=cordis.dispatcher.v1"`
 }
 

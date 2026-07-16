@@ -76,6 +76,25 @@ func TestWebSocketRejectsMissingHandshake(t *testing.T) {
 	require.Equal(t, eventError, failure.T)
 }
 
+func TestToGatewayFrameParsesStringChannelIDs(t *testing.T) {
+	client := &client{connectionID: "connection-test", server: &Server{gatewayID: "gateway-test"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opSubscribe,
+		D:  json.RawMessage(`{"channel_ids":["9007199254740993"]}`),
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int64{9007199254740993}, frame.GetSubscribe().GetChannelIds())
+}
+
+func TestToGatewayFrameRejectsNumericChannelIDs(t *testing.T) {
+	client := &client{connectionID: "connection-test", server: &Server{gatewayID: "gateway-test"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opSubscribe,
+		D:  json.RawMessage(`{"channel_ids":[9007199254740993]}`),
+	})
+	require.Error(t, err)
+}
+
 type fakeSessionServer struct {
 	sessionv1.UnimplementedSessionServiceServer
 }

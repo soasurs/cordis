@@ -10,6 +10,7 @@ const (
 	maxGuildLimit     = 100
 	maxGuildNameRunes = 100
 	maxIconURILength  = 2048
+	maxNicknameRunes  = 32
 )
 
 func normalizeGuildName(name string) (string, error) {
@@ -21,6 +22,14 @@ func normalizeGuildName(name string) (string, error) {
 		return "", invalidRequest("guild name is too long")
 	}
 	return name, nil
+}
+
+func normalizeNickname(nickname string) (string, error) {
+	nickname = strings.TrimSpace(nickname)
+	if utf8.RuneCountInString(nickname) > maxNicknameRunes {
+		return "", invalidRequest("guild nickname is too long")
+	}
+	return nickname, nil
 }
 
 func validateIconURI(iconURI string) error {

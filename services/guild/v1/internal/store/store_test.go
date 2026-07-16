@@ -65,6 +65,88 @@ func TestGetGuildForMember(t *testing.T) {
 	require.Equal(t, "Cordis", guild.Name)
 }
 
+func TestCreateGuildMember(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"guild_id", "user_id", "nickname", "revision", "joined_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "", int64(1), int64(10), int64(0), int64(0))
+	mock.ExpectQuery(sqlPattern(createGuildMemberQuery)).
+		WithArgs(int64(1001), int64(2001), int64(10)).
+		WillReturnRows(rows)
+
+	member, err := store.CreateGuildMember(context.Background(), 1001, 2001, 10)
+	require.NoError(t, err)
+	require.Equal(t, int64(2001), member.UserID)
+	require.Equal(t, int64(1), member.Revision)
+}
+
+func TestCreateGuildMemberAlreadyExists(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	mock.ExpectQuery(sqlPattern(createGuildMemberQuery)).
+		WithArgs(int64(1001), int64(2001), int64(10)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"guild_id", "user_id", "nickname", "revision", "joined_at", "updated_at", "deleted_at",
+		}))
+
+	_, err := store.CreateGuildMember(context.Background(), 1001, 2001, 10)
+	require.ErrorIs(t, err, ErrMemberAlreadyExists)
+}
+
+func TestUpdateGuildMemberNickname(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"guild_id", "user_id", "nickname", "revision", "joined_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "member", int64(2), int64(10), int64(20), int64(0))
+	mock.ExpectQuery(sqlPattern(updateGuildMemberNicknameQuery)).
+		WithArgs(int64(1001), int64(2001), "member", sqlmock.AnyArg()).
+		WillReturnRows(rows)
+
+	member, err := store.UpdateGuildMemberNickname(context.Background(), 1001, 2001, "member")
+	require.NoError(t, err)
+	require.Equal(t, "member", member.Nickname)
+	require.Equal(t, int64(2), member.Revision)
+}
+
+func TestRemoveGuildMember(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"guild_id", "user_id", "nickname", "revision", "joined_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "", int64(2), int64(10), int64(20), int64(20))
+	mock.ExpectQuery(sqlPattern(removeGuildMemberQuery)).
+		WithArgs(int64(1001), int64(2001), int64(20)).
+		WillReturnRows(rows)
+
+	member, err := store.RemoveGuildMember(context.Background(), 1001, 2001, 20)
+	require.NoError(t, err)
+	require.Equal(t, int64(20), member.DeletedAt)
+	require.Equal(t, int64(2), member.Revision)
+}
+
+func TestTransferGuildOwnership(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"id", "owner_id", "name", "icon_uri", "revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2002), "Cordis", "", int64(2), int64(10), int64(20), int64(0))
+	mock.ExpectQuery(sqlPattern(transferGuildOwnershipQuery)).
+		WithArgs(int64(1001), int64(2001), int64(2002), sqlmock.AnyArg()).
+		WillReturnRows(rows)
+
+	guild, err := store.TransferGuildOwnership(context.Background(), 1001, 2001, 2002)
+	require.NoError(t, err)
+	require.Equal(t, int64(2002), guild.OwnerID)
+	require.Equal(t, int64(2), guild.Revision)
+}
+
 func TestTransactRollback(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()

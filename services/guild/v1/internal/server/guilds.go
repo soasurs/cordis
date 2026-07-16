@@ -32,7 +32,7 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 			return err
 		}
 		created = guild
-		if err := txStore.CreateGuildMember(ctx, guildID, req.GetOwnerId(), createdAt); err != nil {
+		if _, err := txStore.CreateGuildMember(ctx, guildID, req.GetOwnerId(), createdAt); err != nil {
 			return err
 		}
 		return txStore.CreateDefaultRole(ctx, guildID, createdAt)

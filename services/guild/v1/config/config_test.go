@@ -15,4 +15,5 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "cordis.guild.events.v1", cfg.Kafka.Topic)
 	require.Empty(t, cfg.Kafka.Seeds)
 	require.NotEmpty(t, cfg.Database.DataSource)
+	require.False(t, cfg.Services.User.Middlewares.Duration)
 }

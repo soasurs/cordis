@@ -6,7 +6,9 @@ import (
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jmoiron/sqlx"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/zeromicro/go-zero/zrpc"
 
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -19,18 +21,20 @@ type EventPublisher interface {
 }
 
 type ServiceContext struct {
-	Cfg       config.Config
-	Store     store.Store
-	Snowflake *sn.Node
-	Publisher EventPublisher
+	Cfg        config.Config
+	Store      store.Store
+	Snowflake  *sn.Node
+	Publisher  EventPublisher
+	UserClient userv1.UserServiceClient
 }
 
 type Dependencies struct {
-	Store     store.Store
-	Snowflake *sn.Node
-	Kafka     *kgo.Client
-	Publisher EventPublisher
-	DB        *sqlx.DB
+	Store      store.Store
+	Snowflake  *sn.Node
+	Kafka      *kgo.Client
+	Publisher  EventPublisher
+	UserClient userv1.UserServiceClient
+	DB         *sqlx.DB
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -40,6 +44,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	}
 	db, err := database.NewPostgres(cfg.Database)
 	if err != nil {
+		return Dependencies{}, err
+	}
+	userRPCClient, err := zrpc.NewClient(cfg.Services.User)
+	if err != nil {
+		db.Close()
 		return Dependencies{}, err
 	}
 
@@ -52,10 +61,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		}
 	}
 	return Dependencies{
-		Store:     store.New(db),
-		Snowflake: node,
-		Kafka:     kafkaClient,
-		DB:        db,
+		Store:      store.New(db),
+		Snowflake:  node,
+		Kafka:      kafkaClient,
+		UserClient: userv1.NewUserServiceClient(userRPCClient.Conn()),
+		DB:         db,
 	}, nil
 }
 
@@ -74,15 +84,19 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.Snowflake == nil {
 		panic("snowflake node is required")
 	}
+	if deps.UserClient == nil {
+		panic("user client is required")
+	}
 	publisher := deps.Publisher
 	if publisher == nil && deps.Kafka != nil {
 		publisher = &kafkaPublisher{client: deps.Kafka, topic: cfg.Kafka.Topic}
 	}
 	return &ServiceContext{
-		Cfg:       cfg,
-		Store:     deps.Store,
-		Snowflake: deps.Snowflake,
-		Publisher: publisher,
+		Cfg:        cfg,
+		Store:      deps.Store,
+		Snowflake:  deps.Snowflake,
+		Publisher:  publisher,
+		UserClient: deps.UserClient,
 	}
 }
 

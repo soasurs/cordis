@@ -20,6 +20,19 @@ func TestFromRPCReason(t *testing.T) {
 	require.Equal(t, CodeEmailAlreadyExists, publicErrorInfo(t, connectErr).GetCode())
 }
 
+func TestFromRPCGuildMemberAlreadyExists(t *testing.T) {
+	err := rpcerror.New(
+		codes.AlreadyExists,
+		rpcerror.GuildDomain,
+		rpcerror.GuildMemberAlreadyExists,
+		"guild member already exists",
+	)
+	connectErr := FromRPC(err)
+
+	require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(connectErr))
+	require.Equal(t, CodeAlreadyExists, publicErrorInfo(t, connectErr).GetCode())
+}
+
 func TestFromRPCStatusCode(t *testing.T) {
 	connectErr := FromRPC(status.Error(codes.InvalidArgument, "bad request"))
 

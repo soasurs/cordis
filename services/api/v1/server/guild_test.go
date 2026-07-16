@@ -17,15 +17,87 @@ import (
 
 type fakeGuildClient struct {
 	guildv1.GuildServiceClient
-	createRequest  *guildv1.CreateGuildRequest
-	updateRequest  *guildv1.UpdateGuildRequest
-	createResponse *guildv1.CreateGuildResponse
-	updateResponse *guildv1.UpdateGuildResponse
+	createRequest        *guildv1.CreateGuildRequest
+	updateRequest        *guildv1.UpdateGuildRequest
+	addMemberRequest     *guildv1.AddGuildMemberRequest
+	updateMemberRequest  *guildv1.UpdateGuildMemberRequest
+	leaveRequest         *guildv1.LeaveGuildRequest
+	transferRequest      *guildv1.TransferGuildOwnershipRequest
+	createResponse       *guildv1.CreateGuildResponse
+	updateResponse       *guildv1.UpdateGuildResponse
+	addMemberResponse    *guildv1.AddGuildMemberResponse
+	updateMemberResponse *guildv1.UpdateGuildMemberResponse
+	leaveResponse        *guildv1.LeaveGuildResponse
+	transferResponse     *guildv1.TransferGuildOwnershipResponse
+}
+
+func (f *fakeGuildClient) AddGuildMember(_ context.Context, req *guildv1.AddGuildMemberRequest, _ ...grpc.CallOption) (*guildv1.AddGuildMemberResponse, error) {
+	f.addMemberRequest = req
+	return f.addMemberResponse, nil
+}
+
+func (f *fakeGuildClient) UpdateGuildMember(_ context.Context, req *guildv1.UpdateGuildMemberRequest, _ ...grpc.CallOption) (*guildv1.UpdateGuildMemberResponse, error) {
+	f.updateMemberRequest = req
+	return f.updateMemberResponse, nil
+}
+
+func (f *fakeGuildClient) LeaveGuild(_ context.Context, req *guildv1.LeaveGuildRequest, _ ...grpc.CallOption) (*guildv1.LeaveGuildResponse, error) {
+	f.leaveRequest = req
+	return f.leaveResponse, nil
+}
+
+func (f *fakeGuildClient) TransferGuildOwnership(_ context.Context, req *guildv1.TransferGuildOwnershipRequest, _ ...grpc.CallOption) (*guildv1.TransferGuildOwnershipResponse, error) {
+	f.transferRequest = req
+	return f.transferResponse, nil
 }
 
 func (f *fakeGuildClient) CreateGuild(_ context.Context, req *guildv1.CreateGuildRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildResponse, error) {
 	f.createRequest = req
 	return f.createResponse, nil
+}
+
+func TestGuildMemberMutationsUseAuthenticatedActor(t *testing.T) {
+	member := internalGuildMember()
+	addResp := new(guildv1.AddGuildMemberResponse)
+	addResp.SetMember(member)
+	updateResp := new(guildv1.UpdateGuildMemberResponse)
+	updateResp.SetMember(member)
+	leaveResp := new(guildv1.LeaveGuildResponse)
+	leaveResp.SetOk(true)
+	transferResp := new(guildv1.TransferGuildOwnershipResponse)
+	transferResp.SetGuild(internalGuild())
+	guildClient := &fakeGuildClient{
+		addMemberResponse:    addResp,
+		updateMemberResponse: updateResp,
+		leaveResponse:        leaveResp,
+		transferResponse:     transferResp,
+	}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	_, err := client.AddGuildMember(context.Background(), &apiv1.AddGuildMemberRequest{
+		GuildId: new(int64(3001)), UserId: new(int64(1002)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.addMemberRequest.GetActorUserId())
+	require.Equal(t, int64(1002), guildClient.addMemberRequest.GetUserId())
+
+	_, err = client.UpdateCurrentGuildMember(context.Background(), &apiv1.UpdateCurrentGuildMemberRequest{
+		GuildId: new(int64(3001)), Nickname: new("member"),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.updateMemberRequest.GetActorUserId())
+
+	_, err = client.LeaveGuild(context.Background(), &apiv1.LeaveGuildRequest{GuildId: new(int64(3001))})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.leaveRequest.GetUserId())
+
+	_, err = client.TransferGuildOwnership(context.Background(), &apiv1.TransferGuildOwnershipRequest{
+		GuildId: new(int64(3001)), NewOwnerId: new(int64(1002)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.transferRequest.GetActorUserId())
+	require.Equal(t, int64(1002), guildClient.transferRequest.GetNewOwnerId())
 }
 
 func (f *fakeGuildClient) UpdateGuild(_ context.Context, req *guildv1.UpdateGuildRequest, _ ...grpc.CallOption) (*guildv1.UpdateGuildResponse, error) {
@@ -90,4 +162,15 @@ func internalGuild() *guildv1.Guild {
 	guild.SetRevision(1)
 	guild.SetCreatedAt(4001)
 	return guild
+}
+
+func internalGuildMember() *guildv1.GuildMember {
+	member := new(guildv1.GuildMember)
+	member.SetGuildId(3001)
+	member.SetUserId(1001)
+	member.SetNickname("member")
+	member.SetRevision(2)
+	member.SetJoinedAt(4001)
+	member.SetUpdatedAt(4002)
+	return member
 }

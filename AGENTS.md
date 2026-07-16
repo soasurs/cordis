@@ -10,7 +10,6 @@
 make generate          # buf generate for external and internal protos
 make lint              # buf lint
 make test              # go test ./...
-make test-integration  # Postgres integration tests only; requires CORDIS_TEST_POSTGRES_DSN
 
 # Focused checks
 go test ./services/gateway/v1/internal/server/... -v -count=1
@@ -34,7 +33,7 @@ go build ./services/guild/v1/...
 - `services/authenticator/v1`: go-zero `zrpc` on `:3001`; JWT access/refresh tokens, sessions in Postgres, calls User gRPC.
 - `services/user/v1`: go-zero `zrpc` on `:3000`; users/profiles in Postgres, Argon2id password hashing.
 - `services/message/v1`: go-zero `zrpc` on `:3002`; messages/reactions/mentions in Postgres, publishes message events directly to Kafka when Kafka is configured.
-- `services/guild/v1`: go-zero `zrpc` on `:3005`; guilds/members/roles in Postgres, publishes guild events directly to its own Kafka topic when Kafka is configured.
+- `services/guild/v1`: go-zero `zrpc` on `:3005`; guilds/members/roles in Postgres, calls User gRPC when directly adding members, and publishes guild events to its own Kafka topic.
 
 ## Proto
 
@@ -52,7 +51,6 @@ go build ./services/guild/v1/...
 ## Storage And Migrations
 
 - Postgres services embed SQL migrations with `//go:embed *.sql`; `pkg/migration.Apply()` applies lexicographically and skips `*.down.sql`.
-- Integration tests create per-test schemas named `cordis_test_<nanos>` via `search_path`; do not assume public schema state.
 - Stores define interfaces. SQL stores keep both `*sqlx.DB` and `sqlx.ExtContext` (`q`), where `q` is the DB normally and a `*sqlx.Tx` inside `Transact`.
 - User, Message, and Guild stores have `Transact` rollback-on-error/panic behavior; Authenticator store does not currently expose transactions.
 - DB integrity is mostly app-enforced: migrations have no foreign keys; use soft delete fields (`deleted_at = 0`) and CHECK constraints.
@@ -71,16 +69,21 @@ go build ./services/guild/v1/...
 
 ## Guild Service
 
-- Stage-one Guild RPCs cover create/get/list/update/delete. Creating a guild transactionally creates the owner membership and the `@everyone` default role; the default role ID equals the guild ID.
+- Guild metadata RPCs cover create/get/list/update/delete. Creating a guild transactionally creates the owner membership and the `@everyone` default role; the default role ID equals the guild ID.
 - Guild metadata uses soft deletion and a `revision` starting at 1. Updates and deletion increment the revision.
-- Guild reads require active membership. Non-members and deleted guilds are returned as not found; stage-one updates and deletion require the owner.
+- Guild reads require active membership. Non-members and deleted guilds are returned as not found; metadata updates and deletion currently require the owner.
 - `ListUserGuilds` uses descending Snowflake IDs and a `before` cursor.
+- Member RPCs cover direct add, get/list, updating the caller's nickname, kick, leave, and ownership transfer.
+- Only the owner may directly add or kick members. Direct addition verifies the target through User gRPC.
+- The owner cannot leave or be kicked and must transfer ownership to another active member first.
+- Active duplicate membership returns `AlreadyExists`. A removed member may rejoin; the existing row is restored and its membership `revision` continues increasing.
+- Member lists use descending `user_id` and a `before_user_id` cursor. Nicknames are trimmed, may be cleared, and are limited to 32 Unicode code points.
 - Guild has an independent Kafka topic, defaulting to `cordis.guild.events.v1`; do not mix Guild events into the Message topic.
 - Guild publishes directly to Kafka after the database transaction commits and does not use an outbox.
 - Guild event values use the same lightweight envelope as Message: `{"t":"guild.updated","d":{...}}`. The Kafka key is the decimal `guild_id`.
 - Snowflake IDs and permission bitsets in Kafka JSON are strings; revisions, timestamps, and enums remain JSON numbers.
-- Stage-one event types are `guild.created`, `guild.updated`, and `guild.deleted`.
-- Later Guild phases own ordinary membership lifecycle, roles/permissions, channels/overwrites, Message/Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
+- Current event types are `guild.created`, `guild.updated`, `guild.deleted`, `guild.member.joined`, `guild.member.updated`, and `guild.member.removed`.
+- Later Guild phases own roles/permissions, channels/overwrites, Message/Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
 
 ## Gateway And Presence
 
@@ -100,7 +103,6 @@ go build ./services/guild/v1/...
 
 - Unit tests use `github.com/stretchr/testify/require`; follow that style for new assertions.
 - Store unit tests commonly use `sqlmock.QueryMatcherRegexp` plus local `sqlPattern()` helpers; keep SQL expectations exact enough to catch query changes.
-- `make test-integration` runs Postgres integration tests for User, Authenticator, Message, and Guild stores. Example DSN: `CORDIS_TEST_POSTGRES_DSN="postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable"`.
 - Presence Redis integration tests are separate: run `CORDIS_TEST_REDIS_ADDR=127.0.0.1:6379 go test -tags=integration ./services/presence/v1/internal/store -v -count=1`.
 
 ## Runtime Env

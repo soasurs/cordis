@@ -34,3 +34,14 @@ kafka:
   seeds: []
   topic: cordis.guild.events.v1
   publishTimeoutMs: 1000
+
+services:
+  user:
+    endpoints:
+      - 127.0.0.1:3000
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true

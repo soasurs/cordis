@@ -115,6 +115,92 @@ func (x *Guild) GetUpdatedAt() int64 {
 	return 0
 }
 
+// GuildMember is a user's membership in one guild.
+// All timestamps are Unix time in milliseconds.
+type GuildMember struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	Nickname      *string                `protobuf:"bytes,3,opt,name=nickname" json:"nickname,omitempty"`
+	Revision      *int64                 `protobuf:"varint,4,opt,name=revision" json:"revision,omitempty"`
+	JoinedAt      *int64                 `protobuf:"varint,5,opt,name=joined_at,json=joinedAt" json:"joined_at,omitempty"`
+	UpdatedAt     *int64                 `protobuf:"varint,6,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GuildMember) Reset() {
+	*x = GuildMember{}
+	mi := &file_api_v1_guild_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GuildMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GuildMember) ProtoMessage() {}
+
+func (x *GuildMember) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GuildMember.ProtoReflect.Descriptor instead.
+func (*GuildMember) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GuildMember) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+func (x *GuildMember) GetUserId() int64 {
+	if x != nil && x.UserId != nil {
+		return *x.UserId
+	}
+	return 0
+}
+
+func (x *GuildMember) GetNickname() string {
+	if x != nil && x.Nickname != nil {
+		return *x.Nickname
+	}
+	return ""
+}
+
+func (x *GuildMember) GetRevision() int64 {
+	if x != nil && x.Revision != nil {
+		return *x.Revision
+	}
+	return 0
+}
+
+func (x *GuildMember) GetJoinedAt() int64 {
+	if x != nil && x.JoinedAt != nil {
+		return *x.JoinedAt
+	}
+	return 0
+}
+
+func (x *GuildMember) GetUpdatedAt() int64 {
+	if x != nil && x.UpdatedAt != nil {
+		return *x.UpdatedAt
+	}
+	return 0
+}
+
 type CreateGuildRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
@@ -125,7 +211,7 @@ type CreateGuildRequest struct {
 
 func (x *CreateGuildRequest) Reset() {
 	*x = CreateGuildRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[1]
+	mi := &file_api_v1_guild_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -137,7 +223,7 @@ func (x *CreateGuildRequest) String() string {
 func (*CreateGuildRequest) ProtoMessage() {}
 
 func (x *CreateGuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[1]
+	mi := &file_api_v1_guild_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -150,7 +236,7 @@ func (x *CreateGuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateGuildRequest.ProtoReflect.Descriptor instead.
 func (*CreateGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{1}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateGuildRequest) GetName() string {
@@ -176,7 +262,7 @@ type CreateGuildResponse struct {
 
 func (x *CreateGuildResponse) Reset() {
 	*x = CreateGuildResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[2]
+	mi := &file_api_v1_guild_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -188,7 +274,7 @@ func (x *CreateGuildResponse) String() string {
 func (*CreateGuildResponse) ProtoMessage() {}
 
 func (x *CreateGuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[2]
+	mi := &file_api_v1_guild_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -201,7 +287,7 @@ func (x *CreateGuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateGuildResponse.ProtoReflect.Descriptor instead.
 func (*CreateGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{2}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateGuildResponse) GetGuild() *Guild {
@@ -220,7 +306,7 @@ type GetGuildRequest struct {
 
 func (x *GetGuildRequest) Reset() {
 	*x = GetGuildRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[3]
+	mi := &file_api_v1_guild_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -232,7 +318,7 @@ func (x *GetGuildRequest) String() string {
 func (*GetGuildRequest) ProtoMessage() {}
 
 func (x *GetGuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[3]
+	mi := &file_api_v1_guild_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -245,7 +331,7 @@ func (x *GetGuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGuildRequest.ProtoReflect.Descriptor instead.
 func (*GetGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{3}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetGuildRequest) GetGuildId() int64 {
@@ -264,7 +350,7 @@ type GetGuildResponse struct {
 
 func (x *GetGuildResponse) Reset() {
 	*x = GetGuildResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[4]
+	mi := &file_api_v1_guild_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -276,7 +362,7 @@ func (x *GetGuildResponse) String() string {
 func (*GetGuildResponse) ProtoMessage() {}
 
 func (x *GetGuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[4]
+	mi := &file_api_v1_guild_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,7 +375,7 @@ func (x *GetGuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGuildResponse.ProtoReflect.Descriptor instead.
 func (*GetGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{4}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetGuildResponse) GetGuild() *Guild {
@@ -309,7 +395,7 @@ type ListGuildsRequest struct {
 
 func (x *ListGuildsRequest) Reset() {
 	*x = ListGuildsRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[5]
+	mi := &file_api_v1_guild_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -321,7 +407,7 @@ func (x *ListGuildsRequest) String() string {
 func (*ListGuildsRequest) ProtoMessage() {}
 
 func (x *ListGuildsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[5]
+	mi := &file_api_v1_guild_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -334,7 +420,7 @@ func (x *ListGuildsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGuildsRequest.ProtoReflect.Descriptor instead.
 func (*ListGuildsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{5}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListGuildsRequest) GetBefore() int64 {
@@ -361,7 +447,7 @@ type ListGuildsResponse struct {
 
 func (x *ListGuildsResponse) Reset() {
 	*x = ListGuildsResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[6]
+	mi := &file_api_v1_guild_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -373,7 +459,7 @@ func (x *ListGuildsResponse) String() string {
 func (*ListGuildsResponse) ProtoMessage() {}
 
 func (x *ListGuildsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[6]
+	mi := &file_api_v1_guild_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -386,7 +472,7 @@ func (x *ListGuildsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGuildsResponse.ProtoReflect.Descriptor instead.
 func (*ListGuildsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{6}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListGuildsResponse) GetGuilds() []*Guild {
@@ -415,7 +501,7 @@ type UpdateGuildRequest struct {
 
 func (x *UpdateGuildRequest) Reset() {
 	*x = UpdateGuildRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[7]
+	mi := &file_api_v1_guild_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -427,7 +513,7 @@ func (x *UpdateGuildRequest) String() string {
 func (*UpdateGuildRequest) ProtoMessage() {}
 
 func (x *UpdateGuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[7]
+	mi := &file_api_v1_guild_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -440,7 +526,7 @@ func (x *UpdateGuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGuildRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{7}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateGuildRequest) GetGuildId() int64 {
@@ -473,7 +559,7 @@ type UpdateGuildResponse struct {
 
 func (x *UpdateGuildResponse) Reset() {
 	*x = UpdateGuildResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[8]
+	mi := &file_api_v1_guild_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -485,7 +571,7 @@ func (x *UpdateGuildResponse) String() string {
 func (*UpdateGuildResponse) ProtoMessage() {}
 
 func (x *UpdateGuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[8]
+	mi := &file_api_v1_guild_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -498,7 +584,7 @@ func (x *UpdateGuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGuildResponse.ProtoReflect.Descriptor instead.
 func (*UpdateGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{8}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UpdateGuildResponse) GetGuild() *Guild {
@@ -517,7 +603,7 @@ type DeleteGuildRequest struct {
 
 func (x *DeleteGuildRequest) Reset() {
 	*x = DeleteGuildRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[9]
+	mi := &file_api_v1_guild_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -529,7 +615,7 @@ func (x *DeleteGuildRequest) String() string {
 func (*DeleteGuildRequest) ProtoMessage() {}
 
 func (x *DeleteGuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[9]
+	mi := &file_api_v1_guild_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -542,7 +628,7 @@ func (x *DeleteGuildRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGuildRequest.ProtoReflect.Descriptor instead.
 func (*DeleteGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{9}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteGuildRequest) GetGuildId() int64 {
@@ -561,7 +647,7 @@ type DeleteGuildResponse struct {
 
 func (x *DeleteGuildResponse) Reset() {
 	*x = DeleteGuildResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[10]
+	mi := &file_api_v1_guild_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -573,7 +659,7 @@ func (x *DeleteGuildResponse) String() string {
 func (*DeleteGuildResponse) ProtoMessage() {}
 
 func (x *DeleteGuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[10]
+	mi := &file_api_v1_guild_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -586,7 +672,7 @@ func (x *DeleteGuildResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGuildResponse.ProtoReflect.Descriptor instead.
 func (*DeleteGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{10}
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteGuildResponse) GetOk() bool {
@@ -594,6 +680,687 @@ func (x *DeleteGuildResponse) GetOk() bool {
 		return *x.Ok
 	}
 	return false
+}
+
+type AddGuildMemberRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddGuildMemberRequest) Reset() {
+	*x = AddGuildMemberRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddGuildMemberRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddGuildMemberRequest) ProtoMessage() {}
+
+func (x *AddGuildMemberRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddGuildMemberRequest.ProtoReflect.Descriptor instead.
+func (*AddGuildMemberRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AddGuildMemberRequest) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+func (x *AddGuildMemberRequest) GetUserId() int64 {
+	if x != nil && x.UserId != nil {
+		return *x.UserId
+	}
+	return 0
+}
+
+type AddGuildMemberResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Member        *GuildMember           `protobuf:"bytes,1,opt,name=member" json:"member,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddGuildMemberResponse) Reset() {
+	*x = AddGuildMemberResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddGuildMemberResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddGuildMemberResponse) ProtoMessage() {}
+
+func (x *AddGuildMemberResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddGuildMemberResponse.ProtoReflect.Descriptor instead.
+func (*AddGuildMemberResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AddGuildMemberResponse) GetMember() *GuildMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type GetGuildMemberRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGuildMemberRequest) Reset() {
+	*x = GetGuildMemberRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGuildMemberRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGuildMemberRequest) ProtoMessage() {}
+
+func (x *GetGuildMemberRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGuildMemberRequest.ProtoReflect.Descriptor instead.
+func (*GetGuildMemberRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *GetGuildMemberRequest) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+func (x *GetGuildMemberRequest) GetUserId() int64 {
+	if x != nil && x.UserId != nil {
+		return *x.UserId
+	}
+	return 0
+}
+
+type GetGuildMemberResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Member        *GuildMember           `protobuf:"bytes,1,opt,name=member" json:"member,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetGuildMemberResponse) Reset() {
+	*x = GetGuildMemberResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetGuildMemberResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetGuildMemberResponse) ProtoMessage() {}
+
+func (x *GetGuildMemberResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetGuildMemberResponse.ProtoReflect.Descriptor instead.
+func (*GetGuildMemberResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetGuildMemberResponse) GetMember() *GuildMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type ListGuildMembersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	BeforeUserId  *int64                 `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId" json:"before_user_id,omitempty"`
+	Limit         *int32                 `protobuf:"varint,3,opt,name=limit" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListGuildMembersRequest) Reset() {
+	*x = ListGuildMembersRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGuildMembersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGuildMembersRequest) ProtoMessage() {}
+
+func (x *ListGuildMembersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListGuildMembersRequest.ProtoReflect.Descriptor instead.
+func (*ListGuildMembersRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListGuildMembersRequest) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+func (x *ListGuildMembersRequest) GetBeforeUserId() int64 {
+	if x != nil && x.BeforeUserId != nil {
+		return *x.BeforeUserId
+	}
+	return 0
+}
+
+func (x *ListGuildMembersRequest) GetLimit() int32 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
+	}
+	return 0
+}
+
+type ListGuildMembersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Members       []*GuildMember         `protobuf:"bytes,1,rep,name=members" json:"members,omitempty"`
+	BeforeUserId  *int64                 `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId" json:"before_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListGuildMembersResponse) Reset() {
+	*x = ListGuildMembersResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGuildMembersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGuildMembersResponse) ProtoMessage() {}
+
+func (x *ListGuildMembersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListGuildMembersResponse.ProtoReflect.Descriptor instead.
+func (*ListGuildMembersResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListGuildMembersResponse) GetMembers() []*GuildMember {
+	if x != nil {
+		return x.Members
+	}
+	return nil
+}
+
+func (x *ListGuildMembersResponse) GetBeforeUserId() int64 {
+	if x != nil && x.BeforeUserId != nil {
+		return *x.BeforeUserId
+	}
+	return 0
+}
+
+type UpdateCurrentGuildMemberRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	GuildId *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	// Replaces the caller's guild nickname. An empty value clears it.
+	Nickname      *string `protobuf:"bytes,2,opt,name=nickname" json:"nickname,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCurrentGuildMemberRequest) Reset() {
+	*x = UpdateCurrentGuildMemberRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCurrentGuildMemberRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCurrentGuildMemberRequest) ProtoMessage() {}
+
+func (x *UpdateCurrentGuildMemberRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCurrentGuildMemberRequest.ProtoReflect.Descriptor instead.
+func (*UpdateCurrentGuildMemberRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *UpdateCurrentGuildMemberRequest) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+func (x *UpdateCurrentGuildMemberRequest) GetNickname() string {
+	if x != nil && x.Nickname != nil {
+		return *x.Nickname
+	}
+	return ""
+}
+
+type UpdateCurrentGuildMemberResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Member        *GuildMember           `protobuf:"bytes,1,opt,name=member" json:"member,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCurrentGuildMemberResponse) Reset() {
+	*x = UpdateCurrentGuildMemberResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCurrentGuildMemberResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCurrentGuildMemberResponse) ProtoMessage() {}
+
+func (x *UpdateCurrentGuildMemberResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCurrentGuildMemberResponse.ProtoReflect.Descriptor instead.
+func (*UpdateCurrentGuildMemberResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *UpdateCurrentGuildMemberResponse) GetMember() *GuildMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type KickGuildMemberRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KickGuildMemberRequest) Reset() {
+	*x = KickGuildMemberRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickGuildMemberRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickGuildMemberRequest) ProtoMessage() {}
+
+func (x *KickGuildMemberRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickGuildMemberRequest.ProtoReflect.Descriptor instead.
+func (*KickGuildMemberRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *KickGuildMemberRequest) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+func (x *KickGuildMemberRequest) GetUserId() int64 {
+	if x != nil && x.UserId != nil {
+		return *x.UserId
+	}
+	return 0
+}
+
+type KickGuildMemberResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KickGuildMemberResponse) Reset() {
+	*x = KickGuildMemberResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickGuildMemberResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickGuildMemberResponse) ProtoMessage() {}
+
+func (x *KickGuildMemberResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickGuildMemberResponse.ProtoReflect.Descriptor instead.
+func (*KickGuildMemberResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *KickGuildMemberResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type LeaveGuildRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeaveGuildRequest) Reset() {
+	*x = LeaveGuildRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaveGuildRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaveGuildRequest) ProtoMessage() {}
+
+func (x *LeaveGuildRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaveGuildRequest.ProtoReflect.Descriptor instead.
+func (*LeaveGuildRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *LeaveGuildRequest) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+type LeaveGuildResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LeaveGuildResponse) Reset() {
+	*x = LeaveGuildResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LeaveGuildResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LeaveGuildResponse) ProtoMessage() {}
+
+func (x *LeaveGuildResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LeaveGuildResponse.ProtoReflect.Descriptor instead.
+func (*LeaveGuildResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *LeaveGuildResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type TransferGuildOwnershipRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
+	NewOwnerId    *int64                 `protobuf:"varint,2,opt,name=new_owner_id,json=newOwnerId" json:"new_owner_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferGuildOwnershipRequest) Reset() {
+	*x = TransferGuildOwnershipRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferGuildOwnershipRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferGuildOwnershipRequest) ProtoMessage() {}
+
+func (x *TransferGuildOwnershipRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferGuildOwnershipRequest.ProtoReflect.Descriptor instead.
+func (*TransferGuildOwnershipRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *TransferGuildOwnershipRequest) GetGuildId() int64 {
+	if x != nil && x.GuildId != nil {
+		return *x.GuildId
+	}
+	return 0
+}
+
+func (x *TransferGuildOwnershipRequest) GetNewOwnerId() int64 {
+	if x != nil && x.NewOwnerId != nil {
+		return *x.NewOwnerId
+	}
+	return 0
+}
+
+type TransferGuildOwnershipResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Guild         *Guild                 `protobuf:"bytes,1,opt,name=guild" json:"guild,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransferGuildOwnershipResponse) Reset() {
+	*x = TransferGuildOwnershipResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransferGuildOwnershipResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransferGuildOwnershipResponse) ProtoMessage() {}
+
+func (x *TransferGuildOwnershipResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransferGuildOwnershipResponse.ProtoReflect.Descriptor instead.
+func (*TransferGuildOwnershipResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_guild_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *TransferGuildOwnershipResponse) GetGuild() *Guild {
+	if x != nil {
+		return x.Guild
+	}
+	return nil
 }
 
 var File_api_v1_guild_proto protoreflect.FileDescriptor
@@ -610,7 +1377,15 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\x03R\tupdatedAt\"C\n" +
+	"updated_at\x18\a \x01(\x03R\tupdatedAt\"\xb5\x01\n" +
+	"\vGuildMember\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1a\n" +
+	"\bnickname\x18\x03 \x01(\tR\bnickname\x12\x1a\n" +
+	"\brevision\x18\x04 \x01(\x03R\brevision\x12\x1b\n" +
+	"\tjoined_at\x18\x05 \x01(\x03R\bjoinedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\x03R\tupdatedAt\"C\n" +
 	"\x12CreateGuildRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
 	"\bicon_uri\x18\x02 \x01(\tR\aiconUri\":\n" +
@@ -635,14 +1410,59 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\x12DeleteGuildRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\"%\n" +
 	"\x13DeleteGuildResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok2\xea\x02\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"K\n" +
+	"\x15AddGuildMemberRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"E\n" +
+	"\x16AddGuildMemberResponse\x12+\n" +
+	"\x06member\x18\x01 \x01(\v2\x13.api.v1.GuildMemberR\x06member\"K\n" +
+	"\x15GetGuildMemberRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"E\n" +
+	"\x16GetGuildMemberResponse\x12+\n" +
+	"\x06member\x18\x01 \x01(\v2\x13.api.v1.GuildMemberR\x06member\"p\n" +
+	"\x17ListGuildMembersRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12$\n" +
+	"\x0ebefore_user_id\x18\x02 \x01(\x03R\fbeforeUserId\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"o\n" +
+	"\x18ListGuildMembersResponse\x12-\n" +
+	"\amembers\x18\x01 \x03(\v2\x13.api.v1.GuildMemberR\amembers\x12$\n" +
+	"\x0ebefore_user_id\x18\x02 \x01(\x03R\fbeforeUserId\"X\n" +
+	"\x1fUpdateCurrentGuildMemberRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x1a\n" +
+	"\bnickname\x18\x02 \x01(\tR\bnickname\"O\n" +
+	" UpdateCurrentGuildMemberResponse\x12+\n" +
+	"\x06member\x18\x01 \x01(\v2\x13.api.v1.GuildMemberR\x06member\"L\n" +
+	"\x16KickGuildMemberRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\")\n" +
+	"\x17KickGuildMemberResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\".\n" +
+	"\x11LeaveGuildRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\"$\n" +
+	"\x12LeaveGuildResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\\\n" +
+	"\x1dTransferGuildOwnershipRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12 \n" +
+	"\fnew_owner_id\x18\x02 \x01(\x03R\n" +
+	"newOwnerId\"E\n" +
+	"\x1eTransferGuildOwnershipResponse\x12#\n" +
+	"\x05guild\x18\x01 \x01(\v2\r.api.v1.GuildR\x05guild2\xd4\a\n" +
 	"\fGuildService\x12F\n" +
 	"\vCreateGuild\x12\x1a.api.v1.CreateGuildRequest\x1a\x1b.api.v1.CreateGuildResponse\x12=\n" +
 	"\bGetGuild\x12\x17.api.v1.GetGuildRequest\x1a\x18.api.v1.GetGuildResponse\x12C\n" +
 	"\n" +
 	"ListGuilds\x12\x19.api.v1.ListGuildsRequest\x1a\x1a.api.v1.ListGuildsResponse\x12F\n" +
 	"\vUpdateGuild\x12\x1a.api.v1.UpdateGuildRequest\x1a\x1b.api.v1.UpdateGuildResponse\x12F\n" +
-	"\vDeleteGuild\x12\x1a.api.v1.DeleteGuildRequest\x1a\x1b.api.v1.DeleteGuildResponseB}\n" +
+	"\vDeleteGuild\x12\x1a.api.v1.DeleteGuildRequest\x1a\x1b.api.v1.DeleteGuildResponse\x12O\n" +
+	"\x0eAddGuildMember\x12\x1d.api.v1.AddGuildMemberRequest\x1a\x1e.api.v1.AddGuildMemberResponse\x12O\n" +
+	"\x0eGetGuildMember\x12\x1d.api.v1.GetGuildMemberRequest\x1a\x1e.api.v1.GetGuildMemberResponse\x12U\n" +
+	"\x10ListGuildMembers\x12\x1f.api.v1.ListGuildMembersRequest\x1a .api.v1.ListGuildMembersResponse\x12m\n" +
+	"\x18UpdateCurrentGuildMember\x12'.api.v1.UpdateCurrentGuildMemberRequest\x1a(.api.v1.UpdateCurrentGuildMemberResponse\x12R\n" +
+	"\x0fKickGuildMember\x12\x1e.api.v1.KickGuildMemberRequest\x1a\x1f.api.v1.KickGuildMemberResponse\x12C\n" +
+	"\n" +
+	"LeaveGuild\x12\x19.api.v1.LeaveGuildRequest\x1a\x1a.api.v1.LeaveGuildResponse\x12g\n" +
+	"\x16TransferGuildOwnership\x12%.api.v1.TransferGuildOwnershipRequest\x1a&.api.v1.TransferGuildOwnershipResponseB}\n" +
 	"\n" +
 	"com.api.v1B\n" +
 	"GuildProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
@@ -659,40 +1479,74 @@ func file_api_v1_guild_proto_rawDescGZIP() []byte {
 	return file_api_v1_guild_proto_rawDescData
 }
 
-var file_api_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_api_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_api_v1_guild_proto_goTypes = []any{
-	(*Guild)(nil),               // 0: api.v1.Guild
-	(*CreateGuildRequest)(nil),  // 1: api.v1.CreateGuildRequest
-	(*CreateGuildResponse)(nil), // 2: api.v1.CreateGuildResponse
-	(*GetGuildRequest)(nil),     // 3: api.v1.GetGuildRequest
-	(*GetGuildResponse)(nil),    // 4: api.v1.GetGuildResponse
-	(*ListGuildsRequest)(nil),   // 5: api.v1.ListGuildsRequest
-	(*ListGuildsResponse)(nil),  // 6: api.v1.ListGuildsResponse
-	(*UpdateGuildRequest)(nil),  // 7: api.v1.UpdateGuildRequest
-	(*UpdateGuildResponse)(nil), // 8: api.v1.UpdateGuildResponse
-	(*DeleteGuildRequest)(nil),  // 9: api.v1.DeleteGuildRequest
-	(*DeleteGuildResponse)(nil), // 10: api.v1.DeleteGuildResponse
+	(*Guild)(nil),                            // 0: api.v1.Guild
+	(*GuildMember)(nil),                      // 1: api.v1.GuildMember
+	(*CreateGuildRequest)(nil),               // 2: api.v1.CreateGuildRequest
+	(*CreateGuildResponse)(nil),              // 3: api.v1.CreateGuildResponse
+	(*GetGuildRequest)(nil),                  // 4: api.v1.GetGuildRequest
+	(*GetGuildResponse)(nil),                 // 5: api.v1.GetGuildResponse
+	(*ListGuildsRequest)(nil),                // 6: api.v1.ListGuildsRequest
+	(*ListGuildsResponse)(nil),               // 7: api.v1.ListGuildsResponse
+	(*UpdateGuildRequest)(nil),               // 8: api.v1.UpdateGuildRequest
+	(*UpdateGuildResponse)(nil),              // 9: api.v1.UpdateGuildResponse
+	(*DeleteGuildRequest)(nil),               // 10: api.v1.DeleteGuildRequest
+	(*DeleteGuildResponse)(nil),              // 11: api.v1.DeleteGuildResponse
+	(*AddGuildMemberRequest)(nil),            // 12: api.v1.AddGuildMemberRequest
+	(*AddGuildMemberResponse)(nil),           // 13: api.v1.AddGuildMemberResponse
+	(*GetGuildMemberRequest)(nil),            // 14: api.v1.GetGuildMemberRequest
+	(*GetGuildMemberResponse)(nil),           // 15: api.v1.GetGuildMemberResponse
+	(*ListGuildMembersRequest)(nil),          // 16: api.v1.ListGuildMembersRequest
+	(*ListGuildMembersResponse)(nil),         // 17: api.v1.ListGuildMembersResponse
+	(*UpdateCurrentGuildMemberRequest)(nil),  // 18: api.v1.UpdateCurrentGuildMemberRequest
+	(*UpdateCurrentGuildMemberResponse)(nil), // 19: api.v1.UpdateCurrentGuildMemberResponse
+	(*KickGuildMemberRequest)(nil),           // 20: api.v1.KickGuildMemberRequest
+	(*KickGuildMemberResponse)(nil),          // 21: api.v1.KickGuildMemberResponse
+	(*LeaveGuildRequest)(nil),                // 22: api.v1.LeaveGuildRequest
+	(*LeaveGuildResponse)(nil),               // 23: api.v1.LeaveGuildResponse
+	(*TransferGuildOwnershipRequest)(nil),    // 24: api.v1.TransferGuildOwnershipRequest
+	(*TransferGuildOwnershipResponse)(nil),   // 25: api.v1.TransferGuildOwnershipResponse
 }
 var file_api_v1_guild_proto_depIdxs = []int32{
 	0,  // 0: api.v1.CreateGuildResponse.guild:type_name -> api.v1.Guild
 	0,  // 1: api.v1.GetGuildResponse.guild:type_name -> api.v1.Guild
 	0,  // 2: api.v1.ListGuildsResponse.guilds:type_name -> api.v1.Guild
 	0,  // 3: api.v1.UpdateGuildResponse.guild:type_name -> api.v1.Guild
-	1,  // 4: api.v1.GuildService.CreateGuild:input_type -> api.v1.CreateGuildRequest
-	3,  // 5: api.v1.GuildService.GetGuild:input_type -> api.v1.GetGuildRequest
-	5,  // 6: api.v1.GuildService.ListGuilds:input_type -> api.v1.ListGuildsRequest
-	7,  // 7: api.v1.GuildService.UpdateGuild:input_type -> api.v1.UpdateGuildRequest
-	9,  // 8: api.v1.GuildService.DeleteGuild:input_type -> api.v1.DeleteGuildRequest
-	2,  // 9: api.v1.GuildService.CreateGuild:output_type -> api.v1.CreateGuildResponse
-	4,  // 10: api.v1.GuildService.GetGuild:output_type -> api.v1.GetGuildResponse
-	6,  // 11: api.v1.GuildService.ListGuilds:output_type -> api.v1.ListGuildsResponse
-	8,  // 12: api.v1.GuildService.UpdateGuild:output_type -> api.v1.UpdateGuildResponse
-	10, // 13: api.v1.GuildService.DeleteGuild:output_type -> api.v1.DeleteGuildResponse
-	9,  // [9:14] is the sub-list for method output_type
-	4,  // [4:9] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	1,  // 4: api.v1.AddGuildMemberResponse.member:type_name -> api.v1.GuildMember
+	1,  // 5: api.v1.GetGuildMemberResponse.member:type_name -> api.v1.GuildMember
+	1,  // 6: api.v1.ListGuildMembersResponse.members:type_name -> api.v1.GuildMember
+	1,  // 7: api.v1.UpdateCurrentGuildMemberResponse.member:type_name -> api.v1.GuildMember
+	0,  // 8: api.v1.TransferGuildOwnershipResponse.guild:type_name -> api.v1.Guild
+	2,  // 9: api.v1.GuildService.CreateGuild:input_type -> api.v1.CreateGuildRequest
+	4,  // 10: api.v1.GuildService.GetGuild:input_type -> api.v1.GetGuildRequest
+	6,  // 11: api.v1.GuildService.ListGuilds:input_type -> api.v1.ListGuildsRequest
+	8,  // 12: api.v1.GuildService.UpdateGuild:input_type -> api.v1.UpdateGuildRequest
+	10, // 13: api.v1.GuildService.DeleteGuild:input_type -> api.v1.DeleteGuildRequest
+	12, // 14: api.v1.GuildService.AddGuildMember:input_type -> api.v1.AddGuildMemberRequest
+	14, // 15: api.v1.GuildService.GetGuildMember:input_type -> api.v1.GetGuildMemberRequest
+	16, // 16: api.v1.GuildService.ListGuildMembers:input_type -> api.v1.ListGuildMembersRequest
+	18, // 17: api.v1.GuildService.UpdateCurrentGuildMember:input_type -> api.v1.UpdateCurrentGuildMemberRequest
+	20, // 18: api.v1.GuildService.KickGuildMember:input_type -> api.v1.KickGuildMemberRequest
+	22, // 19: api.v1.GuildService.LeaveGuild:input_type -> api.v1.LeaveGuildRequest
+	24, // 20: api.v1.GuildService.TransferGuildOwnership:input_type -> api.v1.TransferGuildOwnershipRequest
+	3,  // 21: api.v1.GuildService.CreateGuild:output_type -> api.v1.CreateGuildResponse
+	5,  // 22: api.v1.GuildService.GetGuild:output_type -> api.v1.GetGuildResponse
+	7,  // 23: api.v1.GuildService.ListGuilds:output_type -> api.v1.ListGuildsResponse
+	9,  // 24: api.v1.GuildService.UpdateGuild:output_type -> api.v1.UpdateGuildResponse
+	11, // 25: api.v1.GuildService.DeleteGuild:output_type -> api.v1.DeleteGuildResponse
+	13, // 26: api.v1.GuildService.AddGuildMember:output_type -> api.v1.AddGuildMemberResponse
+	15, // 27: api.v1.GuildService.GetGuildMember:output_type -> api.v1.GetGuildMemberResponse
+	17, // 28: api.v1.GuildService.ListGuildMembers:output_type -> api.v1.ListGuildMembersResponse
+	19, // 29: api.v1.GuildService.UpdateCurrentGuildMember:output_type -> api.v1.UpdateCurrentGuildMemberResponse
+	21, // 30: api.v1.GuildService.KickGuildMember:output_type -> api.v1.KickGuildMemberResponse
+	23, // 31: api.v1.GuildService.LeaveGuild:output_type -> api.v1.LeaveGuildResponse
+	25, // 32: api.v1.GuildService.TransferGuildOwnership:output_type -> api.v1.TransferGuildOwnershipResponse
+	21, // [21:33] is the sub-list for method output_type
+	9,  // [9:21] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_guild_proto_init() }
@@ -706,7 +1560,7 @@ func file_api_v1_guild_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_guild_proto_rawDesc), len(file_api_v1_guild_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -104,6 +104,121 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *apiv1.DeleteGuildReq
 	return &apiv1.DeleteGuildResponse{Ok: new(svcResp.GetOk())}, nil
 }
 
+func (s *guildServer) AddGuildMember(ctx context.Context, req *apiv1.AddGuildMemberRequest) (*apiv1.AddGuildMemberResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.AddGuildMemberRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUserId(req.GetUserId())
+	svcResp, err := s.svcCtx.GuildClient.AddGuildMember(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.AddGuildMemberResponse{Member: guildMemberToAPI(svcResp.GetMember())}, nil
+}
+
+func (s *guildServer) GetGuildMember(ctx context.Context, req *apiv1.GetGuildMemberRequest) (*apiv1.GetGuildMemberResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.GetGuildMemberRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUserId(req.GetUserId())
+	svcResp, err := s.svcCtx.GuildClient.GetGuildMember(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.GetGuildMemberResponse{Member: guildMemberToAPI(svcResp.GetMember())}, nil
+}
+
+func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuildMembersRequest) (*apiv1.ListGuildMembersResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.ListGuildMembersRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetBeforeUserId(req.GetBeforeUserId())
+	svcReq.SetLimit(req.GetLimit())
+	svcResp, err := s.svcCtx.GuildClient.ListGuildMembers(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.ListGuildMembersResponse{
+		Members:      guildMembersToAPI(svcResp.GetMembers()),
+		BeforeUserId: new(svcResp.GetBeforeUserId()),
+	}, nil
+}
+
+func (s *guildServer) UpdateCurrentGuildMember(ctx context.Context, req *apiv1.UpdateCurrentGuildMemberRequest) (*apiv1.UpdateCurrentGuildMemberResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.UpdateGuildMemberRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetNickname(req.GetNickname())
+	svcResp, err := s.svcCtx.GuildClient.UpdateGuildMember(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.UpdateCurrentGuildMemberResponse{Member: guildMemberToAPI(svcResp.GetMember())}, nil
+}
+
+func (s *guildServer) KickGuildMember(ctx context.Context, req *apiv1.KickGuildMemberRequest) (*apiv1.KickGuildMemberResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.KickGuildMemberRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUserId(req.GetUserId())
+	svcResp, err := s.svcCtx.GuildClient.KickGuildMember(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.KickGuildMemberResponse{Ok: new(svcResp.GetOk())}, nil
+}
+
+func (s *guildServer) LeaveGuild(ctx context.Context, req *apiv1.LeaveGuildRequest) (*apiv1.LeaveGuildResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.LeaveGuildRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetUserId(auth.GetUserId())
+	svcResp, err := s.svcCtx.GuildClient.LeaveGuild(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.LeaveGuildResponse{Ok: new(svcResp.GetOk())}, nil
+}
+
+func (s *guildServer) TransferGuildOwnership(ctx context.Context, req *apiv1.TransferGuildOwnershipRequest) (*apiv1.TransferGuildOwnershipResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.TransferGuildOwnershipRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetNewOwnerId(req.GetNewOwnerId())
+	svcResp, err := s.svcCtx.GuildClient.TransferGuildOwnership(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.TransferGuildOwnershipResponse{Guild: guildToAPI(svcResp.GetGuild())}, nil
+}
+
 func guildToAPI(guild *guildv1.Guild) *apiv1.Guild {
 	if guild == nil {
 		return nil
@@ -123,6 +238,28 @@ func guildsToAPI(guilds []*guildv1.Guild) []*apiv1.Guild {
 	values := make([]*apiv1.Guild, 0, len(guilds))
 	for _, guild := range guilds {
 		values = append(values, guildToAPI(guild))
+	}
+	return values
+}
+
+func guildMemberToAPI(member *guildv1.GuildMember) *apiv1.GuildMember {
+	if member == nil {
+		return nil
+	}
+	return &apiv1.GuildMember{
+		GuildId:   new(member.GetGuildId()),
+		UserId:    new(member.GetUserId()),
+		Nickname:  new(member.GetNickname()),
+		Revision:  new(member.GetRevision()),
+		JoinedAt:  new(member.GetJoinedAt()),
+		UpdatedAt: new(member.GetUpdatedAt()),
+	}
+}
+
+func guildMembersToAPI(members []*guildv1.GuildMember) []*apiv1.GuildMember {
+	values := make([]*apiv1.GuildMember, 0, len(members))
+	for _, member := range members {
+		values = append(values, guildMemberToAPI(member))
 	}
 	return values
 }

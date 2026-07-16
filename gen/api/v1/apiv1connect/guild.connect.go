@@ -46,6 +46,26 @@ const (
 	// GuildServiceDeleteGuildProcedure is the fully-qualified name of the GuildService's DeleteGuild
 	// RPC.
 	GuildServiceDeleteGuildProcedure = "/api.v1.GuildService/DeleteGuild"
+	// GuildServiceAddGuildMemberProcedure is the fully-qualified name of the GuildService's
+	// AddGuildMember RPC.
+	GuildServiceAddGuildMemberProcedure = "/api.v1.GuildService/AddGuildMember"
+	// GuildServiceGetGuildMemberProcedure is the fully-qualified name of the GuildService's
+	// GetGuildMember RPC.
+	GuildServiceGetGuildMemberProcedure = "/api.v1.GuildService/GetGuildMember"
+	// GuildServiceListGuildMembersProcedure is the fully-qualified name of the GuildService's
+	// ListGuildMembers RPC.
+	GuildServiceListGuildMembersProcedure = "/api.v1.GuildService/ListGuildMembers"
+	// GuildServiceUpdateCurrentGuildMemberProcedure is the fully-qualified name of the GuildService's
+	// UpdateCurrentGuildMember RPC.
+	GuildServiceUpdateCurrentGuildMemberProcedure = "/api.v1.GuildService/UpdateCurrentGuildMember"
+	// GuildServiceKickGuildMemberProcedure is the fully-qualified name of the GuildService's
+	// KickGuildMember RPC.
+	GuildServiceKickGuildMemberProcedure = "/api.v1.GuildService/KickGuildMember"
+	// GuildServiceLeaveGuildProcedure is the fully-qualified name of the GuildService's LeaveGuild RPC.
+	GuildServiceLeaveGuildProcedure = "/api.v1.GuildService/LeaveGuild"
+	// GuildServiceTransferGuildOwnershipProcedure is the fully-qualified name of the GuildService's
+	// TransferGuildOwnership RPC.
+	GuildServiceTransferGuildOwnershipProcedure = "/api.v1.GuildService/TransferGuildOwnership"
 )
 
 // GuildServiceClient is a client for the api.v1.GuildService service.
@@ -55,6 +75,13 @@ type GuildServiceClient interface {
 	ListGuilds(context.Context, *v1.ListGuildsRequest) (*v1.ListGuildsResponse, error)
 	UpdateGuild(context.Context, *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error)
 	DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error)
+	AddGuildMember(context.Context, *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error)
+	GetGuildMember(context.Context, *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error)
+	ListGuildMembers(context.Context, *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error)
+	UpdateCurrentGuildMember(context.Context, *v1.UpdateCurrentGuildMemberRequest) (*v1.UpdateCurrentGuildMemberResponse, error)
+	KickGuildMember(context.Context, *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error)
+	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
+	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
 }
 
 // NewGuildServiceClient constructs a client for the api.v1.GuildService service. By default, it
@@ -98,16 +125,65 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(guildServiceMethods.ByName("DeleteGuild")),
 			connect.WithClientOptions(opts...),
 		),
+		addGuildMember: connect.NewClient[v1.AddGuildMemberRequest, v1.AddGuildMemberResponse](
+			httpClient,
+			baseURL+GuildServiceAddGuildMemberProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("AddGuildMember")),
+			connect.WithClientOptions(opts...),
+		),
+		getGuildMember: connect.NewClient[v1.GetGuildMemberRequest, v1.GetGuildMemberResponse](
+			httpClient,
+			baseURL+GuildServiceGetGuildMemberProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("GetGuildMember")),
+			connect.WithClientOptions(opts...),
+		),
+		listGuildMembers: connect.NewClient[v1.ListGuildMembersRequest, v1.ListGuildMembersResponse](
+			httpClient,
+			baseURL+GuildServiceListGuildMembersProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("ListGuildMembers")),
+			connect.WithClientOptions(opts...),
+		),
+		updateCurrentGuildMember: connect.NewClient[v1.UpdateCurrentGuildMemberRequest, v1.UpdateCurrentGuildMemberResponse](
+			httpClient,
+			baseURL+GuildServiceUpdateCurrentGuildMemberProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("UpdateCurrentGuildMember")),
+			connect.WithClientOptions(opts...),
+		),
+		kickGuildMember: connect.NewClient[v1.KickGuildMemberRequest, v1.KickGuildMemberResponse](
+			httpClient,
+			baseURL+GuildServiceKickGuildMemberProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("KickGuildMember")),
+			connect.WithClientOptions(opts...),
+		),
+		leaveGuild: connect.NewClient[v1.LeaveGuildRequest, v1.LeaveGuildResponse](
+			httpClient,
+			baseURL+GuildServiceLeaveGuildProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("LeaveGuild")),
+			connect.WithClientOptions(opts...),
+		),
+		transferGuildOwnership: connect.NewClient[v1.TransferGuildOwnershipRequest, v1.TransferGuildOwnershipResponse](
+			httpClient,
+			baseURL+GuildServiceTransferGuildOwnershipProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("TransferGuildOwnership")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // guildServiceClient implements GuildServiceClient.
 type guildServiceClient struct {
-	createGuild *connect.Client[v1.CreateGuildRequest, v1.CreateGuildResponse]
-	getGuild    *connect.Client[v1.GetGuildRequest, v1.GetGuildResponse]
-	listGuilds  *connect.Client[v1.ListGuildsRequest, v1.ListGuildsResponse]
-	updateGuild *connect.Client[v1.UpdateGuildRequest, v1.UpdateGuildResponse]
-	deleteGuild *connect.Client[v1.DeleteGuildRequest, v1.DeleteGuildResponse]
+	createGuild              *connect.Client[v1.CreateGuildRequest, v1.CreateGuildResponse]
+	getGuild                 *connect.Client[v1.GetGuildRequest, v1.GetGuildResponse]
+	listGuilds               *connect.Client[v1.ListGuildsRequest, v1.ListGuildsResponse]
+	updateGuild              *connect.Client[v1.UpdateGuildRequest, v1.UpdateGuildResponse]
+	deleteGuild              *connect.Client[v1.DeleteGuildRequest, v1.DeleteGuildResponse]
+	addGuildMember           *connect.Client[v1.AddGuildMemberRequest, v1.AddGuildMemberResponse]
+	getGuildMember           *connect.Client[v1.GetGuildMemberRequest, v1.GetGuildMemberResponse]
+	listGuildMembers         *connect.Client[v1.ListGuildMembersRequest, v1.ListGuildMembersResponse]
+	updateCurrentGuildMember *connect.Client[v1.UpdateCurrentGuildMemberRequest, v1.UpdateCurrentGuildMemberResponse]
+	kickGuildMember          *connect.Client[v1.KickGuildMemberRequest, v1.KickGuildMemberResponse]
+	leaveGuild               *connect.Client[v1.LeaveGuildRequest, v1.LeaveGuildResponse]
+	transferGuildOwnership   *connect.Client[v1.TransferGuildOwnershipRequest, v1.TransferGuildOwnershipResponse]
 }
 
 // CreateGuild calls api.v1.GuildService.CreateGuild.
@@ -155,6 +231,69 @@ func (c *guildServiceClient) DeleteGuild(ctx context.Context, req *v1.DeleteGuil
 	return nil, err
 }
 
+// AddGuildMember calls api.v1.GuildService.AddGuildMember.
+func (c *guildServiceClient) AddGuildMember(ctx context.Context, req *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error) {
+	response, err := c.addGuildMember.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetGuildMember calls api.v1.GuildService.GetGuildMember.
+func (c *guildServiceClient) GetGuildMember(ctx context.Context, req *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error) {
+	response, err := c.getGuildMember.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListGuildMembers calls api.v1.GuildService.ListGuildMembers.
+func (c *guildServiceClient) ListGuildMembers(ctx context.Context, req *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error) {
+	response, err := c.listGuildMembers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UpdateCurrentGuildMember calls api.v1.GuildService.UpdateCurrentGuildMember.
+func (c *guildServiceClient) UpdateCurrentGuildMember(ctx context.Context, req *v1.UpdateCurrentGuildMemberRequest) (*v1.UpdateCurrentGuildMemberResponse, error) {
+	response, err := c.updateCurrentGuildMember.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// KickGuildMember calls api.v1.GuildService.KickGuildMember.
+func (c *guildServiceClient) KickGuildMember(ctx context.Context, req *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error) {
+	response, err := c.kickGuildMember.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// LeaveGuild calls api.v1.GuildService.LeaveGuild.
+func (c *guildServiceClient) LeaveGuild(ctx context.Context, req *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error) {
+	response, err := c.leaveGuild.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// TransferGuildOwnership calls api.v1.GuildService.TransferGuildOwnership.
+func (c *guildServiceClient) TransferGuildOwnership(ctx context.Context, req *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error) {
+	response, err := c.transferGuildOwnership.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // GuildServiceHandler is an implementation of the api.v1.GuildService service.
 type GuildServiceHandler interface {
 	CreateGuild(context.Context, *v1.CreateGuildRequest) (*v1.CreateGuildResponse, error)
@@ -162,6 +301,13 @@ type GuildServiceHandler interface {
 	ListGuilds(context.Context, *v1.ListGuildsRequest) (*v1.ListGuildsResponse, error)
 	UpdateGuild(context.Context, *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error)
 	DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error)
+	AddGuildMember(context.Context, *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error)
+	GetGuildMember(context.Context, *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error)
+	ListGuildMembers(context.Context, *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error)
+	UpdateCurrentGuildMember(context.Context, *v1.UpdateCurrentGuildMemberRequest) (*v1.UpdateCurrentGuildMemberResponse, error)
+	KickGuildMember(context.Context, *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error)
+	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
+	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
 }
 
 // NewGuildServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -201,6 +347,48 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(guildServiceMethods.ByName("DeleteGuild")),
 		connect.WithHandlerOptions(opts...),
 	)
+	guildServiceAddGuildMemberHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceAddGuildMemberProcedure,
+		svc.AddGuildMember,
+		connect.WithSchema(guildServiceMethods.ByName("AddGuildMember")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceGetGuildMemberHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceGetGuildMemberProcedure,
+		svc.GetGuildMember,
+		connect.WithSchema(guildServiceMethods.ByName("GetGuildMember")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceListGuildMembersHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceListGuildMembersProcedure,
+		svc.ListGuildMembers,
+		connect.WithSchema(guildServiceMethods.ByName("ListGuildMembers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceUpdateCurrentGuildMemberHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceUpdateCurrentGuildMemberProcedure,
+		svc.UpdateCurrentGuildMember,
+		connect.WithSchema(guildServiceMethods.ByName("UpdateCurrentGuildMember")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceKickGuildMemberHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceKickGuildMemberProcedure,
+		svc.KickGuildMember,
+		connect.WithSchema(guildServiceMethods.ByName("KickGuildMember")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceLeaveGuildHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceLeaveGuildProcedure,
+		svc.LeaveGuild,
+		connect.WithSchema(guildServiceMethods.ByName("LeaveGuild")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceTransferGuildOwnershipHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceTransferGuildOwnershipProcedure,
+		svc.TransferGuildOwnership,
+		connect.WithSchema(guildServiceMethods.ByName("TransferGuildOwnership")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.GuildService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case GuildServiceCreateGuildProcedure:
@@ -213,6 +401,20 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceUpdateGuildHandler.ServeHTTP(w, r)
 		case GuildServiceDeleteGuildProcedure:
 			guildServiceDeleteGuildHandler.ServeHTTP(w, r)
+		case GuildServiceAddGuildMemberProcedure:
+			guildServiceAddGuildMemberHandler.ServeHTTP(w, r)
+		case GuildServiceGetGuildMemberProcedure:
+			guildServiceGetGuildMemberHandler.ServeHTTP(w, r)
+		case GuildServiceListGuildMembersProcedure:
+			guildServiceListGuildMembersHandler.ServeHTTP(w, r)
+		case GuildServiceUpdateCurrentGuildMemberProcedure:
+			guildServiceUpdateCurrentGuildMemberHandler.ServeHTTP(w, r)
+		case GuildServiceKickGuildMemberProcedure:
+			guildServiceKickGuildMemberHandler.ServeHTTP(w, r)
+		case GuildServiceLeaveGuildProcedure:
+			guildServiceLeaveGuildHandler.ServeHTTP(w, r)
+		case GuildServiceTransferGuildOwnershipProcedure:
+			guildServiceTransferGuildOwnershipHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -240,4 +442,32 @@ func (UnimplementedGuildServiceHandler) UpdateGuild(context.Context, *v1.UpdateG
 
 func (UnimplementedGuildServiceHandler) DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.DeleteGuild is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) AddGuildMember(context.Context, *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.AddGuildMember is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) GetGuildMember(context.Context, *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.GetGuildMember is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) ListGuildMembers(context.Context, *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ListGuildMembers is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) UpdateCurrentGuildMember(context.Context, *v1.UpdateCurrentGuildMemberRequest) (*v1.UpdateCurrentGuildMemberResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.UpdateCurrentGuildMember is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) KickGuildMember(context.Context, *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.KickGuildMember is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.LeaveGuild is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.TransferGuildOwnership is not implemented"))
 }

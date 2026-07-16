@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
 
 func invalidRequest(message string) error {
@@ -22,12 +23,19 @@ func permissionDenied() error {
 	return rpcerror.New(codes.PermissionDenied, rpcerror.GuildDomain, rpcerror.GuildPermissionDenied, "permission denied")
 }
 
+func memberAlreadyExists() error {
+	return rpcerror.New(codes.AlreadyExists, rpcerror.GuildDomain, rpcerror.GuildMemberAlreadyExists, "guild member already exists")
+}
+
 func mapStoreError(err error) error {
 	if err == nil {
 		return nil
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return notFound()
+	}
+	if errors.Is(err, store.ErrMemberAlreadyExists) {
+		return memberAlreadyExists()
 	}
 	var pqErr *pq.Error
 	if errors.As(err, &pqErr) && pqErr.Code == "23514" {

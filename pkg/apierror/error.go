@@ -96,6 +96,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeInvalidArgument,
 		message:     "Invalid request.",
 	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildMemberAlreadyExists}: {
+		connectCode: connect.CodeAlreadyExists,
+		publicCode:  CodeAlreadyExists,
+		message:     "Resource already exists.",
+	},
 }
 
 var codeMappings = map[codes.Code]mapping{

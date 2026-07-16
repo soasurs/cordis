@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -28,9 +30,100 @@ func (s *SQLStore) CreateGuild(ctx context.Context, guildID, ownerID int64, name
 	return guildFromRow(row), nil
 }
 
-func (s *SQLStore) CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) error {
-	_, err := s.q.ExecContext(ctx, createGuildMemberStatement, guildID, userID, joinedAt)
-	return err
+func (s *SQLStore) CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error) {
+	row := new(guildMemberRow)
+	err := sqlx.GetContext(ctx, s.q, row, createGuildMemberQuery, guildID, userID, joinedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrMemberAlreadyExists
+	}
+	if err != nil {
+		return nil, err
+	}
+	return guildMemberFromRow(row), nil
+}
+
+func (s *SQLStore) GetGuildMember(ctx context.Context, guildID, userID int64) (*model.GuildMember, error) {
+	row := new(guildMemberRow)
+	if err := sqlx.GetContext(ctx, s.q, row, getGuildMemberQuery, guildID, userID); err != nil {
+		return nil, err
+	}
+	return guildMemberFromRow(row), nil
+}
+
+func (s *SQLStore) ListGuildMembers(ctx context.Context, params ListGuildMembersParams) ([]*model.GuildMember, error) {
+	var rows []*guildMemberRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMembersQuery, params.GuildID, params.BeforeUserID, params.Limit); err != nil {
+		return nil, err
+	}
+	members := make([]*model.GuildMember, 0, len(rows))
+	for _, row := range rows {
+		members = append(members, guildMemberFromRow(row))
+	}
+	return members, nil
+}
+
+func (s *SQLStore) UpdateGuildMemberNickname(ctx context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error) {
+	row := new(guildMemberRow)
+	if err := sqlx.GetContext(
+		ctx,
+		s.q,
+		row,
+		updateGuildMemberNicknameQuery,
+		guildID,
+		userID,
+		nickname,
+		time.Now().UnixMilli(),
+	); err != nil {
+		return nil, err
+	}
+	return guildMemberFromRow(row), nil
+}
+
+func (s *SQLStore) RemoveGuildMember(ctx context.Context, guildID, userID, removedAt int64) (*model.GuildMember, error) {
+	row := new(guildMemberRow)
+	if err := sqlx.GetContext(ctx, s.q, row, removeGuildMemberQuery, guildID, userID, removedAt); err != nil {
+		return nil, err
+	}
+	return guildMemberFromRow(row), nil
+}
+
+func (s *SQLStore) TransferGuildOwnership(ctx context.Context, guildID, currentOwnerID, newOwnerID int64) (*model.Guild, error) {
+	row := new(guildRow)
+	if err := sqlx.GetContext(
+		ctx,
+		s.q,
+		row,
+		transferGuildOwnershipQuery,
+		guildID,
+		currentOwnerID,
+		newOwnerID,
+		time.Now().UnixMilli(),
+	); err != nil {
+		return nil, err
+	}
+	return guildFromRow(row), nil
+}
+
+type guildMemberRow struct {
+	GuildID   int64  `db:"guild_id"`
+	UserID    int64  `db:"user_id"`
+	Nickname  string `db:"nickname"`
+	Revision  int64  `db:"revision"`
+	JoinedAt  int64  `db:"joined_at"`
+	UpdatedAt int64  `db:"updated_at"`
+	DeletedAt int64  `db:"deleted_at"`
+}
+
+func guildMemberFromRow(row *guildMemberRow) *model.GuildMember {
+	return &model.GuildMember{
+		GuildID:   row.GuildID,
+		UserID:    row.UserID,
+		Nickname:  row.Nickname,
+		Revision:  row.Revision,
+		JoinedAt:  row.JoinedAt,
+		UpdatedAt: row.UpdatedAt,
+		DeletedAt: row.DeletedAt,
+	}
 }
 
 func (s *SQLStore) CreateDefaultRole(ctx context.Context, guildID, createdAt int64) error {

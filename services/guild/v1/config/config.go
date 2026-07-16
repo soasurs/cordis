@@ -13,6 +13,11 @@ type Config struct {
 	zrpc.RpcServerConf
 	Database database.Config `json:",optional"`
 	Kafka    KafkaConfig     `json:",optional"`
+	Services ServiceConfig
+}
+
+type ServiceConfig struct {
+	User zrpc.RpcClientConf
 }
 
 type KafkaConfig struct {

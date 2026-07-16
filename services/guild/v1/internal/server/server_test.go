@@ -10,10 +10,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/guild/v1/config"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
@@ -79,7 +81,7 @@ func TestCreateGuildPublishFailureIsBestEffort(t *testing.T) {
 func TestGetGuildHidesNonMember(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
-	fakeStore.members[10] = map[int64]struct{}{1001: {}}
+	fakeStore.members[10] = testMembers(10, 1001)
 	server := newTestGuildServer(t, fakeStore, nil)
 
 	req := new(guildv1.GetGuildRequest)
@@ -92,7 +94,7 @@ func TestGetGuildHidesNonMember(t *testing.T) {
 func TestUpdateGuildRequiresOwnerAndPreservesPresence(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
-	fakeStore.members[10] = map[int64]struct{}{1001: {}, 1002: {}}
+	fakeStore.members[10] = testMembers(10, 1001, 1002)
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher)
 
@@ -122,7 +124,7 @@ func TestUpdateGuildRequiresOwnerAndPreservesPresence(t *testing.T) {
 func TestDeleteGuildSoftDeletesChildrenAndPublishesEvent(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
-	fakeStore.members[10] = map[int64]struct{}{1001: {}, 1002: {}}
+	fakeStore.members[10] = testMembers(10, 1001, 1002)
 	fakeStore.defaultRoles[10] = true
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher)
@@ -149,7 +151,7 @@ func TestListUserGuildsUsesDescendingCursor(t *testing.T) {
 	fakeStore := newFakeStore()
 	for _, id := range []int64{10, 20, 30} {
 		fakeStore.guilds[id] = testGuild(id, 1001)
-		fakeStore.members[id] = map[int64]struct{}{1001: {}}
+		fakeStore.members[id] = testMembers(id, 1001)
 	}
 	server := newTestGuildServer(t, fakeStore, nil)
 	req := new(guildv1.ListUserGuildsRequest)
@@ -170,7 +172,26 @@ func newTestGuildServer(t *testing.T, fakeStore store.Store, publisher svc.Event
 	return New(&svc.ServiceContext{
 		Cfg:   config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
 		Store: fakeStore, Snowflake: node, Publisher: publisher,
+		UserClient: &fakeUserClient{},
 	})
+}
+
+type fakeUserClient struct {
+	userv1.UserServiceClient
+	requestedUserID int64
+	err             error
+}
+
+func (f *fakeUserClient) GetUser(_ context.Context, req *userv1.GetUserRequest, _ ...grpc.CallOption) (*userv1.GetUserResponse, error) {
+	f.requestedUserID = req.GetUserId()
+	if f.err != nil {
+		return nil, f.err
+	}
+	user := new(userv1.User)
+	user.SetUserId(req.GetUserId())
+	resp := new(userv1.GetUserResponse)
+	resp.SetUser(user)
+	return resp, nil
 }
 
 type publishedRecord struct {
@@ -198,14 +219,14 @@ func (p *fakePublisher) onlyRecord(t *testing.T) publishedRecord {
 
 type fakeStore struct {
 	guilds       map[int64]*model.Guild
-	members      map[int64]map[int64]struct{}
+	members      map[int64]map[int64]*model.GuildMember
 	defaultRoles map[int64]bool
 	transactErr  error
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{
-		guilds: make(map[int64]*model.Guild), members: make(map[int64]map[int64]struct{}),
+		guilds: make(map[int64]*model.Guild), members: make(map[int64]map[int64]*model.GuildMember),
 		defaultRoles: make(map[int64]bool),
 	}
 }
@@ -223,12 +244,22 @@ func (s *fakeStore) CreateGuild(_ context.Context, guildID, ownerID int64, name,
 	return cloneGuild(guild), nil
 }
 
-func (s *fakeStore) CreateGuildMember(_ context.Context, guildID, userID, _ int64) error {
+func (s *fakeStore) CreateGuildMember(_ context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error) {
 	if s.members[guildID] == nil {
-		s.members[guildID] = make(map[int64]struct{})
+		s.members[guildID] = make(map[int64]*model.GuildMember)
 	}
-	s.members[guildID][userID] = struct{}{}
-	return nil
+	if existing := s.members[guildID][userID]; existing != nil && existing.DeletedAt == 0 {
+		return nil, store.ErrMemberAlreadyExists
+	}
+	revision := int64(1)
+	if existing := s.members[guildID][userID]; existing != nil {
+		revision = existing.Revision + 1
+	}
+	member := &model.GuildMember{
+		GuildID: guildID, UserID: userID, Revision: revision, JoinedAt: joinedAt,
+	}
+	s.members[guildID][userID] = member
+	return cloneMember(member), nil
 }
 
 func (s *fakeStore) CreateDefaultRole(_ context.Context, guildID, _ int64) error {
@@ -241,7 +272,8 @@ func (s *fakeStore) GetGuildForMember(_ context.Context, guildID, userID int64) 
 	if !ok || guild.DeletedAt != 0 {
 		return nil, sql.ErrNoRows
 	}
-	if _, ok := s.members[guildID][userID]; !ok {
+	member := s.members[guildID][userID]
+	if member == nil || member.DeletedAt != 0 {
 		return nil, sql.ErrNoRows
 	}
 	return cloneGuild(guild), nil
@@ -253,7 +285,8 @@ func (s *fakeStore) ListUserGuilds(_ context.Context, params store.ListUserGuild
 		if guild.DeletedAt != 0 || (params.Before != 0 && id >= params.Before) {
 			continue
 		}
-		if _, ok := s.members[id][params.UserID]; !ok {
+		member := s.members[id][params.UserID]
+		if member == nil || member.DeletedAt != 0 {
 			continue
 		}
 		guilds = append(guilds, cloneGuild(guild))
@@ -302,6 +335,62 @@ func (s *fakeStore) DeleteGuildRoles(_ context.Context, guildID, _ int64) error 
 	return nil
 }
 
+func (s *fakeStore) GetGuildMember(_ context.Context, guildID, userID int64) (*model.GuildMember, error) {
+	member := s.members[guildID][userID]
+	if member == nil || member.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	return cloneMember(member), nil
+}
+
+func (s *fakeStore) ListGuildMembers(_ context.Context, params store.ListGuildMembersParams) ([]*model.GuildMember, error) {
+	var members []*model.GuildMember
+	for userID, member := range s.members[params.GuildID] {
+		if member.DeletedAt != 0 || (params.BeforeUserID != 0 && userID >= params.BeforeUserID) {
+			continue
+		}
+		members = append(members, cloneMember(member))
+	}
+	sort.Slice(members, func(i, j int) bool { return members[i].UserID > members[j].UserID })
+	if len(members) > params.Limit {
+		members = members[:params.Limit]
+	}
+	return members, nil
+}
+
+func (s *fakeStore) UpdateGuildMemberNickname(_ context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error) {
+	member := s.members[guildID][userID]
+	if member == nil || member.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	member.Nickname = nickname
+	member.Revision++
+	member.UpdatedAt = 2
+	return cloneMember(member), nil
+}
+
+func (s *fakeStore) RemoveGuildMember(_ context.Context, guildID, userID, removedAt int64) (*model.GuildMember, error) {
+	member := s.members[guildID][userID]
+	if member == nil || member.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	member.Revision++
+	member.UpdatedAt = removedAt
+	member.DeletedAt = removedAt
+	return cloneMember(member), nil
+}
+
+func (s *fakeStore) TransferGuildOwnership(_ context.Context, guildID, currentOwnerID, newOwnerID int64) (*model.Guild, error) {
+	guild := s.guilds[guildID]
+	if guild == nil || guild.DeletedAt != 0 || guild.OwnerID != currentOwnerID {
+		return nil, sql.ErrNoRows
+	}
+	guild.OwnerID = newOwnerID
+	guild.Revision++
+	guild.UpdatedAt = 2
+	return cloneGuild(guild), nil
+}
+
 func testGuild(id, ownerID int64) *model.Guild {
 	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconURI: "icon://old", Revision: 1, CreatedAt: 1}
 }
@@ -309,6 +398,21 @@ func testGuild(id, ownerID int64) *model.Guild {
 func cloneGuild(guild *model.Guild) *model.Guild {
 	clone := *guild
 	return &clone
+}
+
+func cloneMember(member *model.GuildMember) *model.GuildMember {
+	clone := *member
+	return &clone
+}
+
+func testMembers(guildID int64, userIDs ...int64) map[int64]*model.GuildMember {
+	members := make(map[int64]*model.GuildMember, len(userIDs))
+	for _, userID := range userIDs {
+		members[userID] = &model.GuildMember{
+			GuildID: guildID, UserID: userID, Revision: 1, JoinedAt: 1,
+		}
+	}
+	return members
 }
 
 func guildIDString(id int64) string {

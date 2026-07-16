@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -36,6 +36,7 @@ type messageRow struct {
 	EditedAt            sql.NullInt64 `db:"edited_at"`
 	CreatedAt           int64         `db:"created_at"`
 	UpdatedAt           int64         `db:"updated_at"`
+	Revision            int64         `db:"revision"`
 	DeletedAt           int64         `db:"deleted_at"`
 }
 
@@ -56,6 +57,7 @@ func (s *SQLStore) CreateMessage(ctx context.Context, params CreateMessageParams
 		Attachments: attachments,
 		CreatedAt:   now,
 		UpdatedAt:   0,
+		Revision:    1,
 		DeletedAt:   0,
 	}
 	if params.ReferencedMessageID != 0 {
@@ -116,6 +118,7 @@ func (s *SQLStore) UpdateMessage(ctx context.Context, params UpdateMessageParams
 	sets := []string{
 		"updated_at = $1",
 		"edited_at = $1",
+		"revision = revision + 1",
 	}
 
 	if params.Content != nil {
@@ -181,28 +184,22 @@ func (s *SQLStore) UpdateMessage(ctx context.Context, params UpdateMessageParams
 	return row.toModel()
 }
 
-func (s *SQLStore) DeleteMessage(ctx context.Context, messageID, actorUserID int64, hasModPermission bool) error {
+func (s *SQLStore) DeleteMessage(ctx context.Context, messageID, actorUserID int64, hasModPermission bool) (*model.Message, error) {
 	now := time.Now().UnixMilli()
-	var res sql.Result
-	var err error
+	row := new(messageRow)
 	if hasModPermission {
-		res, err = s.q.ExecContext(ctx, DeleteMessageModStatement, now, messageID, int64(0))
-	} else {
-		res, err = s.q.ExecContext(ctx, DeleteMessageStatement, now, messageID, actorUserID, int64(0))
-	}
-	if err != nil {
-		return err
-	}
-	if err := checkRowsAffected(res); err != nil {
-		if err == sql.ErrNoRows {
-			if hasModPermission {
-				return sql.ErrNoRows
-			}
-			return s.noRowsForActor(ctx, messageID)
+		if err := sqlx.GetContext(ctx, s.q, row, DeleteMessageModStatement, now, messageID, int64(0)); err != nil {
+			return nil, err
 		}
-		return err
+	} else {
+		if err := sqlx.GetContext(ctx, s.q, row, DeleteMessageStatement, now, messageID, actorUserID, int64(0)); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, s.noRowsForActor(ctx, messageID)
+			}
+			return nil, err
+		}
 	}
-	return nil
+	return row.toModel()
 }
 
 func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, userIDs []int64) error {
@@ -269,17 +266,11 @@ func (s *SQLStore) listMessagesAround(ctx context.Context, params ListMessagesPa
 
 	anchorIdx := len(newer)
 	half := params.Limit / 2
-	start := anchorIdx - half
-	if start < 0 {
-		start = 0
-	}
+	start := max(anchorIdx-half, 0)
 	end := start + params.Limit
 	if end > len(all) {
 		end = len(all)
-		start = end - params.Limit
-		if start < 0 {
-			start = 0
-		}
+		start = max(end-params.Limit, 0)
 	}
 	return all[start:end], nil
 }
@@ -322,6 +313,7 @@ func (r *messageRow) toModel() (*model.Message, error) {
 		Attachments: attachments,
 		CreatedAt:   r.CreatedAt,
 		UpdatedAt:   r.UpdatedAt,
+		Revision:    r.Revision,
 		DeletedAt:   r.DeletedAt,
 	}
 	if r.ReferencedMessageID.Valid {
@@ -396,8 +388,6 @@ func uniquePositiveIDs(ids []int64) []int64 {
 		seen[id] = struct{}{}
 		values = append(values, id)
 	}
-	sort.Slice(values, func(i, j int) bool {
-		return values[i] < values[j]
-	})
+	slices.Sort(values)
 	return values
 }

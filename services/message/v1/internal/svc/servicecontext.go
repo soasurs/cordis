@@ -1,41 +1,36 @@
 package svc
 
 import (
+	"context"
+
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jmoiron/sqlx"
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
-	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/config"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
 
+// EventPublisher publishes a serialized message event.
+type EventPublisher interface {
+	Publish(ctx context.Context, key, payload []byte) error
+}
+
 type ServiceContext struct {
 	Cfg       config.Config
 	Store     store.Store
 	Snowflake *sn.Node
-
-	// Kafka is the franz-go client for publishing events.
-	// Nil if Kafka is not configured.
-	Kafka *kgo.Client
-
-	// Relay is the background outbox dispatcher. It picks up pending
-	// events and publishes them to Kafka. Handlers wake it via Notify()
-	// after committing a transaction that inserts outbox events.
-	Relay *outbox.Relay
-
-	// Cached outbox config values to avoid repeated allocations in handlers.
-	OutboxMaxRetries     int
-	OutboxPartitionCount int
+	Publisher EventPublisher
 }
 
 type Dependencies struct {
 	Store     store.Store
 	Snowflake *sn.Node
 	Kafka     *kgo.Client
+	Publisher EventPublisher
 	DB        *sqlx.DB
 }
 
@@ -83,20 +78,30 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		panic("snowflake node is required")
 	}
 
-	relayCfg := cfg.Outbox.RelayConfig()
-	svcCtx := &ServiceContext{
-		Cfg:                  cfg,
-		Store:                deps.Store,
-		Snowflake:            deps.Snowflake,
-		Kafka:                deps.Kafka,
-		OutboxMaxRetries:     relayCfg.MaxRetries,
-		OutboxPartitionCount: relayCfg.PartitionCount,
+	publisher := deps.Publisher
+	if publisher == nil && deps.Kafka != nil {
+		publisher = &kafkaPublisher{
+			client: deps.Kafka,
+			topic:  cfg.Kafka.Topic,
+		}
 	}
-
-	if deps.Kafka != nil && deps.DB != nil {
-		producer := &outbox.FranzProducer{Client: deps.Kafka}
-		svcCtx.Relay = outbox.NewRelay(relayCfg, deps.DB, producer)
+	return &ServiceContext{
+		Cfg:       cfg,
+		Store:     deps.Store,
+		Snowflake: deps.Snowflake,
+		Publisher: publisher,
 	}
+}
 
-	return svcCtx
+type kafkaPublisher struct {
+	client *kgo.Client
+	topic  string
+}
+
+func (p *kafkaPublisher) Publish(ctx context.Context, key, payload []byte) error {
+	return p.client.ProduceSync(ctx, &kgo.Record{
+		Topic: p.topic,
+		Key:   key,
+		Value: payload,
+	}).FirstErr()
 }

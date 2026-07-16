@@ -13,6 +13,7 @@ type Message struct {
 	EditedAt            int64
 	CreatedAt           int64
 	UpdatedAt           int64
+	Revision            int64
 	DeletedAt           int64
 }
 
@@ -23,25 +24,4 @@ type Attachment struct {
 	ContentType string
 	Width       int32
 	Height      int32
-}
-
-type Reaction struct {
-	UserID    int64
-	EmojiID   int64
-	EmojiName string
-	CreatedAt int64
-}
-
-type Emoji struct {
-	ID       int64
-	Name     string
-	Animated bool
-	ImageKey string // object storage key for custom emoji, empty for Unicode
-	ImageURL string // resolved CDN URL, empty for Unicode
-}
-
-type ReactionSummary struct {
-	Emoji Emoji
-	Count int64
-	Me    bool
 }

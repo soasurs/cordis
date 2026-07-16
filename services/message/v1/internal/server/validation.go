@@ -8,11 +8,9 @@ import (
 )
 
 const (
-	defaultMessageLimit      = 50
-	maxMessageLimit          = 100
-	defaultReactionUserLimit = 100
-	maxReactionUserLimit     = 500
-	maxContentLength         = 2000
+	defaultMessageLimit = 50
+	maxMessageLimit     = 100
+	maxContentLength    = 2000
 )
 
 func normalizeMessageType(messageType messagev1.MessageType) (messagev1.MessageType, error) {
@@ -75,14 +73,4 @@ func normalizeLimit(value int32, defaultValue, maxValue int) (int, error) {
 		return 0, invalidRequest("limit is out of range")
 	}
 	return int(value), nil
-}
-
-func validateEmoji(emojiID int64, emojiName string) error {
-	if emojiID < 0 {
-		return invalidRequest("emoji id must not be negative")
-	}
-	if strings.TrimSpace(emojiName) == "" {
-		return invalidRequest("emoji name is required")
-	}
-	return nil
 }

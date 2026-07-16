@@ -1,0 +1,6 @@
+ALTER TABLE messages
+    ADD COLUMN IF NOT EXISTS revision BIGINT NOT NULL DEFAULT 1 CHECK (revision > 0);
+
+DROP TABLE IF EXISTS reactions;
+DROP TABLE IF EXISTS emojis;
+DROP TABLE IF EXISTS outbox_messages;

@@ -4,33 +4,27 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
-// Event types published to Kafka.
 const (
-	EventTypeMessageCreated  = "message_created"
-	EventTypeMessageUpdated  = "message_updated"
-	EventTypeMessageDeleted  = "message_deleted"
-	EventTypeReactionAdded   = "reaction_added"
-	EventTypeReactionRemoved = "reaction_removed"
-	eventSchemaVersion       = 1
+	EventTypeMessageCreated = "message.created"
+	EventTypeMessageUpdated = "message.updated"
+	EventTypeMessageDeleted = "message.deleted"
 )
 
 type eventEnvelope[T any] struct {
-	// EventID is both the idempotency key and the last-seen cursor for the
-	// message aggregate.
-	EventID       int64  `json:"event_id"`
-	EventType     string `json:"event_type"`
-	SchemaVersion int    `json:"schema_version"`
-	OccurredAt    int64  `json:"occurred_at"`
-	Data          T      `json:"data"`
+	Type string `json:"t"`
+	Data T      `json:"d"`
 }
 
-// messageCreatedPayload is the JSON body for a message_created event.
-type messageCreatedPayload struct {
-	MessageID           int64            `json:"message_id"`
+type messageEvent struct {
+	Key     []byte
+	Payload []byte
+}
+
+type messagePayload struct {
+	MessageID           int64            `json:"id"`
 	ChannelID           int64            `json:"channel_id"`
 	AuthorID            int64            `json:"author_id"`
 	Content             string           `json:"content"`
@@ -40,7 +34,10 @@ type messageCreatedPayload struct {
 	ReferencedChannelID int64            `json:"referenced_channel_id,omitempty"`
 	Attachments         []attachmentJSON `json:"attachments"`
 	MentionUserIDs      []int64          `json:"mention_user_ids"`
+	EditedAt            int64            `json:"edited_at"`
 	CreatedAt           int64            `json:"created_at"`
+	UpdatedAt           int64            `json:"updated_at"`
+	Revision            int64            `json:"revision"`
 }
 
 type attachmentJSON struct {
@@ -52,35 +49,32 @@ type attachmentJSON struct {
 	Height      int32  `json:"height"`
 }
 
-// messageUpdatedPayload is the JSON body for a message_updated event.
-type messageUpdatedPayload struct {
-	MessageID      int64            `json:"message_id"`
-	ChannelID      int64            `json:"channel_id"`
-	AuthorID       int64            `json:"author_id"`
-	Content        string           `json:"content"`
-	Flags          int32            `json:"flags"`
-	Attachments    []attachmentJSON `json:"attachments"`
-	MentionUserIDs []int64          `json:"mention_user_ids"`
-	EditedAt       int64            `json:"edited_at"`
-}
-
-// messageDeletedPayload is the JSON body for a message_deleted event.
 type messageDeletedPayload struct {
-	MessageID int64 `json:"message_id"`
+	MessageID int64 `json:"id"`
 	ChannelID int64 `json:"channel_id"`
+	Revision  int64 `json:"revision"`
+	DeletedAt int64 `json:"deleted_at"`
 }
 
-type reactionPayload struct {
-	MessageID int64  `json:"message_id"`
-	ChannelID int64  `json:"channel_id"`
-	UserID    int64  `json:"user_id"`
-	EmojiID   int64  `json:"emoji_id"`
-	EmojiName string `json:"emoji_name"`
+func newMessageCreatedEvent(message *model.Message, mentionUserIDs []int64) (messageEvent, error) {
+	return newEvent(EventTypeMessageCreated, message.ChannelID, messagePayloadFromModel(message, mentionUserIDs))
 }
 
-// newMessageCreatedEvent builds an outbox event for a newly created message.
-func newMessageCreatedEvent(topic string, eventID int64, maxRetries, partitionCount int, message *model.Message, mentionUserIDs []int64) (outbox.Event, error) {
-	payload := messageCreatedPayload{
+func newMessageUpdatedEvent(message *model.Message, mentionUserIDs []int64) (messageEvent, error) {
+	return newEvent(EventTypeMessageUpdated, message.ChannelID, messagePayloadFromModel(message, mentionUserIDs))
+}
+
+func newMessageDeletedEvent(message *model.Message) (messageEvent, error) {
+	return newEvent(EventTypeMessageDeleted, message.ChannelID, messageDeletedPayload{
+		MessageID: message.ID,
+		ChannelID: message.ChannelID,
+		Revision:  message.Revision,
+		DeletedAt: message.DeletedAt,
+	})
+}
+
+func messagePayloadFromModel(message *model.Message, mentionUserIDs []int64) messagePayload {
+	return messagePayload{
 		MessageID:           message.ID,
 		ChannelID:           message.ChannelID,
 		AuthorID:            message.AuthorID,
@@ -89,85 +83,39 @@ func newMessageCreatedEvent(topic string, eventID int64, maxRetries, partitionCo
 		Flags:               message.Flags,
 		ReferencedMessageID: message.ReferencedMessageID,
 		ReferencedChannelID: message.ReferencedChannelID,
-		Attachments:         toAttachmentJSON(message.Attachments),
+		Attachments:         attachmentsForEvent(message.Attachments),
 		MentionUserIDs:      mentionUserIDs,
+		EditedAt:            message.EditedAt,
 		CreatedAt:           message.CreatedAt,
+		UpdatedAt:           message.UpdatedAt,
+		Revision:            message.Revision,
 	}
-	return newEvent(topic, eventID, EventTypeMessageCreated, message.ChannelID, maxRetries, partitionCount, payload)
 }
 
-// newMessageUpdatedEvent builds an outbox event for an updated message.
-func newMessageUpdatedEvent(topic string, eventID int64, maxRetries, partitionCount int, message *model.Message, mentionUserIDs []int64) (outbox.Event, error) {
-	payload := messageUpdatedPayload{
-		MessageID:      message.ID,
-		ChannelID:      message.ChannelID,
-		AuthorID:       message.AuthorID,
-		Content:        message.Content,
-		Flags:          message.Flags,
-		Attachments:    toAttachmentJSON(message.Attachments),
-		MentionUserIDs: mentionUserIDs,
-		EditedAt:       message.EditedAt,
-	}
-	return newEvent(topic, eventID, EventTypeMessageUpdated, message.ChannelID, maxRetries, partitionCount, payload)
-}
-
-// newMessageDeletedEvent builds an outbox event for a deleted message.
-func newMessageDeletedEvent(topic string, eventID, messageID, channelID int64, maxRetries, partitionCount int) (outbox.Event, error) {
-	payload := messageDeletedPayload{
-		MessageID: messageID,
-		ChannelID: channelID,
-	}
-	return newEvent(topic, eventID, EventTypeMessageDeleted, channelID, maxRetries, partitionCount, payload)
-}
-
-func newReactionEvent(topic string, eventID int64, eventType string, maxRetries, partitionCount int, messageID, channelID, userID, emojiID int64, emojiName string) (outbox.Event, error) {
-	payload := reactionPayload{
-		MessageID: messageID,
-		ChannelID: channelID,
-		UserID:    userID,
-		EmojiID:   emojiID,
-		EmojiName: emojiName,
-	}
-	return newEvent(topic, eventID, eventType, channelID, maxRetries, partitionCount, payload)
-}
-
-func newEvent[T any](topic string, eventID int64, eventType string, channelID int64, maxRetries, partitionCount int, payload T) (outbox.Event, error) {
-	occurredAt := outbox.Now()
-	key := []byte(fmt.Sprintf("%d", channelID))
-	data, err := json.Marshal(eventEnvelope[T]{
-		EventID:       eventID,
-		EventType:     eventType,
-		SchemaVersion: eventSchemaVersion,
-		OccurredAt:    occurredAt,
-		Data:          payload,
+func newEvent[T any](eventType string, channelID int64, data T) (messageEvent, error) {
+	payload, err := json.Marshal(eventEnvelope[T]{
+		Type: eventType,
+		Data: data,
 	})
 	if err != nil {
-		return outbox.Event{}, fmt.Errorf("marshal %s event: %w", eventType, err)
+		return messageEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}
-	return outbox.Event{
-		ID:          eventID,
-		Topic:       topic,
-		Key:         key,
-		Partition:   outbox.PartitionForKey(key, partitionCount),
-		Payload:     data,
-		RetryCount:  0,
-		MaxRetries:  maxRetries,
-		AvailableAt: occurredAt,
-		LockedAt:    0,
-		CreatedAt:   occurredAt,
+	return messageEvent{
+		Key:     fmt.Appendf(nil, "%d", channelID),
+		Payload: payload,
 	}, nil
 }
 
-func toAttachmentJSON(attachments []model.Attachment) []attachmentJSON {
+func attachmentsForEvent(attachments []model.Attachment) []attachmentJSON {
 	values := make([]attachmentJSON, 0, len(attachments))
-	for _, a := range attachments {
+	for _, attachment := range attachments {
 		values = append(values, attachmentJSON{
-			Key:         a.Key,
-			Filename:    a.Filename,
-			Size:        a.Size,
-			ContentType: a.ContentType,
-			Width:       a.Width,
-			Height:      a.Height,
+			Key:         attachment.Key,
+			Filename:    attachment.Filename,
+			Size:        attachment.Size,
+			ContentType: attachment.ContentType,
+			Width:       attachment.Width,
+			Height:      attachment.Height,
 		})
 	}
 	return values

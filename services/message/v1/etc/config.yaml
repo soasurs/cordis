@@ -29,3 +29,8 @@ database:
   dataSource: postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable
   maxOpenConns: 10
   maxIdleConns: 5
+
+kafka:
+  seeds: []
+  topic: message.events
+  publishTimeoutMs: 1000

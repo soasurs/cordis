@@ -5,27 +5,28 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
 const (
-	EventTypeGuildCreated                 = "guild.created"
-	EventTypeGuildUpdated                 = "guild.updated"
-	EventTypeGuildDeleted                 = "guild.deleted"
-	EventTypeGuildMemberJoined            = "guild.member.joined"
-	EventTypeGuildMemberUpdated           = "guild.member.updated"
-	EventTypeGuildMemberRemoved           = "guild.member.removed"
-	EventTypeGuildMemberBanned            = "guild.member.banned"
-	EventTypeGuildMemberUnbanned          = "guild.member.unbanned"
-	EventTypeGuildRoleCreated             = "guild.role.created"
-	EventTypeGuildRoleUpdated             = "guild.role.updated"
-	EventTypeGuildRoleDeleted             = "guild.role.deleted"
-	EventTypeGuildMemberRolesUpdated      = "guild.member.roles.updated"
-	EventTypeGuildChannelCreated          = "guild.channel.created"
-	EventTypeGuildChannelUpdated          = "guild.channel.updated"
-	EventTypeGuildChannelDeleted          = "guild.channel.deleted"
-	EventTypeGuildChannelOverwriteUpdated = "guild.channel.overwrite.updated"
-	EventTypeGuildChannelOverwriteDeleted = "guild.channel.overwrite.deleted"
+	EventTypeGuildCreated                 = realtime.EventGuildCreated
+	EventTypeGuildUpdated                 = realtime.EventGuildUpdated
+	EventTypeGuildDeleted                 = realtime.EventGuildDeleted
+	EventTypeGuildMemberJoined            = realtime.EventGuildMemberJoined
+	EventTypeGuildMemberUpdated           = realtime.EventGuildMemberUpdated
+	EventTypeGuildMemberRemoved           = realtime.EventGuildMemberRemoved
+	EventTypeGuildMemberBanned            = realtime.EventGuildMemberBanned
+	EventTypeGuildMemberUnbanned          = realtime.EventGuildMemberUnbanned
+	EventTypeGuildRoleCreated             = realtime.EventGuildRoleCreated
+	EventTypeGuildRoleUpdated             = realtime.EventGuildRoleUpdated
+	EventTypeGuildRoleDeleted             = realtime.EventGuildRoleDeleted
+	EventTypeGuildMemberRolesUpdated      = realtime.EventGuildMemberRolesUpdated
+	EventTypeGuildChannelCreated          = realtime.EventGuildChannelCreated
+	EventTypeGuildChannelUpdated          = realtime.EventGuildChannelUpdated
+	EventTypeGuildChannelDeleted          = realtime.EventGuildChannelDeleted
+	EventTypeGuildChannelOverwriteUpdated = realtime.EventGuildChannelOverwriteUpdated
+	EventTypeGuildChannelOverwriteDeleted = realtime.EventGuildChannelOverwriteDeleted
 )
 
 type eventEnvelope[T any] struct {

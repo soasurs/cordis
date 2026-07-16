@@ -12,10 +12,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/zrpc"
-	"google.golang.org/grpc"
 
-	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/server"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
@@ -39,15 +36,6 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	gateway.StartBackground(ctx)
-
-	rpcServer, err := zrpc.NewServer(cfg.RPC, func(grpcServer *grpc.Server) {
-		gatewayv1.RegisterGatewayServiceServer(grpcServer, gateway)
-	})
-	if err != nil {
-		panic(err)
-	}
-	go rpcServer.Start()
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenOn,
@@ -68,7 +56,6 @@ func main() {
 
 	logx.Infow("gateway server listening",
 		logx.Field("listen_on", cfg.ListenOn),
-		logx.Field("rpc_listen_on", cfg.RPC.ListenOn),
 		logx.Field("websocket_path", cfg.Gateway.WebSocketRoute()),
 	)
 	if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

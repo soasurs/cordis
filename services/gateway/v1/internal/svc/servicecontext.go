@@ -1,44 +1,28 @@
 package svc
 
 import (
-	"github.com/zeromicro/go-zero/zrpc"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 
-	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
-	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
-	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
+	"github.com/soasurs/cordis/services/gateway/v1/internal/discovery"
 )
 
 type ServiceContext struct {
-	Cfg                 config.Config
-	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
-	PresenceClient      presencev1.PresenceServiceClient
-	GuildClient         guildv1.GuildServiceClient
+	Cfg      config.Config
+	Resolver discovery.Resolver
 }
 
 type Dependencies struct {
-	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
-	PresenceClient      presencev1.PresenceServiceClient
-	GuildClient         guildv1.GuildServiceClient
+	Resolver discovery.Resolver
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
-	authClient, err := zrpc.NewClient(cfg.Services.Authenticator)
-	if err != nil {
-		return Dependencies{}, err
-	}
-	presenceClient, err := zrpc.NewClient(cfg.Services.Presence)
-	if err != nil {
-		return Dependencies{}, err
-	}
-	guildClient, err := zrpc.NewClient(cfg.Services.Guild)
+	rds, err := redis.NewRedis(cfg.Redis)
 	if err != nil {
 		return Dependencies{}, err
 	}
 	return Dependencies{
-		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(authClient.Conn()),
-		PresenceClient:      presencev1.NewPresenceServiceClient(presenceClient.Conn()),
-		GuildClient:         guildv1.NewGuildServiceClient(guildClient.Conn()),
+		Resolver: discovery.NewRedisResolver(rds),
 	}, nil
 }
 
@@ -51,19 +35,10 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 }
 
 func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *ServiceContext {
-	if deps.AuthenticatorClient == nil {
-		panic("authenticator client is required")
-	}
-	if deps.PresenceClient == nil {
-		panic("presence client is required")
-	}
-	if deps.GuildClient == nil {
-		panic("guild client is required")
+	if deps.Resolver == nil {
+		panic("session resolver is required")
 	}
 	return &ServiceContext{
-		Cfg:                 cfg,
-		AuthenticatorClient: deps.AuthenticatorClient,
-		PresenceClient:      deps.PresenceClient,
-		GuildClient:         deps.GuildClient,
+		Cfg: cfg, Resolver: deps.Resolver,
 	}
 }

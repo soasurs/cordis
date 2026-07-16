@@ -1,34 +1,6 @@
 name: gateway.v1
 listenOn: 0.0.0.0:8081
 
-rpc:
-  name: gateway.rpc
-  listenOn: 0.0.0.0:3004
-  timeout: 0
-
-  log:
-    level: error
-    stat: false
-
-  devServer:
-    enabled: true
-    host: 0.0.0.0
-    port: 6064
-    enableMetrics: true
-    enablePprof: false
-
-  telemetry:
-    endpoint: "${CORDIS_OTEL_ENDPOINT}"
-    sampler: 1.0
-    batcher: otlpgrpc
-
-  middlewares:
-    trace: true
-    recover: true
-    stat: false
-    prometheus: true
-    breaker: true
-
 log:
   mode: console
   encoding: json
@@ -37,27 +9,10 @@ log:
 
 gateway:
   websocketPath: /ws
-  heartbeatIntervalMs: 30000
+  heartbeatIntervalMs: 45000
   identifyTimeoutSeconds: 10
-  routeRefreshSeconds: 15
-  gatewayRefreshSeconds: 15
   maxMessageBytes: 65536
 
-kafka:
-  seeds: []
-  guildTopic: cordis.guild.events.v1
-  consumerGroupPrefix: cordis.gateway.guild-events.v1
-
-services:
-  authenticator:
-    endpoints:
-      - 127.0.0.1:3001
-    nonBlock: true
-  presence:
-    endpoints:
-      - 127.0.0.1:3003
-    nonBlock: true
-  guild:
-    endpoints:
-      - 127.0.0.1:3005
-    nonBlock: true
+redis:
+  host: 127.0.0.1:6379
+  type: node

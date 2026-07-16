@@ -23,4 +23,4 @@ inputs:
       - proto/message
       - proto/guild
       - proto/presence
-      - proto/gateway
+      - proto/session

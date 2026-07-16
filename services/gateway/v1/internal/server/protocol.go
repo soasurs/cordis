@@ -8,6 +8,9 @@ const (
 	opIdentify     = 2
 	opPresence     = 3
 	opSubscribe    = 4
+	opResume       = 6
+	opReconnect    = 7
+	opInvalid      = 9
 	opHello        = 10
 	opHeartbeatAck = 11
 	opError        = 4000
@@ -15,6 +18,7 @@ const (
 
 type envelope struct {
 	Op int             `json:"op"`
+	S  uint64          `json:"s,omitempty"`
 	T  string          `json:"t,omitempty"`
 	D  json.RawMessage `json:"d,omitempty"`
 }
@@ -31,18 +35,10 @@ type identifyData struct {
 	ClientState string `json:"client_state,omitempty"`
 }
 
-type readyData struct {
-	UserID               int64  `json:"user_id"`
-	AuthSessionID        int64  `json:"auth_session_id"`
-	GatewaySessionID     string `json:"gateway_session_id"`
-	GatewayID            string `json:"gateway_id"`
-	HeartbeatIntervalMs  int64  `json:"heartbeat_interval_ms"`
-	AccessTokenExpiresAt int64  `json:"access_token_expires_at"`
-}
-
-type heartbeatAckData struct {
-	UserID           int64  `json:"user_id"`
-	GatewaySessionID string `json:"gateway_session_id"`
+type resumeData struct {
+	Token     string `json:"token"`
+	SessionID string `json:"session_id"`
+	Sequence  uint64 `json:"seq"`
 }
 
 type presenceData struct {
@@ -51,10 +47,6 @@ type presenceData struct {
 }
 
 type subscribeData struct {
-	ChannelIDs []int64 `json:"channel_ids"`
-}
-
-type subscribedData struct {
 	ChannelIDs []int64 `json:"channel_ids"`
 }
 

@@ -13,6 +13,8 @@ make test              # go test ./...
 
 # Focused checks
 go test ./services/gateway/v1/internal/server/... -v -count=1
+go test ./services/session/v1/internal/server/... -v -count=1
+go test ./services/dispatcher/v1/internal/server/... -v -count=1
 go test ./services/message/v1/internal/server/... -v -count=1
 go test ./services/message/v1/internal/store/... -v -count=1
 go build ./services/message/v1/...
@@ -28,18 +30,20 @@ go build ./services/guild/v1/...
 ## Services
 
 - `services/api/v1`: public Connect-RPC HTTP API on `:8080`; authenticates callers, proxies User/Message/Guild operations to internal gRPC services, and maps errors through `pkg/apierror`.
-- `services/gateway/v1`: websocket gateway on `:8081` plus internal gRPC on `:3004`; verifies access tokens via Authenticator, records sessions/routes via Presence, and optionally consumes Guild events from Kafka.
+- `services/gateway/v1`: websocket gateway on `:8081`; forwards websocket frames over a bidirectional gRPC stream to Session and owns no logical session, replay, subscription, or Kafka state.
+- `services/session/v1`: stateful gRPC service on `:3006`; owns logical sessions, sequence numbers, 2048-event in-memory replay windows, subscriptions, Presence updates, and Gateway stream bindings.
+- `services/dispatcher/v1`: Kafka consumer for Guild and Message topics; resolves aggregate Session-node routes in Redis and dispatches events to Session gRPC.
 - `services/presence/v1`: gRPC on `:3003`; Redis-backed gateway liveness, channel routing, and user presence TTLs.
 - `services/authenticator/v1`: go-zero `zrpc` on `:3001`; JWT access/refresh tokens, sessions in Postgres, calls User gRPC.
 - `services/user/v1`: go-zero `zrpc` on `:3000`; users/profiles in Postgres, Argon2id password hashing.
-- `services/message/v1`: go-zero `zrpc` on `:3002`; messages/reactions/mentions in Postgres, publishes message events directly to Kafka when Kafka is configured.
+- `services/message/v1`: go-zero `zrpc` on `:3002`; messages and mentions in Postgres, publishes message events directly to Kafka when Kafka is configured.
 - `services/guild/v1`: go-zero `zrpc` on `:3005`; guilds/members/bans/roles/channels in Postgres, calls User gRPC when directly adding or banning users, and publishes guild events to its own Kafka topic.
 
 ## Proto
 
-- Protos use edition 2023. Internal generation uses opaque Go API (`default_api_level=API_OPAQUE`), so use generated getters/setters/builders instead of field access or struct literals for `gen/{authenticator,user,message,guild,presence,gateway}`.
+- Protos use edition 2023. Internal generation uses opaque Go API (`default_api_level=API_OPAQUE`), so use generated getters/setters/builders instead of field access or struct literals for `gen/{authenticator,user,message,guild,presence,session}`.
 - External `proto/api` generation is open Go API plus Connect-Go and protobuf-es TypeScript under `gen/web`; existing API code uses pointer fields and struct literals there.
-- `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, and `proto/gateway`.
+- `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, and `proto/session`.
 
 ## Service Wiring
 
@@ -59,6 +63,7 @@ go build ./services/guild/v1/...
 
 - Message mutations commit their database transaction before publishing directly to Kafka; do not introduce a transactional outbox unless explicitly requested.
 - Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope and are keyed by decimal `channel_id`.
+- Realtime domain event names use dot-separated hierarchy only. Shared names live in `pkg/realtime`; do not introduce underscore variants such as `message_created`.
 - Kafka publication is best-effort: publication failures are logged but do not turn an already-committed mutation into an RPC failure.
 - `message.created` and `message.updated` payloads include `mention_user_ids`.
 - Message list pagination is cursor-based: `before`/`after` use one query; `around` queries older and newer sides and trims/backfills to the requested limit.
@@ -66,7 +71,7 @@ go build ./services/guild/v1/...
 - Client-settable flags only include `SUPPRESS_NOTIFICATIONS`; `HAS_THREAD` is rejected.
 - Reply fields must be set together, and the referenced channel must match the referenced message.
 - Message operations are supported only in text channels; category and voice channels are rejected.
-- Custom guild emojis live in `emojis`; Unicode reactions use `emoji_id = 0`. Reaction summaries left join emojis and use `COALESCE` for null-safe `animated` and `image_key`.
+- Reaction and custom emoji RPCs are not currently implemented; the latest Message migration removes the old `reactions` and `emojis` tables.
 
 ## Guild Service
 
@@ -97,24 +102,26 @@ go build ./services/guild/v1/...
 - Message calls Guild `AuthorizeGuildChannel` for every create/read/list/update/delete operation. Message no longer trusts a caller-provided moderator boolean; non-author edits/deletes require `MANAGE_MESSAGES`.
 - Later Guild phases own invitations, permission-change-driven immediate subscription revocation, limits, and richer ordering.
 
-## Gateway And Presence
+## Gateway, Session, Dispatcher, And Presence
 
-- Gateway websocket protocol opcodes are in `services/gateway/v1/internal/server/protocol.go`; first client message after `HELLO` must be `IDENTIFY` (`op=2`) with an access token.
-- Gateway requires Authenticator, Presence, and Guild gRPC clients. Channel subscription requests are deduplicated and must all pass Guild `VIEW_CHANNEL` authorization before any local subscription is added.
-- Gateway tracks local subscriptions in memory and refreshes aggregate channel routes in Presence; callers resolve target gateways via Presence before calling gateway dispatch gRPC.
-- On IDENTIFY, Gateway loads the user's Guild memberships and tracks local Guild subscriptions. When Kafka is configured, each Gateway instance uses an instance-specific consumer group to receive every Guild event and fan it out to relevant local sessions.
-- Guild channel create/update/overwrite events are re-authorized per local user before dispatch. Channel deletion is sent to existing local channel subscribers. Member removal and ban events are delivered before the target user's local Guild subscription is revoked.
-- Before periodic route refresh, Gateway revalidates each local channel subscription through Guild. Revoked/not-found access removes the subscription and detaches the aggregate Presence route when its final local subscriber disappears.
-- Transient Guild authorization failures do not evict subscriptions; Gateway logs the failure and retries on the next route refresh.
-- Presence Redis keys are TTL-based; stale gateway generations and expired sessions/routes are filtered during reads.
-- Invisible presence resolves as offline and hides sessions.
+- Gateway websocket protocol opcodes are in `services/gateway/v1/internal/server/protocol.go`; the first client message after `HELLO` may be `IDENTIFY` (`op=2`) or `RESUME` (`op=6`).
+- Gateway is a transport adapter. It forwards `connection_id`, Gateway ID/generation, and client operations to Session, then writes Session's `op/s/t/d` frames to the websocket.
+- IDENTIFY selects a ready node from the Redis `session:nodes` index. RESUME resolves `session:owners:{session_id}` and `session:nodes:{node_id}`, then connects directly to the owning Session node.
+- Session stores state in process memory. A disconnected Session remains resumable for two minutes; a Session-node crash loses its Sessions and clients must IDENTIFY again.
+- Each Session has an independent monotonically increasing sequence and a 2048-entry sliding replay window. Heartbeat `d` is the acknowledged sequence and removes acknowledged replay entries.
+- Session owns `user/guild/channel -> local sessions` indexes and checks Guild `VIEW_CHANNEL` when adding Channel subscriptions or distributing visibility-sensitive Channel metadata events.
+- Session nodes register under `session:nodes:{node_id}`; owners use `session:owners:{session_id}`. Aggregate ZSET routes use `gateway:routes:users:{id}:nodes`, `gateway:routes:guilds:{id}:nodes`, and `gateway:routes:channels:{id}:nodes`.
+- Redis stores only discovery and aggregate routing metadata, not replay payloads.
+- Dispatcher instances share one consumer group, consume `cordis.guild.events.v1` and `message.events`, and call each target Session node at most once per event.
+- Session graceful drain marks the node `draining`, rejects new attachments, and spreads `INVALID_SESSION(false)` notifications across the configured drain window. It does not transfer in-memory Session state.
+- Presence is updated by Session and continues to aggregate per-device user status. Invisible presence resolves as offline and hides sessions.
 
 ## Errors
 
 - Internal domain errors use `pkg/rpcerror.New(code, domain, reason, message)` with `google.rpc.ErrorInfo`.
 - Public API errors go through `apierror.FromRPC(err)`, which maps known domain/reason pairs to Connect errors with `api.v1.PublicErrorInfo` details.
 - Message handlers use `mapStoreError()`: `sql.ErrNoRows` to message not found, `store.ErrPermissionDenied` to permission denied, Postgres CHECK violation `23514` to invalid request.
-- Gateway and Presence currently use plain gRPC `status.Error` for validation errors.
+- Gateway, Session, and Presence currently use plain gRPC `status.Error` for validation errors.
 
 ## Tests
 
@@ -126,5 +133,5 @@ go build ./services/guild/v1/...
 
 - Authenticator config requires `CORDIS_ACCESS_TOKEN_SECRET` and `CORDIS_REFRESH_TOKEN_SECRET` for real token manager startup.
 - Optional tracing endpoint is read from `CORDIS_OTEL_ENDPOINT` in service configs.
-- Message config requires a Guild gRPC endpoint for channel authorization. Message and Guild Kafka configs are optional; if no Kafka seeds are configured, no Kafka producer is created and mutations still succeed without event publication.
+- Message config requires a Guild gRPC endpoint for channel authorization. Message and Guild Kafka producer configs are optional; Dispatcher Kafka seeds are required.
 - Snowflake IDs use a custom node derived from non-loopback IP hash, epoch `2025-01-01`, 16 node bits, and 8 step bits.

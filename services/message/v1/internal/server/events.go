@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
 const (
-	EventTypeMessageCreated = "message.created"
-	EventTypeMessageUpdated = "message.updated"
-	EventTypeMessageDeleted = "message.deleted"
+	EventTypeMessageCreated = realtime.EventMessageCreated
+	EventTypeMessageUpdated = realtime.EventMessageUpdated
+	EventTypeMessageDeleted = realtime.EventMessageDeleted
 )
 
 type eventEnvelope[T any] struct {

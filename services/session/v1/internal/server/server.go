@@ -1,0 +1,850 @@
+package server
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
+	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/services/session/v1/internal/store"
+	"github.com/soasurs/cordis/services/session/v1/internal/svc"
+)
+
+const (
+	opDispatch     = 0
+	opHeartbeatAck = 11
+	opInvalid      = 9
+	guildPageSize  = 100
+)
+
+type replayEntry struct {
+	sequence uint64
+	frame    *sessionv1.ConnectResponse
+}
+
+type binding struct {
+	id   string
+	send chan *sessionv1.ConnectResponse
+	done chan struct{}
+	once sync.Once
+}
+
+func (b *binding) close() {
+	b.once.Do(func() { close(b.done) })
+}
+
+type logicalSession struct {
+	mu sync.Mutex
+
+	id                string
+	userID            int64
+	authSessionID     int64
+	gatewayID         string
+	gatewayGeneration string
+	deviceType        string
+	status            presencev1.PresenceStatus
+	clientState       presencev1.ClientState
+	sequence          uint64
+	ackedSequence     uint64
+	replay            []replayEntry
+	replayFloor       uint64
+	guilds            map[int64]struct{}
+	channels          map[int64]struct{}
+	channelGuilds     map[int64]int64
+	binding           *binding
+	bindingEpoch      uint64
+	detachedAt        time.Time
+}
+
+type Server struct {
+	sessionv1.UnimplementedSessionServiceServer
+
+	svcCtx     *svc.ServiceContext
+	nodeID     string
+	generation string
+	rpcAddress string
+
+	mu       sync.RWMutex
+	sessions map[string]*logicalSession
+	users    map[int64]map[*logicalSession]struct{}
+	guilds   map[int64]map[*logicalSession]struct{}
+	channels map[int64]map[*logicalSession]struct{}
+	draining atomic.Bool
+}
+
+func New(svcCtx *svc.ServiceContext) *Server {
+	nodeID := strings.TrimSpace(svcCtx.Cfg.Node.ID)
+	if nodeID == "" {
+		nodeID, _ = os.Hostname()
+	}
+	if nodeID == "" {
+		nodeID = randomID("session-node")
+	}
+	rpcAddress := strings.TrimSpace(svcCtx.Cfg.Node.AdvertiseAddress)
+	if rpcAddress == "" {
+		rpcAddress = svcCtx.Cfg.ListenOn
+	}
+	return &Server{
+		svcCtx:     svcCtx,
+		nodeID:     nodeID,
+		generation: randomID("gen"),
+		rpcAddress: rpcAddress,
+		sessions:   make(map[string]*logicalSession),
+		users:      make(map[int64]map[*logicalSession]struct{}),
+		guilds:     make(map[int64]map[*logicalSession]struct{}),
+		channels:   make(map[int64]map[*logicalSession]struct{}),
+	}
+}
+
+func (s *Server) StartBackground(ctx context.Context) {
+	go s.refreshNode(ctx)
+	go s.refreshRoutes(ctx)
+	go s.cleanupDetached(ctx)
+}
+
+func (s *Server) Drain(ctx context.Context) {
+	if !s.draining.CompareAndSwap(false, true) {
+		return
+	}
+	_ = s.registerNode(ctx, "draining")
+
+	s.mu.RLock()
+	sessions := make([]*logicalSession, 0, len(s.sessions))
+	for _, session := range s.sessions {
+		sessions = append(sessions, session)
+	}
+	s.mu.RUnlock()
+
+	var interval time.Duration
+	if len(sessions) > 0 {
+		interval = s.svcCtx.Cfg.Node.DrainWindow() / time.Duration(len(sessions))
+	}
+	for _, session := range sessions {
+		session.mu.Lock()
+		if session.binding != nil {
+			frame := new(sessionv1.ConnectResponse)
+			frame.SetOpcode(opInvalid)
+			frame.SetJsonPayload(`false`)
+			frame.SetCloseCode(1012)
+			frame.SetCloseReason("session node draining")
+			_ = enqueue(session.binding, frame)
+		}
+		session.mu.Unlock()
+		if interval > 0 {
+			timer := time.NewTimer(interval)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			case <-timer.C:
+			}
+		}
+	}
+}
+
+func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
+	first, err := stream.Recv()
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(first.GetConnectionId()) == "" {
+		return status.Error(codes.InvalidArgument, "connection id is required")
+	}
+	if strings.TrimSpace(first.GetGatewayId()) == "" || strings.TrimSpace(first.GetGatewayGeneration()) == "" {
+		return status.Error(codes.InvalidArgument, "gateway identity is required")
+	}
+	if s.draining.Load() {
+		return status.Error(codes.Unavailable, "session node is draining")
+	}
+
+	var session *logicalSession
+	switch {
+	case first.GetIdentify() != nil:
+		session, err = s.identify(
+			stream.Context(),
+			first.GetConnectionId(),
+			first.GetGatewayId(),
+			first.GetGatewayGeneration(),
+			first.GetIdentify(),
+		)
+	case first.GetResume() != nil:
+		session, err = s.resume(
+			stream.Context(),
+			first.GetConnectionId(),
+			first.GetGatewayId(),
+			first.GetGatewayGeneration(),
+			first.GetResume(),
+		)
+	default:
+		err = status.Error(codes.InvalidArgument, "first frame must identify or resume")
+	}
+	if err != nil {
+		return err
+	}
+
+	session.mu.Lock()
+	current := session.binding
+	session.mu.Unlock()
+	if current == nil {
+		return status.Error(codes.FailedPrecondition, "session binding is missing")
+	}
+
+	recv := make(chan error, 1)
+	go func() {
+		recv <- s.receiveFrames(stream, session, current)
+	}()
+
+	for {
+		select {
+		case frame := <-current.send:
+			if err := stream.Send(frame); err != nil {
+				s.detach(session, current, true)
+				return err
+			}
+		case err := <-recv:
+			s.detach(session, current, true)
+			return err
+		case <-current.done:
+			return nil
+		case <-stream.Context().Done():
+			s.detach(session, current, true)
+			return stream.Context().Err()
+		}
+	}
+}
+
+func (s *Server) identify(
+	ctx context.Context,
+	connectionID, gatewayID, gatewayGeneration string,
+	data *sessionv1.Identify,
+) (*logicalSession, error) {
+	if strings.TrimSpace(data.GetToken()) == "" {
+		return nil, status.Error(codes.Unauthenticated, "token is required")
+	}
+	authReq := new(authenticatorv1.VerifyAccessTokenRequest)
+	authReq.SetAccessToken(data.GetToken())
+	auth, err := s.svcCtx.AuthenticatorClient.VerifyAccessToken(ctx, authReq)
+	if err != nil {
+		return nil, err
+	}
+	if !auth.GetOk() || auth.GetUserId() == 0 || auth.GetSessionId() == 0 {
+		return nil, status.Error(codes.Unauthenticated, "access token rejected")
+	}
+
+	session := &logicalSession{
+		id:                randomID("sess"),
+		userID:            auth.GetUserId(),
+		authSessionID:     auth.GetSessionId(),
+		gatewayID:         gatewayID,
+		gatewayGeneration: gatewayGeneration,
+		deviceType:        data.GetDeviceType(),
+		status:            statusFromString(data.GetStatus()),
+		clientState:       clientStateFromString(data.GetClientState()),
+		guilds:            make(map[int64]struct{}),
+		channels:          make(map[int64]struct{}),
+		channelGuilds:     make(map[int64]int64),
+		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
+	}
+	if err := s.loadGuilds(ctx, session); err != nil {
+		return nil, err
+	}
+	b := newBinding(connectionID, s.svcCtx.Cfg.Node.QueueSize())
+	session.binding = b
+	session.bindingEpoch = 1
+
+	s.addSession(session)
+	if err := s.refreshOwner(ctx, session); err != nil {
+		s.removeSession(ctx, session)
+		return nil, err
+	}
+	if err := s.registerPresence(ctx, session); err != nil {
+		s.removeSession(ctx, session)
+		return nil, err
+	}
+	s.refreshAllRoutes(ctx)
+
+	ready, _ := json.Marshal(map[string]any{
+		"user_id":                 session.userID,
+		"auth_session_id":         session.authSessionID,
+		"session_id":              session.id,
+		"session_node_id":         s.nodeID,
+		"access_token_expires_at": auth.GetExpiresAt(),
+	})
+	session.mu.Lock()
+	s.appendDispatchLocked(session, realtime.GatewayEventReady, ready)
+	session.mu.Unlock()
+	return session, nil
+}
+
+func (s *Server) resume(
+	ctx context.Context,
+	connectionID, gatewayID, gatewayGeneration string,
+	data *sessionv1.Resume,
+) (*logicalSession, error) {
+	if strings.TrimSpace(data.GetToken()) == "" || strings.TrimSpace(data.GetSessionId()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "token and session id are required")
+	}
+	s.mu.RLock()
+	session := s.sessions[data.GetSessionId()]
+	s.mu.RUnlock()
+	if session == nil {
+		return nil, status.Error(codes.NotFound, "session not found")
+	}
+
+	authReq := new(authenticatorv1.VerifyAccessTokenRequest)
+	authReq.SetAccessToken(data.GetToken())
+	auth, err := s.svcCtx.AuthenticatorClient.VerifyAccessToken(ctx, authReq)
+	if err != nil {
+		return nil, err
+	}
+	if !auth.GetOk() || auth.GetUserId() != session.userID || auth.GetSessionId() != session.authSessionID {
+		return nil, status.Error(codes.Unauthenticated, "resume token rejected")
+	}
+
+	session.mu.Lock()
+	if data.GetSequence() > session.sequence {
+		session.mu.Unlock()
+		return nil, status.Error(codes.FailedPrecondition, "session is not resumable")
+	}
+	if data.GetSequence() < session.replayFloor || data.GetSequence() < session.ackedSequence {
+		session.mu.Unlock()
+		return nil, status.Error(codes.FailedPrecondition, "replay sequence expired")
+	}
+
+	old := session.binding
+	b := newBinding(connectionID, s.svcCtx.Cfg.Node.QueueSize())
+	session.binding = b
+	session.bindingEpoch++
+	session.gatewayID = gatewayID
+	session.gatewayGeneration = gatewayGeneration
+	session.detachedAt = time.Time{}
+	if old != nil {
+		old.close()
+	}
+	for _, entry := range session.replay {
+		if entry.sequence > data.GetSequence() {
+			b.send <- cloneFrame(entry.frame)
+		}
+	}
+	s.appendDispatchLocked(session, realtime.GatewayEventResumed, []byte(`{}`))
+	session.mu.Unlock()
+	if err := s.refreshOwner(ctx, session); err != nil {
+		return nil, err
+	}
+	if err := s.refreshPresence(ctx, session); err != nil {
+		return nil, err
+	}
+	return session, nil
+}
+
+func (s *Server) receiveFrames(stream sessionv1.SessionService_ConnectServer, session *logicalSession, binding *binding) error {
+	for {
+		frame, err := stream.Recv()
+		if err != nil {
+			return err
+		}
+		if frame.GetConnectionId() != binding.id {
+			return status.Error(codes.PermissionDenied, "connection id mismatch")
+		}
+		switch {
+		case frame.GetHeartbeat() != nil:
+			if err := s.heartbeat(stream.Context(), session, binding, frame.GetHeartbeat().GetSequence()); err != nil {
+				return err
+			}
+		case frame.GetPresence() != nil:
+			if err := s.updatePresence(stream.Context(), session, binding, frame.GetPresence()); err != nil {
+				return err
+			}
+		case frame.GetSubscribe() != nil:
+			if err := s.subscribeChannels(stream.Context(), session, binding, frame.GetSubscribe().GetChannelIds()); err != nil {
+				return err
+			}
+		case frame.GetDetach() != nil:
+			s.detach(session, binding, frame.GetDetach().GetResumable())
+			return nil
+		default:
+			return status.Error(codes.InvalidArgument, "unsupported session frame")
+		}
+	}
+}
+
+func (s *Server) heartbeat(ctx context.Context, session *logicalSession, binding *binding, sequence uint64) error {
+	session.mu.Lock()
+	if session.binding != binding {
+		session.mu.Unlock()
+		return status.Error(codes.Aborted, "stale session binding")
+	}
+	if sequence > session.sequence {
+		session.mu.Unlock()
+		return status.Error(codes.InvalidArgument, "heartbeat sequence is ahead of session")
+	}
+	if sequence > session.ackedSequence {
+		session.ackedSequence = sequence
+		cut := 0
+		for cut < len(session.replay) && session.replay[cut].sequence <= sequence {
+			cut++
+		}
+		session.replay = append(session.replay[:0], session.replay[cut:]...)
+	}
+	session.mu.Unlock()
+	if err := s.refreshOwner(ctx, session); err != nil {
+		return err
+	}
+	if err := s.refreshPresence(ctx, session); err != nil {
+		return err
+	}
+	ack := new(sessionv1.ConnectResponse)
+	ack.SetOpcode(opHeartbeatAck)
+	ack.SetJsonPayload(`null`)
+	return enqueue(binding, ack)
+}
+
+func (s *Server) updatePresence(ctx context.Context, session *logicalSession, binding *binding, data *sessionv1.PresenceUpdate) error {
+	session.mu.Lock()
+	if session.binding != binding {
+		session.mu.Unlock()
+		return status.Error(codes.Aborted, "stale session binding")
+	}
+	session.status = statusFromString(data.GetStatus())
+	session.clientState = clientStateFromString(data.GetClientState())
+	session.mu.Unlock()
+	return s.updatePresenceRPC(ctx, session)
+}
+
+func (s *Server) subscribeChannels(ctx context.Context, session *logicalSession, binding *binding, ids []int64) error {
+	ids, err := normalizeIDs(ids)
+	if err != nil {
+		return err
+	}
+	channelGuilds := make(map[int64]int64, len(ids))
+	for _, channelID := range ids {
+		if ok, guildID, err := s.authorizeChannel(ctx, session.userID, channelID); err != nil {
+			return err
+		} else if !ok {
+			return status.Error(codes.PermissionDenied, "channel subscription permission denied")
+		} else {
+			channelGuilds[channelID] = guildID
+		}
+	}
+	session.mu.Lock()
+	if session.binding != binding {
+		session.mu.Unlock()
+		return status.Error(codes.Aborted, "stale session binding")
+	}
+	for _, channelID := range ids {
+		session.channels[channelID] = struct{}{}
+		session.channelGuilds[channelID] = channelGuilds[channelID]
+	}
+	session.mu.Unlock()
+	s.addChannelIndexes(session, ids)
+	s.refreshAllRoutes(ctx)
+
+	payload, _ := json.Marshal(map[string]any{"channel_ids": ids})
+	session.mu.Lock()
+	s.appendDispatchLocked(session, realtime.GatewayEventSubscribed, payload)
+	session.mu.Unlock()
+	return nil
+}
+
+func (s *Server) detach(session *logicalSession, binding *binding, resumable bool) {
+	session.mu.Lock()
+	if session.binding != binding {
+		session.mu.Unlock()
+		return
+	}
+	session.binding = nil
+	session.detachedAt = time.Now()
+	session.mu.Unlock()
+	binding.close()
+	if !resumable {
+		s.removeSession(context.Background(), session)
+		return
+	}
+	_ = s.refreshOwner(context.Background(), session)
+}
+
+func (s *Server) appendDispatchLocked(session *logicalSession, eventType string, payload []byte) {
+	session.sequence++
+	frame := new(sessionv1.ConnectResponse)
+	frame.SetOpcode(opDispatch)
+	frame.SetSequence(session.sequence)
+	frame.SetType(eventType)
+	frame.SetJsonPayload(string(payload))
+	session.replay = append(session.replay, replayEntry{sequence: session.sequence, frame: frame})
+	if len(session.replay) > s.svcCtx.Cfg.Node.ReplayLimit() {
+		overflow := len(session.replay) - s.svcCtx.Cfg.Node.ReplayLimit()
+		session.replayFloor = session.replay[overflow-1].sequence
+		session.replay = session.replay[overflow:]
+	}
+	if session.binding != nil {
+		if err := enqueue(session.binding, cloneFrame(frame)); err != nil {
+			session.binding.close()
+			session.binding = nil
+			session.detachedAt = time.Now()
+		}
+	}
+}
+
+func enqueue(binding *binding, frame *sessionv1.ConnectResponse) error {
+	select {
+	case binding.send <- frame:
+		return nil
+	case <-binding.done:
+		return errors.New("session binding closed")
+	default:
+		return errors.New("session binding queue full")
+	}
+}
+
+func newBinding(id string, queueSize int) *binding {
+	return &binding{id: id, send: make(chan *sessionv1.ConnectResponse, queueSize), done: make(chan struct{})}
+}
+
+func cloneFrame(frame *sessionv1.ConnectResponse) *sessionv1.ConnectResponse {
+	cloned := new(sessionv1.ConnectResponse)
+	cloned.SetOpcode(frame.GetOpcode())
+	cloned.SetSequence(frame.GetSequence())
+	cloned.SetType(frame.GetType())
+	cloned.SetJsonPayload(frame.GetJsonPayload())
+	cloned.SetCloseCode(frame.GetCloseCode())
+	cloned.SetCloseReason(frame.GetCloseReason())
+	return cloned
+}
+
+func (s *Server) addSession(session *logicalSession) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sessions[session.id] = session
+	addIndex(s.users, session.userID, session)
+	for guildID := range session.guilds {
+		addIndex(s.guilds, guildID, session)
+	}
+}
+
+func (s *Server) addChannelIndexes(session *logicalSession, channelIDs []int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, channelID := range channelIDs {
+		addIndex(s.channels, channelID, session)
+	}
+}
+
+func addIndex(index map[int64]map[*logicalSession]struct{}, id int64, session *logicalSession) {
+	set := index[id]
+	if set == nil {
+		set = make(map[*logicalSession]struct{})
+		index[id] = set
+	}
+	set[session] = struct{}{}
+}
+
+func removeIndex(index map[int64]map[*logicalSession]struct{}, id int64, session *logicalSession) {
+	delete(index[id], session)
+	if len(index[id]) == 0 {
+		delete(index, id)
+	}
+}
+
+func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
+	session.mu.Lock()
+	if session.binding != nil {
+		session.binding.close()
+		session.binding = nil
+	}
+	guildIDs := mapKeys(session.guilds)
+	channelIDs := mapKeys(session.channels)
+	session.mu.Unlock()
+
+	s.mu.Lock()
+	delete(s.sessions, session.id)
+	removeIndex(s.users, session.userID, session)
+	for _, guildID := range guildIDs {
+		removeIndex(s.guilds, guildID, session)
+	}
+	for _, channelID := range channelIDs {
+		removeIndex(s.channels, channelID, session)
+	}
+	s.mu.Unlock()
+	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
+	s.removePresence(ctx, session)
+	s.refreshAllRoutes(ctx)
+}
+
+func (s *Server) loadGuilds(ctx context.Context, session *logicalSession) error {
+	var before int64
+	for {
+		req := new(guildv1.ListUserGuildsRequest)
+		req.SetUserId(session.userID)
+		req.SetBefore(before)
+		req.SetLimit(guildPageSize)
+		resp, err := s.svcCtx.GuildClient.ListUserGuilds(ctx, req)
+		if err != nil {
+			return err
+		}
+		for _, guild := range resp.GetGuilds() {
+			session.guilds[guild.GetId()] = struct{}{}
+		}
+		if len(resp.GetGuilds()) < guildPageSize || resp.GetBeforeCursor() == 0 {
+			return nil
+		}
+		before = resp.GetBeforeCursor()
+	}
+}
+
+func (s *Server) authorizeChannel(ctx context.Context, userID, channelID int64) (bool, int64, error) {
+	req := new(guildv1.AuthorizeGuildChannelRequest)
+	req.SetUserId(userID)
+	req.SetChannelId(channelID)
+	req.SetPermission(uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL))
+	resp, err := s.svcCtx.GuildClient.AuthorizeGuildChannel(ctx, req)
+	if err != nil {
+		return false, 0, err
+	}
+	return resp.GetAllowed(), resp.GetGuildId(), nil
+}
+
+func (s *Server) refreshOwner(ctx context.Context, session *logicalSession) error {
+	return s.svcCtx.Store.SetOwner(ctx, store.Owner{
+		SessionID: session.id, NodeID: s.nodeID, Generation: s.generation,
+	}, s.svcCtx.Cfg.Node.ResumeTTL())
+}
+
+func (s *Server) registerPresence(ctx context.Context, session *logicalSession) error {
+	req := new(presencev1.RegisterUserSessionRequest)
+	req.SetUserId(session.userID)
+	req.SetSessionId(session.id)
+	req.SetGatewayId(session.gatewayID)
+	req.SetGeneration(session.gatewayGeneration)
+	req.SetDeviceType(session.deviceType)
+	req.SetStatus(session.status)
+	req.SetClientState(session.clientState)
+	_, err := s.svcCtx.PresenceClient.RegisterUserSession(ctx, req)
+	return err
+}
+
+func (s *Server) refreshPresence(ctx context.Context, session *logicalSession) error {
+	session.mu.Lock()
+	statusValue, clientState := session.status, session.clientState
+	session.mu.Unlock()
+	req := new(presencev1.RefreshUserSessionRequest)
+	req.SetUserId(session.userID)
+	req.SetSessionId(session.id)
+	req.SetGatewayId(session.gatewayID)
+	req.SetGeneration(session.gatewayGeneration)
+	req.SetDeviceType(session.deviceType)
+	req.SetStatus(statusValue)
+	req.SetClientState(clientState)
+	_, err := s.svcCtx.PresenceClient.RefreshUserSession(ctx, req)
+	return err
+}
+
+func (s *Server) updatePresenceRPC(ctx context.Context, session *logicalSession) error {
+	session.mu.Lock()
+	statusValue, clientState := session.status, session.clientState
+	session.mu.Unlock()
+	req := new(presencev1.UpdateUserPresenceRequest)
+	req.SetUserId(session.userID)
+	req.SetSessionId(session.id)
+	req.SetStatus(statusValue)
+	req.SetClientState(clientState)
+	_, err := s.svcCtx.PresenceClient.UpdateUserPresence(ctx, req)
+	return err
+}
+
+func (s *Server) removePresence(ctx context.Context, session *logicalSession) {
+	req := new(presencev1.RemoveUserSessionRequest)
+	req.SetUserId(session.userID)
+	req.SetSessionId(session.id)
+	_, _ = s.svcCtx.PresenceClient.RemoveUserSession(ctx, req)
+}
+
+func (s *Server) refreshNode(ctx context.Context) {
+	ticker := time.NewTicker(s.svcCtx.Cfg.Node.HeartbeatInterval())
+	defer ticker.Stop()
+	for {
+		nodeStatus := "ready"
+		if s.draining.Load() {
+			nodeStatus = "draining"
+		}
+		err := s.registerNode(ctx, nodeStatus)
+		if err != nil && ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("register session node", logx.Field("error", err))
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func (s *Server) registerNode(ctx context.Context, nodeStatus string) error {
+	return s.svcCtx.Store.RegisterNode(ctx, store.Node{
+		ID: s.nodeID, Generation: s.generation, RPCAddress: s.rpcAddress, Status: nodeStatus,
+	}, s.svcCtx.Cfg.Node.NodeTTL())
+}
+
+func (s *Server) refreshRoutes(ctx context.Context) {
+	ticker := time.NewTicker(s.svcCtx.Cfg.Node.RouteRefreshInterval())
+	defer ticker.Stop()
+	for {
+		s.refreshAllRoutes(ctx)
+		s.refreshSessionLeases(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func (s *Server) refreshSessionLeases(ctx context.Context) {
+	s.mu.RLock()
+	sessions := make([]*logicalSession, 0, len(s.sessions))
+	for _, session := range s.sessions {
+		sessions = append(sessions, session)
+	}
+	s.mu.RUnlock()
+	for _, session := range sessions {
+		if err := s.refreshOwner(ctx, session); err != nil && ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("refresh session owner",
+				logx.Field("session_id", session.id),
+				logx.Field("error", err),
+			)
+		}
+		if err := s.refreshPresence(ctx, session); err != nil && ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("refresh session presence",
+				logx.Field("session_id", session.id),
+				logx.Field("error", err),
+			)
+		}
+	}
+}
+
+func (s *Server) refreshAllRoutes(ctx context.Context) {
+	routes := s.routeSnapshot()
+	if err := s.svcCtx.Store.RefreshRoutes(ctx, s.nodeID, s.generation, routes, s.svcCtx.Cfg.Node.RouteTTL()); err != nil && ctx.Err() == nil {
+		logx.WithContext(ctx).Errorw("refresh session routes", logx.Field("error", err))
+	}
+}
+
+func (s *Server) routeSnapshot() []store.Route {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	routes := make([]store.Route, 0, len(s.users)+len(s.guilds)+len(s.channels))
+	for id := range s.users {
+		routes = append(routes, store.Route{Kind: store.RouteUser, ID: id})
+	}
+	for id := range s.guilds {
+		routes = append(routes, store.Route{Kind: store.RouteGuild, ID: id})
+	}
+	for id := range s.channels {
+		routes = append(routes, store.Route{Kind: store.RouteChannel, ID: id})
+	}
+	return routes
+}
+
+func (s *Server) cleanupDetached(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+		now := time.Now()
+		s.mu.RLock()
+		sessions := make([]*logicalSession, 0, len(s.sessions))
+		for _, session := range s.sessions {
+			sessions = append(sessions, session)
+		}
+		s.mu.RUnlock()
+		for _, session := range sessions {
+			session.mu.Lock()
+			expired := session.binding == nil && !session.detachedAt.IsZero() &&
+				now.Sub(session.detachedAt) >= s.svcCtx.Cfg.Node.ResumeTTL()
+			session.mu.Unlock()
+			if expired {
+				s.removeSession(ctx, session)
+			}
+		}
+	}
+}
+
+func normalizeIDs(ids []int64) ([]int64, error) {
+	seen := make(map[int64]struct{}, len(ids))
+	result := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			return nil, status.Error(codes.InvalidArgument, "channel id must be positive")
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		result = append(result, id)
+	}
+	if len(result) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "channel ids are required")
+	}
+	return result, nil
+}
+
+func statusFromString(value string) presencev1.PresenceStatus {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "idle":
+		return presencev1.PresenceStatus_PRESENCE_STATUS_IDLE
+	case "dnd":
+		return presencev1.PresenceStatus_PRESENCE_STATUS_DND
+	case "invisible":
+		return presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE
+	default:
+		return presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE
+	}
+}
+
+func clientStateFromString(value string) presencev1.ClientState {
+	if strings.EqualFold(strings.TrimSpace(value), "background") {
+		return presencev1.ClientState_CLIENT_STATE_BACKGROUND
+	}
+	return presencev1.ClientState_CLIENT_STATE_FOREGROUND
+}
+
+func randomID(prefix string) string {
+	var value [16]byte
+	if _, err := rand.Read(value[:]); err != nil {
+		return fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano())
+	}
+	return prefix + "-" + hex.EncodeToString(value[:])
+}
+
+func mapKeys(values map[int64]struct{}) []int64 {
+	result := make([]int64, 0, len(values))
+	for value := range values {
+		result = append(result, value)
+	}
+	return result
+}
+
+func parseID(value string) int64 {
+	id, _ := strconv.ParseInt(value, 10, 64)
+	return id
+}

@@ -4,52 +4,22 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/zrpc"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 type Config struct {
 	Name     string
 	ListenOn string
 	Log      logx.LogConf
-	RPC      zrpc.RpcServerConf
 	Gateway  GatewayConfig `json:",optional"`
-	Services ServiceConfig
-	Kafka    KafkaConfig `json:",optional"`
-}
-
-type KafkaConfig struct {
-	Seeds               []string
-	GuildTopic          string `json:",default=cordis.guild.events.v1"`
-	ConsumerGroupPrefix string `json:",default=cordis.gateway.guild-events.v1"`
-}
-
-func (c KafkaConfig) Topic() string {
-	if c.GuildTopic == "" {
-		return "cordis.guild.events.v1"
-	}
-	return c.GuildTopic
-}
-
-func (c KafkaConfig) GroupPrefix() string {
-	if c.ConsumerGroupPrefix == "" {
-		return "cordis.gateway.guild-events.v1"
-	}
-	return c.ConsumerGroupPrefix
+	Redis    redis.RedisConf
 }
 
 type GatewayConfig struct {
 	WebSocketPath          string `json:",default=/ws"`
-	HeartbeatIntervalMs    int    `json:",default=30000"`
+	HeartbeatIntervalMs    int    `json:",default=45000"`
 	IdentifyTimeoutSeconds int    `json:",default=10"`
-	RouteRefreshSeconds    int    `json:",default=15"`
-	GatewayRefreshSeconds  int    `json:",default=15"`
 	MaxMessageBytes        int64  `json:",default=65536"`
-}
-
-type ServiceConfig struct {
-	Authenticator zrpc.RpcClientConf
-	Presence      zrpc.RpcClientConf
-	Guild         zrpc.RpcClientConf
 }
 
 func (c GatewayConfig) WebSocketRoute() string {
@@ -61,7 +31,7 @@ func (c GatewayConfig) WebSocketRoute() string {
 
 func (c GatewayConfig) HeartbeatInterval() time.Duration {
 	if c.HeartbeatIntervalMs <= 0 {
-		return 30 * time.Second
+		return 45 * time.Second
 	}
 	return time.Duration(c.HeartbeatIntervalMs) * time.Millisecond
 }
@@ -71,20 +41,6 @@ func (c GatewayConfig) IdentifyTimeout() time.Duration {
 		return 10 * time.Second
 	}
 	return time.Duration(c.IdentifyTimeoutSeconds) * time.Second
-}
-
-func (c GatewayConfig) RouteRefreshInterval() time.Duration {
-	if c.RouteRefreshSeconds <= 0 {
-		return 15 * time.Second
-	}
-	return time.Duration(c.RouteRefreshSeconds) * time.Second
-}
-
-func (c GatewayConfig) GatewayRefreshInterval() time.Duration {
-	if c.GatewayRefreshSeconds <= 0 {
-		return 15 * time.Second
-	}
-	return time.Duration(c.GatewayRefreshSeconds) * time.Second
 }
 
 func (c GatewayConfig) MessageLimit() int64 {

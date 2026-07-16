@@ -1287,18 +1287,17 @@ func (b0 CreateMessageResponse_builder) Build() *CreateMessageResponse {
 }
 
 type UpdateMessageRequest struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_MessageId     int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
-	xxx_hidden_Content       *string                `protobuf:"bytes,2,opt,name=content"`
-	xxx_hidden_ActorUserId   int64                  `protobuf:"varint,3,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_Flags         int32                  `protobuf:"varint,4,opt,name=flags"`
-	xxx_hidden_HasPermission bool                   `protobuf:"varint,5,opt,name=has_permission,json=hasPermission"`
-	xxx_hidden_Attachments   *AttachmentList        `protobuf:"bytes,20,opt,name=attachments"`
-	xxx_hidden_Mentions      *MentionList           `protobuf:"bytes,30,opt,name=mentions"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
+	xxx_hidden_Content     *string                `protobuf:"bytes,2,opt,name=content"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,3,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Flags       int32                  `protobuf:"varint,4,opt,name=flags"`
+	xxx_hidden_Attachments *AttachmentList        `protobuf:"bytes,20,opt,name=attachments"`
+	xxx_hidden_Mentions    *MentionList           `protobuf:"bytes,30,opt,name=mentions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateMessageRequest) Reset() {
@@ -1357,13 +1356,6 @@ func (x *UpdateMessageRequest) GetFlags() int32 {
 	return 0
 }
 
-func (x *UpdateMessageRequest) GetHasPermission() bool {
-	if x != nil {
-		return x.xxx_hidden_HasPermission
-	}
-	return false
-}
-
 func (x *UpdateMessageRequest) GetAttachments() *AttachmentList {
 	if x != nil {
 		return x.xxx_hidden_Attachments
@@ -1380,27 +1372,22 @@ func (x *UpdateMessageRequest) GetMentions() *MentionList {
 
 func (x *UpdateMessageRequest) SetMessageId(v int64) {
 	x.xxx_hidden_MessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *UpdateMessageRequest) SetContent(v string) {
 	x.xxx_hidden_Content = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
 func (x *UpdateMessageRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
 }
 
 func (x *UpdateMessageRequest) SetFlags(v int32) {
 	x.xxx_hidden_Flags = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
-}
-
-func (x *UpdateMessageRequest) SetHasPermission(v bool) {
-	x.xxx_hidden_HasPermission = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
 func (x *UpdateMessageRequest) SetAttachments(v *AttachmentList) {
@@ -1439,13 +1426,6 @@ func (x *UpdateMessageRequest) HasFlags() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *UpdateMessageRequest) HasHasPermission() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
 func (x *UpdateMessageRequest) HasAttachments() bool {
 	if x == nil {
 		return false
@@ -1480,11 +1460,6 @@ func (x *UpdateMessageRequest) ClearFlags() {
 	x.xxx_hidden_Flags = 0
 }
 
-func (x *UpdateMessageRequest) ClearHasPermission() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_HasPermission = false
-}
-
 func (x *UpdateMessageRequest) ClearAttachments() {
 	x.xxx_hidden_Attachments = nil
 }
@@ -1503,9 +1478,6 @@ type UpdateMessageRequest_builder struct {
 	ActorUserId *int64
 	// If present, replaces editable flags. Include all flags that should remain set.
 	Flags *int32
-	// When true, the author_id ownership check is skipped — the caller
-	// has already verified the actor holds moderator permission.
-	HasPermission *bool
 	// If present, replaces the attachment list with this complete list.
 	Attachments *AttachmentList
 	// If present, replaces stored mentions with the parsed mentions for the
@@ -1518,24 +1490,20 @@ func (b0 UpdateMessageRequest_builder) Build() *UpdateMessageRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.MessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_MessageId = *b.MessageId
 	}
 	if b.Content != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
 		x.xxx_hidden_Content = b.Content
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.Flags != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
 		x.xxx_hidden_Flags = *b.Flags
-	}
-	if b.HasPermission != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
-		x.xxx_hidden_HasPermission = *b.HasPermission
 	}
 	x.xxx_hidden_Attachments = b.Attachments
 	x.xxx_hidden_Mentions = b.Mentions
@@ -1611,14 +1579,13 @@ func (b0 UpdateMessageResponse_builder) Build() *UpdateMessageResponse {
 }
 
 type DeleteMessageRequest struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_MessageId     int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
-	xxx_hidden_ActorUserId   int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_HasPermission bool                   `protobuf:"varint,3,opt,name=has_permission,json=hasPermission"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteMessageRequest) Reset() {
@@ -1660,26 +1627,14 @@ func (x *DeleteMessageRequest) GetActorUserId() int64 {
 	return 0
 }
 
-func (x *DeleteMessageRequest) GetHasPermission() bool {
-	if x != nil {
-		return x.xxx_hidden_HasPermission
-	}
-	return false
-}
-
 func (x *DeleteMessageRequest) SetMessageId(v int64) {
 	x.xxx_hidden_MessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
 func (x *DeleteMessageRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *DeleteMessageRequest) SetHasPermission(v bool) {
-	x.xxx_hidden_HasPermission = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *DeleteMessageRequest) HasMessageId() bool {
@@ -1696,13 +1651,6 @@ func (x *DeleteMessageRequest) HasActorUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *DeleteMessageRequest) HasHasPermission() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
 func (x *DeleteMessageRequest) ClearMessageId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_MessageId = 0
@@ -1713,20 +1661,12 @@ func (x *DeleteMessageRequest) ClearActorUserId() {
 	x.xxx_hidden_ActorUserId = 0
 }
 
-func (x *DeleteMessageRequest) ClearHasPermission() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_HasPermission = false
-}
-
 type DeleteMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	MessageId *int64
 	// User performing the delete. May differ from author_id for moderation actions.
 	ActorUserId *int64
-	// When true, the author_id ownership check is skipped — the caller
-	// has already verified the actor holds moderator permission.
-	HasPermission *bool
 }
 
 func (b0 DeleteMessageRequest_builder) Build() *DeleteMessageRequest {
@@ -1734,16 +1674,12 @@ func (b0 DeleteMessageRequest_builder) Build() *DeleteMessageRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.MessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_MessageId = *b.MessageId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
-	}
-	if b.HasPermission != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_HasPermission = *b.HasPermission
 	}
 	return m0
 }
@@ -1826,6 +1762,7 @@ func (b0 DeleteMessageResponse_builder) Build() *DeleteMessageResponse {
 type GetMessageRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1864,9 +1801,21 @@ func (x *GetMessageRequest) GetMessageId() int64 {
 	return 0
 }
 
+func (x *GetMessageRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
 func (x *GetMessageRequest) SetMessageId(v int64) {
 	x.xxx_hidden_MessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetMessageRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *GetMessageRequest) HasMessageId() bool {
@@ -1876,15 +1825,28 @@ func (x *GetMessageRequest) HasMessageId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
+func (x *GetMessageRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *GetMessageRequest) ClearMessageId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_MessageId = 0
+}
+
+func (x *GetMessageRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
 }
 
 type GetMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	MessageId *int64
+	UserId    *int64
 }
 
 func (b0 GetMessageRequest_builder) Build() *GetMessageRequest {
@@ -1892,8 +1854,12 @@ func (b0 GetMessageRequest_builder) Build() *GetMessageRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.MessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_MessageId = *b.MessageId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
 	}
 	return m0
 }
@@ -1971,6 +1937,7 @@ type ListMessagesRequest struct {
 	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
 	xxx_hidden_Cursor      isListMessagesRequest_Cursor `protobuf_oneof:"cursor"`
 	xxx_hidden_Limit       int32                        `protobuf:"varint,5,opt,name=limit"`
+	xxx_hidden_UserId      int64                        `protobuf:"varint,6,opt,name=user_id,json=userId"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2043,9 +2010,16 @@ func (x *ListMessagesRequest) GetLimit() int32 {
 	return 0
 }
 
+func (x *ListMessagesRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
 func (x *ListMessagesRequest) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ListMessagesRequest) SetBefore(v int64) {
@@ -2062,7 +2036,12 @@ func (x *ListMessagesRequest) SetAround(v int64) {
 
 func (x *ListMessagesRequest) SetLimit(v int32) {
 	x.xxx_hidden_Limit = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ListMessagesRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ListMessagesRequest) HasChannelId() bool {
@@ -2110,6 +2089,13 @@ func (x *ListMessagesRequest) HasLimit() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *ListMessagesRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ListMessagesRequest) ClearChannelId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChannelId = 0
@@ -2140,6 +2126,11 @@ func (x *ListMessagesRequest) ClearAround() {
 func (x *ListMessagesRequest) ClearLimit() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_Limit = 0
+}
+
+func (x *ListMessagesRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_UserId = 0
 }
 
 const ListMessagesRequest_Cursor_not_set_case case_ListMessagesRequest_Cursor = 0
@@ -2178,7 +2169,8 @@ type ListMessagesRequest_builder struct {
 	Around *int64
 	// -- end of xxx_hidden_Cursor
 	// Maximum results per page. Default 50, max 100.
-	Limit *int32
+	Limit  *int32
+	UserId *int64
 }
 
 func (b0 ListMessagesRequest_builder) Build() *ListMessagesRequest {
@@ -2186,7 +2178,7 @@ func (b0 ListMessagesRequest_builder) Build() *ListMessagesRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.Before != nil {
@@ -2199,8 +2191,12 @@ func (b0 ListMessagesRequest_builder) Build() *ListMessagesRequest {
 		x.xxx_hidden_Cursor = &listMessagesRequest_Around{*b.Around}
 	}
 	if b.Limit != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_Limit = *b.Limit
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_UserId = *b.UserId
 	}
 	return m0
 }
@@ -2414,38 +2410,38 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\vattachments\x18\x14 \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12(\n" +
 	"\x10mention_user_ids\x18\x1e \x03(\x03R\x0ementionUserIds\"F\n" +
 	"\x15CreateMessageResponse\x12-\n" +
-	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"\xa3\x02\n" +
+	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"\x82\x02\n" +
 	"\x14UpdateMessageRequest\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\"\n" +
 	"\ractor_user_id\x18\x03 \x01(\x03R\vactorUserId\x12\x14\n" +
-	"\x05flags\x18\x04 \x01(\x05R\x05flags\x12%\n" +
-	"\x0ehas_permission\x18\x05 \x01(\bR\rhasPermission\x12<\n" +
+	"\x05flags\x18\x04 \x01(\x05R\x05flags\x12<\n" +
 	"\vattachments\x18\x14 \x01(\v2\x1a.message.v1.AttachmentListR\vattachments\x123\n" +
-	"\bmentions\x18\x1e \x01(\v2\x17.message.v1.MentionListR\bmentions\"F\n" +
+	"\bmentions\x18\x1e \x01(\v2\x17.message.v1.MentionListR\bmentionsJ\x04\b\x05\x10\x06\"F\n" +
 	"\x15UpdateMessageResponse\x12-\n" +
-	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"\x80\x01\n" +
+	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"_\n" +
 	"\x14DeleteMessageRequest\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\"\n" +
-	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12%\n" +
-	"\x0ehas_permission\x18\x03 \x01(\bR\rhasPermission\"'\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserIdJ\x04\b\x03\x10\x04\"'\n" +
 	"\x15DeleteMessageResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"8\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"K\n" +
 	"\x11GetMessageRequest\x12\x1d\n" +
 	"\n" +
-	"message_id\x18\x01 \x01(\x03R\tmessageIdJ\x04\b\x02\x10\x03\"I\n" +
+	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"I\n" +
 	"\x12GetMessageResponse\x12-\n" +
-	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessageJ\x04\b\x02\x10\x03\"\xa6\x01\n" +
+	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessageJ\x04\b\x02\x10\x03\"\xb9\x01\n" +
 	"\x13ListMessagesRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x18\n" +
 	"\x06before\x18\x02 \x01(\x03H\x00R\x06before\x12\x16\n" +
 	"\x05after\x18\x03 \x01(\x03H\x00R\x05after\x12\x18\n" +
 	"\x06around\x18\x04 \x01(\x03H\x00R\x06around\x12\x14\n" +
-	"\x05limit\x18\x05 \x01(\x05R\x05limitB\b\n" +
-	"\x06cursorJ\x04\b\x06\x10\a\"\x95\x01\n" +
+	"\x05limit\x18\x05 \x01(\x05R\x05limit\x12\x17\n" +
+	"\auser_id\x18\x06 \x01(\x03R\x06userIdB\b\n" +
+	"\x06cursor\"\x95\x01\n" +
 	"\x14ListMessagesResponse\x12/\n" +
 	"\bmessages\x18\x01 \x03(\v2\x13.message.v1.MessageR\bmessages\x12#\n" +
 	"\rbefore_cursor\x18\x03 \x01(\x03R\fbeforeCursor\x12!\n" +

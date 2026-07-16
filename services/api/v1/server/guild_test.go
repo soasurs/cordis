@@ -17,25 +17,32 @@ import (
 
 type fakeGuildClient struct {
 	guildv1.GuildServiceClient
-	createRequest        *guildv1.CreateGuildRequest
-	updateRequest        *guildv1.UpdateGuildRequest
-	addMemberRequest     *guildv1.AddGuildMemberRequest
-	updateMemberRequest  *guildv1.UpdateGuildMemberRequest
-	leaveRequest         *guildv1.LeaveGuildRequest
-	transferRequest      *guildv1.TransferGuildOwnershipRequest
-	createRoleRequest    *guildv1.CreateGuildRoleRequest
-	createResponse       *guildv1.CreateGuildResponse
-	updateResponse       *guildv1.UpdateGuildResponse
-	addMemberResponse    *guildv1.AddGuildMemberResponse
-	updateMemberResponse *guildv1.UpdateGuildMemberResponse
-	leaveResponse        *guildv1.LeaveGuildResponse
-	transferResponse     *guildv1.TransferGuildOwnershipResponse
-	createRoleResponse   *guildv1.CreateGuildRoleResponse
+	createRequest         *guildv1.CreateGuildRequest
+	updateRequest         *guildv1.UpdateGuildRequest
+	addMemberRequest      *guildv1.AddGuildMemberRequest
+	updateMemberRequest   *guildv1.UpdateGuildMemberRequest
+	leaveRequest          *guildv1.LeaveGuildRequest
+	transferRequest       *guildv1.TransferGuildOwnershipRequest
+	createRoleRequest     *guildv1.CreateGuildRoleRequest
+	createChannelRequest  *guildv1.CreateGuildChannelRequest
+	createResponse        *guildv1.CreateGuildResponse
+	updateResponse        *guildv1.UpdateGuildResponse
+	addMemberResponse     *guildv1.AddGuildMemberResponse
+	updateMemberResponse  *guildv1.UpdateGuildMemberResponse
+	leaveResponse         *guildv1.LeaveGuildResponse
+	transferResponse      *guildv1.TransferGuildOwnershipResponse
+	createRoleResponse    *guildv1.CreateGuildRoleResponse
+	createChannelResponse *guildv1.CreateGuildChannelResponse
 }
 
 func (f *fakeGuildClient) CreateGuildRole(_ context.Context, req *guildv1.CreateGuildRoleRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildRoleResponse, error) {
 	f.createRoleRequest = req
 	return f.createRoleResponse, nil
+}
+
+func (f *fakeGuildClient) CreateGuildChannel(_ context.Context, req *guildv1.CreateGuildChannelRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildChannelResponse, error) {
+	f.createChannelRequest = req
+	return f.createChannelResponse, nil
 }
 
 func (f *fakeGuildClient) AddGuildMember(_ context.Context, req *guildv1.AddGuildMemberRequest, _ ...grpc.CallOption) (*guildv1.AddGuildMemberResponse, error) {
@@ -165,6 +172,27 @@ func TestCreateGuildRoleUsesAuthenticatedActor(t *testing.T) {
 	require.Equal(t, int64(1001), guildClient.createRoleRequest.GetActorUserId())
 	require.Equal(t, uint64(16), guildClient.createRoleRequest.GetPermissions())
 	require.Equal(t, int64(4001), result.GetRole().GetId())
+}
+
+func TestCreateGuildChannelUsesAuthenticatedActor(t *testing.T) {
+	channel := new(guildv1.GuildChannel)
+	channel.SetId(5001)
+	channel.SetGuildId(3001)
+	channel.SetName("general")
+	channel.SetType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+	resp := new(guildv1.CreateGuildChannelResponse)
+	resp.SetChannel(channel)
+	guildClient := &fakeGuildClient{createChannelResponse: resp}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	result, err := client.CreateGuildChannel(context.Background(), &apiv1.CreateGuildChannelRequest{
+		GuildId: new(int64(3001)), Name: new("general"),
+		Type: new(apiv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.createChannelRequest.GetActorUserId())
+	require.Equal(t, int64(5001), result.GetChannel().GetId())
 }
 
 func newGuildHTTPClient(t *testing.T, guildClient *fakeGuildClient) (apiv1connect.GuildServiceClient, func()) {

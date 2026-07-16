@@ -9,16 +9,21 @@ import (
 )
 
 const (
-	EventTypeGuildCreated            = "guild.created"
-	EventTypeGuildUpdated            = "guild.updated"
-	EventTypeGuildDeleted            = "guild.deleted"
-	EventTypeGuildMemberJoined       = "guild.member.joined"
-	EventTypeGuildMemberUpdated      = "guild.member.updated"
-	EventTypeGuildMemberRemoved      = "guild.member.removed"
-	EventTypeGuildRoleCreated        = "guild.role.created"
-	EventTypeGuildRoleUpdated        = "guild.role.updated"
-	EventTypeGuildRoleDeleted        = "guild.role.deleted"
-	EventTypeGuildMemberRolesUpdated = "guild.member.roles.updated"
+	EventTypeGuildCreated                 = "guild.created"
+	EventTypeGuildUpdated                 = "guild.updated"
+	EventTypeGuildDeleted                 = "guild.deleted"
+	EventTypeGuildMemberJoined            = "guild.member.joined"
+	EventTypeGuildMemberUpdated           = "guild.member.updated"
+	EventTypeGuildMemberRemoved           = "guild.member.removed"
+	EventTypeGuildRoleCreated             = "guild.role.created"
+	EventTypeGuildRoleUpdated             = "guild.role.updated"
+	EventTypeGuildRoleDeleted             = "guild.role.deleted"
+	EventTypeGuildMemberRolesUpdated      = "guild.member.roles.updated"
+	EventTypeGuildChannelCreated          = "guild.channel.created"
+	EventTypeGuildChannelUpdated          = "guild.channel.updated"
+	EventTypeGuildChannelDeleted          = "guild.channel.deleted"
+	EventTypeGuildChannelOverwriteUpdated = "guild.channel.overwrite.updated"
+	EventTypeGuildChannelOverwriteDeleted = "guild.channel.overwrite.deleted"
 )
 
 type eventEnvelope[T any] struct {
@@ -87,6 +92,43 @@ type guildMemberRolesUpdatedPayload struct {
 	UserID    string   `json:"user_id"`
 	RoleIDs   []string `json:"role_ids"`
 	UpdatedAt int64    `json:"updated_at"`
+}
+
+type guildChannelPayload struct {
+	ID        string `json:"id"`
+	GuildID   string `json:"guild_id"`
+	Name      string `json:"name"`
+	Type      int32  `json:"type"`
+	Position  int32  `json:"position"`
+	Topic     string `json:"topic"`
+	Revision  int64  `json:"revision"`
+	CreatedAt int64  `json:"created_at"`
+	UpdatedAt int64  `json:"updated_at"`
+}
+
+type guildChannelDeletedPayload struct {
+	ID        string `json:"id"`
+	GuildID   string `json:"guild_id"`
+	Revision  int64  `json:"revision"`
+	DeletedAt int64  `json:"deleted_at"`
+}
+
+type guildChannelOverwritePayload struct {
+	ChannelID  string `json:"channel_id"`
+	GuildID    string `json:"guild_id"`
+	TargetType int32  `json:"target_type"`
+	TargetID   string `json:"target_id"`
+	Allow      string `json:"allow"`
+	Deny       string `json:"deny"`
+	Revision   int64  `json:"revision"`
+	UpdatedAt  int64  `json:"updated_at"`
+}
+
+type guildChannelOverwriteDeletedPayload struct {
+	ChannelID  string `json:"channel_id"`
+	GuildID    string `json:"guild_id"`
+	TargetType int32  `json:"target_type"`
+	TargetID   string `json:"target_id"`
 }
 
 func newGuildCreatedEvent(guild *model.Guild) (guildEvent, error) {
@@ -164,6 +206,49 @@ func guildRolePayloadFromModel(role *model.Role) guildRolePayload {
 		Revision:    role.Revision,
 		CreatedAt:   role.CreatedAt,
 		UpdatedAt:   role.UpdatedAt,
+	}
+}
+
+func newGuildChannelCreatedEvent(channel *model.Channel) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildChannelCreated, channel.GuildID, guildChannelPayloadFromModel(channel))
+}
+
+func newGuildChannelUpdatedEvent(channel *model.Channel) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildChannelUpdated, channel.GuildID, guildChannelPayloadFromModel(channel))
+}
+
+func newGuildChannelDeletedEvent(channel *model.Channel) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildChannelDeleted, channel.GuildID, guildChannelDeletedPayload{
+		ID: strconv.FormatInt(channel.ID, 10), GuildID: strconv.FormatInt(channel.GuildID, 10),
+		Revision: channel.Revision, DeletedAt: channel.DeletedAt,
+	})
+}
+
+func newGuildChannelOverwriteUpdatedEvent(overwrite *model.ChannelPermissionOverwrite) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildChannelOverwriteUpdated, overwrite.GuildID, guildChannelOverwritePayload{
+		ChannelID:  strconv.FormatInt(overwrite.ChannelID, 10),
+		GuildID:    strconv.FormatInt(overwrite.GuildID, 10),
+		TargetType: overwrite.TargetType,
+		TargetID:   strconv.FormatInt(overwrite.TargetID, 10),
+		Allow:      strconv.FormatUint(overwrite.Allow, 10),
+		Deny:       strconv.FormatUint(overwrite.Deny, 10),
+		Revision:   overwrite.Revision,
+		UpdatedAt:  overwrite.UpdatedAt,
+	})
+}
+
+func newGuildChannelOverwriteDeletedEvent(guildID, channelID int64, targetType int32, targetID int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildChannelOverwriteDeleted, guildID, guildChannelOverwriteDeletedPayload{
+		ChannelID: strconv.FormatInt(channelID, 10), GuildID: strconv.FormatInt(guildID, 10),
+		TargetType: targetType, TargetID: strconv.FormatInt(targetID, 10),
+	})
+}
+
+func guildChannelPayloadFromModel(channel *model.Channel) guildChannelPayload {
+	return guildChannelPayload{
+		ID: strconv.FormatInt(channel.ID, 10), GuildID: strconv.FormatInt(channel.GuildID, 10),
+		Name: channel.Name, Type: channel.Type, Position: channel.Position, Topic: channel.Topic,
+		Revision: channel.Revision, CreatedAt: channel.CreatedAt, UpdatedAt: channel.UpdatedAt,
 	}
 }
 

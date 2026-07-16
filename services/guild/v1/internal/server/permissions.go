@@ -10,18 +10,31 @@ import (
 )
 
 const (
-	PermissionAdministrator = uint64(guildv1.GuildPermission_GUILD_PERMISSION_ADMINISTRATOR)
-	PermissionManageGuild   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_GUILD)
-	PermissionManageRoles   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_ROLES)
-	PermissionManageMembers = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS)
-	PermissionKickMembers   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_KICK_MEMBERS)
+	PermissionAdministrator  = uint64(guildv1.GuildPermission_GUILD_PERMISSION_ADMINISTRATOR)
+	PermissionManageGuild    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_GUILD)
+	PermissionManageRoles    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_ROLES)
+	PermissionManageMembers  = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS)
+	PermissionKickMembers    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_KICK_MEMBERS)
+	PermissionViewChannel    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL)
+	PermissionSendMessages   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_SEND_MESSAGES)
+	PermissionManageChannels = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_CHANNELS)
+	PermissionManageMessages = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES)
 )
 
 const AllGuildPermissions = PermissionAdministrator |
 	PermissionManageGuild |
 	PermissionManageRoles |
 	PermissionManageMembers |
-	PermissionKickMembers
+	PermissionKickMembers |
+	PermissionViewChannel |
+	PermissionSendMessages |
+	PermissionManageChannels |
+	PermissionManageMessages
+
+const AllChannelPermissions = PermissionViewChannel |
+	PermissionSendMessages |
+	PermissionManageChannels |
+	PermissionManageMessages
 
 type memberAuthority struct {
 	Guild       *model.Guild
@@ -104,4 +117,54 @@ func canManageMember(actor memberAuthority, target memberAuthority) bool {
 	// Permissions decide what action is available; hierarchy decides who it
 	// may affect. Requiring a strict ordering avoids same-level moderation.
 	return actor.HighestRole > target.HighestRole
+}
+
+func applyOverwrite(permissions, deny, allow uint64) uint64 {
+	return permissions&^deny | allow
+}
+
+func channelPermissions(authority memberAuthority, roles []*model.Role, overwrites []*model.ChannelPermissionOverwrite, userID int64) uint64 {
+	if authority.IsOwner || authority.Permissions&PermissionAdministrator != 0 {
+		return AllGuildPermissions
+	}
+
+	permissions := authority.Permissions
+	roleIDs := make(map[int64]struct{}, len(roles))
+	for _, role := range roles {
+		roleIDs[role.ID] = struct{}{}
+	}
+
+	// Channel overwrites intentionally follow a fixed precedence:
+	// @everyone, all assigned roles aggregated together, then the member.
+	// Aggregating role denies/allows before applying them makes the result
+	// independent from role ordering.
+	for _, overwrite := range overwrites {
+		if overwrite.TargetType == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE) &&
+			overwrite.TargetID == authority.Guild.ID {
+			permissions = applyOverwrite(permissions, overwrite.Deny, overwrite.Allow)
+			break
+		}
+	}
+	var roleDeny, roleAllow uint64
+	for _, overwrite := range overwrites {
+		if overwrite.TargetType != int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE) {
+			continue
+		}
+		if _, assigned := roleIDs[overwrite.TargetID]; assigned && overwrite.TargetID != authority.Guild.ID {
+			roleDeny |= overwrite.Deny
+			roleAllow |= overwrite.Allow
+		}
+	}
+	permissions = applyOverwrite(permissions, roleDeny, roleAllow)
+	for _, overwrite := range overwrites {
+		if overwrite.TargetType == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER) &&
+			overwrite.TargetID == userID {
+			permissions = applyOverwrite(permissions, overwrite.Deny, overwrite.Allow)
+			break
+		}
+	}
+	if permissions&PermissionViewChannel == 0 {
+		permissions &^= PermissionSendMessages | PermissionManageMessages
+	}
+	return permissions
 }

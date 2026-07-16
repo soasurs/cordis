@@ -13,6 +13,11 @@ type Config struct {
 	zrpc.RpcServerConf
 	Database database.Config `json:",optional"`
 	Kafka    KafkaConfig     `json:",optional"`
+	Services ServiceConfig
+}
+
+type ServiceConfig struct {
+	Guild zrpc.RpcClientConf
 }
 
 // KafkaConfig controls the Kafka producer connection and the event topic

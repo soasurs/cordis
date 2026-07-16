@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
 func TestAddGuildMemberRequiresOwnerAndPublishesEvent(t *testing.T) {
@@ -85,6 +86,14 @@ func TestKickAndLeaveEnforceOwnerRules(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
 	fakeStore.members[10] = testMembers(10, 1001, 1002, 1003)
+	fakeStore.channels[20] = &model.Channel{ID: 20, GuildID: 10, Name: "general", Type: 1}
+	fakeStore.overwrites[20] = map[string]*model.ChannelPermissionOverwrite{
+		overwriteKey(int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER), 1002): {
+			ChannelID: 20, GuildID: 10,
+			TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+			TargetID:   1002, Deny: PermissionViewChannel,
+		},
+	}
 	server := newTestGuildServer(t, fakeStore, new(fakePublisher))
 
 	kick := new(guildv1.KickGuildMemberRequest)
@@ -110,6 +119,7 @@ func TestKickAndLeaveEnforceOwnerRules(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.NotZero(t, fakeStore.members[10][1002].DeletedAt)
+	require.Empty(t, fakeStore.overwrites[20])
 }
 
 func TestTransferGuildOwnershipRequiresActiveMember(t *testing.T) {

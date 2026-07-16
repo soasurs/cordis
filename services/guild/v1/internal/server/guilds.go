@@ -172,6 +172,12 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *guildv1.DeleteGuildR
 		if err := txStore.DeleteAllGuildRoleAssignments(ctx, req.GetGuildId()); err != nil {
 			return err
 		}
+		if err := txStore.DeleteAllGuildChannelPermissionOverwrites(ctx, req.GetGuildId()); err != nil {
+			return err
+		}
+		if err := txStore.DeleteGuildChannels(ctx, req.GetGuildId(), deletedAt); err != nil {
+			return err
+		}
 		return txStore.DeleteGuildRoles(ctx, req.GetGuildId(), deletedAt)
 	})
 	if err != nil {

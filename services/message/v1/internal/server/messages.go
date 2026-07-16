@@ -47,8 +47,14 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if err := validateMentionUserIDs(req.GetMentionUserIds()); err != nil {
 		return nil, err
 	}
+	if err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetAuthorId(), permissionSendMessages); err != nil {
+		return nil, err
+	}
 
 	if req.GetReferencedMessageId() != 0 {
+		if err := s.requireChannelPermission(ctx, req.GetReferencedChannelId(), req.GetAuthorId(), permissionViewChannel); err != nil {
+			return nil, err
+		}
 		referencedMessage, err := s.svcCtx.Store.GetMessage(ctx, req.GetReferencedMessageId())
 		if err != nil {
 			return nil, mapStoreError(err)
@@ -105,11 +111,23 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	if !req.HasContent() && !req.HasFlags() && !req.HasAttachments() && !req.HasMentions() {
 		return nil, invalidRequest("at least one field must be updated")
 	}
+	current, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	requiredPermission := permissionViewChannel | permissionSendMessages
+	hasModPermission := current.AuthorID != req.GetActorUserId()
+	if hasModPermission {
+		requiredPermission |= permissionManageMessages
+	}
+	if err := s.requireChannelPermission(ctx, current.ChannelID, req.GetActorUserId(), requiredPermission); err != nil {
+		return nil, err
+	}
 
 	params := store.UpdateMessageParams{
 		MessageID:        req.GetMessageId(),
 		ActorUserID:      req.GetActorUserId(),
-		HasModPermission: req.GetHasPermission(),
+		HasModPermission: hasModPermission,
 	}
 	if req.HasContent() {
 		content := req.GetContent()
@@ -141,7 +159,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	var updated *model.Message
 	var mentionUserIDs []int64
 
-	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.UpdateMessage(ctx, params)
 		if err != nil {
 			return err
@@ -183,10 +201,22 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 	if req.GetActorUserId() <= 0 {
 		return nil, invalidRequest("actor user id is required")
 	}
+	current, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	requiredPermission := permissionViewChannel | permissionSendMessages
+	hasModPermission := current.AuthorID != req.GetActorUserId()
+	if hasModPermission {
+		requiredPermission |= permissionManageMessages
+	}
+	if err := s.requireChannelPermission(ctx, current.ChannelID, req.GetActorUserId(), requiredPermission); err != nil {
+		return nil, err
+	}
 
 	var deleted *model.Message
-	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		message, err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), req.GetHasPermission())
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		message, err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), hasModPermission)
 		if err != nil {
 			return err
 		}
@@ -209,9 +239,15 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 	if req.GetMessageId() <= 0 {
 		return nil, invalidRequest("message id is required")
 	}
+	if req.GetUserId() <= 0 {
+		return nil, invalidRequest("user id is required")
+	}
 	message, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId())
 	if err != nil {
 		return nil, mapStoreError(err)
+	}
+	if err := s.requireChannelPermission(ctx, message.ChannelID, req.GetUserId(), permissionViewChannel); err != nil {
+		return nil, err
 	}
 
 	resp := new(messagev1.GetMessageResponse)
@@ -222,6 +258,12 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMessagesRequest) (*messagev1.ListMessagesResponse, error) {
 	if req.GetChannelId() <= 0 {
 		return nil, invalidRequest("channel id is required")
+	}
+	if req.GetUserId() <= 0 {
+		return nil, invalidRequest("user id is required")
+	}
+	if err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetUserId(), permissionViewChannel); err != nil {
+		return nil, err
 	}
 	limit, err := normalizeLimit(req.GetLimit(), defaultMessageLimit, maxMessageLimit)
 	if err != nil {

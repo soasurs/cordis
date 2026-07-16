@@ -146,9 +146,7 @@ message UpdateMessageRequest {
   int64 actor_user_id = 3;
   // If present, replaces editable flags. Include all flags that should remain set.
   int32 flags = 4;
-  // When true, the author_id ownership check is skipped — the caller
-  // has already verified the actor holds moderator permission.
-  bool has_permission = 5;
+  reserved 5;
   // If present, replaces the attachment list with this complete list.
   AttachmentList attachments = 20;
   // If present, replaces stored mentions with the parsed mentions for the
@@ -164,9 +162,7 @@ message DeleteMessageRequest {
   int64 message_id = 1;
   // User performing the delete. May differ from author_id for moderation actions.
   int64 actor_user_id = 2;
-  // When true, the author_id ownership check is skipped — the caller
-  // has already verified the actor holds moderator permission.
-  bool has_permission = 3;
+  reserved 3;
 }
 
 message DeleteMessageResponse {
@@ -175,7 +171,7 @@ message DeleteMessageResponse {
 
 message GetMessageRequest {
   int64 message_id = 1;
-  reserved 2;
+  int64 user_id = 2;
 }
 
 message GetMessageResponse {
@@ -196,7 +192,7 @@ message ListMessagesRequest {
   }
   // Maximum results per page. Default 50, max 100.
   int32 limit = 5;
-  reserved 6;
+  int64 user_id = 6;
 }
 
 message ListMessagesResponse {

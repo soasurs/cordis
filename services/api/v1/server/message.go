@@ -98,12 +98,14 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *apiv1.DeleteMess
 }
 
 func (s *messageServer) GetMessage(ctx context.Context, req *apiv1.GetMessageRequest) (*apiv1.GetMessageResponse, error) {
-	if _, err := authenticate(ctx, s.svcCtx.AuthenticatorClient); err != nil {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
 		return nil, err
 	}
 
 	svcReq := new(messagev1.GetMessageRequest)
 	svcReq.SetMessageId(req.GetMessageId())
+	svcReq.SetUserId(auth.GetUserId())
 	svcResp, err := s.svcCtx.MessageClient.GetMessage(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -114,12 +116,14 @@ func (s *messageServer) GetMessage(ctx context.Context, req *apiv1.GetMessageReq
 }
 
 func (s *messageServer) ListMessages(ctx context.Context, req *apiv1.ListMessagesRequest) (*apiv1.ListMessagesResponse, error) {
-	if _, err := authenticate(ctx, s.svcCtx.AuthenticatorClient); err != nil {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
 		return nil, err
 	}
 
 	svcReq := new(messagev1.ListMessagesRequest)
 	svcReq.SetChannelId(req.GetChannelId())
+	svcReq.SetUserId(auth.GetUserId())
 	svcReq.SetLimit(req.GetLimit())
 	switch cursor := req.GetCursor().(type) {
 	case *apiv1.ListMessagesRequest_Before:

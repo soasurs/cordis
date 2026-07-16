@@ -19,28 +19,38 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	GuildService_CreateGuild_FullMethodName               = "/guild.v1.GuildService/CreateGuild"
-	GuildService_GetGuild_FullMethodName                  = "/guild.v1.GuildService/GetGuild"
-	GuildService_ListUserGuilds_FullMethodName            = "/guild.v1.GuildService/ListUserGuilds"
-	GuildService_UpdateGuild_FullMethodName               = "/guild.v1.GuildService/UpdateGuild"
-	GuildService_DeleteGuild_FullMethodName               = "/guild.v1.GuildService/DeleteGuild"
-	GuildService_AddGuildMember_FullMethodName            = "/guild.v1.GuildService/AddGuildMember"
-	GuildService_GetGuildMember_FullMethodName            = "/guild.v1.GuildService/GetGuildMember"
-	GuildService_ListGuildMembers_FullMethodName          = "/guild.v1.GuildService/ListGuildMembers"
-	GuildService_UpdateGuildMember_FullMethodName         = "/guild.v1.GuildService/UpdateGuildMember"
-	GuildService_KickGuildMember_FullMethodName           = "/guild.v1.GuildService/KickGuildMember"
-	GuildService_LeaveGuild_FullMethodName                = "/guild.v1.GuildService/LeaveGuild"
-	GuildService_TransferGuildOwnership_FullMethodName    = "/guild.v1.GuildService/TransferGuildOwnership"
-	GuildService_CreateGuildRole_FullMethodName           = "/guild.v1.GuildService/CreateGuildRole"
-	GuildService_GetGuildRole_FullMethodName              = "/guild.v1.GuildService/GetGuildRole"
-	GuildService_ListGuildRoles_FullMethodName            = "/guild.v1.GuildService/ListGuildRoles"
-	GuildService_UpdateGuildRole_FullMethodName           = "/guild.v1.GuildService/UpdateGuildRole"
-	GuildService_DeleteGuildRole_FullMethodName           = "/guild.v1.GuildService/DeleteGuildRole"
-	GuildService_ReorderGuildRoles_FullMethodName         = "/guild.v1.GuildService/ReorderGuildRoles"
-	GuildService_AddGuildMemberRole_FullMethodName        = "/guild.v1.GuildService/AddGuildMemberRole"
-	GuildService_RemoveGuildMemberRole_FullMethodName     = "/guild.v1.GuildService/RemoveGuildMemberRole"
-	GuildService_ListGuildMemberRoles_FullMethodName      = "/guild.v1.GuildService/ListGuildMemberRoles"
-	GuildService_GetGuildMemberPermissions_FullMethodName = "/guild.v1.GuildService/GetGuildMemberPermissions"
+	GuildService_CreateGuild_FullMethodName                           = "/guild.v1.GuildService/CreateGuild"
+	GuildService_GetGuild_FullMethodName                              = "/guild.v1.GuildService/GetGuild"
+	GuildService_ListUserGuilds_FullMethodName                        = "/guild.v1.GuildService/ListUserGuilds"
+	GuildService_UpdateGuild_FullMethodName                           = "/guild.v1.GuildService/UpdateGuild"
+	GuildService_DeleteGuild_FullMethodName                           = "/guild.v1.GuildService/DeleteGuild"
+	GuildService_AddGuildMember_FullMethodName                        = "/guild.v1.GuildService/AddGuildMember"
+	GuildService_GetGuildMember_FullMethodName                        = "/guild.v1.GuildService/GetGuildMember"
+	GuildService_ListGuildMembers_FullMethodName                      = "/guild.v1.GuildService/ListGuildMembers"
+	GuildService_UpdateGuildMember_FullMethodName                     = "/guild.v1.GuildService/UpdateGuildMember"
+	GuildService_KickGuildMember_FullMethodName                       = "/guild.v1.GuildService/KickGuildMember"
+	GuildService_LeaveGuild_FullMethodName                            = "/guild.v1.GuildService/LeaveGuild"
+	GuildService_TransferGuildOwnership_FullMethodName                = "/guild.v1.GuildService/TransferGuildOwnership"
+	GuildService_CreateGuildRole_FullMethodName                       = "/guild.v1.GuildService/CreateGuildRole"
+	GuildService_GetGuildRole_FullMethodName                          = "/guild.v1.GuildService/GetGuildRole"
+	GuildService_ListGuildRoles_FullMethodName                        = "/guild.v1.GuildService/ListGuildRoles"
+	GuildService_UpdateGuildRole_FullMethodName                       = "/guild.v1.GuildService/UpdateGuildRole"
+	GuildService_DeleteGuildRole_FullMethodName                       = "/guild.v1.GuildService/DeleteGuildRole"
+	GuildService_ReorderGuildRoles_FullMethodName                     = "/guild.v1.GuildService/ReorderGuildRoles"
+	GuildService_AddGuildMemberRole_FullMethodName                    = "/guild.v1.GuildService/AddGuildMemberRole"
+	GuildService_RemoveGuildMemberRole_FullMethodName                 = "/guild.v1.GuildService/RemoveGuildMemberRole"
+	GuildService_ListGuildMemberRoles_FullMethodName                  = "/guild.v1.GuildService/ListGuildMemberRoles"
+	GuildService_GetGuildMemberPermissions_FullMethodName             = "/guild.v1.GuildService/GetGuildMemberPermissions"
+	GuildService_CreateGuildChannel_FullMethodName                    = "/guild.v1.GuildService/CreateGuildChannel"
+	GuildService_GetGuildChannel_FullMethodName                       = "/guild.v1.GuildService/GetGuildChannel"
+	GuildService_ListGuildChannels_FullMethodName                     = "/guild.v1.GuildService/ListGuildChannels"
+	GuildService_UpdateGuildChannel_FullMethodName                    = "/guild.v1.GuildService/UpdateGuildChannel"
+	GuildService_DeleteGuildChannel_FullMethodName                    = "/guild.v1.GuildService/DeleteGuildChannel"
+	GuildService_ReorderGuildChannels_FullMethodName                  = "/guild.v1.GuildService/ReorderGuildChannels"
+	GuildService_UpsertGuildChannelPermissionOverwrite_FullMethodName = "/guild.v1.GuildService/UpsertGuildChannelPermissionOverwrite"
+	GuildService_DeleteGuildChannelPermissionOverwrite_FullMethodName = "/guild.v1.GuildService/DeleteGuildChannelPermissionOverwrite"
+	GuildService_ListGuildChannelPermissionOverwrites_FullMethodName  = "/guild.v1.GuildService/ListGuildChannelPermissionOverwrites"
+	GuildService_AuthorizeGuildChannel_FullMethodName                 = "/guild.v1.GuildService/AuthorizeGuildChannel"
 )
 
 // GuildServiceClient is the client API for GuildService service.
@@ -71,6 +81,16 @@ type GuildServiceClient interface {
 	RemoveGuildMemberRole(ctx context.Context, in *RemoveGuildMemberRoleRequest, opts ...grpc.CallOption) (*RemoveGuildMemberRoleResponse, error)
 	ListGuildMemberRoles(ctx context.Context, in *ListGuildMemberRolesRequest, opts ...grpc.CallOption) (*ListGuildMemberRolesResponse, error)
 	GetGuildMemberPermissions(ctx context.Context, in *GetGuildMemberPermissionsRequest, opts ...grpc.CallOption) (*GetGuildMemberPermissionsResponse, error)
+	CreateGuildChannel(ctx context.Context, in *CreateGuildChannelRequest, opts ...grpc.CallOption) (*CreateGuildChannelResponse, error)
+	GetGuildChannel(ctx context.Context, in *GetGuildChannelRequest, opts ...grpc.CallOption) (*GetGuildChannelResponse, error)
+	ListGuildChannels(ctx context.Context, in *ListGuildChannelsRequest, opts ...grpc.CallOption) (*ListGuildChannelsResponse, error)
+	UpdateGuildChannel(ctx context.Context, in *UpdateGuildChannelRequest, opts ...grpc.CallOption) (*UpdateGuildChannelResponse, error)
+	DeleteGuildChannel(ctx context.Context, in *DeleteGuildChannelRequest, opts ...grpc.CallOption) (*DeleteGuildChannelResponse, error)
+	ReorderGuildChannels(ctx context.Context, in *ReorderGuildChannelsRequest, opts ...grpc.CallOption) (*ReorderGuildChannelsResponse, error)
+	UpsertGuildChannelPermissionOverwrite(ctx context.Context, in *UpsertGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*UpsertGuildChannelPermissionOverwriteResponse, error)
+	DeleteGuildChannelPermissionOverwrite(ctx context.Context, in *DeleteGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*DeleteGuildChannelPermissionOverwriteResponse, error)
+	ListGuildChannelPermissionOverwrites(ctx context.Context, in *ListGuildChannelPermissionOverwritesRequest, opts ...grpc.CallOption) (*ListGuildChannelPermissionOverwritesResponse, error)
+	AuthorizeGuildChannel(ctx context.Context, in *AuthorizeGuildChannelRequest, opts ...grpc.CallOption) (*AuthorizeGuildChannelResponse, error)
 }
 
 type guildServiceClient struct {
@@ -301,6 +321,106 @@ func (c *guildServiceClient) GetGuildMemberPermissions(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *guildServiceClient) CreateGuildChannel(ctx context.Context, in *CreateGuildChannelRequest, opts ...grpc.CallOption) (*CreateGuildChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateGuildChannelResponse)
+	err := c.cc.Invoke(ctx, GuildService_CreateGuildChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) GetGuildChannel(ctx context.Context, in *GetGuildChannelRequest, opts ...grpc.CallOption) (*GetGuildChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGuildChannelResponse)
+	err := c.cc.Invoke(ctx, GuildService_GetGuildChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) ListGuildChannels(ctx context.Context, in *ListGuildChannelsRequest, opts ...grpc.CallOption) (*ListGuildChannelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuildChannelsResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListGuildChannels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) UpdateGuildChannel(ctx context.Context, in *UpdateGuildChannelRequest, opts ...grpc.CallOption) (*UpdateGuildChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateGuildChannelResponse)
+	err := c.cc.Invoke(ctx, GuildService_UpdateGuildChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) DeleteGuildChannel(ctx context.Context, in *DeleteGuildChannelRequest, opts ...grpc.CallOption) (*DeleteGuildChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteGuildChannelResponse)
+	err := c.cc.Invoke(ctx, GuildService_DeleteGuildChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) ReorderGuildChannels(ctx context.Context, in *ReorderGuildChannelsRequest, opts ...grpc.CallOption) (*ReorderGuildChannelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReorderGuildChannelsResponse)
+	err := c.cc.Invoke(ctx, GuildService_ReorderGuildChannels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) UpsertGuildChannelPermissionOverwrite(ctx context.Context, in *UpsertGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*UpsertGuildChannelPermissionOverwriteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertGuildChannelPermissionOverwriteResponse)
+	err := c.cc.Invoke(ctx, GuildService_UpsertGuildChannelPermissionOverwrite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) DeleteGuildChannelPermissionOverwrite(ctx context.Context, in *DeleteGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*DeleteGuildChannelPermissionOverwriteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteGuildChannelPermissionOverwriteResponse)
+	err := c.cc.Invoke(ctx, GuildService_DeleteGuildChannelPermissionOverwrite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) ListGuildChannelPermissionOverwrites(ctx context.Context, in *ListGuildChannelPermissionOverwritesRequest, opts ...grpc.CallOption) (*ListGuildChannelPermissionOverwritesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuildChannelPermissionOverwritesResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListGuildChannelPermissionOverwrites_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) AuthorizeGuildChannel(ctx context.Context, in *AuthorizeGuildChannelRequest, opts ...grpc.CallOption) (*AuthorizeGuildChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthorizeGuildChannelResponse)
+	err := c.cc.Invoke(ctx, GuildService_AuthorizeGuildChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GuildServiceServer is the server API for GuildService service.
 // All implementations should embed UnimplementedGuildServiceServer
 // for forward compatibility.
@@ -329,6 +449,16 @@ type GuildServiceServer interface {
 	RemoveGuildMemberRole(context.Context, *RemoveGuildMemberRoleRequest) (*RemoveGuildMemberRoleResponse, error)
 	ListGuildMemberRoles(context.Context, *ListGuildMemberRolesRequest) (*ListGuildMemberRolesResponse, error)
 	GetGuildMemberPermissions(context.Context, *GetGuildMemberPermissionsRequest) (*GetGuildMemberPermissionsResponse, error)
+	CreateGuildChannel(context.Context, *CreateGuildChannelRequest) (*CreateGuildChannelResponse, error)
+	GetGuildChannel(context.Context, *GetGuildChannelRequest) (*GetGuildChannelResponse, error)
+	ListGuildChannels(context.Context, *ListGuildChannelsRequest) (*ListGuildChannelsResponse, error)
+	UpdateGuildChannel(context.Context, *UpdateGuildChannelRequest) (*UpdateGuildChannelResponse, error)
+	DeleteGuildChannel(context.Context, *DeleteGuildChannelRequest) (*DeleteGuildChannelResponse, error)
+	ReorderGuildChannels(context.Context, *ReorderGuildChannelsRequest) (*ReorderGuildChannelsResponse, error)
+	UpsertGuildChannelPermissionOverwrite(context.Context, *UpsertGuildChannelPermissionOverwriteRequest) (*UpsertGuildChannelPermissionOverwriteResponse, error)
+	DeleteGuildChannelPermissionOverwrite(context.Context, *DeleteGuildChannelPermissionOverwriteRequest) (*DeleteGuildChannelPermissionOverwriteResponse, error)
+	ListGuildChannelPermissionOverwrites(context.Context, *ListGuildChannelPermissionOverwritesRequest) (*ListGuildChannelPermissionOverwritesResponse, error)
+	AuthorizeGuildChannel(context.Context, *AuthorizeGuildChannelRequest) (*AuthorizeGuildChannelResponse, error)
 }
 
 // UnimplementedGuildServiceServer should be embedded to have
@@ -403,6 +533,36 @@ func (UnimplementedGuildServiceServer) ListGuildMemberRoles(context.Context, *Li
 }
 func (UnimplementedGuildServiceServer) GetGuildMemberPermissions(context.Context, *GetGuildMemberPermissionsRequest) (*GetGuildMemberPermissionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGuildMemberPermissions not implemented")
+}
+func (UnimplementedGuildServiceServer) CreateGuildChannel(context.Context, *CreateGuildChannelRequest) (*CreateGuildChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGuildChannel not implemented")
+}
+func (UnimplementedGuildServiceServer) GetGuildChannel(context.Context, *GetGuildChannelRequest) (*GetGuildChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGuildChannel not implemented")
+}
+func (UnimplementedGuildServiceServer) ListGuildChannels(context.Context, *ListGuildChannelsRequest) (*ListGuildChannelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGuildChannels not implemented")
+}
+func (UnimplementedGuildServiceServer) UpdateGuildChannel(context.Context, *UpdateGuildChannelRequest) (*UpdateGuildChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateGuildChannel not implemented")
+}
+func (UnimplementedGuildServiceServer) DeleteGuildChannel(context.Context, *DeleteGuildChannelRequest) (*DeleteGuildChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteGuildChannel not implemented")
+}
+func (UnimplementedGuildServiceServer) ReorderGuildChannels(context.Context, *ReorderGuildChannelsRequest) (*ReorderGuildChannelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReorderGuildChannels not implemented")
+}
+func (UnimplementedGuildServiceServer) UpsertGuildChannelPermissionOverwrite(context.Context, *UpsertGuildChannelPermissionOverwriteRequest) (*UpsertGuildChannelPermissionOverwriteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpsertGuildChannelPermissionOverwrite not implemented")
+}
+func (UnimplementedGuildServiceServer) DeleteGuildChannelPermissionOverwrite(context.Context, *DeleteGuildChannelPermissionOverwriteRequest) (*DeleteGuildChannelPermissionOverwriteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteGuildChannelPermissionOverwrite not implemented")
+}
+func (UnimplementedGuildServiceServer) ListGuildChannelPermissionOverwrites(context.Context, *ListGuildChannelPermissionOverwritesRequest) (*ListGuildChannelPermissionOverwritesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGuildChannelPermissionOverwrites not implemented")
+}
+func (UnimplementedGuildServiceServer) AuthorizeGuildChannel(context.Context, *AuthorizeGuildChannelRequest) (*AuthorizeGuildChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeGuildChannel not implemented")
 }
 func (UnimplementedGuildServiceServer) testEmbeddedByValue() {}
 
@@ -820,6 +980,186 @@ func _GuildService_GetGuildMemberPermissions_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GuildService_CreateGuildChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateGuildChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).CreateGuildChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_CreateGuildChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).CreateGuildChannel(ctx, req.(*CreateGuildChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_GetGuildChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGuildChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).GetGuildChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_GetGuildChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).GetGuildChannel(ctx, req.(*GetGuildChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_ListGuildChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGuildChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListGuildChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListGuildChannels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListGuildChannels(ctx, req.(*ListGuildChannelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_UpdateGuildChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateGuildChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).UpdateGuildChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_UpdateGuildChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).UpdateGuildChannel(ctx, req.(*UpdateGuildChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_DeleteGuildChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteGuildChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).DeleteGuildChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_DeleteGuildChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).DeleteGuildChannel(ctx, req.(*DeleteGuildChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_ReorderGuildChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReorderGuildChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ReorderGuildChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ReorderGuildChannels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ReorderGuildChannels(ctx, req.(*ReorderGuildChannelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_UpsertGuildChannelPermissionOverwrite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertGuildChannelPermissionOverwriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).UpsertGuildChannelPermissionOverwrite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_UpsertGuildChannelPermissionOverwrite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).UpsertGuildChannelPermissionOverwrite(ctx, req.(*UpsertGuildChannelPermissionOverwriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_DeleteGuildChannelPermissionOverwrite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteGuildChannelPermissionOverwriteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).DeleteGuildChannelPermissionOverwrite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_DeleteGuildChannelPermissionOverwrite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).DeleteGuildChannelPermissionOverwrite(ctx, req.(*DeleteGuildChannelPermissionOverwriteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_ListGuildChannelPermissionOverwrites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGuildChannelPermissionOverwritesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListGuildChannelPermissionOverwrites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListGuildChannelPermissionOverwrites_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListGuildChannelPermissionOverwrites(ctx, req.(*ListGuildChannelPermissionOverwritesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_AuthorizeGuildChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizeGuildChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).AuthorizeGuildChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_AuthorizeGuildChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).AuthorizeGuildChannel(ctx, req.(*AuthorizeGuildChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GuildService_ServiceDesc is the grpc.ServiceDesc for GuildService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -914,6 +1254,46 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGuildMemberPermissions",
 			Handler:    _GuildService_GetGuildMemberPermissions_Handler,
+		},
+		{
+			MethodName: "CreateGuildChannel",
+			Handler:    _GuildService_CreateGuildChannel_Handler,
+		},
+		{
+			MethodName: "GetGuildChannel",
+			Handler:    _GuildService_GetGuildChannel_Handler,
+		},
+		{
+			MethodName: "ListGuildChannels",
+			Handler:    _GuildService_ListGuildChannels_Handler,
+		},
+		{
+			MethodName: "UpdateGuildChannel",
+			Handler:    _GuildService_UpdateGuildChannel_Handler,
+		},
+		{
+			MethodName: "DeleteGuildChannel",
+			Handler:    _GuildService_DeleteGuildChannel_Handler,
+		},
+		{
+			MethodName: "ReorderGuildChannels",
+			Handler:    _GuildService_ReorderGuildChannels_Handler,
+		},
+		{
+			MethodName: "UpsertGuildChannelPermissionOverwrite",
+			Handler:    _GuildService_UpsertGuildChannelPermissionOverwrite_Handler,
+		},
+		{
+			MethodName: "DeleteGuildChannelPermissionOverwrite",
+			Handler:    _GuildService_DeleteGuildChannelPermissionOverwrite_Handler,
+		},
+		{
+			MethodName: "ListGuildChannelPermissionOverwrites",
+			Handler:    _GuildService_ListGuildChannelPermissionOverwrites_Handler,
+		},
+		{
+			MethodName: "AuthorizeGuildChannel",
+			Handler:    _GuildService_AuthorizeGuildChannel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -163,6 +163,14 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *guildv1.KickGuil
 		if err := txStore.DeleteGuildMemberRoleAssignments(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
 			return err
 		}
+		if err := txStore.DeleteGuildChannelPermissionOverwritesForTarget(
+			ctx,
+			req.GetGuildId(),
+			int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+			req.GetUserId(),
+		); err != nil {
+			return err
+		}
 		removed, err = txStore.RemoveGuildMember(ctx, req.GetGuildId(), req.GetUserId(), removedAt)
 		return err
 	})
@@ -194,6 +202,14 @@ func (s *guildServer) LeaveGuild(ctx context.Context, req *guildv1.LeaveGuildReq
 			return invalidRequest("guild owner must transfer ownership before leaving")
 		}
 		if err := txStore.DeleteGuildMemberRoleAssignments(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+			return err
+		}
+		if err := txStore.DeleteGuildChannelPermissionOverwritesForTarget(
+			ctx,
+			req.GetGuildId(),
+			int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+			req.GetUserId(),
+		); err != nil {
 			return err
 		}
 		removed, err = txStore.RemoveGuildMember(ctx, req.GetGuildId(), req.GetUserId(), removedAt)

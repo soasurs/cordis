@@ -131,7 +131,6 @@ func TestUpdateMessagePreservesFieldPresence(t *testing.T) {
 	require.Empty(t, messageClient.updateRequest.GetAttachments().GetAttachments())
 	require.True(t, messageClient.updateRequest.HasMentions())
 	require.Empty(t, messageClient.updateRequest.GetMentions().GetUserIds())
-	require.False(t, messageClient.updateRequest.GetHasPermission())
 	require.Equal(t, int64(4001), resp.GetMessage().GetId())
 }
 
@@ -151,7 +150,6 @@ func TestDeleteMessageUsesAuthenticatedActor(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(4001), messageClient.deleteRequest.GetMessageId())
 	require.Equal(t, int64(1001), messageClient.deleteRequest.GetActorUserId())
-	require.False(t, messageClient.deleteRequest.GetHasPermission())
 	require.True(t, resp.GetOk())
 }
 
@@ -163,6 +161,17 @@ func TestGetMessageRequiresAccessToken(t *testing.T) {
 		MessageId: new(int64(4001)),
 	})
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
+
+func TestGetMessageUsesAuthenticatedUser(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{verifyResponse: verifyAccessTokenResponse(1001)}
+	messageClient := &fakeMessageClient{getResponse: createGetMessageResponse(internalMessage())}
+	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+	defer closeServer()
+
+	_, err := client.GetMessage(context.Background(), &apiv1.GetMessageRequest{MessageId: new(int64(4001))})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), messageClient.getRequest.GetUserId())
 }
 
 func TestUpdateMessageMapsPermissionDenied(t *testing.T) {
@@ -207,6 +216,7 @@ func TestListMessagesMapsCursorAndResponse(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(2001), messageClient.listRequest.GetChannelId())
+	require.Equal(t, int64(1001), messageClient.listRequest.GetUserId())
 	require.True(t, messageClient.listRequest.HasAround())
 	require.Equal(t, int64(4001), messageClient.listRequest.GetAround())
 	require.Equal(t, int32(25), messageClient.listRequest.GetLimit())
@@ -261,6 +271,12 @@ func internalMessage() *messagev1.Message {
 	message.SetUpdatedAt(5001)
 	message.SetRevision(2)
 	return message
+}
+
+func createGetMessageResponse(message *messagev1.Message) *messagev1.GetMessageResponse {
+	resp := new(messagev1.GetMessageResponse)
+	resp.SetMessage(message)
+	return resp
 }
 
 func createMessageResponse(message *messagev1.Message) *messagev1.CreateMessageResponse {

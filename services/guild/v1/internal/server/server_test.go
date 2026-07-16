@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -222,6 +223,8 @@ type fakeStore struct {
 	members      map[int64]map[int64]*model.GuildMember
 	roles        map[int64]map[int64]*model.Role
 	memberRoles  map[int64]map[int64]map[int64]bool
+	channels     map[int64]*model.Channel
+	overwrites   map[int64]map[string]*model.ChannelPermissionOverwrite
 	defaultRoles map[int64]bool
 	transactErr  error
 }
@@ -230,6 +233,7 @@ func newFakeStore() *fakeStore {
 	return &fakeStore{
 		guilds: make(map[int64]*model.Guild), members: make(map[int64]map[int64]*model.GuildMember),
 		roles: make(map[int64]map[int64]*model.Role), memberRoles: make(map[int64]map[int64]map[int64]bool),
+		channels: make(map[int64]*model.Channel), overwrites: make(map[int64]map[string]*model.ChannelPermissionOverwrite),
 		defaultRoles: make(map[int64]bool),
 	}
 }
@@ -271,7 +275,9 @@ func (s *fakeStore) CreateDefaultRole(_ context.Context, guildID, _ int64) error
 		s.roles[guildID] = make(map[int64]*model.Role)
 	}
 	s.roles[guildID][guildID] = &model.Role{
-		ID: guildID, GuildID: guildID, Name: "@everyone", IsDefault: true, Revision: 1, CreatedAt: 1,
+		ID: guildID, GuildID: guildID, Name: "@everyone",
+		Permissions: PermissionViewChannel | PermissionSendMessages,
+		IsDefault:   true, Revision: 1, CreatedAt: 1,
 	}
 	return nil
 }
@@ -529,6 +535,153 @@ func (s *fakeStore) ListGuildMemberRoles(_ context.Context, guildID, userID int6
 	return roles, nil
 }
 
+func (s *fakeStore) CreateGuildChannel(
+	_ context.Context,
+	channelID, guildID int64,
+	name string,
+	channelType, position int32,
+	topic string,
+	createdAt int64,
+) (*model.Channel, error) {
+	channel := &model.Channel{
+		ID: channelID, GuildID: guildID, Name: name, Type: channelType,
+		Position: position, Topic: topic, Revision: 1, CreatedAt: createdAt,
+	}
+	s.channels[channelID] = channel
+	return cloneChannel(channel), nil
+}
+
+func (s *fakeStore) GetGuildChannel(_ context.Context, channelID int64) (*model.Channel, error) {
+	channel := s.channels[channelID]
+	if channel == nil || channel.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	return cloneChannel(channel), nil
+}
+
+func (s *fakeStore) ListGuildChannels(_ context.Context, guildID int64) ([]*model.Channel, error) {
+	var channels []*model.Channel
+	for _, channel := range s.channels {
+		if channel.GuildID == guildID && channel.DeletedAt == 0 {
+			channels = append(channels, cloneChannel(channel))
+		}
+	}
+	sort.Slice(channels, func(i, j int) bool {
+		if channels[i].Position == channels[j].Position {
+			return channels[i].ID < channels[j].ID
+		}
+		return channels[i].Position < channels[j].Position
+	})
+	return channels, nil
+}
+
+func (s *fakeStore) UpdateGuildChannel(_ context.Context, params store.UpdateGuildChannelParams) (*model.Channel, error) {
+	channel := s.channels[params.ChannelID]
+	if channel == nil || channel.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	if params.Name != nil {
+		channel.Name = *params.Name
+	}
+	if params.Topic != nil {
+		channel.Topic = *params.Topic
+	}
+	channel.Revision++
+	channel.UpdatedAt = params.UpdatedAt
+	return cloneChannel(channel), nil
+}
+
+func (s *fakeStore) UpdateGuildChannelPosition(_ context.Context, channelID int64, position int32, updatedAt int64) (*model.Channel, error) {
+	channel := s.channels[channelID]
+	if channel == nil || channel.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	channel.Position = position
+	channel.Revision++
+	channel.UpdatedAt = updatedAt
+	return cloneChannel(channel), nil
+}
+
+func (s *fakeStore) DeleteGuildChannel(_ context.Context, channelID, deletedAt int64) (*model.Channel, error) {
+	channel := s.channels[channelID]
+	if channel == nil || channel.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	channel.Revision++
+	channel.UpdatedAt = deletedAt
+	channel.DeletedAt = deletedAt
+	return cloneChannel(channel), nil
+}
+
+func (s *fakeStore) DeleteGuildChannels(_ context.Context, guildID, deletedAt int64) error {
+	for _, channel := range s.channels {
+		if channel.GuildID == guildID && channel.DeletedAt == 0 {
+			channel.DeletedAt = deletedAt
+		}
+	}
+	return nil
+}
+
+func (s *fakeStore) UpsertGuildChannelPermissionOverwrite(_ context.Context, overwrite *model.ChannelPermissionOverwrite) (*model.ChannelPermissionOverwrite, error) {
+	if s.overwrites[overwrite.ChannelID] == nil {
+		s.overwrites[overwrite.ChannelID] = make(map[string]*model.ChannelPermissionOverwrite)
+	}
+	key := overwriteKey(overwrite.TargetType, overwrite.TargetID)
+	if existing := s.overwrites[overwrite.ChannelID][key]; existing != nil {
+		overwrite.Revision = existing.Revision + 1
+		overwrite.CreatedAt = existing.CreatedAt
+		overwrite.UpdatedAt = time.Now().UnixMilli()
+	} else {
+		overwrite.Revision = 1
+	}
+	clone := *overwrite
+	s.overwrites[overwrite.ChannelID][key] = &clone
+	return cloneOverwrite(&clone), nil
+}
+
+func (s *fakeStore) DeleteGuildChannelPermissionOverwrite(_ context.Context, channelID int64, targetType int32, targetID int64) error {
+	delete(s.overwrites[channelID], overwriteKey(targetType, targetID))
+	return nil
+}
+
+func (s *fakeStore) DeleteGuildChannelPermissionOverwrites(_ context.Context, channelID int64) error {
+	delete(s.overwrites, channelID)
+	return nil
+}
+
+func (s *fakeStore) DeleteAllGuildChannelPermissionOverwrites(_ context.Context, guildID int64) error {
+	for channelID, channel := range s.channels {
+		if channel.GuildID == guildID {
+			delete(s.overwrites, channelID)
+		}
+	}
+	return nil
+}
+
+func (s *fakeStore) DeleteGuildChannelPermissionOverwritesForTarget(_ context.Context, guildID int64, targetType int32, targetID int64) error {
+	key := overwriteKey(targetType, targetID)
+	for channelID, channel := range s.channels {
+		if channel.GuildID == guildID {
+			delete(s.overwrites[channelID], key)
+		}
+	}
+	return nil
+}
+
+func (s *fakeStore) ListGuildChannelPermissionOverwrites(_ context.Context, channelID int64) ([]*model.ChannelPermissionOverwrite, error) {
+	var values []*model.ChannelPermissionOverwrite
+	for _, overwrite := range s.overwrites[channelID] {
+		values = append(values, cloneOverwrite(overwrite))
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].TargetType == values[j].TargetType {
+			return values[i].TargetID < values[j].TargetID
+		}
+		return values[i].TargetType < values[j].TargetType
+	})
+	return values, nil
+}
+
 func testGuild(id, ownerID int64) *model.Guild {
 	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconURI: "icon://old", Revision: 1, CreatedAt: 1}
 }
@@ -546,6 +699,20 @@ func cloneMember(member *model.GuildMember) *model.GuildMember {
 func cloneRole(role *model.Role) *model.Role {
 	clone := *role
 	return &clone
+}
+
+func cloneChannel(channel *model.Channel) *model.Channel {
+	clone := *channel
+	return &clone
+}
+
+func cloneOverwrite(overwrite *model.ChannelPermissionOverwrite) *model.ChannelPermissionOverwrite {
+	clone := *overwrite
+	return &clone
+}
+
+func overwriteKey(targetType int32, targetID int64) string {
+	return strconv.FormatInt(int64(targetType), 10) + ":" + strconv.FormatInt(targetID, 10)
 }
 
 func testMembers(guildID int64, userIDs ...int64) map[int64]*model.GuildMember {

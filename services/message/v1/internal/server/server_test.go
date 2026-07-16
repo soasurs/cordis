@@ -10,9 +10,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -149,6 +151,33 @@ func TestUpdateMessagePermissionDenied(t *testing.T) {
 	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessagePermissionDenied))
 }
 
+func TestUpdateMessageAllowsGuildModerator(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.messages[100] = &model.Message{
+		ID: 100, ChannelID: 10, AuthorID: 20, Content: "old",
+		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
+	}
+	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), &fakeGuildClient{allowManageMessages: true})
+
+	req := new(messagev1.UpdateMessageRequest)
+	req.SetMessageId(100)
+	req.SetActorUserId(21)
+	req.SetContent("moderated")
+	resp, err := server.UpdateMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, "moderated", resp.GetMessage().GetContent())
+}
+
+func TestCreateMessageRequiresSendPermission(t *testing.T) {
+	server := newTestMessageServerWithGuild(t, newFakeStore(), new(fakePublisher), &fakeGuildClient{denyAll: true})
+	req := new(messagev1.CreateMessageRequest)
+	req.SetChannelId(10)
+	req.SetAuthorId(20)
+	req.SetContent("hello")
+	_, err := server.CreateMessage(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
 func TestDeleteMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.messages[100] = &model.Message{
@@ -188,12 +217,14 @@ func TestGetAndListMessages(t *testing.T) {
 
 	getReq := new(messagev1.GetMessageRequest)
 	getReq.SetMessageId(101)
+	getReq.SetUserId(20)
 	getResp, err := server.GetMessage(t.Context(), getReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(2), getResp.GetMessage().GetRevision())
 
 	listReq := new(messagev1.ListMessagesRequest)
 	listReq.SetChannelId(10)
+	listReq.SetUserId(20)
 	listReq.SetBefore(200)
 	listResp, err := server.ListMessages(t.Context(), listReq)
 	require.NoError(t, err)
@@ -258,6 +289,15 @@ func TestCreateMessageValidation(t *testing.T) {
 }
 
 func newTestMessageServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher) messagev1.MessageServiceServer {
+	return newTestMessageServerWithGuild(t, fakeStore, publisher, &fakeGuildClient{})
+}
+
+func newTestMessageServerWithGuild(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	guildClient guildv1.GuildServiceClient,
+) messagev1.MessageServiceServer {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
@@ -268,10 +308,28 @@ func newTestMessageServer(t *testing.T, fakeStore store.Store, publisher svc.Eve
 				PublishTimeoutMs: 100,
 			},
 		},
-		Store:     fakeStore,
-		Snowflake: node,
-		Publisher: publisher,
+		Store:       fakeStore,
+		Snowflake:   node,
+		Publisher:   publisher,
+		GuildClient: guildClient,
 	})
+}
+
+type fakeGuildClient struct {
+	guildv1.GuildServiceClient
+	allowManageMessages bool
+	denyAll             bool
+}
+
+func (f *fakeGuildClient) AuthorizeGuildChannel(
+	_ context.Context,
+	req *guildv1.AuthorizeGuildChannelRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.AuthorizeGuildChannelResponse, error) {
+	resp := new(guildv1.AuthorizeGuildChannelResponse)
+	resp.SetAllowed(!f.denyAll && (req.GetPermission()&permissionManageMessages == 0 || f.allowManageMessages))
+	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
+	return resp, nil
 }
 
 func pbAttachment(key string) *messagev1.Attachment {

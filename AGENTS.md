@@ -79,16 +79,22 @@ go build ./services/guild/v1/...
 - Active duplicate membership returns `AlreadyExists`. A removed member may rejoin; the existing row is restored and its membership `revision` continues increasing.
 - Member lists use descending `user_id` and a `before_user_id` cursor. Nicknames are trimmed, may be cleared, and are limited to 32 Unicode code points.
 - Guild-level permissions are `ADMINISTRATOR`, `MANAGE_GUILD`, `MANAGE_ROLES`, `MANAGE_MEMBERS`, and `KICK_MEMBERS`. Effective permissions OR the implicit `@everyone` role with explicitly assigned active roles.
+- Channel permissions add `VIEW_CHANNEL`, `SEND_MESSAGES`, `MANAGE_CHANNELS`, and `MANAGE_MESSAGES`. New and migrated `@everyone` roles grant `VIEW_CHANNEL | SEND_MESSAGES` by default.
 - Guild owners implicitly receive all Guild permissions. `ADMINISTRATOR` expands to all current Guild permissions, but role hierarchy still applies to non-owner moderation and role operations.
 - `guild_member_roles` stores explicit role assignments. The `@everyone` role is implicit, cannot be assigned or deleted, keeps position 0, and only its permissions may be updated.
 - Role operations require `MANAGE_ROLES`. Non-owners may only manage roles and members strictly below their highest role and cannot create, edit, or assign permissions they do not hold.
 - Role deletion and member removal delete explicit role assignments transactionally. Deleted roles are excluded from permission calculation.
+- Guild owns text channels and channel permission overwrites. Channel ordering uses ascending `position`; only `GUILD_CHANNEL_TYPE_TEXT` is currently supported.
+- Channel overwrite precedence is deterministic: `@everyone`, aggregated assigned-role denies/allows, then the member overwrite. Owner and `ADMINISTRATOR` bypass channel overwrites.
+- Denying `VIEW_CHANNEL` also removes `SEND_MESSAGES` and `MANAGE_MESSAGES`. Guild channel reads hide non-visible channels as not found.
+- Role overwrite targets must be manageable by the actor; member overwrite targets must be below the actor's highest role. Overwrite allow/deny bitsets cannot overlap.
 - Guild has an independent Kafka topic, defaulting to `cordis.guild.events.v1`; do not mix Guild events into the Message topic.
 - Guild publishes directly to Kafka after the database transaction commits and does not use an outbox.
 - Guild event values use the same lightweight envelope as Message: `{"t":"guild.updated","d":{...}}`. The Kafka key is the decimal `guild_id`.
 - Snowflake IDs and permission bitsets in Kafka JSON are strings; revisions, timestamps, and enums remain JSON numbers.
-- Current event types are `guild.created`, `guild.updated`, `guild.deleted`, `guild.member.joined`, `guild.member.updated`, `guild.member.removed`, `guild.role.created`, `guild.role.updated`, `guild.role.deleted`, and `guild.member.roles.updated`.
-- Later Guild phases own channels/overwrites, Message/Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
+- Current event types additionally include `guild.channel.created`, `guild.channel.updated`, `guild.channel.deleted`, `guild.channel.overwrite.updated`, and `guild.channel.overwrite.deleted`.
+- Message calls Guild `AuthorizeGuildChannel` for every create/read/list/update/delete operation. Message no longer trusts a caller-provided moderator boolean; non-author edits/deletes require `MANAGE_MESSAGES`.
+- Later Guild phases own Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
 
 ## Gateway And Presence
 
@@ -114,5 +120,5 @@ go build ./services/guild/v1/...
 
 - Authenticator config requires `CORDIS_ACCESS_TOKEN_SECRET` and `CORDIS_REFRESH_TOKEN_SECRET` for real token manager startup.
 - Optional tracing endpoint is read from `CORDIS_OTEL_ENDPOINT` in service configs.
-- Message and Guild Kafka configs are optional; if no Kafka seeds are configured, no Kafka producer is created and mutations still succeed without event publication.
+- Message config requires a Guild gRPC endpoint for channel authorization. Message and Guild Kafka configs are optional; if no Kafka seeds are configured, no Kafka producer is created and mutations still succeed without event publication.
 - Snowflake IDs use a custom node derived from non-loopback IP hash, epoch `2025-01-01`, 16 node bits, and 8 step bits.

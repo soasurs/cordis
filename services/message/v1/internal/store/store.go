@@ -27,7 +27,7 @@ type CreateMessageParams struct {
 type UpdateMessageParams struct {
 	MessageID        int64
 	ActorUserID      int64
-	HasModPermission bool // when true, skip author_id ownership check
+	HasModPermission bool
 	Content          *string
 	Flags            *int32
 	Attachments      *[]model.Attachment

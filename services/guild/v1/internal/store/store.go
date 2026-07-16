@@ -38,6 +38,13 @@ type UpdateGuildRoleParams struct {
 	UpdatedAt   int64
 }
 
+type UpdateGuildChannelParams struct {
+	ChannelID int64
+	Name      *string
+	Topic     *string
+	UpdatedAt int64
+}
+
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
 	CreateGuild(ctx context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error)
@@ -66,6 +73,19 @@ type Store interface {
 	DeleteGuildRoleAssignments(ctx context.Context, guildID, roleID int64) error
 	DeleteAllGuildRoleAssignments(ctx context.Context, guildID int64) error
 	ListGuildMemberRoles(ctx context.Context, guildID, userID int64) ([]*model.Role, error)
+	CreateGuildChannel(ctx context.Context, channelID, guildID int64, name string, channelType, position int32, topic string, createdAt int64) (*model.Channel, error)
+	GetGuildChannel(ctx context.Context, channelID int64) (*model.Channel, error)
+	ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error)
+	UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error)
+	UpdateGuildChannelPosition(ctx context.Context, channelID int64, position int32, updatedAt int64) (*model.Channel, error)
+	DeleteGuildChannel(ctx context.Context, channelID, deletedAt int64) (*model.Channel, error)
+	DeleteGuildChannels(ctx context.Context, guildID, deletedAt int64) error
+	UpsertGuildChannelPermissionOverwrite(ctx context.Context, overwrite *model.ChannelPermissionOverwrite) (*model.ChannelPermissionOverwrite, error)
+	DeleteGuildChannelPermissionOverwrite(ctx context.Context, channelID int64, targetType int32, targetID int64) error
+	DeleteGuildChannelPermissionOverwrites(ctx context.Context, channelID int64) error
+	DeleteAllGuildChannelPermissionOverwrites(ctx context.Context, guildID int64) error
+	DeleteGuildChannelPermissionOverwritesForTarget(ctx context.Context, guildID int64, targetType int32, targetID int64) error
+	ListGuildChannelPermissionOverwrites(ctx context.Context, channelID int64) ([]*model.ChannelPermissionOverwrite, error)
 }
 
 type SQLStore struct {

@@ -96,6 +96,33 @@ const (
 	// GuildServiceGetGuildMemberPermissionsProcedure is the fully-qualified name of the GuildService's
 	// GetGuildMemberPermissions RPC.
 	GuildServiceGetGuildMemberPermissionsProcedure = "/api.v1.GuildService/GetGuildMemberPermissions"
+	// GuildServiceCreateGuildChannelProcedure is the fully-qualified name of the GuildService's
+	// CreateGuildChannel RPC.
+	GuildServiceCreateGuildChannelProcedure = "/api.v1.GuildService/CreateGuildChannel"
+	// GuildServiceGetGuildChannelProcedure is the fully-qualified name of the GuildService's
+	// GetGuildChannel RPC.
+	GuildServiceGetGuildChannelProcedure = "/api.v1.GuildService/GetGuildChannel"
+	// GuildServiceListGuildChannelsProcedure is the fully-qualified name of the GuildService's
+	// ListGuildChannels RPC.
+	GuildServiceListGuildChannelsProcedure = "/api.v1.GuildService/ListGuildChannels"
+	// GuildServiceUpdateGuildChannelProcedure is the fully-qualified name of the GuildService's
+	// UpdateGuildChannel RPC.
+	GuildServiceUpdateGuildChannelProcedure = "/api.v1.GuildService/UpdateGuildChannel"
+	// GuildServiceDeleteGuildChannelProcedure is the fully-qualified name of the GuildService's
+	// DeleteGuildChannel RPC.
+	GuildServiceDeleteGuildChannelProcedure = "/api.v1.GuildService/DeleteGuildChannel"
+	// GuildServiceReorderGuildChannelsProcedure is the fully-qualified name of the GuildService's
+	// ReorderGuildChannels RPC.
+	GuildServiceReorderGuildChannelsProcedure = "/api.v1.GuildService/ReorderGuildChannels"
+	// GuildServiceUpsertGuildChannelPermissionOverwriteProcedure is the fully-qualified name of the
+	// GuildService's UpsertGuildChannelPermissionOverwrite RPC.
+	GuildServiceUpsertGuildChannelPermissionOverwriteProcedure = "/api.v1.GuildService/UpsertGuildChannelPermissionOverwrite"
+	// GuildServiceDeleteGuildChannelPermissionOverwriteProcedure is the fully-qualified name of the
+	// GuildService's DeleteGuildChannelPermissionOverwrite RPC.
+	GuildServiceDeleteGuildChannelPermissionOverwriteProcedure = "/api.v1.GuildService/DeleteGuildChannelPermissionOverwrite"
+	// GuildServiceListGuildChannelPermissionOverwritesProcedure is the fully-qualified name of the
+	// GuildService's ListGuildChannelPermissionOverwrites RPC.
+	GuildServiceListGuildChannelPermissionOverwritesProcedure = "/api.v1.GuildService/ListGuildChannelPermissionOverwrites"
 )
 
 // GuildServiceClient is a client for the api.v1.GuildService service.
@@ -122,6 +149,15 @@ type GuildServiceClient interface {
 	RemoveGuildMemberRole(context.Context, *v1.RemoveGuildMemberRoleRequest) (*v1.RemoveGuildMemberRoleResponse, error)
 	ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error)
 	GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error)
+	CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error)
+	GetGuildChannel(context.Context, *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error)
+	ListGuildChannels(context.Context, *v1.ListGuildChannelsRequest) (*v1.ListGuildChannelsResponse, error)
+	UpdateGuildChannel(context.Context, *v1.UpdateGuildChannelRequest) (*v1.UpdateGuildChannelResponse, error)
+	DeleteGuildChannel(context.Context, *v1.DeleteGuildChannelRequest) (*v1.DeleteGuildChannelResponse, error)
+	ReorderGuildChannels(context.Context, *v1.ReorderGuildChannelsRequest) (*v1.ReorderGuildChannelsResponse, error)
+	UpsertGuildChannelPermissionOverwrite(context.Context, *v1.UpsertGuildChannelPermissionOverwriteRequest) (*v1.UpsertGuildChannelPermissionOverwriteResponse, error)
+	DeleteGuildChannelPermissionOverwrite(context.Context, *v1.DeleteGuildChannelPermissionOverwriteRequest) (*v1.DeleteGuildChannelPermissionOverwriteResponse, error)
+	ListGuildChannelPermissionOverwrites(context.Context, *v1.ListGuildChannelPermissionOverwritesRequest) (*v1.ListGuildChannelPermissionOverwritesResponse, error)
 }
 
 // NewGuildServiceClient constructs a client for the api.v1.GuildService service. By default, it
@@ -267,33 +303,96 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(guildServiceMethods.ByName("GetGuildMemberPermissions")),
 			connect.WithClientOptions(opts...),
 		),
+		createGuildChannel: connect.NewClient[v1.CreateGuildChannelRequest, v1.CreateGuildChannelResponse](
+			httpClient,
+			baseURL+GuildServiceCreateGuildChannelProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("CreateGuildChannel")),
+			connect.WithClientOptions(opts...),
+		),
+		getGuildChannel: connect.NewClient[v1.GetGuildChannelRequest, v1.GetGuildChannelResponse](
+			httpClient,
+			baseURL+GuildServiceGetGuildChannelProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("GetGuildChannel")),
+			connect.WithClientOptions(opts...),
+		),
+		listGuildChannels: connect.NewClient[v1.ListGuildChannelsRequest, v1.ListGuildChannelsResponse](
+			httpClient,
+			baseURL+GuildServiceListGuildChannelsProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("ListGuildChannels")),
+			connect.WithClientOptions(opts...),
+		),
+		updateGuildChannel: connect.NewClient[v1.UpdateGuildChannelRequest, v1.UpdateGuildChannelResponse](
+			httpClient,
+			baseURL+GuildServiceUpdateGuildChannelProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("UpdateGuildChannel")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteGuildChannel: connect.NewClient[v1.DeleteGuildChannelRequest, v1.DeleteGuildChannelResponse](
+			httpClient,
+			baseURL+GuildServiceDeleteGuildChannelProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("DeleteGuildChannel")),
+			connect.WithClientOptions(opts...),
+		),
+		reorderGuildChannels: connect.NewClient[v1.ReorderGuildChannelsRequest, v1.ReorderGuildChannelsResponse](
+			httpClient,
+			baseURL+GuildServiceReorderGuildChannelsProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("ReorderGuildChannels")),
+			connect.WithClientOptions(opts...),
+		),
+		upsertGuildChannelPermissionOverwrite: connect.NewClient[v1.UpsertGuildChannelPermissionOverwriteRequest, v1.UpsertGuildChannelPermissionOverwriteResponse](
+			httpClient,
+			baseURL+GuildServiceUpsertGuildChannelPermissionOverwriteProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("UpsertGuildChannelPermissionOverwrite")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteGuildChannelPermissionOverwrite: connect.NewClient[v1.DeleteGuildChannelPermissionOverwriteRequest, v1.DeleteGuildChannelPermissionOverwriteResponse](
+			httpClient,
+			baseURL+GuildServiceDeleteGuildChannelPermissionOverwriteProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("DeleteGuildChannelPermissionOverwrite")),
+			connect.WithClientOptions(opts...),
+		),
+		listGuildChannelPermissionOverwrites: connect.NewClient[v1.ListGuildChannelPermissionOverwritesRequest, v1.ListGuildChannelPermissionOverwritesResponse](
+			httpClient,
+			baseURL+GuildServiceListGuildChannelPermissionOverwritesProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("ListGuildChannelPermissionOverwrites")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // guildServiceClient implements GuildServiceClient.
 type guildServiceClient struct {
-	createGuild               *connect.Client[v1.CreateGuildRequest, v1.CreateGuildResponse]
-	getGuild                  *connect.Client[v1.GetGuildRequest, v1.GetGuildResponse]
-	listGuilds                *connect.Client[v1.ListGuildsRequest, v1.ListGuildsResponse]
-	updateGuild               *connect.Client[v1.UpdateGuildRequest, v1.UpdateGuildResponse]
-	deleteGuild               *connect.Client[v1.DeleteGuildRequest, v1.DeleteGuildResponse]
-	addGuildMember            *connect.Client[v1.AddGuildMemberRequest, v1.AddGuildMemberResponse]
-	getGuildMember            *connect.Client[v1.GetGuildMemberRequest, v1.GetGuildMemberResponse]
-	listGuildMembers          *connect.Client[v1.ListGuildMembersRequest, v1.ListGuildMembersResponse]
-	updateCurrentGuildMember  *connect.Client[v1.UpdateCurrentGuildMemberRequest, v1.UpdateCurrentGuildMemberResponse]
-	kickGuildMember           *connect.Client[v1.KickGuildMemberRequest, v1.KickGuildMemberResponse]
-	leaveGuild                *connect.Client[v1.LeaveGuildRequest, v1.LeaveGuildResponse]
-	transferGuildOwnership    *connect.Client[v1.TransferGuildOwnershipRequest, v1.TransferGuildOwnershipResponse]
-	createGuildRole           *connect.Client[v1.CreateGuildRoleRequest, v1.CreateGuildRoleResponse]
-	getGuildRole              *connect.Client[v1.GetGuildRoleRequest, v1.GetGuildRoleResponse]
-	listGuildRoles            *connect.Client[v1.ListGuildRolesRequest, v1.ListGuildRolesResponse]
-	updateGuildRole           *connect.Client[v1.UpdateGuildRoleRequest, v1.UpdateGuildRoleResponse]
-	deleteGuildRole           *connect.Client[v1.DeleteGuildRoleRequest, v1.DeleteGuildRoleResponse]
-	reorderGuildRoles         *connect.Client[v1.ReorderGuildRolesRequest, v1.ReorderGuildRolesResponse]
-	addGuildMemberRole        *connect.Client[v1.AddGuildMemberRoleRequest, v1.AddGuildMemberRoleResponse]
-	removeGuildMemberRole     *connect.Client[v1.RemoveGuildMemberRoleRequest, v1.RemoveGuildMemberRoleResponse]
-	listGuildMemberRoles      *connect.Client[v1.ListGuildMemberRolesRequest, v1.ListGuildMemberRolesResponse]
-	getGuildMemberPermissions *connect.Client[v1.GetGuildMemberPermissionsRequest, v1.GetGuildMemberPermissionsResponse]
+	createGuild                           *connect.Client[v1.CreateGuildRequest, v1.CreateGuildResponse]
+	getGuild                              *connect.Client[v1.GetGuildRequest, v1.GetGuildResponse]
+	listGuilds                            *connect.Client[v1.ListGuildsRequest, v1.ListGuildsResponse]
+	updateGuild                           *connect.Client[v1.UpdateGuildRequest, v1.UpdateGuildResponse]
+	deleteGuild                           *connect.Client[v1.DeleteGuildRequest, v1.DeleteGuildResponse]
+	addGuildMember                        *connect.Client[v1.AddGuildMemberRequest, v1.AddGuildMemberResponse]
+	getGuildMember                        *connect.Client[v1.GetGuildMemberRequest, v1.GetGuildMemberResponse]
+	listGuildMembers                      *connect.Client[v1.ListGuildMembersRequest, v1.ListGuildMembersResponse]
+	updateCurrentGuildMember              *connect.Client[v1.UpdateCurrentGuildMemberRequest, v1.UpdateCurrentGuildMemberResponse]
+	kickGuildMember                       *connect.Client[v1.KickGuildMemberRequest, v1.KickGuildMemberResponse]
+	leaveGuild                            *connect.Client[v1.LeaveGuildRequest, v1.LeaveGuildResponse]
+	transferGuildOwnership                *connect.Client[v1.TransferGuildOwnershipRequest, v1.TransferGuildOwnershipResponse]
+	createGuildRole                       *connect.Client[v1.CreateGuildRoleRequest, v1.CreateGuildRoleResponse]
+	getGuildRole                          *connect.Client[v1.GetGuildRoleRequest, v1.GetGuildRoleResponse]
+	listGuildRoles                        *connect.Client[v1.ListGuildRolesRequest, v1.ListGuildRolesResponse]
+	updateGuildRole                       *connect.Client[v1.UpdateGuildRoleRequest, v1.UpdateGuildRoleResponse]
+	deleteGuildRole                       *connect.Client[v1.DeleteGuildRoleRequest, v1.DeleteGuildRoleResponse]
+	reorderGuildRoles                     *connect.Client[v1.ReorderGuildRolesRequest, v1.ReorderGuildRolesResponse]
+	addGuildMemberRole                    *connect.Client[v1.AddGuildMemberRoleRequest, v1.AddGuildMemberRoleResponse]
+	removeGuildMemberRole                 *connect.Client[v1.RemoveGuildMemberRoleRequest, v1.RemoveGuildMemberRoleResponse]
+	listGuildMemberRoles                  *connect.Client[v1.ListGuildMemberRolesRequest, v1.ListGuildMemberRolesResponse]
+	getGuildMemberPermissions             *connect.Client[v1.GetGuildMemberPermissionsRequest, v1.GetGuildMemberPermissionsResponse]
+	createGuildChannel                    *connect.Client[v1.CreateGuildChannelRequest, v1.CreateGuildChannelResponse]
+	getGuildChannel                       *connect.Client[v1.GetGuildChannelRequest, v1.GetGuildChannelResponse]
+	listGuildChannels                     *connect.Client[v1.ListGuildChannelsRequest, v1.ListGuildChannelsResponse]
+	updateGuildChannel                    *connect.Client[v1.UpdateGuildChannelRequest, v1.UpdateGuildChannelResponse]
+	deleteGuildChannel                    *connect.Client[v1.DeleteGuildChannelRequest, v1.DeleteGuildChannelResponse]
+	reorderGuildChannels                  *connect.Client[v1.ReorderGuildChannelsRequest, v1.ReorderGuildChannelsResponse]
+	upsertGuildChannelPermissionOverwrite *connect.Client[v1.UpsertGuildChannelPermissionOverwriteRequest, v1.UpsertGuildChannelPermissionOverwriteResponse]
+	deleteGuildChannelPermissionOverwrite *connect.Client[v1.DeleteGuildChannelPermissionOverwriteRequest, v1.DeleteGuildChannelPermissionOverwriteResponse]
+	listGuildChannelPermissionOverwrites  *connect.Client[v1.ListGuildChannelPermissionOverwritesRequest, v1.ListGuildChannelPermissionOverwritesResponse]
 }
 
 // CreateGuild calls api.v1.GuildService.CreateGuild.
@@ -494,6 +593,90 @@ func (c *guildServiceClient) GetGuildMemberPermissions(ctx context.Context, req 
 	return nil, err
 }
 
+// CreateGuildChannel calls api.v1.GuildService.CreateGuildChannel.
+func (c *guildServiceClient) CreateGuildChannel(ctx context.Context, req *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error) {
+	response, err := c.createGuildChannel.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetGuildChannel calls api.v1.GuildService.GetGuildChannel.
+func (c *guildServiceClient) GetGuildChannel(ctx context.Context, req *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error) {
+	response, err := c.getGuildChannel.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListGuildChannels calls api.v1.GuildService.ListGuildChannels.
+func (c *guildServiceClient) ListGuildChannels(ctx context.Context, req *v1.ListGuildChannelsRequest) (*v1.ListGuildChannelsResponse, error) {
+	response, err := c.listGuildChannels.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UpdateGuildChannel calls api.v1.GuildService.UpdateGuildChannel.
+func (c *guildServiceClient) UpdateGuildChannel(ctx context.Context, req *v1.UpdateGuildChannelRequest) (*v1.UpdateGuildChannelResponse, error) {
+	response, err := c.updateGuildChannel.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeleteGuildChannel calls api.v1.GuildService.DeleteGuildChannel.
+func (c *guildServiceClient) DeleteGuildChannel(ctx context.Context, req *v1.DeleteGuildChannelRequest) (*v1.DeleteGuildChannelResponse, error) {
+	response, err := c.deleteGuildChannel.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ReorderGuildChannels calls api.v1.GuildService.ReorderGuildChannels.
+func (c *guildServiceClient) ReorderGuildChannels(ctx context.Context, req *v1.ReorderGuildChannelsRequest) (*v1.ReorderGuildChannelsResponse, error) {
+	response, err := c.reorderGuildChannels.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UpsertGuildChannelPermissionOverwrite calls
+// api.v1.GuildService.UpsertGuildChannelPermissionOverwrite.
+func (c *guildServiceClient) UpsertGuildChannelPermissionOverwrite(ctx context.Context, req *v1.UpsertGuildChannelPermissionOverwriteRequest) (*v1.UpsertGuildChannelPermissionOverwriteResponse, error) {
+	response, err := c.upsertGuildChannelPermissionOverwrite.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeleteGuildChannelPermissionOverwrite calls
+// api.v1.GuildService.DeleteGuildChannelPermissionOverwrite.
+func (c *guildServiceClient) DeleteGuildChannelPermissionOverwrite(ctx context.Context, req *v1.DeleteGuildChannelPermissionOverwriteRequest) (*v1.DeleteGuildChannelPermissionOverwriteResponse, error) {
+	response, err := c.deleteGuildChannelPermissionOverwrite.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListGuildChannelPermissionOverwrites calls
+// api.v1.GuildService.ListGuildChannelPermissionOverwrites.
+func (c *guildServiceClient) ListGuildChannelPermissionOverwrites(ctx context.Context, req *v1.ListGuildChannelPermissionOverwritesRequest) (*v1.ListGuildChannelPermissionOverwritesResponse, error) {
+	response, err := c.listGuildChannelPermissionOverwrites.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // GuildServiceHandler is an implementation of the api.v1.GuildService service.
 type GuildServiceHandler interface {
 	CreateGuild(context.Context, *v1.CreateGuildRequest) (*v1.CreateGuildResponse, error)
@@ -518,6 +701,15 @@ type GuildServiceHandler interface {
 	RemoveGuildMemberRole(context.Context, *v1.RemoveGuildMemberRoleRequest) (*v1.RemoveGuildMemberRoleResponse, error)
 	ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error)
 	GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error)
+	CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error)
+	GetGuildChannel(context.Context, *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error)
+	ListGuildChannels(context.Context, *v1.ListGuildChannelsRequest) (*v1.ListGuildChannelsResponse, error)
+	UpdateGuildChannel(context.Context, *v1.UpdateGuildChannelRequest) (*v1.UpdateGuildChannelResponse, error)
+	DeleteGuildChannel(context.Context, *v1.DeleteGuildChannelRequest) (*v1.DeleteGuildChannelResponse, error)
+	ReorderGuildChannels(context.Context, *v1.ReorderGuildChannelsRequest) (*v1.ReorderGuildChannelsResponse, error)
+	UpsertGuildChannelPermissionOverwrite(context.Context, *v1.UpsertGuildChannelPermissionOverwriteRequest) (*v1.UpsertGuildChannelPermissionOverwriteResponse, error)
+	DeleteGuildChannelPermissionOverwrite(context.Context, *v1.DeleteGuildChannelPermissionOverwriteRequest) (*v1.DeleteGuildChannelPermissionOverwriteResponse, error)
+	ListGuildChannelPermissionOverwrites(context.Context, *v1.ListGuildChannelPermissionOverwritesRequest) (*v1.ListGuildChannelPermissionOverwritesResponse, error)
 }
 
 // NewGuildServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -659,6 +851,60 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(guildServiceMethods.ByName("GetGuildMemberPermissions")),
 		connect.WithHandlerOptions(opts...),
 	)
+	guildServiceCreateGuildChannelHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceCreateGuildChannelProcedure,
+		svc.CreateGuildChannel,
+		connect.WithSchema(guildServiceMethods.ByName("CreateGuildChannel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceGetGuildChannelHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceGetGuildChannelProcedure,
+		svc.GetGuildChannel,
+		connect.WithSchema(guildServiceMethods.ByName("GetGuildChannel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceListGuildChannelsHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceListGuildChannelsProcedure,
+		svc.ListGuildChannels,
+		connect.WithSchema(guildServiceMethods.ByName("ListGuildChannels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceUpdateGuildChannelHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceUpdateGuildChannelProcedure,
+		svc.UpdateGuildChannel,
+		connect.WithSchema(guildServiceMethods.ByName("UpdateGuildChannel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceDeleteGuildChannelHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceDeleteGuildChannelProcedure,
+		svc.DeleteGuildChannel,
+		connect.WithSchema(guildServiceMethods.ByName("DeleteGuildChannel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceReorderGuildChannelsHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceReorderGuildChannelsProcedure,
+		svc.ReorderGuildChannels,
+		connect.WithSchema(guildServiceMethods.ByName("ReorderGuildChannels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceUpsertGuildChannelPermissionOverwriteHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceUpsertGuildChannelPermissionOverwriteProcedure,
+		svc.UpsertGuildChannelPermissionOverwrite,
+		connect.WithSchema(guildServiceMethods.ByName("UpsertGuildChannelPermissionOverwrite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceDeleteGuildChannelPermissionOverwriteHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceDeleteGuildChannelPermissionOverwriteProcedure,
+		svc.DeleteGuildChannelPermissionOverwrite,
+		connect.WithSchema(guildServiceMethods.ByName("DeleteGuildChannelPermissionOverwrite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceListGuildChannelPermissionOverwritesHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceListGuildChannelPermissionOverwritesProcedure,
+		svc.ListGuildChannelPermissionOverwrites,
+		connect.WithSchema(guildServiceMethods.ByName("ListGuildChannelPermissionOverwrites")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.GuildService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case GuildServiceCreateGuildProcedure:
@@ -705,6 +951,24 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceListGuildMemberRolesHandler.ServeHTTP(w, r)
 		case GuildServiceGetGuildMemberPermissionsProcedure:
 			guildServiceGetGuildMemberPermissionsHandler.ServeHTTP(w, r)
+		case GuildServiceCreateGuildChannelProcedure:
+			guildServiceCreateGuildChannelHandler.ServeHTTP(w, r)
+		case GuildServiceGetGuildChannelProcedure:
+			guildServiceGetGuildChannelHandler.ServeHTTP(w, r)
+		case GuildServiceListGuildChannelsProcedure:
+			guildServiceListGuildChannelsHandler.ServeHTTP(w, r)
+		case GuildServiceUpdateGuildChannelProcedure:
+			guildServiceUpdateGuildChannelHandler.ServeHTTP(w, r)
+		case GuildServiceDeleteGuildChannelProcedure:
+			guildServiceDeleteGuildChannelHandler.ServeHTTP(w, r)
+		case GuildServiceReorderGuildChannelsProcedure:
+			guildServiceReorderGuildChannelsHandler.ServeHTTP(w, r)
+		case GuildServiceUpsertGuildChannelPermissionOverwriteProcedure:
+			guildServiceUpsertGuildChannelPermissionOverwriteHandler.ServeHTTP(w, r)
+		case GuildServiceDeleteGuildChannelPermissionOverwriteProcedure:
+			guildServiceDeleteGuildChannelPermissionOverwriteHandler.ServeHTTP(w, r)
+		case GuildServiceListGuildChannelPermissionOverwritesProcedure:
+			guildServiceListGuildChannelPermissionOverwritesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -800,4 +1064,40 @@ func (UnimplementedGuildServiceHandler) ListGuildMemberRoles(context.Context, *v
 
 func (UnimplementedGuildServiceHandler) GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.GetGuildMemberPermissions is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.CreateGuildChannel is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) GetGuildChannel(context.Context, *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.GetGuildChannel is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) ListGuildChannels(context.Context, *v1.ListGuildChannelsRequest) (*v1.ListGuildChannelsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ListGuildChannels is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) UpdateGuildChannel(context.Context, *v1.UpdateGuildChannelRequest) (*v1.UpdateGuildChannelResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.UpdateGuildChannel is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) DeleteGuildChannel(context.Context, *v1.DeleteGuildChannelRequest) (*v1.DeleteGuildChannelResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.DeleteGuildChannel is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) ReorderGuildChannels(context.Context, *v1.ReorderGuildChannelsRequest) (*v1.ReorderGuildChannelsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ReorderGuildChannels is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) UpsertGuildChannelPermissionOverwrite(context.Context, *v1.UpsertGuildChannelPermissionOverwriteRequest) (*v1.UpsertGuildChannelPermissionOverwriteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.UpsertGuildChannelPermissionOverwrite is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) DeleteGuildChannelPermissionOverwrite(context.Context, *v1.DeleteGuildChannelPermissionOverwriteRequest) (*v1.DeleteGuildChannelPermissionOverwriteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.DeleteGuildChannelPermissionOverwrite is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) ListGuildChannelPermissionOverwrites(context.Context, *v1.ListGuildChannelPermissionOverwritesRequest) (*v1.ListGuildChannelPermissionOverwritesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ListGuildChannelPermissionOverwrites is not implemented"))
 }

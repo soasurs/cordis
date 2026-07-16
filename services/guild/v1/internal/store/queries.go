@@ -13,6 +13,15 @@ const roleColumns = `
     revision, created_at, updated_at, deleted_at
 `
 
+const channelColumns = `
+    id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at
+`
+
+const channelOverwriteColumns = `
+    channel_id, guild_id, target_type, target_id, allow_bits, deny_bits,
+    revision, created_at, updated_at
+`
+
 const createGuildQuery = `
     INSERT INTO guilds (
         id, owner_id, name, icon_uri, revision, created_at, updated_at, deleted_at
@@ -41,7 +50,7 @@ const createDefaultRoleStatement = `
         id, guild_id, name, permissions, position, is_default,
         revision, created_at, updated_at, deleted_at
     ) VALUES (
-        $1, $1, '@everyone', 0, 0, TRUE, 1, $2, 0, 0
+        $1, $1, '@everyone', 96, 0, TRUE, 1, $2, 0, 0
     )
 `
 
@@ -266,4 +275,106 @@ const listGuildMemberRolesQuery = `
           )
       )
     ORDER BY position DESC, id ASC
+`
+
+const createGuildChannelQuery = `
+    INSERT INTO guild_channels (
+        id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, 1, $7, 0, 0)
+    RETURNING ` + channelColumns
+
+const getGuildChannelQuery = `
+    SELECT ` + channelColumns + `
+    FROM guild_channels
+    WHERE id = $1
+      AND deleted_at = 0
+    LIMIT 1
+`
+
+const listGuildChannelsQuery = `
+    SELECT ` + channelColumns + `
+    FROM guild_channels
+    WHERE guild_id = $1
+      AND deleted_at = 0
+    ORDER BY position ASC, id ASC
+`
+
+const updateGuildChannelQuery = `
+    UPDATE guild_channels
+    SET name = CASE WHEN $2 THEN $3 ELSE name END,
+        topic = CASE WHEN $4 THEN $5 ELSE topic END,
+        revision = revision + 1,
+        updated_at = $6
+    WHERE id = $1
+      AND deleted_at = 0
+    RETURNING ` + channelColumns
+
+const updateGuildChannelPositionQuery = `
+    UPDATE guild_channels
+    SET position = $2,
+        revision = revision + 1,
+        updated_at = $3
+    WHERE id = $1
+      AND deleted_at = 0
+    RETURNING ` + channelColumns
+
+const deleteGuildChannelQuery = `
+    UPDATE guild_channels
+    SET revision = revision + 1,
+        updated_at = $2,
+        deleted_at = $2
+    WHERE id = $1
+      AND deleted_at = 0
+    RETURNING ` + channelColumns
+
+const deleteGuildChannelsStatement = `
+    UPDATE guild_channels
+    SET revision = revision + 1,
+        updated_at = $2,
+        deleted_at = $2
+    WHERE guild_id = $1
+      AND deleted_at = 0
+`
+
+const upsertGuildChannelPermissionOverwriteQuery = `
+    INSERT INTO guild_channel_permission_overwrites (
+        channel_id, guild_id, target_type, target_id, allow_bits, deny_bits,
+        revision, created_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, 1, $7, 0)
+    ON CONFLICT (channel_id, target_type, target_id) DO UPDATE
+    SET allow_bits = EXCLUDED.allow_bits,
+        deny_bits = EXCLUDED.deny_bits,
+        revision = guild_channel_permission_overwrites.revision + 1,
+        updated_at = EXCLUDED.created_at
+    RETURNING ` + channelOverwriteColumns
+
+const deleteGuildChannelPermissionOverwriteStatement = `
+    DELETE FROM guild_channel_permission_overwrites
+    WHERE channel_id = $1
+      AND target_type = $2
+      AND target_id = $3
+`
+
+const deleteGuildChannelPermissionOverwritesStatement = `
+    DELETE FROM guild_channel_permission_overwrites
+    WHERE channel_id = $1
+`
+
+const deleteAllGuildChannelPermissionOverwritesStatement = `
+    DELETE FROM guild_channel_permission_overwrites
+    WHERE guild_id = $1
+`
+
+const deleteGuildChannelPermissionOverwritesForTargetStatement = `
+    DELETE FROM guild_channel_permission_overwrites
+    WHERE guild_id = $1
+      AND target_type = $2
+      AND target_id = $3
+`
+
+const listGuildChannelPermissionOverwritesQuery = `
+    SELECT ` + channelOverwriteColumns + `
+    FROM guild_channel_permission_overwrites
+    WHERE channel_id = $1
+    ORDER BY target_type ASC, target_id ASC
 `

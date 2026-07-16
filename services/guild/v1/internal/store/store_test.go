@@ -10,6 +10,8 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/require"
+
+	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
 func newTestStore(t *testing.T) (*SQLStore, sqlmock.Sqlmock, func()) {
@@ -194,6 +196,44 @@ func TestDeleteGuildRoleAssignments(t *testing.T) {
 		WithArgs(int64(1001), int64(3001)).
 		WillReturnResult(sqlmock.NewResult(0, 2))
 	require.NoError(t, store.DeleteGuildRoleAssignments(context.Background(), 1001, 3001))
+}
+
+func TestCreateGuildChannel(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"id", "guild_id", "name", "type", "position", "topic",
+		"revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(4001), int64(1001), "general", int32(1), int32(0), "", int64(1), int64(10), int64(0), int64(0))
+	mock.ExpectQuery(sqlPattern(createGuildChannelQuery)).
+		WithArgs(int64(4001), int64(1001), "general", int32(1), int32(0), "", int64(10)).
+		WillReturnRows(rows)
+
+	channel, err := store.CreateGuildChannel(context.Background(), 4001, 1001, "general", 1, 0, "", 10)
+	require.NoError(t, err)
+	require.Equal(t, int64(4001), channel.ID)
+	require.Equal(t, int32(1), channel.Type)
+}
+
+func TestUpsertGuildChannelPermissionOverwrite(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"channel_id", "guild_id", "target_type", "target_id", "allow_bits", "deny_bits",
+		"revision", "created_at", "updated_at",
+	}).AddRow(int64(4001), int64(1001), int32(2), int64(2001), int64(0), int64(32), int64(1), int64(10), int64(0))
+	mock.ExpectQuery(sqlPattern(upsertGuildChannelPermissionOverwriteQuery)).
+		WithArgs(int64(4001), int64(1001), int32(2), int64(2001), int64(0), int64(32), int64(10)).
+		WillReturnRows(rows)
+
+	overwrite, err := store.UpsertGuildChannelPermissionOverwrite(context.Background(), &model.ChannelPermissionOverwrite{
+		ChannelID: 4001, GuildID: 1001, TargetType: 2, TargetID: 2001, Deny: 32, CreatedAt: 10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(32), overwrite.Deny)
+	require.Equal(t, int64(1), overwrite.Revision)
 }
 
 func TestTransactRollback(t *testing.T) {

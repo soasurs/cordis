@@ -46,9 +46,12 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		if err != nil {
 			return err
 		}
+		if err := validateChannelParent(ctx, txStore, req.GetGuildId(), channelType, req.GetParentId()); err != nil {
+			return err
+		}
 		channel, err = txStore.CreateGuildChannel(
 			ctx, s.svcCtx.Snowflake.Generate().Int64(), req.GetGuildId(), name,
-			int32(channelType), int32(len(channels)), req.GetTopic(), createdAt,
+			int32(channelType), int32(len(channels)), req.GetTopic(), req.GetParentId(), createdAt,
 		)
 		return err
 	})
@@ -128,7 +131,14 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 		topic := req.GetTopic()
 		params.Topic = &topic
 	}
-	if params.Name == nil && params.Topic == nil {
+	if req.HasParentId() {
+		parentID := req.GetParentId()
+		if parentID < 0 {
+			return nil, invalidRequest("parent id must not be negative")
+		}
+		params.ParentID = &parentID
+	}
+	if params.Name == nil && params.Topic == nil && params.ParentID == nil {
 		return nil, invalidRequest("at least one channel field is required")
 	}
 
@@ -144,6 +154,11 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 		}
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
+		}
+		if params.ParentID != nil {
+			if err := validateChannelParent(ctx, txStore, channel.GuildID, guildv1.GuildChannelType(channel.Type), *params.ParentID); err != nil {
+				return err
+			}
 		}
 		updated, err = txStore.UpdateGuildChannel(ctx, params)
 		return err
@@ -163,6 +178,7 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 		return nil, err
 	}
 	var deleted *model.Channel
+	var movedChildren []*model.Channel
 	deletedAt := time.Now().UnixMilli()
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		channel, err := txStore.GetGuildChannel(ctx, req.GetChannelId())
@@ -176,6 +192,32 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
 		}
+		if channel.Type == int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY) {
+			// Deleting a category keeps its children and moves them to the
+			// guild root instead of cascading content deletion.
+			channels, err := txStore.ListGuildChannels(ctx, channel.GuildID)
+			if err != nil {
+				return err
+			}
+			childIDs := make(map[int64]struct{})
+			for _, child := range channels {
+				if child.ParentID == channel.ID {
+					childIDs[child.ID] = struct{}{}
+				}
+			}
+			if err := txStore.ClearGuildChannelParent(ctx, channel.GuildID, channel.ID, deletedAt); err != nil {
+				return err
+			}
+			channels, err = txStore.ListGuildChannels(ctx, channel.GuildID)
+			if err != nil {
+				return err
+			}
+			for _, child := range channels {
+				if _, moved := childIDs[child.ID]; moved {
+					movedChildren = append(movedChildren, child)
+				}
+			}
+		}
 		if err := txStore.DeleteGuildChannelPermissionOverwrites(ctx, channel.ID); err != nil {
 			return err
 		}
@@ -187,6 +229,10 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 	}
 	event, eventErr := newGuildChannelDeletedEvent(deleted)
 	s.publishEvent(ctx, event, eventErr)
+	for _, child := range movedChildren {
+		event, eventErr := newGuildChannelUpdatedEvent(child)
+		s.publishEvent(ctx, event, eventErr)
+	}
 	resp := new(guildv1.DeleteGuildChannelResponse)
 	resp.SetOk(true)
 	return resp, nil
@@ -378,6 +424,7 @@ func (s *guildServer) AuthorizeGuildChannel(ctx context.Context, req *guildv1.Au
 	resp.SetGuildId(channel.GuildID)
 	resp.SetPermissions(permissions)
 	resp.SetAllowed(permissions&req.GetPermission() == req.GetPermission())
+	resp.SetChannelType(guildv1.GuildChannelType(channel.Type))
 	return resp, nil
 }
 
@@ -489,10 +536,38 @@ func normalizeChannelType(value guildv1.GuildChannelType) (guildv1.GuildChannelT
 	if value == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_UNSPECIFIED {
 		return guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT, nil
 	}
-	if value != guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT {
+	if value != guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT &&
+		value != guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY &&
+		value != guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE {
 		return 0, invalidRequest("unsupported channel type")
 	}
 	return value, nil
+}
+
+func validateChannelParent(
+	ctx context.Context,
+	guildStore store.Store,
+	guildID int64,
+	channelType guildv1.GuildChannelType,
+	parentID int64,
+) error {
+	if parentID == 0 {
+		return nil
+	}
+	if parentID < 0 {
+		return invalidRequest("parent id must not be negative")
+	}
+	if channelType == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY {
+		return invalidRequest("category channels cannot have a parent")
+	}
+	parent, err := guildStore.GetGuildChannel(ctx, parentID)
+	if err != nil {
+		return err
+	}
+	if parent.GuildID != guildID || parent.Type != int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY) {
+		return invalidRequest("parent channel must be a category in the same guild")
+	}
+	return nil
 }
 
 func validateChannelPositions(channels []*model.Channel, positions map[int64]int32) error {
@@ -524,6 +599,7 @@ func guildChannelToProto(channel *model.Channel) *guildv1.GuildChannel {
 	value.SetRevision(channel.Revision)
 	value.SetCreatedAt(channel.CreatedAt)
 	value.SetUpdatedAt(channel.UpdatedAt)
+	value.SetParentId(channel.ParentID)
 	return value
 }
 

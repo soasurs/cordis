@@ -14,11 +14,14 @@ enum GuildPermission {
   GUILD_PERMISSION_SEND_MESSAGES = 64;
   GUILD_PERMISSION_MANAGE_CHANNELS = 128;
   GUILD_PERMISSION_MANAGE_MESSAGES = 256;
+  GUILD_PERMISSION_BAN_MEMBERS = 512;
 }
 
 enum GuildChannelType {
   GUILD_CHANNEL_TYPE_UNSPECIFIED = 0;
   GUILD_CHANNEL_TYPE_TEXT = 1;
+  GUILD_CHANNEL_TYPE_CATEGORY = 2;
+  GUILD_CHANNEL_TYPE_VOICE = 3;
 }
 
 enum GuildPermissionOverwriteType {
@@ -39,6 +42,9 @@ service GuildService {
   rpc ListGuildMembers(ListGuildMembersRequest) returns (ListGuildMembersResponse);
   rpc UpdateCurrentGuildMember(UpdateCurrentGuildMemberRequest) returns (UpdateCurrentGuildMemberResponse);
   rpc KickGuildMember(KickGuildMemberRequest) returns (KickGuildMemberResponse);
+  rpc BanGuildMember(BanGuildMemberRequest) returns (BanGuildMemberResponse);
+  rpc UnbanGuildMember(UnbanGuildMemberRequest) returns (UnbanGuildMemberResponse);
+  rpc ListGuildBans(ListGuildBansRequest) returns (ListGuildBansResponse);
   rpc LeaveGuild(LeaveGuildRequest) returns (LeaveGuildResponse);
   rpc TransferGuildOwnership(TransferGuildOwnershipRequest) returns (TransferGuildOwnershipResponse);
   rpc CreateGuildRole(CreateGuildRoleRequest) returns (CreateGuildRoleResponse);
@@ -85,6 +91,14 @@ message GuildMember {
   int64 updated_at = 6;
 }
 
+message GuildBan {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+  int64 actor_user_id = 3;
+  string reason = 4;
+  int64 created_at = 5;
+}
+
 // GuildRole grants guild-level permissions to assigned members.
 // All timestamps are Unix time in milliseconds.
 message GuildRole {
@@ -109,6 +123,7 @@ message GuildChannel {
   int64 revision = 7;
   int64 created_at = 8;
   int64 updated_at = 9;
+  int64 parent_id = 10;
 }
 
 message GuildChannelPermissionOverwrite {
@@ -215,6 +230,36 @@ message KickGuildMemberRequest {
 
 message KickGuildMemberResponse {
   bool ok = 1;
+}
+
+message BanGuildMemberRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+  string reason = 3;
+}
+
+message BanGuildMemberResponse {
+  GuildBan ban = 1;
+}
+
+message UnbanGuildMemberRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+}
+
+message UnbanGuildMemberResponse {
+  bool ok = 1;
+}
+
+message ListGuildBansRequest {
+  int64 guild_id = 1;
+  int64 before_user_id = 2;
+  int32 limit = 3;
+}
+
+message ListGuildBansResponse {
+  repeated GuildBan bans = 1;
+  int64 before_user_id = 2;
 }
 
 message LeaveGuildRequest {
@@ -339,6 +384,7 @@ message CreateGuildChannelRequest {
   string name = 2;
   GuildChannelType type = 3;
   string topic = 4;
+  int64 parent_id = 5;
 }
 
 message CreateGuildChannelResponse {
@@ -365,6 +411,7 @@ message UpdateGuildChannelRequest {
   int64 channel_id = 1;
   string name = 2;
   string topic = 3;
+  int64 parent_id = 4;
 }
 
 message UpdateGuildChannelResponse {

@@ -84,6 +84,22 @@ func TestCreateMessageTransactionFailureDoesNotPublish(t *testing.T) {
 	require.Empty(t, publisher.records)
 }
 
+func TestCreateMessageRejectsVoiceChannel(t *testing.T) {
+	server := newTestMessageServerWithGuild(
+		t,
+		newFakeStore(),
+		new(fakePublisher),
+		&fakeGuildClient{channelType: guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE},
+	)
+	req := new(messagev1.CreateMessageRequest)
+	req.SetChannelId(10)
+	req.SetAuthorId(20)
+	req.SetContent("hello")
+
+	_, err := server.CreateMessage(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestCreateReplyValidatesReferencedChannel(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.messages[100] = &model.Message{
@@ -319,6 +335,7 @@ type fakeGuildClient struct {
 	guildv1.GuildServiceClient
 	allowManageMessages bool
 	denyAll             bool
+	channelType         guildv1.GuildChannelType
 }
 
 func (f *fakeGuildClient) AuthorizeGuildChannel(
@@ -329,6 +346,7 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	resp := new(guildv1.AuthorizeGuildChannelResponse)
 	resp.SetAllowed(!f.denyAll && (req.GetPermission()&permissionManageMessages == 0 || f.allowManageMessages))
 	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
+	resp.SetChannelType(f.channelType)
 	return resp, nil
 }
 

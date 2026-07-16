@@ -15,6 +15,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,11 +26,12 @@ import (
 )
 
 type Server struct {
-	svcCtx     *svc.ServiceContext
-	gatewayID  string
-	generation string
-	rpcAddr    string
-	hub        *hub
+	svcCtx      *svc.ServiceContext
+	gatewayID   string
+	generation  string
+	rpcAddr     string
+	hub         *hub
+	guildEvents *kgo.Client
 }
 
 type client struct {
@@ -42,6 +44,7 @@ type client struct {
 	status           presencev1.PresenceStatus
 	clientState      presencev1.ClientState
 	channels         map[int64]struct{}
+	guilds           map[int64]struct{}
 	send             chan envelope
 	done             chan struct{}
 	closeOnce        sync.Once
@@ -51,13 +54,26 @@ func New(svcCtx *svc.ServiceContext) *Server {
 	if svcCtx.Cfg.RPC.ListenOn == "" {
 		panic("gateway rpc listen address is required")
 	}
-	return &Server{
+	s := &Server{
 		svcCtx:     svcCtx,
 		gatewayID:  randomID("gw"),
 		generation: randomID("gen"),
 		rpcAddr:    advertiseAddr(svcCtx.Cfg.RPC.ListenOn),
 		hub:        newHub(),
 	}
+	if len(svcCtx.Cfg.Kafka.Seeds) > 0 {
+		consumer, err := kgo.NewClient(
+			kgo.SeedBrokers(svcCtx.Cfg.Kafka.Seeds...),
+			kgo.ConsumerGroup(svcCtx.Cfg.Kafka.GroupPrefix()+"."+s.gatewayID),
+			kgo.ConsumeTopics(svcCtx.Cfg.Kafka.Topic()),
+			kgo.DisableAutoCommit(),
+		)
+		if err != nil {
+			panic(err)
+		}
+		s.guildEvents = consumer
+	}
+	return s
 }
 
 func (s *Server) Handler() http.Handler {
@@ -72,6 +88,9 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) StartBackground(ctx context.Context) {
 	go s.refreshGateway(ctx)
 	go s.refreshRoutes(ctx)
+	if s.guildEvents != nil {
+		go s.consumeGuildEvents(ctx)
+	}
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -90,6 +109,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		status:           presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE,
 		clientState:      presencev1.ClientState_CLIENT_STATE_FOREGROUND,
 		channels:         make(map[int64]struct{}),
+		guilds:           make(map[int64]struct{}),
 		send:             make(chan envelope, 64),
 		done:             make(chan struct{}),
 	}
@@ -161,6 +181,10 @@ func (c *client) identify(ctx context.Context) error {
 		return err
 	}
 	c.server.hub.add(c)
+	if err := c.loadGuildSubscriptions(ctx); err != nil {
+		c.server.hub.remove(c)
+		return err
+	}
 
 	return c.write(opDispatch, "READY", readyData{
 		UserID:               c.userID,

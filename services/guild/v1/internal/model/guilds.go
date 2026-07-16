@@ -21,6 +21,14 @@ type GuildMember struct {
 	DeletedAt int64
 }
 
+type GuildBan struct {
+	GuildID     int64
+	UserID      int64
+	ActorUserID int64
+	Reason      string
+	CreatedAt   int64
+}
+
 type Role struct {
 	ID          int64
 	GuildID     int64
@@ -45,6 +53,7 @@ type Channel struct {
 	CreatedAt int64
 	UpdatedAt int64
 	DeletedAt int64
+	ParentID  int64
 }
 
 type ChannelPermissionOverwrite struct {

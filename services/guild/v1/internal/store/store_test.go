@@ -204,13 +204,13 @@ func TestCreateGuildChannel(t *testing.T) {
 
 	rows := sqlmock.NewRows([]string{
 		"id", "guild_id", "name", "type", "position", "topic",
-		"revision", "created_at", "updated_at", "deleted_at",
-	}).AddRow(int64(4001), int64(1001), "general", int32(1), int32(0), "", int64(1), int64(10), int64(0), int64(0))
+		"revision", "created_at", "updated_at", "deleted_at", "parent_id",
+	}).AddRow(int64(4001), int64(1001), "general", int32(1), int32(0), "", int64(1), int64(10), int64(0), int64(0), int64(0))
 	mock.ExpectQuery(sqlPattern(createGuildChannelQuery)).
-		WithArgs(int64(4001), int64(1001), "general", int32(1), int32(0), "", int64(10)).
+		WithArgs(int64(4001), int64(1001), "general", int32(1), int32(0), "", int64(0), int64(10)).
 		WillReturnRows(rows)
 
-	channel, err := store.CreateGuildChannel(context.Background(), 4001, 1001, "general", 1, 0, "", 10)
+	channel, err := store.CreateGuildChannel(context.Background(), 4001, 1001, "general", 1, 0, "", 0, 10)
 	require.NoError(t, err)
 	require.Equal(t, int64(4001), channel.ID)
 	require.Equal(t, int32(1), channel.Type)

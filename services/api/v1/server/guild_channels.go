@@ -19,6 +19,7 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *apiv1.CreateG
 	svcReq.SetName(req.GetName())
 	svcReq.SetType(guildv1.GuildChannelType(req.GetType()))
 	svcReq.SetTopic(req.GetTopic())
+	svcReq.SetParentId(req.GetParentId())
 	svcResp, err := s.svcCtx.GuildClient.CreateGuildChannel(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -69,6 +70,9 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *apiv1.UpdateG
 	}
 	if req.Topic != nil {
 		svcReq.SetTopic(req.GetTopic())
+	}
+	if req.ParentId != nil {
+		svcReq.SetParentId(req.GetParentId())
 	}
 	svcResp, err := s.svcCtx.GuildClient.UpdateGuildChannel(ctx, svcReq)
 	if err != nil {
@@ -179,6 +183,7 @@ func guildChannelToAPI(channel *guildv1.GuildChannel) *apiv1.GuildChannel {
 		Type: new(apiv1.GuildChannelType(channel.GetType())), Position: new(channel.GetPosition()),
 		Topic: new(channel.GetTopic()), Revision: new(channel.GetRevision()),
 		CreatedAt: new(channel.GetCreatedAt()), UpdatedAt: new(channel.GetUpdatedAt()),
+		ParentId: new(channel.GetParentId()),
 	}
 }
 

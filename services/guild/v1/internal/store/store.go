@@ -10,7 +10,10 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
-var ErrMemberAlreadyExists = errors.New("member already exists")
+var (
+	ErrMemberAlreadyExists = errors.New("member already exists")
+	ErrUserBanned          = errors.New("user is banned")
+)
 
 type UpdateGuildParams struct {
 	GuildID int64
@@ -30,6 +33,12 @@ type ListGuildMembersParams struct {
 	Limit        int
 }
 
+type ListGuildBansParams struct {
+	GuildID      int64
+	BeforeUserID int64
+	Limit        int
+}
+
 type UpdateGuildRoleParams struct {
 	GuildID     int64
 	RoleID      int64
@@ -42,6 +51,7 @@ type UpdateGuildChannelParams struct {
 	ChannelID int64
 	Name      *string
 	Topic     *string
+	ParentID  *int64
 	UpdatedAt int64
 }
 
@@ -60,6 +70,11 @@ type Store interface {
 	ListGuildMembers(ctx context.Context, params ListGuildMembersParams) ([]*model.GuildMember, error)
 	UpdateGuildMemberNickname(ctx context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error)
 	RemoveGuildMember(ctx context.Context, guildID, userID, removedAt int64) (*model.GuildMember, error)
+	UpsertGuildBan(ctx context.Context, ban *model.GuildBan) (*model.GuildBan, error)
+	DeleteGuildBan(ctx context.Context, guildID, userID int64) error
+	GetGuildBan(ctx context.Context, guildID, userID int64) (*model.GuildBan, error)
+	ListGuildBans(ctx context.Context, params ListGuildBansParams) ([]*model.GuildBan, error)
+	DeleteGuildBans(ctx context.Context, guildID int64) error
 	TransferGuildOwnership(ctx context.Context, guildID, currentOwnerID, newOwnerID int64) (*model.Guild, error)
 	CreateGuildRole(ctx context.Context, roleID, guildID int64, name string, permissions uint64, position int32, createdAt int64) (*model.Role, error)
 	GetGuildRole(ctx context.Context, guildID, roleID int64) (*model.Role, error)
@@ -73,13 +88,14 @@ type Store interface {
 	DeleteGuildRoleAssignments(ctx context.Context, guildID, roleID int64) error
 	DeleteAllGuildRoleAssignments(ctx context.Context, guildID int64) error
 	ListGuildMemberRoles(ctx context.Context, guildID, userID int64) ([]*model.Role, error)
-	CreateGuildChannel(ctx context.Context, channelID, guildID int64, name string, channelType, position int32, topic string, createdAt int64) (*model.Channel, error)
+	CreateGuildChannel(ctx context.Context, channelID, guildID int64, name string, channelType, position int32, topic string, parentID, createdAt int64) (*model.Channel, error)
 	GetGuildChannel(ctx context.Context, channelID int64) (*model.Channel, error)
 	ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error)
 	UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error)
 	UpdateGuildChannelPosition(ctx context.Context, channelID int64, position int32, updatedAt int64) (*model.Channel, error)
 	DeleteGuildChannel(ctx context.Context, channelID, deletedAt int64) (*model.Channel, error)
 	DeleteGuildChannels(ctx context.Context, guildID, deletedAt int64) error
+	ClearGuildChannelParent(ctx context.Context, guildID, parentID, updatedAt int64) error
 	UpsertGuildChannelPermissionOverwrite(ctx context.Context, overwrite *model.ChannelPermissionOverwrite) (*model.ChannelPermissionOverwrite, error)
 	DeleteGuildChannelPermissionOverwrite(ctx context.Context, channelID int64, targetType int32, targetID int64) error
 	DeleteGuildChannelPermissionOverwrites(ctx context.Context, channelID int64) error

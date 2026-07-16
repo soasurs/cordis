@@ -8,13 +8,17 @@ const guildMemberColumns = `
     guild_id, user_id, nickname, revision, joined_at, updated_at, deleted_at
 `
 
+const guildBanColumns = `
+    guild_id, user_id, actor_user_id, reason, created_at
+`
+
 const roleColumns = `
     id, guild_id, name, permissions, position, is_default,
     revision, created_at, updated_at, deleted_at
 `
 
 const channelColumns = `
-    id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at
+    id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at, parent_id
 `
 
 const channelOverwriteColumns = `
@@ -33,8 +37,11 @@ const createGuildQuery = `
 const createGuildMemberQuery = `
     INSERT INTO guild_members (
         guild_id, user_id, nickname, revision, joined_at, updated_at, deleted_at
-    ) VALUES (
-        $1, $2, '', 1, $3, 0, 0
+    )
+    SELECT $1, $2, '', 1, $3, 0, 0
+    WHERE NOT EXISTS (
+        SELECT 1 FROM guild_bans
+        WHERE guild_id = $1 AND user_id = $2
     )
     ON CONFLICT (guild_id, user_id) DO UPDATE
     SET nickname = '',
@@ -43,6 +50,10 @@ const createGuildMemberQuery = `
         updated_at = EXCLUDED.joined_at,
         deleted_at = 0
     WHERE guild_members.deleted_at <> 0
+      AND NOT EXISTS (
+          SELECT 1 FROM guild_bans
+          WHERE guild_id = $1 AND user_id = $2
+      )
     RETURNING ` + guildMemberColumns
 
 const createDefaultRoleStatement = `
@@ -160,6 +171,43 @@ const removeGuildMemberQuery = `
       AND user_id = $2
       AND deleted_at = 0
     RETURNING ` + guildMemberColumns
+
+const upsertGuildBanQuery = `
+    INSERT INTO guild_bans (guild_id, user_id, actor_user_id, reason, created_at)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (guild_id, user_id) DO UPDATE
+    SET actor_user_id = EXCLUDED.actor_user_id,
+        reason = EXCLUDED.reason,
+        created_at = EXCLUDED.created_at
+    RETURNING ` + guildBanColumns
+
+const deleteGuildBanStatement = `
+    DELETE FROM guild_bans
+    WHERE guild_id = $1
+      AND user_id = $2
+`
+
+const getGuildBanQuery = `
+    SELECT ` + guildBanColumns + `
+    FROM guild_bans
+    WHERE guild_id = $1
+      AND user_id = $2
+    LIMIT 1
+`
+
+const listGuildBansQuery = `
+    SELECT ` + guildBanColumns + `
+    FROM guild_bans
+    WHERE guild_id = $1
+      AND ($2 = 0 OR user_id < $2)
+    ORDER BY user_id DESC
+    LIMIT $3
+`
+
+const deleteGuildBansStatement = `
+    DELETE FROM guild_bans
+    WHERE guild_id = $1
+`
 
 const transferGuildOwnershipQuery = `
     UPDATE guilds
@@ -279,8 +327,8 @@ const listGuildMemberRolesQuery = `
 
 const createGuildChannelQuery = `
     INSERT INTO guild_channels (
-        id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, 1, $7, 0, 0)
+        id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at, parent_id
+    ) VALUES ($1, $2, $3, $4, $5, $6, 1, $8, 0, 0, $7)
     RETURNING ` + channelColumns
 
 const getGuildChannelQuery = `
@@ -303,8 +351,9 @@ const updateGuildChannelQuery = `
     UPDATE guild_channels
     SET name = CASE WHEN $2 THEN $3 ELSE name END,
         topic = CASE WHEN $4 THEN $5 ELSE topic END,
+        parent_id = CASE WHEN $6 THEN $7 ELSE parent_id END,
         revision = revision + 1,
-        updated_at = $6
+        updated_at = $8
     WHERE id = $1
       AND deleted_at = 0
     RETURNING ` + channelColumns
@@ -333,6 +382,16 @@ const deleteGuildChannelsStatement = `
         updated_at = $2,
         deleted_at = $2
     WHERE guild_id = $1
+      AND deleted_at = 0
+`
+
+const clearGuildChannelParentStatement = `
+    UPDATE guild_channels
+    SET parent_id = 0,
+        revision = revision + 1,
+        updated_at = $3
+    WHERE guild_id = $1
+      AND parent_id = $2
       AND deleted_at = 0
 `
 

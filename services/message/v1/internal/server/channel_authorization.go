@@ -24,5 +24,9 @@ func (s *messageServer) requireChannelPermission(ctx context.Context, channelID,
 	if !resp.GetAllowed() {
 		return permissionDenied()
 	}
+	if resp.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY ||
+		resp.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE {
+		return invalidRequest("messages are only supported in text channels")
+	}
 	return nil
 }

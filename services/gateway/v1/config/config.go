@@ -14,6 +14,27 @@ type Config struct {
 	RPC      zrpc.RpcServerConf
 	Gateway  GatewayConfig `json:",optional"`
 	Services ServiceConfig
+	Kafka    KafkaConfig `json:",optional"`
+}
+
+type KafkaConfig struct {
+	Seeds               []string
+	GuildTopic          string `json:",default=cordis.guild.events.v1"`
+	ConsumerGroupPrefix string `json:",default=cordis.gateway.guild-events.v1"`
+}
+
+func (c KafkaConfig) Topic() string {
+	if c.GuildTopic == "" {
+		return "cordis.guild.events.v1"
+	}
+	return c.GuildTopic
+}
+
+func (c KafkaConfig) GroupPrefix() string {
+	if c.ConsumerGroupPrefix == "" {
+		return "cordis.gateway.guild-events.v1"
+	}
+	return c.ConsumerGroupPrefix
 }
 
 type GatewayConfig struct {

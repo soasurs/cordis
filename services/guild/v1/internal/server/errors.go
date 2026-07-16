@@ -27,6 +27,10 @@ func memberAlreadyExists() error {
 	return rpcerror.New(codes.AlreadyExists, rpcerror.GuildDomain, rpcerror.GuildMemberAlreadyExists, "guild member already exists")
 }
 
+func userBanned() error {
+	return rpcerror.New(codes.PermissionDenied, rpcerror.GuildDomain, rpcerror.GuildPermissionDenied, "user is banned from the guild")
+}
+
 func mapStoreError(err error) error {
 	if err == nil {
 		return nil
@@ -36,6 +40,9 @@ func mapStoreError(err error) error {
 	}
 	if errors.Is(err, store.ErrMemberAlreadyExists) {
 		return memberAlreadyExists()
+	}
+	if errors.Is(err, store.ErrUserBanned) {
+		return userBanned()
 	}
 	var pqErr *pq.Error
 	if errors.As(err, &pqErr) && pqErr.Code == "23514" {

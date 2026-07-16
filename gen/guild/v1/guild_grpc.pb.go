@@ -29,6 +29,9 @@ const (
 	GuildService_ListGuildMembers_FullMethodName                      = "/guild.v1.GuildService/ListGuildMembers"
 	GuildService_UpdateGuildMember_FullMethodName                     = "/guild.v1.GuildService/UpdateGuildMember"
 	GuildService_KickGuildMember_FullMethodName                       = "/guild.v1.GuildService/KickGuildMember"
+	GuildService_BanGuildMember_FullMethodName                        = "/guild.v1.GuildService/BanGuildMember"
+	GuildService_UnbanGuildMember_FullMethodName                      = "/guild.v1.GuildService/UnbanGuildMember"
+	GuildService_ListGuildBans_FullMethodName                         = "/guild.v1.GuildService/ListGuildBans"
 	GuildService_LeaveGuild_FullMethodName                            = "/guild.v1.GuildService/LeaveGuild"
 	GuildService_TransferGuildOwnership_FullMethodName                = "/guild.v1.GuildService/TransferGuildOwnership"
 	GuildService_CreateGuildRole_FullMethodName                       = "/guild.v1.GuildService/CreateGuildRole"
@@ -69,6 +72,9 @@ type GuildServiceClient interface {
 	ListGuildMembers(ctx context.Context, in *ListGuildMembersRequest, opts ...grpc.CallOption) (*ListGuildMembersResponse, error)
 	UpdateGuildMember(ctx context.Context, in *UpdateGuildMemberRequest, opts ...grpc.CallOption) (*UpdateGuildMemberResponse, error)
 	KickGuildMember(ctx context.Context, in *KickGuildMemberRequest, opts ...grpc.CallOption) (*KickGuildMemberResponse, error)
+	BanGuildMember(ctx context.Context, in *BanGuildMemberRequest, opts ...grpc.CallOption) (*BanGuildMemberResponse, error)
+	UnbanGuildMember(ctx context.Context, in *UnbanGuildMemberRequest, opts ...grpc.CallOption) (*UnbanGuildMemberResponse, error)
+	ListGuildBans(ctx context.Context, in *ListGuildBansRequest, opts ...grpc.CallOption) (*ListGuildBansResponse, error)
 	LeaveGuild(ctx context.Context, in *LeaveGuildRequest, opts ...grpc.CallOption) (*LeaveGuildResponse, error)
 	TransferGuildOwnership(ctx context.Context, in *TransferGuildOwnershipRequest, opts ...grpc.CallOption) (*TransferGuildOwnershipResponse, error)
 	CreateGuildRole(ctx context.Context, in *CreateGuildRoleRequest, opts ...grpc.CallOption) (*CreateGuildRoleResponse, error)
@@ -195,6 +201,36 @@ func (c *guildServiceClient) KickGuildMember(ctx context.Context, in *KickGuildM
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(KickGuildMemberResponse)
 	err := c.cc.Invoke(ctx, GuildService_KickGuildMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) BanGuildMember(ctx context.Context, in *BanGuildMemberRequest, opts ...grpc.CallOption) (*BanGuildMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BanGuildMemberResponse)
+	err := c.cc.Invoke(ctx, GuildService_BanGuildMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) UnbanGuildMember(ctx context.Context, in *UnbanGuildMemberRequest, opts ...grpc.CallOption) (*UnbanGuildMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnbanGuildMemberResponse)
+	err := c.cc.Invoke(ctx, GuildService_UnbanGuildMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) ListGuildBans(ctx context.Context, in *ListGuildBansRequest, opts ...grpc.CallOption) (*ListGuildBansResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuildBansResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListGuildBans_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -437,6 +473,9 @@ type GuildServiceServer interface {
 	ListGuildMembers(context.Context, *ListGuildMembersRequest) (*ListGuildMembersResponse, error)
 	UpdateGuildMember(context.Context, *UpdateGuildMemberRequest) (*UpdateGuildMemberResponse, error)
 	KickGuildMember(context.Context, *KickGuildMemberRequest) (*KickGuildMemberResponse, error)
+	BanGuildMember(context.Context, *BanGuildMemberRequest) (*BanGuildMemberResponse, error)
+	UnbanGuildMember(context.Context, *UnbanGuildMemberRequest) (*UnbanGuildMemberResponse, error)
+	ListGuildBans(context.Context, *ListGuildBansRequest) (*ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *LeaveGuildRequest) (*LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *TransferGuildOwnershipRequest) (*TransferGuildOwnershipResponse, error)
 	CreateGuildRole(context.Context, *CreateGuildRoleRequest) (*CreateGuildRoleResponse, error)
@@ -497,6 +536,15 @@ func (UnimplementedGuildServiceServer) UpdateGuildMember(context.Context, *Updat
 }
 func (UnimplementedGuildServiceServer) KickGuildMember(context.Context, *KickGuildMemberRequest) (*KickGuildMemberResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method KickGuildMember not implemented")
+}
+func (UnimplementedGuildServiceServer) BanGuildMember(context.Context, *BanGuildMemberRequest) (*BanGuildMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BanGuildMember not implemented")
+}
+func (UnimplementedGuildServiceServer) UnbanGuildMember(context.Context, *UnbanGuildMemberRequest) (*UnbanGuildMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnbanGuildMember not implemented")
+}
+func (UnimplementedGuildServiceServer) ListGuildBans(context.Context, *ListGuildBansRequest) (*ListGuildBansResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGuildBans not implemented")
 }
 func (UnimplementedGuildServiceServer) LeaveGuild(context.Context, *LeaveGuildRequest) (*LeaveGuildResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method LeaveGuild not implemented")
@@ -760,6 +808,60 @@ func _GuildService_KickGuildMember_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GuildServiceServer).KickGuildMember(ctx, req.(*KickGuildMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_BanGuildMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BanGuildMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).BanGuildMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_BanGuildMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).BanGuildMember(ctx, req.(*BanGuildMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_UnbanGuildMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnbanGuildMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).UnbanGuildMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_UnbanGuildMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).UnbanGuildMember(ctx, req.(*UnbanGuildMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_ListGuildBans_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGuildBansRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListGuildBans(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListGuildBans_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListGuildBans(ctx, req.(*ListGuildBansRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1206,6 +1308,18 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "KickGuildMember",
 			Handler:    _GuildService_KickGuildMember_Handler,
+		},
+		{
+			MethodName: "BanGuildMember",
+			Handler:    _GuildService_BanGuildMember_Handler,
+		},
+		{
+			MethodName: "UnbanGuildMember",
+			Handler:    _GuildService_UnbanGuildMember_Handler,
+		},
+		{
+			MethodName: "ListGuildBans",
+			Handler:    _GuildService_ListGuildBans_Handler,
 		},
 		{
 			MethodName: "LeaveGuild",

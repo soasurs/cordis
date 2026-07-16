@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"time"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
@@ -45,6 +47,11 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 		}
 		if !current.has(PermissionManageMembers) {
 			return permissionDenied()
+		}
+		if _, err := txStore.GetGuildBan(ctx, req.GetGuildId(), req.GetUserId()); err == nil {
+			return store.ErrUserBanned
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
 		}
 		member, err = txStore.CreateGuildMember(ctx, req.GetGuildId(), req.GetUserId(), joinedAt)
 		return err

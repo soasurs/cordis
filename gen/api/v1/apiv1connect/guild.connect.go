@@ -61,6 +61,15 @@ const (
 	// GuildServiceKickGuildMemberProcedure is the fully-qualified name of the GuildService's
 	// KickGuildMember RPC.
 	GuildServiceKickGuildMemberProcedure = "/api.v1.GuildService/KickGuildMember"
+	// GuildServiceBanGuildMemberProcedure is the fully-qualified name of the GuildService's
+	// BanGuildMember RPC.
+	GuildServiceBanGuildMemberProcedure = "/api.v1.GuildService/BanGuildMember"
+	// GuildServiceUnbanGuildMemberProcedure is the fully-qualified name of the GuildService's
+	// UnbanGuildMember RPC.
+	GuildServiceUnbanGuildMemberProcedure = "/api.v1.GuildService/UnbanGuildMember"
+	// GuildServiceListGuildBansProcedure is the fully-qualified name of the GuildService's
+	// ListGuildBans RPC.
+	GuildServiceListGuildBansProcedure = "/api.v1.GuildService/ListGuildBans"
 	// GuildServiceLeaveGuildProcedure is the fully-qualified name of the GuildService's LeaveGuild RPC.
 	GuildServiceLeaveGuildProcedure = "/api.v1.GuildService/LeaveGuild"
 	// GuildServiceTransferGuildOwnershipProcedure is the fully-qualified name of the GuildService's
@@ -137,6 +146,9 @@ type GuildServiceClient interface {
 	ListGuildMembers(context.Context, *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error)
 	UpdateCurrentGuildMember(context.Context, *v1.UpdateCurrentGuildMemberRequest) (*v1.UpdateCurrentGuildMemberResponse, error)
 	KickGuildMember(context.Context, *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error)
+	BanGuildMember(context.Context, *v1.BanGuildMemberRequest) (*v1.BanGuildMemberResponse, error)
+	UnbanGuildMember(context.Context, *v1.UnbanGuildMemberRequest) (*v1.UnbanGuildMemberResponse, error)
+	ListGuildBans(context.Context, *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
 	CreateGuildRole(context.Context, *v1.CreateGuildRoleRequest) (*v1.CreateGuildRoleResponse, error)
@@ -229,6 +241,24 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+GuildServiceKickGuildMemberProcedure,
 			connect.WithSchema(guildServiceMethods.ByName("KickGuildMember")),
+			connect.WithClientOptions(opts...),
+		),
+		banGuildMember: connect.NewClient[v1.BanGuildMemberRequest, v1.BanGuildMemberResponse](
+			httpClient,
+			baseURL+GuildServiceBanGuildMemberProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("BanGuildMember")),
+			connect.WithClientOptions(opts...),
+		),
+		unbanGuildMember: connect.NewClient[v1.UnbanGuildMemberRequest, v1.UnbanGuildMemberResponse](
+			httpClient,
+			baseURL+GuildServiceUnbanGuildMemberProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("UnbanGuildMember")),
+			connect.WithClientOptions(opts...),
+		),
+		listGuildBans: connect.NewClient[v1.ListGuildBansRequest, v1.ListGuildBansResponse](
+			httpClient,
+			baseURL+GuildServiceListGuildBansProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("ListGuildBans")),
 			connect.WithClientOptions(opts...),
 		),
 		leaveGuild: connect.NewClient[v1.LeaveGuildRequest, v1.LeaveGuildResponse](
@@ -372,6 +402,9 @@ type guildServiceClient struct {
 	listGuildMembers                      *connect.Client[v1.ListGuildMembersRequest, v1.ListGuildMembersResponse]
 	updateCurrentGuildMember              *connect.Client[v1.UpdateCurrentGuildMemberRequest, v1.UpdateCurrentGuildMemberResponse]
 	kickGuildMember                       *connect.Client[v1.KickGuildMemberRequest, v1.KickGuildMemberResponse]
+	banGuildMember                        *connect.Client[v1.BanGuildMemberRequest, v1.BanGuildMemberResponse]
+	unbanGuildMember                      *connect.Client[v1.UnbanGuildMemberRequest, v1.UnbanGuildMemberResponse]
+	listGuildBans                         *connect.Client[v1.ListGuildBansRequest, v1.ListGuildBansResponse]
 	leaveGuild                            *connect.Client[v1.LeaveGuildRequest, v1.LeaveGuildResponse]
 	transferGuildOwnership                *connect.Client[v1.TransferGuildOwnershipRequest, v1.TransferGuildOwnershipResponse]
 	createGuildRole                       *connect.Client[v1.CreateGuildRoleRequest, v1.CreateGuildRoleResponse]
@@ -479,6 +512,33 @@ func (c *guildServiceClient) UpdateCurrentGuildMember(ctx context.Context, req *
 // KickGuildMember calls api.v1.GuildService.KickGuildMember.
 func (c *guildServiceClient) KickGuildMember(ctx context.Context, req *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error) {
 	response, err := c.kickGuildMember.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// BanGuildMember calls api.v1.GuildService.BanGuildMember.
+func (c *guildServiceClient) BanGuildMember(ctx context.Context, req *v1.BanGuildMemberRequest) (*v1.BanGuildMemberResponse, error) {
+	response, err := c.banGuildMember.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UnbanGuildMember calls api.v1.GuildService.UnbanGuildMember.
+func (c *guildServiceClient) UnbanGuildMember(ctx context.Context, req *v1.UnbanGuildMemberRequest) (*v1.UnbanGuildMemberResponse, error) {
+	response, err := c.unbanGuildMember.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListGuildBans calls api.v1.GuildService.ListGuildBans.
+func (c *guildServiceClient) ListGuildBans(ctx context.Context, req *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error) {
+	response, err := c.listGuildBans.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -689,6 +749,9 @@ type GuildServiceHandler interface {
 	ListGuildMembers(context.Context, *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error)
 	UpdateCurrentGuildMember(context.Context, *v1.UpdateCurrentGuildMemberRequest) (*v1.UpdateCurrentGuildMemberResponse, error)
 	KickGuildMember(context.Context, *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error)
+	BanGuildMember(context.Context, *v1.BanGuildMemberRequest) (*v1.BanGuildMemberResponse, error)
+	UnbanGuildMember(context.Context, *v1.UnbanGuildMemberRequest) (*v1.UnbanGuildMemberResponse, error)
+	ListGuildBans(context.Context, *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
 	CreateGuildRole(context.Context, *v1.CreateGuildRoleRequest) (*v1.CreateGuildRoleResponse, error)
@@ -777,6 +840,24 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		GuildServiceKickGuildMemberProcedure,
 		svc.KickGuildMember,
 		connect.WithSchema(guildServiceMethods.ByName("KickGuildMember")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceBanGuildMemberHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceBanGuildMemberProcedure,
+		svc.BanGuildMember,
+		connect.WithSchema(guildServiceMethods.ByName("BanGuildMember")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceUnbanGuildMemberHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceUnbanGuildMemberProcedure,
+		svc.UnbanGuildMember,
+		connect.WithSchema(guildServiceMethods.ByName("UnbanGuildMember")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceListGuildBansHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceListGuildBansProcedure,
+		svc.ListGuildBans,
+		connect.WithSchema(guildServiceMethods.ByName("ListGuildBans")),
 		connect.WithHandlerOptions(opts...),
 	)
 	guildServiceLeaveGuildHandler := connect.NewUnaryHandlerSimple(
@@ -927,6 +1008,12 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceUpdateCurrentGuildMemberHandler.ServeHTTP(w, r)
 		case GuildServiceKickGuildMemberProcedure:
 			guildServiceKickGuildMemberHandler.ServeHTTP(w, r)
+		case GuildServiceBanGuildMemberProcedure:
+			guildServiceBanGuildMemberHandler.ServeHTTP(w, r)
+		case GuildServiceUnbanGuildMemberProcedure:
+			guildServiceUnbanGuildMemberHandler.ServeHTTP(w, r)
+		case GuildServiceListGuildBansProcedure:
+			guildServiceListGuildBansHandler.ServeHTTP(w, r)
 		case GuildServiceLeaveGuildProcedure:
 			guildServiceLeaveGuildHandler.ServeHTTP(w, r)
 		case GuildServiceTransferGuildOwnershipProcedure:
@@ -1016,6 +1103,18 @@ func (UnimplementedGuildServiceHandler) UpdateCurrentGuildMember(context.Context
 
 func (UnimplementedGuildServiceHandler) KickGuildMember(context.Context, *v1.KickGuildMemberRequest) (*v1.KickGuildMemberResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.KickGuildMember is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) BanGuildMember(context.Context, *v1.BanGuildMemberRequest) (*v1.BanGuildMemberResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.BanGuildMember is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) UnbanGuildMember(context.Context, *v1.UnbanGuildMemberRequest) (*v1.UnbanGuildMemberResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.UnbanGuildMember is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) ListGuildBans(context.Context, *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ListGuildBans is not implemented"))
 }
 
 func (UnimplementedGuildServiceHandler) LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error) {

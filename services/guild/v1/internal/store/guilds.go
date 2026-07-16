@@ -42,6 +42,69 @@ func (s *SQLStore) CreateGuildMember(ctx context.Context, guildID, userID, joine
 	return guildMemberFromRow(row), nil
 }
 
+type guildBanRow struct {
+	GuildID     int64  `db:"guild_id"`
+	UserID      int64  `db:"user_id"`
+	ActorUserID int64  `db:"actor_user_id"`
+	Reason      string `db:"reason"`
+	CreatedAt   int64  `db:"created_at"`
+}
+
+func (s *SQLStore) UpsertGuildBan(ctx context.Context, ban *model.GuildBan) (*model.GuildBan, error) {
+	row := new(guildBanRow)
+	if err := sqlx.GetContext(ctx, s.q, row, upsertGuildBanQuery, ban.GuildID, ban.UserID, ban.ActorUserID, ban.Reason, ban.CreatedAt); err != nil {
+		return nil, err
+	}
+	return guildBanFromRow(row), nil
+}
+
+func (s *SQLStore) DeleteGuildBan(ctx context.Context, guildID, userID int64) error {
+	result, err := s.q.ExecContext(ctx, deleteGuildBanStatement, guildID, userID)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *SQLStore) GetGuildBan(ctx context.Context, guildID, userID int64) (*model.GuildBan, error) {
+	row := new(guildBanRow)
+	if err := sqlx.GetContext(ctx, s.q, row, getGuildBanQuery, guildID, userID); err != nil {
+		return nil, err
+	}
+	return guildBanFromRow(row), nil
+}
+
+func (s *SQLStore) ListGuildBans(ctx context.Context, params ListGuildBansParams) ([]*model.GuildBan, error) {
+	var rows []*guildBanRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildBansQuery, params.GuildID, params.BeforeUserID, params.Limit); err != nil {
+		return nil, err
+	}
+	bans := make([]*model.GuildBan, 0, len(rows))
+	for _, row := range rows {
+		bans = append(bans, guildBanFromRow(row))
+	}
+	return bans, nil
+}
+
+func (s *SQLStore) DeleteGuildBans(ctx context.Context, guildID int64) error {
+	_, err := s.q.ExecContext(ctx, deleteGuildBansStatement, guildID)
+	return err
+}
+
+func guildBanFromRow(row *guildBanRow) *model.GuildBan {
+	return &model.GuildBan{
+		GuildID: row.GuildID, UserID: row.UserID, ActorUserID: row.ActorUserID,
+		Reason: row.Reason, CreatedAt: row.CreatedAt,
+	}
+}
+
 func (s *SQLStore) GetGuildMember(ctx context.Context, guildID, userID int64) (*model.GuildMember, error) {
 	row := new(guildMemberRow)
 	if err := sqlx.GetContext(ctx, s.q, row, getGuildMemberQuery, guildID, userID); err != nil {

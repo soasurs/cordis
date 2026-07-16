@@ -226,6 +226,7 @@ type fakeStore struct {
 	channels     map[int64]*model.Channel
 	overwrites   map[int64]map[string]*model.ChannelPermissionOverwrite
 	defaultRoles map[int64]bool
+	bans         map[int64]map[int64]*model.GuildBan
 	transactErr  error
 }
 
@@ -235,6 +236,7 @@ func newFakeStore() *fakeStore {
 		roles: make(map[int64]map[int64]*model.Role), memberRoles: make(map[int64]map[int64]map[int64]bool),
 		channels: make(map[int64]*model.Channel), overwrites: make(map[int64]map[string]*model.ChannelPermissionOverwrite),
 		defaultRoles: make(map[int64]bool),
+		bans:         make(map[int64]map[int64]*model.GuildBan),
 	}
 }
 
@@ -396,6 +398,52 @@ func (s *fakeStore) RemoveGuildMember(_ context.Context, guildID, userID, remove
 	return cloneMember(member), nil
 }
 
+func (s *fakeStore) UpsertGuildBan(_ context.Context, ban *model.GuildBan) (*model.GuildBan, error) {
+	if s.bans[ban.GuildID] == nil {
+		s.bans[ban.GuildID] = make(map[int64]*model.GuildBan)
+	}
+	value := *ban
+	s.bans[ban.GuildID][ban.UserID] = &value
+	return &value, nil
+}
+
+func (s *fakeStore) DeleteGuildBan(_ context.Context, guildID, userID int64) error {
+	if s.bans[guildID][userID] == nil {
+		return sql.ErrNoRows
+	}
+	delete(s.bans[guildID], userID)
+	return nil
+}
+
+func (s *fakeStore) GetGuildBan(_ context.Context, guildID, userID int64) (*model.GuildBan, error) {
+	ban := s.bans[guildID][userID]
+	if ban == nil {
+		return nil, sql.ErrNoRows
+	}
+	value := *ban
+	return &value, nil
+}
+
+func (s *fakeStore) ListGuildBans(_ context.Context, params store.ListGuildBansParams) ([]*model.GuildBan, error) {
+	var bans []*model.GuildBan
+	for _, ban := range s.bans[params.GuildID] {
+		if params.BeforeUserID == 0 || ban.UserID < params.BeforeUserID {
+			value := *ban
+			bans = append(bans, &value)
+		}
+	}
+	sort.Slice(bans, func(i, j int) bool { return bans[i].UserID > bans[j].UserID })
+	if len(bans) > params.Limit {
+		bans = bans[:params.Limit]
+	}
+	return bans, nil
+}
+
+func (s *fakeStore) DeleteGuildBans(_ context.Context, guildID int64) error {
+	delete(s.bans, guildID)
+	return nil
+}
+
 func (s *fakeStore) TransferGuildOwnership(_ context.Context, guildID, currentOwnerID, newOwnerID int64) (*model.Guild, error) {
 	guild := s.guilds[guildID]
 	if guild == nil || guild.DeletedAt != 0 || guild.OwnerID != currentOwnerID {
@@ -541,11 +589,12 @@ func (s *fakeStore) CreateGuildChannel(
 	name string,
 	channelType, position int32,
 	topic string,
+	parentID int64,
 	createdAt int64,
 ) (*model.Channel, error) {
 	channel := &model.Channel{
 		ID: channelID, GuildID: guildID, Name: name, Type: channelType,
-		Position: position, Topic: topic, Revision: 1, CreatedAt: createdAt,
+		Position: position, Topic: topic, Revision: 1, CreatedAt: createdAt, ParentID: parentID,
 	}
 	s.channels[channelID] = channel
 	return cloneChannel(channel), nil
@@ -586,6 +635,9 @@ func (s *fakeStore) UpdateGuildChannel(_ context.Context, params store.UpdateGui
 	if params.Topic != nil {
 		channel.Topic = *params.Topic
 	}
+	if params.ParentID != nil {
+		channel.ParentID = *params.ParentID
+	}
 	channel.Revision++
 	channel.UpdatedAt = params.UpdatedAt
 	return cloneChannel(channel), nil
@@ -617,6 +669,17 @@ func (s *fakeStore) DeleteGuildChannels(_ context.Context, guildID, deletedAt in
 	for _, channel := range s.channels {
 		if channel.GuildID == guildID && channel.DeletedAt == 0 {
 			channel.DeletedAt = deletedAt
+		}
+	}
+	return nil
+}
+
+func (s *fakeStore) ClearGuildChannelParent(_ context.Context, guildID, parentID, updatedAt int64) error {
+	for _, channel := range s.channels {
+		if channel.GuildID == guildID && channel.ParentID == parentID && channel.DeletedAt == 0 {
+			channel.ParentID = 0
+			channel.Revision++
+			channel.UpdatedAt = updatedAt
 		}
 	}
 	return nil

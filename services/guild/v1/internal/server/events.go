@@ -15,6 +15,8 @@ const (
 	EventTypeGuildMemberJoined            = "guild.member.joined"
 	EventTypeGuildMemberUpdated           = "guild.member.updated"
 	EventTypeGuildMemberRemoved           = "guild.member.removed"
+	EventTypeGuildMemberBanned            = "guild.member.banned"
+	EventTypeGuildMemberUnbanned          = "guild.member.unbanned"
 	EventTypeGuildRoleCreated             = "guild.role.created"
 	EventTypeGuildRoleUpdated             = "guild.role.updated"
 	EventTypeGuildRoleDeleted             = "guild.role.deleted"
@@ -68,6 +70,20 @@ type guildMemberRemovedPayload struct {
 	RemovedAt int64  `json:"removed_at"`
 }
 
+type guildMemberBannedPayload struct {
+	GuildID     string `json:"guild_id"`
+	UserID      string `json:"user_id"`
+	ActorUserID string `json:"actor_user_id"`
+	Reason      string `json:"reason"`
+	BannedAt    int64  `json:"banned_at"`
+}
+
+type guildMemberUnbannedPayload struct {
+	GuildID    string `json:"guild_id"`
+	UserID     string `json:"user_id"`
+	UnbannedAt int64  `json:"unbanned_at"`
+}
+
 type guildRolePayload struct {
 	ID          string `json:"id"`
 	GuildID     string `json:"guild_id"`
@@ -104,6 +120,7 @@ type guildChannelPayload struct {
 	Revision  int64  `json:"revision"`
 	CreatedAt int64  `json:"created_at"`
 	UpdatedAt int64  `json:"updated_at"`
+	ParentID  string `json:"parent_id"`
 }
 
 type guildChannelDeletedPayload struct {
@@ -149,6 +166,19 @@ func newGuildMemberRemovedEvent(member *model.GuildMember) (guildEvent, error) {
 		UserID:    strconv.FormatInt(member.UserID, 10),
 		Revision:  member.Revision,
 		RemovedAt: member.DeletedAt,
+	})
+}
+
+func newGuildMemberBannedEvent(ban *model.GuildBan) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildMemberBanned, ban.GuildID, guildMemberBannedPayload{
+		GuildID: strconv.FormatInt(ban.GuildID, 10), UserID: strconv.FormatInt(ban.UserID, 10),
+		ActorUserID: strconv.FormatInt(ban.ActorUserID, 10), Reason: ban.Reason, BannedAt: ban.CreatedAt,
+	})
+}
+
+func newGuildMemberUnbannedEvent(guildID, userID, unbannedAt int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildMemberUnbanned, guildID, guildMemberUnbannedPayload{
+		GuildID: strconv.FormatInt(guildID, 10), UserID: strconv.FormatInt(userID, 10), UnbannedAt: unbannedAt,
 	})
 }
 
@@ -249,6 +279,7 @@ func guildChannelPayloadFromModel(channel *model.Channel) guildChannelPayload {
 		ID: strconv.FormatInt(channel.ID, 10), GuildID: strconv.FormatInt(channel.GuildID, 10),
 		Name: channel.Name, Type: channel.Type, Position: channel.Position, Topic: channel.Topic,
 		Revision: channel.Revision, CreatedAt: channel.CreatedAt, UpdatedAt: channel.UpdatedAt,
+		ParentID: strconv.FormatInt(channel.ParentID, 10),
 	}
 }
 

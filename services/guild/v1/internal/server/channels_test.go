@@ -73,6 +73,36 @@ func TestCreateAndAuthorizeGuildChannel(t *testing.T) {
 	require.True(t, authResp.GetAllowed())
 }
 
+func TestCategoryAndVoiceChannelMetadata(t *testing.T) {
+	fakeStore := roleTestStore()
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	categoryReq := new(guildv1.CreateGuildChannelRequest)
+	categoryReq.SetGuildId(10)
+	categoryReq.SetActorUserId(1001)
+	categoryReq.SetName("rooms")
+	categoryReq.SetType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY)
+	categoryResp, err := server.CreateGuildChannel(t.Context(), categoryReq)
+	require.NoError(t, err)
+
+	voiceReq := new(guildv1.CreateGuildChannelRequest)
+	voiceReq.SetGuildId(10)
+	voiceReq.SetActorUserId(1001)
+	voiceReq.SetName("lounge")
+	voiceReq.SetType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE)
+	voiceReq.SetParentId(categoryResp.GetChannel().GetId())
+	voiceResp, err := server.CreateGuildChannel(t.Context(), voiceReq)
+	require.NoError(t, err)
+	require.Equal(t, categoryResp.GetChannel().GetId(), voiceResp.GetChannel().GetParentId())
+
+	deleteReq := new(guildv1.DeleteGuildChannelRequest)
+	deleteReq.SetChannelId(categoryResp.GetChannel().GetId())
+	deleteReq.SetActorUserId(1001)
+	_, err = server.DeleteGuildChannel(t.Context(), deleteReq)
+	require.NoError(t, err)
+	require.Zero(t, fakeStore.channels[voiceResp.GetChannel().GetId()].ParentID)
+}
+
 func TestChannelOverwriteCanHideChannel(t *testing.T) {
 	fakeStore := roleTestStore()
 	fakeStore.channels[30] = &model.Channel{

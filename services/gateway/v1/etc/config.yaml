@@ -43,6 +43,11 @@ gateway:
   gatewayRefreshSeconds: 15
   maxMessageBytes: 65536
 
+kafka:
+  seeds: []
+  guildTopic: cordis.guild.events.v1
+  consumerGroupPrefix: cordis.gateway.guild-events.v1
+
 services:
   authenticator:
     endpoints:

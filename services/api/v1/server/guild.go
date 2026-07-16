@@ -188,6 +188,58 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *apiv1.KickGuildM
 	return &apiv1.KickGuildMemberResponse{Ok: new(svcResp.GetOk())}, nil
 }
 
+func (s *guildServer) BanGuildMember(ctx context.Context, req *apiv1.BanGuildMemberRequest) (*apiv1.BanGuildMemberResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.BanGuildMemberRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUserId(req.GetUserId())
+	svcReq.SetReason(req.GetReason())
+	svcResp, err := s.svcCtx.GuildClient.BanGuildMember(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.BanGuildMemberResponse{Ban: guildBanToAPI(svcResp.GetBan())}, nil
+}
+
+func (s *guildServer) UnbanGuildMember(ctx context.Context, req *apiv1.UnbanGuildMemberRequest) (*apiv1.UnbanGuildMemberResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.UnbanGuildMemberRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUserId(req.GetUserId())
+	svcResp, err := s.svcCtx.GuildClient.UnbanGuildMember(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.UnbanGuildMemberResponse{Ok: new(svcResp.GetOk())}, nil
+}
+
+func (s *guildServer) ListGuildBans(ctx context.Context, req *apiv1.ListGuildBansRequest) (*apiv1.ListGuildBansResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.ListGuildBansRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetBeforeUserId(req.GetBeforeUserId())
+	svcReq.SetLimit(req.GetLimit())
+	svcResp, err := s.svcCtx.GuildClient.ListGuildBans(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.ListGuildBansResponse{
+		Bans: guildBansToAPI(svcResp.GetBans()), BeforeUserId: new(svcResp.GetBeforeUserId()),
+	}, nil
+}
+
 func (s *guildServer) LeaveGuild(ctx context.Context, req *apiv1.LeaveGuildRequest) (*apiv1.LeaveGuildResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
@@ -260,6 +312,25 @@ func guildMembersToAPI(members []*guildv1.GuildMember) []*apiv1.GuildMember {
 	values := make([]*apiv1.GuildMember, 0, len(members))
 	for _, member := range members {
 		values = append(values, guildMemberToAPI(member))
+	}
+	return values
+}
+
+func guildBanToAPI(ban *guildv1.GuildBan) *apiv1.GuildBan {
+	if ban == nil {
+		return nil
+	}
+	return &apiv1.GuildBan{
+		GuildId: new(ban.GetGuildId()), UserId: new(ban.GetUserId()),
+		ActorUserId: new(ban.GetActorUserId()), Reason: new(ban.GetReason()),
+		CreatedAt: new(ban.GetCreatedAt()),
+	}
+}
+
+func guildBansToAPI(bans []*guildv1.GuildBan) []*apiv1.GuildBan {
+	values := make([]*apiv1.GuildBan, 0, len(bans))
+	for _, ban := range bans {
+		values = append(values, guildBanToAPI(ban))
 	}
 	return values
 }

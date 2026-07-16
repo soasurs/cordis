@@ -28,12 +28,12 @@ go build ./services/guild/v1/...
 ## Services
 
 - `services/api/v1`: public Connect-RPC HTTP API on `:8080`; authenticates callers, proxies User/Message/Guild operations to internal gRPC services, and maps errors through `pkg/apierror`.
-- `services/gateway/v1`: websocket gateway on `:8081` plus internal gRPC on `:3004`; verifies access tokens via Authenticator and records sessions/routes via Presence.
+- `services/gateway/v1`: websocket gateway on `:8081` plus internal gRPC on `:3004`; verifies access tokens via Authenticator, records sessions/routes via Presence, and optionally consumes Guild events from Kafka.
 - `services/presence/v1`: gRPC on `:3003`; Redis-backed gateway liveness, channel routing, and user presence TTLs.
 - `services/authenticator/v1`: go-zero `zrpc` on `:3001`; JWT access/refresh tokens, sessions in Postgres, calls User gRPC.
 - `services/user/v1`: go-zero `zrpc` on `:3000`; users/profiles in Postgres, Argon2id password hashing.
 - `services/message/v1`: go-zero `zrpc` on `:3002`; messages/reactions/mentions in Postgres, publishes message events directly to Kafka when Kafka is configured.
-- `services/guild/v1`: go-zero `zrpc` on `:3005`; guilds/members/roles in Postgres, calls User gRPC when directly adding members, and publishes guild events to its own Kafka topic.
+- `services/guild/v1`: go-zero `zrpc` on `:3005`; guilds/members/bans/roles/channels in Postgres, calls User gRPC when directly adding or banning users, and publishes guild events to its own Kafka topic.
 
 ## Proto
 
@@ -65,6 +65,7 @@ go build ./services/guild/v1/...
 - Client-settable message types are only `DEFAULT` and `REPLY`; `UNSPECIFIED` normalizes to `DEFAULT`, and `THREAD_STARTER` is reserved.
 - Client-settable flags only include `SUPPRESS_NOTIFICATIONS`; `HAS_THREAD` is rejected.
 - Reply fields must be set together, and the referenced channel must match the referenced message.
+- Message operations are supported only in text channels; category and voice channels are rejected.
 - Custom guild emojis live in `emojis`; Unicode reactions use `emoji_id = 0`. Reaction summaries left join emojis and use `COALESCE` for null-safe `animated` and `image_key`.
 
 ## Guild Service
@@ -74,17 +75,17 @@ go build ./services/guild/v1/...
 - Guild reads require active membership. Non-members and deleted guilds are returned as not found. Metadata updates require `MANAGE_GUILD`; deletion and ownership transfer remain owner-only.
 - `ListUserGuilds` uses descending Snowflake IDs and a `before` cursor.
 - Member RPCs cover direct add, get/list, updating the caller's nickname, kick, leave, and ownership transfer.
-- Direct member addition requires `MANAGE_MEMBERS` and verifies the target through User gRPC. Kicking requires `KICK_MEMBERS` plus a strictly higher top role.
+- Direct member addition requires `MANAGE_MEMBERS` and verifies the target through User gRPC. Kicking requires `KICK_MEMBERS` plus a strictly higher top role. Banning requires `BAN_MEMBERS`, supports current members and non-members, and also enforces role hierarchy for active members.
 - The owner cannot leave or be kicked and must transfer ownership to another active member first.
-- Active duplicate membership returns `AlreadyExists`. A removed member may rejoin; the existing row is restored and its membership `revision` continues increasing.
+- Active duplicate membership returns `AlreadyExists`. A removed member may rejoin; the existing row is restored and its membership `revision` continues increasing. A banned user cannot be added until unbanned.
 - Member lists use descending `user_id` and a `before_user_id` cursor. Nicknames are trimmed, may be cleared, and are limited to 32 Unicode code points.
-- Guild-level permissions are `ADMINISTRATOR`, `MANAGE_GUILD`, `MANAGE_ROLES`, `MANAGE_MEMBERS`, and `KICK_MEMBERS`. Effective permissions OR the implicit `@everyone` role with explicitly assigned active roles.
+- Guild-level permissions are `ADMINISTRATOR`, `MANAGE_GUILD`, `MANAGE_ROLES`, `MANAGE_MEMBERS`, `KICK_MEMBERS`, and `BAN_MEMBERS`. Effective permissions OR the implicit `@everyone` role with explicitly assigned active roles.
 - Channel permissions add `VIEW_CHANNEL`, `SEND_MESSAGES`, `MANAGE_CHANNELS`, and `MANAGE_MESSAGES`. New and migrated `@everyone` roles grant `VIEW_CHANNEL | SEND_MESSAGES` by default.
 - Guild owners implicitly receive all Guild permissions. `ADMINISTRATOR` expands to all current Guild permissions, but role hierarchy still applies to non-owner moderation and role operations.
 - `guild_member_roles` stores explicit role assignments. The `@everyone` role is implicit, cannot be assigned or deleted, keeps position 0, and only its permissions may be updated.
 - Role operations require `MANAGE_ROLES`. Non-owners may only manage roles and members strictly below their highest role and cannot create, edit, or assign permissions they do not hold.
 - Role deletion and member removal delete explicit role assignments transactionally. Deleted roles are excluded from permission calculation.
-- Guild owns text channels and channel permission overwrites. Channel ordering uses ascending `position`; only `GUILD_CHANNEL_TYPE_TEXT` is currently supported.
+- Guild owns text, category, and voice channel metadata plus channel permission overwrites. Text and voice channels may reference a category through `parent_id`; categories cannot be nested. Deleting a category moves its children to the Guild root. Voice functionality beyond metadata is not implemented.
 - Channel overwrite precedence is deterministic: `@everyone`, aggregated assigned-role denies/allows, then the member overwrite. Owner and `ADMINISTRATOR` bypass channel overwrites.
 - Denying `VIEW_CHANNEL` also removes `SEND_MESSAGES` and `MANAGE_MESSAGES`. Guild channel reads hide non-visible channels as not found.
 - Role overwrite targets must be manageable by the actor; member overwrite targets must be below the actor's highest role. Overwrite allow/deny bitsets cannot overlap.
@@ -92,15 +93,17 @@ go build ./services/guild/v1/...
 - Guild publishes directly to Kafka after the database transaction commits and does not use an outbox.
 - Guild event values use the same lightweight envelope as Message: `{"t":"guild.updated","d":{...}}`. The Kafka key is the decimal `guild_id`.
 - Snowflake IDs and permission bitsets in Kafka JSON are strings; revisions, timestamps, and enums remain JSON numbers.
-- Current event types additionally include `guild.channel.created`, `guild.channel.updated`, `guild.channel.deleted`, `guild.channel.overwrite.updated`, and `guild.channel.overwrite.deleted`.
+- Current event types additionally include `guild.member.banned`, `guild.member.unbanned`, `guild.channel.created`, `guild.channel.updated`, `guild.channel.deleted`, `guild.channel.overwrite.updated`, and `guild.channel.overwrite.deleted`.
 - Message calls Guild `AuthorizeGuildChannel` for every create/read/list/update/delete operation. Message no longer trusts a caller-provided moderator boolean; non-author edits/deletes require `MANAGE_MESSAGES`.
-- Later Guild phases own Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
+- Later Guild phases own invitations, permission-change-driven immediate subscription revocation, limits, and richer ordering.
 
 ## Gateway And Presence
 
 - Gateway websocket protocol opcodes are in `services/gateway/v1/internal/server/protocol.go`; first client message after `HELLO` must be `IDENTIFY` (`op=2`) with an access token.
 - Gateway requires Authenticator, Presence, and Guild gRPC clients. Channel subscription requests are deduplicated and must all pass Guild `VIEW_CHANNEL` authorization before any local subscription is added.
 - Gateway tracks local subscriptions in memory and refreshes aggregate channel routes in Presence; callers resolve target gateways via Presence before calling gateway dispatch gRPC.
+- On IDENTIFY, Gateway loads the user's Guild memberships and tracks local Guild subscriptions. When Kafka is configured, each Gateway instance uses an instance-specific consumer group to receive every Guild event and fan it out to relevant local sessions.
+- Guild channel create/update/overwrite events are re-authorized per local user before dispatch. Channel deletion is sent to existing local channel subscribers. Member removal and ban events are delivered before the target user's local Guild subscription is revoked.
 - Before periodic route refresh, Gateway revalidates each local channel subscription through Guild. Revoked/not-found access removes the subscription and detaches the aggregate Presence route when its final local subscriber disappears.
 - Transient Guild authorization failures do not evict subscriptions; Gateway logs the failure and retries on the next route refresh.
 - Presence Redis keys are TTL-based; stale gateway generations and expired sessions/routes are filtered during reads.

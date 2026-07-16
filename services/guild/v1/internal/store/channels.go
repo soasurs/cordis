@@ -19,6 +19,7 @@ type channelRow struct {
 	CreatedAt int64  `db:"created_at"`
 	UpdatedAt int64  `db:"updated_at"`
 	DeletedAt int64  `db:"deleted_at"`
+	ParentID  int64  `db:"parent_id"`
 }
 
 type channelOverwriteRow struct {
@@ -39,10 +40,11 @@ func (s *SQLStore) CreateGuildChannel(
 	name string,
 	channelType, position int32,
 	topic string,
+	parentID int64,
 	createdAt int64,
 ) (*model.Channel, error) {
 	row := new(channelRow)
-	if err := sqlx.GetContext(ctx, s.q, row, createGuildChannelQuery, channelID, guildID, name, channelType, position, topic, createdAt); err != nil {
+	if err := sqlx.GetContext(ctx, s.q, row, createGuildChannelQuery, channelID, guildID, name, channelType, position, topic, parentID, createdAt); err != nil {
 		return nil, err
 	}
 	return channelFromRow(row), nil
@@ -70,16 +72,21 @@ func (s *SQLStore) ListGuildChannels(ctx context.Context, guildID int64) ([]*mod
 
 func (s *SQLStore) UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error) {
 	var name, topic string
+	var parentID int64
 	if params.Name != nil {
 		name = *params.Name
 	}
 	if params.Topic != nil {
 		topic = *params.Topic
 	}
+	if params.ParentID != nil {
+		parentID = *params.ParentID
+	}
 	row := new(channelRow)
 	if err := sqlx.GetContext(
 		ctx, s.q, row, updateGuildChannelQuery,
-		params.ChannelID, params.Name != nil, name, params.Topic != nil, topic, params.UpdatedAt,
+		params.ChannelID, params.Name != nil, name, params.Topic != nil, topic,
+		params.ParentID != nil, parentID, params.UpdatedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -104,6 +111,11 @@ func (s *SQLStore) DeleteGuildChannel(ctx context.Context, channelID, deletedAt 
 
 func (s *SQLStore) DeleteGuildChannels(ctx context.Context, guildID, deletedAt int64) error {
 	_, err := s.q.ExecContext(ctx, deleteGuildChannelsStatement, guildID, deletedAt)
+	return err
+}
+
+func (s *SQLStore) ClearGuildChannelParent(ctx context.Context, guildID, parentID, updatedAt int64) error {
+	_, err := s.q.ExecContext(ctx, clearGuildChannelParentStatement, guildID, parentID, updatedAt)
 	return err
 }
 
@@ -159,6 +171,7 @@ func channelFromRow(row *channelRow) *model.Channel {
 		ID: row.ID, GuildID: row.GuildID, Name: row.Name, Type: row.Type,
 		Position: row.Position, Topic: row.Topic, Revision: row.Revision,
 		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, DeletedAt: row.DeletedAt,
+		ParentID: row.ParentID,
 	}
 }
 

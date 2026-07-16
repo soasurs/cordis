@@ -5,6 +5,7 @@ import "sync"
 type hub struct {
 	mu       sync.RWMutex
 	channels map[int64]map[*client]struct{}
+	guilds   map[int64]map[*client]struct{}
 	users    map[int64]map[*client]struct{}
 	sessions map[string]*client
 }
@@ -12,9 +13,46 @@ type hub struct {
 func newHub() *hub {
 	return &hub{
 		channels: make(map[int64]map[*client]struct{}),
+		guilds:   make(map[int64]map[*client]struct{}),
 		users:    make(map[int64]map[*client]struct{}),
 		sessions: make(map[string]*client),
 	}
+}
+
+func (h *hub) subscribeGuild(c *client, guildID int64) {
+	if guildID <= 0 {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	clients := h.guilds[guildID]
+	if clients == nil {
+		clients = make(map[*client]struct{})
+		h.guilds[guildID] = clients
+	}
+	clients[c] = struct{}{}
+	c.guilds[guildID] = struct{}{}
+}
+
+func (h *hub) unsubscribeGuildUser(guildID, userID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for c := range h.users[userID] {
+		delete(c.guilds, guildID)
+		delete(h.guilds[guildID], c)
+	}
+	if len(h.guilds[guildID]) == 0 {
+		delete(h.guilds, guildID)
+	}
+}
+
+func (h *hub) unsubscribeGuild(guildID int64) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for c := range h.guilds[guildID] {
+		delete(c.guilds, guildID)
+	}
+	delete(h.guilds, guildID)
 }
 
 func (h *hub) add(c *client) {
@@ -97,6 +135,12 @@ func (h *hub) remove(c *client) []int64 {
 		}
 	}
 	delete(h.sessions, c.gatewaySessionID)
+	for guildID := range c.guilds {
+		delete(h.guilds[guildID], c)
+		if len(h.guilds[guildID]) == 0 {
+			delete(h.guilds, guildID)
+		}
+	}
 
 	inactive := make([]int64, 0, len(c.channels))
 	for channelID := range c.channels {
@@ -108,6 +152,22 @@ func (h *hub) remove(c *client) []int64 {
 		}
 	}
 	return inactive
+}
+
+func (h *hub) guildClients(guildID int64) []*client {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return clientsFromSet(h.guilds[guildID])
+}
+
+func (h *hub) guildUserClients(guildID int64) map[int64][]*client {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	users := make(map[int64][]*client)
+	for c := range h.guilds[guildID] {
+		users[c.userID] = append(users[c.userID], c)
+	}
+	return users
 }
 
 func (h *hub) activeChannels() []int64 {

@@ -255,6 +255,14 @@ type fakeGuildClient struct {
 	err            error
 }
 
+func (f *fakeGuildClient) ListUserGuilds(
+	context.Context,
+	*guildv1.ListUserGuildsRequest,
+	...grpc.CallOption,
+) (*guildv1.ListUserGuildsResponse, error) {
+	return new(guildv1.ListUserGuildsResponse), nil
+}
+
 func (f *fakeGuildClient) AuthorizeGuildChannel(
 	_ context.Context,
 	req *guildv1.AuthorizeGuildChannelRequest,

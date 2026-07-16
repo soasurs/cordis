@@ -3,15 +3,15 @@ package main
 import (
 	"flag"
 
-	userv1 "github.com/soasurs/cordis/gen/user/v1"
-	"github.com/soasurs/cordis/services/user/v1/config"
-	"github.com/soasurs/cordis/services/user/v1/internal/server"
-	"github.com/soasurs/cordis/services/user/v1/internal/svc"
-
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/proc"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
+
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/services/user/v1/config"
+	"github.com/soasurs/cordis/services/user/v1/internal/server"
+	"github.com/soasurs/cordis/services/user/v1/internal/svc"
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")

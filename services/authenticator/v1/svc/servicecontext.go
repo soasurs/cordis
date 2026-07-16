@@ -5,13 +5,14 @@ import (
 
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jmoiron/sqlx"
+	"github.com/zeromicro/go-zero/zrpc"
+
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
-	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type ServiceContext struct {
@@ -27,7 +28,7 @@ type Dependencies struct {
 	Tokens     *token.Manager
 	Snowflake  *sn.Node
 	UserClient userv1.UserServiceClient
-	DB *sqlx.DB
+	DB         *sqlx.DB
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {

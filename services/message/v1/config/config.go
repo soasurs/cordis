@@ -3,9 +3,10 @@ package config
 import (
 	"time"
 
+	"github.com/zeromicro/go-zero/zrpc"
+
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
-	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {

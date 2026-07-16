@@ -4,10 +4,11 @@ import (
 	"errors"
 
 	"connectrpc.com/connect"
-	apiv1 "github.com/soasurs/cordis/gen/api/v1"
-	"github.com/soasurs/cordis/pkg/rpcerror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	apiv1 "github.com/soasurs/cordis/gen/api/v1"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 )
 
 const (

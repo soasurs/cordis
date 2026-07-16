@@ -9,6 +9,10 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -16,9 +20,6 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 	"github.com/soasurs/cordis/services/message/v1/internal/svc"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestCreateMessagePublishesEvent(t *testing.T) {

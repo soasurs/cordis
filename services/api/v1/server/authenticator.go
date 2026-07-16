@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"connectrpc.com/connect"
+
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"github.com/soasurs/cordis/pkg/apierror"

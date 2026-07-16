@@ -3,10 +3,11 @@ package server
 import (
 	"context"
 
+	"github.com/zeromicro/go-zero/core/logx"
+
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.CreateMessageRequest) (*messagev1.CreateMessageResponse, error) {

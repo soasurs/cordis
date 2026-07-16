@@ -16,16 +16,17 @@ import (
 	"testing"
 	"time"
 
-	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
-	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
-	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
-	"github.com/soasurs/cordis/services/gateway/v1/config"
-	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
+	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
+	"github.com/soasurs/cordis/services/gateway/v1/config"
+	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
 )
 
 func TestWebSocketIdentifyHeartbeatAndSubscribe(t *testing.T) {

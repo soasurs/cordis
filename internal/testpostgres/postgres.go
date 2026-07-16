@@ -14,6 +14,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/migration"
 )

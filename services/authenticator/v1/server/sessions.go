@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"errors"
 
-	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 )
 
 func (s *authenticatorServer) ListSessions(ctx context.Context, req *authenticatorv1.ListSessionsRequest) (*authenticatorv1.ListSessionsResponse, error) {

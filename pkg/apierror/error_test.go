@@ -5,11 +5,11 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestFromRPCReason(t *testing.T) {

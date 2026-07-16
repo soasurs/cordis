@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"connectrpc.com/connect"
+	"google.golang.org/grpc/codes"
+
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	"github.com/soasurs/cordis/pkg/rpcerror"
-	"google.golang.org/grpc/codes"
 )
 
 const bearerPrefix = "Bearer "

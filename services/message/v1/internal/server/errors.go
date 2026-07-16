@@ -5,9 +5,10 @@ import (
 	"errors"
 
 	"github.com/lib/pq"
+	"google.golang.org/grpc/codes"
+
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
-	"google.golang.org/grpc/codes"
 )
 
 func invalidRequest(message string) error {

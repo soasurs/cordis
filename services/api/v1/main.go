@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/logx"
+
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	"github.com/soasurs/cordis/services/api/v1/config"
 	"github.com/soasurs/cordis/services/api/v1/observability"
 	"github.com/soasurs/cordis/services/api/v1/server"
 	"github.com/soasurs/cordis/services/api/v1/svc"
-	"github.com/zeromicro/go-zero/core/conf"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")
@@ -56,10 +57,15 @@ func main() {
 		server.NewUser(svcCtx),
 		connect.WithInterceptors(observability.ConnectInterceptors()...),
 	)
+	messagePath, messageHandler := apiv1connect.NewMessageServiceHandler(
+		server.NewMessage(svcCtx),
+		connect.WithInterceptors(observability.ConnectInterceptors()...),
+	)
 
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	mux.Handle(userPath, userHandler)
+	mux.Handle(messagePath, messageHandler)
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenOn,

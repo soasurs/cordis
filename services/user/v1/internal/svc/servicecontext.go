@@ -3,9 +3,9 @@ package svc
 import (
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jmoiron/sqlx"
+
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/snowflake"
-
 	"github.com/soasurs/cordis/services/user/v1/config"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )

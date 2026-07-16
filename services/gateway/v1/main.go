@@ -10,14 +10,15 @@ import (
 	"syscall"
 	"time"
 
-	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
-	"github.com/soasurs/cordis/services/gateway/v1/config"
-	"github.com/soasurs/cordis/services/gateway/v1/internal/server"
-	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
+
+	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
+	"github.com/soasurs/cordis/services/gateway/v1/config"
+	"github.com/soasurs/cordis/services/gateway/v1/internal/server"
+	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")

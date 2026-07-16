@@ -1,0 +1,157 @@
+edition = "2023";
+
+package api.v1;
+
+// MessageService exposes authenticated message operations.
+// Channel membership and permission checks will be enforced here once the
+// public API can query the service that owns channels.
+service MessageService {
+  // CreateMessage creates a message authored by the bearer token owner.
+  rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
+  // UpdateMessage edits a message owned by the bearer token owner.
+  rpc UpdateMessage(UpdateMessageRequest) returns (UpdateMessageResponse);
+  // DeleteMessage deletes a message owned by the bearer token owner.
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  // GetMessage returns one message after authenticating the caller.
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  // ListMessages returns messages in a channel ordered newest first.
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+}
+
+// MessageType identifies the semantic kind of a message.
+enum MessageType {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  MESSAGE_TYPE_DEFAULT = 1;
+  MESSAGE_TYPE_REPLY = 19;
+  // Reserved for messages created automatically when a thread is created.
+  MESSAGE_TYPE_THREAD_STARTER = 21;
+}
+
+// MessageFlag contains bit values combined in Message.flags.
+enum MessageFlag {
+  MESSAGE_FLAG_UNSPECIFIED = 0;
+  // The message has an associated thread whose ID equals the message ID.
+  MESSAGE_FLAG_HAS_THREAD = 32;
+  // Suppress push and desktop notifications for this message.
+  MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS = 4096;
+}
+
+// Message represents one message in a channel or thread.
+// All timestamps are Unix time in milliseconds.
+message Message {
+  int64 id = 1;
+  int64 channel_id = 2;
+  int64 author_id = 3;
+  string content = 4;
+  MessageType type = 5;
+  // Bitmask of MessageFlag values.
+  int32 flags = 6;
+
+  // Set when this message references another message.
+  int64 referenced_message_id = 10;
+  int64 referenced_channel_id = 11;
+
+  repeated Attachment attachments = 20;
+
+  // Non-zero after the message has been edited.
+  int64 edited_at = 30;
+  int64 created_at = 31;
+  int64 updated_at = 32;
+  // Monotonically increasing version used to discard stale events.
+  int64 revision = 33;
+}
+
+// Attachment describes a file uploaded before the message is created.
+message Attachment {
+  // Object storage key returned by the upload flow.
+  string key = 1;
+  string filename = 2;
+  int64 size = 3;
+  string content_type = 4;
+  // Image dimensions; zero for files without dimensions.
+  int32 width = 5;
+  int32 height = 6;
+}
+
+// AttachmentList distinguishes an omitted update from replacing attachments
+// with an empty list.
+message AttachmentList {
+  repeated Attachment attachments = 1;
+}
+
+// MentionList distinguishes an omitted update from removing every mention.
+message MentionList {
+  repeated int64 user_ids = 1;
+}
+
+message CreateMessageRequest {
+  int64 channel_id = 1;
+  string content = 2;
+  MessageType type = 3;
+  // Initial client-settable MessageFlag values.
+  int32 flags = 4;
+
+  // Both reference fields must be set for a reply.
+  int64 referenced_message_id = 10;
+  int64 referenced_channel_id = 11;
+
+  repeated Attachment attachments = 20;
+  // User IDs parsed from mentions in content.
+  repeated int64 mention_user_ids = 30;
+}
+
+message CreateMessageResponse {
+  Message message = 1;
+}
+
+message UpdateMessageRequest {
+  int64 message_id = 1;
+  // When present, replaces the content; an explicit empty string clears it.
+  string content = 2;
+  // When present, replaces all client-settable flags.
+  int32 flags = 3;
+  // When present, replaces the complete attachment list.
+  AttachmentList attachments = 20;
+  // When present, replaces the complete mention list.
+  MentionList mentions = 30;
+}
+
+message UpdateMessageResponse {
+  Message message = 1;
+}
+
+message DeleteMessageRequest {
+  int64 message_id = 1;
+}
+
+message DeleteMessageResponse {
+  bool ok = 1;
+}
+
+message GetMessageRequest {
+  int64 message_id = 1;
+}
+
+message GetMessageResponse {
+  Message message = 1;
+}
+
+message ListMessagesRequest {
+  int64 channel_id = 1;
+  // before, after, and around are mutually exclusive.
+  oneof cursor {
+    int64 before = 2;
+    int64 after = 3;
+    int64 around = 4;
+  }
+  // Maximum results per page. The default is 50 and the maximum is 100.
+  int32 limit = 5;
+}
+
+message ListMessagesResponse {
+  repeated Message messages = 1;
+  // Smallest message ID in this page, or zero when the page is empty.
+  int64 before_cursor = 2;
+  // Largest message ID in this page, or zero when the page is empty.
+  int64 after_cursor = 3;
+}

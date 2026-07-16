@@ -3,14 +3,14 @@ package main
 import (
 	"flag"
 
+	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/zrpc"
+	"google.golang.org/grpc"
+
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	"github.com/soasurs/cordis/services/presence/v1/config"
 	"github.com/soasurs/cordis/services/presence/v1/internal/server"
 	"github.com/soasurs/cordis/services/presence/v1/internal/svc"
-
-	"github.com/zeromicro/go-zero/core/conf"
-	"github.com/zeromicro/go-zero/zrpc"
-	"google.golang.org/grpc"
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")

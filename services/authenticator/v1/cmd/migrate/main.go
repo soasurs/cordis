@@ -4,11 +4,12 @@ import (
 	"context"
 	"flag"
 
+	"github.com/zeromicro/go-zero/core/conf"
+
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/migration"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
 	authenticatormigrations "github.com/soasurs/cordis/services/authenticator/v1/db/migrations"
-	"github.com/zeromicro/go-zero/core/conf"
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")

@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
@@ -15,7 +16,6 @@ import (
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	"github.com/soasurs/cordis/services/api/v1/svc"
-	"google.golang.org/grpc"
 )
 
 type fakeUserClient struct {

@@ -3,10 +3,11 @@ package server
 import (
 	"context"
 
-	userv1 "github.com/soasurs/cordis/gen/user/v1"
-	"github.com/soasurs/cordis/pkg/password"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/password"
 )
 
 func (s *userServer) ChangePassword(ctx context.Context, req *userv1.ChangePasswordRequest) (*userv1.ChangePasswordResponse, error) {

@@ -3,15 +3,15 @@ package main
 import (
 	"flag"
 
-	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
-	"github.com/soasurs/cordis/services/authenticator/v1/config"
-	"github.com/soasurs/cordis/services/authenticator/v1/server"
-	"github.com/soasurs/cordis/services/authenticator/v1/svc"
-
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/proc"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
+
+	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	"github.com/soasurs/cordis/services/authenticator/v1/config"
+	"github.com/soasurs/cordis/services/authenticator/v1/server"
+	"github.com/soasurs/cordis/services/authenticator/v1/svc"
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")

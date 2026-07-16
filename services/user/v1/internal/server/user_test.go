@@ -7,6 +7,10 @@ import (
 	"testing"
 
 	"github.com/lib/pq"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
@@ -14,9 +18,6 @@ import (
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 	"github.com/soasurs/cordis/services/user/v1/internal/svc"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func TestCreateUser(t *testing.T) {

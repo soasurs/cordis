@@ -15,12 +15,13 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
-	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
-	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
-	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
+	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
 )
 
 type Server struct {

@@ -1,9 +1,10 @@
 package svc
 
 import (
+	"github.com/zeromicro/go-zero/core/stores/redis"
+
 	"github.com/soasurs/cordis/services/presence/v1/config"
 	"github.com/soasurs/cordis/services/presence/v1/internal/store"
-	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
 type ServiceContext struct {

@@ -1,10 +1,11 @@
 package svc
 
 import (
+	"github.com/zeromicro/go-zero/zrpc"
+
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
-	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type ServiceContext struct {

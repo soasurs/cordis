@@ -3,9 +3,10 @@ package server
 import (
 	"context"
 
-	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
 )
 
 func (s *Server) DispatchChannelEvent(_ context.Context, req *gatewayv1.DispatchChannelEventRequest) (*gatewayv1.DispatchChannelEventResponse, error) {

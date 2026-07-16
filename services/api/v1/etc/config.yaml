@@ -34,3 +34,12 @@ services:
       prometheus: true
       breaker: true
       timeout: true
+  message:
+    endpoints:
+      - 127.0.0.1:3002
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true

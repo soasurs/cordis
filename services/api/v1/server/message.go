@@ -1,0 +1,203 @@
+package server
+
+import (
+	"context"
+
+	apiv1 "github.com/soasurs/cordis/gen/api/v1"
+	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	"github.com/soasurs/cordis/pkg/apierror"
+	"github.com/soasurs/cordis/services/api/v1/svc"
+)
+
+type messageServer struct {
+	svcCtx *svc.ServiceContext
+}
+
+func NewMessage(svcCtx *svc.ServiceContext) apiv1connect.MessageServiceHandler {
+	return &messageServer{svcCtx: svcCtx}
+}
+
+func (s *messageServer) CreateMessage(ctx context.Context, req *apiv1.CreateMessageRequest) (*apiv1.CreateMessageResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.CreateMessageRequest)
+	svcReq.SetChannelId(req.GetChannelId())
+	svcReq.SetAuthorId(auth.GetUserId())
+	svcReq.SetContent(req.GetContent())
+	svcReq.SetType(messagev1.MessageType(req.GetType()))
+	svcReq.SetFlags(req.GetFlags())
+	svcReq.SetReferencedMessageId(req.GetReferencedMessageId())
+	svcReq.SetReferencedChannelId(req.GetReferencedChannelId())
+	svcReq.SetAttachments(attachmentsToMessageService(req.GetAttachments()))
+	svcReq.SetMentionUserIds(req.GetMentionUserIds())
+
+	svcResp, err := s.svcCtx.MessageClient.CreateMessage(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.CreateMessageResponse{
+		Message: messageToAPI(svcResp.GetMessage()),
+	}, nil
+}
+
+func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMessageRequest) (*apiv1.UpdateMessageResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.UpdateMessageRequest)
+	svcReq.SetMessageId(req.GetMessageId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	if req.Content != nil {
+		svcReq.SetContent(req.GetContent())
+	}
+	if req.Flags != nil {
+		svcReq.SetFlags(req.GetFlags())
+	}
+	if req.Attachments != nil {
+		attachments := new(messagev1.AttachmentList)
+		attachments.SetAttachments(attachmentsToMessageService(req.GetAttachments().GetAttachments()))
+		svcReq.SetAttachments(attachments)
+	}
+	if req.Mentions != nil {
+		mentions := new(messagev1.MentionList)
+		mentions.SetUserIds(req.GetMentions().GetUserIds())
+		svcReq.SetMentions(mentions)
+	}
+
+	svcResp, err := s.svcCtx.MessageClient.UpdateMessage(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.UpdateMessageResponse{
+		Message: messageToAPI(svcResp.GetMessage()),
+	}, nil
+}
+
+func (s *messageServer) DeleteMessage(ctx context.Context, req *apiv1.DeleteMessageRequest) (*apiv1.DeleteMessageResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.DeleteMessageRequest)
+	svcReq.SetMessageId(req.GetMessageId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcResp, err := s.svcCtx.MessageClient.DeleteMessage(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.DeleteMessageResponse{
+		Ok: new(svcResp.GetOk()),
+	}, nil
+}
+
+func (s *messageServer) GetMessage(ctx context.Context, req *apiv1.GetMessageRequest) (*apiv1.GetMessageResponse, error) {
+	if _, err := authenticate(ctx, s.svcCtx.AuthenticatorClient); err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.GetMessageRequest)
+	svcReq.SetMessageId(req.GetMessageId())
+	svcResp, err := s.svcCtx.MessageClient.GetMessage(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.GetMessageResponse{
+		Message: messageToAPI(svcResp.GetMessage()),
+	}, nil
+}
+
+func (s *messageServer) ListMessages(ctx context.Context, req *apiv1.ListMessagesRequest) (*apiv1.ListMessagesResponse, error) {
+	if _, err := authenticate(ctx, s.svcCtx.AuthenticatorClient); err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.ListMessagesRequest)
+	svcReq.SetChannelId(req.GetChannelId())
+	svcReq.SetLimit(req.GetLimit())
+	switch cursor := req.GetCursor().(type) {
+	case *apiv1.ListMessagesRequest_Before:
+		svcReq.SetBefore(cursor.Before)
+	case *apiv1.ListMessagesRequest_After:
+		svcReq.SetAfter(cursor.After)
+	case *apiv1.ListMessagesRequest_Around:
+		svcReq.SetAround(cursor.Around)
+	}
+
+	svcResp, err := s.svcCtx.MessageClient.ListMessages(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	messages := make([]*apiv1.Message, 0, len(svcResp.GetMessages()))
+	for _, message := range svcResp.GetMessages() {
+		messages = append(messages, messageToAPI(message))
+	}
+	return &apiv1.ListMessagesResponse{
+		Messages:     messages,
+		BeforeCursor: new(svcResp.GetBeforeCursor()),
+		AfterCursor:  new(svcResp.GetAfterCursor()),
+	}, nil
+}
+
+func messageToAPI(message *messagev1.Message) *apiv1.Message {
+	if message == nil {
+		return nil
+	}
+	return &apiv1.Message{
+		Id:                  new(message.GetId()),
+		ChannelId:           new(message.GetChannelId()),
+		AuthorId:            new(message.GetAuthorId()),
+		Content:             new(message.GetContent()),
+		Type:                new(apiv1.MessageType(message.GetType())),
+		Flags:               new(message.GetFlags()),
+		ReferencedMessageId: new(message.GetReferencedMessageId()),
+		ReferencedChannelId: new(message.GetReferencedChannelId()),
+		Attachments:         attachmentsToAPI(message.GetAttachments()),
+		EditedAt:            new(message.GetEditedAt()),
+		CreatedAt:           new(message.GetCreatedAt()),
+		UpdatedAt:           new(message.GetUpdatedAt()),
+		Revision:            new(message.GetRevision()),
+	}
+}
+
+func attachmentsToMessageService(attachments []*apiv1.Attachment) []*messagev1.Attachment {
+	values := make([]*messagev1.Attachment, 0, len(attachments))
+	for _, attachment := range attachments {
+		if attachment == nil {
+			continue
+		}
+		value := new(messagev1.Attachment)
+		value.SetKey(attachment.GetKey())
+		value.SetFilename(attachment.GetFilename())
+		value.SetSize(attachment.GetSize())
+		value.SetContentType(attachment.GetContentType())
+		value.SetWidth(attachment.GetWidth())
+		value.SetHeight(attachment.GetHeight())
+		values = append(values, value)
+	}
+	return values
+}
+
+func attachmentsToAPI(attachments []*messagev1.Attachment) []*apiv1.Attachment {
+	values := make([]*apiv1.Attachment, 0, len(attachments))
+	for _, attachment := range attachments {
+		if attachment == nil {
+			continue
+		}
+		values = append(values, &apiv1.Attachment{
+			Key:         new(attachment.GetKey()),
+			Filename:    new(attachment.GetFilename()),
+			Size:        new(attachment.GetSize()),
+			ContentType: new(attachment.GetContentType()),
+			Width:       new(attachment.GetWidth()),
+			Height:      new(attachment.GetHeight()),
+		})
+	}
+	return values
+}

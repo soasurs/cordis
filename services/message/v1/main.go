@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
@@ -34,11 +33,6 @@ func main() {
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
 
-	// Start the outbox relay if Kafka is configured.
-	if svcCtx.Relay != nil {
-		svcCtx.Relay.Start(context.Background())
-	}
-
 	zrpcSrv, err := zrpc.NewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
 		messagev1.RegisterMessageServiceServer(grpcServer, srv)
 	})
@@ -48,11 +42,9 @@ func main() {
 
 	// Graceful shutdown via go-zero proc.
 	proc.AddShutdownListener(func() {
-		svcCtx.Relay.Stop()
-		if svcCtx.Kafka != nil {
-			svcCtx.Kafka.Close()
+		if deps.Kafka != nil {
+			deps.Kafka.Close()
 		}
-		svcCtx.Relay.WaitCallbacks()
 		if deps.DB != nil {
 			deps.DB.Close()
 		}

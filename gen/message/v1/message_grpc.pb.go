@@ -19,21 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MessageService_CreateMessage_FullMethodName     = "/message.v1.MessageService/CreateMessage"
-	MessageService_UpdateMessage_FullMethodName     = "/message.v1.MessageService/UpdateMessage"
-	MessageService_DeleteMessage_FullMethodName     = "/message.v1.MessageService/DeleteMessage"
-	MessageService_GetMessage_FullMethodName        = "/message.v1.MessageService/GetMessage"
-	MessageService_ListMessages_FullMethodName      = "/message.v1.MessageService/ListMessages"
-	MessageService_AddReaction_FullMethodName       = "/message.v1.MessageService/AddReaction"
-	MessageService_RemoveReaction_FullMethodName    = "/message.v1.MessageService/RemoveReaction"
-	MessageService_ListReactionUsers_FullMethodName = "/message.v1.MessageService/ListReactionUsers"
+	MessageService_CreateMessage_FullMethodName = "/message.v1.MessageService/CreateMessage"
+	MessageService_UpdateMessage_FullMethodName = "/message.v1.MessageService/UpdateMessage"
+	MessageService_DeleteMessage_FullMethodName = "/message.v1.MessageService/DeleteMessage"
+	MessageService_GetMessage_FullMethodName    = "/message.v1.MessageService/GetMessage"
+	MessageService_ListMessages_FullMethodName  = "/message.v1.MessageService/ListMessages"
 )
 
 // MessageServiceClient is the client API for MessageService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// MessageService manages messages and reactions within a channel.
+// MessageService manages messages within a channel.
 // Channels and threads are owned by the guild service; this service
 // receives only channel_id as an opaque reference.
 type MessageServiceClient interface {
@@ -45,12 +42,6 @@ type MessageServiceClient interface {
 	// ListMessages returns messages in a channel ordered by id descending
 	// (newest first). Uses cursor-based pagination.
 	ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...grpc.CallOption) (*ListMessagesResponse, error)
-	// Reaction
-	// AddReaction is idempotent — adding the same emoji twice is a no-op.
-	AddReaction(ctx context.Context, in *AddReactionRequest, opts ...grpc.CallOption) (*AddReactionResponse, error)
-	RemoveReaction(ctx context.Context, in *RemoveReactionRequest, opts ...grpc.CallOption) (*RemoveReactionResponse, error)
-	// ListReactionUsers returns users who reacted with the same emoji.
-	ListReactionUsers(ctx context.Context, in *ListReactionUsersRequest, opts ...grpc.CallOption) (*ListReactionUsersResponse, error)
 }
 
 type messageServiceClient struct {
@@ -111,41 +102,11 @@ func (c *messageServiceClient) ListMessages(ctx context.Context, in *ListMessage
 	return out, nil
 }
 
-func (c *messageServiceClient) AddReaction(ctx context.Context, in *AddReactionRequest, opts ...grpc.CallOption) (*AddReactionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddReactionResponse)
-	err := c.cc.Invoke(ctx, MessageService_AddReaction_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *messageServiceClient) RemoveReaction(ctx context.Context, in *RemoveReactionRequest, opts ...grpc.CallOption) (*RemoveReactionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RemoveReactionResponse)
-	err := c.cc.Invoke(ctx, MessageService_RemoveReaction_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *messageServiceClient) ListReactionUsers(ctx context.Context, in *ListReactionUsersRequest, opts ...grpc.CallOption) (*ListReactionUsersResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListReactionUsersResponse)
-	err := c.cc.Invoke(ctx, MessageService_ListReactionUsers_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // MessageServiceServer is the server API for MessageService service.
 // All implementations should embed UnimplementedMessageServiceServer
 // for forward compatibility.
 //
-// MessageService manages messages and reactions within a channel.
+// MessageService manages messages within a channel.
 // Channels and threads are owned by the guild service; this service
 // receives only channel_id as an opaque reference.
 type MessageServiceServer interface {
@@ -157,12 +118,6 @@ type MessageServiceServer interface {
 	// ListMessages returns messages in a channel ordered by id descending
 	// (newest first). Uses cursor-based pagination.
 	ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesResponse, error)
-	// Reaction
-	// AddReaction is idempotent — adding the same emoji twice is a no-op.
-	AddReaction(context.Context, *AddReactionRequest) (*AddReactionResponse, error)
-	RemoveReaction(context.Context, *RemoveReactionRequest) (*RemoveReactionResponse, error)
-	// ListReactionUsers returns users who reacted with the same emoji.
-	ListReactionUsers(context.Context, *ListReactionUsersRequest) (*ListReactionUsersResponse, error)
 }
 
 // UnimplementedMessageServiceServer should be embedded to have
@@ -186,15 +141,6 @@ func (UnimplementedMessageServiceServer) GetMessage(context.Context, *GetMessage
 }
 func (UnimplementedMessageServiceServer) ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMessages not implemented")
-}
-func (UnimplementedMessageServiceServer) AddReaction(context.Context, *AddReactionRequest) (*AddReactionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddReaction not implemented")
-}
-func (UnimplementedMessageServiceServer) RemoveReaction(context.Context, *RemoveReactionRequest) (*RemoveReactionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveReaction not implemented")
-}
-func (UnimplementedMessageServiceServer) ListReactionUsers(context.Context, *ListReactionUsersRequest) (*ListReactionUsersResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListReactionUsers not implemented")
 }
 func (UnimplementedMessageServiceServer) testEmbeddedByValue() {}
 
@@ -306,60 +252,6 @@ func _MessageService_ListMessages_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MessageService_AddReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddReactionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MessageServiceServer).AddReaction(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MessageService_AddReaction_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessageServiceServer).AddReaction(ctx, req.(*AddReactionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MessageService_RemoveReaction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveReactionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MessageServiceServer).RemoveReaction(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MessageService_RemoveReaction_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessageServiceServer).RemoveReaction(ctx, req.(*RemoveReactionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MessageService_ListReactionUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListReactionUsersRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MessageServiceServer).ListReactionUsers(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MessageService_ListReactionUsers_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessageServiceServer).ListReactionUsers(ctx, req.(*ListReactionUsersRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // MessageService_ServiceDesc is the grpc.ServiceDesc for MessageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -386,18 +278,6 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMessages",
 			Handler:    _MessageService_ListMessages_Handler,
-		},
-		{
-			MethodName: "AddReaction",
-			Handler:    _MessageService_AddReaction_Handler,
-		},
-		{
-			MethodName: "RemoveReaction",
-			Handler:    _MessageService_RemoveReaction_Handler,
-		},
-		{
-			MethodName: "ListReactionUsers",
-			Handler:    _MessageService_ListReactionUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

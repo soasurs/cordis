@@ -2,7 +2,7 @@ edition = "2023";
 
 package message.v1;
 
-// MessageService manages messages and reactions within a channel.
+// MessageService manages messages within a channel.
 // Channels and threads are owned by the guild service; this service
 // receives only channel_id as an opaque reference.
 service MessageService {
@@ -14,13 +14,6 @@ service MessageService {
   // ListMessages returns messages in a channel ordered by id descending
   // (newest first). Uses cursor-based pagination.
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
-
-  // Reaction
-  // AddReaction is idempotent — adding the same emoji twice is a no-op.
-  rpc AddReaction(AddReactionRequest) returns (AddReactionResponse);
-  rpc RemoveReaction(RemoveReactionRequest) returns (RemoveReactionResponse);
-  // ListReactionUsers returns users who reacted with the same emoji.
-  rpc ListReactionUsers(ListReactionUsersRequest) returns (ListReactionUsersResponse);
 }
 
 // ============================================================
@@ -81,6 +74,9 @@ message Message {
   int64 edited_at = 30;
   int64 created_at = 31;
   int64 updated_at = 32;
+  // Monotonically increasing state version. Starts at 1 and increments on
+  // every update and deletion.
+  int64 revision = 33;
 }
 
 // Attachment describes a file attached to a message. The frontend uploads
@@ -113,27 +109,6 @@ message AttachmentList {
 message MentionList {
   // User IDs mentioned after parsing the edited message content.
   repeated int64 user_ids = 1;
-}
-
-// Emoji represents an emoji that can be used in a reaction.
-// For Unicode emoji, id=0 and image_url is unset.
-// For custom guild emoji, id is a snowflake and image_url is the CDN URL.
-message Emoji {
-  int64 id = 1;
-  // Unicode character (e.g., "🔥") or custom emoji name (e.g., "LUL").
-  string name = 2;
-  bool animated = 3;
-  // Full CDN URL resolved by the backend at read time. Empty for Unicode.
-  string image_url = 4;
-}
-
-// ReactionSummary is the compact reaction shape returned with message pages.
-message ReactionSummary {
-  Emoji emoji = 1;
-  // Total users who reacted with this emoji.
-  int64 count = 2;
-  // True when the viewer reacted with this emoji.
-  bool me = 3;
 }
 
 // ============================================================
@@ -200,14 +175,12 @@ message DeleteMessageResponse {
 
 message GetMessageRequest {
   int64 message_id = 1;
-  // Optional viewer used to populate ReactionSummary.me.
-  int64 viewer_user_id = 2;
+  reserved 2;
 }
 
 message GetMessageResponse {
   Message message = 1;
-  // Aggregated reactions on this message.
-  repeated ReactionSummary reactions = 2;
+  reserved 2;
 }
 
 message ListMessagesRequest {
@@ -223,69 +196,16 @@ message ListMessagesRequest {
   }
   // Maximum results per page. Default 50, max 100.
   int32 limit = 5;
-  // Optional viewer used to populate ReactionSummary.me.
-  int64 viewer_user_id = 6;
+  reserved 6;
 }
 
 message ListMessagesResponse {
   repeated Message messages = 1;
-  // Aggregated reactions keyed by message id for this page.
-  map<int64, ReactionSummaryList> reactions = 2;
+  reserved 2;
   // The smallest message id in this page. Use as ListMessagesRequest.before
   // to fetch older messages. 0 means this page is empty.
   int64 before_cursor = 3;
   // The largest message id in this page. Use as ListMessagesRequest.after
   // to fetch newer messages. 0 means this page is empty.
   int64 after_cursor = 4;
-}
-
-// Wrapper for repeated ReactionSummary to allow map-of-repeated.
-message ReactionSummaryList {
-  repeated ReactionSummary reactions = 1;
-}
-
-// ============================================================
-// Reaction RPCs
-// ============================================================
-
-message AddReactionRequest {
-  int64 message_id = 1;
-  int64 user_id = 2;
-  // 0 for a Unicode emoji.
-  int64 emoji_id = 3;
-  // Unicode character or custom emoji name.
-  string emoji_name = 4;
-}
-
-message AddReactionResponse {
-  bool ok = 1;
-}
-
-message RemoveReactionRequest {
-  int64 message_id = 1;
-  int64 user_id = 2;
-  int64 emoji_id = 3;
-  string emoji_name = 4;
-}
-
-message RemoveReactionResponse {
-  bool ok = 1;
-}
-
-message ListReactionUsersRequest {
-  int64 message_id = 1;
-  int64 emoji_id = 2;
-  string emoji_name = 3;
-  // Cursor-based pagination: return user ids greater than cursor.
-  // Omit (or 0) for the first page.
-  int64 cursor = 4;
-  // Maximum results per page. Default 100, max 500.
-  int32 limit = 5;
-}
-
-message ListReactionUsersResponse {
-  repeated int64 user_ids = 1;
-  // The largest user id in this page, used as cursor for the next request.
-  // 0 means no more results.
-  int64 next_cursor = 2;
 }

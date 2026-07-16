@@ -2,7 +2,7 @@ package store
 
 const messageColumns = `
 	id, channel_id, author_id, content, type, flags, referenced_message_id,
-	referenced_channel_id, attachments, edited_at, created_at, updated_at, deleted_at
+	referenced_channel_id, attachments, edited_at, created_at, updated_at, revision, deleted_at
 `
 
 const (
@@ -10,17 +10,17 @@ const (
 	INSERT INTO
 		messages (
 			id, channel_id, author_id, content, type, flags, referenced_message_id,
-			referenced_channel_id, attachments, edited_at, created_at, updated_at, deleted_at
+			referenced_channel_id, attachments, edited_at, created_at, updated_at, revision, deleted_at
 		)
 	VALUES
 		(
 			:id, :channel_id, :author_id, :content, :type, :flags,
 			:referenced_message_id, :referenced_channel_id, CAST(:attachments AS JSONB),
-			:edited_at, :created_at, :updated_at, :deleted_at
+			:edited_at, :created_at, :updated_at, :revision, :deleted_at
 		)
 	RETURNING
 		id, channel_id, author_id, content, type, flags, referenced_message_id,
-		referenced_channel_id, attachments, edited_at, created_at, updated_at, deleted_at
+		referenced_channel_id, attachments, edited_at, created_at, updated_at, revision, deleted_at
 	`
 
 	GetMessageQuery = `
@@ -124,13 +124,16 @@ const (
 		messages
 	SET
 		deleted_at = $1,
-		updated_at = $1
+		updated_at = $1,
+		revision = revision + 1
 	WHERE
 		id = $2
 	AND
 		author_id = $3
 	AND
 		deleted_at = $4
+	RETURNING
+		` + messageColumns + `
 	`
 
 	// DeleteMessageModStatement skips the author_id check for moderators.
@@ -139,11 +142,14 @@ const (
 		messages
 	SET
 		deleted_at = $1,
-		updated_at = $1
+		updated_at = $1,
+		revision = revision + 1
 	WHERE
 		id = $2
 	AND
 		deleted_at = $3
+	RETURNING
+		` + messageColumns + `
 	`
 
 	CheckMessageExistsQuery = `
@@ -184,65 +190,5 @@ const (
 		message_id = $1
 	ORDER BY
 		user_id ASC
-	`
-
-	AddReactionStatement = `
-	INSERT INTO
-		reactions (message_id, user_id, emoji_id, emoji_name, created_at)
-	VALUES
-		($1, $2, $3, $4, $5)
-	ON CONFLICT DO NOTHING
-	`
-
-	RemoveReactionStatement = `
-	DELETE FROM
-		reactions
-	WHERE
-		message_id = $1
-	AND
-		user_id = $2
-	AND
-		emoji_id = $3
-	AND
-		emoji_name = $4
-	`
-
-	ListReactionSummariesQuery = `
-	SELECT
-		r.message_id,
-		r.emoji_id,
-		r.emoji_name,
-		COALESCE(e.animated, FALSE) AS animated,
-		COALESCE(e.image_key, '') AS image_key,
-		COUNT(*)::BIGINT AS count,
-		BOOL_OR(r.user_id = $2) AS me
-	FROM
-		reactions r
-		LEFT JOIN emojis e ON r.emoji_id = e.id
-	WHERE
-		r.message_id = ANY($1)
-	GROUP BY
-		r.message_id, r.emoji_id, r.emoji_name, e.animated, e.image_key
-	ORDER BY
-		r.message_id DESC, count DESC, r.emoji_id ASC, r.emoji_name ASC
-	`
-
-	ListReactionUsersQuery = `
-	SELECT
-		user_id
-	FROM
-		reactions
-	WHERE
-		message_id = $1
-	AND
-		emoji_id = $2
-	AND
-		emoji_name = $3
-	AND
-		user_id > $4
-	ORDER BY
-		user_id ASC
-	LIMIT
-		$5
 	`
 )

@@ -8,7 +8,6 @@ import (
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -192,8 +191,8 @@ func PublicInfo(err error) (*apiv1.PublicErrorInfo, bool) {
 func newConnectError(mapping mapping) error {
 	connectErr := connect.NewError(mapping.connectCode, errors.New(mapping.message))
 	detail, err := connect.NewErrorDetail(&apiv1.PublicErrorInfo{
-		Code:    proto.String(mapping.publicCode),
-		Message: proto.String(mapping.message),
+		Code:    new(mapping.publicCode),
+		Message: new(mapping.message),
 	})
 	if err == nil {
 		connectErr.AddDetail(detail)

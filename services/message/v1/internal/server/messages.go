@@ -2,11 +2,11 @@ package server
 
 import (
 	"context"
-	"strings"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.CreateMessageRequest) (*messagev1.CreateMessageResponse, error) {
@@ -19,7 +19,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if err := validateContent(req.GetContent()); err != nil {
 		return nil, err
 	}
-	attachments := toModelAttachments(req.GetAttachments())
+	attachments := attachmentsFromProto(req.GetAttachments())
 	if err := validateAttachments(attachments); err != nil {
 		return nil, err
 	}
@@ -80,31 +80,17 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		if err := txStore.ReplaceMessageMentions(ctx, messageID, req.GetMentionUserIds()); err != nil {
 			return err
 		}
-
-		// Build and enqueue the outbox event within the same transaction.
-		eventID := s.svcCtx.Snowflake.Generate().Int64()
-		outboxEvent, err := newMessageCreatedEvent(
-			s.svcCtx.Cfg.Kafka.Topic,
-			eventID,
-			s.svcCtx.OutboxMaxRetries,
-			s.svcCtx.OutboxPartitionCount,
-			created,
-			req.GetMentionUserIds(),
-		)
-		if err != nil {
-			return err
-		}
-		return txStore.InsertOutboxEvent(ctx, outboxEvent)
+		return nil
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	// Transaction committed — immediately flush the event to Kafka.
-	s.svcCtx.Relay.Notify()
+	event, eventErr := newMessageCreatedEvent(created, req.GetMentionUserIds())
+	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(messagev1.CreateMessageResponse)
-	resp.SetMessage(toPBMessage(created))
+	resp.SetMessage(messageToProto(created))
 	return resp, nil
 }
 
@@ -139,7 +125,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		params.Flags = &flags
 	}
 	if req.HasAttachments() {
-		attachments := toModelAttachments(req.GetAttachments().GetAttachments())
+		attachments := attachmentsFromProto(req.GetAttachments().GetAttachments())
 		if err := validateAttachments(attachments); err != nil {
 			return nil, err
 		}
@@ -152,6 +138,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	}
 
 	var updated *model.Message
+	var mentionUserIDs []int64
 
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.UpdateMessage(ctx, params)
@@ -166,7 +153,6 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 			}
 		}
 
-		var mentionUserIDs []int64
 		if req.HasMentions() {
 			mentionUserIDs = req.GetMentions().GetUserIds()
 		} else {
@@ -175,29 +161,17 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 				return err
 			}
 		}
-
-		eventID := s.svcCtx.Snowflake.Generate().Int64()
-		outboxEvent, err := newMessageUpdatedEvent(
-			s.svcCtx.Cfg.Kafka.Topic,
-			eventID,
-			s.svcCtx.OutboxMaxRetries,
-			s.svcCtx.OutboxPartitionCount,
-			updated,
-			mentionUserIDs,
-		)
-		if err != nil {
-			return err
-		}
-		return txStore.InsertOutboxEvent(ctx, outboxEvent)
+		return nil
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	s.svcCtx.Relay.Notify()
+	event, eventErr := newMessageUpdatedEvent(updated, mentionUserIDs)
+	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
-	resp.SetMessage(toPBMessage(updated))
+	resp.SetMessage(messageToProto(updated))
 	return resp, nil
 }
 
@@ -209,36 +183,21 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 		return nil, invalidRequest("actor user id is required")
 	}
 
-	// Fetch the message first to get the channel_id for the event.
-	msg, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId())
-	if err != nil {
-		return nil, mapStoreError(err)
-	}
-
-	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		if err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), req.GetHasPermission()); err != nil {
-			return err
-		}
-
-		eventID := s.svcCtx.Snowflake.Generate().Int64()
-		outboxEvent, err := newMessageDeletedEvent(
-			s.svcCtx.Cfg.Kafka.Topic,
-			eventID,
-			msg.ID,
-			msg.ChannelID,
-			s.svcCtx.OutboxMaxRetries,
-			s.svcCtx.OutboxPartitionCount,
-		)
+	var deleted *model.Message
+	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		message, err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), req.GetHasPermission())
 		if err != nil {
 			return err
 		}
-		return txStore.InsertOutboxEvent(ctx, outboxEvent)
+		deleted = message
+		return nil
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	s.svcCtx.Relay.Notify()
+	event, eventErr := newMessageDeletedEvent(deleted)
+	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(messagev1.DeleteMessageResponse)
 	resp.SetOk(true)
@@ -254,16 +213,8 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 		return nil, mapStoreError(err)
 	}
 
-	summaries, err := s.svcCtx.Store.ListReactionSummaries(ctx, []int64{message.ID}, req.GetViewerUserId())
-	if err != nil {
-		return nil, err
-	}
-
-	s.resolveEmojiImageURLs(summaries[message.ID])
-
 	resp := new(messagev1.GetMessageResponse)
-	resp.SetMessage(toPBMessage(message))
-	resp.SetReactions(toPBReactionSummaries(summaries[message.ID]))
+	resp.SetMessage(messageToProto(message))
 	return resp, nil
 }
 
@@ -302,48 +253,16 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 	if err != nil {
 		return nil, err
 	}
-	messageIDs := make([]int64, 0, len(messages))
-	for _, message := range messages {
-		messageIDs = append(messageIDs, message.ID)
-	}
-	summaries, err := s.svcCtx.Store.ListReactionSummaries(ctx, messageIDs, req.GetViewerUserId())
-	if err != nil {
-		return nil, err
-	}
-
-	for _, messageSummaries := range summaries {
-		s.resolveEmojiImageURLs(messageSummaries)
-	}
-
 	resp := new(messagev1.ListMessagesResponse)
-	resp.SetMessages(toPBMessages(messages))
-	resp.SetReactions(toPBReactionSummaryMap(summaries))
+	resp.SetMessages(messagesToProto(messages))
 	setListCursors(resp, messages)
 	return resp, nil
 }
 
-func toPBMessages(messages []*model.Message) []*messagev1.Message {
+func messagesToProto(messages []*model.Message) []*messagev1.Message {
 	values := make([]*messagev1.Message, 0, len(messages))
 	for _, message := range messages {
-		values = append(values, toPBMessage(message))
-	}
-	return values
-}
-
-func toPBReactionSummaries(summaries []*model.ReactionSummary) []*messagev1.ReactionSummary {
-	values := make([]*messagev1.ReactionSummary, 0, len(summaries))
-	for _, summary := range summaries {
-		values = append(values, toPBReactionSummary(summary))
-	}
-	return values
-}
-
-func toPBReactionSummaryMap(summaries map[int64][]*model.ReactionSummary) map[int64]*messagev1.ReactionSummaryList {
-	values := make(map[int64]*messagev1.ReactionSummaryList, len(summaries))
-	for messageID, messageSummaries := range summaries {
-		list := new(messagev1.ReactionSummaryList)
-		list.SetReactions(toPBReactionSummaries(messageSummaries))
-		values[messageID] = list
+		values = append(values, messageToProto(message))
 	}
 	return values
 }
@@ -366,15 +285,23 @@ func setListCursors(resp *messagev1.ListMessagesResponse, messages []*model.Mess
 	resp.SetAfterCursor(maxID)
 }
 
-func (s *messageServer) resolveEmojiImageURLs(summaries []*model.ReactionSummary) {
-	baseURL := s.svcCtx.Cfg.EmojiCDNBaseURL
-	if baseURL == "" {
+func (s *messageServer) publishEvent(ctx context.Context, event messageEvent, buildErr error) {
+	if buildErr != nil {
+		logx.WithContext(ctx).Errorw("build message event",
+			logx.Field("error", buildErr),
+		)
 		return
 	}
-	baseURL = strings.TrimRight(baseURL, "/")
-	for _, summary := range summaries {
-		if summary.Emoji.ImageURL == "" && summary.Emoji.ImageKey != "" {
-			summary.Emoji.ImageURL = baseURL + "/" + strings.TrimLeft(summary.Emoji.ImageKey, "/")
-		}
+	if s.svcCtx.Publisher == nil {
+		return
+	}
+
+	publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.svcCtx.Cfg.Kafka.PublishTimeout())
+	defer cancel()
+	if err := s.svcCtx.Publisher.Publish(publishCtx, event.Key, event.Payload); err != nil {
+		logx.WithContext(ctx).Errorw("publish message event",
+			logx.Field("key", string(event.Key)),
+			logx.Field("error", err),
+		)
 	}
 }

@@ -5,22 +5,17 @@ import (
 
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
-	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database        database.Config `json:",optional"`
-	Kafka           KafkaConfig     `json:",optional"`
-	Outbox          OutboxConfig    `json:",optional"`
-	EmojiCDNBaseURL string          `json:",optional"`
+	Database database.Config `json:",optional"`
+	Kafka    KafkaConfig     `json:",optional"`
 }
 
 // KafkaConfig controls the Kafka producer connection and the event topic
-// used by this service. The whole section is optional — when absent, the
-// service runs without Kafka and outbox events accumulate until a relay is
-// deployed.
+// used by this service. The whole section is optional.
 type KafkaConfig struct {
 	// Seeds is a list of bootstrap brokers, e.g. ["127.0.0.1:9092"].
 	// Required when the Kafka section is present.
@@ -28,50 +23,24 @@ type KafkaConfig struct {
 
 	// Topic is the Kafka topic for message events, e.g. "message.events".
 	Topic string `json:",default=message.events"`
+
+	// PublishTimeoutMs bounds how long a handler waits for a broker
+	// acknowledgement. Publication failure does not fail the message RPC.
+	PublishTimeoutMs int `json:",default=1000"`
 }
 
 // ProducerConfig converts to the kafka package's config.
 func (c KafkaConfig) ProducerConfig() kafka.ProducerConfig {
-	return kafka.ProducerConfig{Seeds: c.Seeds}
+	return kafka.ProducerConfig{
+		Seeds:           c.Seeds,
+		DeliveryTimeout: c.PublishTimeout(),
+	}
 }
 
-// OutboxConfig controls the outbox relay (background dispatcher).
-// All fields are optional — zero values use defaults from
-// outbox.DefaultRelayConfig.
-type OutboxConfig struct {
-	PartitionCount int `json:",optional"`
-	BatchSize      int `json:",optional"`
-	PollIntervalMs int `json:",optional"`
-	StaleThreshold int `json:",optional"` // seconds
-	RetentionMin   int `json:",optional"` // minutes, default 60
-	CleanupBatch   int `json:",optional"`
-	MaxRetries     int `json:",optional"`
-}
-
-// RelayConfig converts to the outbox package's RelayConfig, filling
-// defaults from DefaultRelayConfig where values are unset.
-func (c OutboxConfig) RelayConfig() outbox.RelayConfig {
-	cfg := outbox.DefaultRelayConfig()
-	if c.PartitionCount > 0 {
-		cfg.PartitionCount = c.PartitionCount
+// PublishTimeout returns the maximum time spent waiting for Kafka.
+func (c KafkaConfig) PublishTimeout() time.Duration {
+	if c.PublishTimeoutMs <= 0 {
+		return time.Second
 	}
-	if c.BatchSize > 0 {
-		cfg.BatchSize = c.BatchSize
-	}
-	if c.PollIntervalMs > 0 {
-		cfg.PollInterval = time.Duration(c.PollIntervalMs) * time.Millisecond
-	}
-	if c.StaleThreshold > 0 {
-		cfg.StaleThreshold = time.Duration(c.StaleThreshold) * time.Second
-	}
-	if c.RetentionMin > 0 {
-		cfg.Retention = time.Duration(c.RetentionMin) * time.Minute
-	}
-	if c.CleanupBatch > 0 {
-		cfg.CleanupBatch = c.CleanupBatch
-	}
-	if c.MaxRetries > 0 {
-		cfg.MaxRetries = c.MaxRetries
-	}
-	return cfg
+	return time.Duration(c.PublishTimeoutMs) * time.Millisecond
 }

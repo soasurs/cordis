@@ -19,7 +19,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 type fakeAuthenticatorClient struct {
@@ -93,9 +92,9 @@ func TestRegisterOverConnectHTTP(t *testing.T) {
 	client := apiv1connect.NewAuthenticatorServiceClient(httpClient, httpServer.URL)
 
 	resp, err := client.Register(context.Background(), &apiv1.RegisterRequest{
-		Name:     proto.String("display name"),
-		Email:    proto.String("user@example.com"),
-		Password: proto.String("password"),
+		Name:     new("display name"),
+		Email:    new("user@example.com"),
+		Password: new("password"),
 	})
 	require.NoError(t, err)
 
@@ -122,8 +121,8 @@ func TestLoginMapsRequestAndResponse(t *testing.T) {
 	})
 
 	resp, err := server.Login(context.Background(), &apiv1.LoginRequest{
-		Email:    proto.String("user@example.com"),
-		Password: proto.String("password"),
+		Email:    new("user@example.com"),
+		Password: new("password"),
 	})
 	require.NoError(t, err)
 	require.Equal(t, "user@example.com", internalClient.loginRequest.GetEmail())
@@ -140,7 +139,7 @@ func TestRefreshMapsRequestAndResponse(t *testing.T) {
 	})
 
 	resp, err := server.Refresh(context.Background(), &apiv1.RefreshRequest{
-		RefreshToken: proto.String("refresh-token"),
+		RefreshToken: new("refresh-token"),
 	})
 	require.NoError(t, err)
 	require.Equal(t, "refresh-token", internalClient.refreshRequest.GetRefreshToken())
@@ -159,7 +158,7 @@ func TestLogoutMapsRequestAndResponse(t *testing.T) {
 	})
 
 	resp, err := server.Logout(context.Background(), &apiv1.LogoutRequest{
-		RefreshToken: proto.String("refresh-token"),
+		RefreshToken: new("refresh-token"),
 	})
 	require.NoError(t, err)
 	require.Equal(t, "refresh-token", internalClient.logoutRequest.GetRefreshToken())
@@ -175,8 +174,8 @@ func TestLoginFailure(t *testing.T) {
 	})
 
 	_, err := server.Login(context.Background(), &apiv1.LoginRequest{
-		Email:    proto.String("user@example.com"),
-		Password: proto.String("wrong-password"),
+		Email:    new("user@example.com"),
+		Password: new("wrong-password"),
 	})
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
@@ -222,8 +221,8 @@ func TestErrorMappings(t *testing.T) {
 			})
 
 			_, err := server.Login(context.Background(), &apiv1.LoginRequest{
-				Email:    proto.String("user@example.com"),
-				Password: proto.String("password"),
+				Email:    new("user@example.com"),
+				Password: new("password"),
 			})
 			require.Equal(t, tt.connectCode, connect.CodeOf(err))
 

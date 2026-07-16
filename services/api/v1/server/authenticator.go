@@ -8,7 +8,6 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
-	"google.golang.org/protobuf/proto"
 )
 
 func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterRequest) (*apiv1.RegisterResponse, error) {
@@ -68,7 +67,7 @@ func (s *authenticatorServer) Logout(ctx context.Context, req *apiv1.LogoutReque
 	}
 
 	return &apiv1.LogoutResponse{
-		Ok: proto.Bool(internalResp.GetOk()),
+		Ok: new(internalResp.GetOk()),
 	}, nil
 }
 
@@ -93,18 +92,18 @@ func clientIP(address string) string {
 func toAPIAuthenticationResult(result *authenticatorv1.AuthenticationResult) *apiv1.AuthenticationResult {
 	if result == nil {
 		return &apiv1.AuthenticationResult{
-			Ok: proto.Bool(false),
+			Ok: new(false),
 		}
 	}
 
 	return &apiv1.AuthenticationResult{
-		Ok:                    proto.Bool(result.GetOk()),
-		UserId:                proto.Int64(result.GetUserId()),
-		SessionId:             proto.Int64(result.GetSessionId()),
-		AccessToken:           proto.String(result.GetAccessToken()),
-		AccessTokenExpiresAt:  proto.Int64(result.GetAccessTokenExpiresAt()),
-		RefreshToken:          proto.String(result.GetRefreshToken()),
-		RefreshTokenExpiresAt: proto.Int64(result.GetRefreshTokenExpiresAt()),
-		SessionExpiresAt:      proto.Int64(result.GetSessionExpiresAt()),
+		Ok:                    new(result.GetOk()),
+		UserId:                new(result.GetUserId()),
+		SessionId:             new(result.GetSessionId()),
+		AccessToken:           new(result.GetAccessToken()),
+		AccessTokenExpiresAt:  new(result.GetAccessTokenExpiresAt()),
+		RefreshToken:          new(result.GetRefreshToken()),
+		RefreshTokenExpiresAt: new(result.GetRefreshTokenExpiresAt()),
+		SessionExpiresAt:      new(result.GetSessionExpiresAt()),
 	}
 }

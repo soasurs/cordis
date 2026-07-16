@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -38,6 +40,15 @@ type messageRow struct {
 	UpdatedAt           int64         `db:"updated_at"`
 	Revision            int64         `db:"revision"`
 	DeletedAt           int64         `db:"deleted_at"`
+}
+
+type queryArgs struct {
+	values []any
+}
+
+func (a *queryArgs) bind(value any) string {
+	a.values = append(a.values, value)
+	return "$" + strconv.Itoa(len(a.values))
 }
 
 func (s *SQLStore) CreateMessage(ctx context.Context, params CreateMessageParams) (*model.Message, error) {
@@ -113,62 +124,9 @@ func (s *SQLStore) ListMessages(ctx context.Context, params ListMessagesParams) 
 }
 
 func (s *SQLStore) UpdateMessage(ctx context.Context, params UpdateMessageParams) (*model.Message, error) {
-	now := time.Now().UnixMilli()
-	args := []any{now}
-	sets := []string{
-		"updated_at = $1",
-		"edited_at = $1",
-		"revision = revision + 1",
-	}
-
-	if params.Content != nil {
-		args = append(args, *params.Content)
-		sets = append(sets, fmt.Sprintf("content = $%d", len(args)))
-	}
-	if params.Flags != nil {
-		args = append(args, *params.Flags)
-		sets = append(sets, fmt.Sprintf("flags = $%d", len(args)))
-	}
-	if params.Attachments != nil {
-		attachments, err := marshalAttachments(*params.Attachments)
-		if err != nil {
-			return nil, err
-		}
-		args = append(args, attachments)
-		sets = append(sets, fmt.Sprintf("attachments = CAST($%d AS JSONB)", len(args)))
-	}
-
-	var query string
-	if params.HasModPermission {
-		args = append(args, params.MessageID, int64(0))
-		query = fmt.Sprintf(`
-		UPDATE
-			messages
-		SET
-			%s
-		WHERE
-			id = $%d
-		AND
-			deleted_at = $%d
-		RETURNING
-			%s
-		`, strings.Join(sets, ", "), len(args)-1, len(args), messageColumns)
-	} else {
-		args = append(args, params.MessageID, params.ActorUserID, int64(0))
-		query = fmt.Sprintf(`
-		UPDATE
-			messages
-		SET
-			%s
-		WHERE
-			id = $%d
-		AND
-			author_id = $%d
-		AND
-			deleted_at = $%d
-		RETURNING
-			%s
-		`, strings.Join(sets, ", "), len(args)-2, len(args)-1, len(args), messageColumns)
+	query, args, err := buildUpdateMessageQuery(params, time.Now().UnixMilli())
+	if err != nil {
+		return nil, err
 	}
 
 	row := new(messageRow)
@@ -182,6 +140,50 @@ func (s *SQLStore) UpdateMessage(ctx context.Context, params UpdateMessageParams
 		return nil, err
 	}
 	return row.toModel()
+}
+
+func buildUpdateMessageQuery(params UpdateMessageParams, now int64) (string, []any, error) {
+	args := new(queryArgs)
+	updatedAt := args.bind(now)
+	sets := []string{
+		"updated_at = " + updatedAt,
+		"edited_at = " + updatedAt,
+		"revision = revision + 1",
+	}
+
+	if params.Content != nil {
+		sets = append(sets, "content = "+args.bind(*params.Content))
+	}
+	if params.Flags != nil {
+		sets = append(sets, "flags = "+args.bind(*params.Flags))
+	}
+	if params.Attachments != nil {
+		attachments, err := marshalAttachments(*params.Attachments)
+		if err != nil {
+			return "", nil, err
+		}
+		sets = append(sets, "attachments = CAST("+args.bind(attachments)+" AS JSONB)")
+	}
+
+	conditions := []string{
+		"id = " + args.bind(params.MessageID),
+	}
+	if !params.HasModPermission {
+		conditions = append(conditions, "author_id = "+args.bind(params.ActorUserID))
+	}
+	conditions = append(conditions, "deleted_at = "+args.bind(int64(0)))
+
+	query := fmt.Sprintf(`
+	UPDATE
+		messages
+	SET
+		%s
+	WHERE
+		%s
+	RETURNING
+		%s
+	`, strings.Join(sets, ",\n\t\t"), strings.Join(conditions, "\n\tAND\n\t\t"), messageColumns)
+	return query, args.values, nil
 }
 
 func (s *SQLStore) DeleteMessage(ctx context.Context, messageID, actorUserID int64, hasModPermission bool) (*model.Message, error) {
@@ -214,21 +216,7 @@ func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, 
 }
 
 func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, userIDs []int64) error {
-	args := make([]any, 0, len(userIDs)+1)
-	args = append(args, messageID)
-	valueClauses := make([]string, 0, len(userIDs))
-	for i, userID := range userIDs {
-		args = append(args, userID)
-		valueClauses = append(valueClauses, fmt.Sprintf("($1, $%d)", i+2))
-	}
-	query := fmt.Sprintf(`
-	INSERT INTO
-		message_mentions (message_id, user_id)
-	VALUES
-		%s
-	ON CONFLICT DO NOTHING
-	`, strings.Join(valueClauses, ", "))
-	_, err := s.q.ExecContext(ctx, query, args...)
+	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, pq.Array(userIDs))
 	return err
 }
 

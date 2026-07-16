@@ -173,11 +173,13 @@ const (
 		message_id = $1
 	`
 
-	CreateMessageMentionStatement = `
+	InsertMessageMentionsStatement = `
 	INSERT INTO
 		message_mentions (message_id, user_id)
-	VALUES
-		($1, $2)
+	SELECT
+		$1, mention.user_id
+	FROM
+		unnest($2::BIGINT[]) AS mention(user_id)
 	ON CONFLICT DO NOTHING
 	`
 

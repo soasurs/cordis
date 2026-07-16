@@ -22,6 +22,9 @@ flowchart LR
     Message -->|事务后直接发布| Kafka
     Kafka --> Dispatcher["Dispatcher"]
     Dispatcher -->|Dispatch*Event| Session
+    Gateway --> etcd["etcd"]
+    Session --> etcd
+    Dispatcher --> etcd
     Gateway --> Redis["Redis"]
     Session --> Redis
     Dispatcher --> Redis
@@ -39,7 +42,8 @@ flowchart LR
 - Gateway 只负责 WebSocket 传输，不持有逻辑 Session 和订阅状态。
 - Session 是有状态实时服务，持有逻辑会话、订阅索引和内存回放缓冲区。
 - Dispatcher 消费领域事件，借助 Redis 路由到相关 Session 节点。
-- Presence 管理在线状态；它和 Session 的发现索引目前都依赖 Redis。
+- etcd 保存带租约的 Session 节点目录；Redis 保存 Resume owner 和用户、Guild、频道的聚合路由。
+- Presence 管理在线状态并依赖 Redis。
 
 ## 一致性模型
 

@@ -20,27 +20,6 @@ func NewRedisStore(rds *redis.Redis) *RedisStore {
 	return &RedisStore{rds: rds, now: time.Now}
 }
 
-func (s *RedisStore) RegisterNode(ctx context.Context, node Node, ttl time.Duration) error {
-	now := s.now()
-	node.ExpiresAt = now.Add(ttl).UnixMilli()
-	key := nodeKey(node.ID)
-	return s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
-		pipe.HSet(ctx, key, map[string]any{
-			"generation": node.Generation,
-			"rpc_addr":   node.RPCAddress,
-			"status":     node.Status,
-			"expires_at": strconv.FormatInt(node.ExpiresAt, 10),
-			"updated_at": strconv.FormatInt(now.UnixMilli(), 10),
-		})
-		pipe.Expire(ctx, key, ttl)
-		pipe.ZAdd(ctx, "session:nodes", redis.Z{
-			Score: float64(node.ExpiresAt), Member: routeMember(node.ID, node.Generation),
-		})
-		pipe.Expire(ctx, "session:nodes", ttl+time.Minute)
-		return nil
-	})
-}
-
 func (s *RedisStore) SetOwner(ctx context.Context, owner Owner, ttl time.Duration) error {
 	now := s.now()
 	owner.ExpiresAt = now.Add(ttl).UnixMilli()
@@ -95,10 +74,6 @@ func (s *RedisStore) DetachRoutes(ctx context.Context, nodeID, generation string
 		}
 		return nil
 	})
-}
-
-func nodeKey(nodeID string) string {
-	return fmt.Sprintf("session:nodes:{%s}", nodeID)
 }
 
 func ownerKey(sessionID string) string {

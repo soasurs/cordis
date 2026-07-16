@@ -22,6 +22,9 @@ flowchart LR
     Message -->|direct after commit| Kafka
     Kafka --> Dispatcher
     Dispatcher -->|Dispatch*Event| Session
+    Gateway --> etcd
+    Session --> etcd
+    Dispatcher --> etcd
     Gateway --> Redis
     Session --> Redis
     Dispatcher --> Redis
@@ -36,7 +39,8 @@ The API is an edge adapter and owns no domain data. User, Authenticator, Guild,
 and Message own their PostgreSQL data. Gateway is a transport proxy. Session is
 stateful and owns logical realtime sessions, subscriptions, and replay buffers.
 Dispatcher converts Kafka domain events into calls to the relevant Session
-nodes. Presence stores online state in Redis.
+nodes. etcd stores the leased Session-node directory. Redis stores resume
+ownership, aggregate realtime routes, and Presence state.
 
 Database transactions are the business consistency boundary. Message and Guild
 both publish directly to Kafka on a best-effort basis after commit. A publish

@@ -5,7 +5,8 @@
 1. The client opens a Gateway WebSocket.
 2. Gateway sends `HELLO` with a 45-second heartbeat interval.
 3. The client sends `IDENTIFY`, or `RESUME` with a session ID and sequence.
-4. Gateway discovers a ready Session node or resolves the session owner.
+4. Gateway selects a ready Session node from etcd. For resume, it reads the
+   owner from Redis and validates the node generation through etcd.
 5. Gateway opens `SessionService.Connect` and forwards the first request.
 6. Session returns a sequenced `READY`, or replays missing events followed by
    `RESUMED`.
@@ -32,17 +33,17 @@ authorized by Guild's `VIEW_CHANNEL` check. Channel and permission events cause
 Session to reauthorize affected local sessions. Removal or ban events are sent
 before the user's guild and channel indexes are revoked.
 
-## Redis keys
+## etcd directory and Redis keys
 
-- `session:nodes`: live Session node index;
-- `session:nodes:{node_id}`: node generation, RPC address, state, and expiry;
+- `/cordis/session/nodes/{node_id}`: leased etcd key containing generation,
+  RPC address, and ready/draining state;
 - `session:owners:{session_id}`: logical Session owner;
 - `gateway:routes:users:{id}:nodes`;
 - `gateway:routes:guilds:{id}:nodes`;
 - `gateway:routes:channels:{id}:nodes`.
 
-Route members contain node ID and generation. TTLs plus read-time validation
-remove stale processes.
+Route members contain node ID and generation. Redis TTLs, etcd leases, and
+read-time generation validation remove stale processes.
 
 Domain services publish `{t,d}` envelopes to Kafka. Dispatcher resolves routes
 and invokes Session. Session filters local subscriptions, assigns sequence,

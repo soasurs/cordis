@@ -106,12 +106,12 @@ go build ./services/guild/v1/...
 
 - Gateway websocket protocol opcodes are in `services/gateway/v1/internal/server/protocol.go`; the first client message after `HELLO` may be `IDENTIFY` (`op=2`) or `RESUME` (`op=6`).
 - Gateway is a transport adapter. It forwards `connection_id`, Gateway ID/generation, and client operations to Session, then writes Session's `op/s/t/d` frames to the websocket.
-- IDENTIFY selects a ready node from the Redis `session:nodes` index. RESUME resolves `session:owners:{session_id}` and `session:nodes:{node_id}`, then connects directly to the owning Session node.
+- IDENTIFY selects a ready Session node from the etcd `/cordis/session/nodes` directory. RESUME resolves `session:owners:{session_id}` in Redis and the exact node ID/generation in etcd, then connects directly to the owning Session node.
 - Session stores state in process memory. A disconnected Session remains resumable for two minutes; a Session-node crash loses its Sessions and clients must IDENTIFY again.
 - Each Session has an independent monotonically increasing sequence and a 2048-entry sliding replay window. Heartbeat `d` is the acknowledged sequence and removes acknowledged replay entries.
 - Session owns `user/guild/channel -> local sessions` indexes and checks Guild `VIEW_CHANNEL` when adding Channel subscriptions or distributing visibility-sensitive Channel metadata events.
-- Session nodes register under `session:nodes:{node_id}`; owners use `session:owners:{session_id}`. Aggregate ZSET routes use `gateway:routes:users:{id}:nodes`, `gateway:routes:guilds:{id}:nodes`, and `gateway:routes:channels:{id}:nodes`.
-- Redis stores only discovery and aggregate routing metadata, not replay payloads.
+- Session nodes register with leases under etcd `/cordis/session/nodes/{node_id}`. Redis owners use `session:owners:{session_id}`; aggregate ZSET routes use `gateway:routes:users:{id}:nodes`, `gateway:routes:guilds:{id}:nodes`, and `gateway:routes:channels:{id}:nodes`.
+- etcd stores only the low-cardinality live Session-node directory and is configured with multiple endpoints in production. Redis stores resume ownership and aggregate routing metadata and must remain Redis Cluster compatible. Neither stores replay payloads.
 - Dispatcher instances share one consumer group, consume `cordis.guild.events.v1` and `message.events`, and call each target Session node at most once per event.
 - Session graceful drain marks the node `draining`, rejects new attachments, and spreads `INVALID_SESSION(false)` notifications across the configured drain window. It does not transfer in-memory Session state.
 - Presence is updated by Session and continues to aggregate per-device user status. Invisible presence resolves as offline and hides sessions.

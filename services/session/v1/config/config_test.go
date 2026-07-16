@@ -17,5 +17,7 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "session-local", cfg.Node.ID)
 	require.Equal(t, 2048, cfg.Node.MaxReplayEvents)
 	require.Equal(t, "127.0.0.1:6379", cfg.Redis.Host)
+	require.Equal(t, []string{"127.0.0.1:2379"}, cfg.SessionRegistry.Hosts)
+	require.Equal(t, "/cordis/session/nodes", cfg.SessionRegistry.Prefix)
 	require.Equal(t, []string{"127.0.0.1:3001"}, cfg.Services.Authenticator.Endpoints)
 }

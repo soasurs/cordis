@@ -46,9 +46,10 @@ on a best-effort basis; failures are logged.
 ## Gateway
 
 HTTP/WebSocket on `:8081`, exposing `/ws` and `/health`. It sends `HELLO`,
-requires `IDENTIFY` or `RESUME` as the first client message, discovers a Session
-node through Redis, and proxies the WebSocket over a `SessionService.Connect`
-bidirectional stream. It owns no subscriptions and consumes no Kafka events.
+requires `IDENTIFY` or `RESUME` as the first client message, discovers Session
+nodes through etcd, reads resume ownership from Redis, and proxies the WebSocket
+over a `SessionService.Connect` bidirectional stream. It owns no subscriptions
+and consumes no Kafka events.
 
 ## Session
 
@@ -58,7 +59,8 @@ user/guild/channel indexes, authorizes channel subscriptions, assigns sequence
 numbers, and keeps up to 2048 replay events in memory.
 
 Detached sessions live for 120 seconds by default. Resume must reach the
-original node. Graceful drain rejects new connections and gradually instructs
+original node. Session nodes register through etcd leases. Graceful drain
+publishes a draining state, rejects new connections, and gradually instructs
 existing clients to identify again.
 
 ## Dispatcher

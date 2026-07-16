@@ -13,6 +13,7 @@ import (
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/config"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
 	"github.com/soasurs/cordis/services/session/v1/internal/svc"
@@ -67,7 +68,55 @@ func TestReplayWindowKeepsLatestEvents(t *testing.T) {
 	require.Equal(t, uint64(3), session.replay[0].sequence)
 }
 
+func TestResumeExpandsBindingQueueForReplay(t *testing.T) {
+	server := newTestServer()
+	server.svcCtx.Cfg.Node.BindingQueueSize = 1
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	session.mu.Lock()
+	firstBinding := session.binding
+	server.appendDispatchLocked(session, realtime.EventMessageCreated, []byte(`{"id":"1"}`))
+	server.appendDispatchLocked(session, realtime.EventMessageUpdated, []byte(`{"id":"1"}`))
+	session.mu.Unlock()
+	server.detach(session, firstBinding, true)
+
+	resume := new(sessionv1.Resume)
+	resume.SetToken("token")
+	resume.SetSessionId(session.id)
+	resume.SetSequence(1)
+	resumed, err := server.resume(t.Context(), "conn-b", "gateway-b", "gen-b", resume)
+	require.NoError(t, err)
+
+	resumed.mu.Lock()
+	binding := resumed.binding
+	resumed.mu.Unlock()
+	require.Equal(t, 3, len(binding.send))
+	require.Equal(t, 3, cap(binding.send))
+}
+
+func TestRegisterNodeUsesSessionRegistry(t *testing.T) {
+	registry := &fakeRegistry{}
+	server := newTestServerWithRegistry(registry)
+
+	err := server.registerNode(t.Context(), sessionregistry.StatusReady)
+	require.NoError(t, err)
+	require.Equal(t, sessionregistry.Node{
+		ID:         "session-test",
+		Generation: server.generation,
+		RPCAddress: "127.0.0.1:3006",
+		Status:     sessionregistry.StatusReady,
+	}, registry.node)
+	require.Equal(t, 30*time.Second, registry.ttl)
+}
+
 func newTestServer() *Server {
+	return newTestServerWithRegistry(&fakeRegistry{})
+}
+
+func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 	cfg := config.Config{
 		Node: config.NodeConfig{
 			ID: "session-test", AdvertiseAddress: "127.0.0.1:3006",
@@ -76,21 +125,44 @@ func newTestServer() *Server {
 	}
 	return New(svc.NewServiceContextWithDependencies(cfg, svc.Dependencies{
 		Store:               &fakeStore{},
+		SessionRegistry:     registry,
 		AuthenticatorClient: fakeAuthenticator{},
 		PresenceClient:      fakePresence{},
 		GuildClient:         fakeGuild{},
 	}))
 }
 
-type fakeStore struct{}
+type fakeStore struct {
+	refreshed []store.Route
+	detached  []store.Route
+}
 
-func (*fakeStore) RegisterNode(context.Context, store.Node, time.Duration) error { return nil }
-func (*fakeStore) SetOwner(context.Context, store.Owner, time.Duration) error    { return nil }
-func (*fakeStore) DeleteOwner(context.Context, string, string, string) error     { return nil }
-func (*fakeStore) RefreshRoutes(context.Context, string, string, []store.Route, time.Duration) error {
+func (*fakeStore) SetOwner(context.Context, store.Owner, time.Duration) error { return nil }
+func (*fakeStore) DeleteOwner(context.Context, string, string, string) error  { return nil }
+func (s *fakeStore) RefreshRoutes(_ context.Context, _, _ string, routes []store.Route, _ time.Duration) error {
+	s.refreshed = append([]store.Route(nil), routes...)
 	return nil
 }
-func (*fakeStore) DetachRoutes(context.Context, string, string, []store.Route) error { return nil }
+func (s *fakeStore) DetachRoutes(_ context.Context, _, _ string, routes []store.Route) error {
+	s.detached = append(s.detached, routes...)
+	return nil
+}
+
+type fakeRegistry struct {
+	node sessionregistry.Node
+	ttl  time.Duration
+}
+
+func (r *fakeRegistry) Register(_ context.Context, node sessionregistry.Node, ttl time.Duration) error {
+	r.node = node
+	r.ttl = ttl
+	return nil
+}
+func (*fakeRegistry) Ready(context.Context) ([]sessionregistry.Node, error) { return nil, nil }
+func (*fakeRegistry) Resolve(context.Context, string, string) (sessionregistry.Node, error) {
+	return sessionregistry.Node{}, sessionregistry.ErrNodeNotFound
+}
+func (*fakeRegistry) Close() error { return nil }
 
 type fakeAuthenticator struct {
 	authenticatorv1.AuthenticatorServiceClient

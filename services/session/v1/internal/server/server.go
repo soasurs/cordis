@@ -23,6 +23,7 @@ import (
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
 	"github.com/soasurs/cordis/services/session/v1/internal/svc"
 )
@@ -87,6 +88,9 @@ type Server struct {
 	guilds   map[int64]map[*logicalSession]struct{}
 	channels map[int64]map[*logicalSession]struct{}
 	draining atomic.Bool
+
+	routeMu         sync.Mutex
+	publishedRoutes map[store.Route]struct{}
 }
 
 func New(svcCtx *svc.ServiceContext) *Server {
@@ -102,14 +106,15 @@ func New(svcCtx *svc.ServiceContext) *Server {
 		rpcAddress = svcCtx.Cfg.ListenOn
 	}
 	return &Server{
-		svcCtx:     svcCtx,
-		nodeID:     nodeID,
-		generation: randomID("gen"),
-		rpcAddress: rpcAddress,
-		sessions:   make(map[string]*logicalSession),
-		users:      make(map[int64]map[*logicalSession]struct{}),
-		guilds:     make(map[int64]map[*logicalSession]struct{}),
-		channels:   make(map[int64]map[*logicalSession]struct{}),
+		svcCtx:          svcCtx,
+		nodeID:          nodeID,
+		generation:      randomID("gen"),
+		rpcAddress:      rpcAddress,
+		sessions:        make(map[string]*logicalSession),
+		users:           make(map[int64]map[*logicalSession]struct{}),
+		guilds:          make(map[int64]map[*logicalSession]struct{}),
+		channels:        make(map[int64]map[*logicalSession]struct{}),
+		publishedRoutes: make(map[store.Route]struct{}),
 	}
 }
 
@@ -123,7 +128,7 @@ func (s *Server) Drain(ctx context.Context) {
 	if !s.draining.CompareAndSwap(false, true) {
 		return
 	}
-	_ = s.registerNode(ctx, "draining")
+	_ = s.registerNode(ctx, sessionregistry.StatusDraining)
 
 	s.mu.RLock()
 	sessions := make([]*logicalSession, 0, len(s.sessions))
@@ -329,7 +334,13 @@ func (s *Server) resume(
 	}
 
 	old := session.binding
-	b := newBinding(connectionID, s.svcCtx.Cfg.Node.QueueSize())
+	replayCount := 0
+	for _, entry := range session.replay {
+		if entry.sequence > data.GetSequence() {
+			replayCount++
+		}
+	}
+	b := newBinding(connectionID, max(s.svcCtx.Cfg.Node.QueueSize(), replayCount+1))
 	session.binding = b
 	session.bindingEpoch++
 	session.gatewayID = gatewayID
@@ -679,9 +690,9 @@ func (s *Server) refreshNode(ctx context.Context) {
 	ticker := time.NewTicker(s.svcCtx.Cfg.Node.HeartbeatInterval())
 	defer ticker.Stop()
 	for {
-		nodeStatus := "ready"
+		nodeStatus := sessionregistry.StatusReady
 		if s.draining.Load() {
-			nodeStatus = "draining"
+			nodeStatus = sessionregistry.StatusDraining
 		}
 		err := s.registerNode(ctx, nodeStatus)
 		if err != nil && ctx.Err() == nil {
@@ -696,7 +707,7 @@ func (s *Server) refreshNode(ctx context.Context) {
 }
 
 func (s *Server) registerNode(ctx context.Context, nodeStatus string) error {
-	return s.svcCtx.Store.RegisterNode(ctx, store.Node{
+	return s.svcCtx.SessionRegistry.Register(ctx, sessionregistry.Node{
 		ID: s.nodeID, Generation: s.generation, RPCAddress: s.rpcAddress, Status: nodeStatus,
 	}, s.svcCtx.Cfg.Node.NodeTTL())
 }
@@ -740,8 +751,36 @@ func (s *Server) refreshSessionLeases(ctx context.Context) {
 
 func (s *Server) refreshAllRoutes(ctx context.Context) {
 	routes := s.routeSnapshot()
+	active := make(map[store.Route]struct{}, len(routes))
+	for _, route := range routes {
+		active[route] = struct{}{}
+	}
+
+	s.routeMu.Lock()
+	defer s.routeMu.Unlock()
+
+	detached := make([]store.Route, 0)
+	for route := range s.publishedRoutes {
+		if _, ok := active[route]; !ok {
+			detached = append(detached, route)
+		}
+	}
+	if err := s.svcCtx.Store.DetachRoutes(ctx, s.nodeID, s.generation, detached); err != nil {
+		if ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("detach session routes", logx.Field("error", err))
+		}
+	} else {
+		for _, route := range detached {
+			delete(s.publishedRoutes, route)
+		}
+	}
+
 	if err := s.svcCtx.Store.RefreshRoutes(ctx, s.nodeID, s.generation, routes, s.svcCtx.Cfg.Node.RouteTTL()); err != nil && ctx.Err() == nil {
 		logx.WithContext(ctx).Errorw("refresh session routes", logx.Field("error", err))
+	} else if err == nil {
+		for route := range active {
+			s.publishedRoutes[route] = struct{}{}
+		}
 	}
 }
 

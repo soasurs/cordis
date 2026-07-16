@@ -32,6 +32,7 @@ func main() {
 	defer logx.Close()
 
 	svcCtx := svc.NewServiceContext(*cfg)
+	defer svcCtx.Close()
 	gateway := server.New(svcCtx)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -14,12 +14,23 @@ import (
 func TestDispatchRecordUsesDotSeparatedMessageEvent(t *testing.T) {
 	resolver := &fakeResolver{}
 	server := &Server{resolver: resolver}
-	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"}}`)
+	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":1,"channel_id":7001}}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.NoError(t, err)
 	require.False(t, permanent)
 	require.Equal(t, discovery.RouteChannel, resolver.kind)
 	require.Equal(t, int64(7001), resolver.id)
+}
+
+func TestDispatchRecordAcceptsStringGuildIDs(t *testing.T) {
+	resolver := &fakeResolver{}
+	server := &Server{resolver: resolver}
+	value := []byte(`{"t":"` + realtime.EventGuildUpdated + `","d":{"id":"8001"}}`)
+	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
+	require.NoError(t, err)
+	require.False(t, permanent)
+	require.Equal(t, discovery.RouteGuild, resolver.kind)
+	require.Equal(t, int64(8001), resolver.id)
 }
 
 func TestDispatchRecordRejectsUnderscoreEventName(t *testing.T) {

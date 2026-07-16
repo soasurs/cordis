@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
+	"math/rand/v2"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
+
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
 
 type Resolver interface {
@@ -17,42 +18,28 @@ type Resolver interface {
 	ResolveSession(ctx context.Context, sessionID string) (string, error)
 }
 
-type RedisResolver struct {
-	rds *redis.Redis
-	now func() time.Time
+type SessionResolver struct {
+	rds      *redis.Redis
+	registry sessionregistry.Directory
+	now      func() time.Time
 }
 
-func NewRedisResolver(rds *redis.Redis) *RedisResolver {
-	return &RedisResolver{rds: rds, now: time.Now}
+func New(rds *redis.Redis, registry sessionregistry.Directory) *SessionResolver {
+	return &SessionResolver{rds: rds, registry: registry, now: time.Now}
 }
 
-func (r *RedisResolver) ResolveNode(ctx context.Context) (string, error) {
-	now := r.now().UnixMilli()
-	if _, err := r.rds.ZremrangebyscoreCtx(ctx, "session:nodes", 0, now); err != nil {
-		return "", err
-	}
-	pairs, err := r.rds.ZrangebyscoreWithScoresCtx(ctx, "session:nodes", now+1, math.MaxInt64)
+func (r *SessionResolver) ResolveNode(ctx context.Context) (string, error) {
+	nodes, err := r.registry.Ready(ctx)
 	if err != nil {
 		return "", err
 	}
-	for _, pair := range pairs {
-		nodeID, generation, ok := strings.Cut(pair.Key, "\x1f")
-		if !ok {
-			continue
-		}
-		node, err := r.rds.HmgetCtx(ctx, nodeKey(nodeID), "generation", "rpc_addr", "status", "expires_at")
-		if err != nil {
-			return "", err
-		}
-		if len(node) == 4 && node[0] == generation && node[1] != "" &&
-			node[2] == "ready" && !expired(node[3], r.now()) {
-			return node[1], nil
-		}
+	if len(nodes) == 0 {
+		return "", errors.New("ready session node not found")
 	}
-	return "", errors.New("ready session node not found")
+	return nodes[rand.IntN(len(nodes))].RPCAddress, nil
 }
 
-func (r *RedisResolver) ResolveSession(ctx context.Context, sessionID string) (string, error) {
+func (r *SessionResolver) ResolveSession(ctx context.Context, sessionID string) (string, error) {
 	owner, err := r.rds.HmgetCtx(ctx, ownerKey(sessionID), "node_id", "generation", "expires_at")
 	if err != nil {
 		return "", err
@@ -60,14 +47,11 @@ func (r *RedisResolver) ResolveSession(ctx context.Context, sessionID string) (s
 	if len(owner) != 3 || owner[0] == "" || owner[1] == "" || expired(owner[2], r.now()) {
 		return "", errors.New("session owner not found")
 	}
-	node, err := r.rds.HmgetCtx(ctx, nodeKey(owner[0]), "generation", "rpc_addr", "status", "expires_at")
+	node, err := r.registry.Resolve(ctx, owner[0], owner[1])
 	if err != nil {
 		return "", err
 	}
-	if len(node) != 4 || node[0] != owner[1] || node[1] == "" || node[2] == "draining" || expired(node[3], r.now()) {
-		return "", errors.New("session node not found")
-	}
-	return node[1], nil
+	return node.RPCAddress, nil
 }
 
 func expired(value string, now time.Time) bool {
@@ -77,8 +61,4 @@ func expired(value string, now time.Time) bool {
 
 func ownerKey(sessionID string) string {
 	return fmt.Sprintf("session:owners:{%s}", sessionID)
-}
-
-func nodeKey(nodeID string) string {
-	return fmt.Sprintf("session:nodes:{%s}", nodeID)
 }

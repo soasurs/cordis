@@ -16,4 +16,5 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "info", cfg.Log.Level)
 	require.Equal(t, 45000, cfg.Gateway.HeartbeatIntervalMs)
 	require.Equal(t, "127.0.0.1:6379", cfg.Redis.Host)
+	require.Equal(t, []string{"127.0.0.1:2379"}, cfg.SessionRegistry.Hosts)
 }

@@ -19,7 +19,8 @@ Dispatcher 没有监听端口。各服务配置位于 `services/<name>/v1/etc/co
 
 - PostgreSQL：User、Authenticator、Guild、Message。
 - Kafka：Guild 与 Message 事件，Dispatcher 必须配置 broker。
-- Redis：Presence、Session 节点/owner/路由、Gateway 发现和 Dispatcher 路由。
+- etcd：Session 节点租约注册与发现，Gateway、Session、Dispatcher 必须配置 endpoint。
+- Redis：Presence、Session owner 和用户/Guild/频道聚合路由。
 - OpenTelemetry：RPC 服务可通过 `CORDIS_OTEL_ENDPOINT` 输出 trace。
 - Prometheus：go-zero dev server 或 API 自有 observability 配置提供指标。
 
@@ -37,7 +38,17 @@ go vet ./...
 
 ## 运行顺序
 
-本地通常先启动 PostgreSQL、Redis、Kafka，再启动 User、Authenticator、Guild、Message、Presence、Session，随后启动 API、Gateway 和 Dispatcher。Session 的 `advertiseAddress` 必须是 Gateway 与 Dispatcher 可访问的地址。
+本地通常先启动 PostgreSQL、Redis、etcd、Kafka，再启动 User、Authenticator、Guild、Message、Presence、Session，随后启动 API、Gateway 和 Dispatcher。Session 的 `advertiseAddress` 必须是 Gateway 与 Dispatcher 可访问的地址。
+
+本地配置中的单地址只用于开发。生产环境应给 `sessionRegistry.hosts` 配置多个 etcd endpoint，并将 Redis 配置设为：
+
+```yaml
+redis:
+  host: redis-0:6379,redis-1:6379,redis-2:6379
+  type: cluster
+```
+
+Redis Cluster 的 pipeline 可以跨 slot 分发命令，但不保证跨 key 原子性。当前 owner 写入只操作单 key；聚合路由和 Presence 索引使用 TTL、generation 与读时校验容忍部分更新。
 
 ## 生成与提交约定
 

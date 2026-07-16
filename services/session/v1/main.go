@@ -28,6 +28,7 @@ func main() {
 		panic(err)
 	}
 	svcCtx := svc.NewServiceContext(*cfg)
+	defer svcCtx.Close()
 	sessionServer := server.New(svcCtx)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

@@ -29,6 +29,12 @@ redis:
   host: 127.0.0.1:6379
   type: node
 
+sessionRegistry:
+  hosts:
+    - 127.0.0.1:2379
+  prefix: /cordis/session/nodes
+  dialTimeoutSeconds: 5
+
 node:
   id: session-local
   advertiseAddress: 127.0.0.1:3006

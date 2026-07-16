@@ -7,6 +7,7 @@ import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/config"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
 )
@@ -14,6 +15,7 @@ import (
 type ServiceContext struct {
 	Cfg                 config.Config
 	Store               store.Store
+	SessionRegistry     sessionregistry.Directory
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
@@ -21,6 +23,7 @@ type ServiceContext struct {
 
 type Dependencies struct {
 	Store               store.Store
+	SessionRegistry     sessionregistry.Directory
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
@@ -31,20 +34,28 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if err != nil {
 		return Dependencies{}, err
 	}
+	registry, err := sessionregistry.New(cfg.SessionRegistry)
+	if err != nil {
+		return Dependencies{}, err
+	}
 	auth, err := zrpc.NewClient(cfg.Services.Authenticator)
 	if err != nil {
+		_ = registry.Close()
 		return Dependencies{}, err
 	}
 	presence, err := zrpc.NewClient(cfg.Services.Presence)
 	if err != nil {
+		_ = registry.Close()
 		return Dependencies{}, err
 	}
 	guild, err := zrpc.NewClient(cfg.Services.Guild)
 	if err != nil {
+		_ = registry.Close()
 		return Dependencies{}, err
 	}
 	return Dependencies{
 		Store:               store.NewRedisStore(rds),
+		SessionRegistry:     registry,
 		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(auth.Conn()),
 		PresenceClient:      presencev1.NewPresenceServiceClient(presence.Conn()),
 		GuildClient:         guildv1.NewGuildServiceClient(guild.Conn()),
@@ -63,6 +74,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.Store == nil {
 		panic("session store is required")
 	}
+	if deps.SessionRegistry == nil {
+		panic("session registry is required")
+	}
 	if deps.AuthenticatorClient == nil {
 		panic("authenticator client is required")
 	}
@@ -75,8 +89,13 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	return &ServiceContext{
 		Cfg:                 cfg,
 		Store:               deps.Store,
+		SessionRegistry:     deps.SessionRegistry,
 		AuthenticatorClient: deps.AuthenticatorClient,
 		PresenceClient:      deps.PresenceClient,
 		GuildClient:         deps.GuildClient,
 	}
+}
+
+func (s *ServiceContext) Close() error {
+	return s.SessionRegistry.Close()
 }

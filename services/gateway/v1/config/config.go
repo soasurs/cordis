@@ -5,14 +5,17 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
 
 type Config struct {
-	Name     string
-	ListenOn string
-	Log      logx.LogConf
-	Gateway  GatewayConfig `json:",optional"`
-	Redis    redis.RedisConf
+	Name            string
+	ListenOn        string
+	Log             logx.LogConf
+	Gateway         GatewayConfig `json:",optional"`
+	Redis           redis.RedisConf
+	SessionRegistry sessionregistry.Config
 }
 
 type GatewayConfig struct {

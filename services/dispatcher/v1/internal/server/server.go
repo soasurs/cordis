@@ -26,11 +26,38 @@ type eventEnvelope struct {
 }
 
 type eventRouting struct {
-	ID        string `json:"id"`
-	GuildID   string `json:"guild_id"`
-	ChannelID string `json:"channel_id"`
-	UserID    string `json:"user_id"`
-	OwnerID   string `json:"owner_id"`
+	ID        eventID `json:"id"`
+	GuildID   eventID `json:"guild_id"`
+	ChannelID eventID `json:"channel_id"`
+	UserID    eventID `json:"user_id"`
+	OwnerID   eventID `json:"owner_id"`
+}
+
+type eventID int64
+
+func (id *eventID) UnmarshalJSON(value []byte) error {
+	if len(value) == 0 || string(value) == "null" {
+		*id = 0
+		return nil
+	}
+	if value[0] == '"' {
+		var text string
+		if err := json.Unmarshal(value, &text); err != nil {
+			return err
+		}
+		parsed, err := strconv.ParseInt(text, 10, 64)
+		if err != nil {
+			return err
+		}
+		*id = eventID(parsed)
+		return nil
+	}
+	parsed, err := strconv.ParseInt(string(value), 10, 64)
+	if err != nil {
+		return err
+	}
+	*id = eventID(parsed)
+	return nil
 }
 
 type Server struct {
@@ -144,7 +171,7 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 	switch event.Type {
 	case realtime.EventMessageCreated, realtime.EventMessageUpdated, realtime.EventMessageDeleted,
 		realtime.EventReactionAdded, realtime.EventReactionRemoved:
-		channelID := parseID(routing.ChannelID)
+		channelID := int64(routing.ChannelID)
 		if channelID <= 0 {
 			return true, errors.New("message event channel id is invalid")
 		}
@@ -153,18 +180,18 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 		if !strings.HasPrefix(event.Type, "guild.") {
 			return true, errors.New("unsupported event type")
 		}
-		guildID := parseID(routing.GuildID)
+		guildID := int64(routing.GuildID)
 		if guildID == 0 &&
 			(event.Type == realtime.EventGuildCreated || event.Type == realtime.EventGuildUpdated || event.Type == realtime.EventGuildDeleted) {
-			guildID = parseID(routing.ID)
+			guildID = int64(routing.ID)
 		}
 		if guildID <= 0 {
 			return true, errors.New("guild event guild id is invalid")
 		}
-		if event.Type == realtime.EventGuildCreated && parseID(routing.OwnerID) <= 0 {
+		if event.Type == realtime.EventGuildCreated && routing.OwnerID <= 0 {
 			return true, errors.New("guild created owner id is invalid")
 		}
-		if event.Type == realtime.EventGuildMemberJoined && parseID(routing.UserID) <= 0 {
+		if event.Type == realtime.EventGuildMemberJoined && routing.UserID <= 0 {
 			return true, errors.New("guild member joined user id is invalid")
 		}
 		return false, s.dispatchGuild(ctx, guildID, event, routing)
@@ -191,9 +218,9 @@ func (s *Server) dispatchGuild(ctx context.Context, guildID int64, event eventEn
 		return err
 	}
 	if event.Type == realtime.EventGuildCreated || event.Type == realtime.EventGuildMemberJoined {
-		userID := parseID(routing.OwnerID)
+		userID := int64(routing.OwnerID)
 		if event.Type == realtime.EventGuildMemberJoined {
-			userID = parseID(routing.UserID)
+			userID = int64(routing.UserID)
 		}
 		userNodes, err := s.resolver.Resolve(ctx, discovery.RouteUser, userID)
 		if err != nil {
@@ -297,11 +324,6 @@ func mergeNodes(groups ...[]discovery.Node) []discovery.Node {
 		}
 	}
 	return result
-}
-
-func parseID(value string) int64 {
-	id, _ := strconv.ParseInt(value, 10, 64)
-	return id
 }
 
 func defaultString(value, fallback string) string {

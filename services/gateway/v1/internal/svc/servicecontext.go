@@ -3,6 +3,7 @@ package svc
 import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/discovery"
 )
@@ -10,10 +11,12 @@ import (
 type ServiceContext struct {
 	Cfg      config.Config
 	Resolver discovery.Resolver
+	Registry sessionregistry.Directory
 }
 
 type Dependencies struct {
 	Resolver discovery.Resolver
+	Registry sessionregistry.Directory
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -21,8 +24,13 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if err != nil {
 		return Dependencies{}, err
 	}
+	registry, err := sessionregistry.New(cfg.SessionRegistry)
+	if err != nil {
+		return Dependencies{}, err
+	}
 	return Dependencies{
-		Resolver: discovery.NewRedisResolver(rds),
+		Resolver: discovery.New(rds, registry),
+		Registry: registry,
 	}, nil
 }
 
@@ -39,6 +47,13 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		panic("session resolver is required")
 	}
 	return &ServiceContext{
-		Cfg: cfg, Resolver: deps.Resolver,
+		Cfg: cfg, Resolver: deps.Resolver, Registry: deps.Registry,
 	}
+}
+
+func (s *ServiceContext) Close() error {
+	if s.Registry != nil {
+		return s.Registry.Close()
+	}
+	return nil
 }

@@ -3,14 +3,17 @@ package config
 import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
 
 type Config struct {
-	Name       string
-	Log        logx.LogConf
-	Kafka      KafkaConfig
-	Redis      redis.RedisConf
-	Dispatcher DispatcherConfig
+	Name            string
+	Log             logx.LogConf
+	Kafka           KafkaConfig
+	Redis           redis.RedisConf
+	SessionRegistry sessionregistry.Config
+	Dispatcher      DispatcherConfig
 }
 
 type KafkaConfig struct {

@@ -32,7 +32,7 @@
 
 ## Gateway
 
-监听 `:8081`，提供 `/ws` 和 `/health`。连接后发送 `HELLO`，首个客户端消息必须是 `IDENTIFY` 或 `RESUME`。Gateway 从 Redis 发现 Session 节点，建立 `SessionService.Connect` 双向 gRPC 流，随后只负责 WebSocket 与 gRPC 消息互转。它不再本地保存订阅，也不消费 Kafka。
+监听 `:8081`，提供 `/ws` 和 `/health`。连接后发送 `HELLO`，首个客户端消息必须是 `IDENTIFY` 或 `RESUME`。Gateway 从 etcd 发现 Session 节点；Resume owner 仍从 Redis 读取。建立 `SessionService.Connect` 双向 gRPC 流后，它只负责 WebSocket 与 gRPC 消息互转，不再本地保存订阅，也不消费 Kafka。
 
 ## Session
 
@@ -46,7 +46,7 @@
 - 处理 heartbeat ACK、Presence 更新、detach 和 resume；
 - 接收 Dispatcher 的 Guild、频道和用户事件并本地 fanout。
 
-断线 Session 默认保留 120 秒。Resume 必须路由回原 Session 节点；节点进程丢失会同时丢失内存 Session。节点进入 drain 后拒绝新连接，并分批要求现有客户端重新 IDENTIFY。
+断线 Session 默认保留 120 秒。Resume 必须路由回原 Session 节点；节点进程丢失会同时丢失内存 Session。Session 节点通过 etcd 租约注册；进入 drain 后发布 draining 状态、拒绝新连接，并分批要求现有客户端重新 IDENTIFY。
 
 ## Dispatcher
 

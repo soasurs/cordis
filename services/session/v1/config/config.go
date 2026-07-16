@@ -8,19 +8,22 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/trace"
 	"github.com/zeromicro/go-zero/zrpc"
+
+	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
 
 type Config struct {
-	Name        string
-	ListenOn    string
-	Timeout     int64 `json:",default=0"`
-	Log         logx.LogConf
-	DevServer   service.DevServerConfig `json:",optional"`
-	Telemetry   trace.Config            `json:",optional"`
-	Middlewares zrpc.ServerMiddlewaresConf
-	Node        NodeConfig
-	Redis       redis.RedisConf
-	Services    ServiceConfig
+	Name            string
+	ListenOn        string
+	Timeout         int64 `json:",default=0"`
+	Log             logx.LogConf
+	DevServer       service.DevServerConfig `json:",optional"`
+	Telemetry       trace.Config            `json:",optional"`
+	Middlewares     zrpc.ServerMiddlewaresConf
+	Node            NodeConfig
+	Redis           redis.RedisConf
+	SessionRegistry sessionregistry.Config
+	Services        ServiceConfig
 }
 
 type NodeConfig struct {

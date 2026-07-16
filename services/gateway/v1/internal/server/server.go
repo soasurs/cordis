@@ -218,7 +218,11 @@ func (c *client) handle(ctx context.Context, msg envelope) error {
 		if err := json.Unmarshal(msg.D, &data); err != nil {
 			return err
 		}
-		newlyActive := c.server.hub.subscribe(c, data.ChannelIDs)
+		channelIDs, err := c.server.authorizeChannelSubscriptions(ctx, c.userID, data.ChannelIDs)
+		if err != nil {
+			return err
+		}
+		newlyActive := c.server.hub.subscribe(c, channelIDs)
 		if len(newlyActive) > 0 {
 			req := new(presencev1.RefreshChannelRoutesRequest)
 			req.SetGatewayId(c.server.gatewayID)
@@ -228,7 +232,7 @@ func (c *client) handle(ctx context.Context, msg envelope) error {
 				return err
 			}
 		}
-		return c.write(opDispatch, "SUBSCRIBED", subscribedData{ChannelIDs: data.ChannelIDs})
+		return c.write(opDispatch, "SUBSCRIBED", subscribedData{ChannelIDs: channelIDs})
 	default:
 		return errors.New("unsupported gateway op")
 	}
@@ -378,6 +382,7 @@ func (s *Server) refreshRoutes(ctx context.Context) {
 			return
 		case <-ticker.C:
 		}
+		s.revalidateChannelSubscriptions(ctx)
 		channels := s.hub.activeChannels()
 		if len(channels) == 0 {
 			continue
@@ -391,6 +396,37 @@ func (s *Server) refreshRoutes(ctx context.Context) {
 				logx.Field("channel_count", len(channels)),
 				logx.Field("error", err),
 			)
+		}
+	}
+}
+
+func (s *Server) revalidateChannelSubscriptions(ctx context.Context) {
+	for _, subscription := range s.hub.channelSubscriptions() {
+		allowed, err := s.authorizeChannelSubscription(ctx, subscription.client.userID, subscription.channelID)
+		if err != nil && !subscriptionInvalid(err) {
+			// Transient Guild failures must not evict a valid subscription.
+			// The next route refresh retries authorization.
+			logx.WithContext(ctx).Errorw("revalidate channel subscription",
+				logx.Field("user_id", subscription.client.userID),
+				logx.Field("channel_id", subscription.channelID),
+				logx.Field("error", err),
+			)
+			continue
+		}
+		if allowed && err == nil {
+			continue
+		}
+		if s.hub.unsubscribe(subscription.client, subscription.channelID) {
+			req := new(presencev1.DetachChannelRouteRequest)
+			req.SetGatewayId(s.gatewayID)
+			req.SetGeneration(s.generation)
+			req.SetChannelId(subscription.channelID)
+			if _, detachErr := s.svcCtx.PresenceClient.DetachChannelRoute(ctx, req); detachErr != nil {
+				logx.WithContext(ctx).Errorw("detach unauthorized channel route",
+					logx.Field("channel_id", subscription.channelID),
+					logx.Field("error", detachErr),
+				)
+			}
 		}
 	}
 }

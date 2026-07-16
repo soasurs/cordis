@@ -51,6 +51,41 @@ func (h *hub) subscribe(c *client, channelIDs []int64) []int64 {
 	return newlyActive
 }
 
+func (h *hub) unsubscribe(c *client, channelID int64) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if _, subscribed := c.channels[channelID]; !subscribed {
+		return false
+	}
+	delete(c.channels, channelID)
+	subscribers := h.channels[channelID]
+	delete(subscribers, c)
+	if len(subscribers) == 0 {
+		delete(h.channels, channelID)
+		return true
+	}
+	return false
+}
+
+type channelSubscription struct {
+	client    *client
+	channelID int64
+}
+
+func (h *hub) channelSubscriptions() []channelSubscription {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	var subscriptions []channelSubscription
+	for channelID, clients := range h.channels {
+		for c := range clients {
+			subscriptions = append(subscriptions, channelSubscription{client: c, channelID: channelID})
+		}
+	}
+	return subscriptions
+}
+
 func (h *hub) remove(c *client) []int64 {
 	h.mu.Lock()
 	defer h.mu.Unlock()

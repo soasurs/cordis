@@ -24,6 +24,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	gatewayv1 "github.com/soasurs/cordis/gen/gateway/v1"
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
@@ -93,6 +94,24 @@ func TestWebSocketRejectsMissingIdentify(t *testing.T) {
 	require.Equal(t, "ERROR", msg.T)
 	require.Empty(t, auth.verifiedToken)
 	require.Nil(t, presence.registered)
+}
+
+func TestWebSocketRejectsUnauthorizedSubscription(t *testing.T) {
+	auth := &fakeAuthenticatorClient{userID: 1001, sessionID: 2002}
+	presence := &fakePresenceClient{}
+	guild := &fakeGuildClient{deniedChannels: map[int64]bool{7002: true}}
+	gateway := newTestGatewayWithGuild(auth, presence, guild)
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":4,"d":{"channel_ids":[7001,7002]}}`)
+	failure := readEnvelope(t, reader)
+	require.Equal(t, opError, failure.Op)
+	require.Equal(t, "ERROR", failure.T)
+	require.Empty(t, gateway.hub.activeChannels())
 }
 
 func TestDispatchRPCDeliversToWebSocketClients(t *testing.T) {
@@ -166,7 +185,47 @@ func TestBackgroundRegistersGatewayAndRefreshesRoutes(t *testing.T) {
 	}, 2*time.Second, 20*time.Millisecond)
 }
 
+func TestRouteRefreshRemovesUnauthorizedSubscription(t *testing.T) {
+	presence := &fakePresenceClient{}
+	guild := &fakeGuildClient{}
+	gateway := newTestGatewayWithGuild(&fakeAuthenticatorClient{}, presence, guild)
+	c := &client{userID: 1001, channels: make(map[int64]struct{})}
+	gateway.hub.subscribe(c, []int64{9001})
+	guild.deniedChannels = map[int64]bool{9001: true}
+
+	gateway.revalidateChannelSubscriptions(t.Context())
+	require.Empty(t, gateway.hub.activeChannels())
+}
+
+func TestRouteRefreshKeepsSubscriptionOnTransientGuildFailure(t *testing.T) {
+	presence := &fakePresenceClient{}
+	guild := &fakeGuildClient{err: status.Error(codes.Unavailable, "guild unavailable")}
+	gateway := newTestGatewayWithGuild(&fakeAuthenticatorClient{}, presence, guild)
+	c := &client{userID: 1001, channels: make(map[int64]struct{})}
+	gateway.hub.subscribe(c, []int64{9001})
+
+	gateway.revalidateChannelSubscriptions(t.Context())
+	require.Equal(t, []int64{9001}, gateway.hub.activeChannels())
+}
+
+func TestNormalizeChannelIDsDeduplicatesAndRejectsInvalid(t *testing.T) {
+	channelIDs, err := normalizeChannelIDs([]int64{7001, 7001, 7002})
+	require.NoError(t, err)
+	require.Equal(t, []int64{7001, 7002}, channelIDs)
+
+	_, err = normalizeChannelIDs([]int64{0})
+	require.Error(t, err)
+}
+
 func newTestGateway(auth authenticatorv1.AuthenticatorServiceClient, presence presencev1.PresenceServiceClient) *Server {
+	return newTestGatewayWithGuild(auth, presence, &fakeGuildClient{})
+}
+
+func newTestGatewayWithGuild(
+	auth authenticatorv1.AuthenticatorServiceClient,
+	presence presencev1.PresenceServiceClient,
+	guild guildv1.GuildServiceClient,
+) *Server {
 	cfg := config.Config{
 		Name:     "gateway.test",
 		ListenOn: "127.0.0.1:8081",
@@ -184,8 +243,32 @@ func newTestGateway(auth authenticatorv1.AuthenticatorServiceClient, presence pr
 	svcCtx := svc.NewServiceContextWithDependencies(cfg, svc.Dependencies{
 		AuthenticatorClient: auth,
 		PresenceClient:      presence,
+		GuildClient:         guild,
 	})
 	return New(svcCtx)
+}
+
+type fakeGuildClient struct {
+	guildv1.GuildServiceClient
+	mu             sync.Mutex
+	deniedChannels map[int64]bool
+	err            error
+}
+
+func (f *fakeGuildClient) AuthorizeGuildChannel(
+	_ context.Context,
+	req *guildv1.AuthorizeGuildChannelRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.AuthorizeGuildChannelResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	resp := new(guildv1.AuthorizeGuildChannelResponse)
+	resp.SetAllowed(!f.deniedChannels[req.GetChannelId()])
+	resp.SetPermissions(permissionViewChannel)
+	return resp, nil
 }
 
 func TestAdvertiseAddr(t *testing.T) {

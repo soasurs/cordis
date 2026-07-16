@@ -4,6 +4,7 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
 )
@@ -12,11 +13,13 @@ type ServiceContext struct {
 	Cfg                 config.Config
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
+	GuildClient         guildv1.GuildServiceClient
 }
 
 type Dependencies struct {
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
+	GuildClient         guildv1.GuildServiceClient
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -28,9 +31,14 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if err != nil {
 		return Dependencies{}, err
 	}
+	guildClient, err := zrpc.NewClient(cfg.Services.Guild)
+	if err != nil {
+		return Dependencies{}, err
+	}
 	return Dependencies{
 		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(authClient.Conn()),
 		PresenceClient:      presencev1.NewPresenceServiceClient(presenceClient.Conn()),
+		GuildClient:         guildv1.NewGuildServiceClient(guildClient.Conn()),
 	}, nil
 }
 
@@ -49,9 +57,13 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.PresenceClient == nil {
 		panic("presence client is required")
 	}
+	if deps.GuildClient == nil {
+		panic("guild client is required")
+	}
 	return &ServiceContext{
 		Cfg:                 cfg,
 		AuthenticatorClient: deps.AuthenticatorClient,
 		PresenceClient:      deps.PresenceClient,
+		GuildClient:         deps.GuildClient,
 	}
 }

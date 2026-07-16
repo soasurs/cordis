@@ -52,3 +52,7 @@ services:
     endpoints:
       - 127.0.0.1:3003
     nonBlock: true
+  guild:
+    endpoints:
+      - 127.0.0.1:3005
+    nonBlock: true

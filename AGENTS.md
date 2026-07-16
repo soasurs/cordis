@@ -99,7 +99,10 @@ go build ./services/guild/v1/...
 ## Gateway And Presence
 
 - Gateway websocket protocol opcodes are in `services/gateway/v1/internal/server/protocol.go`; first client message after `HELLO` must be `IDENTIFY` (`op=2`) with an access token.
+- Gateway requires Authenticator, Presence, and Guild gRPC clients. Channel subscription requests are deduplicated and must all pass Guild `VIEW_CHANNEL` authorization before any local subscription is added.
 - Gateway tracks local subscriptions in memory and refreshes aggregate channel routes in Presence; callers resolve target gateways via Presence before calling gateway dispatch gRPC.
+- Before periodic route refresh, Gateway revalidates each local channel subscription through Guild. Revoked/not-found access removes the subscription and detaches the aggregate Presence route when its final local subscriber disappears.
+- Transient Guild authorization failures do not evict subscriptions; Gateway logs the failure and retries on the next route refresh.
 - Presence Redis keys are TTL-based; stale gateway generations and expired sessions/routes are filtered during reads.
 - Invisible presence resolves as offline and hides sessions.
 

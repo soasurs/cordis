@@ -28,6 +28,7 @@ type GatewayConfig struct {
 type ServiceConfig struct {
 	Authenticator zrpc.RpcClientConf
 	Presence      zrpc.RpcClientConf
+	Guild         zrpc.RpcClientConf
 }
 
 func (c GatewayConfig) WebSocketRoute() string {

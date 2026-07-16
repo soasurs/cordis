@@ -21,5 +21,6 @@ inputs:
       - proto/authenticator
       - proto/user
       - proto/message
+      - proto/guild
       - proto/presence
       - proto/gateway

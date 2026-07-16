@@ -20,4 +20,5 @@ func TestLoadConfig(t *testing.T) {
 	require.False(t, cfg.Services.Authenticator.Middlewares.Duration)
 	require.False(t, cfg.Services.User.Middlewares.Duration)
 	require.False(t, cfg.Services.Message.Middlewares.Duration)
+	require.False(t, cfg.Services.Guild.Middlewares.Duration)
 }

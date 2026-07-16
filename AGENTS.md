@@ -17,6 +17,9 @@ go test ./services/gateway/v1/internal/server/... -v -count=1
 go test ./services/message/v1/internal/server/... -v -count=1
 go test ./services/message/v1/internal/store/... -v -count=1
 go build ./services/message/v1/...
+go test ./services/guild/v1/internal/server/... -v -count=1
+go test ./services/guild/v1/internal/store/... -v -count=1
+go build ./services/guild/v1/...
 ```
 
 - Go module is `github.com/soasurs/cordis`; `go.mod` declares Go `1.26`.
@@ -25,18 +28,19 @@ go build ./services/message/v1/...
 
 ## Services
 
-- `services/api/v1`: public Connect-RPC HTTP API on `:8080`; currently proxies auth requests to Authenticator gRPC and maps errors through `pkg/apierror`.
+- `services/api/v1`: public Connect-RPC HTTP API on `:8080`; authenticates callers, proxies User/Message/Guild operations to internal gRPC services, and maps errors through `pkg/apierror`.
 - `services/gateway/v1`: websocket gateway on `:8081` plus internal gRPC on `:3004`; verifies access tokens via Authenticator and records sessions/routes via Presence.
 - `services/presence/v1`: gRPC on `:3003`; Redis-backed gateway liveness, channel routing, and user presence TTLs.
 - `services/authenticator/v1`: go-zero `zrpc` on `:3001`; JWT access/refresh tokens, sessions in Postgres, calls User gRPC.
 - `services/user/v1`: go-zero `zrpc` on `:3000`; users/profiles in Postgres, Argon2id password hashing.
-- `services/message/v1`: go-zero `zrpc` on `:3002`; messages/reactions/mentions in Postgres, outbox events to Kafka when Kafka is configured.
+- `services/message/v1`: go-zero `zrpc` on `:3002`; messages/reactions/mentions in Postgres, publishes message events directly to Kafka when Kafka is configured.
+- `services/guild/v1`: go-zero `zrpc` on `:3005`; guilds/members/roles in Postgres, publishes guild events directly to its own Kafka topic when Kafka is configured.
 
 ## Proto
 
-- Protos use edition 2023. Internal generation uses opaque Go API (`default_api_level=API_OPAQUE`), so use generated getters/setters/builders instead of field access or struct literals for `gen/{authenticator,user,message,presence,gateway}`.
+- Protos use edition 2023. Internal generation uses opaque Go API (`default_api_level=API_OPAQUE`), so use generated getters/setters/builders instead of field access or struct literals for `gen/{authenticator,user,message,guild,presence,gateway}`.
 - External `proto/api` generation is open Go API plus Connect-Go and protobuf-es TypeScript under `gen/web`; existing API code uses pointer fields and struct literals there.
-- `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/presence`, and `proto/gateway`.
+- `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, and `proto/gateway`.
 
 ## Service Wiring
 
@@ -50,19 +54,33 @@ go build ./services/message/v1/...
 - Postgres services embed SQL migrations with `//go:embed *.sql`; `pkg/migration.Apply()` applies lexicographically and skips `*.down.sql`.
 - Integration tests create per-test schemas named `cordis_test_<nanos>` via `search_path`; do not assume public schema state.
 - Stores define interfaces. SQL stores keep both `*sqlx.DB` and `sqlx.ExtContext` (`q`), where `q` is the DB normally and a `*sqlx.Tx` inside `Transact`.
-- User and Message stores have `Transact` rollback-on-error/panic behavior; Authenticator store does not currently expose transactions.
+- User, Message, and Guild stores have `Transact` rollback-on-error/panic behavior; Authenticator store does not currently expose transactions.
 - DB integrity is mostly app-enforced: migrations have no foreign keys; use soft delete fields (`deleted_at = 0`) and CHECK constraints.
 
 ## Message Service
 
-- `CreateMessage`, `UpdateMessage`, `DeleteMessage`, `AddReaction`, and `RemoveReaction` write outbox events inside the DB transaction, then call `Relay.Notify()` after commit.
-- Event types are `message_created`, `message_updated`, `message_deleted`, `reaction_added`, and `reaction_removed`; events are partitioned by `channel_id` via `outbox.PartitionForKey()`.
-- `message_created` and `message_updated` payloads include `mention_user_ids`; reaction events include `message_id`, `channel_id`, `user_id`, `emoji_id`, and `emoji_name`.
+- Message mutations commit their database transaction before publishing directly to Kafka; do not introduce a transactional outbox unless explicitly requested.
+- Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope and are keyed by decimal `channel_id`.
+- Kafka publication is best-effort: publication failures are logged but do not turn an already-committed mutation into an RPC failure.
+- `message.created` and `message.updated` payloads include `mention_user_ids`.
 - Message list pagination is cursor-based: `before`/`after` use one query; `around` queries older and newer sides and trims/backfills to the requested limit.
 - Client-settable message types are only `DEFAULT` and `REPLY`; `UNSPECIFIED` normalizes to `DEFAULT`, and `THREAD_STARTER` is reserved.
 - Client-settable flags only include `SUPPRESS_NOTIFICATIONS`; `HAS_THREAD` is rejected.
 - Reply fields must be set together, and the referenced channel must match the referenced message.
 - Custom guild emojis live in `emojis`; Unicode reactions use `emoji_id = 0`. Reaction summaries left join emojis and use `COALESCE` for null-safe `animated` and `image_key`.
+
+## Guild Service
+
+- Stage-one Guild RPCs cover create/get/list/update/delete. Creating a guild transactionally creates the owner membership and the `@everyone` default role; the default role ID equals the guild ID.
+- Guild metadata uses soft deletion and a `revision` starting at 1. Updates and deletion increment the revision.
+- Guild reads require active membership. Non-members and deleted guilds are returned as not found; stage-one updates and deletion require the owner.
+- `ListUserGuilds` uses descending Snowflake IDs and a `before` cursor.
+- Guild has an independent Kafka topic, defaulting to `cordis.guild.events.v1`; do not mix Guild events into the Message topic.
+- Guild publishes directly to Kafka after the database transaction commits and does not use an outbox.
+- Guild event values use the same lightweight envelope as Message: `{"t":"guild.updated","d":{...}}`. The Kafka key is the decimal `guild_id`.
+- Snowflake IDs and permission bitsets in Kafka JSON are strings; revisions, timestamps, and enums remain JSON numbers.
+- Stage-one event types are `guild.created`, `guild.updated`, and `guild.deleted`.
+- Later Guild phases own ordinary membership lifecycle, roles/permissions, channels/overwrites, Message/Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
 
 ## Gateway And Presence
 
@@ -82,13 +100,12 @@ go build ./services/message/v1/...
 
 - Unit tests use `github.com/stretchr/testify/require`; follow that style for new assertions.
 - Store unit tests commonly use `sqlmock.QueryMatcherRegexp` plus local `sqlPattern()` helpers; keep SQL expectations exact enough to catch query changes.
-- `make test-integration` runs Postgres integration tests for User, Authenticator, Message, and outbox packages. Example DSN: `CORDIS_TEST_POSTGRES_DSN="postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable"`.
+- `make test-integration` runs Postgres integration tests for User, Authenticator, Message, and Guild stores. Example DSN: `CORDIS_TEST_POSTGRES_DSN="postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable"`.
 - Presence Redis integration tests are separate: run `CORDIS_TEST_REDIS_ADDR=127.0.0.1:6379 go test -tags=integration ./services/presence/v1/internal/store -v -count=1`.
-- Outbox relay tests use `pkg/outbox.FakeProducer`, which buffers async produce calls and resolves callbacks on `Flush`; it supports global `Err` and per-topic `FailTopics`.
 
 ## Runtime Env
 
 - Authenticator config requires `CORDIS_ACCESS_TOKEN_SECRET` and `CORDIS_REFRESH_TOKEN_SECRET` for real token manager startup.
 - Optional tracing endpoint is read from `CORDIS_OTEL_ENDPOINT` in service configs.
-- Message Kafka config is optional; if no Kafka seeds are configured, the Kafka client/relay are not created and outbox rows accumulate.
+- Message and Guild Kafka configs are optional; if no Kafka seeds are configured, no Kafka producer is created and mutations still succeed without event publication.
 - Snowflake IDs use a custom node derived from non-loopback IP hash, epoch `2025-01-01`, 16 node bits, and 8 step bits.

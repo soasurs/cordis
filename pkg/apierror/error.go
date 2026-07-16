@@ -81,6 +81,21 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeInvalidArgument,
 		message:     "Invalid request.",
 	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildNotFound}: {
+		connectCode: connect.CodeNotFound,
+		publicCode:  CodeNotFound,
+		message:     "Resource not found.",
+	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildPermissionDenied}: {
+		connectCode: connect.CodePermissionDenied,
+		publicCode:  CodePermissionDenied,
+		message:     "Permission denied.",
+	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildInvalidRequest}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Invalid request.",
+	},
 }
 
 var codeMappings = map[codes.Code]mapping{

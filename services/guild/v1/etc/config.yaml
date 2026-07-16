@@ -1,0 +1,36 @@
+name: guild.v1
+listenOn: 0.0.0.0:3005
+timeout: 0
+
+log:
+  level: error
+  stat: false
+
+devServer:
+  enabled: true
+  host: 0.0.0.0
+  port: 6066
+  enableMetrics: true
+  enablePprof: false
+
+telemetry:
+  endpoint: "${CORDIS_OTEL_ENDPOINT}"
+  sampler: 1.0
+  batcher: otlpgrpc
+
+middlewares:
+  trace: true
+  recover: true
+  stat: false
+  prometheus: true
+  breaker: true
+
+database:
+  dataSource: postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable
+  maxOpenConns: 10
+  maxIdleConns: 5
+
+kafka:
+  seeds: []
+  topic: cordis.guild.events.v1
+  publishTimeoutMs: 1000

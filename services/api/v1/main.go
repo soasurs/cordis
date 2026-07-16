@@ -61,11 +61,16 @@ func main() {
 		server.NewMessage(svcCtx),
 		connect.WithInterceptors(observability.ConnectInterceptors()...),
 	)
+	guildPath, guildHandler := apiv1connect.NewGuildServiceHandler(
+		server.NewGuild(svcCtx),
+		connect.WithInterceptors(observability.ConnectInterceptors()...),
+	)
 
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	mux.Handle(userPath, userHandler)
 	mux.Handle(messagePath, messageHandler)
+	mux.Handle(guildPath, guildHandler)
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenOn,

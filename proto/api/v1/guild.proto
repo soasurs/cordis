@@ -1,0 +1,70 @@
+edition = "2023";
+
+package api.v1;
+
+// GuildService exposes authenticated guild metadata operations.
+service GuildService {
+  rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
+  rpc GetGuild(GetGuildRequest) returns (GetGuildResponse);
+  rpc ListGuilds(ListGuildsRequest) returns (ListGuildsResponse);
+  rpc UpdateGuild(UpdateGuildRequest) returns (UpdateGuildResponse);
+  rpc DeleteGuild(DeleteGuildRequest) returns (DeleteGuildResponse);
+}
+
+// Guild is a community the authenticated user belongs to.
+// All timestamps are Unix time in milliseconds.
+message Guild {
+  int64 id = 1;
+  int64 owner_id = 2;
+  string name = 3;
+  string icon_uri = 4;
+  int64 revision = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message CreateGuildRequest {
+  string name = 1;
+  string icon_uri = 2;
+}
+
+message CreateGuildResponse {
+  Guild guild = 1;
+}
+
+message GetGuildRequest {
+  int64 guild_id = 1;
+}
+
+message GetGuildResponse {
+  Guild guild = 1;
+}
+
+message ListGuildsRequest {
+  int64 before = 1;
+  int32 limit = 2;
+}
+
+message ListGuildsResponse {
+  repeated Guild guilds = 1;
+  int64 before_cursor = 2;
+}
+
+message UpdateGuildRequest {
+  int64 guild_id = 1;
+  // Optional replacement fields. An explicit empty icon_uri clears the icon.
+  string name = 2;
+  string icon_uri = 3;
+}
+
+message UpdateGuildResponse {
+  Guild guild = 1;
+}
+
+message DeleteGuildRequest {
+  int64 guild_id = 1;
+}
+
+message DeleteGuildResponse {
+  bool ok = 1;
+}

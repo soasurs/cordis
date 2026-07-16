@@ -1,0 +1,75 @@
+edition = "2023";
+
+package guild.v1;
+
+// GuildService owns guild metadata and membership boundaries.
+service GuildService {
+  rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
+  rpc GetGuild(GetGuildRequest) returns (GetGuildResponse);
+  rpc ListUserGuilds(ListUserGuildsRequest) returns (ListUserGuildsResponse);
+  rpc UpdateGuild(UpdateGuildRequest) returns (UpdateGuildResponse);
+  rpc DeleteGuild(DeleteGuildRequest) returns (DeleteGuildResponse);
+}
+
+message Guild {
+  int64 id = 1;
+  int64 owner_id = 2;
+  string name = 3;
+  string icon_uri = 4;
+  int64 revision = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message CreateGuildRequest {
+  int64 owner_id = 1;
+  string name = 2;
+  string icon_uri = 3;
+}
+
+message CreateGuildResponse {
+  Guild guild = 1;
+}
+
+message GetGuildRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+}
+
+message GetGuildResponse {
+  Guild guild = 1;
+}
+
+message ListUserGuildsRequest {
+  int64 user_id = 1;
+  // Return guilds with IDs smaller than this cursor.
+  int64 before = 2;
+  int32 limit = 3;
+}
+
+message ListUserGuildsResponse {
+  repeated Guild guilds = 1;
+  // Smallest guild ID in this page, or zero when this page is empty.
+  int64 before_cursor = 2;
+}
+
+message UpdateGuildRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // Optional replacement fields. An explicit empty icon_uri clears the icon.
+  string name = 3;
+  string icon_uri = 4;
+}
+
+message UpdateGuildResponse {
+  Guild guild = 1;
+}
+
+message DeleteGuildRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+}
+
+message DeleteGuildResponse {
+  bool ok = 1;
+}

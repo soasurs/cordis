@@ -19,4 +19,5 @@ type ServiceConfig struct {
 	Authenticator zrpc.RpcClientConf
 	User          zrpc.RpcClientConf
 	Message       zrpc.RpcClientConf
+	Guild         zrpc.RpcClientConf
 }

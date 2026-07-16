@@ -9,12 +9,16 @@ import (
 )
 
 const (
-	EventTypeGuildCreated       = "guild.created"
-	EventTypeGuildUpdated       = "guild.updated"
-	EventTypeGuildDeleted       = "guild.deleted"
-	EventTypeGuildMemberJoined  = "guild.member.joined"
-	EventTypeGuildMemberUpdated = "guild.member.updated"
-	EventTypeGuildMemberRemoved = "guild.member.removed"
+	EventTypeGuildCreated            = "guild.created"
+	EventTypeGuildUpdated            = "guild.updated"
+	EventTypeGuildDeleted            = "guild.deleted"
+	EventTypeGuildMemberJoined       = "guild.member.joined"
+	EventTypeGuildMemberUpdated      = "guild.member.updated"
+	EventTypeGuildMemberRemoved      = "guild.member.removed"
+	EventTypeGuildRoleCreated        = "guild.role.created"
+	EventTypeGuildRoleUpdated        = "guild.role.updated"
+	EventTypeGuildRoleDeleted        = "guild.role.deleted"
+	EventTypeGuildMemberRolesUpdated = "guild.member.roles.updated"
 )
 
 type eventEnvelope[T any] struct {
@@ -59,6 +63,32 @@ type guildMemberRemovedPayload struct {
 	RemovedAt int64  `json:"removed_at"`
 }
 
+type guildRolePayload struct {
+	ID          string `json:"id"`
+	GuildID     string `json:"guild_id"`
+	Name        string `json:"name"`
+	Permissions string `json:"permissions"`
+	Position    int32  `json:"position"`
+	IsDefault   bool   `json:"is_default"`
+	Revision    int64  `json:"revision"`
+	CreatedAt   int64  `json:"created_at"`
+	UpdatedAt   int64  `json:"updated_at"`
+}
+
+type guildRoleDeletedPayload struct {
+	ID        string `json:"id"`
+	GuildID   string `json:"guild_id"`
+	Revision  int64  `json:"revision"`
+	DeletedAt int64  `json:"deleted_at"`
+}
+
+type guildMemberRolesUpdatedPayload struct {
+	GuildID   string   `json:"guild_id"`
+	UserID    string   `json:"user_id"`
+	RoleIDs   []string `json:"role_ids"`
+	UpdatedAt int64    `json:"updated_at"`
+}
+
 func newGuildCreatedEvent(guild *model.Guild) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildCreated, guild.ID, guildPayloadFromModel(guild))
 }
@@ -88,6 +118,52 @@ func guildMemberPayloadFromModel(member *model.GuildMember) guildMemberPayload {
 		Revision:  member.Revision,
 		JoinedAt:  member.JoinedAt,
 		UpdatedAt: member.UpdatedAt,
+	}
+}
+
+func newGuildRoleCreatedEvent(role *model.Role) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildRoleCreated, role.GuildID, guildRolePayloadFromModel(role))
+}
+
+func newGuildRoleUpdatedEvent(role *model.Role) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildRoleUpdated, role.GuildID, guildRolePayloadFromModel(role))
+}
+
+func newGuildRoleDeletedEvent(role *model.Role) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildRoleDeleted, role.GuildID, guildRoleDeletedPayload{
+		ID:        strconv.FormatInt(role.ID, 10),
+		GuildID:   strconv.FormatInt(role.GuildID, 10),
+		Revision:  role.Revision,
+		DeletedAt: role.DeletedAt,
+	})
+}
+
+func newGuildMemberRolesUpdatedEvent(guildID, userID int64, roles []*model.Role, updatedAt int64) (guildEvent, error) {
+	roleIDs := make([]string, 0, len(roles))
+	for _, role := range roles {
+		if !role.IsDefault {
+			roleIDs = append(roleIDs, strconv.FormatInt(role.ID, 10))
+		}
+	}
+	return newGuildEvent(EventTypeGuildMemberRolesUpdated, guildID, guildMemberRolesUpdatedPayload{
+		GuildID:   strconv.FormatInt(guildID, 10),
+		UserID:    strconv.FormatInt(userID, 10),
+		RoleIDs:   roleIDs,
+		UpdatedAt: updatedAt,
+	})
+}
+
+func guildRolePayloadFromModel(role *model.Role) guildRolePayload {
+	return guildRolePayload{
+		ID:          strconv.FormatInt(role.ID, 10),
+		GuildID:     strconv.FormatInt(role.GuildID, 10),
+		Name:        role.Name,
+		Permissions: strconv.FormatUint(role.Permissions, 10),
+		Position:    role.Position,
+		IsDefault:   role.IsDefault,
+		Revision:    role.Revision,
+		CreatedAt:   role.CreatedAt,
+		UpdatedAt:   role.UpdatedAt,
 	}
 }
 

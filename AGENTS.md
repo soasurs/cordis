@@ -71,19 +71,24 @@ go build ./services/guild/v1/...
 
 - Guild metadata RPCs cover create/get/list/update/delete. Creating a guild transactionally creates the owner membership and the `@everyone` default role; the default role ID equals the guild ID.
 - Guild metadata uses soft deletion and a `revision` starting at 1. Updates and deletion increment the revision.
-- Guild reads require active membership. Non-members and deleted guilds are returned as not found; metadata updates and deletion currently require the owner.
+- Guild reads require active membership. Non-members and deleted guilds are returned as not found. Metadata updates require `MANAGE_GUILD`; deletion and ownership transfer remain owner-only.
 - `ListUserGuilds` uses descending Snowflake IDs and a `before` cursor.
 - Member RPCs cover direct add, get/list, updating the caller's nickname, kick, leave, and ownership transfer.
-- Only the owner may directly add or kick members. Direct addition verifies the target through User gRPC.
+- Direct member addition requires `MANAGE_MEMBERS` and verifies the target through User gRPC. Kicking requires `KICK_MEMBERS` plus a strictly higher top role.
 - The owner cannot leave or be kicked and must transfer ownership to another active member first.
 - Active duplicate membership returns `AlreadyExists`. A removed member may rejoin; the existing row is restored and its membership `revision` continues increasing.
 - Member lists use descending `user_id` and a `before_user_id` cursor. Nicknames are trimmed, may be cleared, and are limited to 32 Unicode code points.
+- Guild-level permissions are `ADMINISTRATOR`, `MANAGE_GUILD`, `MANAGE_ROLES`, `MANAGE_MEMBERS`, and `KICK_MEMBERS`. Effective permissions OR the implicit `@everyone` role with explicitly assigned active roles.
+- Guild owners implicitly receive all Guild permissions. `ADMINISTRATOR` expands to all current Guild permissions, but role hierarchy still applies to non-owner moderation and role operations.
+- `guild_member_roles` stores explicit role assignments. The `@everyone` role is implicit, cannot be assigned or deleted, keeps position 0, and only its permissions may be updated.
+- Role operations require `MANAGE_ROLES`. Non-owners may only manage roles and members strictly below their highest role and cannot create, edit, or assign permissions they do not hold.
+- Role deletion and member removal delete explicit role assignments transactionally. Deleted roles are excluded from permission calculation.
 - Guild has an independent Kafka topic, defaulting to `cordis.guild.events.v1`; do not mix Guild events into the Message topic.
 - Guild publishes directly to Kafka after the database transaction commits and does not use an outbox.
 - Guild event values use the same lightweight envelope as Message: `{"t":"guild.updated","d":{...}}`. The Kafka key is the decimal `guild_id`.
 - Snowflake IDs and permission bitsets in Kafka JSON are strings; revisions, timestamps, and enums remain JSON numbers.
-- Current event types are `guild.created`, `guild.updated`, `guild.deleted`, `guild.member.joined`, `guild.member.updated`, and `guild.member.removed`.
-- Later Guild phases own roles/permissions, channels/overwrites, Message/Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
+- Current event types are `guild.created`, `guild.updated`, `guild.deleted`, `guild.member.joined`, `guild.member.updated`, `guild.member.removed`, `guild.role.created`, `guild.role.updated`, `guild.role.deleted`, and `guild.member.roles.updated`.
+- Later Guild phases own channels/overwrites, Message/Gateway authorization integration, realtime distribution, then invites/bans/audit/threads.
 
 ## Gateway And Presence
 

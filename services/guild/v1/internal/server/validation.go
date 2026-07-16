@@ -9,6 +9,7 @@ const (
 	defaultGuildLimit = 50
 	maxGuildLimit     = 100
 	maxGuildNameRunes = 100
+	maxRoleNameRunes  = 100
 	maxIconURILength  = 2048
 	maxNicknameRunes  = 32
 )
@@ -20,6 +21,17 @@ func normalizeGuildName(name string) (string, error) {
 	}
 	if utf8.RuneCountInString(name) > maxGuildNameRunes {
 		return "", invalidRequest("guild name is too long")
+	}
+	return name, nil
+}
+
+func normalizeRoleName(name string) (string, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", invalidRequest("role name is required")
+	}
+	if utf8.RuneCountInString(name) > maxRoleNameRunes {
+		return "", invalidRequest("role name is too long")
 	}
 	return name, nil
 }

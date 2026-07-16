@@ -25,7 +25,7 @@ type Role struct {
 	ID          int64
 	GuildID     int64
 	Name        string
-	Permissions int64
+	Permissions uint64
 	Position    int32
 	IsDefault   bool
 	Revision    int64

@@ -18,11 +18,11 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 		return nil, invalidRequest("user id is required")
 	}
 
-	guild, err := s.svcCtx.Store.GetGuildForMember(ctx, req.GetGuildId(), req.GetActorUserId())
+	authority, err := loadMemberAuthority(ctx, s.svcCtx.Store, req.GetGuildId(), req.GetActorUserId())
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	if guild.OwnerID != req.GetActorUserId() {
+	if !authority.has(PermissionManageMembers) {
 		return nil, permissionDenied()
 	}
 
@@ -39,11 +39,11 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 	var member *model.GuildMember
 	joinedAt := time.Now().UnixMilli()
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		current, err := txStore.GetGuildForMember(ctx, req.GetGuildId(), req.GetActorUserId())
+		current, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
 			return err
 		}
-		if current.OwnerID != req.GetActorUserId() {
+		if !current.has(PermissionManageMembers) {
 			return permissionDenied()
 		}
 		member, err = txStore.CreateGuildMember(ctx, req.GetGuildId(), req.GetUserId(), joinedAt)
@@ -143,15 +143,25 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *guildv1.KickGuil
 	var removed *model.GuildMember
 	removedAt := time.Now().UnixMilli()
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		guild, err := txStore.GetGuildForMember(ctx, req.GetGuildId(), req.GetActorUserId())
+		actor, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
 			return err
 		}
-		if guild.OwnerID != req.GetActorUserId() {
+		if !actor.has(PermissionKickMembers) {
 			return permissionDenied()
 		}
-		if guild.OwnerID == req.GetUserId() {
+		target, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetUserId())
+		if err != nil {
+			return err
+		}
+		if target.IsOwner {
 			return invalidRequest("guild owner cannot be kicked")
+		}
+		if !canManageMember(actor, target) {
+			return permissionDenied()
+		}
+		if err := txStore.DeleteGuildMemberRoleAssignments(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+			return err
 		}
 		removed, err = txStore.RemoveGuildMember(ctx, req.GetGuildId(), req.GetUserId(), removedAt)
 		return err
@@ -182,6 +192,9 @@ func (s *guildServer) LeaveGuild(ctx context.Context, req *guildv1.LeaveGuildReq
 		}
 		if guild.OwnerID == req.GetUserId() {
 			return invalidRequest("guild owner must transfer ownership before leaving")
+		}
+		if err := txStore.DeleteGuildMemberRoleAssignments(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+			return err
 		}
 		removed, err = txStore.RemoveGuildMember(ctx, req.GetGuildId(), req.GetUserId(), removedAt)
 		return err

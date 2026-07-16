@@ -220,6 +220,8 @@ func (p *fakePublisher) onlyRecord(t *testing.T) publishedRecord {
 type fakeStore struct {
 	guilds       map[int64]*model.Guild
 	members      map[int64]map[int64]*model.GuildMember
+	roles        map[int64]map[int64]*model.Role
+	memberRoles  map[int64]map[int64]map[int64]bool
 	defaultRoles map[int64]bool
 	transactErr  error
 }
@@ -227,6 +229,7 @@ type fakeStore struct {
 func newFakeStore() *fakeStore {
 	return &fakeStore{
 		guilds: make(map[int64]*model.Guild), members: make(map[int64]map[int64]*model.GuildMember),
+		roles: make(map[int64]map[int64]*model.Role), memberRoles: make(map[int64]map[int64]map[int64]bool),
 		defaultRoles: make(map[int64]bool),
 	}
 }
@@ -264,6 +267,12 @@ func (s *fakeStore) CreateGuildMember(_ context.Context, guildID, userID, joined
 
 func (s *fakeStore) CreateDefaultRole(_ context.Context, guildID, _ int64) error {
 	s.defaultRoles[guildID] = true
+	if s.roles[guildID] == nil {
+		s.roles[guildID] = make(map[int64]*model.Role)
+	}
+	s.roles[guildID][guildID] = &model.Role{
+		ID: guildID, GuildID: guildID, Name: "@everyone", IsDefault: true, Revision: 1, CreatedAt: 1,
+	}
 	return nil
 }
 
@@ -332,6 +341,7 @@ func (s *fakeStore) DeleteGuildMembers(_ context.Context, guildID, _ int64) erro
 
 func (s *fakeStore) DeleteGuildRoles(_ context.Context, guildID, _ int64) error {
 	s.defaultRoles[guildID] = false
+	s.roles[guildID] = nil
 	return nil
 }
 
@@ -391,6 +401,134 @@ func (s *fakeStore) TransferGuildOwnership(_ context.Context, guildID, currentOw
 	return cloneGuild(guild), nil
 }
 
+func (s *fakeStore) CreateGuildRole(
+	_ context.Context,
+	roleID, guildID int64,
+	name string,
+	permissions uint64,
+	position int32,
+	createdAt int64,
+) (*model.Role, error) {
+	if s.roles[guildID] == nil {
+		s.roles[guildID] = make(map[int64]*model.Role)
+	}
+	role := &model.Role{
+		ID: roleID, GuildID: guildID, Name: name, Permissions: permissions,
+		Position: position, Revision: 1, CreatedAt: createdAt,
+	}
+	s.roles[guildID][roleID] = role
+	return cloneRole(role), nil
+}
+
+func (s *fakeStore) GetGuildRole(_ context.Context, guildID, roleID int64) (*model.Role, error) {
+	role := s.roles[guildID][roleID]
+	if role == nil || role.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	return cloneRole(role), nil
+}
+
+func (s *fakeStore) ListGuildRoles(_ context.Context, guildID int64) ([]*model.Role, error) {
+	var roles []*model.Role
+	for _, role := range s.roles[guildID] {
+		if role.DeletedAt == 0 {
+			roles = append(roles, cloneRole(role))
+		}
+	}
+	sort.Slice(roles, func(i, j int) bool {
+		if roles[i].Position == roles[j].Position {
+			return roles[i].ID < roles[j].ID
+		}
+		return roles[i].Position > roles[j].Position
+	})
+	return roles, nil
+}
+
+func (s *fakeStore) UpdateGuildRole(_ context.Context, params store.UpdateGuildRoleParams) (*model.Role, error) {
+	role := s.roles[params.GuildID][params.RoleID]
+	if role == nil || role.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	if params.Name != nil {
+		role.Name = *params.Name
+	}
+	if params.Permissions != nil {
+		role.Permissions = *params.Permissions
+	}
+	role.Revision++
+	role.UpdatedAt = params.UpdatedAt
+	return cloneRole(role), nil
+}
+
+func (s *fakeStore) UpdateGuildRolePosition(_ context.Context, guildID, roleID int64, position int32, updatedAt int64) (*model.Role, error) {
+	role := s.roles[guildID][roleID]
+	if role == nil || role.DeletedAt != 0 || role.IsDefault {
+		return nil, sql.ErrNoRows
+	}
+	role.Position = position
+	role.Revision++
+	role.UpdatedAt = updatedAt
+	return cloneRole(role), nil
+}
+
+func (s *fakeStore) DeleteGuildRole(_ context.Context, guildID, roleID, deletedAt int64) (*model.Role, error) {
+	role := s.roles[guildID][roleID]
+	if role == nil || role.DeletedAt != 0 || role.IsDefault {
+		return nil, sql.ErrNoRows
+	}
+	role.Revision++
+	role.UpdatedAt = deletedAt
+	role.DeletedAt = deletedAt
+	return cloneRole(role), nil
+}
+
+func (s *fakeStore) AddGuildMemberRole(_ context.Context, guildID, userID, roleID, _ int64) error {
+	if s.memberRoles[guildID] == nil {
+		s.memberRoles[guildID] = make(map[int64]map[int64]bool)
+	}
+	if s.memberRoles[guildID][userID] == nil {
+		s.memberRoles[guildID][userID] = make(map[int64]bool)
+	}
+	s.memberRoles[guildID][userID][roleID] = true
+	return nil
+}
+
+func (s *fakeStore) RemoveGuildMemberRole(_ context.Context, guildID, userID, roleID int64) error {
+	delete(s.memberRoles[guildID][userID], roleID)
+	return nil
+}
+
+func (s *fakeStore) DeleteGuildMemberRoleAssignments(_ context.Context, guildID, userID int64) error {
+	delete(s.memberRoles[guildID], userID)
+	return nil
+}
+
+func (s *fakeStore) DeleteGuildRoleAssignments(_ context.Context, guildID, roleID int64) error {
+	for _, roles := range s.memberRoles[guildID] {
+		delete(roles, roleID)
+	}
+	return nil
+}
+
+func (s *fakeStore) DeleteAllGuildRoleAssignments(_ context.Context, guildID int64) error {
+	delete(s.memberRoles, guildID)
+	return nil
+}
+
+func (s *fakeStore) ListGuildMemberRoles(_ context.Context, guildID, userID int64) ([]*model.Role, error) {
+	var roles []*model.Role
+	for _, role := range s.roles[guildID] {
+		if role.DeletedAt != 0 {
+			continue
+		}
+		if role.IsDefault || s.memberRoles[guildID][userID][role.ID] {
+			roles = append(roles, cloneRole(role))
+		}
+	}
+	sort.Slice(roles, func(i, j int) bool { return roles[i].Position > roles[j].Position })
+	return roles, nil
+}
+
 func testGuild(id, ownerID int64) *model.Guild {
 	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconURI: "icon://old", Revision: 1, CreatedAt: 1}
 }
@@ -402,6 +540,11 @@ func cloneGuild(guild *model.Guild) *model.Guild {
 
 func cloneMember(member *model.GuildMember) *model.GuildMember {
 	clone := *member
+	return &clone
+}
+
+func cloneRole(role *model.Role) *model.Role {
+	clone := *role
 	return &clone
 }
 

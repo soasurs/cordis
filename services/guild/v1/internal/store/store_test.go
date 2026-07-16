@@ -147,6 +147,55 @@ func TestTransferGuildOwnership(t *testing.T) {
 	require.Equal(t, int64(2), guild.Revision)
 }
 
+func TestCreateGuildRole(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"id", "guild_id", "name", "permissions", "position", "is_default",
+		"revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(3001), int64(1001), "moderator", int64(16), int32(2), false, int64(1), int64(10), int64(0), int64(0))
+	mock.ExpectQuery(sqlPattern(createGuildRoleQuery)).
+		WithArgs(int64(3001), int64(1001), "moderator", int64(16), int32(2), int64(10)).
+		WillReturnRows(rows)
+
+	role, err := store.CreateGuildRole(context.Background(), 3001, 1001, "moderator", 16, 2, 10)
+	require.NoError(t, err)
+	require.Equal(t, uint64(16), role.Permissions)
+	require.Equal(t, int32(2), role.Position)
+}
+
+func TestListGuildMemberRolesIncludesDefaultAndAssigned(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"id", "guild_id", "name", "permissions", "position", "is_default",
+		"revision", "created_at", "updated_at", "deleted_at",
+	}).
+		AddRow(int64(3001), int64(1001), "moderator", int64(16), int32(2), false, int64(1), int64(10), int64(0), int64(0)).
+		AddRow(int64(1001), int64(1001), "@everyone", int64(2), int32(0), true, int64(1), int64(10), int64(0), int64(0))
+	mock.ExpectQuery(sqlPattern(listGuildMemberRolesQuery)).
+		WithArgs(int64(1001), int64(2001)).
+		WillReturnRows(rows)
+
+	roles, err := store.ListGuildMemberRoles(context.Background(), 1001, 2001)
+	require.NoError(t, err)
+	require.Len(t, roles, 2)
+	require.False(t, roles[0].IsDefault)
+	require.True(t, roles[1].IsDefault)
+}
+
+func TestDeleteGuildRoleAssignments(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	mock.ExpectExec(sqlPattern(deleteGuildRoleAssignmentsStatement)).
+		WithArgs(int64(1001), int64(3001)).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+	require.NoError(t, store.DeleteGuildRoleAssignments(context.Background(), 1001, 3001))
+}
+
 func TestTransactRollback(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()

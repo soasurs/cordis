@@ -23,12 +23,19 @@ type fakeGuildClient struct {
 	updateMemberRequest  *guildv1.UpdateGuildMemberRequest
 	leaveRequest         *guildv1.LeaveGuildRequest
 	transferRequest      *guildv1.TransferGuildOwnershipRequest
+	createRoleRequest    *guildv1.CreateGuildRoleRequest
 	createResponse       *guildv1.CreateGuildResponse
 	updateResponse       *guildv1.UpdateGuildResponse
 	addMemberResponse    *guildv1.AddGuildMemberResponse
 	updateMemberResponse *guildv1.UpdateGuildMemberResponse
 	leaveResponse        *guildv1.LeaveGuildResponse
 	transferResponse     *guildv1.TransferGuildOwnershipResponse
+	createRoleResponse   *guildv1.CreateGuildRoleResponse
+}
+
+func (f *fakeGuildClient) CreateGuildRole(_ context.Context, req *guildv1.CreateGuildRoleRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildRoleResponse, error) {
+	f.createRoleRequest = req
+	return f.createRoleResponse, nil
 }
 
 func (f *fakeGuildClient) AddGuildMember(_ context.Context, req *guildv1.AddGuildMemberRequest, _ ...grpc.CallOption) (*guildv1.AddGuildMemberResponse, error) {
@@ -137,6 +144,27 @@ func TestUpdateGuildUsesAuthenticatedActorAndFieldPresence(t *testing.T) {
 	require.False(t, guildClient.updateRequest.HasName())
 	require.True(t, guildClient.updateRequest.HasIconUri())
 	require.Empty(t, guildClient.updateRequest.GetIconUri())
+}
+
+func TestCreateGuildRoleUsesAuthenticatedActor(t *testing.T) {
+	role := new(guildv1.GuildRole)
+	role.SetId(4001)
+	role.SetGuildId(3001)
+	role.SetName("moderator")
+	role.SetPermissions(16)
+	resp := new(guildv1.CreateGuildRoleResponse)
+	resp.SetRole(role)
+	guildClient := &fakeGuildClient{createRoleResponse: resp}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	result, err := client.CreateGuildRole(context.Background(), &apiv1.CreateGuildRoleRequest{
+		GuildId: new(int64(3001)), Name: new("moderator"), Permissions: new(uint64(16)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.createRoleRequest.GetActorUserId())
+	require.Equal(t, uint64(16), guildClient.createRoleRequest.GetPermissions())
+	require.Equal(t, int64(4001), result.GetRole().GetId())
 }
 
 func newGuildHTTPClient(t *testing.T, guildClient *fakeGuildClient) (apiv1connect.GuildServiceClient, func()) {

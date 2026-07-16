@@ -122,11 +122,11 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *guildv1.UpdateGuildR
 
 	var updated *model.Guild
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		guild, err := txStore.GetGuildForMember(ctx, req.GetGuildId(), req.GetActorUserId())
+		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
 			return err
 		}
-		if guild.OwnerID != req.GetActorUserId() {
+		if !authority.has(PermissionManageGuild) {
 			return permissionDenied()
 		}
 		updated, err = txStore.UpdateGuild(ctx, params)
@@ -167,6 +167,9 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *guildv1.DeleteGuildR
 			return err
 		}
 		if err := txStore.DeleteGuildMembers(ctx, req.GetGuildId(), deletedAt); err != nil {
+			return err
+		}
+		if err := txStore.DeleteAllGuildRoleAssignments(ctx, req.GetGuildId()); err != nil {
 			return err
 		}
 		return txStore.DeleteGuildRoles(ctx, req.GetGuildId(), deletedAt)

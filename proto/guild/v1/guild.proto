@@ -2,6 +2,16 @@ edition = "2023";
 
 package guild.v1;
 
+// GuildPermission values are bit flags combined in uint64 permission fields.
+enum GuildPermission {
+  GUILD_PERMISSION_UNSPECIFIED = 0;
+  GUILD_PERMISSION_ADMINISTRATOR = 1;
+  GUILD_PERMISSION_MANAGE_GUILD = 2;
+  GUILD_PERMISSION_MANAGE_ROLES = 4;
+  GUILD_PERMISSION_MANAGE_MEMBERS = 8;
+  GUILD_PERMISSION_KICK_MEMBERS = 16;
+}
+
 // GuildService owns guild metadata and membership boundaries.
 service GuildService {
   rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
@@ -16,6 +26,16 @@ service GuildService {
   rpc KickGuildMember(KickGuildMemberRequest) returns (KickGuildMemberResponse);
   rpc LeaveGuild(LeaveGuildRequest) returns (LeaveGuildResponse);
   rpc TransferGuildOwnership(TransferGuildOwnershipRequest) returns (TransferGuildOwnershipResponse);
+  rpc CreateGuildRole(CreateGuildRoleRequest) returns (CreateGuildRoleResponse);
+  rpc GetGuildRole(GetGuildRoleRequest) returns (GetGuildRoleResponse);
+  rpc ListGuildRoles(ListGuildRolesRequest) returns (ListGuildRolesResponse);
+  rpc UpdateGuildRole(UpdateGuildRoleRequest) returns (UpdateGuildRoleResponse);
+  rpc DeleteGuildRole(DeleteGuildRoleRequest) returns (DeleteGuildRoleResponse);
+  rpc ReorderGuildRoles(ReorderGuildRolesRequest) returns (ReorderGuildRolesResponse);
+  rpc AddGuildMemberRole(AddGuildMemberRoleRequest) returns (AddGuildMemberRoleResponse);
+  rpc RemoveGuildMemberRole(RemoveGuildMemberRoleRequest) returns (RemoveGuildMemberRoleResponse);
+  rpc ListGuildMemberRoles(ListGuildMemberRolesRequest) returns (ListGuildMemberRolesResponse);
+  rpc GetGuildMemberPermissions(GetGuildMemberPermissionsRequest) returns (GetGuildMemberPermissionsResponse);
 }
 
 message Guild {
@@ -35,6 +55,18 @@ message GuildMember {
   int64 revision = 4;
   int64 joined_at = 5;
   int64 updated_at = 6;
+}
+
+message GuildRole {
+  int64 id = 1;
+  int64 guild_id = 2;
+  string name = 3;
+  uint64 permissions = 4;
+  int32 position = 5;
+  bool is_default = 6;
+  int64 revision = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
 }
 
 message CreateGuildRequest {
@@ -161,4 +193,114 @@ message TransferGuildOwnershipRequest {
 
 message TransferGuildOwnershipResponse {
   Guild guild = 1;
+}
+
+message CreateGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  string name = 3;
+  uint64 permissions = 4;
+}
+
+message CreateGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+message GetGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+}
+
+message GetGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+message ListGuildRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+}
+
+message ListGuildRolesResponse {
+  repeated GuildRole roles = 1;
+}
+
+message UpdateGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+  // Optional replacement fields.
+  string name = 4;
+  uint64 permissions = 5;
+}
+
+message UpdateGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+message DeleteGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+}
+
+message DeleteGuildRoleResponse {
+  bool ok = 1;
+}
+
+message GuildRolePosition {
+  int64 role_id = 1;
+  int32 position = 2;
+}
+
+message ReorderGuildRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  repeated GuildRolePosition positions = 3;
+}
+
+message ReorderGuildRolesResponse {
+  repeated GuildRole roles = 1;
+}
+
+message AddGuildMemberRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+  int64 role_id = 4;
+}
+
+message AddGuildMemberRoleResponse {
+  bool ok = 1;
+}
+
+message RemoveGuildMemberRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+  int64 role_id = 4;
+}
+
+message RemoveGuildMemberRoleResponse {
+  bool ok = 1;
+}
+
+message ListGuildMemberRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+}
+
+message ListGuildMemberRolesResponse {
+  repeated GuildRole roles = 1;
+}
+
+message GetGuildMemberPermissionsRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+}
+
+message GetGuildMemberPermissionsResponse {
+  uint64 permissions = 1;
 }

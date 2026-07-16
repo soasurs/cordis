@@ -8,6 +8,11 @@ const guildMemberColumns = `
     guild_id, user_id, nickname, revision, joined_at, updated_at, deleted_at
 `
 
+const roleColumns = `
+    id, guild_id, name, permissions, position, is_default,
+    revision, created_at, updated_at, deleted_at
+`
+
 const createGuildQuery = `
     INSERT INTO guilds (
         id, owner_id, name, icon_uri, revision, created_at, updated_at, deleted_at
@@ -156,3 +161,109 @@ const transferGuildOwnershipQuery = `
       AND owner_id = $2
       AND deleted_at = 0
     RETURNING ` + guildColumns
+
+const createGuildRoleQuery = `
+    INSERT INTO roles (
+        id, guild_id, name, permissions, position, is_default,
+        revision, created_at, updated_at, deleted_at
+    ) VALUES (
+        $1, $2, $3, $4, $5, FALSE, 1, $6, 0, 0
+    )
+    RETURNING ` + roleColumns
+
+const getGuildRoleQuery = `
+    SELECT ` + roleColumns + `
+    FROM roles
+    WHERE guild_id = $1
+      AND id = $2
+      AND deleted_at = 0
+    LIMIT 1
+`
+
+const listGuildRolesQuery = `
+    SELECT ` + roleColumns + `
+    FROM roles
+    WHERE guild_id = $1
+      AND deleted_at = 0
+    ORDER BY position DESC, id ASC
+`
+
+const updateGuildRoleQuery = `
+    UPDATE roles
+    SET name = CASE WHEN $3 THEN $4 ELSE name END,
+        permissions = CASE WHEN $5 THEN $6 ELSE permissions END,
+        revision = revision + 1,
+        updated_at = $7
+    WHERE guild_id = $1
+      AND id = $2
+      AND deleted_at = 0
+    RETURNING ` + roleColumns
+
+const updateGuildRolePositionQuery = `
+    UPDATE roles
+    SET position = $3,
+        revision = revision + 1,
+        updated_at = $4
+    WHERE guild_id = $1
+      AND id = $2
+      AND is_default = FALSE
+      AND deleted_at = 0
+    RETURNING ` + roleColumns
+
+const deleteGuildRoleQuery = `
+    UPDATE roles
+    SET revision = revision + 1,
+        updated_at = $3,
+        deleted_at = $3
+    WHERE guild_id = $1
+      AND id = $2
+      AND is_default = FALSE
+      AND deleted_at = 0
+    RETURNING ` + roleColumns
+
+const addGuildMemberRoleStatement = `
+    INSERT INTO guild_member_roles (guild_id, user_id, role_id, created_at)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (guild_id, user_id, role_id) DO NOTHING
+`
+
+const removeGuildMemberRoleStatement = `
+    DELETE FROM guild_member_roles
+    WHERE guild_id = $1
+      AND user_id = $2
+      AND role_id = $3
+`
+
+const deleteGuildMemberRoleAssignmentsStatement = `
+    DELETE FROM guild_member_roles
+    WHERE guild_id = $1
+      AND user_id = $2
+`
+
+const deleteGuildRoleAssignmentsStatement = `
+    DELETE FROM guild_member_roles
+    WHERE guild_id = $1
+      AND role_id = $2
+`
+
+const deleteAllGuildRoleAssignmentsStatement = `
+    DELETE FROM guild_member_roles
+    WHERE guild_id = $1
+`
+
+const listGuildMemberRolesQuery = `
+    SELECT ` + roleColumns + `
+    FROM roles
+    WHERE guild_id = $1
+      AND deleted_at = 0
+      AND (
+          is_default = TRUE
+          OR id IN (
+              SELECT role_id
+              FROM guild_member_roles
+              WHERE guild_id = $1
+                AND user_id = $2
+          )
+      )
+    ORDER BY position DESC, id ASC
+`

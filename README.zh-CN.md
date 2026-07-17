@@ -105,6 +105,14 @@ export CORDIS_ACCESS_TOKEN_SECRET='development-access-secret'
 export CORDIS_REFRESH_TOKEN_SECRET='development-refresh-secret'
 ```
 
+启用 Authenticator 的 TOTP 两步验证还需要独立的 AES-256-GCM 密钥（Base64 编码的 32 字节随机值）：
+
+```bash
+export CORDIS_TOTP_ENCRYPTION_KEY='...'
+```
+
+该密钥不得与 JWT 密钥复用，也不应提交到配置文件或日志中。
+
 执行 PostgreSQL migration：
 
 ```bash

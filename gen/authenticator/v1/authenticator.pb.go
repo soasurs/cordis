@@ -767,10 +767,10 @@ func (b0 LoginRequest_builder) Build() *LoginRequest {
 }
 
 type LoginResponse struct {
-	state             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state              protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Outcome isLoginResponse_Outcome `protobuf_oneof:"outcome"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LoginResponse) Reset() {
@@ -800,34 +800,490 @@ func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 
 func (x *LoginResponse) GetResult() *AuthenticationResult {
 	if x != nil {
-		return x.xxx_hidden_Result
+		if x, ok := x.xxx_hidden_Outcome.(*loginResponse_Result); ok {
+			return x.Result
+		}
+	}
+	return nil
+}
+
+func (x *LoginResponse) GetTwoFactorChallenge() *TwoFactorLoginChallenge {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Outcome.(*loginResponse_TwoFactorChallenge); ok {
+			return x.TwoFactorChallenge
+		}
 	}
 	return nil
 }
 
 func (x *LoginResponse) SetResult(v *AuthenticationResult) {
-	x.xxx_hidden_Result = v
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &loginResponse_Result{v}
+}
+
+func (x *LoginResponse) SetTwoFactorChallenge(v *TwoFactorLoginChallenge) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &loginResponse_TwoFactorChallenge{v}
+}
+
+func (x *LoginResponse) HasOutcome() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Outcome != nil
 }
 
 func (x *LoginResponse) HasResult() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Result != nil
+	_, ok := x.xxx_hidden_Outcome.(*loginResponse_Result)
+	return ok
+}
+
+func (x *LoginResponse) HasTwoFactorChallenge() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*loginResponse_TwoFactorChallenge)
+	return ok
+}
+
+func (x *LoginResponse) ClearOutcome() {
+	x.xxx_hidden_Outcome = nil
 }
 
 func (x *LoginResponse) ClearResult() {
-	x.xxx_hidden_Result = nil
+	if _, ok := x.xxx_hidden_Outcome.(*loginResponse_Result); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+func (x *LoginResponse) ClearTwoFactorChallenge() {
+	if _, ok := x.xxx_hidden_Outcome.(*loginResponse_TwoFactorChallenge); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+const LoginResponse_Outcome_not_set_case case_LoginResponse_Outcome = 0
+const LoginResponse_Result_case case_LoginResponse_Outcome = 1
+const LoginResponse_TwoFactorChallenge_case case_LoginResponse_Outcome = 2
+
+func (x *LoginResponse) WhichOutcome() case_LoginResponse_Outcome {
+	if x == nil {
+		return LoginResponse_Outcome_not_set_case
+	}
+	switch x.xxx_hidden_Outcome.(type) {
+	case *loginResponse_Result:
+		return LoginResponse_Result_case
+	case *loginResponse_TwoFactorChallenge:
+		return LoginResponse_TwoFactorChallenge_case
+	default:
+		return LoginResponse_Outcome_not_set_case
+	}
 }
 
 type LoginResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Result *AuthenticationResult
+	// Fields of oneof xxx_hidden_Outcome:
+	Result             *AuthenticationResult
+	TwoFactorChallenge *TwoFactorLoginChallenge
+	// -- end of xxx_hidden_Outcome
 }
 
 func (b0 LoginResponse_builder) Build() *LoginResponse {
 	m0 := &LoginResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Result != nil {
+		x.xxx_hidden_Outcome = &loginResponse_Result{b.Result}
+	}
+	if b.TwoFactorChallenge != nil {
+		x.xxx_hidden_Outcome = &loginResponse_TwoFactorChallenge{b.TwoFactorChallenge}
+	}
+	return m0
+}
+
+type case_LoginResponse_Outcome protoreflect.FieldNumber
+
+func (x case_LoginResponse_Outcome) String() string {
+	md := file_authenticator_v1_authenticator_proto_msgTypes[4].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
+type isLoginResponse_Outcome interface {
+	isLoginResponse_Outcome()
+}
+
+type loginResponse_Result struct {
+	Result *AuthenticationResult `protobuf:"bytes,1,opt,name=result,oneof"`
+}
+
+type loginResponse_TwoFactorChallenge struct {
+	TwoFactorChallenge *TwoFactorLoginChallenge `protobuf:"bytes,2,opt,name=two_factor_challenge,json=twoFactorChallenge,oneof"`
+}
+
+func (*loginResponse_Result) isLoginResponse_Outcome() {}
+
+func (*loginResponse_TwoFactorChallenge) isLoginResponse_Outcome() {}
+
+type TwoFactorLoginChallenge struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
+	xxx_hidden_ExpiresAt   int64                  `protobuf:"varint,2,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *TwoFactorLoginChallenge) Reset() {
+	*x = TwoFactorLoginChallenge{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TwoFactorLoginChallenge) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TwoFactorLoginChallenge) ProtoMessage() {}
+
+func (x *TwoFactorLoginChallenge) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *TwoFactorLoginChallenge) GetToken() string {
+	if x != nil {
+		if x.xxx_hidden_Token != nil {
+			return *x.xxx_hidden_Token
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *TwoFactorLoginChallenge) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *TwoFactorLoginChallenge) SetToken(v string) {
+	x.xxx_hidden_Token = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *TwoFactorLoginChallenge) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *TwoFactorLoginChallenge) HasToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *TwoFactorLoginChallenge) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *TwoFactorLoginChallenge) ClearToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Token = nil
+}
+
+func (x *TwoFactorLoginChallenge) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type TwoFactorLoginChallenge_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Token     *string
+	ExpiresAt *int64
+}
+
+func (b0 TwoFactorLoginChallenge_builder) Build() *TwoFactorLoginChallenge {
+	m0 := &TwoFactorLoginChallenge{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Token != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Token = b.Token
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
+type CompleteTwoFactorLoginRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChallengeToken *string                `protobuf:"bytes,1,opt,name=challenge_token,json=challengeToken"`
+	xxx_hidden_Code           *string                `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_UserAgent      *string                `protobuf:"bytes,3,opt,name=user_agent,json=userAgent"`
+	xxx_hidden_Ip             *string                `protobuf:"bytes,4,opt,name=ip"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *CompleteTwoFactorLoginRequest) Reset() {
+	*x = CompleteTwoFactorLoginRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteTwoFactorLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteTwoFactorLoginRequest) ProtoMessage() {}
+
+func (x *CompleteTwoFactorLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteTwoFactorLoginRequest) GetChallengeToken() string {
+	if x != nil {
+		if x.xxx_hidden_ChallengeToken != nil {
+			return *x.xxx_hidden_ChallengeToken
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CompleteTwoFactorLoginRequest) GetCode() string {
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CompleteTwoFactorLoginRequest) GetUserAgent() string {
+	if x != nil {
+		if x.xxx_hidden_UserAgent != nil {
+			return *x.xxx_hidden_UserAgent
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CompleteTwoFactorLoginRequest) GetIp() string {
+	if x != nil {
+		if x.xxx_hidden_Ip != nil {
+			return *x.xxx_hidden_Ip
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CompleteTwoFactorLoginRequest) SetChallengeToken(v string) {
+	x.xxx_hidden_ChallengeToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *CompleteTwoFactorLoginRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *CompleteTwoFactorLoginRequest) SetUserAgent(v string) {
+	x.xxx_hidden_UserAgent = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *CompleteTwoFactorLoginRequest) SetIp(v string) {
+	x.xxx_hidden_Ip = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *CompleteTwoFactorLoginRequest) HasChallengeToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CompleteTwoFactorLoginRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CompleteTwoFactorLoginRequest) HasUserAgent() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CompleteTwoFactorLoginRequest) HasIp() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *CompleteTwoFactorLoginRequest) ClearChallengeToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChallengeToken = nil
+}
+
+func (x *CompleteTwoFactorLoginRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Code = nil
+}
+
+func (x *CompleteTwoFactorLoginRequest) ClearUserAgent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_UserAgent = nil
+}
+
+func (x *CompleteTwoFactorLoginRequest) ClearIp() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Ip = nil
+}
+
+type CompleteTwoFactorLoginRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChallengeToken *string
+	Code           *string
+	UserAgent      *string
+	Ip             *string
+}
+
+func (b0 CompleteTwoFactorLoginRequest_builder) Build() *CompleteTwoFactorLoginRequest {
+	m0 := &CompleteTwoFactorLoginRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChallengeToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_ChallengeToken = b.ChallengeToken
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_Code = b.Code
+	}
+	if b.UserAgent != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_UserAgent = b.UserAgent
+	}
+	if b.Ip != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Ip = b.Ip
+	}
+	return m0
+}
+
+type CompleteTwoFactorLoginResponse struct {
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CompleteTwoFactorLoginResponse) Reset() {
+	*x = CompleteTwoFactorLoginResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteTwoFactorLoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteTwoFactorLoginResponse) ProtoMessage() {}
+
+func (x *CompleteTwoFactorLoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteTwoFactorLoginResponse) GetResult() *AuthenticationResult {
+	if x != nil {
+		return x.xxx_hidden_Result
+	}
+	return nil
+}
+
+func (x *CompleteTwoFactorLoginResponse) SetResult(v *AuthenticationResult) {
+	x.xxx_hidden_Result = v
+}
+
+func (x *CompleteTwoFactorLoginResponse) HasResult() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Result != nil
+}
+
+func (x *CompleteTwoFactorLoginResponse) ClearResult() {
+	x.xxx_hidden_Result = nil
+}
+
+type CompleteTwoFactorLoginResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Result *AuthenticationResult
+}
+
+func (b0 CompleteTwoFactorLoginResponse_builder) Build() *CompleteTwoFactorLoginResponse {
+	m0 := &CompleteTwoFactorLoginResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Result = b.Result
@@ -852,7 +1308,7 @@ type AuthenticationResult struct {
 
 func (x *AuthenticationResult) Reset() {
 	*x = AuthenticationResult{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[5]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -864,7 +1320,7 @@ func (x *AuthenticationResult) String() string {
 func (*AuthenticationResult) ProtoMessage() {}
 
 func (x *AuthenticationResult) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[5]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1136,7 +1592,7 @@ type RefreshRequest struct {
 
 func (x *RefreshRequest) Reset() {
 	*x = RefreshRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[6]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1148,7 +1604,7 @@ func (x *RefreshRequest) String() string {
 func (*RefreshRequest) ProtoMessage() {}
 
 func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[6]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1212,7 +1668,7 @@ type RefreshResponse struct {
 
 func (x *RefreshResponse) Reset() {
 	*x = RefreshResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[7]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1224,7 +1680,7 @@ func (x *RefreshResponse) String() string {
 func (*RefreshResponse) ProtoMessage() {}
 
 func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[7]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1282,7 +1738,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[8]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1294,7 +1750,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[8]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1360,7 +1816,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[9]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1372,7 +1828,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[9]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1435,7 +1891,7 @@ type VerifyAccessTokenRequest struct {
 
 func (x *VerifyAccessTokenRequest) Reset() {
 	*x = VerifyAccessTokenRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[10]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1447,7 +1903,7 @@ func (x *VerifyAccessTokenRequest) String() string {
 func (*VerifyAccessTokenRequest) ProtoMessage() {}
 
 func (x *VerifyAccessTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[10]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1516,7 +1972,7 @@ type VerifyAccessTokenResponse struct {
 
 func (x *VerifyAccessTokenResponse) Reset() {
 	*x = VerifyAccessTokenResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[11]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1528,7 +1984,7 @@ func (x *VerifyAccessTokenResponse) String() string {
 func (*VerifyAccessTokenResponse) ProtoMessage() {}
 
 func (x *VerifyAccessTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[11]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1678,7 +2134,7 @@ type ListSessionsRequest struct {
 
 func (x *ListSessionsRequest) Reset() {
 	*x = ListSessionsRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[12]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1690,7 +2146,7 @@ func (x *ListSessionsRequest) String() string {
 func (*ListSessionsRequest) ProtoMessage() {}
 
 func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[12]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1751,7 +2207,7 @@ type ListSessionsResponse struct {
 
 func (x *ListSessionsResponse) Reset() {
 	*x = ListSessionsResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[13]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1763,7 +2219,7 @@ func (x *ListSessionsResponse) String() string {
 func (*ListSessionsResponse) ProtoMessage() {}
 
 func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[13]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1813,7 +2269,7 @@ type RevokeUserSessionRequest struct {
 
 func (x *RevokeUserSessionRequest) Reset() {
 	*x = RevokeUserSessionRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[14]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1825,7 +2281,7 @@ func (x *RevokeUserSessionRequest) String() string {
 func (*RevokeUserSessionRequest) ProtoMessage() {}
 
 func (x *RevokeUserSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[14]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1917,7 +2373,7 @@ type RevokeUserSessionResponse struct {
 
 func (x *RevokeUserSessionResponse) Reset() {
 	*x = RevokeUserSessionResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1929,7 +2385,7 @@ func (x *RevokeUserSessionResponse) String() string {
 func (*RevokeUserSessionResponse) ProtoMessage() {}
 
 func (x *RevokeUserSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1993,7 +2449,7 @@ type RevokeOtherSessionsRequest struct {
 
 func (x *RevokeOtherSessionsRequest) Reset() {
 	*x = RevokeOtherSessionsRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2005,7 +2461,7 @@ func (x *RevokeOtherSessionsRequest) String() string {
 func (*RevokeOtherSessionsRequest) ProtoMessage() {}
 
 func (x *RevokeOtherSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2097,7 +2553,7 @@ type RevokeOtherSessionsResponse struct {
 
 func (x *RevokeOtherSessionsResponse) Reset() {
 	*x = RevokeOtherSessionsResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2109,7 +2565,7 @@ func (x *RevokeOtherSessionsResponse) String() string {
 func (*RevokeOtherSessionsResponse) ProtoMessage() {}
 
 func (x *RevokeOtherSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2161,6 +2617,1257 @@ func (b0 RevokeOtherSessionsResponse_builder) Build() *RevokeOtherSessionsRespon
 	return m0
 }
 
+type GetTwoFactorStatusRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *GetTwoFactorStatusRequest) Reset() {
+	*x = GetTwoFactorStatusRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTwoFactorStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTwoFactorStatusRequest) ProtoMessage() {}
+
+func (x *GetTwoFactorStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetTwoFactorStatusRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *GetTwoFactorStatusRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetTwoFactorStatusRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetTwoFactorStatusRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+type GetTwoFactorStatusRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId *int64
+}
+
+func (b0 GetTwoFactorStatusRequest_builder) Build() *GetTwoFactorStatusRequest {
+	m0 := &GetTwoFactorStatusRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
+type GetTwoFactorStatusResponse struct {
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Enabled                bool                   `protobuf:"varint,1,opt,name=enabled"`
+	xxx_hidden_RecoveryCodesRemaining int32                  `protobuf:"varint,2,opt,name=recovery_codes_remaining,json=recoveryCodesRemaining"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
+}
+
+func (x *GetTwoFactorStatusResponse) Reset() {
+	*x = GetTwoFactorStatusResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTwoFactorStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTwoFactorStatusResponse) ProtoMessage() {}
+
+func (x *GetTwoFactorStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetTwoFactorStatusResponse) GetEnabled() bool {
+	if x != nil {
+		return x.xxx_hidden_Enabled
+	}
+	return false
+}
+
+func (x *GetTwoFactorStatusResponse) GetRecoveryCodesRemaining() int32 {
+	if x != nil {
+		return x.xxx_hidden_RecoveryCodesRemaining
+	}
+	return 0
+}
+
+func (x *GetTwoFactorStatusResponse) SetEnabled(v bool) {
+	x.xxx_hidden_Enabled = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetTwoFactorStatusResponse) SetRecoveryCodesRemaining(v int32) {
+	x.xxx_hidden_RecoveryCodesRemaining = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GetTwoFactorStatusResponse) HasEnabled() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetTwoFactorStatusResponse) HasRecoveryCodesRemaining() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetTwoFactorStatusResponse) ClearEnabled() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Enabled = false
+}
+
+func (x *GetTwoFactorStatusResponse) ClearRecoveryCodesRemaining() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_RecoveryCodesRemaining = 0
+}
+
+type GetTwoFactorStatusResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Enabled                *bool
+	RecoveryCodesRemaining *int32
+}
+
+func (b0 GetTwoFactorStatusResponse_builder) Build() *GetTwoFactorStatusResponse {
+	m0 := &GetTwoFactorStatusResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Enabled != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Enabled = *b.Enabled
+	}
+	if b.RecoveryCodesRemaining != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_RecoveryCodesRemaining = *b.RecoveryCodesRemaining
+	}
+	return m0
+}
+
+type BeginTwoFactorEnrollmentRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Password    *string                `protobuf:"bytes,2,opt,name=password"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) Reset() {
+	*x = BeginTwoFactorEnrollmentRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginTwoFactorEnrollmentRequest) ProtoMessage() {}
+
+func (x *BeginTwoFactorEnrollmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) GetPassword() string {
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Password = nil
+}
+
+type BeginTwoFactorEnrollmentRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId   *int64
+	Password *string
+}
+
+func (b0 BeginTwoFactorEnrollmentRequest_builder) Build() *BeginTwoFactorEnrollmentRequest {
+	m0 := &BeginTwoFactorEnrollmentRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Password = b.Password
+	}
+	return m0
+}
+
+type BeginTwoFactorEnrollmentResponse struct {
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_EnrollmentToken *string                `protobuf:"bytes,1,opt,name=enrollment_token,json=enrollmentToken"`
+	xxx_hidden_OtpauthUri      *string                `protobuf:"bytes,2,opt,name=otpauth_uri,json=otpauthUri"`
+	xxx_hidden_ManualEntryKey  *string                `protobuf:"bytes,3,opt,name=manual_entry_key,json=manualEntryKey"`
+	xxx_hidden_ExpiresAt       int64                  `protobuf:"varint,4,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) Reset() {
+	*x = BeginTwoFactorEnrollmentResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BeginTwoFactorEnrollmentResponse) ProtoMessage() {}
+
+func (x *BeginTwoFactorEnrollmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) GetEnrollmentToken() string {
+	if x != nil {
+		if x.xxx_hidden_EnrollmentToken != nil {
+			return *x.xxx_hidden_EnrollmentToken
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) GetOtpauthUri() string {
+	if x != nil {
+		if x.xxx_hidden_OtpauthUri != nil {
+			return *x.xxx_hidden_OtpauthUri
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) GetManualEntryKey() string {
+	if x != nil {
+		if x.xxx_hidden_ManualEntryKey != nil {
+			return *x.xxx_hidden_ManualEntryKey
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) SetEnrollmentToken(v string) {
+	x.xxx_hidden_EnrollmentToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) SetOtpauthUri(v string) {
+	x.xxx_hidden_OtpauthUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) SetManualEntryKey(v string) {
+	x.xxx_hidden_ManualEntryKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasEnrollmentToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasOtpauthUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasManualEntryKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearEnrollmentToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_EnrollmentToken = nil
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearOtpauthUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_OtpauthUri = nil
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearManualEntryKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ManualEntryKey = nil
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type BeginTwoFactorEnrollmentResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	EnrollmentToken *string
+	OtpauthUri      *string
+	ManualEntryKey  *string
+	ExpiresAt       *int64
+}
+
+func (b0 BeginTwoFactorEnrollmentResponse_builder) Build() *BeginTwoFactorEnrollmentResponse {
+	m0 := &BeginTwoFactorEnrollmentResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.EnrollmentToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_EnrollmentToken = b.EnrollmentToken
+	}
+	if b.OtpauthUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_OtpauthUri = b.OtpauthUri
+	}
+	if b.ManualEntryKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_ManualEntryKey = b.ManualEntryKey
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
+type ConfirmTwoFactorEnrollmentRequest struct {
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_CurrentSessionId int64                  `protobuf:"varint,2,opt,name=current_session_id,json=currentSessionId"`
+	xxx_hidden_EnrollmentToken  *string                `protobuf:"bytes,3,opt,name=enrollment_token,json=enrollmentToken"`
+	xxx_hidden_Code             *string                `protobuf:"bytes,4,opt,name=code"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) Reset() {
+	*x = ConfirmTwoFactorEnrollmentRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmTwoFactorEnrollmentRequest) ProtoMessage() {}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) GetCurrentSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_CurrentSessionId
+	}
+	return 0
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) GetEnrollmentToken() string {
+	if x != nil {
+		if x.xxx_hidden_EnrollmentToken != nil {
+			return *x.xxx_hidden_EnrollmentToken
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) GetCode() string {
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) SetCurrentSessionId(v int64) {
+	x.xxx_hidden_CurrentSessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) SetEnrollmentToken(v string) {
+	x.xxx_hidden_EnrollmentToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) HasCurrentSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) HasEnrollmentToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) ClearCurrentSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_CurrentSessionId = 0
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) ClearEnrollmentToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_EnrollmentToken = nil
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Code = nil
+}
+
+type ConfirmTwoFactorEnrollmentRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId           *int64
+	CurrentSessionId *int64
+	EnrollmentToken  *string
+	Code             *string
+}
+
+func (b0 ConfirmTwoFactorEnrollmentRequest_builder) Build() *ConfirmTwoFactorEnrollmentRequest {
+	m0 := &ConfirmTwoFactorEnrollmentRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.CurrentSessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_CurrentSessionId = *b.CurrentSessionId
+	}
+	if b.EnrollmentToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_EnrollmentToken = b.EnrollmentToken
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
+type ConfirmTwoFactorEnrollmentResponse struct {
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *ConfirmTwoFactorEnrollmentResponse) Reset() {
+	*x = ConfirmTwoFactorEnrollmentResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmTwoFactorEnrollmentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmTwoFactorEnrollmentResponse) ProtoMessage() {}
+
+func (x *ConfirmTwoFactorEnrollmentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ConfirmTwoFactorEnrollmentResponse) GetRecoveryCodes() []string {
+	if x != nil {
+		return x.xxx_hidden_RecoveryCodes
+	}
+	return nil
+}
+
+func (x *ConfirmTwoFactorEnrollmentResponse) SetRecoveryCodes(v []string) {
+	x.xxx_hidden_RecoveryCodes = v
+}
+
+type ConfirmTwoFactorEnrollmentResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RecoveryCodes []string
+}
+
+func (b0 ConfirmTwoFactorEnrollmentResponse_builder) Build() *ConfirmTwoFactorEnrollmentResponse {
+	m0 := &ConfirmTwoFactorEnrollmentResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RecoveryCodes = b.RecoveryCodes
+	return m0
+}
+
+type DisableTwoFactorRequest struct {
+	state                       protoimpl.MessageState                 `protogen:"opaque.v1"`
+	xxx_hidden_UserId           int64                                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_CurrentSessionId int64                                  `protobuf:"varint,2,opt,name=current_session_id,json=currentSessionId"`
+	xxx_hidden_Password         *string                                `protobuf:"bytes,3,opt,name=password"`
+	xxx_hidden_Verification     isDisableTwoFactorRequest_Verification `protobuf_oneof:"verification"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *DisableTwoFactorRequest) Reset() {
+	*x = DisableTwoFactorRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisableTwoFactorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisableTwoFactorRequest) ProtoMessage() {}
+
+func (x *DisableTwoFactorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DisableTwoFactorRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *DisableTwoFactorRequest) GetCurrentSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_CurrentSessionId
+	}
+	return 0
+}
+
+func (x *DisableTwoFactorRequest) GetPassword() string {
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DisableTwoFactorRequest) GetCode() string {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_Code); ok {
+			return x.Code
+		}
+	}
+	return ""
+}
+
+func (x *DisableTwoFactorRequest) GetRecoveryCode() string {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_RecoveryCode); ok {
+			return x.RecoveryCode
+		}
+	}
+	return ""
+}
+
+func (x *DisableTwoFactorRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *DisableTwoFactorRequest) SetCurrentSessionId(v int64) {
+	x.xxx_hidden_CurrentSessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *DisableTwoFactorRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *DisableTwoFactorRequest) SetCode(v string) {
+	x.xxx_hidden_Verification = &disableTwoFactorRequest_Code{v}
+}
+
+func (x *DisableTwoFactorRequest) SetRecoveryCode(v string) {
+	x.xxx_hidden_Verification = &disableTwoFactorRequest_RecoveryCode{v}
+}
+
+func (x *DisableTwoFactorRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DisableTwoFactorRequest) HasCurrentSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DisableTwoFactorRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *DisableTwoFactorRequest) HasVerification() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Verification != nil
+}
+
+func (x *DisableTwoFactorRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_Code)
+	return ok
+}
+
+func (x *DisableTwoFactorRequest) HasRecoveryCode() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_RecoveryCode)
+	return ok
+}
+
+func (x *DisableTwoFactorRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *DisableTwoFactorRequest) ClearCurrentSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_CurrentSessionId = 0
+}
+
+func (x *DisableTwoFactorRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Password = nil
+}
+
+func (x *DisableTwoFactorRequest) ClearVerification() {
+	x.xxx_hidden_Verification = nil
+}
+
+func (x *DisableTwoFactorRequest) ClearCode() {
+	if _, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_Code); ok {
+		x.xxx_hidden_Verification = nil
+	}
+}
+
+func (x *DisableTwoFactorRequest) ClearRecoveryCode() {
+	if _, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_RecoveryCode); ok {
+		x.xxx_hidden_Verification = nil
+	}
+}
+
+const DisableTwoFactorRequest_Verification_not_set_case case_DisableTwoFactorRequest_Verification = 0
+const DisableTwoFactorRequest_Code_case case_DisableTwoFactorRequest_Verification = 4
+const DisableTwoFactorRequest_RecoveryCode_case case_DisableTwoFactorRequest_Verification = 5
+
+func (x *DisableTwoFactorRequest) WhichVerification() case_DisableTwoFactorRequest_Verification {
+	if x == nil {
+		return DisableTwoFactorRequest_Verification_not_set_case
+	}
+	switch x.xxx_hidden_Verification.(type) {
+	case *disableTwoFactorRequest_Code:
+		return DisableTwoFactorRequest_Code_case
+	case *disableTwoFactorRequest_RecoveryCode:
+		return DisableTwoFactorRequest_RecoveryCode_case
+	default:
+		return DisableTwoFactorRequest_Verification_not_set_case
+	}
+}
+
+type DisableTwoFactorRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId           *int64
+	CurrentSessionId *int64
+	Password         *string
+	// Fields of oneof xxx_hidden_Verification:
+	Code         *string
+	RecoveryCode *string
+	// -- end of xxx_hidden_Verification
+}
+
+func (b0 DisableTwoFactorRequest_builder) Build() *DisableTwoFactorRequest {
+	m0 := &DisableTwoFactorRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.CurrentSessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_CurrentSessionId = *b.CurrentSessionId
+	}
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Password = b.Password
+	}
+	if b.Code != nil {
+		x.xxx_hidden_Verification = &disableTwoFactorRequest_Code{*b.Code}
+	}
+	if b.RecoveryCode != nil {
+		x.xxx_hidden_Verification = &disableTwoFactorRequest_RecoveryCode{*b.RecoveryCode}
+	}
+	return m0
+}
+
+type case_DisableTwoFactorRequest_Verification protoreflect.FieldNumber
+
+func (x case_DisableTwoFactorRequest_Verification) String() string {
+	md := file_authenticator_v1_authenticator_proto_msgTypes[27].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
+type isDisableTwoFactorRequest_Verification interface {
+	isDisableTwoFactorRequest_Verification()
+}
+
+type disableTwoFactorRequest_Code struct {
+	Code string `protobuf:"bytes,4,opt,name=code,oneof"`
+}
+
+type disableTwoFactorRequest_RecoveryCode struct {
+	RecoveryCode string `protobuf:"bytes,5,opt,name=recovery_code,json=recoveryCode,oneof"`
+}
+
+func (*disableTwoFactorRequest_Code) isDisableTwoFactorRequest_Verification() {}
+
+func (*disableTwoFactorRequest_RecoveryCode) isDisableTwoFactorRequest_Verification() {}
+
+type DisableTwoFactorResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DisableTwoFactorResponse) Reset() {
+	*x = DisableTwoFactorResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DisableTwoFactorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DisableTwoFactorResponse) ProtoMessage() {}
+
+func (x *DisableTwoFactorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DisableTwoFactorResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *DisableTwoFactorResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DisableTwoFactorResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DisableTwoFactorResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DisableTwoFactorResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DisableTwoFactorResponse_builder) Build() *DisableTwoFactorResponse {
+	m0 := &DisableTwoFactorResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
+type RegenerateTwoFactorRecoveryCodesRequest struct {
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_CurrentSessionId int64                  `protobuf:"varint,2,opt,name=current_session_id,json=currentSessionId"`
+	xxx_hidden_Password         *string                `protobuf:"bytes,3,opt,name=password"`
+	xxx_hidden_Code             *string                `protobuf:"bytes,4,opt,name=code"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) Reset() {
+	*x = RegenerateTwoFactorRecoveryCodesRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegenerateTwoFactorRecoveryCodesRequest) ProtoMessage() {}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) GetCurrentSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_CurrentSessionId
+	}
+	return 0
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) GetPassword() string {
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) GetCode() string {
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) SetCurrentSessionId(v int64) {
+	x.xxx_hidden_CurrentSessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) HasCurrentSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) ClearCurrentSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_CurrentSessionId = 0
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Password = nil
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Code = nil
+}
+
+type RegenerateTwoFactorRecoveryCodesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId           *int64
+	CurrentSessionId *int64
+	Password         *string
+	Code             *string
+}
+
+func (b0 RegenerateTwoFactorRecoveryCodesRequest_builder) Build() *RegenerateTwoFactorRecoveryCodesRequest {
+	m0 := &RegenerateTwoFactorRecoveryCodesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.CurrentSessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_CurrentSessionId = *b.CurrentSessionId
+	}
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Password = b.Password
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
+type RegenerateTwoFactorRecoveryCodesResponse struct {
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesResponse) Reset() {
+	*x = RegenerateTwoFactorRecoveryCodesResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegenerateTwoFactorRecoveryCodesResponse) ProtoMessage() {}
+
+func (x *RegenerateTwoFactorRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesResponse) GetRecoveryCodes() []string {
+	if x != nil {
+		return x.xxx_hidden_RecoveryCodes
+	}
+	return nil
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesResponse) SetRecoveryCodes(v []string) {
+	x.xxx_hidden_RecoveryCodes = v
+}
+
+type RegenerateTwoFactorRecoveryCodesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RecoveryCodes []string
+}
+
+func (b0 RegenerateTwoFactorRecoveryCodesResponse_builder) Build() *RegenerateTwoFactorRecoveryCodesResponse {
+	m0 := &RegenerateTwoFactorRecoveryCodesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RecoveryCodes = b.RecoveryCodes
+	return m0
+}
+
 var File_authenticator_v1_authenticator_proto protoreflect.FileDescriptor
 
 const file_authenticator_v1_authenticator_proto_rawDesc = "" +
@@ -2195,8 +3902,22 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\x03 \x01(\tR\tuserAgent\x12\x0e\n" +
-	"\x02ip\x18\x04 \x01(\tR\x02ip\"O\n" +
-	"\rLoginResponse\x12>\n" +
+	"\x02ip\x18\x04 \x01(\tR\x02ip\"\xbb\x01\n" +
+	"\rLoginResponse\x12@\n" +
+	"\x06result\x18\x01 \x01(\v2&.authenticator.v1.AuthenticationResultH\x00R\x06result\x12]\n" +
+	"\x14two_factor_challenge\x18\x02 \x01(\v2).authenticator.v1.TwoFactorLoginChallengeH\x00R\x12twoFactorChallengeB\t\n" +
+	"\aoutcome\"N\n" +
+	"\x17TwoFactorLoginChallenge\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt\"\x8b\x01\n" +
+	"\x1dCompleteTwoFactorLoginRequest\x12'\n" +
+	"\x0fchallenge_token\x18\x01 \x01(\tR\x0echallengeToken\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x1d\n" +
+	"\n" +
+	"user_agent\x18\x03 \x01(\tR\tuserAgent\x12\x0e\n" +
+	"\x02ip\x18\x04 \x01(\tR\x02ip\"`\n" +
+	"\x1eCompleteTwoFactorLoginResponse\x12>\n" +
 	"\x06result\x18\x01 \x01(\v2&.authenticator.v1.AuthenticationResultR\x06result\"\xc4\x02\n" +
 	"\x14AuthenticationResult\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x17\n" +
@@ -2239,65 +3960,136 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12,\n" +
 	"\x12current_session_id\x18\x02 \x01(\x03R\x10currentSessionId\"7\n" +
 	"\x1bRevokeOtherSessionsResponse\x12\x18\n" +
-	"\arevoked\x18\x01 \x01(\x05R\arevoked2\xff\x05\n" +
+	"\arevoked\x18\x01 \x01(\x05R\arevoked\"4\n" +
+	"\x19GetTwoFactorStatusRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\"p\n" +
+	"\x1aGetTwoFactorStatusResponse\x12\x18\n" +
+	"\aenabled\x18\x01 \x01(\bR\aenabled\x128\n" +
+	"\x18recovery_codes_remaining\x18\x02 \x01(\x05R\x16recoveryCodesRemaining\"V\n" +
+	"\x1fBeginTwoFactorEnrollmentRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xb7\x01\n" +
+	" BeginTwoFactorEnrollmentResponse\x12)\n" +
+	"\x10enrollment_token\x18\x01 \x01(\tR\x0fenrollmentToken\x12\x1f\n" +
+	"\votpauth_uri\x18\x02 \x01(\tR\n" +
+	"otpauthUri\x12(\n" +
+	"\x10manual_entry_key\x18\x03 \x01(\tR\x0emanualEntryKey\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x04 \x01(\x03R\texpiresAt\"\xa9\x01\n" +
+	"!ConfirmTwoFactorEnrollmentRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12,\n" +
+	"\x12current_session_id\x18\x02 \x01(\x03R\x10currentSessionId\x12)\n" +
+	"\x10enrollment_token\x18\x03 \x01(\tR\x0fenrollmentToken\x12\x12\n" +
+	"\x04code\x18\x04 \x01(\tR\x04code\"K\n" +
+	"\"ConfirmTwoFactorEnrollmentResponse\x12%\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"\xc9\x01\n" +
+	"\x17DisableTwoFactorRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12,\n" +
+	"\x12current_session_id\x18\x02 \x01(\x03R\x10currentSessionId\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x14\n" +
+	"\x04code\x18\x04 \x01(\tH\x00R\x04code\x12%\n" +
+	"\rrecovery_code\x18\x05 \x01(\tH\x00R\frecoveryCodeB\x0e\n" +
+	"\fverification\"*\n" +
+	"\x18DisableTwoFactorResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\xa0\x01\n" +
+	"'RegenerateTwoFactorRecoveryCodesRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12,\n" +
+	"\x12current_session_id\x18\x02 \x01(\x03R\x10currentSessionId\x12\x1a\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x12\n" +
+	"\x04code\x18\x04 \x01(\tR\x04code\"Q\n" +
+	"(RegenerateTwoFactorRecoveryCodesResponse\x12%\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes2\x82\f\n" +
 	"\x14AuthenticatorService\x12Q\n" +
 	"\bRegister\x12!.authenticator.v1.RegisterRequest\x1a\".authenticator.v1.RegisterResponse\x12H\n" +
-	"\x05Login\x12\x1e.authenticator.v1.LoginRequest\x1a\x1f.authenticator.v1.LoginResponse\x12N\n" +
+	"\x05Login\x12\x1e.authenticator.v1.LoginRequest\x1a\x1f.authenticator.v1.LoginResponse\x12{\n" +
+	"\x16CompleteTwoFactorLogin\x12/.authenticator.v1.CompleteTwoFactorLoginRequest\x1a0.authenticator.v1.CompleteTwoFactorLoginResponse\x12N\n" +
 	"\aRefresh\x12 .authenticator.v1.RefreshRequest\x1a!.authenticator.v1.RefreshResponse\x12K\n" +
 	"\x06Logout\x12\x1f.authenticator.v1.LogoutRequest\x1a .authenticator.v1.LogoutResponse\x12l\n" +
 	"\x11VerifyAccessToken\x12*.authenticator.v1.VerifyAccessTokenRequest\x1a+.authenticator.v1.VerifyAccessTokenResponse\x12]\n" +
 	"\fListSessions\x12%.authenticator.v1.ListSessionsRequest\x1a&.authenticator.v1.ListSessionsResponse\x12l\n" +
 	"\x11RevokeUserSession\x12*.authenticator.v1.RevokeUserSessionRequest\x1a+.authenticator.v1.RevokeUserSessionResponse\x12r\n" +
-	"\x13RevokeOtherSessions\x12,.authenticator.v1.RevokeOtherSessionsRequest\x1a-.authenticator.v1.RevokeOtherSessionsResponseB\xcb\x01\n" +
+	"\x13RevokeOtherSessions\x12,.authenticator.v1.RevokeOtherSessionsRequest\x1a-.authenticator.v1.RevokeOtherSessionsResponse\x12o\n" +
+	"\x12GetTwoFactorStatus\x12+.authenticator.v1.GetTwoFactorStatusRequest\x1a,.authenticator.v1.GetTwoFactorStatusResponse\x12\x81\x01\n" +
+	"\x18BeginTwoFactorEnrollment\x121.authenticator.v1.BeginTwoFactorEnrollmentRequest\x1a2.authenticator.v1.BeginTwoFactorEnrollmentResponse\x12\x87\x01\n" +
+	"\x1aConfirmTwoFactorEnrollment\x123.authenticator.v1.ConfirmTwoFactorEnrollmentRequest\x1a4.authenticator.v1.ConfirmTwoFactorEnrollmentResponse\x12i\n" +
+	"\x10DisableTwoFactor\x12).authenticator.v1.DisableTwoFactorRequest\x1a*.authenticator.v1.DisableTwoFactorResponse\x12\x99\x01\n" +
+	" RegenerateTwoFactorRecoveryCodes\x129.authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest\x1a:.authenticator.v1.RegenerateTwoFactorRecoveryCodesResponseB\xcb\x01\n" +
 	"\x14com.authenticator.v1B\x12AuthenticatorProtoP\x01Z>github.com/soasurs/cordis/gen/authenticator/v1;authenticatorv1\xa2\x02\x03AXX\xaa\x02\x10Authenticator.V1\xca\x02\x10Authenticator\\V1\xe2\x02\x1cAuthenticator\\V1\\GPBMetadata\xea\x02\x11Authenticator::V1b\beditionsp\xe8\a"
 
-var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_authenticator_v1_authenticator_proto_goTypes = []any{
-	(*Session)(nil),                     // 0: authenticator.v1.Session
-	(*RegisterRequest)(nil),             // 1: authenticator.v1.RegisterRequest
-	(*RegisterResponse)(nil),            // 2: authenticator.v1.RegisterResponse
-	(*LoginRequest)(nil),                // 3: authenticator.v1.LoginRequest
-	(*LoginResponse)(nil),               // 4: authenticator.v1.LoginResponse
-	(*AuthenticationResult)(nil),        // 5: authenticator.v1.AuthenticationResult
-	(*RefreshRequest)(nil),              // 6: authenticator.v1.RefreshRequest
-	(*RefreshResponse)(nil),             // 7: authenticator.v1.RefreshResponse
-	(*LogoutRequest)(nil),               // 8: authenticator.v1.LogoutRequest
-	(*LogoutResponse)(nil),              // 9: authenticator.v1.LogoutResponse
-	(*VerifyAccessTokenRequest)(nil),    // 10: authenticator.v1.VerifyAccessTokenRequest
-	(*VerifyAccessTokenResponse)(nil),   // 11: authenticator.v1.VerifyAccessTokenResponse
-	(*ListSessionsRequest)(nil),         // 12: authenticator.v1.ListSessionsRequest
-	(*ListSessionsResponse)(nil),        // 13: authenticator.v1.ListSessionsResponse
-	(*RevokeUserSessionRequest)(nil),    // 14: authenticator.v1.RevokeUserSessionRequest
-	(*RevokeUserSessionResponse)(nil),   // 15: authenticator.v1.RevokeUserSessionResponse
-	(*RevokeOtherSessionsRequest)(nil),  // 16: authenticator.v1.RevokeOtherSessionsRequest
-	(*RevokeOtherSessionsResponse)(nil), // 17: authenticator.v1.RevokeOtherSessionsResponse
+	(*Session)(nil),                                  // 0: authenticator.v1.Session
+	(*RegisterRequest)(nil),                          // 1: authenticator.v1.RegisterRequest
+	(*RegisterResponse)(nil),                         // 2: authenticator.v1.RegisterResponse
+	(*LoginRequest)(nil),                             // 3: authenticator.v1.LoginRequest
+	(*LoginResponse)(nil),                            // 4: authenticator.v1.LoginResponse
+	(*TwoFactorLoginChallenge)(nil),                  // 5: authenticator.v1.TwoFactorLoginChallenge
+	(*CompleteTwoFactorLoginRequest)(nil),            // 6: authenticator.v1.CompleteTwoFactorLoginRequest
+	(*CompleteTwoFactorLoginResponse)(nil),           // 7: authenticator.v1.CompleteTwoFactorLoginResponse
+	(*AuthenticationResult)(nil),                     // 8: authenticator.v1.AuthenticationResult
+	(*RefreshRequest)(nil),                           // 9: authenticator.v1.RefreshRequest
+	(*RefreshResponse)(nil),                          // 10: authenticator.v1.RefreshResponse
+	(*LogoutRequest)(nil),                            // 11: authenticator.v1.LogoutRequest
+	(*LogoutResponse)(nil),                           // 12: authenticator.v1.LogoutResponse
+	(*VerifyAccessTokenRequest)(nil),                 // 13: authenticator.v1.VerifyAccessTokenRequest
+	(*VerifyAccessTokenResponse)(nil),                // 14: authenticator.v1.VerifyAccessTokenResponse
+	(*ListSessionsRequest)(nil),                      // 15: authenticator.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),                     // 16: authenticator.v1.ListSessionsResponse
+	(*RevokeUserSessionRequest)(nil),                 // 17: authenticator.v1.RevokeUserSessionRequest
+	(*RevokeUserSessionResponse)(nil),                // 18: authenticator.v1.RevokeUserSessionResponse
+	(*RevokeOtherSessionsRequest)(nil),               // 19: authenticator.v1.RevokeOtherSessionsRequest
+	(*RevokeOtherSessionsResponse)(nil),              // 20: authenticator.v1.RevokeOtherSessionsResponse
+	(*GetTwoFactorStatusRequest)(nil),                // 21: authenticator.v1.GetTwoFactorStatusRequest
+	(*GetTwoFactorStatusResponse)(nil),               // 22: authenticator.v1.GetTwoFactorStatusResponse
+	(*BeginTwoFactorEnrollmentRequest)(nil),          // 23: authenticator.v1.BeginTwoFactorEnrollmentRequest
+	(*BeginTwoFactorEnrollmentResponse)(nil),         // 24: authenticator.v1.BeginTwoFactorEnrollmentResponse
+	(*ConfirmTwoFactorEnrollmentRequest)(nil),        // 25: authenticator.v1.ConfirmTwoFactorEnrollmentRequest
+	(*ConfirmTwoFactorEnrollmentResponse)(nil),       // 26: authenticator.v1.ConfirmTwoFactorEnrollmentResponse
+	(*DisableTwoFactorRequest)(nil),                  // 27: authenticator.v1.DisableTwoFactorRequest
+	(*DisableTwoFactorResponse)(nil),                 // 28: authenticator.v1.DisableTwoFactorResponse
+	(*RegenerateTwoFactorRecoveryCodesRequest)(nil),  // 29: authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
+	(*RegenerateTwoFactorRecoveryCodesResponse)(nil), // 30: authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
 }
 var file_authenticator_v1_authenticator_proto_depIdxs = []int32{
-	5,  // 0: authenticator.v1.RegisterResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	5,  // 1: authenticator.v1.LoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	5,  // 2: authenticator.v1.RefreshResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	0,  // 3: authenticator.v1.ListSessionsResponse.sessions:type_name -> authenticator.v1.Session
-	1,  // 4: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
-	3,  // 5: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
-	6,  // 6: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
-	8,  // 7: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
-	10, // 8: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
-	12, // 9: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
-	14, // 10: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
-	16, // 11: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
-	2,  // 12: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
-	4,  // 13: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
-	7,  // 14: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
-	9,  // 15: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
-	11, // 16: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
-	13, // 17: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
-	15, // 18: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
-	17, // 19: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
-	12, // [12:20] is the sub-list for method output_type
-	4,  // [4:12] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	8,  // 0: authenticator.v1.RegisterResponse.result:type_name -> authenticator.v1.AuthenticationResult
+	8,  // 1: authenticator.v1.LoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
+	5,  // 2: authenticator.v1.LoginResponse.two_factor_challenge:type_name -> authenticator.v1.TwoFactorLoginChallenge
+	8,  // 3: authenticator.v1.CompleteTwoFactorLoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
+	8,  // 4: authenticator.v1.RefreshResponse.result:type_name -> authenticator.v1.AuthenticationResult
+	0,  // 5: authenticator.v1.ListSessionsResponse.sessions:type_name -> authenticator.v1.Session
+	1,  // 6: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
+	3,  // 7: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
+	6,  // 8: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:input_type -> authenticator.v1.CompleteTwoFactorLoginRequest
+	9,  // 9: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
+	11, // 10: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
+	13, // 11: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
+	15, // 12: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
+	17, // 13: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
+	19, // 14: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
+	21, // 15: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> authenticator.v1.GetTwoFactorStatusRequest
+	23, // 16: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> authenticator.v1.BeginTwoFactorEnrollmentRequest
+	25, // 17: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> authenticator.v1.ConfirmTwoFactorEnrollmentRequest
+	27, // 18: authenticator.v1.AuthenticatorService.DisableTwoFactor:input_type -> authenticator.v1.DisableTwoFactorRequest
+	29, // 19: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
+	2,  // 20: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
+	4,  // 21: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
+	7,  // 22: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> authenticator.v1.CompleteTwoFactorLoginResponse
+	10, // 23: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
+	12, // 24: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
+	14, // 25: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
+	16, // 26: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
+	18, // 27: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
+	20, // 28: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
+	22, // 29: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> authenticator.v1.GetTwoFactorStatusResponse
+	24, // 30: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> authenticator.v1.BeginTwoFactorEnrollmentResponse
+	26, // 31: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> authenticator.v1.ConfirmTwoFactorEnrollmentResponse
+	28, // 32: authenticator.v1.AuthenticatorService.DisableTwoFactor:output_type -> authenticator.v1.DisableTwoFactorResponse
+	30, // 33: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
+	20, // [20:34] is the sub-list for method output_type
+	6,  // [6:20] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_authenticator_v1_authenticator_proto_init() }
@@ -2305,13 +4097,21 @@ func file_authenticator_v1_authenticator_proto_init() {
 	if File_authenticator_v1_authenticator_proto != nil {
 		return
 	}
+	file_authenticator_v1_authenticator_proto_msgTypes[4].OneofWrappers = []any{
+		(*loginResponse_Result)(nil),
+		(*loginResponse_TwoFactorChallenge)(nil),
+	}
+	file_authenticator_v1_authenticator_proto_msgTypes[27].OneofWrappers = []any{
+		(*disableTwoFactorRequest_Code)(nil),
+		(*disableTwoFactorRequest_RecoveryCode)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_authenticator_v1_authenticator_proto_rawDesc), len(file_authenticator_v1_authenticator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

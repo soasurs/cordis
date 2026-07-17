@@ -2,7 +2,12 @@ package server
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha1"
 	"database/sql"
+	"encoding/base64"
+	"encoding/binary"
+	"fmt"
 	"testing"
 	"time"
 
@@ -19,6 +24,7 @@ import (
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
+	"github.com/soasurs/cordis/services/authenticator/v1/internal/twofactor"
 	"github.com/soasurs/cordis/services/authenticator/v1/svc"
 )
 
@@ -105,6 +111,152 @@ func TestLoginInvalidCredentials(t *testing.T) {
 	_, err := server.Login(context.Background(), req)
 	require.Equal(t, codes.Unauthenticated, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials))
+}
+
+func TestLoginRequiresAndCompletesTwoFactor(t *testing.T) {
+	store := newFakeSessionStore()
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
+		verifyPasswordResponse: verifyPasswordResponse(true, 1001),
+	})
+	secret := []byte("12345678901234567890")
+	ciphertext, err := server.(*authenticatorServer).svcCtx.TwoFactor.Encrypt(1001, secret)
+	require.NoError(t, err)
+	store.factors[1001] = &model.TOTPFactor{UserID: 1001, SecretCiphertext: ciphertext.Data, EncryptionKeyID: ciphertext.KeyID, LastUsedCounter: -1}
+
+	loginReq := new(authenticatorv1.LoginRequest)
+	loginReq.SetEmail("user@example.com")
+	loginReq.SetPassword("password")
+	loginReq.SetUserAgent("test-agent")
+	loginReq.SetIp("127.0.0.1")
+	loginResp, err := server.Login(context.Background(), loginReq)
+	require.NoError(t, err)
+	require.Nil(t, loginResp.GetResult())
+	require.NotEmpty(t, loginResp.GetTwoFactorChallenge().GetToken())
+	require.Nil(t, store.createdSession)
+
+	completeReq := new(authenticatorv1.CompleteTwoFactorLoginRequest)
+	completeReq.SetChallengeToken(loginResp.GetTwoFactorChallenge().GetToken())
+	completeReq.SetCode(testTOTPCode(secret, time.Now()))
+	completeResp, err := server.CompleteTwoFactorLogin(context.Background(), completeReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, completeResp.GetResult().GetAccessToken())
+	require.NotNil(t, store.createdSession)
+	require.Equal(t, "test-agent", store.createdSession.UserAgent)
+}
+
+func TestTwoFactorEnrollmentCreatesRecoveryCodes(t *testing.T) {
+	store := newFakeSessionStore()
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
+		getUserResponse:        userResponse(1001, "user@example.com"),
+		verifyPasswordResponse: verifyPasswordResponse(true, 1001),
+	})
+	store.sessions[2001] = &model.Session{SessionID: 2001, UserID: 1001}
+
+	beginReq := new(authenticatorv1.BeginTwoFactorEnrollmentRequest)
+	beginReq.SetUserId(1001)
+	beginReq.SetPassword("password")
+	beginResp, err := server.BeginTwoFactorEnrollment(context.Background(), beginReq)
+	require.NoError(t, err)
+	require.NotEmpty(t, beginResp.GetOtpauthUri())
+	require.NotEmpty(t, beginResp.GetManualEntryKey())
+	require.NotEmpty(t, beginResp.GetEnrollmentToken())
+
+	enrollment := store.enrollments[1001]
+	secret, err := server.(*authenticatorServer).svcCtx.TwoFactor.Decrypt(1001, twofactor.Ciphertext{KeyID: enrollment.EncryptionKeyID, Data: enrollment.SecretCiphertext})
+	require.NoError(t, err)
+	confirmReq := new(authenticatorv1.ConfirmTwoFactorEnrollmentRequest)
+	confirmReq.SetUserId(1001)
+	confirmReq.SetCurrentSessionId(2001)
+	confirmReq.SetEnrollmentToken(beginResp.GetEnrollmentToken())
+	confirmReq.SetCode(testTOTPCode(secret, time.Now()))
+	confirmResp, err := server.ConfirmTwoFactorEnrollment(context.Background(), confirmReq)
+	require.NoError(t, err)
+	require.Len(t, confirmResp.GetRecoveryCodes(), 10)
+	require.NotNil(t, store.factors[1001])
+	require.NotContains(t, store.enrollments, int64(1001))
+
+	statusReq := new(authenticatorv1.GetTwoFactorStatusRequest)
+	statusReq.SetUserId(1001)
+	statusResp, err := server.GetTwoFactorStatus(context.Background(), statusReq)
+	require.NoError(t, err)
+	require.True(t, statusResp.GetEnabled())
+	require.Equal(t, int32(10), statusResp.GetRecoveryCodesRemaining())
+}
+
+func TestBeginTwoFactorEnrollmentRejectsPendingEnrollment(t *testing.T) {
+	store := newFakeSessionStore()
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
+		getUserResponse:        userResponse(1001, "user@example.com"),
+		verifyPasswordResponse: verifyPasswordResponse(true, 1001),
+	})
+	req := new(authenticatorv1.BeginTwoFactorEnrollmentRequest)
+	req.SetUserId(1001)
+	req.SetPassword("password")
+
+	_, err := server.BeginTwoFactorEnrollment(context.Background(), req)
+	require.NoError(t, err)
+	_, err = server.BeginTwoFactorEnrollment(context.Background(), req)
+	require.Equal(t, codes.FailedPrecondition, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorTwoFactorEnrollmentPending))
+}
+
+func TestCompleteTwoFactorLoginInvalidCodeCountsAttempt(t *testing.T) {
+	store := newFakeSessionStore()
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), new(fakeUserClient))
+	concrete := server.(*authenticatorServer)
+	secret := []byte("12345678901234567890")
+	ciphertext, err := concrete.svcCtx.TwoFactor.Encrypt(1001, secret)
+	require.NoError(t, err)
+	store.factors[1001] = &model.TOTPFactor{UserID: 1001, SecretCiphertext: ciphertext.Data, EncryptionKeyID: ciphertext.KeyID, LastUsedCounter: -1}
+	challenge, err := concrete.createTwoFactorLoginChallenge(context.Background(), 1001, "agent", "127.0.0.1")
+	require.NoError(t, err)
+
+	req := new(authenticatorv1.CompleteTwoFactorLoginRequest)
+	req.SetChallengeToken(challenge.GetToken())
+	req.SetCode("abcdef")
+	_, err = server.CompleteTwoFactorLogin(context.Background(), req)
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidTwoFactorCode))
+	require.Equal(t, 1, store.challenges[token.Hash(challenge.GetToken())].Attempts)
+}
+
+func TestCompleteTwoFactorLoginRejectsExpiredChallenge(t *testing.T) {
+	store := newFakeSessionStore()
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), new(fakeUserClient))
+	concrete := server.(*authenticatorServer)
+	challenge, err := concrete.createTwoFactorLoginChallenge(context.Background(), 1001, "agent", "127.0.0.1")
+	require.NoError(t, err)
+	store.challenges[token.Hash(challenge.GetToken())].ExpiresAt = time.Now().Add(-time.Minute).UnixMilli()
+
+	req := new(authenticatorv1.CompleteTwoFactorLoginRequest)
+	req.SetChallengeToken(challenge.GetToken())
+	req.SetCode("abcdef")
+	_, err = server.CompleteTwoFactorLogin(context.Background(), req)
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorTwoFactorChallengeExpired))
+}
+
+func TestCompleteTwoFactorLoginAcceptsRecoveryCode(t *testing.T) {
+	store := newFakeSessionStore()
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), new(fakeUserClient))
+	concrete := server.(*authenticatorServer)
+	secret := []byte("12345678901234567890")
+	ciphertext, err := concrete.svcCtx.TwoFactor.Encrypt(1001, secret)
+	require.NoError(t, err)
+	store.factors[1001] = &model.TOTPFactor{UserID: 1001, SecretCiphertext: ciphertext.Data, EncryptionKeyID: ciphertext.KeyID, LastUsedCounter: -1}
+	recoveryCode := "ABCDE-FGHIJ-KLMNO-PQRST-UV"
+	recoveryCodeHash := token.Hash(twofactor.NormalizeRecoveryCode(recoveryCode))
+	store.recoveryCodes[1001] = map[string]int64{recoveryCodeHash: 0}
+	challenge, err := concrete.createTwoFactorLoginChallenge(context.Background(), 1001, "agent", "127.0.0.1")
+	require.NoError(t, err)
+
+	req := new(authenticatorv1.CompleteTwoFactorLoginRequest)
+	req.SetChallengeToken(challenge.GetToken())
+	req.SetCode(recoveryCode)
+	resp, err := server.CompleteTwoFactorLogin(context.Background(), req)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.GetResult().GetAccessToken())
+	require.NotZero(t, store.recoveryCodes[1001][recoveryCodeHash])
 }
 
 func TestRefresh(t *testing.T) {
@@ -306,12 +458,26 @@ func newTestAuthenticatorServer(t *testing.T, store store.Store, tokens *token.M
 			Sessions: config.SessionConfig{
 				TTL: time.Hour,
 			},
+			TwoFactor: config.TwoFactorConfig{
+				Issuer: "Cordis Test", EnrollmentTTL: 10 * time.Minute, LoginChallengeTTL: 5 * time.Minute,
+				MaxAttempts: 5, RecoveryCodeCount: 10,
+			},
 		},
 		Store:      store,
 		Tokens:     tokens,
+		TwoFactor:  newTestTwoFactorCipher(t),
 		Snowflake:  node,
 		UserClient: userClient,
 	})
+}
+
+func newTestTwoFactorCipher(t *testing.T) *twofactor.Cipher {
+	t.Helper()
+	cipher, err := twofactor.NewCipher("test", []twofactor.KeyConfig{{
+		ID: "test", Secret: base64.StdEncoding.EncodeToString([]byte("01234567890123456789012345678901")),
+	}})
+	require.NoError(t, err)
+	return cipher
 }
 
 func newTestTokenManager(t *testing.T) *token.Manager {
@@ -345,6 +511,26 @@ func createUserResponse(userID int64, email string) *userv1.CreateUserResponse {
 	return resp
 }
 
+func userResponse(userID int64, email string) *userv1.GetUserResponse {
+	user := new(userv1.User)
+	user.SetUserId(userID)
+	user.SetEmail(email)
+	resp := new(userv1.GetUserResponse)
+	resp.SetUser(user)
+	return resp
+}
+
+func testTOTPCode(secret []byte, now time.Time) string {
+	var buf [8]byte
+	binary.BigEndian.PutUint64(buf[:], uint64(now.Unix()/30))
+	mac := hmac.New(sha1.New, secret)
+	_, _ = mac.Write(buf[:])
+	digest := mac.Sum(nil)
+	offset := int(digest[len(digest)-1] & 0x0f)
+	value := binary.BigEndian.Uint32(digest[offset:offset+4]) & 0x7fffffff
+	return fmt.Sprintf("%06d", value%1_000_000)
+}
+
 type fakeUserClient struct {
 	userv1.UserServiceClient
 	createUserRequest      *userv1.CreateUserRequest
@@ -352,6 +538,15 @@ type fakeUserClient struct {
 	createUserErr          error
 	verifyPasswordResponse *userv1.VerifyPasswordResponse
 	verifyPasswordErr      error
+	getUserResponse        *userv1.GetUserResponse
+	getUserErr             error
+}
+
+func (c *fakeUserClient) GetUser(_ context.Context, _ *userv1.GetUserRequest, _ ...grpc.CallOption) (*userv1.GetUserResponse, error) {
+	if c.getUserErr != nil {
+		return nil, c.getUserErr
+	}
+	return c.getUserResponse, nil
 }
 
 func (c *fakeUserClient) CreateUser(_ context.Context, req *userv1.CreateUserRequest, _ ...grpc.CallOption) (*userv1.CreateUserResponse, error) {
@@ -377,12 +572,24 @@ type fakeSessionStore struct {
 	revokedSessionID   int64
 	revokedOtherUserID int64
 	currentSessionID   int64
+	factors            map[int64]*model.TOTPFactor
+	enrollments        map[int64]*model.TOTPEnrollment
+	challenges         map[string]*model.TwoFactorLoginChallenge
+	recoveryCodes      map[int64]map[string]int64
 }
 
 func newFakeSessionStore() *fakeSessionStore {
 	return &fakeSessionStore{
-		sessions: make(map[int64]*model.Session),
+		sessions:      make(map[int64]*model.Session),
+		factors:       make(map[int64]*model.TOTPFactor),
+		enrollments:   make(map[int64]*model.TOTPEnrollment),
+		challenges:    make(map[string]*model.TwoFactorLoginChallenge),
+		recoveryCodes: make(map[int64]map[string]int64),
 	}
+}
+
+func (s *fakeSessionStore) Transact(_ context.Context, fn func(store.Store) error) error {
+	return fn(s)
 }
 
 func (s *fakeSessionStore) CreateSession(_ context.Context, sessionID, userID int64, refreshTokenHash, userAgent, ip string, expiresAt int64) (*model.Session, error) {
@@ -459,6 +666,120 @@ func (s *fakeSessionStore) RevokeOtherSessions(_ context.Context, userID, curren
 		}
 	}
 	return revoked, nil
+}
+
+func (s *fakeSessionStore) GetTOTPFactor(_ context.Context, userID int64, _ bool) (*model.TOTPFactor, error) {
+	factor, ok := s.factors[userID]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+	return factor, nil
+}
+
+func (s *fakeSessionStore) CreateTOTPEnrollment(_ context.Context, enrollment *model.TOTPEnrollment) error {
+	if existing, ok := s.enrollments[enrollment.UserID]; ok && existing.ExpiresAt > enrollment.CreatedAt {
+		return sql.ErrNoRows
+	}
+	s.enrollments[enrollment.UserID] = enrollment
+	return nil
+}
+
+func (s *fakeSessionStore) GetTOTPEnrollment(_ context.Context, userID int64, tokenHash string, _ bool) (*model.TOTPEnrollment, error) {
+	enrollment, ok := s.enrollments[userID]
+	if !ok || enrollment.TokenHash != tokenHash {
+		return nil, sql.ErrNoRows
+	}
+	return enrollment, nil
+}
+
+func (s *fakeSessionStore) DeleteTOTPEnrollment(_ context.Context, userID int64, tokenHash string) error {
+	enrollment, ok := s.enrollments[userID]
+	if !ok || enrollment.TokenHash != tokenHash {
+		return sql.ErrNoRows
+	}
+	delete(s.enrollments, userID)
+	return nil
+}
+
+func (s *fakeSessionStore) UpsertTOTPFactor(_ context.Context, factor *model.TOTPFactor) error {
+	s.factors[factor.UserID] = factor
+	return nil
+}
+
+func (s *fakeSessionStore) DeleteTOTPFactor(_ context.Context, userID int64) error {
+	if _, ok := s.factors[userID]; !ok {
+		return sql.ErrNoRows
+	}
+	delete(s.factors, userID)
+	return nil
+}
+
+func (s *fakeSessionStore) UpdateTOTPLastUsedCounter(_ context.Context, userID, counter int64) error {
+	factor, ok := s.factors[userID]
+	if !ok || factor.LastUsedCounter >= counter {
+		return sql.ErrNoRows
+	}
+	factor.LastUsedCounter = counter
+	return nil
+}
+
+func (s *fakeSessionStore) CreateTwoFactorLoginChallenge(_ context.Context, challenge *model.TwoFactorLoginChallenge) error {
+	s.challenges[challenge.TokenHash] = challenge
+	return nil
+}
+
+func (s *fakeSessionStore) GetTwoFactorLoginChallenge(_ context.Context, tokenHash string, _ bool) (*model.TwoFactorLoginChallenge, error) {
+	challenge, ok := s.challenges[tokenHash]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+	return challenge, nil
+}
+
+func (s *fakeSessionStore) IncrementTwoFactorLoginChallengeAttempts(_ context.Context, tokenHash string) error {
+	challenge, ok := s.challenges[tokenHash]
+	if !ok || challenge.ConsumedAt != 0 {
+		return sql.ErrNoRows
+	}
+	challenge.Attempts++
+	return nil
+}
+
+func (s *fakeSessionStore) ConsumeTwoFactorLoginChallenge(_ context.Context, tokenHash string) error {
+	challenge, ok := s.challenges[tokenHash]
+	if !ok || challenge.ConsumedAt != 0 {
+		return sql.ErrNoRows
+	}
+	challenge.ConsumedAt = time.Now().UnixMilli()
+	return nil
+}
+
+func (s *fakeSessionStore) ReplaceRecoveryCodes(_ context.Context, userID int64, codeHashes []string) error {
+	codes := make(map[string]int64, len(codeHashes))
+	for _, hash := range codeHashes {
+		codes[hash] = 0
+	}
+	s.recoveryCodes[userID] = codes
+	return nil
+}
+
+func (s *fakeSessionStore) CountUnusedRecoveryCodes(_ context.Context, userID int64) (int64, error) {
+	var count int64
+	for _, usedAt := range s.recoveryCodes[userID] {
+		if usedAt == 0 {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (s *fakeSessionStore) ConsumeRecoveryCode(_ context.Context, userID int64, codeHash string) error {
+	codes, ok := s.recoveryCodes[userID]
+	if !ok || codes[codeHash] != 0 {
+		return sql.ErrNoRows
+	}
+	codes[codeHash] = time.Now().UnixMilli()
+	return nil
 }
 
 type refreshSession struct {

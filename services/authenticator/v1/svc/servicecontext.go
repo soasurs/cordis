@@ -13,12 +13,14 @@ import (
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
+	"github.com/soasurs/cordis/services/authenticator/v1/internal/twofactor"
 )
 
 type ServiceContext struct {
 	Cfg        config.Config
 	Store      store.Store
 	Tokens     *token.Manager
+	TwoFactor  *twofactor.Cipher
 	Snowflake  *sn.Node
 	UserClient userv1.UserServiceClient
 }
@@ -26,6 +28,7 @@ type ServiceContext struct {
 type Dependencies struct {
 	Store      store.Store
 	Tokens     *token.Manager
+	TwoFactor  *twofactor.Cipher
 	Snowflake  *sn.Node
 	UserClient userv1.UserServiceClient
 	DB         *sqlx.DB
@@ -34,6 +37,24 @@ type Dependencies struct {
 func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if cfg.Sessions.TTL <= 0 {
 		return Dependencies{}, errors.New("session ttl must be positive")
+	}
+	if cfg.TwoFactor.EnrollmentTTL <= 0 || cfg.TwoFactor.LoginChallengeTTL <= 0 {
+		return Dependencies{}, errors.New("two-factor TTLs must be positive")
+	}
+	if cfg.TwoFactor.Issuer == "" {
+		return Dependencies{}, errors.New("two-factor issuer is required")
+	}
+	if cfg.TwoFactor.MaxAttempts <= 0 || cfg.TwoFactor.RecoveryCodeCount <= 0 {
+		return Dependencies{}, errors.New("two-factor limits must be positive")
+	}
+
+	twoFactorKeys := make([]twofactor.KeyConfig, 0, len(cfg.TwoFactor.Encryption.Keys))
+	for _, key := range cfg.TwoFactor.Encryption.Keys {
+		twoFactorKeys = append(twoFactorKeys, twofactor.KeyConfig{ID: key.ID, Secret: key.Secret})
+	}
+	twoFactorCipher, err := twofactor.NewCipher(cfg.TwoFactor.Encryption.PrimaryKeyID, twoFactorKeys)
+	if err != nil {
+		return Dependencies{}, err
 	}
 
 	node, err := snowflake.New()
@@ -65,6 +86,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	return Dependencies{
 		Store:      store.New(db),
 		Tokens:     tokenManager,
+		TwoFactor:  twoFactorCipher,
 		Snowflake:  node,
 		UserClient: userv1.NewUserServiceClient(userRPCClient.Conn()),
 		DB:         db,
@@ -89,6 +111,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.Tokens == nil {
 		panic("token manager is required")
 	}
+	if deps.TwoFactor == nil {
+		panic("two-factor cipher is required")
+	}
 	if deps.Snowflake == nil {
 		panic("snowflake node is required")
 	}
@@ -99,6 +124,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		Cfg:        cfg,
 		Store:      deps.Store,
 		Tokens:     deps.Tokens,
+		TwoFactor:  deps.TwoFactor,
 		Snowflake:  deps.Snowflake,
 		UserClient: deps.UserClient,
 	}

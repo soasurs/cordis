@@ -15,6 +15,7 @@ import (
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
+	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
 )
 
@@ -76,6 +77,20 @@ func (s *authenticatorServer) Login(ctx context.Context, req *authenticatorv1.Lo
 	}
 	if !verifyResp.GetOk() {
 		return nil, invalidCredentialsError()
+	}
+
+	factor, err := s.svcCtx.Store.GetTOTPFactor(ctx, verifyResp.GetUserId(), false)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	if factor != nil {
+		challenge, err := s.createTwoFactorLoginChallenge(ctx, verifyResp.GetUserId(), req.GetUserAgent(), req.GetIp())
+		if err != nil {
+			return nil, err
+		}
+		resp := new(authenticatorv1.LoginResponse)
+		resp.SetTwoFactorChallenge(challenge)
+		return resp, nil
 	}
 
 	result, err := s.createSession(ctx, verifyResp.GetUserId(), req.GetUserAgent(), req.GetIp())
@@ -170,6 +185,10 @@ func (s *authenticatorServer) VerifyAccessToken(ctx context.Context, req *authen
 }
 
 func (s *authenticatorServer) createSession(ctx context.Context, userID int64, userAgent, ip string) (*authenticatorv1.AuthenticationResult, error) {
+	return s.createSessionWithStore(ctx, s.svcCtx.Store, userID, userAgent, ip)
+}
+
+func (s *authenticatorServer) createSessionWithStore(ctx context.Context, sessionStore store.Store, userID int64, userAgent, ip string) (*authenticatorv1.AuthenticationResult, error) {
 	now := time.Now()
 	sessionID := s.svcCtx.Snowflake.Generate().Int64()
 	sessionExpiresAt := now.Add(s.svcCtx.Cfg.Sessions.TTL).UnixMilli()
@@ -179,7 +198,7 @@ func (s *authenticatorServer) createSession(ctx context.Context, userID int64, u
 		return nil, err
 	}
 
-	session, err := s.svcCtx.Store.CreateSession(ctx, sessionID, userID, token.Hash(refreshToken.Raw), userAgent, ip, sessionExpiresAt)
+	session, err := sessionStore.CreateSession(ctx, sessionID, userID, token.Hash(refreshToken.Raw), userAgent, ip, sessionExpiresAt)
 	if err != nil {
 		return nil, err
 	}
@@ -190,6 +209,26 @@ func (s *authenticatorServer) createSession(ctx context.Context, userID int64, u
 	}
 
 	return newAuthenticationResult(userID, session.SessionID, accessToken, refreshToken, session.ExpiresAt), nil
+}
+
+func invalidTwoFactorCodeError() error {
+	return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidTwoFactorCode, "invalid two-factor code")
+}
+
+func twoFactorChallengeExpiredError() error {
+	return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorTwoFactorChallengeExpired, "two-factor challenge expired")
+}
+
+func twoFactorNotEnabledError() error {
+	return rpcerror.New(codes.FailedPrecondition, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorTwoFactorNotEnabled, "two-factor authentication is not enabled")
+}
+
+func twoFactorAlreadyEnabledError() error {
+	return rpcerror.New(codes.FailedPrecondition, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorTwoFactorAlreadyEnabled, "two-factor authentication is already enabled")
+}
+
+func twoFactorEnrollmentPendingError() error {
+	return rpcerror.New(codes.FailedPrecondition, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorTwoFactorEnrollmentPending, "two-factor enrollment is already pending")
 }
 
 func (s *authenticatorServer) getSessionWithRefreshToken(ctx context.Context, rawRefreshToken string) (token.Token, *model.Session, error) {

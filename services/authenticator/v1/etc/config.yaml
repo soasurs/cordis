@@ -42,6 +42,18 @@ tokens:
 sessions:
   ttl: 720h
 
+twoFactor:
+  issuer: Cordis
+  enrollmentTTL: 10m
+  loginChallengeTTL: 5m
+  maxAttempts: 5
+  recoveryCodeCount: 10
+  encryption:
+    primaryKeyID: totp-current
+    keys:
+      - id: totp-current
+        secret: ${CORDIS_TOTP_ENCRYPTION_KEY}
+
 services:
   user:
     endpoints:

@@ -35,9 +35,6 @@ type fakeUserClient struct {
 	updateEmailRequest             *userv1.UpdateEmailRequest
 	updateEmailResponse            *userv1.UpdateEmailResponse
 	updateEmailError               error
-	changePasswordRequest          *userv1.ChangePasswordRequest
-	changePasswordResponse         *userv1.ChangePasswordResponse
-	changePasswordError            error
 	updateUserProfileRequest       *userv1.UpdateUserProfileRequest
 	updateUserProfileResponse      *userv1.UpdateUserProfileResponse
 	updateUserProfileError         error
@@ -61,11 +58,6 @@ func (f *fakeUserClient) CheckEmailAvailability(_ context.Context, req *userv1.C
 func (f *fakeUserClient) UpdateEmail(_ context.Context, req *userv1.UpdateEmailRequest, _ ...grpc.CallOption) (*userv1.UpdateEmailResponse, error) {
 	f.updateEmailRequest = req
 	return f.updateEmailResponse, f.updateEmailError
-}
-
-func (f *fakeUserClient) ChangePassword(_ context.Context, req *userv1.ChangePasswordRequest, _ ...grpc.CallOption) (*userv1.ChangePasswordResponse, error) {
-	f.changePasswordRequest = req
-	return f.changePasswordResponse, f.changePasswordError
 }
 
 func (f *fakeUserClient) UpdateUserProfile(_ context.Context, req *userv1.UpdateUserProfileRequest, _ ...grpc.CallOption) (*userv1.UpdateUserProfileResponse, error) {
@@ -182,16 +174,13 @@ func TestUpdateUserProfileUsesAuthenticatedUser(t *testing.T) {
 }
 
 func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {
-	authenticatorClient := &fakeAuthenticatorClient{
-		verifyResponse:              verifyAccessTokenResponse(1001),
-		revokeOtherSessionsResponse: new(authenticatorv1.RevokeOtherSessionsResponse),
-	}
-	svcResp := new(userv1.ChangePasswordResponse)
+	svcResp := new(authenticatorv1.ChangePasswordResponse)
 	svcResp.SetOk(true)
-	userClient := &fakeUserClient{
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse:         verifyAccessTokenResponse(1001),
 		changePasswordResponse: svcResp,
 	}
-	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
+	client, closeServer := newUserHTTPClient(t, authenticatorClient, &fakeUserClient{}, "access-token")
 	defer closeServer()
 
 	resp, err := client.ChangePassword(context.Background(), &apiv1.ChangePasswordRequest{
@@ -199,11 +188,10 @@ func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {
 		NewPassword: new("new-password"),
 	})
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), userClient.changePasswordRequest.GetUserId())
-	require.Equal(t, "old-password", userClient.changePasswordRequest.GetOldPassword())
-	require.Equal(t, "new-password", userClient.changePasswordRequest.GetNewPassword())
-	require.Equal(t, int64(1001), authenticatorClient.revokeOtherSessionsRequest.GetUserId())
-	require.Equal(t, int64(2001), authenticatorClient.revokeOtherSessionsRequest.GetCurrentSessionId())
+	require.Equal(t, int64(1001), authenticatorClient.changePasswordRequest.GetUserId())
+	require.Equal(t, int64(2001), authenticatorClient.changePasswordRequest.GetCurrentSessionId())
+	require.Equal(t, "old-password", authenticatorClient.changePasswordRequest.GetOldPassword())
+	require.Equal(t, "new-password", authenticatorClient.changePasswordRequest.GetNewPassword())
 	require.True(t, resp.GetOk())
 }
 

@@ -113,14 +113,6 @@ func GenerateSecret() ([]byte, string, error) {
 	return secret, base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(secret), nil
 }
 
-func GenerateOpaqueToken() (string, error) {
-	value := make([]byte, 32)
-	if _, err := rand.Read(value); err != nil {
-		return "", fmt.Errorf("generate two-factor token: %w", err)
-	}
-	return base64.RawURLEncoding.EncodeToString(value), nil
-}
-
 func OTPAuthURI(issuer, accountName, manualEntryKey string) string {
 	label := url.PathEscape(issuer + ":" + accountName)
 	values := url.Values{}

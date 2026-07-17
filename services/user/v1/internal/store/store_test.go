@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"regexp"
 	"strings"
@@ -37,9 +36,9 @@ func sqlPattern(query string) string {
 func createUserExecPattern() string {
 	return sqlPattern(`
 	INSERT INTO
-		users (user_id, email, hashed_password, created_at, updated_at, deleted_at)
+		users (user_id, email, created_at, updated_at, deleted_at)
 	VALUES
-		($1, $2, $3, $4, $5, $6);
+		($1, $2, $3, $4, $5);
 	`)
 }
 
@@ -57,14 +56,13 @@ func TestCreateUser(t *testing.T) {
 	defer cleanup()
 
 	mock.ExpectExec(createUserExecPattern()).
-		WithArgs(int64(1001), "user@example.com", "hashed-password", sqlmock.AnyArg(), int64(0), int64(0)).
+		WithArgs(int64(1001), "user@example.com", sqlmock.AnyArg(), int64(0), int64(0)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	user, err := store.CreateUser(context.Background(), 1001, "user@example.com", "hashed-password")
+	user, err := store.CreateUser(context.Background(), 1001, "user@example.com")
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), user.UserID)
 	require.Equal(t, "user@example.com", user.Email)
-	require.Equal(t, "hashed-password", user.HashedPassword)
 	require.NotZero(t, user.CreatedAt)
 	require.Zero(t, user.UpdatedAt)
 	require.Zero(t, user.DeletedAt)
@@ -74,8 +72,8 @@ func TestGetUser(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()
 
-	rows := sqlmock.NewRows([]string{"user_id", "email", "hashed_password", "created_at", "updated_at", "deleted_at"}).
-		AddRow(int64(1001), "user@example.com", "hashed-password", int64(10), int64(20), int64(0))
+	rows := sqlmock.NewRows([]string{"user_id", "email", "created_at", "updated_at", "deleted_at", "email_verified_at"}).
+		AddRow(int64(1001), "user@example.com", int64(10), int64(20), int64(0), int64(0))
 
 	mock.ExpectQuery(sqlPattern(GetUserQuery)).
 		WithArgs(int64(1001), 0).
@@ -85,7 +83,6 @@ func TestGetUser(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), user.UserID)
 	require.Equal(t, "user@example.com", user.Email)
-	require.Equal(t, "hashed-password", user.HashedPassword)
 }
 
 func TestCheckEmailAvailability(t *testing.T) {
@@ -103,35 +100,12 @@ func TestCheckEmailAvailability(t *testing.T) {
 	require.True(t, available)
 }
 
-func TestUpdateUserPassword(t *testing.T) {
-	store, mock, cleanup := newTestStore(t)
-	defer cleanup()
-
-	mock.ExpectExec(sqlPattern(UpdateUserPasswordStatement)).
-		WithArgs("new-hash", sqlmock.AnyArg(), int64(1001), 0).
-		WillReturnResult(sqlmock.NewResult(0, 1))
-
-	require.NoError(t, store.UpdateUserPassword(context.Background(), 1001, "new-hash"))
-}
-
-func TestUpdateUserPasswordNoRows(t *testing.T) {
-	store, mock, cleanup := newTestStore(t)
-	defer cleanup()
-
-	mock.ExpectExec(sqlPattern(UpdateUserPasswordStatement)).
-		WithArgs("new-hash", sqlmock.AnyArg(), int64(1001), 0).
-		WillReturnResult(sqlmock.NewResult(0, 0))
-
-	err := store.UpdateUserPassword(context.Background(), 1001, "new-hash")
-	require.ErrorIs(t, err, sql.ErrNoRows)
-}
-
 func TestUpdateUserEmail(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()
 
-	rows := sqlmock.NewRows([]string{"user_id", "email", "hashed_password", "created_at", "updated_at", "deleted_at"}).
-		AddRow(int64(1001), "new@example.com", "hashed-password", int64(10), int64(30), int64(0))
+	rows := sqlmock.NewRows([]string{"user_id", "email", "created_at", "updated_at", "deleted_at", "email_verified_at"}).
+		AddRow(int64(1001), "new@example.com", int64(10), int64(30), int64(0), int64(0))
 
 	mock.ExpectQuery(sqlPattern(UpdateUserEmailQuery)).
 		WithArgs("new@example.com", sqlmock.AnyArg(), int64(1001), 0).

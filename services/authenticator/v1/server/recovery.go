@@ -16,11 +16,11 @@ import (
 	mailerv1 "github.com/soasurs/cordis/gen/mailer/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/mail"
+	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
-	"github.com/soasurs/cordis/services/authenticator/v1/internal/twofactor"
 )
 
 func (s *authenticatorServer) RequestPasswordReset(ctx context.Context, req *authenticatorv1.RequestPasswordResetRequest) (*authenticatorv1.RequestPasswordResetResponse, error) {
@@ -59,7 +59,7 @@ func (s *authenticatorServer) RequestPasswordReset(ctx context.Context, req *aut
 		return resp, nil
 	}
 
-	rawToken, err := twofactor.GenerateOpaqueToken()
+	rawToken, err := token.GenerateOpaqueToken()
 	if err != nil {
 		return nil, err
 	}
@@ -88,16 +88,17 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *aut
 		return nil, status.Error(codes.InvalidArgument, "new password is required")
 	}
 
+	// The new password can be hashed before taking any row locks.
+	hashedPassword, err := password.Hash(req.GetNewPassword())
+	if err != nil {
+		return nil, err
+	}
+
 	tokenHash := token.Hash(rawToken)
 	now := time.Now().UnixMilli()
-	// Cross-service consistency: the token row and sessions live in this
-	// database while the password lives in User, so this cannot be atomic.
-	// The User call runs inside the local transaction on purpose: if it
-	// fails, the consume and revocation roll back and the token stays
-	// usable. The remaining window - User committed but this transaction
-	// fails to commit - leaves the token unconsumed, so retrying the same
-	// confirmation converges (same password, sessions revoked).
-	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+	// Credentials live in this database, so consuming the token, replacing
+	// the password, and revoking every session commit atomically.
+	err = s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		reset, err := tx.GetPasswordResetToken(ctx, tokenHash, true)
 		if errors.Is(err, sql.ErrNoRows) {
 			return invalidPasswordResetTokenError()
@@ -115,15 +116,11 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *aut
 			return err
 		}
 
-		resetReq := new(userv1.ResetPasswordRequest)
-		resetReq.SetUserId(reset.UserID)
-		resetReq.SetNewPassword(req.GetNewPassword())
-		resetResp, err := s.svcCtx.UserClient.ResetPassword(ctx, resetReq)
-		if err != nil {
+		// Upsert instead of update: proving control of the email is enough
+		// to finish a half-completed registration that never stored a
+		// credential.
+		if err := tx.UpsertUserCredential(ctx, reset.UserID, hashedPassword, now); err != nil {
 			return err
-		}
-		if !resetResp.GetOk() {
-			return status.Error(codes.Internal, "reset password failed")
 		}
 
 		// A recovered account signs out everywhere, including whoever
@@ -167,7 +164,7 @@ func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, req 
 		return resp, nil
 	}
 
-	rawToken, err := twofactor.GenerateOpaqueToken()
+	rawToken, err := token.GenerateOpaqueToken()
 	if err != nil {
 		return nil, err
 	}

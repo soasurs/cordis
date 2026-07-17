@@ -13,6 +13,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
@@ -39,17 +40,56 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 
-	createReq := new(userv1.CreateUserRequest)
-	createReq.SetName(req.GetName())
-	createReq.SetEmail(req.GetEmail())
-	createReq.SetPassword(req.GetPassword())
-
-	createResp, err := s.svcCtx.UserClient.CreateUser(ctx, createReq)
+	hashedPassword, err := password.Hash(req.GetPassword())
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := s.createSession(ctx, createResp.GetUser().GetUserId(), req.GetUserAgent(), req.GetIp())
+	createReq := new(userv1.CreateUserRequest)
+	createReq.SetName(req.GetName())
+	createReq.SetEmail(req.GetEmail())
+
+	var userID int64
+	createResp, err := s.svcCtx.UserClient.CreateUser(ctx, createReq)
+	switch {
+	case err == nil:
+		userID = createResp.GetUser().GetUserId()
+	case status.Code(err) == codes.AlreadyExists:
+		// The user row may be a leftover from a registration that failed
+		// before the credential was stored. Such an account has never been
+		// able to log in and holds no data, so letting the same email claim
+		// it is equivalent to an idempotent retry. CreateUserCredential's
+		// insert-if-absent semantics arbitrate races: whoever lands the
+		// credential first wins, everyone else keeps the AlreadyExists.
+		getUserReq := new(userv1.GetUserRequest)
+		getUserReq.SetEmail(req.GetEmail())
+		getUserResp, getUserErr := s.svcCtx.UserClient.GetUser(ctx, getUserReq)
+		if getUserErr != nil || getUserResp.GetUser().GetUserId() <= 0 {
+			return nil, err
+		}
+		userID = getUserResp.GetUser().GetUserId()
+		if _, credentialErr := s.svcCtx.Store.GetUserCredential(ctx, userID, false); credentialErr == nil {
+			return nil, err
+		} else if !errors.Is(credentialErr, sql.ErrNoRows) {
+			return nil, credentialErr
+		}
+	default:
+		return nil, err
+	}
+
+	now := time.Now().UnixMilli()
+	if err := s.svcCtx.Store.CreateUserCredential(ctx, &model.UserCredential{
+		UserID:         userID,
+		HashedPassword: hashedPassword,
+		CreatedAt:      now,
+	}); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists, "email already exists")
+		}
+		return nil, err
+	}
+
+	result, err := s.createSession(ctx, userID, req.GetUserAgent(), req.GetIp())
 	if err != nil {
 		return nil, err
 	}
@@ -67,24 +107,37 @@ func (s *authenticatorServer) Login(ctx context.Context, req *authenticatorv1.Lo
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
 
-	verifyReq := new(userv1.VerifyPasswordRequest)
-	verifyReq.SetEmail(req.GetEmail())
-	verifyReq.SetPassword(req.GetPassword())
-
-	verifyResp, err := s.svcCtx.UserClient.VerifyPassword(ctx, verifyReq)
+	getUserReq := new(userv1.GetUserRequest)
+	getUserReq.SetEmail(req.GetEmail())
+	getUserResp, err := s.svcCtx.UserClient.GetUser(ctx, getUserReq)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			// Burn a verification anyway so unknown emails cost the same as
+			// wrong passwords.
+			_, _ = password.Verify(dummyPasswordHash, req.GetPassword())
+			return nil, invalidCredentialsError()
+		}
 		return nil, err
 	}
-	if !verifyResp.GetOk() {
+	userID := getUserResp.GetUser().GetUserId()
+	if userID <= 0 {
 		return nil, invalidCredentialsError()
 	}
 
-	factor, err := s.svcCtx.Store.GetTOTPFactor(ctx, verifyResp.GetUserId(), false)
+	ok, err := s.verifyUserPassword(ctx, userID, req.GetPassword())
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, invalidCredentialsError()
+	}
+
+	factor, err := s.svcCtx.Store.GetTOTPFactor(ctx, userID, false)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
 	if factor != nil {
-		challenge, err := s.createTwoFactorLoginChallenge(ctx, verifyResp.GetUserId(), req.GetUserAgent(), req.GetIp())
+		challenge, err := s.createTwoFactorLoginChallenge(ctx, userID, req.GetUserAgent(), req.GetIp())
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +146,7 @@ func (s *authenticatorServer) Login(ctx context.Context, req *authenticatorv1.Lo
 		return resp, nil
 	}
 
-	result, err := s.createSession(ctx, verifyResp.GetUserId(), req.GetUserAgent(), req.GetIp())
+	result, err := s.createSession(ctx, userID, req.GetUserAgent(), req.GetIp())
 	if err != nil {
 		return nil, err
 	}

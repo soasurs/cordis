@@ -141,7 +141,7 @@ func (s *authenticatorServer) BeginTwoFactorEnrollment(ctx context.Context, req 
 	if err != nil {
 		return nil, err
 	}
-	enrollmentToken, err := twofactor.GenerateOpaqueToken()
+	enrollmentToken, err := token.GenerateOpaqueToken()
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +343,7 @@ func (s *authenticatorServer) RegenerateTwoFactorRecoveryCodes(ctx context.Conte
 }
 
 func (s *authenticatorServer) createTwoFactorLoginChallenge(ctx context.Context, userID int64, userAgent, ip string) (*authenticatorv1.TwoFactorLoginChallenge, error) {
-	rawToken, err := twofactor.GenerateOpaqueToken()
+	rawToken, err := token.GenerateOpaqueToken()
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +367,7 @@ func (s *authenticatorServer) verifyTOTPCode(factor *model.TOTPFactor, code stri
 	return twofactor.VerifyCode(secret, code, now, factor.LastUsedCounter)
 }
 
-func (s *authenticatorServer) verifyCurrentUserPassword(ctx context.Context, userID int64, password string) (string, error) {
+func (s *authenticatorServer) verifyCurrentUserPassword(ctx context.Context, userID int64, plainPassword string) (string, error) {
 	getUserReq := new(userv1.GetUserRequest)
 	getUserReq.SetUserId(userID)
 	getUserResp, err := s.svcCtx.UserClient.GetUser(ctx, getUserReq)
@@ -377,14 +377,11 @@ func (s *authenticatorServer) verifyCurrentUserPassword(ctx context.Context, use
 	if getUserResp.GetUser() == nil || getUserResp.GetUser().GetUserId() != userID || getUserResp.GetUser().GetEmail() == "" {
 		return "", invalidCredentialsError()
 	}
-	verifyReq := new(userv1.VerifyPasswordRequest)
-	verifyReq.SetEmail(getUserResp.GetUser().GetEmail())
-	verifyReq.SetPassword(password)
-	verifyResp, err := s.svcCtx.UserClient.VerifyPassword(ctx, verifyReq)
+	ok, err := s.verifyUserPassword(ctx, userID, plainPassword)
 	if err != nil {
 		return "", err
 	}
-	if !verifyResp.GetOk() || verifyResp.GetUserId() != userID {
+	if !ok {
 		return "", invalidCredentialsError()
 	}
 	return getUserResp.GetUser().GetEmail(), nil

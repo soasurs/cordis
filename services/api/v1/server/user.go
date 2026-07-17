@@ -112,21 +112,16 @@ func (s *userServer) ChangePassword(ctx context.Context, req *apiv1.ChangePasswo
 		return nil, err
 	}
 
-	svcReq := new(userv1.ChangePasswordRequest)
+	// Credentials are owned by the authenticator, which verifies the old
+	// password, replaces it, and revokes the other sessions atomically.
+	svcReq := new(authenticatorv1.ChangePasswordRequest)
 	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetCurrentSessionId(auth.GetSessionId())
 	svcReq.SetOldPassword(req.GetOldPassword())
 	svcReq.SetNewPassword(req.GetNewPassword())
-	svcResp, err := s.svcCtx.UserClient.ChangePassword(ctx, svcReq)
+	svcResp, err := s.svcCtx.AuthenticatorClient.ChangePassword(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
-	}
-	if svcResp.GetOk() {
-		revokeReq := new(authenticatorv1.RevokeOtherSessionsRequest)
-		revokeReq.SetUserId(auth.GetUserId())
-		revokeReq.SetCurrentSessionId(auth.GetSessionId())
-		if _, err := s.svcCtx.AuthenticatorClient.RevokeOtherSessions(ctx, revokeReq); err != nil {
-			return nil, apierror.FromRPC(err)
-		}
 	}
 	return &apiv1.ChangePasswordResponse{
 		Ok: new(svcResp.GetOk()),

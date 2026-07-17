@@ -22,9 +22,6 @@ const (
 	UserService_CreateUser_FullMethodName             = "/user.v1.UserService/CreateUser"
 	UserService_GetUser_FullMethodName                = "/user.v1.UserService/GetUser"
 	UserService_GetUserProfile_FullMethodName         = "/user.v1.UserService/GetUserProfile"
-	UserService_VerifyPassword_FullMethodName         = "/user.v1.UserService/VerifyPassword"
-	UserService_ChangePassword_FullMethodName         = "/user.v1.UserService/ChangePassword"
-	UserService_ResetPassword_FullMethodName          = "/user.v1.UserService/ResetPassword"
 	UserService_CheckEmailAvailability_FullMethodName = "/user.v1.UserService/CheckEmailAvailability"
 	UserService_UpdateEmail_FullMethodName            = "/user.v1.UserService/UpdateEmail"
 	UserService_MarkEmailVerified_FullMethodName      = "/user.v1.UserService/MarkEmailVerified"
@@ -38,11 +35,6 @@ type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...grpc.CallOption) (*GetUserProfileResponse, error)
-	VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
-	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
-	// ResetPassword replaces the password without the old password. It backs
-	// the token-based recovery flow and is never exposed publicly.
-	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
 	CheckEmailAvailability(ctx context.Context, in *CheckEmailAvailabilityRequest, opts ...grpc.CallOption) (*CheckEmailAvailabilityResponse, error)
 	UpdateEmail(ctx context.Context, in *UpdateEmailRequest, opts ...grpc.CallOption) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
@@ -84,36 +76,6 @@ func (c *userServiceClient) GetUserProfile(ctx context.Context, in *GetUserProfi
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUserProfileResponse)
 	err := c.cc.Invoke(ctx, UserService_GetUserProfile_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(VerifyPasswordResponse)
-	err := c.cc.Invoke(ctx, UserService_VerifyPassword_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ChangePasswordResponse)
-	err := c.cc.Invoke(ctx, UserService_ChangePassword_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResetPasswordResponse)
-	err := c.cc.Invoke(ctx, UserService_ResetPassword_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -167,11 +129,6 @@ type UserServiceServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error)
-	VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error)
-	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
-	// ResetPassword replaces the password without the old password. It backs
-	// the token-based recovery flow and is never exposed publicly.
-	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
 	CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error)
 	UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
@@ -196,15 +153,6 @@ func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) 
 }
 func (UnimplementedUserServiceServer) GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfile not implemented")
-}
-func (UnimplementedUserServiceServer) VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method VerifyPassword not implemented")
-}
-func (UnimplementedUserServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
-}
-func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
 }
 func (UnimplementedUserServiceServer) CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckEmailAvailability not implemented")
@@ -288,60 +236,6 @@ func _UserService_GetUserProfile_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetUserProfile(ctx, req.(*GetUserProfileRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_VerifyPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VerifyPasswordRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).VerifyPassword(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_VerifyPassword_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).VerifyPassword(ctx, req.(*VerifyPasswordRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChangePasswordRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).ChangePassword(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_ChangePassword_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResetPasswordRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(UserServiceServer).ResetPassword(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: UserService_ResetPassword_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -436,18 +330,6 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserProfile",
 			Handler:    _UserService_GetUserProfile_Handler,
-		},
-		{
-			MethodName: "VerifyPassword",
-			Handler:    _UserService_VerifyPassword_Handler,
-		},
-		{
-			MethodName: "ChangePassword",
-			Handler:    _UserService_ChangePassword_Handler,
-		},
-		{
-			MethodName: "ResetPassword",
-			Handler:    _UserService_ResetPassword_Handler,
 		},
 		{
 			MethodName: "CheckEmailAvailability",

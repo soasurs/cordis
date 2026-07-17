@@ -199,4 +199,27 @@ const (
 
 	ConsumeEmailVerificationTokenStatement = `
 	UPDATE email_verification_tokens SET consumed_at = $1 WHERE token_hash = $2 AND consumed_at = 0`
+
+	CreateUserCredentialStatement = `
+	INSERT INTO user_credentials (user_id, hashed_password, created_at, updated_at)
+	VALUES ($1, $2, $3, 0)
+	ON CONFLICT (user_id) DO NOTHING`
+
+	GetUserCredentialQuery = `
+	SELECT user_id, hashed_password, created_at, updated_at
+	FROM user_credentials
+	WHERE user_id = $1
+	LIMIT 1`
+
+	UpdateUserCredentialStatement = `
+	UPDATE user_credentials
+	SET hashed_password = $1, updated_at = $2
+	WHERE user_id = $3`
+
+	UpsertUserCredentialStatement = `
+	INSERT INTO user_credentials (user_id, hashed_password, created_at, updated_at)
+	VALUES ($1, $2, $3, 0)
+	ON CONFLICT (user_id) DO UPDATE SET
+		hashed_password = EXCLUDED.hashed_password,
+		updated_at = EXCLUDED.created_at`
 )

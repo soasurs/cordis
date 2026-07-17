@@ -9,6 +9,9 @@ service AuthenticatorService {
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc VerifyAccessToken(VerifyAccessTokenRequest) returns (VerifyAccessTokenResponse);
+  // ChangePassword verifies the old password, replaces the credential, and
+  // revokes every session except the current one.
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
   // RequestPasswordReset always reports success to avoid account enumeration.
   rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
   // ConfirmPasswordReset consumes a reset token, replaces the password, and
@@ -233,5 +236,17 @@ message ConfirmEmailVerificationRequest {
 }
 
 message ConfirmEmailVerificationResponse {
+  bool ok = 1;
+}
+
+message ChangePasswordRequest {
+  int64 user_id = 1;
+  int64 current_session_id = 2;
+  string old_password = 3;
+  string new_password = 4;
+}
+
+message ChangePasswordResponse {
+  // False when the old password does not match; no other state changes.
   bool ok = 1;
 }

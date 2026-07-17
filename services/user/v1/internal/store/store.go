@@ -11,11 +11,10 @@ import (
 
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
-	CreateUser(ctx context.Context, userID int64, email, hashedPassword string) (*model.User, error)
+	CreateUser(ctx context.Context, userID int64, email string) (*model.User, error)
 	GetUser(ctx context.Context, userID int64) (*model.User, error)
 	GetUserWithEmail(ctx context.Context, email string) (*model.User, error)
 	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
-	UpdateUserPassword(ctx context.Context, userID int64, hashedPassword string) error
 	UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error)
 	MarkUserEmailVerified(ctx context.Context, userID int64, email string, verifiedAt int64) error
 	CreateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)

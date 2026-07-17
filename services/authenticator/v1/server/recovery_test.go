@@ -15,6 +15,7 @@ import (
 	mailerv1 "github.com/soasurs/cordis/gen/mailer/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/mail"
+	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
@@ -195,8 +196,7 @@ func TestConfirmPasswordResetSuccess(t *testing.T) {
 		CreatedAt: now,
 		ExpiresAt: now + 60_000,
 	}
-	userClient := &fakeUserClient{}
-	server := newRecoveryTestServer(t, sessionStore, userClient, new(fakeMailerClient))
+	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{}, new(fakeMailerClient))
 
 	req := new(authenticatorv1.ConfirmPasswordResetRequest)
 	req.SetToken("raw-reset-token")
@@ -205,8 +205,11 @@ func TestConfirmPasswordResetSuccess(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 
-	require.Equal(t, int64(1001), userClient.resetPasswordRequest.GetUserId())
-	require.Equal(t, "new-password", userClient.resetPasswordRequest.GetNewPassword())
+	// The credential is replaced locally, atomically with the consume.
+	require.NotNil(t, sessionStore.credentials[1001])
+	match, err := password.Verify(sessionStore.credentials[1001].HashedPassword, "new-password")
+	require.NoError(t, err)
+	require.True(t, match)
 	require.NotZero(t, sessionStore.passwordResets[token.Hash("raw-reset-token")].ConsumedAt)
 	// All sessions are revoked: currentSessionID zero matches none.
 	require.Equal(t, int64(1001), sessionStore.revokedOtherUserID)

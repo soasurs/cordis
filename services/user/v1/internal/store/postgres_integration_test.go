@@ -37,7 +37,7 @@ func testUsers(t *testing.T, store Store) {
 	const userID = int64(1001)
 	ctx := t.Context()
 
-	created, err := store.CreateUser(ctx, userID, "alice@example.com", "hash-a")
+	created, err := store.CreateUser(ctx, userID, "alice@example.com")
 	require.NoError(t, err)
 	require.Equal(t, userID, created.UserID)
 	require.True(t, created.CreatedAt > 0)
@@ -45,7 +45,6 @@ func testUsers(t *testing.T, store Store) {
 	loaded, err := store.GetUser(ctx, userID)
 	require.NoError(t, err)
 	require.Equal(t, "alice@example.com", loaded.Email)
-	require.Equal(t, "hash-a", loaded.HashedPassword)
 	_, err = store.GetUser(ctx, 9999)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 
@@ -61,13 +60,6 @@ func testUsers(t *testing.T, store Store) {
 	available, err = store.CheckEmailAvailability(ctx, "new@example.com")
 	require.NoError(t, err)
 	require.True(t, available)
-
-	require.NoError(t, store.UpdateUserPassword(ctx, userID, "hash-b"))
-	loaded, err = store.GetUser(ctx, userID)
-	require.NoError(t, err)
-	require.Equal(t, "hash-b", loaded.HashedPassword)
-	require.True(t, loaded.UpdatedAt > 0)
-	require.ErrorIs(t, store.UpdateUserPassword(ctx, 9999, "hash"), sql.ErrNoRows)
 
 	updated, err := store.UpdateUserEmail(ctx, userID, "alice2@example.com")
 	require.NoError(t, err)
@@ -108,7 +100,7 @@ func testTransact(t *testing.T, store Store) {
 	ctx := t.Context()
 
 	require.NoError(t, store.Transact(ctx, func(tx Store) error {
-		if _, err := tx.CreateUser(ctx, userID, "tx@example.com", "hash"); err != nil {
+		if _, err := tx.CreateUser(ctx, userID, "tx@example.com"); err != nil {
 			return err
 		}
 		_, err := tx.CreateUserProfile(ctx, userID, "Tx", "")
@@ -136,13 +128,13 @@ func testConstraintEnforcement(t *testing.T, store Store) {
 	const userID = int64(4001)
 	ctx := t.Context()
 
-	_, err := store.CreateUser(ctx, userID, "dup@example.com", "hash")
+	_, err := store.CreateUser(ctx, userID, "dup@example.com")
 	require.NoError(t, err)
 
-	_, err = store.CreateUser(ctx, userID, "other@example.com", "hash")
+	_, err = store.CreateUser(ctx, userID, "other@example.com")
 	requireUniqueViolation(t, err)
 
-	_, err = store.CreateUser(ctx, 4002, "dup@example.com", "hash")
+	_, err = store.CreateUser(ctx, 4002, "dup@example.com")
 	requireUniqueViolation(t, err)
 }
 
@@ -157,7 +149,7 @@ func testEmailVerification(t *testing.T, store Store) {
 	const userID = int64(5001)
 	ctx := t.Context()
 
-	created, err := store.CreateUser(ctx, userID, "verify@example.com", "hashed")
+	created, err := store.CreateUser(ctx, userID, "verify@example.com")
 	require.NoError(t, err)
 	require.Zero(t, created.EmailVerifiedAt)
 

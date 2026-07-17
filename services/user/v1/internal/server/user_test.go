@@ -438,6 +438,21 @@ func (s *fakeStore) ListRelationships(_ context.Context, params store.ListRelati
 	return result, nil
 }
 
+func (s *fakeStore) ListRelationshipsBidirectional(_ context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
+	var relationships []*model.Relationship
+	for _, targetID := range targetIDs {
+		if relationship, ok := s.relationships[[2]int64{userID, targetID}]; ok {
+			value := *relationship
+			relationships = append(relationships, &value)
+		}
+		if relationship, ok := s.relationships[[2]int64{targetID, userID}]; ok {
+			value := *relationship
+			relationships = append(relationships, &value)
+		}
+	}
+	return relationships, nil
+}
+
 func (s *fakeStore) ListRelationshipsByTargets(_ context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
 	targetSet := make(map[int64]bool, len(targetIDs))
 	for _, id := range targetIDs {

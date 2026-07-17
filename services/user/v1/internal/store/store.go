@@ -35,6 +35,7 @@ type Store interface {
 	DeleteRelationshipExceptBlocked(ctx context.Context, userID, targetID int64) error
 	ListRelationships(ctx context.Context, params ListRelationshipsParams) ([]*model.Relationship, error)
 	ListRelationshipsByTargets(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error)
+	ListRelationshipsBidirectional(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error)
 }
 
 type SQLStore struct {

@@ -165,6 +165,24 @@ func TestLoginMapsRequestAndResponse(t *testing.T) {
 	assertAPIAuthenticationResult(t, resp.GetResult())
 }
 
+func TestLoginMapsTwoFactorChallengeWithoutAuthenticationResult(t *testing.T) {
+	challenge := new(authenticatorv1.TwoFactorLoginChallenge)
+	challenge.SetToken("challenge-token")
+	challenge.SetExpiresAt(3001)
+	internalResp := new(authenticatorv1.LoginResponse)
+	internalResp.SetTwoFactorChallenge(challenge)
+	server := NewAuthenticator(&svc.ServiceContext{AuthenticatorClient: &fakeAuthenticatorClient{loginResponse: internalResp}})
+
+	resp, err := server.Login(context.Background(), &apiv1.LoginRequest{
+		Email:    new("user@example.com"),
+		Password: new("password"),
+	})
+	require.NoError(t, err)
+	require.Nil(t, resp.GetResult())
+	require.Equal(t, "challenge-token", resp.GetTwoFactorChallenge().GetToken())
+	require.Equal(t, int64(3001), resp.GetTwoFactorChallenge().GetExpiresAt())
+}
+
 func TestRefreshMapsRequestAndResponse(t *testing.T) {
 	internalClient := &fakeAuthenticatorClient{
 		refreshResponse: refreshResponse(authenticationResult()),

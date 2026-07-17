@@ -6,8 +6,10 @@ package api.v1;
 service AuthenticatorService {
   // Register creates an account and returns a new authenticated session.
   rpc Register(RegisterRequest) returns (RegisterResponse);
-  // Login verifies credentials and returns a new authenticated session.
+  // Login verifies credentials and returns either a new authenticated session or a two-factor challenge.
   rpc Login(LoginRequest) returns (LoginResponse);
+  // CompleteTwoFactorLogin verifies a pending login with a TOTP or recovery code.
+  rpc CompleteTwoFactorLogin(CompleteTwoFactorLoginRequest) returns (CompleteTwoFactorLoginResponse);
   // Refresh rotates the refresh token and issues a new access token.
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   // Logout revokes the session identified by the refresh token.
@@ -16,6 +18,11 @@ service AuthenticatorService {
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   // RevokeSession revokes one session owned by the bearer token owner.
   rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+  rpc GetTwoFactorStatus(GetTwoFactorStatusRequest) returns (GetTwoFactorStatusResponse);
+  rpc BeginTwoFactorEnrollment(BeginTwoFactorEnrollmentRequest) returns (BeginTwoFactorEnrollmentResponse);
+  rpc ConfirmTwoFactorEnrollment(ConfirmTwoFactorEnrollmentRequest) returns (ConfirmTwoFactorEnrollmentResponse);
+  rpc DisableTwoFactor(DisableTwoFactorRequest) returns (DisableTwoFactorResponse);
+  rpc RegenerateTwoFactorRecoveryCodes(RegenerateTwoFactorRecoveryCodesRequest) returns (RegenerateTwoFactorRecoveryCodesResponse);
 }
 
 // AuthenticationResult contains the tokens and expiration times for an authenticated session.
@@ -47,6 +54,23 @@ message LoginRequest {
 }
 
 message LoginResponse {
+  oneof outcome {
+    AuthenticationResult result = 1;
+    TwoFactorLoginChallenge two_factor_challenge = 2;
+  }
+}
+
+message TwoFactorLoginChallenge {
+  string token = 1;
+  int64 expires_at = 2;
+}
+
+message CompleteTwoFactorLoginRequest {
+  string challenge_token = 1;
+  string code = 2;
+}
+
+message CompleteTwoFactorLoginResponse {
   AuthenticationResult result = 1;
 }
 
@@ -90,4 +114,52 @@ message RevokeSessionRequest {
 
 message RevokeSessionResponse {
   bool ok = 1;
+}
+
+message GetTwoFactorStatusRequest {}
+
+message GetTwoFactorStatusResponse {
+  bool enabled = 1;
+  int32 recovery_codes_remaining = 2;
+}
+
+message BeginTwoFactorEnrollmentRequest {
+  string password = 1;
+}
+
+message BeginTwoFactorEnrollmentResponse {
+  string enrollment_token = 1;
+  string otpauth_uri = 2;
+  string manual_entry_key = 3;
+  int64 expires_at = 4;
+}
+
+message ConfirmTwoFactorEnrollmentRequest {
+  string enrollment_token = 1;
+  string code = 2;
+}
+
+message ConfirmTwoFactorEnrollmentResponse {
+  repeated string recovery_codes = 1;
+}
+
+message DisableTwoFactorRequest {
+  string password = 1;
+  oneof verification {
+    string code = 2;
+    string recovery_code = 3;
+  }
+}
+
+message DisableTwoFactorResponse {
+  bool ok = 1;
+}
+
+message RegenerateTwoFactorRecoveryCodesRequest {
+  string password = 1;
+  string code = 2;
+}
+
+message RegenerateTwoFactorRecoveryCodesResponse {
+  repeated string recovery_codes = 1;
 }

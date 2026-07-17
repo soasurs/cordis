@@ -22,6 +22,7 @@ Dispatcher 没有监听端口。各服务配置位于 `services/<name>/v1/etc/co
 - etcd：Session 节点租约注册与发现，Gateway、Session、Dispatcher 必须配置 endpoint。
 - Redis：Presence、Session owner 和用户/Guild/频道聚合路由。
 - OpenTelemetry：RPC 服务可通过 `CORDIS_OTEL_ENDPOINT` 输出 trace。
+- Authenticator 的 TOTP secret 使用独立的 `CORDIS_TOTP_ENCRYPTION_KEY` 以 AES-256-GCM 加密；该值是 Base64 编码的 32 字节随机密钥，不能与 JWT 密钥复用。
 - Prometheus：go-zero dev server 或 API 自有 observability 配置提供指标。
 
 ## 常用命令

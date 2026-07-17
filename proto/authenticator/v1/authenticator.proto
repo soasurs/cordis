@@ -5,6 +5,7 @@ package authenticator.v1;
 service AuthenticatorService {
   rpc Register(RegisterRequest) returns (RegisterResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
+  rpc CompleteTwoFactorLogin(CompleteTwoFactorLoginRequest) returns (CompleteTwoFactorLoginResponse);
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc VerifyAccessToken(VerifyAccessTokenRequest) returns (VerifyAccessTokenResponse);
@@ -14,6 +15,11 @@ service AuthenticatorService {
   rpc RevokeUserSession(RevokeUserSessionRequest) returns (RevokeUserSessionResponse);
   // RevokeOtherSessions keeps current_session_id active and revokes the user's other sessions.
   rpc RevokeOtherSessions(RevokeOtherSessionsRequest) returns (RevokeOtherSessionsResponse);
+  rpc GetTwoFactorStatus(GetTwoFactorStatusRequest) returns (GetTwoFactorStatusResponse);
+  rpc BeginTwoFactorEnrollment(BeginTwoFactorEnrollmentRequest) returns (BeginTwoFactorEnrollmentResponse);
+  rpc ConfirmTwoFactorEnrollment(ConfirmTwoFactorEnrollmentRequest) returns (ConfirmTwoFactorEnrollmentResponse);
+  rpc DisableTwoFactor(DisableTwoFactorRequest) returns (DisableTwoFactorResponse);
+  rpc RegenerateTwoFactorRecoveryCodes(RegenerateTwoFactorRecoveryCodesRequest) returns (RegenerateTwoFactorRecoveryCodesResponse);
 }
 
 message Session {
@@ -47,6 +53,25 @@ message LoginRequest {
 }
 
 message LoginResponse {
+  oneof outcome {
+    AuthenticationResult result = 1;
+    TwoFactorLoginChallenge two_factor_challenge = 2;
+  }
+}
+
+message TwoFactorLoginChallenge {
+  string token = 1;
+  int64 expires_at = 2;
+}
+
+message CompleteTwoFactorLoginRequest {
+  string challenge_token = 1;
+  string code = 2;
+  string user_agent = 3;
+  string ip = 4;
+}
+
+message CompleteTwoFactorLoginResponse {
   AuthenticationResult result = 1;
 }
 
@@ -112,4 +137,61 @@ message RevokeOtherSessionsRequest {
 
 message RevokeOtherSessionsResponse {
   int32 revoked = 1;
+}
+
+message GetTwoFactorStatusRequest {
+  int64 user_id = 1;
+}
+
+message GetTwoFactorStatusResponse {
+  bool enabled = 1;
+  int32 recovery_codes_remaining = 2;
+}
+
+message BeginTwoFactorEnrollmentRequest {
+  int64 user_id = 1;
+  string password = 2;
+}
+
+message BeginTwoFactorEnrollmentResponse {
+  string enrollment_token = 1;
+  string otpauth_uri = 2;
+  string manual_entry_key = 3;
+  int64 expires_at = 4;
+}
+
+message ConfirmTwoFactorEnrollmentRequest {
+  int64 user_id = 1;
+  int64 current_session_id = 2;
+  string enrollment_token = 3;
+  string code = 4;
+}
+
+message ConfirmTwoFactorEnrollmentResponse {
+  repeated string recovery_codes = 1;
+}
+
+message DisableTwoFactorRequest {
+  int64 user_id = 1;
+  int64 current_session_id = 2;
+  string password = 3;
+  oneof verification {
+    string code = 4;
+    string recovery_code = 5;
+  }
+}
+
+message DisableTwoFactorResponse {
+  bool ok = 1;
+}
+
+message RegenerateTwoFactorRecoveryCodesRequest {
+  int64 user_id = 1;
+  int64 current_session_id = 2;
+  string password = 3;
+  string code = 4;
+}
+
+message RegenerateTwoFactorRecoveryCodesResponse {
+  repeated string recovery_codes = 1;
 }

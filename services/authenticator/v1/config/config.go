@@ -10,10 +10,11 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database database.Config
-	Tokens   TokenConfig
-	Sessions SessionConfig
-	Services ServiceConfig
+	Database  database.Config
+	Tokens    TokenConfig
+	Sessions  SessionConfig
+	TwoFactor TwoFactorConfig
+	Services  ServiceConfig
 }
 
 type TokenConfig struct {
@@ -29,6 +30,25 @@ type TokenKindConfig struct {
 
 type SessionConfig struct {
 	TTL time.Duration
+}
+
+type TwoFactorConfig struct {
+	Issuer            string
+	EnrollmentTTL     time.Duration
+	LoginChallengeTTL time.Duration
+	MaxAttempts       int
+	RecoveryCodeCount int
+	Encryption        TwoFactorEncryptionConfig
+}
+
+type TwoFactorEncryptionConfig struct {
+	PrimaryKeyID string
+	Keys         []TwoFactorEncryptionKeyConfig
+}
+
+type TwoFactorEncryptionKeyConfig struct {
+	ID     string
+	Secret string
 }
 
 type ServiceConfig struct {

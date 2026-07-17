@@ -39,6 +39,9 @@ const (
 	// AuthenticatorServiceLoginProcedure is the fully-qualified name of the AuthenticatorService's
 	// Login RPC.
 	AuthenticatorServiceLoginProcedure = "/api.v1.AuthenticatorService/Login"
+	// AuthenticatorServiceCompleteTwoFactorLoginProcedure is the fully-qualified name of the
+	// AuthenticatorService's CompleteTwoFactorLogin RPC.
+	AuthenticatorServiceCompleteTwoFactorLoginProcedure = "/api.v1.AuthenticatorService/CompleteTwoFactorLogin"
 	// AuthenticatorServiceRefreshProcedure is the fully-qualified name of the AuthenticatorService's
 	// Refresh RPC.
 	AuthenticatorServiceRefreshProcedure = "/api.v1.AuthenticatorService/Refresh"
@@ -51,14 +54,31 @@ const (
 	// AuthenticatorServiceRevokeSessionProcedure is the fully-qualified name of the
 	// AuthenticatorService's RevokeSession RPC.
 	AuthenticatorServiceRevokeSessionProcedure = "/api.v1.AuthenticatorService/RevokeSession"
+	// AuthenticatorServiceGetTwoFactorStatusProcedure is the fully-qualified name of the
+	// AuthenticatorService's GetTwoFactorStatus RPC.
+	AuthenticatorServiceGetTwoFactorStatusProcedure = "/api.v1.AuthenticatorService/GetTwoFactorStatus"
+	// AuthenticatorServiceBeginTwoFactorEnrollmentProcedure is the fully-qualified name of the
+	// AuthenticatorService's BeginTwoFactorEnrollment RPC.
+	AuthenticatorServiceBeginTwoFactorEnrollmentProcedure = "/api.v1.AuthenticatorService/BeginTwoFactorEnrollment"
+	// AuthenticatorServiceConfirmTwoFactorEnrollmentProcedure is the fully-qualified name of the
+	// AuthenticatorService's ConfirmTwoFactorEnrollment RPC.
+	AuthenticatorServiceConfirmTwoFactorEnrollmentProcedure = "/api.v1.AuthenticatorService/ConfirmTwoFactorEnrollment"
+	// AuthenticatorServiceDisableTwoFactorProcedure is the fully-qualified name of the
+	// AuthenticatorService's DisableTwoFactor RPC.
+	AuthenticatorServiceDisableTwoFactorProcedure = "/api.v1.AuthenticatorService/DisableTwoFactor"
+	// AuthenticatorServiceRegenerateTwoFactorRecoveryCodesProcedure is the fully-qualified name of the
+	// AuthenticatorService's RegenerateTwoFactorRecoveryCodes RPC.
+	AuthenticatorServiceRegenerateTwoFactorRecoveryCodesProcedure = "/api.v1.AuthenticatorService/RegenerateTwoFactorRecoveryCodes"
 )
 
 // AuthenticatorServiceClient is a client for the api.v1.AuthenticatorService service.
 type AuthenticatorServiceClient interface {
 	// Register creates an account and returns a new authenticated session.
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
-	// Login verifies credentials and returns a new authenticated session.
+	// Login verifies credentials and returns either a new authenticated session or a two-factor challenge.
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	// CompleteTwoFactorLogin verifies a pending login with a TOTP or recovery code.
+	CompleteTwoFactorLogin(context.Context, *v1.CompleteTwoFactorLoginRequest) (*v1.CompleteTwoFactorLoginResponse, error)
 	// Refresh rotates the refresh token and issues a new access token.
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
 	// Logout revokes the session identified by the refresh token.
@@ -67,6 +87,11 @@ type AuthenticatorServiceClient interface {
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession revokes one session owned by the bearer token owner.
 	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
+	GetTwoFactorStatus(context.Context, *v1.GetTwoFactorStatusRequest) (*v1.GetTwoFactorStatusResponse, error)
+	BeginTwoFactorEnrollment(context.Context, *v1.BeginTwoFactorEnrollmentRequest) (*v1.BeginTwoFactorEnrollmentResponse, error)
+	ConfirmTwoFactorEnrollment(context.Context, *v1.ConfirmTwoFactorEnrollmentRequest) (*v1.ConfirmTwoFactorEnrollmentResponse, error)
+	DisableTwoFactor(context.Context, *v1.DisableTwoFactorRequest) (*v1.DisableTwoFactorResponse, error)
+	RegenerateTwoFactorRecoveryCodes(context.Context, *v1.RegenerateTwoFactorRecoveryCodesRequest) (*v1.RegenerateTwoFactorRecoveryCodesResponse, error)
 }
 
 // NewAuthenticatorServiceClient constructs a client for the api.v1.AuthenticatorService service. By
@@ -90,6 +115,12 @@ func NewAuthenticatorServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+AuthenticatorServiceLoginProcedure,
 			connect.WithSchema(authenticatorServiceMethods.ByName("Login")),
+			connect.WithClientOptions(opts...),
+		),
+		completeTwoFactorLogin: connect.NewClient[v1.CompleteTwoFactorLoginRequest, v1.CompleteTwoFactorLoginResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceCompleteTwoFactorLoginProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("CompleteTwoFactorLogin")),
 			connect.WithClientOptions(opts...),
 		),
 		refresh: connect.NewClient[v1.RefreshRequest, v1.RefreshResponse](
@@ -116,17 +147,53 @@ func NewAuthenticatorServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(authenticatorServiceMethods.ByName("RevokeSession")),
 			connect.WithClientOptions(opts...),
 		),
+		getTwoFactorStatus: connect.NewClient[v1.GetTwoFactorStatusRequest, v1.GetTwoFactorStatusResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceGetTwoFactorStatusProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("GetTwoFactorStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		beginTwoFactorEnrollment: connect.NewClient[v1.BeginTwoFactorEnrollmentRequest, v1.BeginTwoFactorEnrollmentResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceBeginTwoFactorEnrollmentProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("BeginTwoFactorEnrollment")),
+			connect.WithClientOptions(opts...),
+		),
+		confirmTwoFactorEnrollment: connect.NewClient[v1.ConfirmTwoFactorEnrollmentRequest, v1.ConfirmTwoFactorEnrollmentResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceConfirmTwoFactorEnrollmentProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("ConfirmTwoFactorEnrollment")),
+			connect.WithClientOptions(opts...),
+		),
+		disableTwoFactor: connect.NewClient[v1.DisableTwoFactorRequest, v1.DisableTwoFactorResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceDisableTwoFactorProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("DisableTwoFactor")),
+			connect.WithClientOptions(opts...),
+		),
+		regenerateTwoFactorRecoveryCodes: connect.NewClient[v1.RegenerateTwoFactorRecoveryCodesRequest, v1.RegenerateTwoFactorRecoveryCodesResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceRegenerateTwoFactorRecoveryCodesProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("RegenerateTwoFactorRecoveryCodes")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authenticatorServiceClient implements AuthenticatorServiceClient.
 type authenticatorServiceClient struct {
-	register      *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
-	login         *connect.Client[v1.LoginRequest, v1.LoginResponse]
-	refresh       *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
-	logout        *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	listSessions  *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
-	revokeSession *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
+	register                         *connect.Client[v1.RegisterRequest, v1.RegisterResponse]
+	login                            *connect.Client[v1.LoginRequest, v1.LoginResponse]
+	completeTwoFactorLogin           *connect.Client[v1.CompleteTwoFactorLoginRequest, v1.CompleteTwoFactorLoginResponse]
+	refresh                          *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
+	logout                           *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	listSessions                     *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
+	revokeSession                    *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
+	getTwoFactorStatus               *connect.Client[v1.GetTwoFactorStatusRequest, v1.GetTwoFactorStatusResponse]
+	beginTwoFactorEnrollment         *connect.Client[v1.BeginTwoFactorEnrollmentRequest, v1.BeginTwoFactorEnrollmentResponse]
+	confirmTwoFactorEnrollment       *connect.Client[v1.ConfirmTwoFactorEnrollmentRequest, v1.ConfirmTwoFactorEnrollmentResponse]
+	disableTwoFactor                 *connect.Client[v1.DisableTwoFactorRequest, v1.DisableTwoFactorResponse]
+	regenerateTwoFactorRecoveryCodes *connect.Client[v1.RegenerateTwoFactorRecoveryCodesRequest, v1.RegenerateTwoFactorRecoveryCodesResponse]
 }
 
 // Register calls api.v1.AuthenticatorService.Register.
@@ -141,6 +208,15 @@ func (c *authenticatorServiceClient) Register(ctx context.Context, req *v1.Regis
 // Login calls api.v1.AuthenticatorService.Login.
 func (c *authenticatorServiceClient) Login(ctx context.Context, req *v1.LoginRequest) (*v1.LoginResponse, error) {
 	response, err := c.login.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CompleteTwoFactorLogin calls api.v1.AuthenticatorService.CompleteTwoFactorLogin.
+func (c *authenticatorServiceClient) CompleteTwoFactorLogin(ctx context.Context, req *v1.CompleteTwoFactorLoginRequest) (*v1.CompleteTwoFactorLoginResponse, error) {
+	response, err := c.completeTwoFactorLogin.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -183,12 +259,60 @@ func (c *authenticatorServiceClient) RevokeSession(ctx context.Context, req *v1.
 	return nil, err
 }
 
+// GetTwoFactorStatus calls api.v1.AuthenticatorService.GetTwoFactorStatus.
+func (c *authenticatorServiceClient) GetTwoFactorStatus(ctx context.Context, req *v1.GetTwoFactorStatusRequest) (*v1.GetTwoFactorStatusResponse, error) {
+	response, err := c.getTwoFactorStatus.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// BeginTwoFactorEnrollment calls api.v1.AuthenticatorService.BeginTwoFactorEnrollment.
+func (c *authenticatorServiceClient) BeginTwoFactorEnrollment(ctx context.Context, req *v1.BeginTwoFactorEnrollmentRequest) (*v1.BeginTwoFactorEnrollmentResponse, error) {
+	response, err := c.beginTwoFactorEnrollment.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ConfirmTwoFactorEnrollment calls api.v1.AuthenticatorService.ConfirmTwoFactorEnrollment.
+func (c *authenticatorServiceClient) ConfirmTwoFactorEnrollment(ctx context.Context, req *v1.ConfirmTwoFactorEnrollmentRequest) (*v1.ConfirmTwoFactorEnrollmentResponse, error) {
+	response, err := c.confirmTwoFactorEnrollment.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DisableTwoFactor calls api.v1.AuthenticatorService.DisableTwoFactor.
+func (c *authenticatorServiceClient) DisableTwoFactor(ctx context.Context, req *v1.DisableTwoFactorRequest) (*v1.DisableTwoFactorResponse, error) {
+	response, err := c.disableTwoFactor.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RegenerateTwoFactorRecoveryCodes calls
+// api.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes.
+func (c *authenticatorServiceClient) RegenerateTwoFactorRecoveryCodes(ctx context.Context, req *v1.RegenerateTwoFactorRecoveryCodesRequest) (*v1.RegenerateTwoFactorRecoveryCodesResponse, error) {
+	response, err := c.regenerateTwoFactorRecoveryCodes.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // AuthenticatorServiceHandler is an implementation of the api.v1.AuthenticatorService service.
 type AuthenticatorServiceHandler interface {
 	// Register creates an account and returns a new authenticated session.
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
-	// Login verifies credentials and returns a new authenticated session.
+	// Login verifies credentials and returns either a new authenticated session or a two-factor challenge.
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
+	// CompleteTwoFactorLogin verifies a pending login with a TOTP or recovery code.
+	CompleteTwoFactorLogin(context.Context, *v1.CompleteTwoFactorLoginRequest) (*v1.CompleteTwoFactorLoginResponse, error)
 	// Refresh rotates the refresh token and issues a new access token.
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
 	// Logout revokes the session identified by the refresh token.
@@ -197,6 +321,11 @@ type AuthenticatorServiceHandler interface {
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession revokes one session owned by the bearer token owner.
 	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
+	GetTwoFactorStatus(context.Context, *v1.GetTwoFactorStatusRequest) (*v1.GetTwoFactorStatusResponse, error)
+	BeginTwoFactorEnrollment(context.Context, *v1.BeginTwoFactorEnrollmentRequest) (*v1.BeginTwoFactorEnrollmentResponse, error)
+	ConfirmTwoFactorEnrollment(context.Context, *v1.ConfirmTwoFactorEnrollmentRequest) (*v1.ConfirmTwoFactorEnrollmentResponse, error)
+	DisableTwoFactor(context.Context, *v1.DisableTwoFactorRequest) (*v1.DisableTwoFactorResponse, error)
+	RegenerateTwoFactorRecoveryCodes(context.Context, *v1.RegenerateTwoFactorRecoveryCodesRequest) (*v1.RegenerateTwoFactorRecoveryCodesResponse, error)
 }
 
 // NewAuthenticatorServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -216,6 +345,12 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 		AuthenticatorServiceLoginProcedure,
 		svc.Login,
 		connect.WithSchema(authenticatorServiceMethods.ByName("Login")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceCompleteTwoFactorLoginHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceCompleteTwoFactorLoginProcedure,
+		svc.CompleteTwoFactorLogin,
+		connect.WithSchema(authenticatorServiceMethods.ByName("CompleteTwoFactorLogin")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authenticatorServiceRefreshHandler := connect.NewUnaryHandlerSimple(
@@ -242,12 +377,44 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 		connect.WithSchema(authenticatorServiceMethods.ByName("RevokeSession")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authenticatorServiceGetTwoFactorStatusHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceGetTwoFactorStatusProcedure,
+		svc.GetTwoFactorStatus,
+		connect.WithSchema(authenticatorServiceMethods.ByName("GetTwoFactorStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceBeginTwoFactorEnrollmentHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceBeginTwoFactorEnrollmentProcedure,
+		svc.BeginTwoFactorEnrollment,
+		connect.WithSchema(authenticatorServiceMethods.ByName("BeginTwoFactorEnrollment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceConfirmTwoFactorEnrollmentHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceConfirmTwoFactorEnrollmentProcedure,
+		svc.ConfirmTwoFactorEnrollment,
+		connect.WithSchema(authenticatorServiceMethods.ByName("ConfirmTwoFactorEnrollment")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceDisableTwoFactorHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceDisableTwoFactorProcedure,
+		svc.DisableTwoFactor,
+		connect.WithSchema(authenticatorServiceMethods.ByName("DisableTwoFactor")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceRegenerateTwoFactorRecoveryCodesHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceRegenerateTwoFactorRecoveryCodesProcedure,
+		svc.RegenerateTwoFactorRecoveryCodes,
+		connect.WithSchema(authenticatorServiceMethods.ByName("RegenerateTwoFactorRecoveryCodes")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.AuthenticatorService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthenticatorServiceRegisterProcedure:
 			authenticatorServiceRegisterHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceLoginProcedure:
 			authenticatorServiceLoginHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceCompleteTwoFactorLoginProcedure:
+			authenticatorServiceCompleteTwoFactorLoginHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceRefreshProcedure:
 			authenticatorServiceRefreshHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceLogoutProcedure:
@@ -256,6 +423,16 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 			authenticatorServiceListSessionsHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceRevokeSessionProcedure:
 			authenticatorServiceRevokeSessionHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceGetTwoFactorStatusProcedure:
+			authenticatorServiceGetTwoFactorStatusHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceBeginTwoFactorEnrollmentProcedure:
+			authenticatorServiceBeginTwoFactorEnrollmentHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceConfirmTwoFactorEnrollmentProcedure:
+			authenticatorServiceConfirmTwoFactorEnrollmentHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceDisableTwoFactorProcedure:
+			authenticatorServiceDisableTwoFactorHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceRegenerateTwoFactorRecoveryCodesProcedure:
+			authenticatorServiceRegenerateTwoFactorRecoveryCodesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -273,6 +450,10 @@ func (UnimplementedAuthenticatorServiceHandler) Login(context.Context, *v1.Login
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Login is not implemented"))
 }
 
+func (UnimplementedAuthenticatorServiceHandler) CompleteTwoFactorLogin(context.Context, *v1.CompleteTwoFactorLoginRequest) (*v1.CompleteTwoFactorLoginResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.CompleteTwoFactorLogin is not implemented"))
+}
+
 func (UnimplementedAuthenticatorServiceHandler) Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Refresh is not implemented"))
 }
@@ -287,4 +468,24 @@ func (UnimplementedAuthenticatorServiceHandler) ListSessions(context.Context, *v
 
 func (UnimplementedAuthenticatorServiceHandler) RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.RevokeSession is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) GetTwoFactorStatus(context.Context, *v1.GetTwoFactorStatusRequest) (*v1.GetTwoFactorStatusResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.GetTwoFactorStatus is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) BeginTwoFactorEnrollment(context.Context, *v1.BeginTwoFactorEnrollmentRequest) (*v1.BeginTwoFactorEnrollmentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.BeginTwoFactorEnrollment is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) ConfirmTwoFactorEnrollment(context.Context, *v1.ConfirmTwoFactorEnrollmentRequest) (*v1.ConfirmTwoFactorEnrollmentResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.ConfirmTwoFactorEnrollment is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) DisableTwoFactor(context.Context, *v1.DisableTwoFactorRequest) (*v1.DisableTwoFactorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.DisableTwoFactor is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) RegenerateTwoFactorRecoveryCodes(context.Context, *v1.RegenerateTwoFactorRecoveryCodesRequest) (*v1.RegenerateTwoFactorRecoveryCodesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes is not implemented"))
 }

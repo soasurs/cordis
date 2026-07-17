@@ -21,6 +21,9 @@ Guild/Message events, etcd for leased Session-node registration and discovery,
 and Redis for Presence, resume ownership, and aggregate realtime routing. RPC
 services support OTLP tracing through `CORDIS_OTEL_ENDPOINT`. Metrics are
 exposed through go-zero dev servers or API observability settings.
+Authenticator encrypts TOTP secrets with AES-256-GCM using the independent
+`CORDIS_TOTP_ENCRYPTION_KEY`. It must be a Base64-encoded 32-byte random key
+and must not be reused for JWT signing.
 
 Common commands:
 

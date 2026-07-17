@@ -110,6 +110,15 @@ export CORDIS_ACCESS_TOKEN_SECRET='development-access-secret'
 export CORDIS_REFRESH_TOKEN_SECRET='development-refresh-secret'
 ```
 
+TOTP two-factor authentication also requires an independent AES-256-GCM key,
+encoded as 32 random bytes in Base64:
+
+```bash
+export CORDIS_TOTP_ENCRYPTION_KEY='...'
+```
+
+Do not reuse a JWT key or commit this value to configuration or logs.
+
 Apply the PostgreSQL migrations:
 
 ```bash

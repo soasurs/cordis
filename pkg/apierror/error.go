@@ -12,21 +12,26 @@ import (
 )
 
 const (
-	CodeInvalidCredentials  = "auth.invalid_credentials"
-	CodeEmailAlreadyExists  = "auth.email_already_exists"
-	CodeInvalidAccessToken  = "auth.invalid_access_token"
-	CodeInvalidRefreshToken = "auth.invalid_refresh_token"
-	CodeSessionExpired      = "auth.session_expired"
-	CodeSessionRevoked      = "auth.session_revoked"
-	CodeInvalidArgument     = "request.invalid_argument"
-	CodeCanceled            = "request.canceled"
-	CodeDeadlineExceeded    = "request.deadline_exceeded"
-	CodeNotFound            = "resource.not_found"
-	CodeAlreadyExists       = "resource.already_exists"
-	CodePermissionDenied    = "auth.permission_denied"
-	CodeResourceExhausted   = "system.resource_exhausted"
-	CodeUnavailable         = "system.unavailable"
-	CodeInternal            = "system.internal"
+	CodeInvalidCredentials         = "auth.invalid_credentials"
+	CodeEmailAlreadyExists         = "auth.email_already_exists"
+	CodeInvalidAccessToken         = "auth.invalid_access_token"
+	CodeInvalidRefreshToken        = "auth.invalid_refresh_token"
+	CodeSessionExpired             = "auth.session_expired"
+	CodeSessionRevoked             = "auth.session_revoked"
+	CodeInvalidTwoFactorCode       = "auth.invalid_two_factor_code"
+	CodeTwoFactorChallengeExpired  = "auth.two_factor_challenge_expired"
+	CodeTwoFactorNotEnabled        = "auth.two_factor_not_enabled"
+	CodeTwoFactorAlreadyEnabled    = "auth.two_factor_already_enabled"
+	CodeTwoFactorEnrollmentPending = "auth.two_factor_enrollment_pending"
+	CodeInvalidArgument            = "request.invalid_argument"
+	CodeCanceled                   = "request.canceled"
+	CodeDeadlineExceeded           = "request.deadline_exceeded"
+	CodeNotFound                   = "resource.not_found"
+	CodeAlreadyExists              = "resource.already_exists"
+	CodePermissionDenied           = "auth.permission_denied"
+	CodeResourceExhausted          = "system.resource_exhausted"
+	CodeUnavailable                = "system.unavailable"
+	CodeInternal                   = "system.internal"
 )
 
 type mapping struct {
@@ -60,6 +65,31 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		connectCode: connect.CodeUnauthenticated,
 		publicCode:  CodeSessionRevoked,
 		message:     "Session revoked.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorInvalidTwoFactorCode}: {
+		connectCode: connect.CodeUnauthenticated,
+		publicCode:  CodeInvalidTwoFactorCode,
+		message:     "Invalid authenticator code.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorTwoFactorChallengeExpired}: {
+		connectCode: connect.CodeUnauthenticated,
+		publicCode:  CodeTwoFactorChallengeExpired,
+		message:     "Two-factor challenge expired.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorTwoFactorNotEnabled}: {
+		connectCode: connect.CodeFailedPrecondition,
+		publicCode:  CodeTwoFactorNotEnabled,
+		message:     "Two-factor authentication is not enabled.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorTwoFactorAlreadyEnabled}: {
+		connectCode: connect.CodeFailedPrecondition,
+		publicCode:  CodeTwoFactorAlreadyEnabled,
+		message:     "Two-factor authentication is already enabled.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorTwoFactorEnrollmentPending}: {
+		connectCode: connect.CodeFailedPrecondition,
+		publicCode:  CodeTwoFactorEnrollmentPending,
+		message:     "Two-factor enrollment is already pending.",
 	},
 	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserEmailAlreadyExists}: {
 		connectCode: connect.CodeAlreadyExists,

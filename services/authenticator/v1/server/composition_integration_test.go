@@ -213,6 +213,56 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		require.NoError(t, err)
 		require.Zero(t, getUserResp.GetUser().GetEmailVerifiedAt())
 	})
+
+	t.Run("change password rotates credential and revokes other sessions", func(t *testing.T) {
+		// The previous subtest moved alice to alice-changed@example.com.
+		login := func(password string) *authenticatorv1.AuthenticationResult {
+			loginReq := new(authenticatorv1.LoginRequest)
+			loginReq.SetEmail("alice-changed@example.com")
+			loginReq.SetPassword(password)
+			loginResp, err := service.Login(ctx, loginReq)
+			require.NoError(t, err)
+			require.True(t, loginResp.GetResult().GetOk())
+			return loginResp.GetResult()
+		}
+		current := login("integration-password-3")
+		other := login("integration-password-3")
+
+		// A wrong old password is a negative result and changes nothing.
+		changeReq := new(authenticatorv1.ChangePasswordRequest)
+		changeReq.SetUserId(current.GetUserId())
+		changeReq.SetCurrentSessionId(current.GetSessionId())
+		changeReq.SetOldPassword("wrong-password")
+		changeReq.SetNewPassword("integration-password-4")
+		changeResp, err := service.ChangePassword(ctx, changeReq)
+		require.NoError(t, err)
+		require.False(t, changeResp.GetOk())
+
+		changeReq.SetOldPassword("integration-password-3")
+		changeResp, err = service.ChangePassword(ctx, changeReq)
+		require.NoError(t, err)
+		require.True(t, changeResp.GetOk())
+
+		// The old password stops working and the new one logs in.
+		loginReq := new(authenticatorv1.LoginRequest)
+		loginReq.SetEmail("alice-changed@example.com")
+		loginReq.SetPassword("integration-password-3")
+		_, err = service.Login(ctx, loginReq)
+		require.Equal(t, codes.Unauthenticated, status.Code(err))
+		login("integration-password-4")
+
+		// The other session is revoked while the current one survives.
+		refreshReq := new(authenticatorv1.RefreshRequest)
+		refreshReq.SetRefreshToken(other.GetRefreshToken())
+		_, err = service.Refresh(ctx, refreshReq)
+		require.Equal(t, codes.Unauthenticated, status.Code(err))
+
+		refreshReq = new(authenticatorv1.RefreshRequest)
+		refreshReq.SetRefreshToken(current.GetRefreshToken())
+		refreshResp, err := service.Refresh(ctx, refreshReq)
+		require.NoError(t, err)
+		require.True(t, refreshResp.GetResult().GetOk())
+	})
 }
 
 func startUserServiceForAuth(t *testing.T, dsn string) string {

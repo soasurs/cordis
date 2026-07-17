@@ -4652,7 +4652,9 @@ func (x *ChangePasswordRequest) ClearNewPassword() {
 type ChangePasswordRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId           *int64
+	UserId *int64
+	// Sessions other than this one are revoked on success. Zero skips the
+	// revocation entirely instead of revoking everything.
 	CurrentSessionId *int64
 	OldPassword      *string
 	NewPassword      *string

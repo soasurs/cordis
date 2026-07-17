@@ -241,6 +241,8 @@ message ConfirmEmailVerificationResponse {
 
 message ChangePasswordRequest {
   int64 user_id = 1;
+  // Sessions other than this one are revoked on success. Zero skips the
+  // revocation entirely instead of revoking everything.
   int64 current_session_id = 2;
   string old_password = 3;
   string new_password = 4;

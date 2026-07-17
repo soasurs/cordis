@@ -38,7 +38,7 @@ func TestRegister(t *testing.T) {
 	server := newTestAuthenticatorServer(t, store, tokens, userClient)
 
 	req := new(authenticatorv1.RegisterRequest)
-	req.SetName("display name")
+	req.SetName("  display name  ")
 	req.SetEmail("user@example.com")
 	req.SetPassword("password")
 	req.SetUserAgent("test-agent")

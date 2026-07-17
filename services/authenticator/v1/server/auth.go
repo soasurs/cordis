@@ -46,7 +46,7 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 	}
 
 	createReq := new(userv1.CreateUserRequest)
-	createReq.SetName(req.GetName())
+	createReq.SetName(name)
 	createReq.SetEmail(req.GetEmail())
 
 	var userID int64

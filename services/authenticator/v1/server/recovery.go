@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +34,14 @@ func (s *authenticatorServer) RequestPasswordReset(ctx context.Context, req *aut
 
 	resp := new(authenticatorv1.RequestPasswordResetResponse)
 	resp.SetOk(true)
+
+	// Throttle before the user lookup so repeated probes cost nothing and,
+	// more importantly, so an attacker cannot keep replacing the victim's
+	// pending token faster than the victim can use it. The throttled
+	// response is indistinguishable from a successful one.
+	if !s.allowRecoveryRequest(ctx, "pwreset:"+token.Hash(strings.ToLower(email))) {
+		return resp, nil
+	}
 
 	getUserReq := new(userv1.GetUserRequest)
 	getUserReq.SetEmail(email)
@@ -81,6 +90,13 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *aut
 
 	tokenHash := token.Hash(rawToken)
 	now := time.Now().UnixMilli()
+	// Cross-service consistency: the token row and sessions live in this
+	// database while the password lives in User, so this cannot be atomic.
+	// The User call runs inside the local transaction on purpose: if it
+	// fails, the consume and revocation roll back and the token stays
+	// usable. The remaining window - User committed but this transaction
+	// fails to commit - leaves the token unconsumed, so retrying the same
+	// confirmation converges (same password, sessions revoked).
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		reset, err := tx.GetPasswordResetToken(ctx, tokenHash, true)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -129,6 +145,12 @@ func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, req 
 		return nil, status.Error(codes.InvalidArgument, "user id is required")
 	}
 
+	resp := new(authenticatorv1.RequestEmailVerificationResponse)
+	resp.SetOk(true)
+	if !s.allowRecoveryRequest(ctx, "emailverify:"+strconv.FormatInt(req.GetUserId(), 10)) {
+		return resp, nil
+	}
+
 	getUserReq := new(userv1.GetUserRequest)
 	getUserReq.SetUserId(req.GetUserId())
 	getUserResp, err := s.svcCtx.UserClient.GetUser(ctx, getUserReq)
@@ -140,8 +162,6 @@ func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, req 
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	resp := new(authenticatorv1.RequestEmailVerificationResponse)
-	resp.SetOk(true)
 	// Requesting verification for an already-verified email is a no-op.
 	if user.GetEmailVerifiedAt() != 0 {
 		return resp, nil
@@ -212,6 +232,24 @@ func (s *authenticatorServer) ConfirmEmailVerification(ctx context.Context, req 
 	resp := new(authenticatorv1.ConfirmEmailVerificationResponse)
 	resp.SetOk(true)
 	return resp, nil
+}
+
+// allowRecoveryRequest applies per-target throttling for recovery mail. It
+// fails open: throttling protects against abuse, and a Redis outage must not
+// disable account recovery.
+func (s *authenticatorServer) allowRecoveryRequest(ctx context.Context, key string) bool {
+	if s.svcCtx.RecoveryLimiter == nil {
+		return true
+	}
+	allowed, err := s.svcCtx.RecoveryLimiter.Allow(ctx, key)
+	if err != nil {
+		logx.WithContext(ctx).Errorw("recovery limiter", logx.Field("error", err))
+		return true
+	}
+	if !allowed {
+		logx.WithContext(ctx).Infow("recovery request throttled", logx.Field("key", key))
+	}
+	return allowed
 }
 
 // sendRecoveryMail delivers a recovery token through the mailer service on a

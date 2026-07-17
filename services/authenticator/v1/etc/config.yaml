@@ -45,6 +45,9 @@ sessions:
 recovery:
   passwordResetTTL: 30m
   emailVerificationTTL: 24h
+  requestIntervalSeconds: 60
+  redis:
+    host: 127.0.0.1:6379
 
 twoFactor:
   issuer: Cordis

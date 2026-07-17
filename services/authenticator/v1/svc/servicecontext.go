@@ -1,10 +1,13 @@
 package svc
 
 import (
+	"context"
 	"errors"
 
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jmoiron/sqlx"
+	"github.com/zeromicro/go-zero/core/limit"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 
 	mailerv1 "github.com/soasurs/cordis/gen/mailer/v1"
@@ -26,16 +29,37 @@ type ServiceContext struct {
 	UserClient userv1.UserServiceClient
 	// MailerClient is optional; recovery flows skip delivery when nil.
 	MailerClient mailerv1.MailerServiceClient
+	// RecoveryLimiter is optional; recovery flows skip throttling when nil.
+	RecoveryLimiter RecoveryLimiter
+}
+
+// RecoveryLimiter throttles recovery mail requests per target key.
+type RecoveryLimiter interface {
+	// Allow reports whether the request for key may proceed now.
+	Allow(ctx context.Context, key string) (bool, error)
+}
+
+type periodRecoveryLimiter struct {
+	limiter *limit.PeriodLimit
+}
+
+func (l *periodRecoveryLimiter) Allow(ctx context.Context, key string) (bool, error) {
+	state, err := l.limiter.TakeCtx(ctx, key)
+	if err != nil {
+		return false, err
+	}
+	return state == limit.Allowed || state == limit.HitQuota, nil
 }
 
 type Dependencies struct {
-	Store        store.Store
-	Tokens       *token.Manager
-	TwoFactor    *twofactor.Cipher
-	Snowflake    *sn.Node
-	UserClient   userv1.UserServiceClient
-	MailerClient mailerv1.MailerServiceClient
-	DB           *sqlx.DB
+	Store           store.Store
+	Tokens          *token.Manager
+	TwoFactor       *twofactor.Cipher
+	Snowflake       *sn.Node
+	UserClient      userv1.UserServiceClient
+	MailerClient    mailerv1.MailerServiceClient
+	RecoveryLimiter RecoveryLimiter
+	DB              *sqlx.DB
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -53,6 +77,9 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	}
 	if cfg.Recovery.PasswordResetTTL <= 0 || cfg.Recovery.EmailVerificationTTL <= 0 {
 		return Dependencies{}, errors.New("recovery TTLs must be positive")
+	}
+	if cfg.Recovery.RequestIntervalSeconds <= 0 {
+		return Dependencies{}, errors.New("recovery request interval must be positive")
 	}
 
 	twoFactorKeys := make([]twofactor.KeyConfig, 0, len(cfg.TwoFactor.Encryption.Keys))
@@ -94,19 +121,34 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		mailerClient = mailerv1.NewMailerServiceClient(mailerRPCClient.Conn())
 	}
 
+	var recoveryLimiter RecoveryLimiter
+	if cfg.Recovery.Redis.Host != "" {
+		rds, err := redis.NewRedis(cfg.Recovery.Redis)
+		if err != nil {
+			return Dependencies{}, err
+		}
+		recoveryLimiter = &periodRecoveryLimiter{limiter: limit.NewPeriodLimit(
+			cfg.Recovery.RequestIntervalSeconds,
+			1,
+			rds,
+			"authenticator:recovery:",
+		)}
+	}
+
 	db, err := database.NewPostgres(cfg.Database)
 	if err != nil {
 		return Dependencies{}, err
 	}
 
 	return Dependencies{
-		Store:        store.New(db),
-		Tokens:       tokenManager,
-		TwoFactor:    twoFactorCipher,
-		Snowflake:    node,
-		UserClient:   userv1.NewUserServiceClient(userRPCClient.Conn()),
-		MailerClient: mailerClient,
-		DB:           db,
+		Store:           store.New(db),
+		Tokens:          tokenManager,
+		TwoFactor:       twoFactorCipher,
+		Snowflake:       node,
+		UserClient:      userv1.NewUserServiceClient(userRPCClient.Conn()),
+		MailerClient:    mailerClient,
+		RecoveryLimiter: recoveryLimiter,
+		DB:              db,
 	}, nil
 }
 
@@ -138,12 +180,13 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		panic("user client is required")
 	}
 	return &ServiceContext{
-		Cfg:          cfg,
-		Store:        deps.Store,
-		Tokens:       deps.Tokens,
-		TwoFactor:    deps.TwoFactor,
-		Snowflake:    deps.Snowflake,
-		UserClient:   deps.UserClient,
-		MailerClient: deps.MailerClient,
+		Cfg:             cfg,
+		Store:           deps.Store,
+		Tokens:          deps.Tokens,
+		TwoFactor:       deps.TwoFactor,
+		Snowflake:       deps.Snowflake,
+		UserClient:      deps.UserClient,
+		MailerClient:    deps.MailerClient,
+		RecoveryLimiter: deps.RecoveryLimiter,
 	}
 }

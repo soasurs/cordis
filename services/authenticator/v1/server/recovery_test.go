@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -62,6 +63,17 @@ func newRecoveryTestServer(
 	mailerClient mailerv1.MailerServiceClient,
 ) authenticatorv1.AuthenticatorServiceServer {
 	t.Helper()
+	return newThrottledRecoveryTestServer(t, sessionStore, userClient, mailerClient, nil)
+}
+
+func newThrottledRecoveryTestServer(
+	t *testing.T,
+	sessionStore store.Store,
+	userClient userv1.UserServiceClient,
+	mailerClient mailerv1.MailerServiceClient,
+	limiter svc.RecoveryLimiter,
+) authenticatorv1.AuthenticatorServiceServer {
+	t.Helper()
 
 	node, err := snowflake.New()
 	require.NoError(t, err)
@@ -82,12 +94,13 @@ func newRecoveryTestServer(
 				EmailVerificationTTL: 24 * time.Hour,
 			},
 		},
-		Store:        sessionStore,
-		Tokens:       tokens,
-		TwoFactor:    newTestTwoFactorCipher(t),
-		Snowflake:    node,
-		UserClient:   userClient,
-		MailerClient: mailerClient,
+		Store:           sessionStore,
+		Tokens:          tokens,
+		TwoFactor:       newTestTwoFactorCipher(t),
+		Snowflake:       node,
+		UserClient:      userClient,
+		MailerClient:    mailerClient,
+		RecoveryLimiter: limiter,
 	})
 }
 
@@ -321,4 +334,74 @@ func TestConfirmEmailVerificationStaleEmail(t *testing.T) {
 	_, err := server.ConfirmEmailVerification(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidEmailVerificationToken))
+}
+
+type fakeRecoveryLimiter struct {
+	allow bool
+	err   error
+	keys  []string
+}
+
+func (l *fakeRecoveryLimiter) Allow(_ context.Context, key string) (bool, error) {
+	l.keys = append(l.keys, key)
+	if l.err != nil {
+		return false, l.err
+	}
+	return l.allow, nil
+}
+
+func TestRequestPasswordResetThrottledStaysSilent(t *testing.T) {
+	sessionStore := newFakeSessionStore()
+	mailerClient := new(fakeMailerClient)
+	limiter := &fakeRecoveryLimiter{allow: false}
+	server := newThrottledRecoveryTestServer(t, sessionStore, &fakeUserClient{
+		getUserResponse: recoveryTestUser(1001, "user@example.com", 0),
+	}, mailerClient, limiter)
+
+	req := new(authenticatorv1.RequestPasswordResetRequest)
+	req.SetEmail("User@Example.com")
+	resp, err := server.RequestPasswordReset(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Empty(t, sessionStore.passwordResets)
+	require.Empty(t, mailerClient.sent)
+
+	// The throttle key is derived from the lowercased email hash.
+	require.Len(t, limiter.keys, 1)
+	require.Equal(t, "pwreset:"+token.Hash("user@example.com"), limiter.keys[0])
+}
+
+func TestRequestEmailVerificationThrottledStaysSilent(t *testing.T) {
+	sessionStore := newFakeSessionStore()
+	mailerClient := new(fakeMailerClient)
+	limiter := &fakeRecoveryLimiter{allow: false}
+	server := newThrottledRecoveryTestServer(t, sessionStore, &fakeUserClient{
+		getUserResponse: recoveryTestUser(1001, "user@example.com", 0),
+	}, mailerClient, limiter)
+
+	req := new(authenticatorv1.RequestEmailVerificationRequest)
+	req.SetUserId(1001)
+	resp, err := server.RequestEmailVerification(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Empty(t, sessionStore.emailVerifications)
+	require.Empty(t, mailerClient.sent)
+	require.Equal(t, []string{"emailverify:1001"}, limiter.keys)
+}
+
+func TestRecoveryLimiterFailsOpen(t *testing.T) {
+	sessionStore := newFakeSessionStore()
+	mailerClient := new(fakeMailerClient)
+	limiter := &fakeRecoveryLimiter{err: errors.New("redis down")}
+	server := newThrottledRecoveryTestServer(t, sessionStore, &fakeUserClient{
+		getUserResponse: recoveryTestUser(1001, "user@example.com", 0),
+	}, mailerClient, limiter)
+
+	req := new(authenticatorv1.RequestPasswordResetRequest)
+	req.SetEmail("user@example.com")
+	resp, err := server.RequestPasswordReset(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Len(t, sessionStore.passwordResets, 1)
+	require.Len(t, mailerClient.sent, 1)
 }

@@ -25,6 +25,6 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *userv1.UpdateUs
 	}
 
 	resp := new(userv1.UpdateUserProfileResponse)
-	resp.SetProfile(toPBUserProfile(profile))
+	resp.SetProfile(userProfileToProto(profile))
 	return resp, nil
 }

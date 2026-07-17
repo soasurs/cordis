@@ -26,6 +26,8 @@ message User {
   string email = 2;
   int64 created_at = 3;
   int64 updated_at = 4;
+  // Zero when the current email has not been verified.
+  int64 email_verified_at = 5;
 }
 
 // UserProfile contains fields safe to expose to other users.

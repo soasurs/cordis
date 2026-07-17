@@ -33,6 +33,12 @@ type Store interface {
 	ReplaceRecoveryCodes(ctx context.Context, userID int64, codeHashes []string) error
 	CountUnusedRecoveryCodes(ctx context.Context, userID int64) (int64, error)
 	ConsumeRecoveryCode(ctx context.Context, userID int64, codeHash string) error
+	UpsertPasswordResetToken(ctx context.Context, token *model.PasswordResetToken) error
+	GetPasswordResetToken(ctx context.Context, tokenHash string, forUpdate bool) (*model.PasswordResetToken, error)
+	ConsumePasswordResetToken(ctx context.Context, tokenHash string, consumedAt int64) error
+	UpsertEmailVerificationToken(ctx context.Context, token *model.EmailVerificationToken) error
+	GetEmailVerificationToken(ctx context.Context, tokenHash string, forUpdate bool) (*model.EmailVerificationToken, error)
+	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string, consumedAt int64) error
 }
 
 type SQLStore struct {

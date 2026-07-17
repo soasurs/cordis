@@ -11,12 +11,13 @@ import (
 )
 
 type userRow struct {
-	UserID         int64  `db:"user_id"`
-	Email          string `db:"email"`
-	HashedPassword string `db:"hashed_password"`
-	CreatedAt      int64  `db:"created_at"`
-	UpdatedAt      int64  `db:"updated_at"`
-	DeletedAt      int64  `db:"deleted_at"`
+	UserID          int64  `db:"user_id"`
+	Email           string `db:"email"`
+	HashedPassword  string `db:"hashed_password"`
+	CreatedAt       int64  `db:"created_at"`
+	UpdatedAt       int64  `db:"updated_at"`
+	DeletedAt       int64  `db:"deleted_at"`
+	EmailVerifiedAt int64  `db:"email_verified_at"`
 }
 
 func (s *SQLStore) CreateUser(ctx context.Context, userID int64, email, hashedPassword string) (*model.User, error) {
@@ -33,14 +34,7 @@ func (s *SQLStore) CreateUser(ctx context.Context, userID int64, email, hashedPa
 	if err != nil {
 		return nil, err
 	}
-	return &model.User{
-		UserID:         row.UserID,
-		Email:          row.Email,
-		HashedPassword: row.HashedPassword,
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-		DeletedAt:      row.DeletedAt,
-	}, nil
+	return userFromRow(row), nil
 }
 
 func (s *SQLStore) GetUser(ctx context.Context, userID int64) (*model.User, error) {
@@ -49,14 +43,7 @@ func (s *SQLStore) GetUser(ctx context.Context, userID int64) (*model.User, erro
 	if err != nil {
 		return nil, err
 	}
-	return &model.User{
-		UserID:         row.UserID,
-		Email:          row.Email,
-		HashedPassword: row.HashedPassword,
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-		DeletedAt:      row.DeletedAt,
-	}, nil
+	return userFromRow(row), nil
 }
 
 func (s *SQLStore) GetUserWithEmail(ctx context.Context, email string) (*model.User, error) {
@@ -65,14 +52,7 @@ func (s *SQLStore) GetUserWithEmail(ctx context.Context, email string) (*model.U
 	if err != nil {
 		return nil, err
 	}
-	return &model.User{
-		UserID:         row.UserID,
-		Email:          row.Email,
-		HashedPassword: row.HashedPassword,
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-		DeletedAt:      row.DeletedAt,
-	}, nil
+	return userFromRow(row), nil
 }
 
 func (s *SQLStore) CheckEmailAvailability(ctx context.Context, email string) (bool, error) {
@@ -106,12 +86,33 @@ func (s *SQLStore) UpdateUserEmail(ctx context.Context, userID int64, email stri
 	if err != nil {
 		return nil, err
 	}
+	return userFromRow(row), nil
+}
+
+func (s *SQLStore) MarkUserEmailVerified(ctx context.Context, userID int64, email string, verifiedAt int64) error {
+	res, err := s.q.ExecContext(ctx, MarkUserEmailVerifiedStatement, verifiedAt, verifiedAt, userID, email, 0)
+	if err != nil {
+		return err
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func userFromRow(row *userRow) *model.User {
 	return &model.User{
-		UserID:         row.UserID,
-		Email:          row.Email,
-		HashedPassword: row.HashedPassword,
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-		DeletedAt:      row.DeletedAt,
-	}, nil
+		UserID:          row.UserID,
+		Email:           row.Email,
+		HashedPassword:  row.HashedPassword,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       row.UpdatedAt,
+		DeletedAt:       row.DeletedAt,
+		EmailVerifiedAt: row.EmailVerifiedAt,
+	}
 }

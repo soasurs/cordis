@@ -48,6 +48,18 @@ const (
 	// AuthenticatorServiceLogoutProcedure is the fully-qualified name of the AuthenticatorService's
 	// Logout RPC.
 	AuthenticatorServiceLogoutProcedure = "/api.v1.AuthenticatorService/Logout"
+	// AuthenticatorServiceRequestPasswordResetProcedure is the fully-qualified name of the
+	// AuthenticatorService's RequestPasswordReset RPC.
+	AuthenticatorServiceRequestPasswordResetProcedure = "/api.v1.AuthenticatorService/RequestPasswordReset"
+	// AuthenticatorServiceConfirmPasswordResetProcedure is the fully-qualified name of the
+	// AuthenticatorService's ConfirmPasswordReset RPC.
+	AuthenticatorServiceConfirmPasswordResetProcedure = "/api.v1.AuthenticatorService/ConfirmPasswordReset"
+	// AuthenticatorServiceRequestEmailVerificationProcedure is the fully-qualified name of the
+	// AuthenticatorService's RequestEmailVerification RPC.
+	AuthenticatorServiceRequestEmailVerificationProcedure = "/api.v1.AuthenticatorService/RequestEmailVerification"
+	// AuthenticatorServiceConfirmEmailVerificationProcedure is the fully-qualified name of the
+	// AuthenticatorService's ConfirmEmailVerification RPC.
+	AuthenticatorServiceConfirmEmailVerificationProcedure = "/api.v1.AuthenticatorService/ConfirmEmailVerification"
 	// AuthenticatorServiceListSessionsProcedure is the fully-qualified name of the
 	// AuthenticatorService's ListSessions RPC.
 	AuthenticatorServiceListSessionsProcedure = "/api.v1.AuthenticatorService/ListSessions"
@@ -83,6 +95,17 @@ type AuthenticatorServiceClient interface {
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
 	// Logout revokes the session identified by the refresh token.
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	// RequestPasswordReset starts the email-based recovery flow. It always
+	// reports success to avoid account enumeration.
+	RequestPasswordReset(context.Context, *v1.RequestPasswordResetRequest) (*v1.RequestPasswordResetResponse, error)
+	// ConfirmPasswordReset sets a new password with a valid reset token and
+	// signs the user out everywhere.
+	ConfirmPasswordReset(context.Context, *v1.ConfirmPasswordResetRequest) (*v1.ConfirmPasswordResetResponse, error)
+	// RequestEmailVerification emails a verification link for the bearer
+	// token owner's current email address.
+	RequestEmailVerification(context.Context, *v1.RequestEmailVerificationRequest) (*v1.RequestEmailVerificationResponse, error)
+	// ConfirmEmailVerification marks the email confirmed with a valid token.
+	ConfirmEmailVerification(context.Context, *v1.ConfirmEmailVerificationRequest) (*v1.ConfirmEmailVerificationResponse, error)
 	// ListSessions returns the bearer token owner's active sessions.
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession revokes one session owned by the bearer token owner.
@@ -133,6 +156,30 @@ func NewAuthenticatorServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+AuthenticatorServiceLogoutProcedure,
 			connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
+			connect.WithClientOptions(opts...),
+		),
+		requestPasswordReset: connect.NewClient[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceRequestPasswordResetProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("RequestPasswordReset")),
+			connect.WithClientOptions(opts...),
+		),
+		confirmPasswordReset: connect.NewClient[v1.ConfirmPasswordResetRequest, v1.ConfirmPasswordResetResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceConfirmPasswordResetProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("ConfirmPasswordReset")),
+			connect.WithClientOptions(opts...),
+		),
+		requestEmailVerification: connect.NewClient[v1.RequestEmailVerificationRequest, v1.RequestEmailVerificationResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceRequestEmailVerificationProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("RequestEmailVerification")),
+			connect.WithClientOptions(opts...),
+		),
+		confirmEmailVerification: connect.NewClient[v1.ConfirmEmailVerificationRequest, v1.ConfirmEmailVerificationResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceConfirmEmailVerificationProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("ConfirmEmailVerification")),
 			connect.WithClientOptions(opts...),
 		),
 		listSessions: connect.NewClient[v1.ListSessionsRequest, v1.ListSessionsResponse](
@@ -187,6 +234,10 @@ type authenticatorServiceClient struct {
 	completeTwoFactorLogin           *connect.Client[v1.CompleteTwoFactorLoginRequest, v1.CompleteTwoFactorLoginResponse]
 	refresh                          *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
 	logout                           *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	requestPasswordReset             *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
+	confirmPasswordReset             *connect.Client[v1.ConfirmPasswordResetRequest, v1.ConfirmPasswordResetResponse]
+	requestEmailVerification         *connect.Client[v1.RequestEmailVerificationRequest, v1.RequestEmailVerificationResponse]
+	confirmEmailVerification         *connect.Client[v1.ConfirmEmailVerificationRequest, v1.ConfirmEmailVerificationResponse]
 	listSessions                     *connect.Client[v1.ListSessionsRequest, v1.ListSessionsResponse]
 	revokeSession                    *connect.Client[v1.RevokeSessionRequest, v1.RevokeSessionResponse]
 	getTwoFactorStatus               *connect.Client[v1.GetTwoFactorStatusRequest, v1.GetTwoFactorStatusResponse]
@@ -235,6 +286,42 @@ func (c *authenticatorServiceClient) Refresh(ctx context.Context, req *v1.Refres
 // Logout calls api.v1.AuthenticatorService.Logout.
 func (c *authenticatorServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (*v1.LogoutResponse, error) {
 	response, err := c.logout.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RequestPasswordReset calls api.v1.AuthenticatorService.RequestPasswordReset.
+func (c *authenticatorServiceClient) RequestPasswordReset(ctx context.Context, req *v1.RequestPasswordResetRequest) (*v1.RequestPasswordResetResponse, error) {
+	response, err := c.requestPasswordReset.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ConfirmPasswordReset calls api.v1.AuthenticatorService.ConfirmPasswordReset.
+func (c *authenticatorServiceClient) ConfirmPasswordReset(ctx context.Context, req *v1.ConfirmPasswordResetRequest) (*v1.ConfirmPasswordResetResponse, error) {
+	response, err := c.confirmPasswordReset.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RequestEmailVerification calls api.v1.AuthenticatorService.RequestEmailVerification.
+func (c *authenticatorServiceClient) RequestEmailVerification(ctx context.Context, req *v1.RequestEmailVerificationRequest) (*v1.RequestEmailVerificationResponse, error) {
+	response, err := c.requestEmailVerification.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ConfirmEmailVerification calls api.v1.AuthenticatorService.ConfirmEmailVerification.
+func (c *authenticatorServiceClient) ConfirmEmailVerification(ctx context.Context, req *v1.ConfirmEmailVerificationRequest) (*v1.ConfirmEmailVerificationResponse, error) {
+	response, err := c.confirmEmailVerification.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -317,6 +404,17 @@ type AuthenticatorServiceHandler interface {
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
 	// Logout revokes the session identified by the refresh token.
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	// RequestPasswordReset starts the email-based recovery flow. It always
+	// reports success to avoid account enumeration.
+	RequestPasswordReset(context.Context, *v1.RequestPasswordResetRequest) (*v1.RequestPasswordResetResponse, error)
+	// ConfirmPasswordReset sets a new password with a valid reset token and
+	// signs the user out everywhere.
+	ConfirmPasswordReset(context.Context, *v1.ConfirmPasswordResetRequest) (*v1.ConfirmPasswordResetResponse, error)
+	// RequestEmailVerification emails a verification link for the bearer
+	// token owner's current email address.
+	RequestEmailVerification(context.Context, *v1.RequestEmailVerificationRequest) (*v1.RequestEmailVerificationResponse, error)
+	// ConfirmEmailVerification marks the email confirmed with a valid token.
+	ConfirmEmailVerification(context.Context, *v1.ConfirmEmailVerificationRequest) (*v1.ConfirmEmailVerificationResponse, error)
 	// ListSessions returns the bearer token owner's active sessions.
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession revokes one session owned by the bearer token owner.
@@ -363,6 +461,30 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 		AuthenticatorServiceLogoutProcedure,
 		svc.Logout,
 		connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceRequestPasswordResetHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceRequestPasswordResetProcedure,
+		svc.RequestPasswordReset,
+		connect.WithSchema(authenticatorServiceMethods.ByName("RequestPasswordReset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceConfirmPasswordResetHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceConfirmPasswordResetProcedure,
+		svc.ConfirmPasswordReset,
+		connect.WithSchema(authenticatorServiceMethods.ByName("ConfirmPasswordReset")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceRequestEmailVerificationHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceRequestEmailVerificationProcedure,
+		svc.RequestEmailVerification,
+		connect.WithSchema(authenticatorServiceMethods.ByName("RequestEmailVerification")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceConfirmEmailVerificationHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceConfirmEmailVerificationProcedure,
+		svc.ConfirmEmailVerification,
+		connect.WithSchema(authenticatorServiceMethods.ByName("ConfirmEmailVerification")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authenticatorServiceListSessionsHandler := connect.NewUnaryHandlerSimple(
@@ -419,6 +541,14 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 			authenticatorServiceRefreshHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceLogoutProcedure:
 			authenticatorServiceLogoutHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceRequestPasswordResetProcedure:
+			authenticatorServiceRequestPasswordResetHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceConfirmPasswordResetProcedure:
+			authenticatorServiceConfirmPasswordResetHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceRequestEmailVerificationProcedure:
+			authenticatorServiceRequestEmailVerificationHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceConfirmEmailVerificationProcedure:
+			authenticatorServiceConfirmEmailVerificationHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceListSessionsProcedure:
 			authenticatorServiceListSessionsHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceRevokeSessionProcedure:
@@ -460,6 +590,22 @@ func (UnimplementedAuthenticatorServiceHandler) Refresh(context.Context, *v1.Ref
 
 func (UnimplementedAuthenticatorServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Logout is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) RequestPasswordReset(context.Context, *v1.RequestPasswordResetRequest) (*v1.RequestPasswordResetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.RequestPasswordReset is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) ConfirmPasswordReset(context.Context, *v1.ConfirmPasswordResetRequest) (*v1.ConfirmPasswordResetResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.ConfirmPasswordReset is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) RequestEmailVerification(context.Context, *v1.RequestEmailVerificationRequest) (*v1.RequestEmailVerificationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.RequestEmailVerification is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) ConfirmEmailVerification(context.Context, *v1.ConfirmEmailVerificationRequest) (*v1.ConfirmEmailVerificationResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.ConfirmEmailVerification is not implemented"))
 }
 
 func (UnimplementedAuthenticatorServiceHandler) ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error) {

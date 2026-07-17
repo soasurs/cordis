@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/lib/pq"
 	"google.golang.org/grpc/codes"
@@ -20,10 +19,11 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 	if err := validateName(req.GetName()); err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(req.GetEmail()) == "" {
+	email := normalizeEmail(req.GetEmail())
+	if email == "" {
 		return nil, status.Error(codes.InvalidArgument, "email is required")
 	}
-	if err := isValidEmail(req.GetEmail()); err != nil {
+	if err := isValidEmail(email); err != nil {
 		return nil, err
 	}
 	if req.GetPassword() == "" {
@@ -38,7 +38,7 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 
 	var user *model.User
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		createdUser, err := txStore.CreateUser(ctx, userID, req.GetEmail(), hashedPassword)
+		createdUser, err := txStore.CreateUser(ctx, userID, email, hashedPassword)
 		if err != nil {
 			return err
 		}
@@ -57,7 +57,7 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 	}
 
 	resp := &userv1.CreateUserResponse{}
-	resp.SetUser(toPBUser(user))
+	resp.SetUser(userToProto(user))
 	return resp, nil
 }
 

@@ -10,7 +10,7 @@ const (
 
 	GetUserQuery = `
 	SELECT 
-		user_id, email, hashed_password, created_at, updated_at, deleted_at
+		user_id, email, hashed_password, created_at, updated_at, deleted_at, email_verified_at
 	FROM 
 		users
 	WHERE
@@ -23,7 +23,7 @@ const (
 
 	GetUserWithEmailQuery = `
 	SELECT
-		user_id, email, hashed_password, created_at, updated_at, deleted_at
+		user_id, email, hashed_password, created_at, updated_at, deleted_at, email_verified_at
 	FROM 
 		users
 	WHERE
@@ -64,14 +64,29 @@ const (
 	UPDATE
 		users
 	SET
-		email = $1,
-		updated_at = $2
+		updated_at = CASE WHEN email = $1 THEN updated_at ELSE $2 END,
+		email_verified_at = CASE WHEN email = $1 THEN email_verified_at ELSE 0 END,
+		email = $1
 	WHERE
 		user_id = $3
 	AND
 		deleted_at = $4
 	RETURNING
-		user_id, email, hashed_password, created_at, updated_at, deleted_at
+		user_id, email, hashed_password, created_at, updated_at, deleted_at, email_verified_at
+	`
+
+	MarkUserEmailVerifiedStatement = `
+	UPDATE
+		users
+	SET
+		email_verified_at = $1,
+		updated_at = $2
+	WHERE
+		user_id = $3
+	AND
+		email = $4
+	AND
+		deleted_at = $5
 	`
 )
 

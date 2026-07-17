@@ -24,13 +24,15 @@ const (
 // User contains private account fields and is only returned to the account owner.
 // All timestamps are Unix time in milliseconds.
 type User struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        *int64                 `protobuf:"varint,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	Email         *string                `protobuf:"bytes,2,opt,name=email" json:"email,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,3,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,4,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	UserId    *int64                 `protobuf:"varint,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	Email     *string                `protobuf:"bytes,2,opt,name=email" json:"email,omitempty"`
+	CreatedAt *int64                 `protobuf:"varint,3,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	UpdatedAt *int64                 `protobuf:"varint,4,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	// Zero when the current email has not been verified.
+	EmailVerifiedAt *int64 `protobuf:"varint,5,opt,name=email_verified_at,json=emailVerifiedAt" json:"email_verified_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -87,6 +89,13 @@ func (x *User) GetCreatedAt() int64 {
 func (x *User) GetUpdatedAt() int64 {
 	if x != nil && x.UpdatedAt != nil {
 		return *x.UpdatedAt
+	}
+	return 0
+}
+
+func (x *User) GetEmailVerifiedAt() int64 {
+	if x != nil && x.EmailVerifiedAt != nil {
+		return *x.EmailVerifiedAt
 	}
 	return 0
 }
@@ -719,14 +728,15 @@ var File_api_v1_user_proto protoreflect.FileDescriptor
 
 const file_api_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x11api/v1/user.proto\x12\x06api.v1\"s\n" +
+	"\x11api/v1/user.proto\x12\x06api.v1\"\x9f\x01\n" +
 	"\x04User\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x03 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\"\x97\x01\n" +
+	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\x12*\n" +
+	"\x11email_verified_at\x18\x05 \x01(\x03R\x0femailVerifiedAt\"\x97\x01\n" +
 	"\vUserProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +

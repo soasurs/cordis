@@ -7,7 +7,7 @@ import (
 )
 
 func (s *userServer) CheckEmailAvailability(ctx context.Context, req *userv1.CheckEmailAvailabilityRequest) (*userv1.CheckEmailAvailabilityResponse, error) {
-	available, err := s.svcCtx.Store.CheckEmailAvailability(ctx, req.GetEmail())
+	available, err := s.svcCtx.Store.CheckEmailAvailability(ctx, normalizeEmail(req.GetEmail()))
 	if err != nil {
 		return nil, err
 	}

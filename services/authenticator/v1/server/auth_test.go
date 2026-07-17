@@ -462,6 +462,10 @@ func newTestAuthenticatorServer(t *testing.T, store store.Store, tokens *token.M
 				Issuer: "Cordis Test", EnrollmentTTL: 10 * time.Minute, LoginChallengeTTL: 5 * time.Minute,
 				MaxAttempts: 5, RecoveryCodeCount: 10,
 			},
+			Recovery: config.RecoveryConfig{
+				PasswordResetTTL:     30 * time.Minute,
+				EmailVerificationTTL: 24 * time.Hour,
+			},
 		},
 		Store:      store,
 		Tokens:     tokens,
@@ -540,6 +544,31 @@ type fakeUserClient struct {
 	verifyPasswordErr      error
 	getUserResponse        *userv1.GetUserResponse
 	getUserErr             error
+
+	resetPasswordRequest     *userv1.ResetPasswordRequest
+	resetPasswordErr         error
+	markEmailVerifiedRequest *userv1.MarkEmailVerifiedRequest
+	markEmailVerifiedErr     error
+}
+
+func (c *fakeUserClient) ResetPassword(_ context.Context, req *userv1.ResetPasswordRequest, _ ...grpc.CallOption) (*userv1.ResetPasswordResponse, error) {
+	c.resetPasswordRequest = req
+	if c.resetPasswordErr != nil {
+		return nil, c.resetPasswordErr
+	}
+	resp := new(userv1.ResetPasswordResponse)
+	resp.SetOk(true)
+	return resp, nil
+}
+
+func (c *fakeUserClient) MarkEmailVerified(_ context.Context, req *userv1.MarkEmailVerifiedRequest, _ ...grpc.CallOption) (*userv1.MarkEmailVerifiedResponse, error) {
+	c.markEmailVerifiedRequest = req
+	if c.markEmailVerifiedErr != nil {
+		return nil, c.markEmailVerifiedErr
+	}
+	resp := new(userv1.MarkEmailVerifiedResponse)
+	resp.SetOk(true)
+	return resp, nil
 }
 
 func (c *fakeUserClient) GetUser(_ context.Context, _ *userv1.GetUserRequest, _ ...grpc.CallOption) (*userv1.GetUserResponse, error) {
@@ -576,15 +605,19 @@ type fakeSessionStore struct {
 	enrollments        map[int64]*model.TOTPEnrollment
 	challenges         map[string]*model.TwoFactorLoginChallenge
 	recoveryCodes      map[int64]map[string]int64
+	passwordResets     map[string]*model.PasswordResetToken
+	emailVerifications map[string]*model.EmailVerificationToken
 }
 
 func newFakeSessionStore() *fakeSessionStore {
 	return &fakeSessionStore{
-		sessions:      make(map[int64]*model.Session),
-		factors:       make(map[int64]*model.TOTPFactor),
-		enrollments:   make(map[int64]*model.TOTPEnrollment),
-		challenges:    make(map[string]*model.TwoFactorLoginChallenge),
-		recoveryCodes: make(map[int64]map[string]int64),
+		sessions:           make(map[int64]*model.Session),
+		factors:            make(map[int64]*model.TOTPFactor),
+		enrollments:        make(map[int64]*model.TOTPEnrollment),
+		challenges:         make(map[string]*model.TwoFactorLoginChallenge),
+		recoveryCodes:      make(map[int64]map[string]int64),
+		passwordResets:     make(map[string]*model.PasswordResetToken),
+		emailVerifications: make(map[string]*model.EmailVerificationToken),
 	}
 }
 
@@ -804,4 +837,62 @@ func createRefreshSession(t *testing.T, store *fakeSessionStore, tokens *token.M
 		session:      session,
 		refreshToken: refreshToken,
 	}
+}
+
+func (s *fakeSessionStore) UpsertPasswordResetToken(_ context.Context, token *model.PasswordResetToken) error {
+	for hash, existing := range s.passwordResets {
+		if existing.UserID == token.UserID {
+			delete(s.passwordResets, hash)
+		}
+	}
+	value := *token
+	s.passwordResets[token.TokenHash] = &value
+	return nil
+}
+
+func (s *fakeSessionStore) GetPasswordResetToken(_ context.Context, tokenHash string, _ bool) (*model.PasswordResetToken, error) {
+	token, ok := s.passwordResets[tokenHash]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+	value := *token
+	return &value, nil
+}
+
+func (s *fakeSessionStore) ConsumePasswordResetToken(_ context.Context, tokenHash string, consumedAt int64) error {
+	token, ok := s.passwordResets[tokenHash]
+	if !ok || token.ConsumedAt != 0 {
+		return sql.ErrNoRows
+	}
+	token.ConsumedAt = consumedAt
+	return nil
+}
+
+func (s *fakeSessionStore) UpsertEmailVerificationToken(_ context.Context, token *model.EmailVerificationToken) error {
+	for hash, existing := range s.emailVerifications {
+		if existing.UserID == token.UserID {
+			delete(s.emailVerifications, hash)
+		}
+	}
+	value := *token
+	s.emailVerifications[token.TokenHash] = &value
+	return nil
+}
+
+func (s *fakeSessionStore) GetEmailVerificationToken(_ context.Context, tokenHash string, _ bool) (*model.EmailVerificationToken, error) {
+	token, ok := s.emailVerifications[tokenHash]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+	value := *token
+	return &value, nil
+}
+
+func (s *fakeSessionStore) ConsumeEmailVerificationToken(_ context.Context, tokenHash string, consumedAt int64) error {
+	token, ok := s.emailVerifications[tokenHash]
+	if !ok || token.ConsumedAt != 0 {
+		return sql.ErrNoRows
+	}
+	token.ConsumedAt = consumedAt
+	return nil
 }

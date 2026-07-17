@@ -24,17 +24,17 @@ func (s *userServer) getUserWithUserID(ctx context.Context, userID int64) (*user
 	}
 
 	resp := new(userv1.GetUserResponse)
-	resp.SetUser(toPBUser(user))
+	resp.SetUser(userToProto(user))
 	return resp, nil
 }
 
 func (s *userServer) getUserWithEmail(ctx context.Context, email string) (*userv1.GetUserResponse, error) {
-	user, err := s.svcCtx.Store.GetUserWithEmail(ctx, email)
+	user, err := s.svcCtx.Store.GetUserWithEmail(ctx, normalizeEmail(email))
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
 	resp := new(userv1.GetUserResponse)
-	resp.SetUser(toPBUser(user))
+	resp.SetUser(userToProto(user))
 	return resp, nil
 }

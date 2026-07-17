@@ -9,6 +9,13 @@ service AuthenticatorService {
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc VerifyAccessToken(VerifyAccessTokenRequest) returns (VerifyAccessTokenResponse);
+  // RequestPasswordReset always reports success to avoid account enumeration.
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  // ConfirmPasswordReset consumes a reset token, replaces the password, and
+  // revokes all of the user's sessions.
+  rpc ConfirmPasswordReset(ConfirmPasswordResetRequest) returns (ConfirmPasswordResetResponse);
+  rpc RequestEmailVerification(RequestEmailVerificationRequest) returns (RequestEmailVerificationResponse);
+  rpc ConfirmEmailVerification(ConfirmEmailVerificationRequest) returns (ConfirmEmailVerificationResponse);
   // ListSessions returns sessions that are neither revoked nor expired.
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   // RevokeUserSession only revokes the session when it belongs to the supplied user.
@@ -194,4 +201,37 @@ message RegenerateTwoFactorRecoveryCodesRequest {
 
 message RegenerateTwoFactorRecoveryCodesResponse {
   repeated string recovery_codes = 1;
+}
+
+message RequestPasswordResetRequest {
+  string email = 1;
+}
+
+message RequestPasswordResetResponse {
+  bool ok = 1;
+}
+
+message ConfirmPasswordResetRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+message ConfirmPasswordResetResponse {
+  bool ok = 1;
+}
+
+message RequestEmailVerificationRequest {
+  int64 user_id = 1;
+}
+
+message RequestEmailVerificationResponse {
+  bool ok = 1;
+}
+
+message ConfirmEmailVerificationRequest {
+  string token = 1;
+}
+
+message ConfirmEmailVerificationResponse {
+  bool ok = 1;
 }

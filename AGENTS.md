@@ -37,8 +37,9 @@ go build ./services/guild/v1/...
 - `services/session/v1`: stateful gRPC service on `:3006`; owns logical sessions, sequence numbers, 2048-event in-memory replay windows, subscriptions, Presence updates, and Gateway stream bindings.
 - `services/dispatcher/v1`: Kafka consumer for Guild and Message topics; resolves aggregate Session-node routes in Redis and dispatches events to Session gRPC.
 - `services/presence/v1`: gRPC on `:3003`; Redis-backed gateway liveness, channel routing, and user presence TTLs.
-- `services/authenticator/v1`: go-zero `zrpc` on `:3001`; JWT access/refresh tokens, sessions in Postgres, calls User gRPC.
-- `services/user/v1`: go-zero `zrpc` on `:3000`; users/profiles in Postgres, Argon2id password hashing.
+- `services/authenticator/v1`: go-zero `zrpc` on `:3001`; JWT access/refresh tokens, sessions in Postgres, calls User gRPC. Owns account recovery: password reset and email verification tokens (sha256 hashes, single-use, per-user upsert) with delivery through the optional Mailer gRPC client (skipped when unconfigured). `RequestPasswordReset` always reports success to avoid account enumeration; `ConfirmPasswordReset` revokes all of the user's sessions. Recovery requests are throttled per target through optional Redis (fail-open when Redis is down or unconfigured); throttled requests still report success.
+- `services/user/v1`: go-zero `zrpc` on `:3000`; users/profiles in Postgres, Argon2id password hashing. Emails are lowercased at every entry point (a CHECK constraint backstops storage). `users.email_verified_at` tracks verification; `UpdateEmail` clears it only when the address actually changes, `MarkEmailVerified` only applies while the supplied email is still current, and internal-only `ResetPassword` replaces the password without the old one.
+- `services/mailer/v1`: go-zero `zrpc` on `:3007`; stateless transactional mail delivery behind a `SendEmail(to, template, variables)` RPC. Template names and variable keys live in `pkg/mail`; the only provider today is `noop` (redacted logging, no delivery). Template variables may contain secrets and must never be logged verbatim.
 - `services/message/v1`: go-zero `zrpc` on `:3002`; messages and mentions in Postgres, publishes message events directly to Kafka when Kafka is configured.
 - `services/guild/v1`: go-zero `zrpc` on `:3005`; guilds/members/bans/roles/channels in Postgres, calls User gRPC when directly adding or banning users, and publishes guild events to its own Kafka topic.
 
@@ -46,7 +47,7 @@ go build ./services/guild/v1/...
 
 - Protos use edition 2023. Internal generation uses opaque Go API (`default_api_level=API_OPAQUE`), so use generated getters/setters/builders instead of field access or struct literals for `gen/{authenticator,user,message,guild,presence,session}`.
 - External `proto/api` generation is open Go API plus Connect-Go under `gen/api`; existing API code uses pointer fields and struct literals there.
-- `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, and `proto/session`.
+- `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, `proto/session`, and `proto/mailer`.
 
 ## Service Wiring
 
@@ -150,7 +151,7 @@ go build ./services/guild/v1/...
 - Go `internal/` boundaries prevent one test package from importing two services' internal servers. Composition tests therefore run the caller in-process and dependencies as real service binaries: `testkit.BuildService` compiles the main package, `testkit.StartService` runs it with a temporary YAML config (real `conf.LoadConfig` + zrpc wiring) and SIGTERM cleanup; `testkit.FreeAddress` and `testkit.WaitServiceReady` handle ports and readiness probes.
 - Multiple services' embedded migrations may be applied to one shared PostgreSQL container; table names do not collide.
 - `services/message/v1/internal/server/composition_integration_test.go`: Message in-process against real User + Guild binaries; covers Guild→User member verification and Message→Guild channel authorization (allow, non-member NotFound, category InvalidArgument, MANAGE_MESSAGES, `@everyone` permission revocation, owner bypass).
-- `services/authenticator/v1/server/composition_integration_test.go`: Authenticator in-process against a real User binary; covers Register, duplicate-email `AlreadyExists` with `rpcerror` domain/reason propagation, Argon2id login, and refresh-token rotation.
+- `services/authenticator/v1/server/composition_integration_test.go`: Authenticator in-process against a real User binary; covers Register, duplicate-email `AlreadyExists` with `rpcerror` domain/reason propagation, Argon2id login, refresh-token rotation, the password reset flow (session revocation, single-use tokens), and email verification including stale-token rejection after an email change.
 
 ## Runtime Env
 

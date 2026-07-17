@@ -1473,6 +1473,358 @@ func (x *RegenerateTwoFactorRecoveryCodesResponse) GetRecoveryCodes() []string {
 	return nil
 }
 
+type RequestPasswordResetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         *string                `protobuf:"bytes,1,opt,name=email" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestPasswordResetRequest) Reset() {
+	*x = RequestPasswordResetRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestPasswordResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestPasswordResetRequest) ProtoMessage() {}
+
+func (x *RequestPasswordResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestPasswordResetRequest.ProtoReflect.Descriptor instead.
+func (*RequestPasswordResetRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *RequestPasswordResetRequest) GetEmail() string {
+	if x != nil && x.Email != nil {
+		return *x.Email
+	}
+	return ""
+}
+
+type RequestPasswordResetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestPasswordResetResponse) Reset() {
+	*x = RequestPasswordResetResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestPasswordResetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestPasswordResetResponse) ProtoMessage() {}
+
+func (x *RequestPasswordResetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestPasswordResetResponse.ProtoReflect.Descriptor instead.
+func (*RequestPasswordResetResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *RequestPasswordResetResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type ConfirmPasswordResetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         *string                `protobuf:"bytes,1,opt,name=token" json:"token,omitempty"`
+	NewPassword   *string                `protobuf:"bytes,2,opt,name=new_password,json=newPassword" json:"new_password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmPasswordResetRequest) Reset() {
+	*x = ConfirmPasswordResetRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmPasswordResetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmPasswordResetRequest) ProtoMessage() {}
+
+func (x *ConfirmPasswordResetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmPasswordResetRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmPasswordResetRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ConfirmPasswordResetRequest) GetToken() string {
+	if x != nil && x.Token != nil {
+		return *x.Token
+	}
+	return ""
+}
+
+func (x *ConfirmPasswordResetRequest) GetNewPassword() string {
+	if x != nil && x.NewPassword != nil {
+		return *x.NewPassword
+	}
+	return ""
+}
+
+type ConfirmPasswordResetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmPasswordResetResponse) Reset() {
+	*x = ConfirmPasswordResetResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmPasswordResetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmPasswordResetResponse) ProtoMessage() {}
+
+func (x *ConfirmPasswordResetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmPasswordResetResponse.ProtoReflect.Descriptor instead.
+func (*ConfirmPasswordResetResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ConfirmPasswordResetResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type RequestEmailVerificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestEmailVerificationRequest) Reset() {
+	*x = RequestEmailVerificationRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestEmailVerificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestEmailVerificationRequest) ProtoMessage() {}
+
+func (x *RequestEmailVerificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestEmailVerificationRequest.ProtoReflect.Descriptor instead.
+func (*RequestEmailVerificationRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{31}
+}
+
+type RequestEmailVerificationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RequestEmailVerificationResponse) Reset() {
+	*x = RequestEmailVerificationResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RequestEmailVerificationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestEmailVerificationResponse) ProtoMessage() {}
+
+func (x *RequestEmailVerificationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestEmailVerificationResponse.ProtoReflect.Descriptor instead.
+func (*RequestEmailVerificationResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *RequestEmailVerificationResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type ConfirmEmailVerificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         *string                `protobuf:"bytes,1,opt,name=token" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmEmailVerificationRequest) Reset() {
+	*x = ConfirmEmailVerificationRequest{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmEmailVerificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmEmailVerificationRequest) ProtoMessage() {}
+
+func (x *ConfirmEmailVerificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmEmailVerificationRequest.ProtoReflect.Descriptor instead.
+func (*ConfirmEmailVerificationRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *ConfirmEmailVerificationRequest) GetToken() string {
+	if x != nil && x.Token != nil {
+		return *x.Token
+	}
+	return ""
+}
+
+type ConfirmEmailVerificationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfirmEmailVerificationResponse) Reset() {
+	*x = ConfirmEmailVerificationResponse{}
+	mi := &file_api_v1_authenticator_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfirmEmailVerificationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfirmEmailVerificationResponse) ProtoMessage() {}
+
+func (x *ConfirmEmailVerificationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_authenticator_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfirmEmailVerificationResponse.ProtoReflect.Descriptor instead.
+func (*ConfirmEmailVerificationResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ConfirmEmailVerificationResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
 var File_api_v1_authenticator_proto protoreflect.FileDescriptor
 
 const file_api_v1_authenticator_proto_rawDesc = "" +
@@ -1568,13 +1920,33 @@ const file_api_v1_authenticator_proto_rawDesc = "" +
 	"\bpassword\x18\x01 \x01(\tR\bpassword\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\"Q\n" +
 	"(RegenerateTwoFactorRecoveryCodesResponse\x12%\n" +
-	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes2\xa2\b\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"3\n" +
+	"\x1bRequestPasswordResetRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\".\n" +
+	"\x1cRequestPasswordResetResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"V\n" +
+	"\x1bConfirmPasswordResetRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
+	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\".\n" +
+	"\x1cConfirmPasswordResetResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"!\n" +
+	"\x1fRequestEmailVerificationRequest\"2\n" +
+	" RequestEmailVerificationResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"7\n" +
+	"\x1fConfirmEmailVerificationRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"2\n" +
+	" ConfirmEmailVerificationResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok2\xc6\v\n" +
 	"\x14AuthenticatorService\x12=\n" +
 	"\bRegister\x12\x17.api.v1.RegisterRequest\x1a\x18.api.v1.RegisterResponse\x124\n" +
 	"\x05Login\x12\x14.api.v1.LoginRequest\x1a\x15.api.v1.LoginResponse\x12g\n" +
 	"\x16CompleteTwoFactorLogin\x12%.api.v1.CompleteTwoFactorLoginRequest\x1a&.api.v1.CompleteTwoFactorLoginResponse\x12:\n" +
 	"\aRefresh\x12\x16.api.v1.RefreshRequest\x1a\x17.api.v1.RefreshResponse\x127\n" +
-	"\x06Logout\x12\x15.api.v1.LogoutRequest\x1a\x16.api.v1.LogoutResponse\x12I\n" +
+	"\x06Logout\x12\x15.api.v1.LogoutRequest\x1a\x16.api.v1.LogoutResponse\x12a\n" +
+	"\x14RequestPasswordReset\x12#.api.v1.RequestPasswordResetRequest\x1a$.api.v1.RequestPasswordResetResponse\x12a\n" +
+	"\x14ConfirmPasswordReset\x12#.api.v1.ConfirmPasswordResetRequest\x1a$.api.v1.ConfirmPasswordResetResponse\x12m\n" +
+	"\x18RequestEmailVerification\x12'.api.v1.RequestEmailVerificationRequest\x1a(.api.v1.RequestEmailVerificationResponse\x12m\n" +
+	"\x18ConfirmEmailVerification\x12'.api.v1.ConfirmEmailVerificationRequest\x1a(.api.v1.ConfirmEmailVerificationResponse\x12I\n" +
 	"\fListSessions\x12\x1b.api.v1.ListSessionsRequest\x1a\x1c.api.v1.ListSessionsResponse\x12L\n" +
 	"\rRevokeSession\x12\x1c.api.v1.RevokeSessionRequest\x1a\x1d.api.v1.RevokeSessionResponse\x12[\n" +
 	"\x12GetTwoFactorStatus\x12!.api.v1.GetTwoFactorStatusRequest\x1a\".api.v1.GetTwoFactorStatusResponse\x12m\n" +
@@ -1597,7 +1969,7 @@ func file_api_v1_authenticator_proto_rawDescGZIP() []byte {
 	return file_api_v1_authenticator_proto_rawDescData
 }
 
-var file_api_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_api_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_api_v1_authenticator_proto_goTypes = []any{
 	(*AuthenticationResult)(nil),                     // 0: api.v1.AuthenticationResult
 	(*RegisterRequest)(nil),                          // 1: api.v1.RegisterRequest
@@ -1626,6 +1998,14 @@ var file_api_v1_authenticator_proto_goTypes = []any{
 	(*DisableTwoFactorResponse)(nil),                 // 24: api.v1.DisableTwoFactorResponse
 	(*RegenerateTwoFactorRecoveryCodesRequest)(nil),  // 25: api.v1.RegenerateTwoFactorRecoveryCodesRequest
 	(*RegenerateTwoFactorRecoveryCodesResponse)(nil), // 26: api.v1.RegenerateTwoFactorRecoveryCodesResponse
+	(*RequestPasswordResetRequest)(nil),              // 27: api.v1.RequestPasswordResetRequest
+	(*RequestPasswordResetResponse)(nil),             // 28: api.v1.RequestPasswordResetResponse
+	(*ConfirmPasswordResetRequest)(nil),              // 29: api.v1.ConfirmPasswordResetRequest
+	(*ConfirmPasswordResetResponse)(nil),             // 30: api.v1.ConfirmPasswordResetResponse
+	(*RequestEmailVerificationRequest)(nil),          // 31: api.v1.RequestEmailVerificationRequest
+	(*RequestEmailVerificationResponse)(nil),         // 32: api.v1.RequestEmailVerificationResponse
+	(*ConfirmEmailVerificationRequest)(nil),          // 33: api.v1.ConfirmEmailVerificationRequest
+	(*ConfirmEmailVerificationResponse)(nil),         // 34: api.v1.ConfirmEmailVerificationResponse
 }
 var file_api_v1_authenticator_proto_depIdxs = []int32{
 	0,  // 0: api.v1.RegisterResponse.result:type_name -> api.v1.AuthenticationResult
@@ -1639,27 +2019,35 @@ var file_api_v1_authenticator_proto_depIdxs = []int32{
 	6,  // 8: api.v1.AuthenticatorService.CompleteTwoFactorLogin:input_type -> api.v1.CompleteTwoFactorLoginRequest
 	8,  // 9: api.v1.AuthenticatorService.Refresh:input_type -> api.v1.RefreshRequest
 	10, // 10: api.v1.AuthenticatorService.Logout:input_type -> api.v1.LogoutRequest
-	13, // 11: api.v1.AuthenticatorService.ListSessions:input_type -> api.v1.ListSessionsRequest
-	15, // 12: api.v1.AuthenticatorService.RevokeSession:input_type -> api.v1.RevokeSessionRequest
-	17, // 13: api.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> api.v1.GetTwoFactorStatusRequest
-	19, // 14: api.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> api.v1.BeginTwoFactorEnrollmentRequest
-	21, // 15: api.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> api.v1.ConfirmTwoFactorEnrollmentRequest
-	23, // 16: api.v1.AuthenticatorService.DisableTwoFactor:input_type -> api.v1.DisableTwoFactorRequest
-	25, // 17: api.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> api.v1.RegenerateTwoFactorRecoveryCodesRequest
-	2,  // 18: api.v1.AuthenticatorService.Register:output_type -> api.v1.RegisterResponse
-	4,  // 19: api.v1.AuthenticatorService.Login:output_type -> api.v1.LoginResponse
-	7,  // 20: api.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> api.v1.CompleteTwoFactorLoginResponse
-	9,  // 21: api.v1.AuthenticatorService.Refresh:output_type -> api.v1.RefreshResponse
-	11, // 22: api.v1.AuthenticatorService.Logout:output_type -> api.v1.LogoutResponse
-	14, // 23: api.v1.AuthenticatorService.ListSessions:output_type -> api.v1.ListSessionsResponse
-	16, // 24: api.v1.AuthenticatorService.RevokeSession:output_type -> api.v1.RevokeSessionResponse
-	18, // 25: api.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> api.v1.GetTwoFactorStatusResponse
-	20, // 26: api.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> api.v1.BeginTwoFactorEnrollmentResponse
-	22, // 27: api.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> api.v1.ConfirmTwoFactorEnrollmentResponse
-	24, // 28: api.v1.AuthenticatorService.DisableTwoFactor:output_type -> api.v1.DisableTwoFactorResponse
-	26, // 29: api.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> api.v1.RegenerateTwoFactorRecoveryCodesResponse
-	18, // [18:30] is the sub-list for method output_type
-	6,  // [6:18] is the sub-list for method input_type
+	27, // 11: api.v1.AuthenticatorService.RequestPasswordReset:input_type -> api.v1.RequestPasswordResetRequest
+	29, // 12: api.v1.AuthenticatorService.ConfirmPasswordReset:input_type -> api.v1.ConfirmPasswordResetRequest
+	31, // 13: api.v1.AuthenticatorService.RequestEmailVerification:input_type -> api.v1.RequestEmailVerificationRequest
+	33, // 14: api.v1.AuthenticatorService.ConfirmEmailVerification:input_type -> api.v1.ConfirmEmailVerificationRequest
+	13, // 15: api.v1.AuthenticatorService.ListSessions:input_type -> api.v1.ListSessionsRequest
+	15, // 16: api.v1.AuthenticatorService.RevokeSession:input_type -> api.v1.RevokeSessionRequest
+	17, // 17: api.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> api.v1.GetTwoFactorStatusRequest
+	19, // 18: api.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> api.v1.BeginTwoFactorEnrollmentRequest
+	21, // 19: api.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> api.v1.ConfirmTwoFactorEnrollmentRequest
+	23, // 20: api.v1.AuthenticatorService.DisableTwoFactor:input_type -> api.v1.DisableTwoFactorRequest
+	25, // 21: api.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> api.v1.RegenerateTwoFactorRecoveryCodesRequest
+	2,  // 22: api.v1.AuthenticatorService.Register:output_type -> api.v1.RegisterResponse
+	4,  // 23: api.v1.AuthenticatorService.Login:output_type -> api.v1.LoginResponse
+	7,  // 24: api.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> api.v1.CompleteTwoFactorLoginResponse
+	9,  // 25: api.v1.AuthenticatorService.Refresh:output_type -> api.v1.RefreshResponse
+	11, // 26: api.v1.AuthenticatorService.Logout:output_type -> api.v1.LogoutResponse
+	28, // 27: api.v1.AuthenticatorService.RequestPasswordReset:output_type -> api.v1.RequestPasswordResetResponse
+	30, // 28: api.v1.AuthenticatorService.ConfirmPasswordReset:output_type -> api.v1.ConfirmPasswordResetResponse
+	32, // 29: api.v1.AuthenticatorService.RequestEmailVerification:output_type -> api.v1.RequestEmailVerificationResponse
+	34, // 30: api.v1.AuthenticatorService.ConfirmEmailVerification:output_type -> api.v1.ConfirmEmailVerificationResponse
+	14, // 31: api.v1.AuthenticatorService.ListSessions:output_type -> api.v1.ListSessionsResponse
+	16, // 32: api.v1.AuthenticatorService.RevokeSession:output_type -> api.v1.RevokeSessionResponse
+	18, // 33: api.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> api.v1.GetTwoFactorStatusResponse
+	20, // 34: api.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> api.v1.BeginTwoFactorEnrollmentResponse
+	22, // 35: api.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> api.v1.ConfirmTwoFactorEnrollmentResponse
+	24, // 36: api.v1.AuthenticatorService.DisableTwoFactor:output_type -> api.v1.DisableTwoFactorResponse
+	26, // 37: api.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> api.v1.RegenerateTwoFactorRecoveryCodesResponse
+	22, // [22:38] is the sub-list for method output_type
+	6,  // [6:22] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -1684,7 +2072,7 @@ func file_api_v1_authenticator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_authenticator_proto_rawDesc), len(file_api_v1_authenticator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   27,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,0 +1,29 @@
+name: mailer.v1
+listenOn: 0.0.0.0:3007
+timeout: 0
+
+log:
+  level: error
+  stat: false
+
+devServer:
+  enabled: true
+  host: 0.0.0.0
+  port: 6068
+  enableMetrics: true
+  enablePprof: false
+
+telemetry:
+  endpoint: "${CORDIS_OTEL_ENDPOINT}"
+  sampler: 1.0
+  batcher: otlpgrpc
+
+middlewares:
+  trace: true
+  recover: true
+  stat: false
+  prometheus: true
+  breaker: true
+
+mailer:
+  provider: noop

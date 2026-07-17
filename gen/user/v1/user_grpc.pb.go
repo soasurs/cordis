@@ -24,8 +24,10 @@ const (
 	UserService_GetUserProfile_FullMethodName         = "/user.v1.UserService/GetUserProfile"
 	UserService_VerifyPassword_FullMethodName         = "/user.v1.UserService/VerifyPassword"
 	UserService_ChangePassword_FullMethodName         = "/user.v1.UserService/ChangePassword"
+	UserService_ResetPassword_FullMethodName          = "/user.v1.UserService/ResetPassword"
 	UserService_CheckEmailAvailability_FullMethodName = "/user.v1.UserService/CheckEmailAvailability"
 	UserService_UpdateEmail_FullMethodName            = "/user.v1.UserService/UpdateEmail"
+	UserService_MarkEmailVerified_FullMethodName      = "/user.v1.UserService/MarkEmailVerified"
 	UserService_UpdateUserProfile_FullMethodName      = "/user.v1.UserService/UpdateUserProfile"
 )
 
@@ -38,8 +40,14 @@ type UserServiceClient interface {
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...grpc.CallOption) (*GetUserProfileResponse, error)
 	VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
+	// ResetPassword replaces the password without the old password. It backs
+	// the token-based recovery flow and is never exposed publicly.
+	ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error)
 	CheckEmailAvailability(ctx context.Context, in *CheckEmailAvailabilityRequest, opts ...grpc.CallOption) (*CheckEmailAvailabilityResponse, error)
 	UpdateEmail(ctx context.Context, in *UpdateEmailRequest, opts ...grpc.CallOption) (*UpdateEmailResponse, error)
+	// MarkEmailVerified records verification only while the supplied email is
+	// still the user's current email.
+	MarkEmailVerified(ctx context.Context, in *MarkEmailVerifiedRequest, opts ...grpc.CallOption) (*MarkEmailVerifiedResponse, error)
 	// UpdateUserProfile replaces all mutable public profile fields.
 	UpdateUserProfile(ctx context.Context, in *UpdateUserProfileRequest, opts ...grpc.CallOption) (*UpdateUserProfileResponse, error)
 }
@@ -102,6 +110,16 @@ func (c *userServiceClient) ChangePassword(ctx context.Context, in *ChangePasswo
 	return out, nil
 }
 
+func (c *userServiceClient) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*ResetPasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResetPasswordResponse)
+	err := c.cc.Invoke(ctx, UserService_ResetPassword_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userServiceClient) CheckEmailAvailability(ctx context.Context, in *CheckEmailAvailabilityRequest, opts ...grpc.CallOption) (*CheckEmailAvailabilityResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CheckEmailAvailabilityResponse)
@@ -116,6 +134,16 @@ func (c *userServiceClient) UpdateEmail(ctx context.Context, in *UpdateEmailRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateEmailResponse)
 	err := c.cc.Invoke(ctx, UserService_UpdateEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) MarkEmailVerified(ctx context.Context, in *MarkEmailVerifiedRequest, opts ...grpc.CallOption) (*MarkEmailVerifiedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MarkEmailVerifiedResponse)
+	err := c.cc.Invoke(ctx, UserService_MarkEmailVerified_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +169,14 @@ type UserServiceServer interface {
 	GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error)
 	VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error)
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
+	// ResetPassword replaces the password without the old password. It backs
+	// the token-based recovery flow and is never exposed publicly.
+	ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error)
 	CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error)
 	UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error)
+	// MarkEmailVerified records verification only while the supplied email is
+	// still the user's current email.
+	MarkEmailVerified(context.Context, *MarkEmailVerifiedRequest) (*MarkEmailVerifiedResponse, error)
 	// UpdateUserProfile replaces all mutable public profile fields.
 	UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*UpdateUserProfileResponse, error)
 }
@@ -169,11 +203,17 @@ func (UnimplementedUserServiceServer) VerifyPassword(context.Context, *VerifyPas
 func (UnimplementedUserServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
 }
+func (UnimplementedUserServiceServer) ResetPassword(context.Context, *ResetPasswordRequest) (*ResetPasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ResetPassword not implemented")
+}
 func (UnimplementedUserServiceServer) CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckEmailAvailability not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEmail not implemented")
+}
+func (UnimplementedUserServiceServer) MarkEmailVerified(context.Context, *MarkEmailVerifiedRequest) (*MarkEmailVerifiedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MarkEmailVerified not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*UpdateUserProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserProfile not implemented")
@@ -288,6 +328,24 @@ func _UserService_ChangePassword_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_ResetPassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetPasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ResetPassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ResetPassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ResetPassword(ctx, req.(*ResetPasswordRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserService_CheckEmailAvailability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CheckEmailAvailabilityRequest)
 	if err := dec(in); err != nil {
@@ -320,6 +378,24 @@ func _UserService_UpdateEmail_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).UpdateEmail(ctx, req.(*UpdateEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_MarkEmailVerified_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkEmailVerifiedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).MarkEmailVerified(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_MarkEmailVerified_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).MarkEmailVerified(ctx, req.(*MarkEmailVerifiedRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -370,12 +446,20 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_ChangePassword_Handler,
 		},
 		{
+			MethodName: "ResetPassword",
+			Handler:    _UserService_ResetPassword_Handler,
+		},
+		{
 			MethodName: "CheckEmailAvailability",
 			Handler:    _UserService_CheckEmailAvailability_Handler,
 		},
 		{
 			MethodName: "UpdateEmail",
 			Handler:    _UserService_UpdateEmail_Handler,
+		},
+		{
+			MethodName: "MarkEmailVerified",
+			Handler:    _UserService_MarkEmailVerified_Handler,
 		},
 		{
 			MethodName: "UpdateUserProfile",

@@ -1,0 +1,2 @@
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS email_verified_at BIGINT NOT NULL DEFAULT 0;

@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/dispatcher/v1/config"
 	"github.com/soasurs/cordis/services/dispatcher/v1/internal/discovery"
@@ -26,11 +27,12 @@ type eventEnvelope struct {
 }
 
 type eventRouting struct {
-	ID        eventID `json:"id"`
-	GuildID   eventID `json:"guild_id"`
-	ChannelID eventID `json:"channel_id"`
-	UserID    eventID `json:"user_id"`
-	OwnerID   eventID `json:"owner_id"`
+	ID        eventID   `json:"id"`
+	GuildID   eventID   `json:"guild_id"`
+	ChannelID eventID   `json:"channel_id"`
+	UserID    eventID   `json:"user_id"`
+	OwnerID   eventID   `json:"owner_id"`
+	GuildIDs  []eventID `json:"guild_ids"`
 }
 
 type eventID int64
@@ -61,16 +63,17 @@ func (id *eventID) UnmarshalJSON(value []byte) error {
 }
 
 type Server struct {
-	cfg      config.Config
-	consumer *kgo.Client
-	resolver discovery.Resolver
+	cfg        config.Config
+	consumer   *kgo.Client
+	resolver   discovery.Resolver
+	userClient userv1.UserServiceClient
 
 	mu      sync.Mutex
 	clients map[string]sessionv1.SessionServiceClient
 	conns   map[string]*grpc.ClientConn
 }
 
-func New(cfg config.Config, resolver discovery.Resolver) *Server {
+func New(cfg config.Config, resolver discovery.Resolver, userClient userv1.UserServiceClient) *Server {
 	if len(cfg.Kafka.Seeds) == 0 {
 		panic("dispatcher kafka seeds are required")
 	}
@@ -81,6 +84,7 @@ func New(cfg config.Config, resolver discovery.Resolver) *Server {
 			defaultString(cfg.Kafka.GuildTopic, "cordis.guild.events.v1"),
 			defaultString(cfg.Kafka.MessageTopic, "cordis.message.events.v1"),
 			defaultString(cfg.Kafka.UserTopic, "cordis.user.events.v1"),
+			defaultString(cfg.Kafka.PresenceTopic, "cordis.presence.events.v1"),
 		),
 		kgo.DisableAutoCommit(),
 	)
@@ -88,7 +92,7 @@ func New(cfg config.Config, resolver discovery.Resolver) *Server {
 		panic(err)
 	}
 	return &Server{
-		cfg: cfg, consumer: consumer, resolver: resolver,
+		cfg: cfg, consumer: consumer, resolver: resolver, userClient: userClient,
 		clients: make(map[string]sessionv1.SessionServiceClient),
 		conns:   make(map[string]*grpc.ClientConn),
 	}
@@ -170,14 +174,20 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 	}
 
 	switch event.Type {
-	case realtime.EventMessageCreated, realtime.EventMessageUpdated, realtime.EventMessageDeleted,
-		realtime.EventReactionAdded, realtime.EventReactionRemoved:
+	case realtime.EventMessageCreated, realtime.EventMessageUpdated, realtime.EventMessageDeleted:
 		channelID := int64(routing.ChannelID)
 		if channelID <= 0 {
 			return true, errors.New("message event channel id is invalid")
 		}
 		return false, s.dispatchChannel(ctx, channelID, event)
 	default:
+		if strings.HasPrefix(event.Type, "presence.") {
+			userID := int64(routing.UserID)
+			if userID <= 0 {
+				return true, errors.New("presence event user id is invalid")
+			}
+			return false, s.dispatchPresence(ctx, userID, event, routing)
+		}
 		// relationship.* and dm.* records are user-routed: the payload
 		// user_id names the recipient.
 		if strings.HasPrefix(event.Type, "relationship.") || strings.HasPrefix(event.Type, "dm.") {
@@ -236,6 +246,73 @@ func (s *Server) dispatchUser(ctx context.Context, userID int64, event eventEnve
 		_, err := client.DispatchUserEvent(ctx, req)
 		return err
 	})
+}
+
+// dispatchPresence fans a presence transition out along two paths: the
+// user's guilds (shared-guild members) and their friends plus their own
+// other devices. A recipient reachable through both paths receives the
+// event more than once; presence updates are idempotent state, so
+// duplicates are harmless.
+func (s *Server) dispatchPresence(ctx context.Context, userID int64, event eventEnvelope, routing eventRouting) error {
+	for _, rawGuildID := range routing.GuildIDs {
+		guildID := int64(rawGuildID)
+		if guildID <= 0 {
+			continue
+		}
+		nodes, err := s.resolver.Resolve(ctx, discovery.RouteGuild, guildID)
+		if err != nil {
+			return err
+		}
+		if err := s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
+			req := new(sessionv1.DispatchGuildEventRequest)
+			req.SetGuildId(guildID)
+			req.SetEvent(protoEvent(event))
+			_, err := client.DispatchGuildEvent(ctx, req)
+			return err
+		}); err != nil {
+			return err
+		}
+	}
+
+	recipients, err := s.friendIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+	// The user's own other devices track the transition too.
+	recipients = append(recipients, userID)
+	logx.WithContext(ctx).Infow("presence fan-out", logx.Field("user_id", userID), logx.Field("guild_count", len(routing.GuildIDs)), logx.Field("friend_count", len(recipients)-1), logx.Field("total_recipients", len(recipients)))
+	for _, recipientID := range recipients {
+		logx.WithContext(ctx).Infow("dispatch user presence", logx.Field("recipient_id", recipientID))
+		if err := s.dispatchUser(ctx, recipientID, event); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// friendIDs pages through the user's friendships.
+func (s *Server) friendIDs(ctx context.Context, userID int64) ([]int64, error) {
+	var friends []int64
+	var before int64
+	for {
+		req := new(userv1.ListRelationshipsRequest)
+		req.SetUserId(userID)
+		req.SetType(userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)
+		req.SetBeforeTargetId(before)
+		req.SetLimit(200)
+		resp, err := s.userClient.ListRelationships(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		relationships := resp.GetRelationships()
+		if len(relationships) == 0 {
+			return friends, nil
+		}
+		for _, relationship := range relationships {
+			friends = append(friends, relationship.GetTargetId())
+		}
+		before = resp.GetBeforeTargetId()
+	}
 }
 
 func (s *Server) dispatchGuild(ctx context.Context, guildID int64, event eventEnvelope, routing eventRouting) error {

@@ -43,7 +43,6 @@ func TestDispatchRecordRejectsUnderscoreEventName(t *testing.T) {
 
 func TestEventConstantsUseDotSeparator(t *testing.T) {
 	require.Equal(t, "message.created", realtime.EventMessageCreated)
-	require.Equal(t, "reaction.added", realtime.EventReactionAdded)
 }
 
 type fakeResolver struct {

@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+	"github.com/zeromicro/go-zero/zrpc"
 
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
@@ -14,6 +15,13 @@ type Config struct {
 	Redis           redis.RedisConf
 	SessionRegistry sessionregistry.Config
 	Dispatcher      DispatcherConfig
+	Services        ServiceConfig
+}
+
+// ServiceConfig wires the User service, which resolves friend lists for
+// presence fan-out.
+type ServiceConfig struct {
+	User zrpc.RpcClientConf
 }
 
 type KafkaConfig struct {
@@ -21,6 +29,7 @@ type KafkaConfig struct {
 	GuildTopic    string `json:",default=cordis.guild.events.v1"`
 	MessageTopic  string `json:",default=cordis.message.events.v1"`
 	UserTopic     string `json:",default=cordis.user.events.v1"`
+	PresenceTopic string `json:",default=cordis.presence.events.v1"`
 	ConsumerGroup string `json:",default=cordis.dispatcher.v1"`
 }
 

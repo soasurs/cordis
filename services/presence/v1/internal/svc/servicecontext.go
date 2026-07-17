@@ -1,20 +1,33 @@
 package svc
 
 import (
+	"context"
+
+	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 
+	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/services/presence/v1/config"
 	"github.com/soasurs/cordis/services/presence/v1/internal/store"
 )
 
+// EventPublisher delivers presence transition events.
+type EventPublisher interface {
+	Publish(ctx context.Context, key, payload []byte) error
+}
+
 type ServiceContext struct {
 	Cfg   config.Config
 	Store store.Store
+	// Publisher is optional; transition events are skipped when nil.
+	Publisher EventPublisher
 }
 
 type Dependencies struct {
-	Store store.Store
-	Redis *redis.Redis
+	Store     store.Store
+	Redis     *redis.Redis
+	Kafka     *kgo.Client
+	Publisher EventPublisher
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -23,9 +36,18 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, err
 	}
 
+	var kafkaClient *kgo.Client
+	if len(cfg.Kafka.Seeds) > 0 {
+		kafkaClient, err = kafka.NewProducer(cfg.Kafka.ProducerConfig())
+		if err != nil {
+			return Dependencies{}, err
+		}
+	}
+
 	return Dependencies{
 		Store: store.NewRedisStore(rds, cfg.Presence.GatewayTTL(), cfg.Presence.RouteTTL(), cfg.Presence.UserSessionTTL()),
 		Redis: rds,
+		Kafka: kafkaClient,
 	}, nil
 }
 
@@ -41,8 +63,26 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.Store == nil {
 		panic("presence store is required")
 	}
-	return &ServiceContext{
-		Cfg:   cfg,
-		Store: deps.Store,
+	publisher := deps.Publisher
+	if publisher == nil && deps.Kafka != nil {
+		publisher = &kafkaPublisher{client: deps.Kafka, topic: cfg.Kafka.Topic}
 	}
+	return &ServiceContext{
+		Cfg:       cfg,
+		Store:     deps.Store,
+		Publisher: publisher,
+	}
+}
+
+type kafkaPublisher struct {
+	client *kgo.Client
+	topic  string
+}
+
+func (p *kafkaPublisher) Publish(ctx context.Context, key, payload []byte) error {
+	return p.client.ProduceSync(ctx, &kgo.Record{
+		Topic: p.topic,
+		Key:   key,
+		Value: payload,
+	}).FirstErr()
 }

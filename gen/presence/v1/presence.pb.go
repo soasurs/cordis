@@ -1546,6 +1546,7 @@ type RegisterUserSessionRequest struct {
 	xxx_hidden_DeviceType  *string                `protobuf:"bytes,5,opt,name=device_type,json=deviceType"`
 	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,6,opt,name=status,enum=presence.v1.PresenceStatus"`
 	xxx_hidden_ClientState ClientState            `protobuf:"varint,7,opt,name=client_state,json=clientState,enum=presence.v1.ClientState"`
+	xxx_hidden_GuildIds    []int64                `protobuf:"varint,8,rep,packed,name=guild_ids,json=guildIds"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1642,39 +1643,50 @@ func (x *RegisterUserSessionRequest) GetClientState() ClientState {
 	return ClientState_CLIENT_STATE_UNSPECIFIED
 }
 
+func (x *RegisterUserSessionRequest) GetGuildIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildIds
+	}
+	return nil
+}
+
 func (x *RegisterUserSessionRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *RegisterUserSessionRequest) SetSessionId(v string) {
 	x.xxx_hidden_SessionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *RegisterUserSessionRequest) SetGatewayId(v string) {
 	x.xxx_hidden_GatewayId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *RegisterUserSessionRequest) SetGeneration(v string) {
 	x.xxx_hidden_Generation = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *RegisterUserSessionRequest) SetDeviceType(v string) {
 	x.xxx_hidden_DeviceType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *RegisterUserSessionRequest) SetStatus(v PresenceStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
 func (x *RegisterUserSessionRequest) SetClientState(v ClientState) {
 	x.xxx_hidden_ClientState = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *RegisterUserSessionRequest) SetGuildIds(v []int64) {
+	x.xxx_hidden_GuildIds = v
 }
 
 func (x *RegisterUserSessionRequest) HasUserId() bool {
@@ -1771,6 +1783,9 @@ type RegisterUserSessionRequest_builder struct {
 	DeviceType  *string
 	Status      *PresenceStatus
 	ClientState *ClientState
+	// Guild memberships captured by the calling session node; presence
+	// transition events fan out through these guild routes.
+	GuildIds []int64
 }
 
 func (b0 RegisterUserSessionRequest_builder) Build() *RegisterUserSessionRequest {
@@ -1778,33 +1793,34 @@ func (b0 RegisterUserSessionRequest_builder) Build() *RegisterUserSessionRequest
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.SessionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_SessionId = b.SessionId
 	}
 	if b.GatewayId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_GatewayId = b.GatewayId
 	}
 	if b.Generation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_Generation = b.Generation
 	}
 	if b.DeviceType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_DeviceType = b.DeviceType
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.ClientState != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
 		x.xxx_hidden_ClientState = *b.ClientState
 	}
+	x.xxx_hidden_GuildIds = b.GuildIds
 	return m0
 }
 
@@ -1885,6 +1901,7 @@ type RefreshUserSessionRequest struct {
 	xxx_hidden_DeviceType  *string                `protobuf:"bytes,5,opt,name=device_type,json=deviceType"`
 	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,6,opt,name=status,enum=presence.v1.PresenceStatus"`
 	xxx_hidden_ClientState ClientState            `protobuf:"varint,7,opt,name=client_state,json=clientState,enum=presence.v1.ClientState"`
+	xxx_hidden_GuildIds    []int64                `protobuf:"varint,8,rep,packed,name=guild_ids,json=guildIds"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1981,39 +1998,50 @@ func (x *RefreshUserSessionRequest) GetClientState() ClientState {
 	return ClientState_CLIENT_STATE_UNSPECIFIED
 }
 
+func (x *RefreshUserSessionRequest) GetGuildIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildIds
+	}
+	return nil
+}
+
 func (x *RefreshUserSessionRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *RefreshUserSessionRequest) SetSessionId(v string) {
 	x.xxx_hidden_SessionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *RefreshUserSessionRequest) SetGatewayId(v string) {
 	x.xxx_hidden_GatewayId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *RefreshUserSessionRequest) SetGeneration(v string) {
 	x.xxx_hidden_Generation = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *RefreshUserSessionRequest) SetDeviceType(v string) {
 	x.xxx_hidden_DeviceType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *RefreshUserSessionRequest) SetStatus(v PresenceStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
 func (x *RefreshUserSessionRequest) SetClientState(v ClientState) {
 	x.xxx_hidden_ClientState = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *RefreshUserSessionRequest) SetGuildIds(v []int64) {
+	x.xxx_hidden_GuildIds = v
 }
 
 func (x *RefreshUserSessionRequest) HasUserId() bool {
@@ -2110,6 +2138,9 @@ type RefreshUserSessionRequest_builder struct {
 	DeviceType  *string
 	Status      *PresenceStatus
 	ClientState *ClientState
+	// Guild memberships captured by the calling session node; presence
+	// transition events fan out through these guild routes.
+	GuildIds []int64
 }
 
 func (b0 RefreshUserSessionRequest_builder) Build() *RefreshUserSessionRequest {
@@ -2117,33 +2148,34 @@ func (b0 RefreshUserSessionRequest_builder) Build() *RefreshUserSessionRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.SessionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_SessionId = b.SessionId
 	}
 	if b.GatewayId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_GatewayId = b.GatewayId
 	}
 	if b.Generation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_Generation = b.Generation
 	}
 	if b.DeviceType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_DeviceType = b.DeviceType
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.ClientState != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
 		x.xxx_hidden_ClientState = *b.ClientState
 	}
+	x.xxx_hidden_GuildIds = b.GuildIds
 	return m0
 }
 
@@ -2221,6 +2253,7 @@ type UpdateUserPresenceRequest struct {
 	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
 	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,3,opt,name=status,enum=presence.v1.PresenceStatus"`
 	xxx_hidden_ClientState ClientState            `protobuf:"varint,4,opt,name=client_state,json=clientState,enum=presence.v1.ClientState"`
+	xxx_hidden_GuildIds    []int64                `protobuf:"varint,5,rep,packed,name=guild_ids,json=guildIds"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2287,24 +2320,35 @@ func (x *UpdateUserPresenceRequest) GetClientState() ClientState {
 	return ClientState_CLIENT_STATE_UNSPECIFIED
 }
 
+func (x *UpdateUserPresenceRequest) GetGuildIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildIds
+	}
+	return nil
+}
+
 func (x *UpdateUserPresenceRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *UpdateUserPresenceRequest) SetSessionId(v string) {
 	x.xxx_hidden_SessionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *UpdateUserPresenceRequest) SetStatus(v PresenceStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *UpdateUserPresenceRequest) SetClientState(v ClientState) {
 	x.xxx_hidden_ClientState = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *UpdateUserPresenceRequest) SetGuildIds(v []int64) {
+	x.xxx_hidden_GuildIds = v
 }
 
 func (x *UpdateUserPresenceRequest) HasUserId() bool {
@@ -2362,6 +2406,9 @@ type UpdateUserPresenceRequest_builder struct {
 	SessionId   *string
 	Status      *PresenceStatus
 	ClientState *ClientState
+	// Guild memberships captured by the calling session node; presence
+	// transition events fan out through these guild routes.
+	GuildIds []int64
 }
 
 func (b0 UpdateUserPresenceRequest_builder) Build() *UpdateUserPresenceRequest {
@@ -2369,21 +2416,22 @@ func (b0 UpdateUserPresenceRequest_builder) Build() *UpdateUserPresenceRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.SessionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_SessionId = b.SessionId
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.ClientState != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_ClientState = *b.ClientState
 	}
+	x.xxx_hidden_GuildIds = b.GuildIds
 	return m0
 }
 
@@ -2459,6 +2507,7 @@ type RemoveUserSessionRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
 	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
+	xxx_hidden_GuildIds    []int64                `protobuf:"varint,3,rep,packed,name=guild_ids,json=guildIds"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2507,14 +2556,25 @@ func (x *RemoveUserSessionRequest) GetSessionId() string {
 	return ""
 }
 
+func (x *RemoveUserSessionRequest) GetGuildIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildIds
+	}
+	return nil
+}
+
 func (x *RemoveUserSessionRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *RemoveUserSessionRequest) SetSessionId(v string) {
 	x.xxx_hidden_SessionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *RemoveUserSessionRequest) SetGuildIds(v []int64) {
+	x.xxx_hidden_GuildIds = v
 }
 
 func (x *RemoveUserSessionRequest) HasUserId() bool {
@@ -2546,6 +2606,9 @@ type RemoveUserSessionRequest_builder struct {
 
 	UserId    *int64
 	SessionId *string
+	// Guild memberships captured by the calling session node; presence
+	// transition events fan out through these guild routes.
+	GuildIds []int64
 }
 
 func (b0 RemoveUserSessionRequest_builder) Build() *RemoveUserSessionRequest {
@@ -2553,13 +2616,14 @@ func (b0 RemoveUserSessionRequest_builder) Build() *RemoveUserSessionRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.SessionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_SessionId = b.SessionId
 	}
+	x.xxx_hidden_GuildIds = b.GuildIds
 	return m0
 }
 
@@ -2824,7 +2888,7 @@ const file_presence_v1_presence_proto_rawDesc = "" +
 	"\x06status\x18\x02 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12 \n" +
 	"\flast_seen_at\x18\x03 \x01(\x03R\n" +
 	"lastSeenAt\x124\n" +
-	"\bsessions\x18\x04 \x03(\v2\x18.presence.v1.UserSessionR\bsessions\"\xa6\x02\n" +
+	"\bsessions\x18\x04 \x03(\v2\x18.presence.v1.UserSessionR\bsessions\"\xc3\x02\n" +
 	"\x1aRegisterUserSessionRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +
@@ -2837,9 +2901,10 @@ const file_presence_v1_presence_proto_rawDesc = "" +
 	"\vdevice_type\x18\x05 \x01(\tR\n" +
 	"deviceType\x123\n" +
 	"\x06status\x18\x06 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12;\n" +
-	"\fclient_state\x18\a \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\"T\n" +
+	"\fclient_state\x18\a \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\x12\x1b\n" +
+	"\tguild_ids\x18\b \x03(\x03R\bguildIds\"T\n" +
 	"\x1bRegisterUserSessionResponse\x125\n" +
-	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"\xa5\x02\n" +
+	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"\xc2\x02\n" +
 	"\x19RefreshUserSessionRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +
@@ -2852,21 +2917,24 @@ const file_presence_v1_presence_proto_rawDesc = "" +
 	"\vdevice_type\x18\x05 \x01(\tR\n" +
 	"deviceType\x123\n" +
 	"\x06status\x18\x06 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12;\n" +
-	"\fclient_state\x18\a \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\"S\n" +
+	"\fclient_state\x18\a \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\x12\x1b\n" +
+	"\tguild_ids\x18\b \x03(\x03R\bguildIds\"S\n" +
 	"\x1aRefreshUserSessionResponse\x125\n" +
-	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"\xc5\x01\n" +
+	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"\xe2\x01\n" +
 	"\x19UpdateUserPresenceRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\x123\n" +
 	"\x06status\x18\x03 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12;\n" +
-	"\fclient_state\x18\x04 \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\"S\n" +
+	"\fclient_state\x18\x04 \x01(\x0e2\x18.presence.v1.ClientStateR\vclientState\x12\x1b\n" +
+	"\tguild_ids\x18\x05 \x03(\x03R\bguildIds\"S\n" +
 	"\x1aUpdateUserPresenceResponse\x125\n" +
-	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"R\n" +
+	"\bpresence\x18\x01 \x01(\v2\x19.presence.v1.UserPresenceR\bpresence\"o\n" +
 	"\x18RemoveUserSessionRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\"+\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x1b\n" +
+	"\tguild_ids\x18\x03 \x03(\x03R\bguildIds\"+\n" +
 	"\x19RemoveUserSessionResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"8\n" +
 	"\x1bResolveUsersPresenceRequest\x12\x19\n" +

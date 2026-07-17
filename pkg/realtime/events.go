@@ -19,14 +19,14 @@ const (
 	EventGuildChannelOverwriteUpdated = "guild.channel.overwrite.updated"
 	EventGuildChannelOverwriteDeleted = "guild.channel.overwrite.deleted"
 
-	EventMessageCreated  = "message.created"
-	EventMessageUpdated  = "message.updated"
-	EventMessageDeleted  = "message.deleted"
-	EventReactionAdded   = "reaction.added"
-	EventReactionRemoved = "reaction.removed"
+	EventMessageCreated = "message.created"
+	EventMessageUpdated = "message.updated"
+	EventMessageDeleted = "message.deleted"
 
 	EventRelationshipUpdated = "relationship.updated"
 	EventRelationshipRemoved = "relationship.removed"
 
 	EventDmChannelCreated = "dm.channel.created"
+
+	EventPresenceUpdated = "presence.updated"
 )

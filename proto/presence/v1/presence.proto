@@ -132,6 +132,9 @@ message RegisterUserSessionRequest {
   string device_type = 5;
   PresenceStatus status = 6;
   ClientState client_state = 7;
+  // Guild memberships captured by the calling session node; presence
+  // transition events fan out through these guild routes.
+  repeated int64 guild_ids = 8;
 }
 
 message RegisterUserSessionResponse {
@@ -146,6 +149,9 @@ message RefreshUserSessionRequest {
   string device_type = 5;
   PresenceStatus status = 6;
   ClientState client_state = 7;
+  // Guild memberships captured by the calling session node; presence
+  // transition events fan out through these guild routes.
+  repeated int64 guild_ids = 8;
 }
 
 message RefreshUserSessionResponse {
@@ -157,6 +163,9 @@ message UpdateUserPresenceRequest {
   string session_id = 2;
   PresenceStatus status = 3;
   ClientState client_state = 4;
+  // Guild memberships captured by the calling session node; presence
+  // transition events fan out through these guild routes.
+  repeated int64 guild_ids = 5;
 }
 
 message UpdateUserPresenceResponse {
@@ -166,6 +175,9 @@ message UpdateUserPresenceResponse {
 message RemoveUserSessionRequest {
   int64 user_id = 1;
   string session_id = 2;
+  // Guild memberships captured by the calling session node; presence
+  // transition events fan out through these guild routes.
+  repeated int64 guild_ids = 3;
 }
 
 message RemoveUserSessionResponse {

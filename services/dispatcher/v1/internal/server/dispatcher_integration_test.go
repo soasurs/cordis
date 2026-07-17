@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/internal/testkit"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
@@ -154,9 +155,11 @@ type dispatcherHarness struct {
 	guildTopic    string
 	messageTopic  string
 	userTopic     string
+	presenceTopic string
 	consumerGroup string
 	producer      *kgo.Client
 	registry      *sessionregistry.EtcdDirectory
+	userClient    *fakeDispatcherUserClient
 }
 
 func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
@@ -168,7 +171,9 @@ func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
 		guildTopic:    "cordis.integration.guild." + runID,
 		messageTopic:  "cordis.integration.message." + runID,
 		userTopic:     "cordis.integration.user." + runID,
+		presenceTopic: "cordis.integration.presence." + runID,
 		consumerGroup: "cordis.integration.dispatcher." + runID,
+		userClient:    newFakeDispatcherUserClient(),
 	}
 
 	producer, err := kgo.NewClient(kgo.SeedBrokers(env.kafkaAddress))
@@ -178,6 +183,7 @@ func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
 	testkit.CreateKafkaTopic(t, producer, h.guildTopic)
 	testkit.CreateKafkaTopic(t, producer, h.messageTopic)
 	testkit.CreateKafkaTopic(t, producer, h.userTopic)
+	testkit.CreateKafkaTopic(t, producer, h.presenceTopic)
 
 	registry, err := sessionregistry.New(sessionregistry.Config{
 		Hosts:              env.etcdHosts,
@@ -228,6 +234,7 @@ func (h *dispatcherHarness) startDispatcher(t *testing.T) {
 			GuildTopic:    h.guildTopic,
 			MessageTopic:  h.messageTopic,
 			UserTopic:     h.userTopic,
+			PresenceTopic: h.presenceTopic,
 			ConsumerGroup: h.consumerGroup,
 		},
 		Dispatcher: config.DispatcherConfig{
@@ -235,7 +242,7 @@ func (h *dispatcherHarness) startDispatcher(t *testing.T) {
 			RetryMinMilliseconds:   10,
 			RetryMaxSeconds:        1,
 		},
-	}, discovery.NewRedisResolver(h.env.rds, h.registry))
+	}, discovery.NewRedisResolver(h.env.rds, h.registry), h.userClient)
 
 	runCtx, cancel := context.WithCancel(t.Context())
 	done := make(chan struct{})
@@ -472,4 +479,41 @@ func testUserRoute(t *testing.T, env *dispatcherEnv) {
 	require.Equal(t, userID, request.GetUserId())
 	require.Equal(t, realtime.EventDmChannelCreated, request.GetEvent().GetType())
 	require.JSONEq(t, `{"channel_id":"9001","user_id":"7401","recipient_id":"8001","created_at":1}`, request.GetEvent().GetJsonPayload())
+}
+
+// fakeDispatcherUserClient serves friend lists for presence fan-out tests.
+type fakeDispatcherUserClient struct {
+	userv1.UserServiceClient
+	mu      sync.Mutex
+	friends map[int64][]int64
+}
+
+func newFakeDispatcherUserClient() *fakeDispatcherUserClient {
+	return &fakeDispatcherUserClient{friends: make(map[int64][]int64)}
+}
+
+func (f *fakeDispatcherUserClient) setFriends(userID int64, friendIDs ...int64) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.friends[userID] = friendIDs
+}
+
+func (f *fakeDispatcherUserClient) ListRelationships(_ context.Context, req *userv1.ListRelationshipsRequest, _ ...grpc.CallOption) (*userv1.ListRelationshipsResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	resp := new(userv1.ListRelationshipsResponse)
+	if req.GetBeforeTargetId() != 0 {
+		// Single page is enough for the harness.
+		return resp, nil
+	}
+	var values []*userv1.Relationship
+	for _, friendID := range f.friends[req.GetUserId()] {
+		row := new(userv1.Relationship)
+		row.SetUserId(req.GetUserId())
+		row.SetTargetId(friendID)
+		row.SetType(userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)
+		values = append(values, row)
+	}
+	resp.SetRelationships(values)
+	return resp, nil
 }

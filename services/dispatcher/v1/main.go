@@ -10,7 +10,9 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+	"github.com/zeromicro/go-zero/zrpc"
 
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/dispatcher/v1/config"
 	"github.com/soasurs/cordis/services/dispatcher/v1/internal/discovery"
@@ -38,7 +40,11 @@ func main() {
 		panic(err)
 	}
 	defer registry.Close()
-	dispatcher := server.New(*cfg, discovery.NewRedisResolver(rds, registry))
+	userRPCClient, err := zrpc.NewClient(cfg.Services.User)
+	if err != nil {
+		panic(err)
+	}
+	dispatcher := server.New(*cfg, discovery.NewRedisResolver(rds, registry), userv1.NewUserServiceClient(userRPCClient.Conn()))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	dispatcher.Run(ctx)

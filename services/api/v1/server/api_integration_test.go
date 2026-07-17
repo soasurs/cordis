@@ -13,7 +13,9 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
@@ -34,6 +36,8 @@ import (
 func TestAPIIntegration(t *testing.T) {
 	t.Setenv("CORDIS_ACCESS_TOKEN_SECRET", "dev-access-secret-for-integration-test-32b")
 	t.Setenv("CORDIS_REFRESH_TOKEN_SECRET", "dev-refresh-secret-for-integration-test-32b")
+	// base64-encoded 32-byte AES key for TOTP secret encryption.
+	t.Setenv("CORDIS_TOTP_ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 
 	postgres := testkit.StartPostgres(t)
 	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
@@ -299,6 +303,27 @@ log:
   stat: false
 database:
   dataSource: %s
+tokens:
+  issuer: cordis.authenticator.v1
+  access:
+    secret: ${CORDIS_ACCESS_TOKEN_SECRET}
+    ttl: 15m
+  refresh:
+    secret: ${CORDIS_REFRESH_TOKEN_SECRET}
+    ttl: 720h
+sessions:
+  ttl: 720h
+twoFactor:
+  issuer: Cordis
+  enrollmentTTL: 10m
+  loginChallengeTTL: 5m
+  maxAttempts: 5
+  recoveryCodeCount: 10
+  encryption:
+    primaryKeyID: totp-test
+    keys:
+      - id: totp-test
+        secret: ${CORDIS_TOTP_ENCRYPTION_KEY}
 services:
   user:
     endpoints:
@@ -367,6 +392,10 @@ func waitAuthenticatorReady(t *testing.T, address string) {
 		req := new(authenticatorv1.VerifyAccessTokenRequest)
 		req.SetAccessToken("probe")
 		_, err := client.VerifyAccessToken(ctx, req)
+		// A healthy authenticator rejects the fake probe token.
+		if status.Code(err) == codes.Unauthenticated {
+			return nil
+		}
 		return err
 	})
 }
@@ -380,6 +409,10 @@ func waitGuildReady(t *testing.T, address string) {
 		req.SetUserId(1)
 		req.SetPermission(uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL))
 		_, err := client.AuthorizeGuildChannel(ctx, req)
+		// A healthy guild service reports the probe channel as missing.
+		if status.Code(err) == codes.NotFound {
+			return nil
+		}
 		return err
 	})
 }
@@ -392,6 +425,10 @@ func waitMessageReady(t *testing.T, address string) {
 		req.SetMessageId(1)
 		req.SetUserId(1)
 		_, err := client.GetMessage(ctx, req)
+		// A healthy message service reports the probe message as missing.
+		if status.Code(err) == codes.NotFound {
+			return nil
+		}
 		return err
 	})
 }

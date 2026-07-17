@@ -61,7 +61,7 @@ const createDefaultRoleStatement = `
         id, guild_id, name, permissions, position, is_default,
         revision, created_at, updated_at, deleted_at
     ) VALUES (
-        $1, $1, '@everyone', 96, 0, TRUE, 1, $2, 0, 0
+        $1, $1, '@everyone', 1120, 0, TRUE, 1, $2, 0, 0
     )
 `
 
@@ -207,6 +207,65 @@ const listGuildBansQuery = `
 const deleteGuildBansStatement = `
     DELETE FROM guild_bans
     WHERE guild_id = $1
+`
+
+const guildInviteColumns = `
+    id, code, guild_id, creator_user_id, max_uses, uses, expires_at, created_at
+`
+
+const createGuildInviteQuery = `
+    INSERT INTO guild_invites (
+        id, code, guild_id, creator_user_id, max_uses, uses, expires_at, created_at
+    ) VALUES ($1, $2, $3, $4, $5, 0, $6, $7)
+    RETURNING ` + guildInviteColumns
+
+const getGuildInviteQuery = `
+    SELECT ` + guildInviteColumns + `
+    FROM guild_invites
+    WHERE code = $1
+    LIMIT 1
+`
+
+const listGuildInvitesQuery = `
+    SELECT ` + guildInviteColumns + `
+    FROM guild_invites
+    WHERE guild_id = $1
+      AND ($2 = 0 OR id < $2)
+    ORDER BY id DESC
+    LIMIT $3
+`
+
+const consumeGuildInviteQuery = `
+    UPDATE guild_invites
+    SET uses = uses + 1
+    WHERE code = $1
+      AND (max_uses = 0 OR uses < max_uses)
+      AND (expires_at = 0 OR expires_at > $2)
+    RETURNING ` + guildInviteColumns
+
+const deleteGuildInviteStatement = `
+    DELETE FROM guild_invites
+    WHERE code = $1
+`
+
+const deleteGuildInvitesStatement = `
+    DELETE FROM guild_invites
+    WHERE guild_id = $1
+`
+
+const getGuildQuery = `
+    SELECT ` + guildColumns + `
+    FROM guilds
+    WHERE id = $1
+      AND deleted_at = 0
+    LIMIT 1
+`
+
+const countGuildMembersQuery = `
+    SELECT COUNT(*)
+    FROM guild_members
+    WHERE guild_id = $1
+      AND deleted_at = 0
 `
 
 const transferGuildOwnershipQuery = `

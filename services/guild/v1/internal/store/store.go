@@ -39,6 +39,12 @@ type ListGuildBansParams struct {
 	Limit        int
 }
 
+type ListGuildInvitesParams struct {
+	GuildID  int64
+	BeforeID int64
+	Limit    int
+}
+
 type UpdateGuildRoleParams struct {
 	GuildID     int64
 	RoleID      int64
@@ -75,6 +81,14 @@ type Store interface {
 	GetGuildBan(ctx context.Context, guildID, userID int64) (*model.GuildBan, error)
 	ListGuildBans(ctx context.Context, params ListGuildBansParams) ([]*model.GuildBan, error)
 	DeleteGuildBans(ctx context.Context, guildID int64) error
+	GetGuild(ctx context.Context, guildID int64) (*model.Guild, error)
+	CountGuildMembers(ctx context.Context, guildID int64) (int64, error)
+	CreateGuildInvite(ctx context.Context, invite *model.GuildInvite) (*model.GuildInvite, error)
+	GetGuildInvite(ctx context.Context, code string) (*model.GuildInvite, error)
+	ListGuildInvites(ctx context.Context, params ListGuildInvitesParams) ([]*model.GuildInvite, error)
+	ConsumeGuildInvite(ctx context.Context, code string, now int64) (*model.GuildInvite, error)
+	DeleteGuildInvite(ctx context.Context, code string) error
+	DeleteGuildInvites(ctx context.Context, guildID int64) error
 	TransferGuildOwnership(ctx context.Context, guildID, currentOwnerID, newOwnerID int64) (*model.Guild, error)
 	CreateGuildRole(ctx context.Context, roleID, guildID int64, name string, permissions uint64, position int32, createdAt int64) (*model.Role, error)
 	GetGuildRole(ctx context.Context, guildID, roleID int64) (*model.Role, error)

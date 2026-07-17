@@ -29,6 +29,17 @@ type GuildBan struct {
 	CreatedAt   int64
 }
 
+type GuildInvite struct {
+	ID            int64
+	Code          string
+	GuildID       int64
+	CreatorUserID int64
+	MaxUses       int32
+	Uses          int32
+	ExpiresAt     int64
+	CreatedAt     int64
+}
+
 type Role struct {
 	ID          int64
 	GuildID     int64

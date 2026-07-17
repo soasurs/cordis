@@ -93,6 +93,17 @@ type fakeGuildClient struct {
 	deleteOverwriteFn  func(*guildv1.DeleteGuildChannelPermissionOverwriteRequest) (*guildv1.DeleteGuildChannelPermissionOverwriteResponse, error)
 	listOverwritesReq  *guildv1.ListGuildChannelPermissionOverwritesRequest
 	listOverwritesFn   func(*guildv1.ListGuildChannelPermissionOverwritesRequest) (*guildv1.ListGuildChannelPermissionOverwritesResponse, error)
+
+	createInviteReq *guildv1.CreateGuildInviteRequest
+	createInviteFn  func(*guildv1.CreateGuildInviteRequest) (*guildv1.CreateGuildInviteResponse, error)
+	getInviteReq    *guildv1.GetGuildInviteRequest
+	getInviteFn     func(*guildv1.GetGuildInviteRequest) (*guildv1.GetGuildInviteResponse, error)
+	listInvitesReq  *guildv1.ListGuildInvitesRequest
+	listInvitesFn   func(*guildv1.ListGuildInvitesRequest) (*guildv1.ListGuildInvitesResponse, error)
+	deleteInviteReq *guildv1.DeleteGuildInviteRequest
+	deleteInviteFn  func(*guildv1.DeleteGuildInviteRequest) (*guildv1.DeleteGuildInviteResponse, error)
+	joinInviteReq   *guildv1.JoinGuildByInviteRequest
+	joinInviteFn    func(*guildv1.JoinGuildByInviteRequest) (*guildv1.JoinGuildByInviteResponse, error)
 }
 
 func (f *fakeGuildClient) CreateGuildRole(_ context.Context, req *guildv1.CreateGuildRoleRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildRoleResponse, error) {

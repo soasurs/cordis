@@ -131,6 +131,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeAlreadyExists,
 		message:     "Resource already exists.",
 	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildInviteNotFound}: {
+		connectCode: connect.CodeNotFound,
+		publicCode:  CodeNotFound,
+		message:     "Resource not found.",
+	},
 }
 
 var codeMappings = map[codes.Code]mapping{

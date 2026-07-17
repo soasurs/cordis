@@ -40,6 +40,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("transact rollback", func(t *testing.T) { testTransactRollback(t, store) })
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("guild delete helpers", func(t *testing.T) { testGuildDeleteHelpers(t, store) })
+	t.Run("invites", func(t *testing.T) { testGuildInvites(t, store) })
 }
 
 func testGuildCRUD(t *testing.T, store Store) {
@@ -224,7 +225,8 @@ func testGuildRolesCRUD(t *testing.T, store Store) {
 	require.Equal(t, int64(guildID), roles[0].ID)
 	require.True(t, roles[0].IsDefault)
 	require.Equal(t, int32(0), roles[0].Position)
-	require.Equal(t, uint64(96), roles[0].Permissions)
+	// VIEW_CHANNEL | SEND_MESSAGES | CREATE_INVITE
+	require.Equal(t, uint64(1120), roles[0].Permissions)
 
 	mod, err := store.CreateGuildRole(ctx, 10501, guildID, "Mod", 1024, 5, now)
 	require.NoError(t, err)
@@ -552,4 +554,111 @@ func idsOf[T any](items []T, id func(T) int64) []int64 {
 		out = append(out, id(item))
 	}
 	return out
+}
+
+func testGuildInvites(t *testing.T, store Store) {
+	const guildID, ownerID, memberID = 11200, 21200, 21201
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+	seedGuild(t, store, guildID, ownerID)
+
+	// The @everyone role created by seedGuild grants CREATE_INVITE.
+	roles, err := store.ListGuildRoles(ctx, guildID)
+	require.NoError(t, err)
+	require.Len(t, roles, 1)
+	require.NotZero(t, roles[0].Permissions&1024)
+
+	created, err := store.CreateGuildInvite(ctx, &model.GuildInvite{
+		ID: 11201, Code: "int-invite-a", GuildID: guildID, CreatorUserID: ownerID,
+		MaxUses: 2, ExpiresAt: 0, CreatedAt: now,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "int-invite-a", created.Code)
+	require.Zero(t, created.Uses)
+
+	_, err = store.CreateGuildInvite(ctx, &model.GuildInvite{
+		ID: 11202, Code: "int-invite-b", GuildID: guildID, CreatorUserID: ownerID,
+		MaxUses: 0, ExpiresAt: now + 60_000, CreatedAt: now,
+	})
+	require.NoError(t, err)
+
+	// Duplicate codes violate the unique index.
+	_, err = store.CreateGuildInvite(ctx, &model.GuildInvite{
+		ID: 11203, Code: "int-invite-a", GuildID: guildID, CreatorUserID: ownerID, CreatedAt: now,
+	})
+	var pqErr *pq.Error
+	require.True(t, errors.As(err, &pqErr))
+	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+
+	loaded, err := store.GetGuildInvite(ctx, "int-invite-a")
+	require.NoError(t, err)
+	require.Equal(t, int64(11201), loaded.ID)
+	_, err = store.GetGuildInvite(ctx, "int-invite-missing")
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	invites, err := store.ListGuildInvites(ctx, ListGuildInvitesParams{GuildID: guildID, Limit: 10})
+	require.NoError(t, err)
+	require.Equal(t, []int64{11202, 11201}, idsOf(invites, func(invite *model.GuildInvite) int64 { return invite.ID }))
+	invites, err = store.ListGuildInvites(ctx, ListGuildInvitesParams{GuildID: guildID, BeforeID: 11202, Limit: 10})
+	require.NoError(t, err)
+	require.Equal(t, []int64{11201}, idsOf(invites, func(invite *model.GuildInvite) int64 { return invite.ID }))
+
+	// Consuming respects the max-use budget.
+	consumed, err := store.ConsumeGuildInvite(ctx, "int-invite-a", now)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), consumed.Uses)
+	consumed, err = store.ConsumeGuildInvite(ctx, "int-invite-a", now)
+	require.NoError(t, err)
+	require.Equal(t, int32(2), consumed.Uses)
+	_, err = store.ConsumeGuildInvite(ctx, "int-invite-a", now)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	// Expired invites cannot be consumed.
+	_, err = store.ConsumeGuildInvite(ctx, "int-invite-b", now+120_000)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+	consumed, err = store.ConsumeGuildInvite(ctx, "int-invite-b", now)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), consumed.Uses)
+
+	// A failed transaction rolls the consumed use back.
+	sentinel := errors.New("abort join")
+	err = store.Transact(ctx, func(tx Store) error {
+		if _, err := tx.ConsumeGuildInvite(ctx, "int-invite-b", now); err != nil {
+			return err
+		}
+		return sentinel
+	})
+	require.ErrorIs(t, err, sentinel)
+	loaded, err = store.GetGuildInvite(ctx, "int-invite-b")
+	require.NoError(t, err)
+	require.Equal(t, int32(1), loaded.Uses)
+
+	// GetGuild and CountGuildMembers back the invite preview.
+	guild, err := store.GetGuild(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, int64(guildID), guild.ID)
+	_, err = store.GetGuild(ctx, guildID+99)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	count, err := store.CountGuildMembers(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), count)
+	_, err = store.CreateGuildMember(ctx, guildID, memberID, now)
+	require.NoError(t, err)
+	count, err = store.CountGuildMembers(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), count)
+	_, err = store.RemoveGuildMember(ctx, guildID, memberID, now)
+	require.NoError(t, err)
+	count, err = store.CountGuildMembers(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), count)
+
+	require.NoError(t, store.DeleteGuildInvite(ctx, "int-invite-a"))
+	require.ErrorIs(t, store.DeleteGuildInvite(ctx, "int-invite-a"), sql.ErrNoRows)
+
+	require.NoError(t, store.DeleteGuildInvites(ctx, guildID))
+	invites, err = store.ListGuildInvites(ctx, ListGuildInvitesParams{GuildID: guildID, Limit: 10})
+	require.NoError(t, err)
+	require.Empty(t, invites)
 }

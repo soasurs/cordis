@@ -34,6 +34,11 @@ const (
 	GuildService_ListGuildBans_FullMethodName                         = "/guild.v1.GuildService/ListGuildBans"
 	GuildService_LeaveGuild_FullMethodName                            = "/guild.v1.GuildService/LeaveGuild"
 	GuildService_TransferGuildOwnership_FullMethodName                = "/guild.v1.GuildService/TransferGuildOwnership"
+	GuildService_CreateGuildInvite_FullMethodName                     = "/guild.v1.GuildService/CreateGuildInvite"
+	GuildService_GetGuildInvite_FullMethodName                        = "/guild.v1.GuildService/GetGuildInvite"
+	GuildService_ListGuildInvites_FullMethodName                      = "/guild.v1.GuildService/ListGuildInvites"
+	GuildService_DeleteGuildInvite_FullMethodName                     = "/guild.v1.GuildService/DeleteGuildInvite"
+	GuildService_JoinGuildByInvite_FullMethodName                     = "/guild.v1.GuildService/JoinGuildByInvite"
 	GuildService_CreateGuildRole_FullMethodName                       = "/guild.v1.GuildService/CreateGuildRole"
 	GuildService_GetGuildRole_FullMethodName                          = "/guild.v1.GuildService/GetGuildRole"
 	GuildService_ListGuildRoles_FullMethodName                        = "/guild.v1.GuildService/ListGuildRoles"
@@ -77,6 +82,11 @@ type GuildServiceClient interface {
 	ListGuildBans(ctx context.Context, in *ListGuildBansRequest, opts ...grpc.CallOption) (*ListGuildBansResponse, error)
 	LeaveGuild(ctx context.Context, in *LeaveGuildRequest, opts ...grpc.CallOption) (*LeaveGuildResponse, error)
 	TransferGuildOwnership(ctx context.Context, in *TransferGuildOwnershipRequest, opts ...grpc.CallOption) (*TransferGuildOwnershipResponse, error)
+	CreateGuildInvite(ctx context.Context, in *CreateGuildInviteRequest, opts ...grpc.CallOption) (*CreateGuildInviteResponse, error)
+	GetGuildInvite(ctx context.Context, in *GetGuildInviteRequest, opts ...grpc.CallOption) (*GetGuildInviteResponse, error)
+	ListGuildInvites(ctx context.Context, in *ListGuildInvitesRequest, opts ...grpc.CallOption) (*ListGuildInvitesResponse, error)
+	DeleteGuildInvite(ctx context.Context, in *DeleteGuildInviteRequest, opts ...grpc.CallOption) (*DeleteGuildInviteResponse, error)
+	JoinGuildByInvite(ctx context.Context, in *JoinGuildByInviteRequest, opts ...grpc.CallOption) (*JoinGuildByInviteResponse, error)
 	CreateGuildRole(ctx context.Context, in *CreateGuildRoleRequest, opts ...grpc.CallOption) (*CreateGuildRoleResponse, error)
 	GetGuildRole(ctx context.Context, in *GetGuildRoleRequest, opts ...grpc.CallOption) (*GetGuildRoleResponse, error)
 	ListGuildRoles(ctx context.Context, in *ListGuildRolesRequest, opts ...grpc.CallOption) (*ListGuildRolesResponse, error)
@@ -251,6 +261,56 @@ func (c *guildServiceClient) TransferGuildOwnership(ctx context.Context, in *Tra
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TransferGuildOwnershipResponse)
 	err := c.cc.Invoke(ctx, GuildService_TransferGuildOwnership_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) CreateGuildInvite(ctx context.Context, in *CreateGuildInviteRequest, opts ...grpc.CallOption) (*CreateGuildInviteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateGuildInviteResponse)
+	err := c.cc.Invoke(ctx, GuildService_CreateGuildInvite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) GetGuildInvite(ctx context.Context, in *GetGuildInviteRequest, opts ...grpc.CallOption) (*GetGuildInviteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGuildInviteResponse)
+	err := c.cc.Invoke(ctx, GuildService_GetGuildInvite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) ListGuildInvites(ctx context.Context, in *ListGuildInvitesRequest, opts ...grpc.CallOption) (*ListGuildInvitesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuildInvitesResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListGuildInvites_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) DeleteGuildInvite(ctx context.Context, in *DeleteGuildInviteRequest, opts ...grpc.CallOption) (*DeleteGuildInviteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteGuildInviteResponse)
+	err := c.cc.Invoke(ctx, GuildService_DeleteGuildInvite_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) JoinGuildByInvite(ctx context.Context, in *JoinGuildByInviteRequest, opts ...grpc.CallOption) (*JoinGuildByInviteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JoinGuildByInviteResponse)
+	err := c.cc.Invoke(ctx, GuildService_JoinGuildByInvite_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -478,6 +538,11 @@ type GuildServiceServer interface {
 	ListGuildBans(context.Context, *ListGuildBansRequest) (*ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *LeaveGuildRequest) (*LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *TransferGuildOwnershipRequest) (*TransferGuildOwnershipResponse, error)
+	CreateGuildInvite(context.Context, *CreateGuildInviteRequest) (*CreateGuildInviteResponse, error)
+	GetGuildInvite(context.Context, *GetGuildInviteRequest) (*GetGuildInviteResponse, error)
+	ListGuildInvites(context.Context, *ListGuildInvitesRequest) (*ListGuildInvitesResponse, error)
+	DeleteGuildInvite(context.Context, *DeleteGuildInviteRequest) (*DeleteGuildInviteResponse, error)
+	JoinGuildByInvite(context.Context, *JoinGuildByInviteRequest) (*JoinGuildByInviteResponse, error)
 	CreateGuildRole(context.Context, *CreateGuildRoleRequest) (*CreateGuildRoleResponse, error)
 	GetGuildRole(context.Context, *GetGuildRoleRequest) (*GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *ListGuildRolesRequest) (*ListGuildRolesResponse, error)
@@ -551,6 +616,21 @@ func (UnimplementedGuildServiceServer) LeaveGuild(context.Context, *LeaveGuildRe
 }
 func (UnimplementedGuildServiceServer) TransferGuildOwnership(context.Context, *TransferGuildOwnershipRequest) (*TransferGuildOwnershipResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TransferGuildOwnership not implemented")
+}
+func (UnimplementedGuildServiceServer) CreateGuildInvite(context.Context, *CreateGuildInviteRequest) (*CreateGuildInviteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGuildInvite not implemented")
+}
+func (UnimplementedGuildServiceServer) GetGuildInvite(context.Context, *GetGuildInviteRequest) (*GetGuildInviteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGuildInvite not implemented")
+}
+func (UnimplementedGuildServiceServer) ListGuildInvites(context.Context, *ListGuildInvitesRequest) (*ListGuildInvitesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGuildInvites not implemented")
+}
+func (UnimplementedGuildServiceServer) DeleteGuildInvite(context.Context, *DeleteGuildInviteRequest) (*DeleteGuildInviteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteGuildInvite not implemented")
+}
+func (UnimplementedGuildServiceServer) JoinGuildByInvite(context.Context, *JoinGuildByInviteRequest) (*JoinGuildByInviteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinGuildByInvite not implemented")
 }
 func (UnimplementedGuildServiceServer) CreateGuildRole(context.Context, *CreateGuildRoleRequest) (*CreateGuildRoleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGuildRole not implemented")
@@ -898,6 +978,96 @@ func _GuildService_TransferGuildOwnership_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GuildServiceServer).TransferGuildOwnership(ctx, req.(*TransferGuildOwnershipRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_CreateGuildInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateGuildInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).CreateGuildInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_CreateGuildInvite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).CreateGuildInvite(ctx, req.(*CreateGuildInviteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_GetGuildInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGuildInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).GetGuildInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_GetGuildInvite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).GetGuildInvite(ctx, req.(*GetGuildInviteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_ListGuildInvites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGuildInvitesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListGuildInvites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListGuildInvites_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListGuildInvites(ctx, req.(*ListGuildInvitesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_DeleteGuildInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteGuildInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).DeleteGuildInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_DeleteGuildInvite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).DeleteGuildInvite(ctx, req.(*DeleteGuildInviteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_JoinGuildByInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinGuildByInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).JoinGuildByInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_JoinGuildByInvite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).JoinGuildByInvite(ctx, req.(*JoinGuildByInviteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1328,6 +1498,26 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TransferGuildOwnership",
 			Handler:    _GuildService_TransferGuildOwnership_Handler,
+		},
+		{
+			MethodName: "CreateGuildInvite",
+			Handler:    _GuildService_CreateGuildInvite_Handler,
+		},
+		{
+			MethodName: "GetGuildInvite",
+			Handler:    _GuildService_GetGuildInvite_Handler,
+		},
+		{
+			MethodName: "ListGuildInvites",
+			Handler:    _GuildService_ListGuildInvites_Handler,
+		},
+		{
+			MethodName: "DeleteGuildInvite",
+			Handler:    _GuildService_DeleteGuildInvite_Handler,
+		},
+		{
+			MethodName: "JoinGuildByInvite",
+			Handler:    _GuildService_JoinGuildByInvite_Handler,
 		},
 		{
 			MethodName: "CreateGuildRole",

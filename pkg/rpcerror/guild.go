@@ -7,4 +7,5 @@ const (
 	GuildPermissionDenied    = "guild_permission_denied"
 	GuildInvalidRequest      = "guild_invalid_request"
 	GuildMemberAlreadyExists = "guild_member_already_exists"
+	GuildInviteNotFound      = "guild_invite_not_found"
 )

@@ -27,6 +27,10 @@ func memberAlreadyExists() error {
 	return rpcerror.New(codes.AlreadyExists, rpcerror.GuildDomain, rpcerror.GuildMemberAlreadyExists, "guild member already exists")
 }
 
+func inviteNotFound() error {
+	return rpcerror.New(codes.NotFound, rpcerror.GuildDomain, rpcerror.GuildInviteNotFound, "guild invite not found")
+}
+
 func userBanned() error {
 	return rpcerror.New(codes.PermissionDenied, rpcerror.GuildDomain, rpcerror.GuildPermissionDenied, "user is banned from the guild")
 }

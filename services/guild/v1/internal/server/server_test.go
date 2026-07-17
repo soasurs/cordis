@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -227,6 +228,7 @@ type fakeStore struct {
 	overwrites   map[int64]map[string]*model.ChannelPermissionOverwrite
 	defaultRoles map[int64]bool
 	bans         map[int64]map[int64]*model.GuildBan
+	invites      map[string]*model.GuildInvite
 	transactErr  error
 }
 
@@ -237,6 +239,7 @@ func newFakeStore() *fakeStore {
 		channels: make(map[int64]*model.Channel), overwrites: make(map[int64]map[string]*model.ChannelPermissionOverwrite),
 		defaultRoles: make(map[int64]bool),
 		bans:         make(map[int64]map[int64]*model.GuildBan),
+		invites:      make(map[string]*model.GuildInvite),
 	}
 }
 
@@ -278,7 +281,7 @@ func (s *fakeStore) CreateDefaultRole(_ context.Context, guildID, _ int64) error
 	}
 	s.roles[guildID][guildID] = &model.Role{
 		ID: guildID, GuildID: guildID, Name: "@everyone",
-		Permissions: PermissionViewChannel | PermissionSendMessages,
+		Permissions: PermissionViewChannel | PermissionSendMessages | PermissionCreateInvite,
 		IsDefault:   true, Revision: 1, CreatedAt: 1,
 	}
 	return nil
@@ -441,6 +444,94 @@ func (s *fakeStore) ListGuildBans(_ context.Context, params store.ListGuildBansP
 
 func (s *fakeStore) DeleteGuildBans(_ context.Context, guildID int64) error {
 	delete(s.bans, guildID)
+	return nil
+}
+
+func (s *fakeStore) GetGuild(_ context.Context, guildID int64) (*model.Guild, error) {
+	guild, ok := s.guilds[guildID]
+	if !ok || guild.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
+	}
+	return cloneGuild(guild), nil
+}
+
+func (s *fakeStore) CountGuildMembers(_ context.Context, guildID int64) (int64, error) {
+	var count int64
+	for _, member := range s.members[guildID] {
+		if member.DeletedAt == 0 {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (s *fakeStore) CreateGuildInvite(_ context.Context, invite *model.GuildInvite) (*model.GuildInvite, error) {
+	if s.invites[invite.Code] != nil {
+		return nil, &pq.Error{Code: "23505"}
+	}
+	value := *invite
+	s.invites[invite.Code] = &value
+	clone := value
+	return &clone, nil
+}
+
+func (s *fakeStore) GetGuildInvite(_ context.Context, code string) (*model.GuildInvite, error) {
+	invite := s.invites[code]
+	if invite == nil {
+		return nil, sql.ErrNoRows
+	}
+	value := *invite
+	return &value, nil
+}
+
+func (s *fakeStore) ListGuildInvites(_ context.Context, params store.ListGuildInvitesParams) ([]*model.GuildInvite, error) {
+	var invites []*model.GuildInvite
+	for _, invite := range s.invites {
+		if invite.GuildID != params.GuildID {
+			continue
+		}
+		if params.BeforeID == 0 || invite.ID < params.BeforeID {
+			value := *invite
+			invites = append(invites, &value)
+		}
+	}
+	sort.Slice(invites, func(i, j int) bool { return invites[i].ID > invites[j].ID })
+	if len(invites) > params.Limit {
+		invites = invites[:params.Limit]
+	}
+	return invites, nil
+}
+
+func (s *fakeStore) ConsumeGuildInvite(_ context.Context, code string, now int64) (*model.GuildInvite, error) {
+	invite := s.invites[code]
+	if invite == nil {
+		return nil, sql.ErrNoRows
+	}
+	if invite.MaxUses != 0 && invite.Uses >= invite.MaxUses {
+		return nil, sql.ErrNoRows
+	}
+	if invite.ExpiresAt != 0 && invite.ExpiresAt <= now {
+		return nil, sql.ErrNoRows
+	}
+	invite.Uses++
+	value := *invite
+	return &value, nil
+}
+
+func (s *fakeStore) DeleteGuildInvite(_ context.Context, code string) error {
+	if s.invites[code] == nil {
+		return sql.ErrNoRows
+	}
+	delete(s.invites, code)
+	return nil
+}
+
+func (s *fakeStore) DeleteGuildInvites(_ context.Context, guildID int64) error {
+	for code, invite := range s.invites {
+		if invite.GuildID == guildID {
+			delete(s.invites, code)
+		}
+	}
 	return nil
 }
 

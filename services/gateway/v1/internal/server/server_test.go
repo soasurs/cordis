@@ -95,38 +95,209 @@ func TestToGatewayFrameRejectsNumericChannelIDs(t *testing.T) {
 	require.Error(t, err)
 }
 
-type fakeSessionServer struct {
-	sessionv1.UnimplementedSessionServiceServer
+func TestToGatewayFramePresenceUpdate(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opPresence,
+		D:  json.RawMessage(`{"status":"online","client_state":"mobile"}`),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "conn-1", frame.GetConnectionId())
+	require.Equal(t, "gw-1", frame.GetGatewayId())
+	require.Equal(t, "gen-1", frame.GetGatewayGeneration())
+	require.Equal(t, "online", frame.GetPresence().GetStatus())
+	require.Equal(t, "mobile", frame.GetPresence().GetClientState())
 }
 
-func (fakeSessionServer) Connect(stream sessionv1.SessionService_ConnectServer) error {
+func TestToGatewayFrameResume(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opResume,
+		D:  json.RawMessage(`{"token":"access-token","session_id":"sess-1","seq":42}`),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "access-token", frame.GetResume().GetToken())
+	require.Equal(t, "sess-1", frame.GetResume().GetSessionId())
+	require.Equal(t, uint64(42), frame.GetResume().GetSequence())
+}
+
+func TestToGatewayFrameResumeInvalidJSON(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opResume,
+		D:  json.RawMessage(`invalid`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameIdentifyInvalidJSON(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opIdentify,
+		D:  json.RawMessage(`invalid`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameSubscribeEmptyChannelIDs(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opSubscribe,
+		D:  json.RawMessage(`{"channel_ids":[]}`),
+	})
+	require.NoError(t, err)
+}
+
+func TestToGatewayFrameSubscribeInvalidID(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opSubscribe,
+		D:  json.RawMessage(`{"channel_ids":["abc"]}`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameSubscribeZeroID(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opSubscribe,
+		D:  json.RawMessage(`{"channel_ids":["0"]}`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameSubscribeNegativeID(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opSubscribe,
+		D:  json.RawMessage(`{"channel_ids":["-1"]}`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameSubscribeInvalidJSON(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opSubscribe,
+		D:  json.RawMessage(`invalid`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameHeartbeatNullD(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opHeartbeat,
+		D:  json.RawMessage(`null`),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, frame.GetHeartbeat())
+	require.Equal(t, uint64(0), frame.GetHeartbeat().GetSequence())
+}
+
+func TestToGatewayFrameHeartbeatEmptyD(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opHeartbeat,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, frame.GetHeartbeat())
+	require.Equal(t, uint64(0), frame.GetHeartbeat().GetSequence())
+}
+
+func TestToGatewayFrameHeartbeatWithSequence(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opHeartbeat,
+		D:  json.RawMessage(`42`),
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(42), frame.GetHeartbeat().GetSequence())
+}
+
+func TestToGatewayFrameHeartbeatInvalidD(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opHeartbeat,
+		D:  json.RawMessage(`{"x":1}`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameUnknownOpcode(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: 99,
+		D:  json.RawMessage(`{}`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFramePresenceInvalidJSON(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opPresence,
+		D:  json.RawMessage(`invalid`),
+	})
+	require.Error(t, err)
+}
+
+type fakeSessionServer struct {
+	sessionv1.UnimplementedSessionServiceServer
+	name string
+}
+
+func (s fakeSessionServer) Connect(stream sessionv1.SessionService_ConnectServer) error {
 	first, err := stream.Recv()
 	if err != nil {
 		return err
 	}
-	if first.GetIdentify() == nil {
-		return fmt.Errorf("identify is required")
-	}
-	ready := new(sessionv1.ConnectResponse)
-	ready.SetOpcode(opDispatch)
-	ready.SetSequence(1)
-	ready.SetType(eventReady)
-	ready.SetJsonPayload(`{"session_id":"sess-test"}`)
-	if err := stream.Send(ready); err != nil {
-		return err
+	switch {
+	case first.GetIdentify() != nil:
+		ready := new(sessionv1.ConnectResponse)
+		ready.SetOpcode(opDispatch)
+		ready.SetSequence(1)
+		ready.SetType(eventReady)
+		ready.SetJsonPayload(`{"session_id":"sess-test-` + s.name + `"}`)
+		if err := stream.Send(ready); err != nil {
+			return err
+		}
+	case first.GetResume() != nil:
+		resumed := new(sessionv1.ConnectResponse)
+		resumed.SetOpcode(opDispatch)
+		resumed.SetSequence(100)
+		resumed.SetType(eventResumed)
+		resumed.SetJsonPayload(`{"session_id":"` + first.GetResume().GetSessionId() + `"}`)
+		if err := stream.Send(resumed); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("identify or resume is required")
 	}
 	for {
 		frame, err := stream.Recv()
 		if err != nil {
 			return err
 		}
-		if frame.GetHeartbeat() != nil {
+		switch {
+		case frame.GetHeartbeat() != nil:
 			ack := new(sessionv1.ConnectResponse)
 			ack.SetOpcode(opHeartbeatAck)
 			ack.SetJsonPayload(`null`)
 			if err := stream.Send(ack); err != nil {
 				return err
 			}
+		case frame.GetSubscribe() != nil:
+			subscribed := new(sessionv1.ConnectResponse)
+			subscribed.SetOpcode(opDispatch)
+			subscribed.SetType(eventSubscribed)
+			subscribed.SetJsonPayload(`{"channel_ids":["42"]}`)
+			if err := stream.Send(subscribed); err != nil {
+				return err
+			}
+		case frame.GetPresence() != nil:
+		case frame.GetDetach() != nil:
+			return nil
 		}
 	}
 }
@@ -144,15 +315,252 @@ func startFakeSessionServer(t *testing.T) string {
 	return listener.Addr().String()
 }
 
+func TestWebSocketResumeLifecycle(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+
+	hello := readEnvelope(t, reader)
+	require.Equal(t, opHello, hello.Op)
+
+	writeClientText(t, conn, `{"op":6,"d":{"token":"access-token","session_id":"sess-1","seq":42}}`)
+	resumed := readEnvelope(t, reader)
+	require.Equal(t, opDispatch, resumed.Op)
+	require.Equal(t, eventResumed, resumed.T)
+	require.Equal(t, uint64(100), resumed.S)
+}
+
+func TestWebSocketSubscribeLifecycle(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
+	_ = readEnvelope(t, reader)
+
+	writeClientText(t, conn, `{"op":4,"d":{"channel_ids":["42"]}}`)
+	subscribed := readEnvelope(t, reader)
+	require.Equal(t, opDispatch, subscribed.Op)
+	require.Equal(t, eventSubscribed, subscribed.T)
+}
+
+func TestWebSocketPresenceUpdate(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
+	_ = readEnvelope(t, reader)
+
+	writeClientText(t, conn, `{"op":3,"d":{"status":"online","client_state":"desktop"}}`)
+	writeClientText(t, conn, `{"op":1,"d":1}`)
+	ack := readEnvelope(t, reader)
+	require.Equal(t, opHeartbeatAck, ack.Op)
+}
+
+func TestWebSocketDetachOnClose(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
+	_ = readEnvelope(t, reader)
+
+	_ = conn.Close()
+
+	// After the client connection closes, the gateway run loop exits and
+	// calls close(). Read should eventually return io.EOF or an error
+	// since the pipe is closed.
+	_, err := reader.ReadByte()
+	require.Error(t, err)
+}
+
+func TestWebSocketInvalidOpcode(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
+	_ = readEnvelope(t, reader)
+
+	writeClientText(t, conn, `{"op":99,"d":{}}`)
+	errMsg := readEnvelope(t, reader)
+	require.Equal(t, opError, errMsg.Op)
+	require.Equal(t, eventError, errMsg.T)
+}
+
+func TestWebSocketIdentifyFailsWhenResolverReturnsError(t *testing.T) {
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{err: fmt.Errorf("ready session node not found")},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
+	failure := readEnvelope(t, reader)
+	require.Equal(t, opError, failure.Op)
+	require.Equal(t, eventError, failure.T)
+}
+
+func TestWebSocketResumeFailsWhenResolverReturnsError(t *testing.T) {
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{err: fmt.Errorf("session owner not found")},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":6,"d":{"token":"access-token","session_id":"sess-1","seq":42}}`)
+	invalid := readEnvelope(t, reader)
+	require.Equal(t, opInvalid, invalid.Op)
+}
+
+func TestWebSocketResumeEmptySessionID(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	conn, reader := connectWebSocket(t, gateway, "/ws")
+	defer conn.Close()
+
+	_ = readEnvelope(t, reader)
+	writeClientText(t, conn, `{"op":6,"d":{"token":"access-token","session_id":"  ","seq":0}}`)
+	invalid := readEnvelope(t, reader)
+	require.Equal(t, opInvalid, invalid.Op)
+}
+
+func TestWebSocketIdentifyTimeout(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 1,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	_, reader := connectWebSocket(t, gateway, "/ws")
+
+	_ = readEnvelope(t, reader)
+	time.Sleep(1500 * time.Millisecond)
+
+	// The gateway closes the websocket after identify timeout, so any
+	// subsequent read should fail.
+	_, err := reader.ReadByte()
+	require.Error(t, err)
+}
+
 type fakeResolver struct {
 	address string
+	err     error
 }
 
 func (f fakeResolver) ResolveNode(context.Context) (string, error) {
+	if f.err != nil {
+		return "", f.err
+	}
 	return f.address, nil
 }
 
 func (f fakeResolver) ResolveSession(context.Context, string) (string, error) {
+	if f.err != nil {
+		return "", f.err
+	}
 	return f.address, nil
 }
 

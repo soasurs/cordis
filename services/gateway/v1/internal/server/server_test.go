@@ -11,10 +11,13 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
@@ -240,6 +243,55 @@ func TestToGatewayFramePresenceInvalidJSON(t *testing.T) {
 		D:  json.RawMessage(`invalid`),
 	})
 	require.Error(t, err)
+}
+
+func TestRealWebSocketClientLifecycle(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:          "/ws",
+			HeartbeatIntervalMs:    50,
+			IdentifyTimeoutSeconds: 5,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	httpSrv := httptest.NewServer(gateway.Handler())
+	defer httpSrv.Close()
+	wsURL := "ws" + strings.TrimPrefix(httpSrv.URL, "http") + "/ws"
+
+	ctx := t.Context()
+	conn, _, err := websocket.Dial(ctx, wsURL, &websocket.DialOptions{
+		CompressionMode: websocket.CompressionDisabled,
+	})
+	require.NoError(t, err)
+	defer conn.CloseNow()
+
+	var hello envelope
+	require.NoError(t, wsjson.Read(ctx, conn, &hello))
+	require.Equal(t, opHello, hello.Op)
+	require.Equal(t, eventHello, hello.T)
+
+	require.NoError(t, wsjson.Write(ctx, conn, envelope{
+		Op: opIdentify,
+		D:  json.RawMessage(`{"token":"access-token"}`),
+	}))
+	var ready envelope
+	require.NoError(t, wsjson.Read(ctx, conn, &ready))
+	require.Equal(t, opDispatch, ready.Op)
+	require.Equal(t, eventReady, ready.T)
+	require.Equal(t, uint64(1), ready.S)
+
+	require.NoError(t, wsjson.Write(ctx, conn, envelope{
+		Op: opHeartbeat,
+		D:  json.RawMessage(`1`),
+	}))
+	var ack envelope
+	require.NoError(t, wsjson.Read(ctx, conn, &ack))
+	require.Equal(t, opHeartbeatAck, ack.Op)
 }
 
 type fakeSessionServer struct {

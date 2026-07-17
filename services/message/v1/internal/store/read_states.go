@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -27,7 +28,7 @@ func (s *SQLStore) ListChannelReadStates(ctx context.Context, userID int64, chan
 		return nil, nil
 	}
 	var rows []*channelReadStateRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listChannelReadStatesQuery, userID, channelIDs); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listChannelReadStatesQuery, userID, pq.Array(channelIDs)); err != nil {
 		return nil, err
 	}
 	states := make([]*model.ChannelReadState, 0, len(rows))

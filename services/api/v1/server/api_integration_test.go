@@ -21,6 +21,7 @@ import (
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	mailerv1 "github.com/soasurs/cordis/gen/mailer/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/internal/testkit"
@@ -49,7 +50,8 @@ func TestAPIIntegration(t *testing.T) {
 	require.NoError(t, migration.Apply(t.Context(), db, messageMigrations.Files))
 
 	userAddr := startUser(t, postgres.DSN)
-	authAddr := startAuthenticator(t, postgres.DSN, userAddr)
+	mailerAddr := startMailer(t)
+	authAddr := startAuthenticator(t, postgres.DSN, userAddr, mailerAddr)
 	guildAddr := startGuild(t, postgres.DSN, userAddr)
 	messageAddr := startMessage(t, postgres.DSN, guildAddr)
 
@@ -99,6 +101,23 @@ func TestAPIIntegration(t *testing.T) {
 		require.True(t, resp.GetResult().GetOk())
 		require.Positive(t, resp.GetResult().GetUserId())
 		require.NotEmpty(t, resp.GetResult().GetAccessToken())
+	})
+
+	t.Run("password reset request reaches mailer", func(t *testing.T) {
+		// End-to-end wiring check for authenticator -> mailer: the noop
+		// provider drops the mail, so success only proves the gRPC path.
+		resp, err := authClient.RequestPasswordReset(ctx, &apiv1.RequestPasswordResetRequest{
+			Email: new(email),
+		})
+		require.NoError(t, err)
+		require.True(t, resp.GetOk())
+
+		// Unknown addresses are indistinguishable from known ones.
+		resp, err = authClient.RequestPasswordReset(ctx, &apiv1.RequestPasswordResetRequest{
+			Email: new("unknown@integration.example"),
+		})
+		require.NoError(t, err)
+		require.True(t, resp.GetOk())
 	})
 
 	t.Run("login", func(t *testing.T) {
@@ -290,7 +309,7 @@ database:
 	return addr
 }
 
-func startAuthenticator(t *testing.T, dsn, userAddr string) string {
+func startAuthenticator(t *testing.T, dsn, userAddr, mailerAddr string) string {
 	t.Helper()
 	addr := testkit.FreeAddress(t)
 	binary := testkit.BuildService(t, "github.com/soasurs/cordis/services/authenticator/v1")
@@ -328,8 +347,44 @@ services:
   user:
     endpoints:
       - %s
-`, addr, dsn, userAddr))
+  mailer:
+    endpoints:
+      - %s
+`, addr, dsn, userAddr, mailerAddr))
 	return addr
+}
+
+func startMailer(t *testing.T) string {
+	t.Helper()
+	addr := testkit.FreeAddress(t)
+	binary := testkit.BuildService(t, "github.com/soasurs/cordis/services/mailer/v1")
+	testkit.StartService(t, binary, fmt.Sprintf(`
+name: mailer.v1
+listenOn: %s
+timeout: 0
+log:
+  level: error
+  stat: false
+mailer:
+  provider: noop
+`, addr))
+	waitMailerReady(t, addr)
+	return addr
+}
+
+func waitMailerReady(t *testing.T, address string) {
+	t.Helper()
+	client := mailerv1.NewMailerServiceClient(dialGRPC(t, address))
+	testkit.WaitServiceReady(t, 30*time.Second, func(ctx context.Context) error {
+		req := new(mailerv1.SendEmailRequest)
+		req.SetTemplate("probe")
+		_, err := client.SendEmail(ctx, req)
+		// A healthy mailer rejects the incomplete probe request.
+		if status.Code(err) == codes.InvalidArgument {
+			return nil
+		}
+		return err
+	})
 }
 
 func startGuild(t *testing.T, dsn, userAddr string) string {

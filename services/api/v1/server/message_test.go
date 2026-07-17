@@ -225,6 +225,81 @@ func TestListMessagesMapsCursorAndResponse(t *testing.T) {
 	require.Equal(t, int64(4002), resp.GetAfterCursor())
 }
 
+func TestListMessagesBeforeCursor(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	svcResp := new(messagev1.ListMessagesResponse)
+	svcResp.SetMessages([]*messagev1.Message{internalMessage()})
+	svcResp.SetBeforeCursor(3999)
+	messageClient := &fakeMessageClient{listResponse: svcResp}
+	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.ListMessages(context.Background(), &apiv1.ListMessagesRequest{
+		ChannelId: new(int64(2001)),
+		Cursor:    &apiv1.ListMessagesRequest_Before{Before: 4001},
+		Limit:     new(int32(10)),
+	})
+	require.NoError(t, err)
+	require.True(t, messageClient.listRequest.HasBefore())
+	require.Equal(t, int64(4001), messageClient.listRequest.GetBefore())
+	require.Len(t, resp.GetMessages(), 1)
+}
+
+func TestListMessagesAfterCursor(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	svcResp := new(messagev1.ListMessagesResponse)
+	svcResp.SetMessages([]*messagev1.Message{internalMessage()})
+	svcResp.SetAfterCursor(4002)
+	messageClient := &fakeMessageClient{listResponse: svcResp}
+	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.ListMessages(context.Background(), &apiv1.ListMessagesRequest{
+		ChannelId: new(int64(2001)),
+		Cursor:    &apiv1.ListMessagesRequest_After{After: 4001},
+	})
+	require.NoError(t, err)
+	require.True(t, messageClient.listRequest.HasAfter())
+	require.Equal(t, int64(4001), messageClient.listRequest.GetAfter())
+	require.Equal(t, int64(4002), resp.GetAfterCursor())
+}
+
+func TestMessageErrorMappings(t *testing.T) {
+	tests := map[string]struct {
+		err         error
+		connectCode connect.Code
+		publicCode  string
+	}{
+		"not found": {
+			err:         rpcerror.New(codes.NotFound, rpcerror.MessageDomain, rpcerror.MessageNotFound, "message not found"),
+			connectCode: connect.CodeNotFound,
+			publicCode:  apierror.CodeNotFound,
+		},
+		"invalid request": {
+			err:         rpcerror.New(codes.InvalidArgument, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest, "invalid"),
+			connectCode: connect.CodeInvalidArgument,
+			publicCode:  apierror.CodeInvalidArgument,
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			authenticatorClient := &fakeAuthenticatorClient{
+				verifyResponse: verifyAccessTokenResponse(1001),
+			}
+			messageClient := &fakeMessageClient{getError: tt.err}
+			client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+			defer closeServer()
+			_, err := client.GetMessage(context.Background(), &apiv1.GetMessageRequest{MessageId: new(int64(4001))})
+			require.Equal(t, tt.connectCode, connect.CodeOf(err))
+			require.Equal(t, tt.publicCode, publicErrorInfo(t, err).GetCode())
+		})
+	}
+}
+
 func newMessageHTTPClient(
 	t *testing.T,
 	authenticatorClient *fakeAuthenticatorClient,

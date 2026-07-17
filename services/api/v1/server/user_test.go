@@ -9,12 +9,15 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 )
 
@@ -202,6 +205,39 @@ func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, int64(1001), authenticatorClient.revokeOtherSessionsRequest.GetUserId())
 	require.Equal(t, int64(2001), authenticatorClient.revokeOtherSessionsRequest.GetCurrentSessionId())
 	require.True(t, resp.GetOk())
+}
+
+func TestUserErrorMappings(t *testing.T) {
+	tests := map[string]struct {
+		err         error
+		connectCode connect.Code
+		publicCode  string
+	}{
+		"email already exists": {
+			err:         rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists, "email already exists"),
+			connectCode: connect.CodeAlreadyExists,
+			publicCode:  apierror.CodeEmailAlreadyExists,
+		},
+		"invalid argument": {
+			err:         status.Error(codes.InvalidArgument, "bad input"),
+			connectCode: connect.CodeInvalidArgument,
+			publicCode:  apierror.CodeInvalidArgument,
+		},
+		"generic not found": {
+			err:         status.Error(codes.NotFound, "user not found"),
+			connectCode: connect.CodeNotFound,
+			publicCode:  apierror.CodeNotFound,
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			userClient := &fakeUserClient{getUserProfileError: tt.err}
+			server := NewUser(&svc.ServiceContext{UserClient: userClient})
+			_, err := server.GetUserProfile(context.Background(), &apiv1.GetUserProfileRequest{UserId: new(int64(1001))})
+			require.Equal(t, tt.connectCode, connect.CodeOf(err))
+			require.Equal(t, tt.publicCode, publicErrorInfo(t, err).GetCode())
+		})
+	}
 }
 
 func newUserHTTPClient(

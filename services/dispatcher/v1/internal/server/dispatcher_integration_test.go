@@ -42,6 +42,7 @@ func TestDispatcherIntegration(t *testing.T) {
 	t.Run("guild route merges user route nodes", func(t *testing.T) { testGuildRouteMergesUserNodes(t, env) })
 	t.Run("retry preserves uncommitted offset", func(t *testing.T) { testRetryPreservesUncommittedOffset(t, env) })
 	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
+	t.Run("user route", func(t *testing.T) { testUserRoute(t, env) })
 }
 
 func testChannelRoute(t *testing.T, env *dispatcherEnv) {
@@ -152,6 +153,7 @@ type dispatcherHarness struct {
 	runID         string
 	guildTopic    string
 	messageTopic  string
+	userTopic     string
 	consumerGroup string
 	producer      *kgo.Client
 	registry      *sessionregistry.EtcdDirectory
@@ -165,6 +167,7 @@ func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
 		runID:         runID,
 		guildTopic:    "cordis.integration.guild." + runID,
 		messageTopic:  "cordis.integration.message." + runID,
+		userTopic:     "cordis.integration.user." + runID,
 		consumerGroup: "cordis.integration.dispatcher." + runID,
 	}
 
@@ -174,6 +177,7 @@ func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
 	h.producer = producer
 	testkit.CreateKafkaTopic(t, producer, h.guildTopic)
 	testkit.CreateKafkaTopic(t, producer, h.messageTopic)
+	testkit.CreateKafkaTopic(t, producer, h.userTopic)
 
 	registry, err := sessionregistry.New(sessionregistry.Config{
 		Hosts:              env.etcdHosts,
@@ -223,6 +227,7 @@ func (h *dispatcherHarness) startDispatcher(t *testing.T) {
 			Seeds:         []string{h.env.kafkaAddress},
 			GuildTopic:    h.guildTopic,
 			MessageTopic:  h.messageTopic,
+			UserTopic:     h.userTopic,
 			ConsumerGroup: h.consumerGroup,
 		},
 		Dispatcher: config.DispatcherConfig{
@@ -314,14 +319,17 @@ type recordingSessionServer struct {
 	channelFailing bool
 	channelCount   int
 	guildCount     int
+	userCount      int
 	channelEvents  chan *sessionv1.DispatchChannelEventRequest
 	guildEventsCh  chan *sessionv1.DispatchGuildEventRequest
+	userEventsCh   chan *sessionv1.DispatchUserEventRequest
 }
 
 func newRecordingSessionServer() *recordingSessionServer {
 	return &recordingSessionServer{
 		channelEvents: make(chan *sessionv1.DispatchChannelEventRequest, 16),
 		guildEventsCh: make(chan *sessionv1.DispatchGuildEventRequest, 16),
+		userEventsCh:  make(chan *sessionv1.DispatchUserEventRequest, 16),
 	}
 }
 
@@ -349,6 +357,17 @@ func (s *recordingSessionServer) DispatchGuildEvent(
 	s.mu.Unlock()
 	s.guildEventsCh <- req
 	return new(sessionv1.DispatchGuildEventResponse), nil
+}
+
+func (s *recordingSessionServer) DispatchUserEvent(
+	_ context.Context,
+	req *sessionv1.DispatchUserEventRequest,
+) (*sessionv1.DispatchUserEventResponse, error) {
+	s.mu.Lock()
+	s.userCount++
+	s.mu.Unlock()
+	s.userEventsCh <- req
+	return new(sessionv1.DispatchUserEventResponse), nil
 }
 
 func (s *recordingSessionServer) setChannelFailing(failing bool) {
@@ -389,4 +408,59 @@ func (s *recordingSessionServer) waitGuildEvent(t *testing.T) *sessionv1.Dispatc
 		t.Fatal("session node did not receive the guild event")
 		return nil
 	}
+}
+
+func (s *recordingSessionServer) userCalls() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.userCount
+}
+
+func (s *recordingSessionServer) waitUserEvent(t *testing.T) *sessionv1.DispatchUserEventRequest {
+	t.Helper()
+	select {
+	case request := <-s.userEventsCh:
+		return request
+	case <-time.After(30 * time.Second):
+		t.Fatal("session node did not receive the user event")
+		return nil
+	}
+}
+
+func testUserRoute(t *testing.T, env *dispatcherEnv) {
+	const userID = int64(7401)
+	h := newHarness(t, env)
+	node := newRecordingSessionServer()
+	address := startSessionServer(t, node)
+	h.registerNode(t, "session-a", "generation-1", address)
+	h.addRoute(t, discovery.RouteUser, userID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventRelationshipUpdated+`","d":{"user_id":"7401","target_id":"8001","type":3,"created_at":1,"updated_at":0}}`)
+
+	request := node.waitUserEvent(t)
+	require.Equal(t, userID, request.GetUserId())
+	require.Equal(t, realtime.EventRelationshipUpdated, request.GetEvent().GetType())
+	require.JSONEq(t, `{"user_id":"7401","target_id":"8001","type":3,"created_at":1,"updated_at":0}`, request.GetEvent().GetJsonPayload())
+
+	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventRelationshipRemoved+`","d":{"user_id":"7401","target_id":"8001"}}`)
+
+	request = node.waitUserEvent(t)
+	require.Equal(t, userID, request.GetUserId())
+	require.Equal(t, realtime.EventRelationshipRemoved, request.GetEvent().GetType())
+	require.JSONEq(t, `{"user_id":"7401","target_id":"8001"}`, request.GetEvent().GetJsonPayload())
+
+	h.produce(t, h.userTopic, "poison", `{"t":"relationship.updated","d":{"target_id":"8001"}}`)
+	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventRelationshipUpdated+`","d":{"user_id":"7401","target_id":"8001"}}`)
+
+	request = node.waitUserEvent(t)
+	require.Equal(t, userID, request.GetUserId())
+
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.userTopic) == 4 },
+		15*time.Second, 50*time.Millisecond, "poison record must be dropped and committed")
+	require.Equal(t, 3, node.userCalls(),
+		"poison record without user_id must not reach the session node")
 }

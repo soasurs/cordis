@@ -78,6 +78,18 @@ type fakeAuthenticatorClient struct {
 	regenRecoveryCodesRequest        *authenticatorv1.RegenerateTwoFactorRecoveryCodesRequest
 	regenRecoveryCodesResponse       *authenticatorv1.RegenerateTwoFactorRecoveryCodesResponse
 	regenRecoveryCodesError          error
+
+	changePasswordRequest  *authenticatorv1.ChangePasswordRequest
+	changePasswordResponse *authenticatorv1.ChangePasswordResponse
+	changePasswordError    error
+}
+
+func (f *fakeAuthenticatorClient) ChangePassword(_ context.Context, req *authenticatorv1.ChangePasswordRequest, _ ...grpc.CallOption) (*authenticatorv1.ChangePasswordResponse, error) {
+	f.changePasswordRequest = req
+	if f.changePasswordError != nil {
+		return nil, f.changePasswordError
+	}
+	return f.changePasswordResponse, nil
 }
 
 func (f *fakeAuthenticatorClient) Register(_ context.Context, req *authenticatorv1.RegisterRequest, _ ...grpc.CallOption) (*authenticatorv1.RegisterResponse, error) {

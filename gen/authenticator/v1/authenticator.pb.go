@@ -4510,6 +4510,255 @@ func (b0 ConfirmEmailVerificationResponse_builder) Build() *ConfirmEmailVerifica
 	return m0
 }
 
+type ChangePasswordRequest struct {
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_CurrentSessionId int64                  `protobuf:"varint,2,opt,name=current_session_id,json=currentSessionId"`
+	xxx_hidden_OldPassword      *string                `protobuf:"bytes,3,opt,name=old_password,json=oldPassword"`
+	xxx_hidden_NewPassword      *string                `protobuf:"bytes,4,opt,name=new_password,json=newPassword"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *ChangePasswordRequest) Reset() {
+	*x = ChangePasswordRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangePasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangePasswordRequest) ProtoMessage() {}
+
+func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ChangePasswordRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *ChangePasswordRequest) GetCurrentSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_CurrentSessionId
+	}
+	return 0
+}
+
+func (x *ChangePasswordRequest) GetOldPassword() string {
+	if x != nil {
+		if x.xxx_hidden_OldPassword != nil {
+			return *x.xxx_hidden_OldPassword
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) GetNewPassword() string {
+	if x != nil {
+		if x.xxx_hidden_NewPassword != nil {
+			return *x.xxx_hidden_NewPassword
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ChangePasswordRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *ChangePasswordRequest) SetCurrentSessionId(v int64) {
+	x.xxx_hidden_CurrentSessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *ChangePasswordRequest) SetOldPassword(v string) {
+	x.xxx_hidden_OldPassword = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ChangePasswordRequest) SetNewPassword(v string) {
+	x.xxx_hidden_NewPassword = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *ChangePasswordRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ChangePasswordRequest) HasCurrentSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ChangePasswordRequest) HasOldPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ChangePasswordRequest) HasNewPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *ChangePasswordRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *ChangePasswordRequest) ClearCurrentSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_CurrentSessionId = 0
+}
+
+func (x *ChangePasswordRequest) ClearOldPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_OldPassword = nil
+}
+
+func (x *ChangePasswordRequest) ClearNewPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_NewPassword = nil
+}
+
+type ChangePasswordRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId *int64
+	// Sessions other than this one are revoked on success. Zero skips the
+	// revocation entirely instead of revoking everything.
+	CurrentSessionId *int64
+	OldPassword      *string
+	NewPassword      *string
+}
+
+func (b0 ChangePasswordRequest_builder) Build() *ChangePasswordRequest {
+	m0 := &ChangePasswordRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.CurrentSessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_CurrentSessionId = *b.CurrentSessionId
+	}
+	if b.OldPassword != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_OldPassword = b.OldPassword
+	}
+	if b.NewPassword != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_NewPassword = b.NewPassword
+	}
+	return m0
+}
+
+type ChangePasswordResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ChangePasswordResponse) Reset() {
+	*x = ChangePasswordResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChangePasswordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChangePasswordResponse) ProtoMessage() {}
+
+func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ChangePasswordResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *ChangePasswordResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ChangePasswordResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ChangePasswordResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type ChangePasswordResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// False when the old password does not match; no other state changes.
+	Ok *bool
+}
+
+func (b0 ChangePasswordResponse_builder) Build() *ChangePasswordResponse {
+	m0 := &ChangePasswordResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 var File_authenticator_v1_authenticator_proto protoreflect.FileDescriptor
 
 const file_authenticator_v1_authenticator_proto_rawDesc = "" +
@@ -4657,14 +4906,22 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\x1fConfirmEmailVerificationRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"2\n" +
 	" ConfirmEmailVerificationResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok2\xf8\x0f\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\xa4\x01\n" +
+	"\x15ChangePasswordRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12,\n" +
+	"\x12current_session_id\x18\x02 \x01(\x03R\x10currentSessionId\x12!\n" +
+	"\fold_password\x18\x03 \x01(\tR\voldPassword\x12!\n" +
+	"\fnew_password\x18\x04 \x01(\tR\vnewPassword\"(\n" +
+	"\x16ChangePasswordResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok2\xdd\x10\n" +
 	"\x14AuthenticatorService\x12Q\n" +
 	"\bRegister\x12!.authenticator.v1.RegisterRequest\x1a\".authenticator.v1.RegisterResponse\x12H\n" +
 	"\x05Login\x12\x1e.authenticator.v1.LoginRequest\x1a\x1f.authenticator.v1.LoginResponse\x12{\n" +
 	"\x16CompleteTwoFactorLogin\x12/.authenticator.v1.CompleteTwoFactorLoginRequest\x1a0.authenticator.v1.CompleteTwoFactorLoginResponse\x12N\n" +
 	"\aRefresh\x12 .authenticator.v1.RefreshRequest\x1a!.authenticator.v1.RefreshResponse\x12K\n" +
 	"\x06Logout\x12\x1f.authenticator.v1.LogoutRequest\x1a .authenticator.v1.LogoutResponse\x12l\n" +
-	"\x11VerifyAccessToken\x12*.authenticator.v1.VerifyAccessTokenRequest\x1a+.authenticator.v1.VerifyAccessTokenResponse\x12u\n" +
+	"\x11VerifyAccessToken\x12*.authenticator.v1.VerifyAccessTokenRequest\x1a+.authenticator.v1.VerifyAccessTokenResponse\x12c\n" +
+	"\x0eChangePassword\x12'.authenticator.v1.ChangePasswordRequest\x1a(.authenticator.v1.ChangePasswordResponse\x12u\n" +
 	"\x14RequestPasswordReset\x12-.authenticator.v1.RequestPasswordResetRequest\x1a..authenticator.v1.RequestPasswordResetResponse\x12u\n" +
 	"\x14ConfirmPasswordReset\x12-.authenticator.v1.ConfirmPasswordResetRequest\x1a..authenticator.v1.ConfirmPasswordResetResponse\x12\x81\x01\n" +
 	"\x18RequestEmailVerification\x121.authenticator.v1.RequestEmailVerificationRequest\x1a2.authenticator.v1.RequestEmailVerificationResponse\x12\x81\x01\n" +
@@ -4679,7 +4936,7 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	" RegenerateTwoFactorRecoveryCodes\x129.authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest\x1a:.authenticator.v1.RegenerateTwoFactorRecoveryCodesResponseB\xcb\x01\n" +
 	"\x14com.authenticator.v1B\x12AuthenticatorProtoP\x01Z>github.com/soasurs/cordis/gen/authenticator/v1;authenticatorv1\xa2\x02\x03AXX\xaa\x02\x10Authenticator.V1\xca\x02\x10Authenticator\\V1\xe2\x02\x1cAuthenticator\\V1\\GPBMetadata\xea\x02\x11Authenticator::V1b\beditionsp\xe8\a"
 
-var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
 var file_authenticator_v1_authenticator_proto_goTypes = []any{
 	(*Session)(nil),                                  // 0: authenticator.v1.Session
 	(*RegisterRequest)(nil),                          // 1: authenticator.v1.RegisterRequest
@@ -4720,6 +4977,8 @@ var file_authenticator_v1_authenticator_proto_goTypes = []any{
 	(*RequestEmailVerificationResponse)(nil),         // 36: authenticator.v1.RequestEmailVerificationResponse
 	(*ConfirmEmailVerificationRequest)(nil),          // 37: authenticator.v1.ConfirmEmailVerificationRequest
 	(*ConfirmEmailVerificationResponse)(nil),         // 38: authenticator.v1.ConfirmEmailVerificationResponse
+	(*ChangePasswordRequest)(nil),                    // 39: authenticator.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),                   // 40: authenticator.v1.ChangePasswordResponse
 }
 var file_authenticator_v1_authenticator_proto_depIdxs = []int32{
 	8,  // 0: authenticator.v1.RegisterResponse.result:type_name -> authenticator.v1.AuthenticationResult
@@ -4734,38 +4993,40 @@ var file_authenticator_v1_authenticator_proto_depIdxs = []int32{
 	9,  // 9: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
 	11, // 10: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
 	13, // 11: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
-	31, // 12: authenticator.v1.AuthenticatorService.RequestPasswordReset:input_type -> authenticator.v1.RequestPasswordResetRequest
-	33, // 13: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:input_type -> authenticator.v1.ConfirmPasswordResetRequest
-	35, // 14: authenticator.v1.AuthenticatorService.RequestEmailVerification:input_type -> authenticator.v1.RequestEmailVerificationRequest
-	37, // 15: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:input_type -> authenticator.v1.ConfirmEmailVerificationRequest
-	15, // 16: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
-	17, // 17: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
-	19, // 18: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
-	21, // 19: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> authenticator.v1.GetTwoFactorStatusRequest
-	23, // 20: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> authenticator.v1.BeginTwoFactorEnrollmentRequest
-	25, // 21: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> authenticator.v1.ConfirmTwoFactorEnrollmentRequest
-	27, // 22: authenticator.v1.AuthenticatorService.DisableTwoFactor:input_type -> authenticator.v1.DisableTwoFactorRequest
-	29, // 23: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
-	2,  // 24: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
-	4,  // 25: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
-	7,  // 26: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> authenticator.v1.CompleteTwoFactorLoginResponse
-	10, // 27: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
-	12, // 28: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
-	14, // 29: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
-	32, // 30: authenticator.v1.AuthenticatorService.RequestPasswordReset:output_type -> authenticator.v1.RequestPasswordResetResponse
-	34, // 31: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:output_type -> authenticator.v1.ConfirmPasswordResetResponse
-	36, // 32: authenticator.v1.AuthenticatorService.RequestEmailVerification:output_type -> authenticator.v1.RequestEmailVerificationResponse
-	38, // 33: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:output_type -> authenticator.v1.ConfirmEmailVerificationResponse
-	16, // 34: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
-	18, // 35: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
-	20, // 36: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
-	22, // 37: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> authenticator.v1.GetTwoFactorStatusResponse
-	24, // 38: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> authenticator.v1.BeginTwoFactorEnrollmentResponse
-	26, // 39: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> authenticator.v1.ConfirmTwoFactorEnrollmentResponse
-	28, // 40: authenticator.v1.AuthenticatorService.DisableTwoFactor:output_type -> authenticator.v1.DisableTwoFactorResponse
-	30, // 41: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
-	24, // [24:42] is the sub-list for method output_type
-	6,  // [6:24] is the sub-list for method input_type
+	39, // 12: authenticator.v1.AuthenticatorService.ChangePassword:input_type -> authenticator.v1.ChangePasswordRequest
+	31, // 13: authenticator.v1.AuthenticatorService.RequestPasswordReset:input_type -> authenticator.v1.RequestPasswordResetRequest
+	33, // 14: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:input_type -> authenticator.v1.ConfirmPasswordResetRequest
+	35, // 15: authenticator.v1.AuthenticatorService.RequestEmailVerification:input_type -> authenticator.v1.RequestEmailVerificationRequest
+	37, // 16: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:input_type -> authenticator.v1.ConfirmEmailVerificationRequest
+	15, // 17: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
+	17, // 18: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
+	19, // 19: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
+	21, // 20: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> authenticator.v1.GetTwoFactorStatusRequest
+	23, // 21: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> authenticator.v1.BeginTwoFactorEnrollmentRequest
+	25, // 22: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> authenticator.v1.ConfirmTwoFactorEnrollmentRequest
+	27, // 23: authenticator.v1.AuthenticatorService.DisableTwoFactor:input_type -> authenticator.v1.DisableTwoFactorRequest
+	29, // 24: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
+	2,  // 25: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
+	4,  // 26: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
+	7,  // 27: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> authenticator.v1.CompleteTwoFactorLoginResponse
+	10, // 28: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
+	12, // 29: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
+	14, // 30: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
+	40, // 31: authenticator.v1.AuthenticatorService.ChangePassword:output_type -> authenticator.v1.ChangePasswordResponse
+	32, // 32: authenticator.v1.AuthenticatorService.RequestPasswordReset:output_type -> authenticator.v1.RequestPasswordResetResponse
+	34, // 33: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:output_type -> authenticator.v1.ConfirmPasswordResetResponse
+	36, // 34: authenticator.v1.AuthenticatorService.RequestEmailVerification:output_type -> authenticator.v1.RequestEmailVerificationResponse
+	38, // 35: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:output_type -> authenticator.v1.ConfirmEmailVerificationResponse
+	16, // 36: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
+	18, // 37: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
+	20, // 38: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
+	22, // 39: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> authenticator.v1.GetTwoFactorStatusResponse
+	24, // 40: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> authenticator.v1.BeginTwoFactorEnrollmentResponse
+	26, // 41: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> authenticator.v1.ConfirmTwoFactorEnrollmentResponse
+	28, // 42: authenticator.v1.AuthenticatorService.DisableTwoFactor:output_type -> authenticator.v1.DisableTwoFactorResponse
+	30, // 43: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
+	25, // [25:44] is the sub-list for method output_type
+	6,  // [6:25] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
@@ -4790,7 +5051,7 @@ func file_authenticator_v1_authenticator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_authenticator_v1_authenticator_proto_rawDesc), len(file_authenticator_v1_authenticator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   39,
+			NumMessages:   41,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
-	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
@@ -26,19 +25,11 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 	if err := isValidEmail(email); err != nil {
 		return nil, err
 	}
-	if req.GetPassword() == "" {
-		return nil, status.Error(codes.InvalidArgument, "password is required")
-	}
-
 	userID := s.svcCtx.Snowflake.Generate().Int64()
-	hashedPassword, err := password.Hash(req.GetPassword())
-	if err != nil {
-		return nil, err
-	}
 
 	var user *model.User
-	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		createdUser, err := txStore.CreateUser(ctx, userID, email, hashedPassword)
+	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		createdUser, err := txStore.CreateUser(ctx, userID, email)
 		if err != nil {
 			return err
 		}

@@ -38,6 +38,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("password reset tokens", func(t *testing.T) { testPasswordResetTokens(t, store) })
 	t.Run("email verification tokens", func(t *testing.T) { testEmailVerificationTokens(t, store) })
+	t.Run("user credentials", func(t *testing.T) { testUserCredentials(t, store) })
 }
 
 func testSessionLifecycle(t *testing.T, store Store) {
@@ -365,4 +366,47 @@ func testEmailVerificationTokens(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Equal(t, now+2, loaded.ConsumedAt)
 	require.ErrorIs(t, store.ConsumeEmailVerificationToken(ctx, "verify-hash-b", now+3), sql.ErrNoRows)
+}
+
+func testUserCredentials(t *testing.T, store Store) {
+	const userID = int64(9201)
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+
+	require.NoError(t, store.CreateUserCredential(ctx, &model.UserCredential{
+		UserID: userID, HashedPassword: "hash-a", CreatedAt: now,
+	}))
+
+	// Insert-if-absent: a second create loses the race and reports it.
+	err := store.CreateUserCredential(ctx, &model.UserCredential{
+		UserID: userID, HashedPassword: "hash-b", CreatedAt: now + 1,
+	})
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	loaded, err := store.GetUserCredential(ctx, userID, false)
+	require.NoError(t, err)
+	require.Equal(t, "hash-a", loaded.HashedPassword)
+	require.Zero(t, loaded.UpdatedAt)
+
+	require.NoError(t, store.UpdateUserCredential(ctx, userID, "hash-c", now+2))
+	loaded, err = store.GetUserCredential(ctx, userID, true)
+	require.NoError(t, err)
+	require.Equal(t, "hash-c", loaded.HashedPassword)
+	require.Equal(t, now+2, loaded.UpdatedAt)
+	require.ErrorIs(t, store.UpdateUserCredential(ctx, userID+1, "hash-x", now+3), sql.ErrNoRows)
+
+	// Upsert covers both the replace and the create-on-recovery paths.
+	require.NoError(t, store.UpsertUserCredential(ctx, userID, "hash-d", now+4))
+	loaded, err = store.GetUserCredential(ctx, userID, false)
+	require.NoError(t, err)
+	require.Equal(t, "hash-d", loaded.HashedPassword)
+
+	require.NoError(t, store.UpsertUserCredential(ctx, userID+1, "hash-e", now+5))
+	loaded, err = store.GetUserCredential(ctx, userID+1, false)
+	require.NoError(t, err)
+	require.Equal(t, "hash-e", loaded.HashedPassword)
+	require.Zero(t, loaded.UpdatedAt)
+
+	_, err = store.GetUserCredential(ctx, userID+99, false)
+	require.ErrorIs(t, err, sql.ErrNoRows)
 }

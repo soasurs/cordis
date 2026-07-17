@@ -3,14 +3,14 @@ package store
 const (
 	CreateUserStatement = `
 	INSERT INTO 
-		users (user_id, email, hashed_password, created_at, updated_at, deleted_at)
+		users (user_id, email, created_at, updated_at, deleted_at)
 	VALUES 
-		(:user_id, :email, :hashed_password, :created_at, :updated_at, :deleted_at);
+		(:user_id, :email, :created_at, :updated_at, :deleted_at);
 	`
 
 	GetUserQuery = `
 	SELECT 
-		user_id, email, hashed_password, created_at, updated_at, deleted_at, email_verified_at
+		user_id, email, created_at, updated_at, deleted_at, email_verified_at
 	FROM 
 		users
 	WHERE
@@ -23,7 +23,7 @@ const (
 
 	GetUserWithEmailQuery = `
 	SELECT
-		user_id, email, hashed_password, created_at, updated_at, deleted_at, email_verified_at
+		user_id, email, created_at, updated_at, deleted_at, email_verified_at
 	FROM 
 		users
 	WHERE
@@ -48,18 +48,6 @@ const (
 		)
 	`
 
-	UpdateUserPasswordStatement = `
-	UPDATE
-		users
-	SET
-		hashed_password = $1,
-		updated_at = $2
-	WHERE
-		user_id = $3
-	AND
-		deleted_at = $4
-	`
-
 	UpdateUserEmailQuery = `
 	UPDATE
 		users
@@ -72,7 +60,7 @@ const (
 	AND
 		deleted_at = $4
 	RETURNING
-		user_id, email, hashed_password, created_at, updated_at, deleted_at, email_verified_at
+		user_id, email, created_at, updated_at, deleted_at, email_verified_at
 	`
 
 	MarkUserEmailVerifiedStatement = `

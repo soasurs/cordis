@@ -18,6 +18,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
@@ -37,7 +38,7 @@ func TestRegister(t *testing.T) {
 	server := newTestAuthenticatorServer(t, store, tokens, userClient)
 
 	req := new(authenticatorv1.RegisterRequest)
-	req.SetName("display name")
+	req.SetName("  display name  ")
 	req.SetEmail("user@example.com")
 	req.SetPassword("password")
 	req.SetUserAgent("test-agent")
@@ -47,7 +48,10 @@ func TestRegister(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "display name", userClient.createUserRequest.GetName())
 	require.Equal(t, "user@example.com", userClient.createUserRequest.GetEmail())
-	require.Equal(t, "password", userClient.createUserRequest.GetPassword())
+	require.NotNil(t, store.credentials[1001])
+	match, err := password.Verify(store.credentials[1001].HashedPassword, "password")
+	require.NoError(t, err)
+	require.True(t, match)
 	result := resp.GetResult()
 	require.True(t, result.GetOk())
 	require.Equal(t, int64(1001), result.GetUserId())
@@ -76,8 +80,9 @@ func TestRegisterUserError(t *testing.T) {
 func TestLogin(t *testing.T) {
 	store := newFakeSessionStore()
 	tokens := newTestTokenManager(t)
+	seedCredential(t, store, 1001, "password")
 	server := newTestAuthenticatorServer(t, store, tokens, &fakeUserClient{
-		verifyPasswordResponse: verifyPasswordResponse(true, 1001),
+		getUserResponse: userResponse(1001, "user@example.com"),
 	})
 
 	req := new(authenticatorv1.LoginRequest)
@@ -100,8 +105,10 @@ func TestLogin(t *testing.T) {
 }
 
 func TestLoginInvalidCredentials(t *testing.T) {
-	server := newTestAuthenticatorServer(t, newFakeSessionStore(), newTestTokenManager(t), &fakeUserClient{
-		verifyPasswordResponse: verifyPasswordResponse(false, 0),
+	store := newFakeSessionStore()
+	seedCredential(t, store, 1001, "password")
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
+		getUserResponse: userResponse(1001, "user@example.com"),
 	})
 
 	req := new(authenticatorv1.LoginRequest)
@@ -115,8 +122,9 @@ func TestLoginInvalidCredentials(t *testing.T) {
 
 func TestLoginRequiresAndCompletesTwoFactor(t *testing.T) {
 	store := newFakeSessionStore()
+	seedCredential(t, store, 1001, "password")
 	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
-		verifyPasswordResponse: verifyPasswordResponse(true, 1001),
+		getUserResponse: userResponse(1001, "user@example.com"),
 	})
 	secret := []byte("12345678901234567890")
 	ciphertext, err := server.(*authenticatorServer).svcCtx.TwoFactor.Encrypt(1001, secret)
@@ -146,9 +154,9 @@ func TestLoginRequiresAndCompletesTwoFactor(t *testing.T) {
 
 func TestTwoFactorEnrollmentCreatesRecoveryCodes(t *testing.T) {
 	store := newFakeSessionStore()
+	seedCredential(t, store, 1001, "password")
 	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
-		getUserResponse:        userResponse(1001, "user@example.com"),
-		verifyPasswordResponse: verifyPasswordResponse(true, 1001),
+		getUserResponse: userResponse(1001, "user@example.com"),
 	})
 	store.sessions[2001] = &model.Session{SessionID: 2001, UserID: 1001}
 
@@ -185,9 +193,9 @@ func TestTwoFactorEnrollmentCreatesRecoveryCodes(t *testing.T) {
 
 func TestBeginTwoFactorEnrollmentRejectsPendingEnrollment(t *testing.T) {
 	store := newFakeSessionStore()
+	seedCredential(t, store, 1001, "password")
 	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
-		getUserResponse:        userResponse(1001, "user@example.com"),
-		verifyPasswordResponse: verifyPasswordResponse(true, 1001),
+		getUserResponse: userResponse(1001, "user@example.com"),
 	})
 	req := new(authenticatorv1.BeginTwoFactorEnrollmentRequest)
 	req.SetUserId(1001)
@@ -498,13 +506,6 @@ func newTestTokenManager(t *testing.T) *token.Manager {
 	return manager
 }
 
-func verifyPasswordResponse(ok bool, userID int64) *userv1.VerifyPasswordResponse {
-	resp := new(userv1.VerifyPasswordResponse)
-	resp.SetOk(ok)
-	resp.SetUserId(userID)
-	return resp
-}
-
 func createUserResponse(userID int64, email string) *userv1.CreateUserResponse {
 	user := new(userv1.User)
 	user.SetUserId(userID)
@@ -537,28 +538,14 @@ func testTOTPCode(secret []byte, now time.Time) string {
 
 type fakeUserClient struct {
 	userv1.UserServiceClient
-	createUserRequest      *userv1.CreateUserRequest
-	createUserResponse     *userv1.CreateUserResponse
-	createUserErr          error
-	verifyPasswordResponse *userv1.VerifyPasswordResponse
-	verifyPasswordErr      error
-	getUserResponse        *userv1.GetUserResponse
-	getUserErr             error
+	createUserRequest  *userv1.CreateUserRequest
+	createUserResponse *userv1.CreateUserResponse
+	createUserErr      error
+	getUserResponse    *userv1.GetUserResponse
+	getUserErr         error
 
-	resetPasswordRequest     *userv1.ResetPasswordRequest
-	resetPasswordErr         error
 	markEmailVerifiedRequest *userv1.MarkEmailVerifiedRequest
 	markEmailVerifiedErr     error
-}
-
-func (c *fakeUserClient) ResetPassword(_ context.Context, req *userv1.ResetPasswordRequest, _ ...grpc.CallOption) (*userv1.ResetPasswordResponse, error) {
-	c.resetPasswordRequest = req
-	if c.resetPasswordErr != nil {
-		return nil, c.resetPasswordErr
-	}
-	resp := new(userv1.ResetPasswordResponse)
-	resp.SetOk(true)
-	return resp, nil
 }
 
 func (c *fakeUserClient) MarkEmailVerified(_ context.Context, req *userv1.MarkEmailVerifiedRequest, _ ...grpc.CallOption) (*userv1.MarkEmailVerifiedResponse, error) {
@@ -586,13 +573,6 @@ func (c *fakeUserClient) CreateUser(_ context.Context, req *userv1.CreateUserReq
 	return c.createUserResponse, nil
 }
 
-func (c *fakeUserClient) VerifyPassword(context.Context, *userv1.VerifyPasswordRequest, ...grpc.CallOption) (*userv1.VerifyPasswordResponse, error) {
-	if c.verifyPasswordErr != nil {
-		return nil, c.verifyPasswordErr
-	}
-	return c.verifyPasswordResponse, nil
-}
-
 type fakeSessionStore struct {
 	sessions           map[int64]*model.Session
 	createdSession     *model.Session
@@ -607,6 +587,7 @@ type fakeSessionStore struct {
 	recoveryCodes      map[int64]map[string]int64
 	passwordResets     map[string]*model.PasswordResetToken
 	emailVerifications map[string]*model.EmailVerificationToken
+	credentials        map[int64]*model.UserCredential
 }
 
 func newFakeSessionStore() *fakeSessionStore {
@@ -618,6 +599,7 @@ func newFakeSessionStore() *fakeSessionStore {
 		recoveryCodes:      make(map[int64]map[string]int64),
 		passwordResets:     make(map[string]*model.PasswordResetToken),
 		emailVerifications: make(map[string]*model.EmailVerificationToken),
+		credentials:        make(map[int64]*model.UserCredential),
 	}
 }
 
@@ -895,4 +877,51 @@ func (s *fakeSessionStore) ConsumeEmailVerificationToken(_ context.Context, toke
 	}
 	token.ConsumedAt = consumedAt
 	return nil
+}
+
+func (s *fakeSessionStore) CreateUserCredential(_ context.Context, credential *model.UserCredential) error {
+	if _, ok := s.credentials[credential.UserID]; ok {
+		return sql.ErrNoRows
+	}
+	value := *credential
+	s.credentials[credential.UserID] = &value
+	return nil
+}
+
+func (s *fakeSessionStore) GetUserCredential(_ context.Context, userID int64, _ bool) (*model.UserCredential, error) {
+	credential, ok := s.credentials[userID]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+	value := *credential
+	return &value, nil
+}
+
+func (s *fakeSessionStore) UpdateUserCredential(_ context.Context, userID int64, hashedPassword string, updatedAt int64) error {
+	credential, ok := s.credentials[userID]
+	if !ok {
+		return sql.ErrNoRows
+	}
+	credential.HashedPassword = hashedPassword
+	credential.UpdatedAt = updatedAt
+	return nil
+}
+
+func (s *fakeSessionStore) UpsertUserCredential(_ context.Context, userID int64, hashedPassword string, now int64) error {
+	if credential, ok := s.credentials[userID]; ok {
+		credential.HashedPassword = hashedPassword
+		credential.UpdatedAt = now
+		return nil
+	}
+	s.credentials[userID] = &model.UserCredential{UserID: userID, HashedPassword: hashedPassword, CreatedAt: now}
+	return nil
+}
+
+// seedCredential stores a hashed credential so password checks run against
+// the authenticator-owned store.
+func seedCredential(t *testing.T, store *fakeSessionStore, userID int64, plainPassword string) {
+	t.Helper()
+	hashed, err := password.Hash(plainPassword)
+	require.NoError(t, err)
+	store.credentials[userID] = &model.UserCredential{UserID: userID, HashedPassword: hashed, CreatedAt: 1}
 }

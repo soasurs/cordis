@@ -25,6 +25,7 @@ const (
 	AuthenticatorService_Refresh_FullMethodName                          = "/authenticator.v1.AuthenticatorService/Refresh"
 	AuthenticatorService_Logout_FullMethodName                           = "/authenticator.v1.AuthenticatorService/Logout"
 	AuthenticatorService_VerifyAccessToken_FullMethodName                = "/authenticator.v1.AuthenticatorService/VerifyAccessToken"
+	AuthenticatorService_ChangePassword_FullMethodName                   = "/authenticator.v1.AuthenticatorService/ChangePassword"
 	AuthenticatorService_RequestPasswordReset_FullMethodName             = "/authenticator.v1.AuthenticatorService/RequestPasswordReset"
 	AuthenticatorService_ConfirmPasswordReset_FullMethodName             = "/authenticator.v1.AuthenticatorService/ConfirmPasswordReset"
 	AuthenticatorService_RequestEmailVerification_FullMethodName         = "/authenticator.v1.AuthenticatorService/RequestEmailVerification"
@@ -49,6 +50,9 @@ type AuthenticatorServiceClient interface {
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	VerifyAccessToken(ctx context.Context, in *VerifyAccessTokenRequest, opts ...grpc.CallOption) (*VerifyAccessTokenResponse, error)
+	// ChangePassword verifies the old password, replaces the credential, and
+	// revokes every session except the current one.
+	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
 	// RequestPasswordReset always reports success to avoid account enumeration.
 	RequestPasswordReset(ctx context.Context, in *RequestPasswordResetRequest, opts ...grpc.CallOption) (*RequestPasswordResetResponse, error)
 	// ConfirmPasswordReset consumes a reset token, replaces the password, and
@@ -131,6 +135,16 @@ func (c *authenticatorServiceClient) VerifyAccessToken(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyAccessTokenResponse)
 	err := c.cc.Invoke(ctx, AuthenticatorService_VerifyAccessToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChangePasswordResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_ChangePassword_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -267,6 +281,9 @@ type AuthenticatorServiceServer interface {
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error)
+	// ChangePassword verifies the old password, replaces the credential, and
+	// revokes every session except the current one.
+	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
 	// RequestPasswordReset always reports success to avoid account enumeration.
 	RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*RequestPasswordResetResponse, error)
 	// ConfirmPasswordReset consumes a reset token, replaces the password, and
@@ -311,6 +328,9 @@ func (UnimplementedAuthenticatorServiceServer) Logout(context.Context, *LogoutRe
 }
 func (UnimplementedAuthenticatorServiceServer) VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyAccessToken not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
 }
 func (UnimplementedAuthenticatorServiceServer) RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*RequestPasswordResetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestPasswordReset not implemented")
@@ -472,6 +492,24 @@ func _AuthenticatorService_VerifyAccessToken_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthenticatorServiceServer).VerifyAccessToken(ctx, req.(*VerifyAccessTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_ChangePassword_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangePasswordRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).ChangePassword(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_ChangePassword_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).ChangePassword(ctx, req.(*ChangePasswordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -722,6 +760,10 @@ var AuthenticatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyAccessToken",
 			Handler:    _AuthenticatorService_VerifyAccessToken_Handler,
+		},
+		{
+			MethodName: "ChangePassword",
+			Handler:    _AuthenticatorService_ChangePassword_Handler,
 		},
 		{
 			MethodName: "RequestPasswordReset",

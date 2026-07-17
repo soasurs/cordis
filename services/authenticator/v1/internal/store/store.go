@@ -39,6 +39,10 @@ type Store interface {
 	UpsertEmailVerificationToken(ctx context.Context, token *model.EmailVerificationToken) error
 	GetEmailVerificationToken(ctx context.Context, tokenHash string, forUpdate bool) (*model.EmailVerificationToken, error)
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash string, consumedAt int64) error
+	CreateUserCredential(ctx context.Context, credential *model.UserCredential) error
+	GetUserCredential(ctx context.Context, userID int64, forUpdate bool) (*model.UserCredential, error)
+	UpdateUserCredential(ctx context.Context, userID int64, hashedPassword string, updatedAt int64) error
+	UpsertUserCredential(ctx context.Context, userID int64, hashedPassword string, now int64) error
 }
 
 type SQLStore struct {

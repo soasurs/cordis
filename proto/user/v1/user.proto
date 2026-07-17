@@ -6,11 +6,6 @@ service UserService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
-  rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse);
-  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
-  // ResetPassword replaces the password without the old password. It backs
-  // the token-based recovery flow and is never exposed publicly.
-  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
   // MarkEmailVerified records verification only while the supplied email is
@@ -39,10 +34,13 @@ message UserProfile {
   int64 deleted_at = 6;
 }
 
+// User identity is owned by this service; authentication credentials are
+// owned by the authenticator service.
 message CreateUserRequest {
   string name = 1;
   string email = 2;
-  string password = 3;
+  reserved 3;
+  reserved password;
 }
 
 message CreateUserResponse {
@@ -66,36 +64,6 @@ message GetUserProfileRequest {
 
 message GetUserProfileResponse {
   UserProfile profile = 1;
-}
-
-message VerifyPasswordRequest {
-  string email = 1;
-  string password = 2;
-}
-
-message VerifyPasswordResponse {
-  bool ok = 1;
-  bool require_challenge = 2;
-  int64 user_id = 3;
-}
-
-message ChangePasswordRequest {
-  int64 user_id = 1;
-  string old_password = 2;
-  string new_password = 3;
-}
-
-message ChangePasswordResponse {
-  bool ok = 1;
-}
-
-message ResetPasswordRequest {
-  int64 user_id = 1;
-  string new_password = 2;
-}
-
-message ResetPasswordResponse {
-  bool ok = 1;
 }
 
 message CheckEmailAvailabilityRequest {

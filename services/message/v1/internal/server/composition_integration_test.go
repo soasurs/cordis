@@ -218,7 +218,6 @@ func createUser(t *testing.T, client userv1.UserServiceClient, email string) int
 	req := new(userv1.CreateUserRequest)
 	req.SetName("Tester")
 	req.SetEmail(email)
-	req.SetPassword("integration-password-1")
 	resp, err := client.CreateUser(t.Context(), req)
 	require.NoError(t, err)
 	userID := resp.GetUser().GetUserId()

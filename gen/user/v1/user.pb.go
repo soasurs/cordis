@@ -480,11 +480,12 @@ func (b0 UserProfile_builder) Build() *UserProfile {
 	return m0
 }
 
+// User identity is owned by this service; authentication credentials are
+// owned by the authenticator service.
 type CreateUserRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,2,opt,name=email"`
-	xxx_hidden_Password    *string                `protobuf:"bytes,3,opt,name=password"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -536,29 +537,14 @@ func (x *CreateUserRequest) GetEmail() string {
 	return ""
 }
 
-func (x *CreateUserRequest) GetPassword() string {
-	if x != nil {
-		if x.xxx_hidden_Password != nil {
-			return *x.xxx_hidden_Password
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *CreateUserRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
 func (x *CreateUserRequest) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *CreateUserRequest) SetPassword(v string) {
-	x.xxx_hidden_Password = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *CreateUserRequest) HasName() bool {
@@ -575,13 +561,6 @@ func (x *CreateUserRequest) HasEmail() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *CreateUserRequest) HasPassword() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
 func (x *CreateUserRequest) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
@@ -592,17 +571,11 @@ func (x *CreateUserRequest) ClearEmail() {
 	x.xxx_hidden_Email = nil
 }
 
-func (x *CreateUserRequest) ClearPassword() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_Password = nil
-}
-
 type CreateUserRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Name     *string
-	Email    *string
-	Password *string
+	Name  *string
+	Email *string
 }
 
 func (b0 CreateUserRequest_builder) Build() *CreateUserRequest {
@@ -610,16 +583,12 @@ func (b0 CreateUserRequest_builder) Build() *CreateUserRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
 		x.xxx_hidden_Email = b.Email
-	}
-	if b.Password != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_Password = b.Password
 	}
 	return m0
 }
@@ -1066,651 +1035,6 @@ func (b0 GetUserProfileResponse_builder) Build() *GetUserProfileResponse {
 	return m0
 }
 
-type VerifyPasswordRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
-	xxx_hidden_Password    *string                `protobuf:"bytes,2,opt,name=password"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *VerifyPasswordRequest) Reset() {
-	*x = VerifyPasswordRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VerifyPasswordRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VerifyPasswordRequest) ProtoMessage() {}
-
-func (x *VerifyPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *VerifyPasswordRequest) GetEmail() string {
-	if x != nil {
-		if x.xxx_hidden_Email != nil {
-			return *x.xxx_hidden_Email
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *VerifyPasswordRequest) GetPassword() string {
-	if x != nil {
-		if x.xxx_hidden_Password != nil {
-			return *x.xxx_hidden_Password
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *VerifyPasswordRequest) SetEmail(v string) {
-	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *VerifyPasswordRequest) SetPassword(v string) {
-	x.xxx_hidden_Password = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *VerifyPasswordRequest) HasEmail() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *VerifyPasswordRequest) HasPassword() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *VerifyPasswordRequest) ClearEmail() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Email = nil
-}
-
-func (x *VerifyPasswordRequest) ClearPassword() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Password = nil
-}
-
-type VerifyPasswordRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Email    *string
-	Password *string
-}
-
-func (b0 VerifyPasswordRequest_builder) Build() *VerifyPasswordRequest {
-	m0 := &VerifyPasswordRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_Email = b.Email
-	}
-	if b.Password != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_Password = b.Password
-	}
-	return m0
-}
-
-type VerifyPasswordResponse struct {
-	state                       protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ok               bool                   `protobuf:"varint,1,opt,name=ok"`
-	xxx_hidden_RequireChallenge bool                   `protobuf:"varint,2,opt,name=require_challenge,json=requireChallenge"`
-	xxx_hidden_UserId           int64                  `protobuf:"varint,3,opt,name=user_id,json=userId"`
-	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
-	XXX_presence                [1]uint32
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
-}
-
-func (x *VerifyPasswordResponse) Reset() {
-	*x = VerifyPasswordResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *VerifyPasswordResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*VerifyPasswordResponse) ProtoMessage() {}
-
-func (x *VerifyPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *VerifyPasswordResponse) GetOk() bool {
-	if x != nil {
-		return x.xxx_hidden_Ok
-	}
-	return false
-}
-
-func (x *VerifyPasswordResponse) GetRequireChallenge() bool {
-	if x != nil {
-		return x.xxx_hidden_RequireChallenge
-	}
-	return false
-}
-
-func (x *VerifyPasswordResponse) GetUserId() int64 {
-	if x != nil {
-		return x.xxx_hidden_UserId
-	}
-	return 0
-}
-
-func (x *VerifyPasswordResponse) SetOk(v bool) {
-	x.xxx_hidden_Ok = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *VerifyPasswordResponse) SetRequireChallenge(v bool) {
-	x.xxx_hidden_RequireChallenge = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *VerifyPasswordResponse) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
-}
-
-func (x *VerifyPasswordResponse) HasOk() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *VerifyPasswordResponse) HasRequireChallenge() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *VerifyPasswordResponse) HasUserId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *VerifyPasswordResponse) ClearOk() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Ok = false
-}
-
-func (x *VerifyPasswordResponse) ClearRequireChallenge() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_RequireChallenge = false
-}
-
-func (x *VerifyPasswordResponse) ClearUserId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_UserId = 0
-}
-
-type VerifyPasswordResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Ok               *bool
-	RequireChallenge *bool
-	UserId           *int64
-}
-
-func (b0 VerifyPasswordResponse_builder) Build() *VerifyPasswordResponse {
-	m0 := &VerifyPasswordResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Ok != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_Ok = *b.Ok
-	}
-	if b.RequireChallenge != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_RequireChallenge = *b.RequireChallenge
-	}
-	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_UserId = *b.UserId
-	}
-	return m0
-}
-
-type ChangePasswordRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_OldPassword *string                `protobuf:"bytes,2,opt,name=old_password,json=oldPassword"`
-	xxx_hidden_NewPassword *string                `protobuf:"bytes,3,opt,name=new_password,json=newPassword"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ChangePasswordRequest) Reset() {
-	*x = ChangePasswordRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ChangePasswordRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ChangePasswordRequest) ProtoMessage() {}
-
-func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ChangePasswordRequest) GetUserId() int64 {
-	if x != nil {
-		return x.xxx_hidden_UserId
-	}
-	return 0
-}
-
-func (x *ChangePasswordRequest) GetOldPassword() string {
-	if x != nil {
-		if x.xxx_hidden_OldPassword != nil {
-			return *x.xxx_hidden_OldPassword
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ChangePasswordRequest) GetNewPassword() string {
-	if x != nil {
-		if x.xxx_hidden_NewPassword != nil {
-			return *x.xxx_hidden_NewPassword
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ChangePasswordRequest) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *ChangePasswordRequest) SetOldPassword(v string) {
-	x.xxx_hidden_OldPassword = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *ChangePasswordRequest) SetNewPassword(v string) {
-	x.xxx_hidden_NewPassword = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
-}
-
-func (x *ChangePasswordRequest) HasUserId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ChangePasswordRequest) HasOldPassword() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ChangePasswordRequest) HasNewPassword() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *ChangePasswordRequest) ClearUserId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_UserId = 0
-}
-
-func (x *ChangePasswordRequest) ClearOldPassword() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_OldPassword = nil
-}
-
-func (x *ChangePasswordRequest) ClearNewPassword() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_NewPassword = nil
-}
-
-type ChangePasswordRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	UserId      *int64
-	OldPassword *string
-	NewPassword *string
-}
-
-func (b0 ChangePasswordRequest_builder) Build() *ChangePasswordRequest {
-	m0 := &ChangePasswordRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_UserId = *b.UserId
-	}
-	if b.OldPassword != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_OldPassword = b.OldPassword
-	}
-	if b.NewPassword != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_NewPassword = b.NewPassword
-	}
-	return m0
-}
-
-type ChangePasswordResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ChangePasswordResponse) Reset() {
-	*x = ChangePasswordResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ChangePasswordResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ChangePasswordResponse) ProtoMessage() {}
-
-func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ChangePasswordResponse) GetOk() bool {
-	if x != nil {
-		return x.xxx_hidden_Ok
-	}
-	return false
-}
-
-func (x *ChangePasswordResponse) SetOk(v bool) {
-	x.xxx_hidden_Ok = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *ChangePasswordResponse) HasOk() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ChangePasswordResponse) ClearOk() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Ok = false
-}
-
-type ChangePasswordResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Ok *bool
-}
-
-func (b0 ChangePasswordResponse_builder) Build() *ChangePasswordResponse {
-	m0 := &ChangePasswordResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Ok != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Ok = *b.Ok
-	}
-	return m0
-}
-
-type ResetPasswordRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_NewPassword *string                `protobuf:"bytes,2,opt,name=new_password,json=newPassword"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ResetPasswordRequest) Reset() {
-	*x = ResetPasswordRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResetPasswordRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResetPasswordRequest) ProtoMessage() {}
-
-func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ResetPasswordRequest) GetUserId() int64 {
-	if x != nil {
-		return x.xxx_hidden_UserId
-	}
-	return 0
-}
-
-func (x *ResetPasswordRequest) GetNewPassword() string {
-	if x != nil {
-		if x.xxx_hidden_NewPassword != nil {
-			return *x.xxx_hidden_NewPassword
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ResetPasswordRequest) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *ResetPasswordRequest) SetNewPassword(v string) {
-	x.xxx_hidden_NewPassword = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ResetPasswordRequest) HasUserId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ResetPasswordRequest) HasNewPassword() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ResetPasswordRequest) ClearUserId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_UserId = 0
-}
-
-func (x *ResetPasswordRequest) ClearNewPassword() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_NewPassword = nil
-}
-
-type ResetPasswordRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	UserId      *int64
-	NewPassword *string
-}
-
-func (b0 ResetPasswordRequest_builder) Build() *ResetPasswordRequest {
-	m0 := &ResetPasswordRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_UserId = *b.UserId
-	}
-	if b.NewPassword != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_NewPassword = b.NewPassword
-	}
-	return m0
-}
-
-type ResetPasswordResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ResetPasswordResponse) Reset() {
-	*x = ResetPasswordResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResetPasswordResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResetPasswordResponse) ProtoMessage() {}
-
-func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ResetPasswordResponse) GetOk() bool {
-	if x != nil {
-		return x.xxx_hidden_Ok
-	}
-	return false
-}
-
-func (x *ResetPasswordResponse) SetOk(v bool) {
-	x.xxx_hidden_Ok = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *ResetPasswordResponse) HasOk() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ResetPasswordResponse) ClearOk() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Ok = false
-}
-
-type ResetPasswordResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Ok *bool
-}
-
-func (b0 ResetPasswordResponse_builder) Build() *ResetPasswordResponse {
-	m0 := &ResetPasswordResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Ok != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Ok = *b.Ok
-	}
-	return m0
-}
-
 type CheckEmailAvailabilityRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
@@ -1722,7 +1046,7 @@ type CheckEmailAvailabilityRequest struct {
 
 func (x *CheckEmailAvailabilityRequest) Reset() {
 	*x = CheckEmailAvailabilityRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[14]
+	mi := &file_user_v1_user_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1734,7 +1058,7 @@ func (x *CheckEmailAvailabilityRequest) String() string {
 func (*CheckEmailAvailabilityRequest) ProtoMessage() {}
 
 func (x *CheckEmailAvailabilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[14]
+	mi := &file_user_v1_user_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1800,7 +1124,7 @@ type CheckEmailAvailabilityResponse struct {
 
 func (x *CheckEmailAvailabilityResponse) Reset() {
 	*x = CheckEmailAvailabilityResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[15]
+	mi := &file_user_v1_user_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1812,7 +1136,7 @@ func (x *CheckEmailAvailabilityResponse) String() string {
 func (*CheckEmailAvailabilityResponse) ProtoMessage() {}
 
 func (x *CheckEmailAvailabilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[15]
+	mi := &file_user_v1_user_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1876,7 +1200,7 @@ type UpdateEmailRequest struct {
 
 func (x *UpdateEmailRequest) Reset() {
 	*x = UpdateEmailRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[16]
+	mi := &file_user_v1_user_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1888,7 +1212,7 @@ func (x *UpdateEmailRequest) String() string {
 func (*UpdateEmailRequest) ProtoMessage() {}
 
 func (x *UpdateEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[16]
+	mi := &file_user_v1_user_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1981,7 +1305,7 @@ type UpdateEmailResponse struct {
 
 func (x *UpdateEmailResponse) Reset() {
 	*x = UpdateEmailResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[17]
+	mi := &file_user_v1_user_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1993,7 +1317,7 @@ func (x *UpdateEmailResponse) String() string {
 func (*UpdateEmailResponse) ProtoMessage() {}
 
 func (x *UpdateEmailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[17]
+	mi := &file_user_v1_user_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2053,7 +1377,7 @@ type MarkEmailVerifiedRequest struct {
 
 func (x *MarkEmailVerifiedRequest) Reset() {
 	*x = MarkEmailVerifiedRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[18]
+	mi := &file_user_v1_user_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2065,7 +1389,7 @@ func (x *MarkEmailVerifiedRequest) String() string {
 func (*MarkEmailVerifiedRequest) ProtoMessage() {}
 
 func (x *MarkEmailVerifiedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[18]
+	mi := &file_user_v1_user_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2190,7 +1514,7 @@ type MarkEmailVerifiedResponse struct {
 
 func (x *MarkEmailVerifiedResponse) Reset() {
 	*x = MarkEmailVerifiedResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[19]
+	mi := &file_user_v1_user_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2202,7 +1526,7 @@ func (x *MarkEmailVerifiedResponse) String() string {
 func (*MarkEmailVerifiedResponse) ProtoMessage() {}
 
 func (x *MarkEmailVerifiedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[19]
+	mi := &file_user_v1_user_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2267,7 +1591,7 @@ type UpdateUserProfileRequest struct {
 
 func (x *UpdateUserProfileRequest) Reset() {
 	*x = UpdateUserProfileRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[20]
+	mi := &file_user_v1_user_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2279,7 +1603,7 @@ func (x *UpdateUserProfileRequest) String() string {
 func (*UpdateUserProfileRequest) ProtoMessage() {}
 
 func (x *UpdateUserProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[20]
+	mi := &file_user_v1_user_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2404,7 +1728,7 @@ type UpdateUserProfileResponse struct {
 
 func (x *UpdateUserProfileResponse) Reset() {
 	*x = UpdateUserProfileResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[21]
+	mi := &file_user_v1_user_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2416,7 +1740,7 @@ func (x *UpdateUserProfileResponse) String() string {
 func (*UpdateUserProfileResponse) ProtoMessage() {}
 
 func (x *UpdateUserProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[21]
+	mi := &file_user_v1_user_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2488,11 +1812,10 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x05 \x01(\x03R\tupdatedAt\x12\x1d\n" +
 	"\n" +
-	"deleted_at\x18\x06 \x01(\x03R\tdeletedAt\"Y\n" +
+	"deleted_at\x18\x06 \x01(\x03R\tdeletedAt\"M\n" +
 	"\x11CreateUserRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"7\n" +
+	"\x05email\x18\x02 \x01(\tR\x05emailJ\x04\b\x03\x10\x04R\bpassword\"7\n" +
 	"\x12CreateUserResponse\x12!\n" +
 	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"O\n" +
 	"\x0eGetUserRequest\x12\x19\n" +
@@ -2505,25 +1828,7 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x15GetUserProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\"H\n" +
 	"\x16GetUserProfileResponse\x12.\n" +
-	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"I\n" +
-	"\x15VerifyPasswordRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\"n\n" +
-	"\x16VerifyPasswordResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\x12+\n" +
-	"\x11require_challenge\x18\x02 \x01(\bR\x10requireChallenge\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\x03R\x06userId\"v\n" +
-	"\x15ChangePasswordRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12!\n" +
-	"\fold_password\x18\x02 \x01(\tR\voldPassword\x12!\n" +
-	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"(\n" +
-	"\x16ChangePasswordResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"R\n" +
-	"\x14ResetPasswordRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12!\n" +
-	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"'\n" +
-	"\x15ResetPasswordResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"5\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"5\n" +
 	"\x1dCheckEmailAvailabilityRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\">\n" +
 	"\x1eCheckEmailAvailabilityResponse\x12\x1c\n" +
@@ -2546,22 +1851,19 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"avatar_uri\x18\x03 \x01(\tR\tavatarUri\"K\n" +
 	"\x19UpdateUserProfileResponse\x12.\n" +
-	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile2\xc8\x06\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile2\xd2\x04\n" +
 	"\vUserService\x12E\n" +
 	"\n" +
 	"CreateUser\x12\x1a.user.v1.CreateUserRequest\x1a\x1b.user.v1.CreateUserResponse\x12<\n" +
 	"\aGetUser\x12\x17.user.v1.GetUserRequest\x1a\x18.user.v1.GetUserResponse\x12Q\n" +
-	"\x0eGetUserProfile\x12\x1e.user.v1.GetUserProfileRequest\x1a\x1f.user.v1.GetUserProfileResponse\x12Q\n" +
-	"\x0eVerifyPassword\x12\x1e.user.v1.VerifyPasswordRequest\x1a\x1f.user.v1.VerifyPasswordResponse\x12Q\n" +
-	"\x0eChangePassword\x12\x1e.user.v1.ChangePasswordRequest\x1a\x1f.user.v1.ChangePasswordResponse\x12N\n" +
-	"\rResetPassword\x12\x1d.user.v1.ResetPasswordRequest\x1a\x1e.user.v1.ResetPasswordResponse\x12i\n" +
+	"\x0eGetUserProfile\x12\x1e.user.v1.GetUserProfileRequest\x1a\x1f.user.v1.GetUserProfileResponse\x12i\n" +
 	"\x16CheckEmailAvailability\x12&.user.v1.CheckEmailAvailabilityRequest\x1a'.user.v1.CheckEmailAvailabilityResponse\x12H\n" +
 	"\vUpdateEmail\x12\x1b.user.v1.UpdateEmailRequest\x1a\x1c.user.v1.UpdateEmailResponse\x12Z\n" +
 	"\x11MarkEmailVerified\x12!.user.v1.MarkEmailVerifiedRequest\x1a\".user.v1.MarkEmailVerifiedResponse\x12Z\n" +
 	"\x11UpdateUserProfile\x12!.user.v1.UpdateUserProfileRequest\x1a\".user.v1.UpdateUserProfileResponseB\x83\x01\n" +
 	"\vcom.user.v1B\tUserProtoP\x01Z,github.com/soasurs/cordis/gen/user/v1;userv1\xa2\x02\x03UXX\xaa\x02\aUser.V1\xca\x02\aUser\\V1\xe2\x02\x13User\\V1\\GPBMetadata\xea\x02\bUser::V1b\beditionsp\xe8\a"
 
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_user_v1_user_proto_goTypes = []any{
 	(*User)(nil),                           // 0: user.v1.User
 	(*UserProfile)(nil),                    // 1: user.v1.UserProfile
@@ -2571,20 +1873,14 @@ var file_user_v1_user_proto_goTypes = []any{
 	(*GetUserResponse)(nil),                // 5: user.v1.GetUserResponse
 	(*GetUserProfileRequest)(nil),          // 6: user.v1.GetUserProfileRequest
 	(*GetUserProfileResponse)(nil),         // 7: user.v1.GetUserProfileResponse
-	(*VerifyPasswordRequest)(nil),          // 8: user.v1.VerifyPasswordRequest
-	(*VerifyPasswordResponse)(nil),         // 9: user.v1.VerifyPasswordResponse
-	(*ChangePasswordRequest)(nil),          // 10: user.v1.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),         // 11: user.v1.ChangePasswordResponse
-	(*ResetPasswordRequest)(nil),           // 12: user.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),          // 13: user.v1.ResetPasswordResponse
-	(*CheckEmailAvailabilityRequest)(nil),  // 14: user.v1.CheckEmailAvailabilityRequest
-	(*CheckEmailAvailabilityResponse)(nil), // 15: user.v1.CheckEmailAvailabilityResponse
-	(*UpdateEmailRequest)(nil),             // 16: user.v1.UpdateEmailRequest
-	(*UpdateEmailResponse)(nil),            // 17: user.v1.UpdateEmailResponse
-	(*MarkEmailVerifiedRequest)(nil),       // 18: user.v1.MarkEmailVerifiedRequest
-	(*MarkEmailVerifiedResponse)(nil),      // 19: user.v1.MarkEmailVerifiedResponse
-	(*UpdateUserProfileRequest)(nil),       // 20: user.v1.UpdateUserProfileRequest
-	(*UpdateUserProfileResponse)(nil),      // 21: user.v1.UpdateUserProfileResponse
+	(*CheckEmailAvailabilityRequest)(nil),  // 8: user.v1.CheckEmailAvailabilityRequest
+	(*CheckEmailAvailabilityResponse)(nil), // 9: user.v1.CheckEmailAvailabilityResponse
+	(*UpdateEmailRequest)(nil),             // 10: user.v1.UpdateEmailRequest
+	(*UpdateEmailResponse)(nil),            // 11: user.v1.UpdateEmailResponse
+	(*MarkEmailVerifiedRequest)(nil),       // 12: user.v1.MarkEmailVerifiedRequest
+	(*MarkEmailVerifiedResponse)(nil),      // 13: user.v1.MarkEmailVerifiedResponse
+	(*UpdateUserProfileRequest)(nil),       // 14: user.v1.UpdateUserProfileRequest
+	(*UpdateUserProfileResponse)(nil),      // 15: user.v1.UpdateUserProfileResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	0,  // 0: user.v1.CreateUserResponse.user:type_name -> user.v1.User
@@ -2595,25 +1891,19 @@ var file_user_v1_user_proto_depIdxs = []int32{
 	2,  // 5: user.v1.UserService.CreateUser:input_type -> user.v1.CreateUserRequest
 	4,  // 6: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
 	6,  // 7: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
-	8,  // 8: user.v1.UserService.VerifyPassword:input_type -> user.v1.VerifyPasswordRequest
-	10, // 9: user.v1.UserService.ChangePassword:input_type -> user.v1.ChangePasswordRequest
-	12, // 10: user.v1.UserService.ResetPassword:input_type -> user.v1.ResetPasswordRequest
-	14, // 11: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
-	16, // 12: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
-	18, // 13: user.v1.UserService.MarkEmailVerified:input_type -> user.v1.MarkEmailVerifiedRequest
-	20, // 14: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
-	3,  // 15: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
-	5,  // 16: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	7,  // 17: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
-	9,  // 18: user.v1.UserService.VerifyPassword:output_type -> user.v1.VerifyPasswordResponse
-	11, // 19: user.v1.UserService.ChangePassword:output_type -> user.v1.ChangePasswordResponse
-	13, // 20: user.v1.UserService.ResetPassword:output_type -> user.v1.ResetPasswordResponse
-	15, // 21: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
-	17, // 22: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
-	19, // 23: user.v1.UserService.MarkEmailVerified:output_type -> user.v1.MarkEmailVerifiedResponse
-	21, // 24: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
-	15, // [15:25] is the sub-list for method output_type
-	5,  // [5:15] is the sub-list for method input_type
+	8,  // 8: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
+	10, // 9: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
+	12, // 10: user.v1.UserService.MarkEmailVerified:input_type -> user.v1.MarkEmailVerifiedRequest
+	14, // 11: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
+	3,  // 12: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
+	5,  // 13: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	7,  // 14: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
+	9,  // 15: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
+	11, // 16: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
+	13, // 17: user.v1.UserService.MarkEmailVerified:output_type -> user.v1.MarkEmailVerifiedResponse
+	15, // 18: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
+	12, // [12:19] is the sub-list for method output_type
+	5,  // [5:12] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -2634,7 +1924,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

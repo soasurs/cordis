@@ -36,6 +36,8 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("recovery codes", func(t *testing.T) { testRecoveryCodes(t, store) })
 	t.Run("transact rollback", func(t *testing.T) { testTransactRollback(t, store) })
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
+	t.Run("password reset tokens", func(t *testing.T) { testPasswordResetTokens(t, store) })
+	t.Run("email verification tokens", func(t *testing.T) { testEmailVerificationTokens(t, store) })
 }
 
 func testSessionLifecycle(t *testing.T, store Store) {
@@ -298,4 +300,69 @@ func requireUniqueViolation(t *testing.T, err error) {
 	var pqErr *pq.Error
 	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
 	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+}
+
+func testPasswordResetTokens(t *testing.T, store Store) {
+	const userID = int64(9001)
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+
+	require.NoError(t, store.UpsertPasswordResetToken(ctx, &model.PasswordResetToken{
+		UserID: userID, TokenHash: "reset-hash-a", CreatedAt: now, ExpiresAt: now + 60_000,
+	}))
+
+	loaded, err := store.GetPasswordResetToken(ctx, "reset-hash-a", false)
+	require.NoError(t, err)
+	require.Equal(t, userID, loaded.UserID)
+	require.Zero(t, loaded.ConsumedAt)
+
+	// A newer request replaces the previous token for the same user.
+	require.NoError(t, store.UpsertPasswordResetToken(ctx, &model.PasswordResetToken{
+		UserID: userID, TokenHash: "reset-hash-b", CreatedAt: now + 1, ExpiresAt: now + 120_000,
+	}))
+	_, err = store.GetPasswordResetToken(ctx, "reset-hash-a", false)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	require.NoError(t, store.ConsumePasswordResetToken(ctx, "reset-hash-b", now+2))
+	loaded, err = store.GetPasswordResetToken(ctx, "reset-hash-b", true)
+	require.NoError(t, err)
+	require.Equal(t, now+2, loaded.ConsumedAt)
+	require.ErrorIs(t, store.ConsumePasswordResetToken(ctx, "reset-hash-b", now+3), sql.ErrNoRows)
+	require.ErrorIs(t, store.ConsumePasswordResetToken(ctx, "reset-hash-missing", now+3), sql.ErrNoRows)
+
+	// Re-requesting after consumption reactivates the row.
+	require.NoError(t, store.UpsertPasswordResetToken(ctx, &model.PasswordResetToken{
+		UserID: userID, TokenHash: "reset-hash-c", CreatedAt: now + 4, ExpiresAt: now + 180_000,
+	}))
+	loaded, err = store.GetPasswordResetToken(ctx, "reset-hash-c", false)
+	require.NoError(t, err)
+	require.Zero(t, loaded.ConsumedAt)
+}
+
+func testEmailVerificationTokens(t *testing.T, store Store) {
+	const userID = int64(9101)
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+
+	require.NoError(t, store.UpsertEmailVerificationToken(ctx, &model.EmailVerificationToken{
+		UserID: userID, TokenHash: "verify-hash-a", Email: "a@example.com",
+		CreatedAt: now, ExpiresAt: now + 60_000,
+	}))
+
+	loaded, err := store.GetEmailVerificationToken(ctx, "verify-hash-a", false)
+	require.NoError(t, err)
+	require.Equal(t, "a@example.com", loaded.Email)
+
+	require.NoError(t, store.UpsertEmailVerificationToken(ctx, &model.EmailVerificationToken{
+		UserID: userID, TokenHash: "verify-hash-b", Email: "b@example.com",
+		CreatedAt: now + 1, ExpiresAt: now + 120_000,
+	}))
+	_, err = store.GetEmailVerificationToken(ctx, "verify-hash-a", false)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	require.NoError(t, store.ConsumeEmailVerificationToken(ctx, "verify-hash-b", now+2))
+	loaded, err = store.GetEmailVerificationToken(ctx, "verify-hash-b", true)
+	require.NoError(t, err)
+	require.Equal(t, now+2, loaded.ConsumedAt)
+	require.ErrorIs(t, store.ConsumeEmailVerificationToken(ctx, "verify-hash-b", now+3), sql.ErrNoRows)
 }

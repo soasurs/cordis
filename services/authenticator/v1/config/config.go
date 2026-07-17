@@ -14,7 +14,14 @@ type Config struct {
 	Tokens    TokenConfig
 	Sessions  SessionConfig
 	TwoFactor TwoFactorConfig
+	Recovery  RecoveryConfig
 	Services  ServiceConfig
+}
+
+// RecoveryConfig bounds the lifetime of account recovery tokens.
+type RecoveryConfig struct {
+	PasswordResetTTL     time.Duration `json:",default=30m"`
+	EmailVerificationTTL time.Duration `json:",default=24h"`
 }
 
 type TokenConfig struct {
@@ -53,4 +60,6 @@ type TwoFactorEncryptionKeyConfig struct {
 
 type ServiceConfig struct {
 	User zrpc.RpcClientConf
+	// Mailer is optional; when unset, recovery mail delivery is skipped.
+	Mailer zrpc.RpcClientConf `json:",optional"`
 }

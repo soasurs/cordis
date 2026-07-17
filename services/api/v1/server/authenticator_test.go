@@ -62,9 +62,22 @@ type fakeAuthenticatorClient struct {
 	disableTwoFactorRequest        *authenticatorv1.DisableTwoFactorRequest
 	disableTwoFactorResponse       *authenticatorv1.DisableTwoFactorResponse
 	disableTwoFactorError          error
-	regenRecoveryCodesRequest      *authenticatorv1.RegenerateTwoFactorRecoveryCodesRequest
-	regenRecoveryCodesResponse     *authenticatorv1.RegenerateTwoFactorRecoveryCodesResponse
-	regenRecoveryCodesError        error
+
+	requestPasswordResetRequest      *authenticatorv1.RequestPasswordResetRequest
+	requestPasswordResetResponse     *authenticatorv1.RequestPasswordResetResponse
+	requestPasswordResetError        error
+	confirmPasswordResetRequest      *authenticatorv1.ConfirmPasswordResetRequest
+	confirmPasswordResetResponse     *authenticatorv1.ConfirmPasswordResetResponse
+	confirmPasswordResetError        error
+	requestEmailVerificationRequest  *authenticatorv1.RequestEmailVerificationRequest
+	requestEmailVerificationResponse *authenticatorv1.RequestEmailVerificationResponse
+	requestEmailVerificationError    error
+	confirmEmailVerificationRequest  *authenticatorv1.ConfirmEmailVerificationRequest
+	confirmEmailVerificationResponse *authenticatorv1.ConfirmEmailVerificationResponse
+	confirmEmailVerificationError    error
+	regenRecoveryCodesRequest        *authenticatorv1.RegenerateTwoFactorRecoveryCodesRequest
+	regenRecoveryCodesResponse       *authenticatorv1.RegenerateTwoFactorRecoveryCodesResponse
+	regenRecoveryCodesError          error
 }
 
 func (f *fakeAuthenticatorClient) Register(_ context.Context, req *authenticatorv1.RegisterRequest, _ ...grpc.CallOption) (*authenticatorv1.RegisterResponse, error) {

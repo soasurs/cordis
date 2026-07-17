@@ -162,4 +162,41 @@ const (
 	UPDATE two_factor_recovery_codes
 	SET used_at = $1
 	WHERE user_id = $2 AND code_hash = $3 AND used_at = $4`
+
+	UpsertPasswordResetTokenStatement = `
+	INSERT INTO password_reset_tokens (user_id, token_hash, created_at, expires_at, consumed_at)
+	VALUES ($1, $2, $3, $4, 0)
+	ON CONFLICT (user_id) DO UPDATE SET
+		token_hash = EXCLUDED.token_hash,
+		created_at = EXCLUDED.created_at,
+		expires_at = EXCLUDED.expires_at,
+		consumed_at = 0`
+
+	GetPasswordResetTokenQuery = `
+	SELECT user_id, token_hash, created_at, expires_at, consumed_at
+	FROM password_reset_tokens
+	WHERE token_hash = $1
+	LIMIT 1`
+
+	ConsumePasswordResetTokenStatement = `
+	UPDATE password_reset_tokens SET consumed_at = $1 WHERE token_hash = $2 AND consumed_at = 0`
+
+	UpsertEmailVerificationTokenStatement = `
+	INSERT INTO email_verification_tokens (user_id, token_hash, email, created_at, expires_at, consumed_at)
+	VALUES ($1, $2, $3, $4, $5, 0)
+	ON CONFLICT (user_id) DO UPDATE SET
+		token_hash = EXCLUDED.token_hash,
+		email = EXCLUDED.email,
+		created_at = EXCLUDED.created_at,
+		expires_at = EXCLUDED.expires_at,
+		consumed_at = 0`
+
+	GetEmailVerificationTokenQuery = `
+	SELECT user_id, token_hash, email, created_at, expires_at, consumed_at
+	FROM email_verification_tokens
+	WHERE token_hash = $1
+	LIMIT 1`
+
+	ConsumeEmailVerificationTokenStatement = `
+	UPDATE email_verification_tokens SET consumed_at = $1 WHERE token_hash = $2 AND consumed_at = 0`
 )

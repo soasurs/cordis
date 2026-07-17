@@ -111,6 +111,16 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeInvalidArgument,
 		message:     "Invalid request.",
 	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorInvalidPasswordResetToken}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Invalid or expired token.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorInvalidEmailVerificationToken}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Invalid or expired token.",
+	},
 	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildNotFound}: {
 		connectCode: connect.CodeNotFound,
 		publicCode:  CodeNotFound,

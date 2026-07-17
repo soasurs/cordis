@@ -25,6 +25,10 @@ const (
 	AuthenticatorService_Refresh_FullMethodName                          = "/authenticator.v1.AuthenticatorService/Refresh"
 	AuthenticatorService_Logout_FullMethodName                           = "/authenticator.v1.AuthenticatorService/Logout"
 	AuthenticatorService_VerifyAccessToken_FullMethodName                = "/authenticator.v1.AuthenticatorService/VerifyAccessToken"
+	AuthenticatorService_RequestPasswordReset_FullMethodName             = "/authenticator.v1.AuthenticatorService/RequestPasswordReset"
+	AuthenticatorService_ConfirmPasswordReset_FullMethodName             = "/authenticator.v1.AuthenticatorService/ConfirmPasswordReset"
+	AuthenticatorService_RequestEmailVerification_FullMethodName         = "/authenticator.v1.AuthenticatorService/RequestEmailVerification"
+	AuthenticatorService_ConfirmEmailVerification_FullMethodName         = "/authenticator.v1.AuthenticatorService/ConfirmEmailVerification"
 	AuthenticatorService_ListSessions_FullMethodName                     = "/authenticator.v1.AuthenticatorService/ListSessions"
 	AuthenticatorService_RevokeUserSession_FullMethodName                = "/authenticator.v1.AuthenticatorService/RevokeUserSession"
 	AuthenticatorService_RevokeOtherSessions_FullMethodName              = "/authenticator.v1.AuthenticatorService/RevokeOtherSessions"
@@ -45,6 +49,13 @@ type AuthenticatorServiceClient interface {
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	VerifyAccessToken(ctx context.Context, in *VerifyAccessTokenRequest, opts ...grpc.CallOption) (*VerifyAccessTokenResponse, error)
+	// RequestPasswordReset always reports success to avoid account enumeration.
+	RequestPasswordReset(ctx context.Context, in *RequestPasswordResetRequest, opts ...grpc.CallOption) (*RequestPasswordResetResponse, error)
+	// ConfirmPasswordReset consumes a reset token, replaces the password, and
+	// revokes all of the user's sessions.
+	ConfirmPasswordReset(ctx context.Context, in *ConfirmPasswordResetRequest, opts ...grpc.CallOption) (*ConfirmPasswordResetResponse, error)
+	RequestEmailVerification(ctx context.Context, in *RequestEmailVerificationRequest, opts ...grpc.CallOption) (*RequestEmailVerificationResponse, error)
+	ConfirmEmailVerification(ctx context.Context, in *ConfirmEmailVerificationRequest, opts ...grpc.CallOption) (*ConfirmEmailVerificationResponse, error)
 	// ListSessions returns sessions that are neither revoked nor expired.
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
 	// RevokeUserSession only revokes the session when it belongs to the supplied user.
@@ -120,6 +131,46 @@ func (c *authenticatorServiceClient) VerifyAccessToken(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyAccessTokenResponse)
 	err := c.cc.Invoke(ctx, AuthenticatorService_VerifyAccessToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) RequestPasswordReset(ctx context.Context, in *RequestPasswordResetRequest, opts ...grpc.CallOption) (*RequestPasswordResetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestPasswordResetResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_RequestPasswordReset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) ConfirmPasswordReset(ctx context.Context, in *ConfirmPasswordResetRequest, opts ...grpc.CallOption) (*ConfirmPasswordResetResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfirmPasswordResetResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_ConfirmPasswordReset_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) RequestEmailVerification(ctx context.Context, in *RequestEmailVerificationRequest, opts ...grpc.CallOption) (*RequestEmailVerificationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestEmailVerificationResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_RequestEmailVerification_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) ConfirmEmailVerification(ctx context.Context, in *ConfirmEmailVerificationRequest, opts ...grpc.CallOption) (*ConfirmEmailVerificationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfirmEmailVerificationResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_ConfirmEmailVerification_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -216,6 +267,13 @@ type AuthenticatorServiceServer interface {
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error)
+	// RequestPasswordReset always reports success to avoid account enumeration.
+	RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*RequestPasswordResetResponse, error)
+	// ConfirmPasswordReset consumes a reset token, replaces the password, and
+	// revokes all of the user's sessions.
+	ConfirmPasswordReset(context.Context, *ConfirmPasswordResetRequest) (*ConfirmPasswordResetResponse, error)
+	RequestEmailVerification(context.Context, *RequestEmailVerificationRequest) (*RequestEmailVerificationResponse, error)
+	ConfirmEmailVerification(context.Context, *ConfirmEmailVerificationRequest) (*ConfirmEmailVerificationResponse, error)
 	// ListSessions returns sessions that are neither revoked nor expired.
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
 	// RevokeUserSession only revokes the session when it belongs to the supplied user.
@@ -253,6 +311,18 @@ func (UnimplementedAuthenticatorServiceServer) Logout(context.Context, *LogoutRe
 }
 func (UnimplementedAuthenticatorServiceServer) VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyAccessToken not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) RequestPasswordReset(context.Context, *RequestPasswordResetRequest) (*RequestPasswordResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestPasswordReset not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) ConfirmPasswordReset(context.Context, *ConfirmPasswordResetRequest) (*ConfirmPasswordResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConfirmPasswordReset not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) RequestEmailVerification(context.Context, *RequestEmailVerificationRequest) (*RequestEmailVerificationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestEmailVerification not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) ConfirmEmailVerification(context.Context, *ConfirmEmailVerificationRequest) (*ConfirmEmailVerificationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConfirmEmailVerification not implemented")
 }
 func (UnimplementedAuthenticatorServiceServer) ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
@@ -402,6 +472,78 @@ func _AuthenticatorService_VerifyAccessToken_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthenticatorServiceServer).VerifyAccessToken(ctx, req.(*VerifyAccessTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_RequestPasswordReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestPasswordResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).RequestPasswordReset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_RequestPasswordReset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).RequestPasswordReset(ctx, req.(*RequestPasswordResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_ConfirmPasswordReset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmPasswordResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).ConfirmPasswordReset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_ConfirmPasswordReset_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).ConfirmPasswordReset(ctx, req.(*ConfirmPasswordResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_RequestEmailVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestEmailVerificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).RequestEmailVerification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_RequestEmailVerification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).RequestEmailVerification(ctx, req.(*RequestEmailVerificationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_ConfirmEmailVerification_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfirmEmailVerificationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).ConfirmEmailVerification(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_ConfirmEmailVerification_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).ConfirmEmailVerification(ctx, req.(*ConfirmEmailVerificationRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -580,6 +722,22 @@ var AuthenticatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyAccessToken",
 			Handler:    _AuthenticatorService_VerifyAccessToken_Handler,
+		},
+		{
+			MethodName: "RequestPasswordReset",
+			Handler:    _AuthenticatorService_RequestPasswordReset_Handler,
+		},
+		{
+			MethodName: "ConfirmPasswordReset",
+			Handler:    _AuthenticatorService_ConfirmPasswordReset_Handler,
+		},
+		{
+			MethodName: "RequestEmailVerification",
+			Handler:    _AuthenticatorService_RequestEmailVerification_Handler,
+		},
+		{
+			MethodName: "ConfirmEmailVerification",
+			Handler:    _AuthenticatorService_ConfirmEmailVerification_Handler,
 		},
 		{
 			MethodName: "ListSessions",

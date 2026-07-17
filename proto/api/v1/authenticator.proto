@@ -14,6 +14,17 @@ service AuthenticatorService {
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   // Logout revokes the session identified by the refresh token.
   rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // RequestPasswordReset starts the email-based recovery flow. It always
+  // reports success to avoid account enumeration.
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  // ConfirmPasswordReset sets a new password with a valid reset token and
+  // signs the user out everywhere.
+  rpc ConfirmPasswordReset(ConfirmPasswordResetRequest) returns (ConfirmPasswordResetResponse);
+  // RequestEmailVerification emails a verification link for the bearer
+  // token owner's current email address.
+  rpc RequestEmailVerification(RequestEmailVerificationRequest) returns (RequestEmailVerificationResponse);
+  // ConfirmEmailVerification marks the email confirmed with a valid token.
+  rpc ConfirmEmailVerification(ConfirmEmailVerificationRequest) returns (ConfirmEmailVerificationResponse);
   // ListSessions returns the bearer token owner's active sessions.
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   // RevokeSession revokes one session owned by the bearer token owner.
@@ -162,4 +173,35 @@ message RegenerateTwoFactorRecoveryCodesRequest {
 
 message RegenerateTwoFactorRecoveryCodesResponse {
   repeated string recovery_codes = 1;
+}
+
+message RequestPasswordResetRequest {
+  string email = 1;
+}
+
+message RequestPasswordResetResponse {
+  bool ok = 1;
+}
+
+message ConfirmPasswordResetRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+message ConfirmPasswordResetResponse {
+  bool ok = 1;
+}
+
+message RequestEmailVerificationRequest {}
+
+message RequestEmailVerificationResponse {
+  bool ok = 1;
+}
+
+message ConfirmEmailVerificationRequest {
+  string token = 1;
+}
+
+message ConfirmEmailVerificationResponse {
+  bool ok = 1;
 }

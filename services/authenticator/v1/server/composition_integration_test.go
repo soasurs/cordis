@@ -20,6 +20,7 @@ import (
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/internal/testkit"
 	"github.com/soasurs/cordis/pkg/database"
+	"github.com/soasurs/cordis/pkg/mail"
 	"github.com/soasurs/cordis/pkg/migration"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -36,6 +37,7 @@ import (
 // against a real User service binary so that registration and password
 // verification cross real gRPC and Argon2id hashing instead of fakes.
 func TestAuthenticatorUserComposition(t *testing.T) {
+	compositionMailer := new(fakeMailerClient)
 	postgres := testkit.StartPostgres(t)
 	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
@@ -55,7 +57,7 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		return err
 	})
 
-	service := New(newCompositionServiceContext(t, db, userClient))
+	service := New(newCompositionServiceContext(t, db, userClient, compositionMailer))
 	ctx := t.Context()
 
 	var refreshToken string
@@ -116,6 +118,101 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		_, err = service.Refresh(ctx, req)
 		require.Equal(t, codes.Unauthenticated, status.Code(err))
 	})
+
+	t.Run("password reset replaces password and revokes sessions", func(t *testing.T) {
+		loginReq := new(authenticatorv1.LoginRequest)
+		loginReq.SetEmail("alice@example.com")
+		loginReq.SetPassword("integration-password-1")
+		loginResp, err := service.Login(ctx, loginReq)
+		require.NoError(t, err)
+		activeRefreshToken := loginResp.GetResult().GetRefreshToken()
+
+		requestReq := new(authenticatorv1.RequestPasswordResetRequest)
+		requestReq.SetEmail("alice@example.com")
+		requestResp, err := service.RequestPasswordReset(ctx, requestReq)
+		require.NoError(t, err)
+		require.True(t, requestResp.GetOk())
+		require.NotEmpty(t, compositionMailer.sent)
+		delivered := compositionMailer.sent[len(compositionMailer.sent)-1]
+		require.Equal(t, mail.TemplatePasswordReset, delivered.template)
+
+		confirmReq := new(authenticatorv1.ConfirmPasswordResetRequest)
+		confirmReq.SetToken(delivered.token)
+		confirmReq.SetNewPassword("integration-password-3")
+		confirmResp, err := service.ConfirmPasswordReset(ctx, confirmReq)
+		require.NoError(t, err)
+		require.True(t, confirmResp.GetOk())
+
+		// The old password no longer works; the new one does.
+		_, err = service.Login(ctx, loginReq)
+		require.Equal(t, codes.Unauthenticated, status.Code(err))
+		loginReq.SetPassword("integration-password-3")
+		_, err = service.Login(ctx, loginReq)
+		require.NoError(t, err)
+
+		// Every pre-reset session is revoked.
+		refreshReq := new(authenticatorv1.RefreshRequest)
+		refreshReq.SetRefreshToken(activeRefreshToken)
+		_, err = service.Refresh(ctx, refreshReq)
+		require.Equal(t, codes.Unauthenticated, status.Code(err))
+
+		// The reset token is single use.
+		_, err = service.ConfirmPasswordReset(ctx, confirmReq)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+		require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidPasswordResetToken))
+	})
+
+	t.Run("email verification marks user and rejects stale tokens", func(t *testing.T) {
+		loginReq := new(authenticatorv1.LoginRequest)
+		loginReq.SetEmail("alice@example.com")
+		loginReq.SetPassword("integration-password-3")
+		loginResp, err := service.Login(ctx, loginReq)
+		require.NoError(t, err)
+		aliceID := loginResp.GetResult().GetUserId()
+
+		requestReq := new(authenticatorv1.RequestEmailVerificationRequest)
+		requestReq.SetUserId(aliceID)
+		_, err = service.RequestEmailVerification(ctx, requestReq)
+		require.NoError(t, err)
+		delivered := compositionMailer.sent[len(compositionMailer.sent)-1]
+		require.Equal(t, mail.TemplateEmailVerification, delivered.template)
+
+		confirmReq := new(authenticatorv1.ConfirmEmailVerificationRequest)
+		confirmReq.SetToken(delivered.token)
+		confirmResp, err := service.ConfirmEmailVerification(ctx, confirmReq)
+		require.NoError(t, err)
+		require.True(t, confirmResp.GetOk())
+
+		getUserReq := new(userv1.GetUserRequest)
+		getUserReq.SetUserId(aliceID)
+		getUserResp, err := userClient.GetUser(ctx, getUserReq)
+		require.NoError(t, err)
+		require.NotZero(t, getUserResp.GetUser().GetEmailVerifiedAt())
+
+		// A pending token issued before an email change must not verify the
+		// replacement address.
+		_, err = service.RequestEmailVerification(ctx, requestReq)
+		require.NoError(t, err)
+		require.Equal(t, mail.TemplateEmailVerification, compositionMailer.sent[len(compositionMailer.sent)-1].template)
+		staleToken := compositionMailer.sent[len(compositionMailer.sent)-1].token
+
+		updateEmailReq := new(userv1.UpdateEmailRequest)
+		updateEmailReq.SetUserId(aliceID)
+		updateEmailReq.SetEmail("alice-changed@example.com")
+		updateEmailResp, err := userClient.UpdateEmail(ctx, updateEmailReq)
+		require.NoError(t, err)
+		require.Zero(t, updateEmailResp.GetUser().GetEmailVerifiedAt())
+
+		staleConfirm := new(authenticatorv1.ConfirmEmailVerificationRequest)
+		staleConfirm.SetToken(staleToken)
+		_, err = service.ConfirmEmailVerification(ctx, staleConfirm)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+		require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidEmailVerificationToken))
+
+		getUserResp, err = userClient.GetUser(ctx, getUserReq)
+		require.NoError(t, err)
+		require.Zero(t, getUserResp.GetUser().GetEmailVerifiedAt())
+	})
 }
 
 func startUserServiceForAuth(t *testing.T, dsn string) string {
@@ -135,7 +232,7 @@ database:
 	return address
 }
 
-func newCompositionServiceContext(t *testing.T, db *sqlx.DB, userClient userv1.UserServiceClient) *svc.ServiceContext {
+func newCompositionServiceContext(t *testing.T, db *sqlx.DB, userClient userv1.UserServiceClient, mailerClient *fakeMailerClient) *svc.ServiceContext {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
@@ -153,11 +250,16 @@ func newCompositionServiceContext(t *testing.T, db *sqlx.DB, userClient userv1.U
 
 	return svc.NewServiceContextWithDependencies(config.Config{
 		Sessions: config.SessionConfig{TTL: 24 * time.Hour},
+		Recovery: config.RecoveryConfig{
+			PasswordResetTTL:     30 * time.Minute,
+			EmailVerificationTTL: 24 * time.Hour,
+		},
 	}, svc.Dependencies{
-		Store:      store.New(db),
-		Tokens:     tokens,
-		TwoFactor:  cipher,
-		Snowflake:  node,
-		UserClient: userClient,
+		Store:        store.New(db),
+		Tokens:       tokens,
+		TwoFactor:    cipher,
+		Snowflake:    node,
+		UserClient:   userClient,
+		MailerClient: mailerClient,
 	})
 }

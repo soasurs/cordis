@@ -4,11 +4,13 @@ import (
 	"context"
 	"strings"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	mailerv1 "github.com/soasurs/cordis/gen/mailer/v1"
 	"github.com/soasurs/cordis/pkg/mail"
+	"github.com/soasurs/cordis/services/mailer/v1/internal/provider"
 	"github.com/soasurs/cordis/services/mailer/v1/internal/svc"
 )
 
@@ -38,6 +40,14 @@ func (s *mailerServer) SendEmail(ctx context.Context, req *mailerv1.SendEmailReq
 	}
 
 	if err := s.svcCtx.Provider.Send(ctx, to, req.GetTemplate(), req.GetVariables()); err != nil {
+		// The provider error stays server-side: callers only learn that
+		// delivery failed, while operators keep the root cause.
+		logx.WithContext(ctx).Errorw(
+			"mail delivery failed",
+			logx.Field("to", provider.MaskEmail(to)),
+			logx.Field("template", req.GetTemplate()),
+			logx.Field("error", err),
+		)
 		return nil, status.Error(codes.Internal, "mail delivery failed")
 	}
 

@@ -20,6 +20,7 @@ const (
 	PermissionManageChannels = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_CHANNELS)
 	PermissionManageMessages = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES)
 	PermissionBanMembers     = uint64(guildv1.GuildPermission_GUILD_PERMISSION_BAN_MEMBERS)
+	PermissionCreateInvite   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_CREATE_INVITE)
 )
 
 const AllGuildPermissions = PermissionAdministrator |
@@ -31,7 +32,8 @@ const AllGuildPermissions = PermissionAdministrator |
 	PermissionSendMessages |
 	PermissionManageChannels |
 	PermissionManageMessages |
-	PermissionBanMembers
+	PermissionBanMembers |
+	PermissionCreateInvite
 
 const AllChannelPermissions = PermissionViewChannel |
 	PermissionSendMessages |

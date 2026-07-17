@@ -88,13 +88,15 @@ go build ./services/guild/v1/...
 - The owner cannot leave or be kicked and must transfer ownership to another active member first.
 - Active duplicate membership returns `AlreadyExists`. A removed member may rejoin; the existing row is restored and its membership `revision` continues increasing. A banned user cannot be added until unbanned.
 - Member lists use descending `user_id` and a `before_user_id` cursor. Nicknames are trimmed, may be cleared, and are limited to 32 Unicode code points.
-- Guild-level permissions are `ADMINISTRATOR`, `MANAGE_GUILD`, `MANAGE_ROLES`, `MANAGE_MEMBERS`, `KICK_MEMBERS`, and `BAN_MEMBERS`. Effective permissions OR the implicit `@everyone` role with explicitly assigned active roles.
-- Channel permissions add `VIEW_CHANNEL`, `SEND_MESSAGES`, `MANAGE_CHANNELS`, and `MANAGE_MESSAGES`. New and migrated `@everyone` roles grant `VIEW_CHANNEL | SEND_MESSAGES` by default.
+- Guild-level permissions are `ADMINISTRATOR`, `MANAGE_GUILD`, `MANAGE_ROLES`, `MANAGE_MEMBERS`, `KICK_MEMBERS`, `BAN_MEMBERS`, and `CREATE_INVITE`. Effective permissions OR the implicit `@everyone` role with explicitly assigned active roles.
+- Channel permissions add `VIEW_CHANNEL`, `SEND_MESSAGES`, `MANAGE_CHANNELS`, and `MANAGE_MESSAGES`. New and migrated `@everyone` roles grant `VIEW_CHANNEL | SEND_MESSAGES | CREATE_INVITE` by default.
 - Guild owners implicitly receive all Guild permissions. `ADMINISTRATOR` expands to all current Guild permissions, but role hierarchy still applies to non-owner moderation and role operations.
 - `guild_member_roles` stores explicit role assignments. The `@everyone` role is implicit, cannot be assigned or deleted, keeps position 0, and only its permissions may be updated.
 - Role operations require `MANAGE_ROLES`. Non-owners may only manage roles and members strictly below their highest role and cannot create, edit, or assign permissions they do not hold.
 - Role deletion and member removal delete explicit role assignments transactionally. Deleted roles are excluded from permission calculation.
 - Guild owns text, category, and voice channel metadata plus channel permission overwrites. Text and voice channels may reference a category through `parent_id`; categories cannot be nested. Deleting a category moves its children to the Guild root. Voice functionality beyond metadata is not implemented.
+- Guild invites live in `guild_invites` with random unique codes, optional `max_uses`, and optional TTL (`expires_at`, 0 = never). Creating requires `CREATE_INVITE`; listing requires `MANAGE_GUILD`; deleting is allowed for the creator or `MANAGE_GUILD`. `GetGuildInvite` returns an authenticated pre-join preview (guild name/icon/member count) without membership.
+- `JoinGuildByInvite` consumes one use and creates or restores the membership in the same transaction; banned users, exhausted or expired codes, and deleted guilds fail without burning a use. Joins reuse the `guild.member.joined` event; invite CRUD publishes no events.
 - Channel overwrite precedence is deterministic: `@everyone`, aggregated assigned-role denies/allows, then the member overwrite. Owner and `ADMINISTRATOR` bypass channel overwrites.
 - Denying `VIEW_CHANNEL` also removes `SEND_MESSAGES` and `MANAGE_MESSAGES`. Guild channel reads hide non-visible channels as not found.
 - Role overwrite targets must be manageable by the actor; member overwrite targets must be below the actor's highest role. Overwrite allow/deny bitsets cannot overlap.
@@ -104,7 +106,7 @@ go build ./services/guild/v1/...
 - Snowflake IDs and permission bitsets in Kafka JSON are strings; revisions, timestamps, and enums remain JSON numbers.
 - Guild publishes metadata, member, ban, role, channel, and channel-overwrite events; `pkg/realtime/events.go` is the canonical list of event names.
 - Message calls Guild `AuthorizeGuildChannel` for every create/read/list/update/delete operation. Message no longer trusts a caller-provided moderator boolean; non-author edits/deletes require `MANAGE_MESSAGES`.
-- Later Guild phases own invitations, permission-change-driven immediate subscription revocation, limits, and richer ordering.
+- Later Guild phases own permission-change-driven immediate subscription revocation, limits, and richer ordering.
 
 ## Gateway, Session, Dispatcher, And Presence
 

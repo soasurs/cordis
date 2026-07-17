@@ -75,6 +75,21 @@ const (
 	// GuildServiceTransferGuildOwnershipProcedure is the fully-qualified name of the GuildService's
 	// TransferGuildOwnership RPC.
 	GuildServiceTransferGuildOwnershipProcedure = "/api.v1.GuildService/TransferGuildOwnership"
+	// GuildServiceCreateGuildInviteProcedure is the fully-qualified name of the GuildService's
+	// CreateGuildInvite RPC.
+	GuildServiceCreateGuildInviteProcedure = "/api.v1.GuildService/CreateGuildInvite"
+	// GuildServiceGetGuildInviteProcedure is the fully-qualified name of the GuildService's
+	// GetGuildInvite RPC.
+	GuildServiceGetGuildInviteProcedure = "/api.v1.GuildService/GetGuildInvite"
+	// GuildServiceListGuildInvitesProcedure is the fully-qualified name of the GuildService's
+	// ListGuildInvites RPC.
+	GuildServiceListGuildInvitesProcedure = "/api.v1.GuildService/ListGuildInvites"
+	// GuildServiceDeleteGuildInviteProcedure is the fully-qualified name of the GuildService's
+	// DeleteGuildInvite RPC.
+	GuildServiceDeleteGuildInviteProcedure = "/api.v1.GuildService/DeleteGuildInvite"
+	// GuildServiceJoinGuildByInviteProcedure is the fully-qualified name of the GuildService's
+	// JoinGuildByInvite RPC.
+	GuildServiceJoinGuildByInviteProcedure = "/api.v1.GuildService/JoinGuildByInvite"
 	// GuildServiceCreateGuildRoleProcedure is the fully-qualified name of the GuildService's
 	// CreateGuildRole RPC.
 	GuildServiceCreateGuildRoleProcedure = "/api.v1.GuildService/CreateGuildRole"
@@ -151,6 +166,11 @@ type GuildServiceClient interface {
 	ListGuildBans(context.Context, *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
+	CreateGuildInvite(context.Context, *v1.CreateGuildInviteRequest) (*v1.CreateGuildInviteResponse, error)
+	GetGuildInvite(context.Context, *v1.GetGuildInviteRequest) (*v1.GetGuildInviteResponse, error)
+	ListGuildInvites(context.Context, *v1.ListGuildInvitesRequest) (*v1.ListGuildInvitesResponse, error)
+	DeleteGuildInvite(context.Context, *v1.DeleteGuildInviteRequest) (*v1.DeleteGuildInviteResponse, error)
+	JoinGuildByInvite(context.Context, *v1.JoinGuildByInviteRequest) (*v1.JoinGuildByInviteResponse, error)
 	CreateGuildRole(context.Context, *v1.CreateGuildRoleRequest) (*v1.CreateGuildRoleResponse, error)
 	GetGuildRole(context.Context, *v1.GetGuildRoleRequest) (*v1.GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *v1.ListGuildRolesRequest) (*v1.ListGuildRolesResponse, error)
@@ -271,6 +291,36 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+GuildServiceTransferGuildOwnershipProcedure,
 			connect.WithSchema(guildServiceMethods.ByName("TransferGuildOwnership")),
+			connect.WithClientOptions(opts...),
+		),
+		createGuildInvite: connect.NewClient[v1.CreateGuildInviteRequest, v1.CreateGuildInviteResponse](
+			httpClient,
+			baseURL+GuildServiceCreateGuildInviteProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("CreateGuildInvite")),
+			connect.WithClientOptions(opts...),
+		),
+		getGuildInvite: connect.NewClient[v1.GetGuildInviteRequest, v1.GetGuildInviteResponse](
+			httpClient,
+			baseURL+GuildServiceGetGuildInviteProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("GetGuildInvite")),
+			connect.WithClientOptions(opts...),
+		),
+		listGuildInvites: connect.NewClient[v1.ListGuildInvitesRequest, v1.ListGuildInvitesResponse](
+			httpClient,
+			baseURL+GuildServiceListGuildInvitesProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("ListGuildInvites")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteGuildInvite: connect.NewClient[v1.DeleteGuildInviteRequest, v1.DeleteGuildInviteResponse](
+			httpClient,
+			baseURL+GuildServiceDeleteGuildInviteProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("DeleteGuildInvite")),
+			connect.WithClientOptions(opts...),
+		),
+		joinGuildByInvite: connect.NewClient[v1.JoinGuildByInviteRequest, v1.JoinGuildByInviteResponse](
+			httpClient,
+			baseURL+GuildServiceJoinGuildByInviteProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("JoinGuildByInvite")),
 			connect.WithClientOptions(opts...),
 		),
 		createGuildRole: connect.NewClient[v1.CreateGuildRoleRequest, v1.CreateGuildRoleResponse](
@@ -407,6 +457,11 @@ type guildServiceClient struct {
 	listGuildBans                         *connect.Client[v1.ListGuildBansRequest, v1.ListGuildBansResponse]
 	leaveGuild                            *connect.Client[v1.LeaveGuildRequest, v1.LeaveGuildResponse]
 	transferGuildOwnership                *connect.Client[v1.TransferGuildOwnershipRequest, v1.TransferGuildOwnershipResponse]
+	createGuildInvite                     *connect.Client[v1.CreateGuildInviteRequest, v1.CreateGuildInviteResponse]
+	getGuildInvite                        *connect.Client[v1.GetGuildInviteRequest, v1.GetGuildInviteResponse]
+	listGuildInvites                      *connect.Client[v1.ListGuildInvitesRequest, v1.ListGuildInvitesResponse]
+	deleteGuildInvite                     *connect.Client[v1.DeleteGuildInviteRequest, v1.DeleteGuildInviteResponse]
+	joinGuildByInvite                     *connect.Client[v1.JoinGuildByInviteRequest, v1.JoinGuildByInviteResponse]
 	createGuildRole                       *connect.Client[v1.CreateGuildRoleRequest, v1.CreateGuildRoleResponse]
 	getGuildRole                          *connect.Client[v1.GetGuildRoleRequest, v1.GetGuildRoleResponse]
 	listGuildRoles                        *connect.Client[v1.ListGuildRolesRequest, v1.ListGuildRolesResponse]
@@ -557,6 +612,51 @@ func (c *guildServiceClient) LeaveGuild(ctx context.Context, req *v1.LeaveGuildR
 // TransferGuildOwnership calls api.v1.GuildService.TransferGuildOwnership.
 func (c *guildServiceClient) TransferGuildOwnership(ctx context.Context, req *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error) {
 	response, err := c.transferGuildOwnership.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CreateGuildInvite calls api.v1.GuildService.CreateGuildInvite.
+func (c *guildServiceClient) CreateGuildInvite(ctx context.Context, req *v1.CreateGuildInviteRequest) (*v1.CreateGuildInviteResponse, error) {
+	response, err := c.createGuildInvite.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetGuildInvite calls api.v1.GuildService.GetGuildInvite.
+func (c *guildServiceClient) GetGuildInvite(ctx context.Context, req *v1.GetGuildInviteRequest) (*v1.GetGuildInviteResponse, error) {
+	response, err := c.getGuildInvite.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListGuildInvites calls api.v1.GuildService.ListGuildInvites.
+func (c *guildServiceClient) ListGuildInvites(ctx context.Context, req *v1.ListGuildInvitesRequest) (*v1.ListGuildInvitesResponse, error) {
+	response, err := c.listGuildInvites.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeleteGuildInvite calls api.v1.GuildService.DeleteGuildInvite.
+func (c *guildServiceClient) DeleteGuildInvite(ctx context.Context, req *v1.DeleteGuildInviteRequest) (*v1.DeleteGuildInviteResponse, error) {
+	response, err := c.deleteGuildInvite.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// JoinGuildByInvite calls api.v1.GuildService.JoinGuildByInvite.
+func (c *guildServiceClient) JoinGuildByInvite(ctx context.Context, req *v1.JoinGuildByInviteRequest) (*v1.JoinGuildByInviteResponse, error) {
+	response, err := c.joinGuildByInvite.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -754,6 +854,11 @@ type GuildServiceHandler interface {
 	ListGuildBans(context.Context, *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
+	CreateGuildInvite(context.Context, *v1.CreateGuildInviteRequest) (*v1.CreateGuildInviteResponse, error)
+	GetGuildInvite(context.Context, *v1.GetGuildInviteRequest) (*v1.GetGuildInviteResponse, error)
+	ListGuildInvites(context.Context, *v1.ListGuildInvitesRequest) (*v1.ListGuildInvitesResponse, error)
+	DeleteGuildInvite(context.Context, *v1.DeleteGuildInviteRequest) (*v1.DeleteGuildInviteResponse, error)
+	JoinGuildByInvite(context.Context, *v1.JoinGuildByInviteRequest) (*v1.JoinGuildByInviteResponse, error)
 	CreateGuildRole(context.Context, *v1.CreateGuildRoleRequest) (*v1.CreateGuildRoleResponse, error)
 	GetGuildRole(context.Context, *v1.GetGuildRoleRequest) (*v1.GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *v1.ListGuildRolesRequest) (*v1.ListGuildRolesResponse, error)
@@ -870,6 +975,36 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		GuildServiceTransferGuildOwnershipProcedure,
 		svc.TransferGuildOwnership,
 		connect.WithSchema(guildServiceMethods.ByName("TransferGuildOwnership")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceCreateGuildInviteHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceCreateGuildInviteProcedure,
+		svc.CreateGuildInvite,
+		connect.WithSchema(guildServiceMethods.ByName("CreateGuildInvite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceGetGuildInviteHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceGetGuildInviteProcedure,
+		svc.GetGuildInvite,
+		connect.WithSchema(guildServiceMethods.ByName("GetGuildInvite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceListGuildInvitesHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceListGuildInvitesProcedure,
+		svc.ListGuildInvites,
+		connect.WithSchema(guildServiceMethods.ByName("ListGuildInvites")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceDeleteGuildInviteHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceDeleteGuildInviteProcedure,
+		svc.DeleteGuildInvite,
+		connect.WithSchema(guildServiceMethods.ByName("DeleteGuildInvite")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceJoinGuildByInviteHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceJoinGuildByInviteProcedure,
+		svc.JoinGuildByInvite,
+		connect.WithSchema(guildServiceMethods.ByName("JoinGuildByInvite")),
 		connect.WithHandlerOptions(opts...),
 	)
 	guildServiceCreateGuildRoleHandler := connect.NewUnaryHandlerSimple(
@@ -1018,6 +1153,16 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceLeaveGuildHandler.ServeHTTP(w, r)
 		case GuildServiceTransferGuildOwnershipProcedure:
 			guildServiceTransferGuildOwnershipHandler.ServeHTTP(w, r)
+		case GuildServiceCreateGuildInviteProcedure:
+			guildServiceCreateGuildInviteHandler.ServeHTTP(w, r)
+		case GuildServiceGetGuildInviteProcedure:
+			guildServiceGetGuildInviteHandler.ServeHTTP(w, r)
+		case GuildServiceListGuildInvitesProcedure:
+			guildServiceListGuildInvitesHandler.ServeHTTP(w, r)
+		case GuildServiceDeleteGuildInviteProcedure:
+			guildServiceDeleteGuildInviteHandler.ServeHTTP(w, r)
+		case GuildServiceJoinGuildByInviteProcedure:
+			guildServiceJoinGuildByInviteHandler.ServeHTTP(w, r)
 		case GuildServiceCreateGuildRoleProcedure:
 			guildServiceCreateGuildRoleHandler.ServeHTTP(w, r)
 		case GuildServiceGetGuildRoleProcedure:
@@ -1123,6 +1268,26 @@ func (UnimplementedGuildServiceHandler) LeaveGuild(context.Context, *v1.LeaveGui
 
 func (UnimplementedGuildServiceHandler) TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.TransferGuildOwnership is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) CreateGuildInvite(context.Context, *v1.CreateGuildInviteRequest) (*v1.CreateGuildInviteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.CreateGuildInvite is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) GetGuildInvite(context.Context, *v1.GetGuildInviteRequest) (*v1.GetGuildInviteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.GetGuildInvite is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) ListGuildInvites(context.Context, *v1.ListGuildInvitesRequest) (*v1.ListGuildInvitesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ListGuildInvites is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) DeleteGuildInvite(context.Context, *v1.DeleteGuildInviteRequest) (*v1.DeleteGuildInviteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.DeleteGuildInvite is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) JoinGuildByInvite(context.Context, *v1.JoinGuildByInviteRequest) (*v1.JoinGuildByInviteResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.JoinGuildByInvite is not implemented"))
 }
 
 func (UnimplementedGuildServiceHandler) CreateGuildRole(context.Context, *v1.CreateGuildRoleRequest) (*v1.CreateGuildRoleResponse, error) {

@@ -15,6 +15,7 @@ enum GuildPermission {
   GUILD_PERMISSION_MANAGE_CHANNELS = 128;
   GUILD_PERMISSION_MANAGE_MESSAGES = 256;
   GUILD_PERMISSION_BAN_MEMBERS = 512;
+  GUILD_PERMISSION_CREATE_INVITE = 1024;
 }
 
 enum GuildChannelType {
@@ -47,6 +48,11 @@ service GuildService {
   rpc ListGuildBans(ListGuildBansRequest) returns (ListGuildBansResponse);
   rpc LeaveGuild(LeaveGuildRequest) returns (LeaveGuildResponse);
   rpc TransferGuildOwnership(TransferGuildOwnershipRequest) returns (TransferGuildOwnershipResponse);
+  rpc CreateGuildInvite(CreateGuildInviteRequest) returns (CreateGuildInviteResponse);
+  rpc GetGuildInvite(GetGuildInviteRequest) returns (GetGuildInviteResponse);
+  rpc ListGuildInvites(ListGuildInvitesRequest) returns (ListGuildInvitesResponse);
+  rpc DeleteGuildInvite(DeleteGuildInviteRequest) returns (DeleteGuildInviteResponse);
+  rpc JoinGuildByInvite(JoinGuildByInviteRequest) returns (JoinGuildByInviteResponse);
   rpc CreateGuildRole(CreateGuildRoleRequest) returns (CreateGuildRoleResponse);
   rpc GetGuildRole(GetGuildRoleRequest) returns (GetGuildRoleResponse);
   rpc ListGuildRoles(ListGuildRolesRequest) returns (ListGuildRolesResponse);
@@ -277,6 +283,80 @@ message TransferGuildOwnershipRequest {
 
 message TransferGuildOwnershipResponse {
   Guild guild = 1;
+}
+
+// GuildInvite is a shareable code that lets users join a guild.
+// All timestamps are Unix time in milliseconds.
+message GuildInvite {
+  int64 id = 1;
+  string code = 2;
+  int64 guild_id = 3;
+  int64 creator_user_id = 4;
+  // Zero means unlimited uses.
+  int32 max_uses = 5;
+  int32 uses = 6;
+  // Zero means the invite never expires.
+  int64 expires_at = 7;
+  int64 created_at = 8;
+}
+
+// GuildInvitePreview is the guild summary shown to a user before joining.
+message GuildInvitePreview {
+  string code = 1;
+  int64 guild_id = 2;
+  string guild_name = 3;
+  string guild_icon_uri = 4;
+  int64 member_count = 5;
+  int64 expires_at = 6;
+}
+
+message CreateGuildInviteRequest {
+  int64 guild_id = 1;
+  // Zero means unlimited uses.
+  int32 max_uses = 2;
+  // Relative lifetime in milliseconds. Zero means the invite never expires.
+  int64 expires_in_ms = 3;
+}
+
+message CreateGuildInviteResponse {
+  GuildInvite invite = 1;
+}
+
+message GetGuildInviteRequest {
+  string code = 1;
+}
+
+message GetGuildInviteResponse {
+  GuildInvitePreview preview = 1;
+}
+
+message ListGuildInvitesRequest {
+  int64 guild_id = 1;
+  // Return invites with IDs smaller than this cursor.
+  int64 before_id = 2;
+  int32 limit = 3;
+}
+
+message ListGuildInvitesResponse {
+  repeated GuildInvite invites = 1;
+  int64 before_id = 2;
+}
+
+message DeleteGuildInviteRequest {
+  string code = 1;
+}
+
+message DeleteGuildInviteResponse {
+  bool ok = 1;
+}
+
+message JoinGuildByInviteRequest {
+  string code = 1;
+}
+
+message JoinGuildByInviteResponse {
+  Guild guild = 1;
+  GuildMember member = 2;
 }
 
 message CreateGuildRoleRequest {

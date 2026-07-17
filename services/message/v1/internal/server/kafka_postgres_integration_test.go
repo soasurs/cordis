@@ -54,6 +54,7 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 		Snowflake:   node,
 		Kafka:       producer,
 		GuildClient: &fakeGuildClient{},
+		UserClient:  newFakeUserClient(),
 	}))
 
 	req := new(messagev1.CreateMessageRequest)

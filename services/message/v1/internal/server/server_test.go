@@ -409,6 +409,7 @@ type fakeStore struct {
 	messages    map[int64]*model.Message
 	mentions    map[int64][]int64
 	dmChannels  map[int64]*model.DmChannel
+	readStates  map[int64]map[int64]int64 // userID -> channelID -> lastReadID
 	transactErr error
 }
 
@@ -417,6 +418,7 @@ func newFakeStore() *fakeStore {
 		messages:   make(map[int64]*model.Message),
 		mentions:   make(map[int64][]int64),
 		dmChannels: make(map[int64]*model.DmChannel),
+		readStates: make(map[int64]map[int64]int64),
 	}
 }
 
@@ -573,6 +575,94 @@ func (s *fakeStore) ListDmChannels(_ context.Context, params store.ListDmChannel
 		channels = channels[:params.Limit]
 	}
 	return channels, nil
+}
+
+func (s *fakeStore) AckMessage(_ context.Context, userID, channelID, messageID int64) error {
+	if s.readStates[userID] == nil {
+		s.readStates[userID] = make(map[int64]int64)
+	}
+	if current, ok := s.readStates[userID][channelID]; !ok || messageID > current {
+		s.readStates[userID][channelID] = messageID
+	}
+	return nil
+}
+
+func (s *fakeStore) ListChannelReadStates(_ context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
+	var states []*model.ChannelReadState
+	byChannel := s.readStates[userID]
+	for _, channelID := range channelIDs {
+		lastReadID := int64(0)
+		if byChannel != nil {
+			if v, ok := byChannel[channelID]; ok {
+				lastReadID = v
+			}
+		}
+		states = append(states, &model.ChannelReadState{
+			UserID:            userID,
+			ChannelID:         channelID,
+			LastReadMessageID: lastReadID,
+		})
+	}
+	return states, nil
+}
+
+func (s *fakeStore) CountMissingMessages(_ context.Context, channelID, lastReadMessageID, userID int64) (int32, error) {
+	var count int32
+	for _, m := range s.messages {
+		if m.ChannelID == channelID && m.ID > lastReadMessageID && m.DeletedAt == 0 && m.AuthorID != userID {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (s *fakeStore) CountUnreadMentions(_ context.Context, userID, channelID, lastReadMessageID int64) (int32, error) {
+	var count int32
+	for _, m := range s.messages {
+		if m.ChannelID == channelID && m.ID > lastReadMessageID && m.DeletedAt == 0 {
+			for _, mentionedID := range s.mentions[m.ID] {
+				if mentionedID == userID {
+					count++
+					break
+				}
+			}
+		}
+	}
+	return count, nil
+}
+
+func TestAckMessageSuccess(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeGuild := &fakeGuildClient{}
+	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), fakeGuild)
+
+	req := new(messagev1.AckMessageRequest)
+	req.SetUserId(1)
+	req.SetChannelId(10)
+	req.SetMessageId(50)
+
+	resp, err := server.AckMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+
+	require.Equal(t, int64(50), fakeStore.readStates[1][10])
+}
+
+func TestAckMessagePermissionDenied(t *testing.T) {
+	server := newTestMessageServerWithGuild(
+		t,
+		newFakeStore(),
+		new(fakePublisher),
+		&fakeGuildClient{denyAll: true},
+	)
+
+	req := new(messagev1.AckMessageRequest)
+	req.SetUserId(1)
+	req.SetChannelId(10)
+	req.SetMessageId(50)
+
+	_, err := server.AckMessage(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
 func cloneMessage(message *model.Message) *model.Message {

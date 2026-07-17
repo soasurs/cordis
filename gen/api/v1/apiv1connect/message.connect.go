@@ -54,6 +54,12 @@ const (
 	// MessageServiceListDmChannelsProcedure is the fully-qualified name of the MessageService's
 	// ListDmChannels RPC.
 	MessageServiceListDmChannelsProcedure = "/api.v1.MessageService/ListDmChannels"
+	// MessageServiceAckMessageProcedure is the fully-qualified name of the MessageService's AckMessage
+	// RPC.
+	MessageServiceAckMessageProcedure = "/api.v1.MessageService/AckMessage"
+	// MessageServiceGetReadStatesProcedure is the fully-qualified name of the MessageService's
+	// GetReadStates RPC.
+	MessageServiceGetReadStatesProcedure = "/api.v1.MessageService/GetReadStates"
 )
 
 // MessageServiceClient is a client for the api.v1.MessageService service.
@@ -73,6 +79,9 @@ type MessageServiceClient interface {
 	// returned channel ID.
 	CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error)
 	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
+	// AckMessage moves the last-read position forward for one channel.
+	AckMessage(context.Context, *v1.AckMessageRequest) (*v1.AckMessageResponse, error)
+	GetReadStates(context.Context, *v1.GetReadStatesRequest) (*v1.GetReadStatesResponse, error)
 }
 
 // NewMessageServiceClient constructs a client for the api.v1.MessageService service. By default, it
@@ -128,6 +137,18 @@ func NewMessageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(messageServiceMethods.ByName("ListDmChannels")),
 			connect.WithClientOptions(opts...),
 		),
+		ackMessage: connect.NewClient[v1.AckMessageRequest, v1.AckMessageResponse](
+			httpClient,
+			baseURL+MessageServiceAckMessageProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("AckMessage")),
+			connect.WithClientOptions(opts...),
+		),
+		getReadStates: connect.NewClient[v1.GetReadStatesRequest, v1.GetReadStatesResponse](
+			httpClient,
+			baseURL+MessageServiceGetReadStatesProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("GetReadStates")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -140,6 +161,8 @@ type messageServiceClient struct {
 	listMessages    *connect.Client[v1.ListMessagesRequest, v1.ListMessagesResponse]
 	createDmChannel *connect.Client[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse]
 	listDmChannels  *connect.Client[v1.ListDmChannelsRequest, v1.ListDmChannelsResponse]
+	ackMessage      *connect.Client[v1.AckMessageRequest, v1.AckMessageResponse]
+	getReadStates   *connect.Client[v1.GetReadStatesRequest, v1.GetReadStatesResponse]
 }
 
 // CreateMessage calls api.v1.MessageService.CreateMessage.
@@ -205,6 +228,24 @@ func (c *messageServiceClient) ListDmChannels(ctx context.Context, req *v1.ListD
 	return nil, err
 }
 
+// AckMessage calls api.v1.MessageService.AckMessage.
+func (c *messageServiceClient) AckMessage(ctx context.Context, req *v1.AckMessageRequest) (*v1.AckMessageResponse, error) {
+	response, err := c.ackMessage.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetReadStates calls api.v1.MessageService.GetReadStates.
+func (c *messageServiceClient) GetReadStates(ctx context.Context, req *v1.GetReadStatesRequest) (*v1.GetReadStatesResponse, error) {
+	response, err := c.getReadStates.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // MessageServiceHandler is an implementation of the api.v1.MessageService service.
 type MessageServiceHandler interface {
 	// CreateMessage creates a message authored by the bearer token owner.
@@ -222,6 +263,9 @@ type MessageServiceHandler interface {
 	// returned channel ID.
 	CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error)
 	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
+	// AckMessage moves the last-read position forward for one channel.
+	AckMessage(context.Context, *v1.AckMessageRequest) (*v1.AckMessageResponse, error)
+	GetReadStates(context.Context, *v1.GetReadStatesRequest) (*v1.GetReadStatesResponse, error)
 }
 
 // NewMessageServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -273,6 +317,18 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 		connect.WithSchema(messageServiceMethods.ByName("ListDmChannels")),
 		connect.WithHandlerOptions(opts...),
 	)
+	messageServiceAckMessageHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceAckMessageProcedure,
+		svc.AckMessage,
+		connect.WithSchema(messageServiceMethods.ByName("AckMessage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	messageServiceGetReadStatesHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceGetReadStatesProcedure,
+		svc.GetReadStates,
+		connect.WithSchema(messageServiceMethods.ByName("GetReadStates")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.MessageService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MessageServiceCreateMessageProcedure:
@@ -289,6 +345,10 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 			messageServiceCreateDmChannelHandler.ServeHTTP(w, r)
 		case MessageServiceListDmChannelsProcedure:
 			messageServiceListDmChannelsHandler.ServeHTTP(w, r)
+		case MessageServiceAckMessageProcedure:
+			messageServiceAckMessageHandler.ServeHTTP(w, r)
+		case MessageServiceGetReadStatesProcedure:
+			messageServiceGetReadStatesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -324,4 +384,12 @@ func (UnimplementedMessageServiceHandler) CreateDmChannel(context.Context, *v1.C
 
 func (UnimplementedMessageServiceHandler) ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.ListDmChannels is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) AckMessage(context.Context, *v1.AckMessageRequest) (*v1.AckMessageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.AckMessage is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) GetReadStates(context.Context, *v1.GetReadStatesRequest) (*v1.GetReadStatesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.GetReadStates is not implemented"))
 }

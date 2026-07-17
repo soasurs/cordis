@@ -54,6 +54,10 @@ type Store interface {
 	GetDmChannel(ctx context.Context, channelID int64) (*model.DmChannel, error)
 	GetDmChannelByPair(ctx context.Context, userLo, userHi int64) (*model.DmChannel, error)
 	ListDmChannels(ctx context.Context, params ListDmChannelsParams) ([]*model.DmChannel, error)
+	AckMessage(ctx context.Context, userID, channelID, messageID int64) error
+	ListChannelReadStates(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error)
+	CountMissingMessages(ctx context.Context, channelID, lastReadMessageID, userID int64) (int32, error)
+	CountUnreadMentions(ctx context.Context, userID, channelID, lastReadMessageID int64) (int32, error)
 }
 
 type ListDmChannelsParams struct {

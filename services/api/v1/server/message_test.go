@@ -43,6 +43,14 @@ type fakeMessageClient struct {
 	listDmChannelsRequest   *messagev1.ListDmChannelsRequest
 	listDmChannelsResponse  *messagev1.ListDmChannelsResponse
 	listDmChannelsError     error
+
+	ackMessageRequest  *messagev1.AckMessageRequest
+	ackMessageResponse *messagev1.AckMessageResponse
+	ackMessageError    error
+
+	getReadStatesRequest  *messagev1.GetReadStatesRequest
+	getReadStatesResponse *messagev1.GetReadStatesResponse
+	getReadStatesError    error
 }
 
 func (f *fakeMessageClient) CreateMessage(_ context.Context, req *messagev1.CreateMessageRequest, _ ...grpc.CallOption) (*messagev1.CreateMessageResponse, error) {
@@ -389,6 +397,22 @@ func (f *fakeMessageClient) ListDmChannels(_ context.Context, req *messagev1.Lis
 	return f.listDmChannelsResponse, nil
 }
 
+func (f *fakeMessageClient) AckMessage(_ context.Context, req *messagev1.AckMessageRequest, _ ...grpc.CallOption) (*messagev1.AckMessageResponse, error) {
+	f.ackMessageRequest = req
+	if f.ackMessageError != nil {
+		return nil, f.ackMessageError
+	}
+	return f.ackMessageResponse, nil
+}
+
+func (f *fakeMessageClient) GetReadStates(_ context.Context, req *messagev1.GetReadStatesRequest, _ ...grpc.CallOption) (*messagev1.GetReadStatesResponse, error) {
+	f.getReadStatesRequest = req
+	if f.getReadStatesError != nil {
+		return nil, f.getReadStatesError
+	}
+	return f.getReadStatesResponse, nil
+}
+
 func TestCreateDmChannelUsesAuthenticatedUser(t *testing.T) {
 	channel := new(messagev1.DmChannel)
 	channel.SetId(500)
@@ -440,4 +464,62 @@ func TestListDmChannelsMapsPerspective(t *testing.T) {
 	// The caller is user_hi here, so the recipient is user_lo.
 	require.Equal(t, int64(42), resp.GetChannels()[0].GetRecipientId())
 	require.Equal(t, int64(500), resp.GetBeforeId())
+}
+
+func TestAckMessageUsesAuthenticatedUser(t *testing.T) {
+	ackRes := new(messagev1.AckMessageResponse)
+	ackRes.SetOk(true)
+	messageClient := &fakeMessageClient{ackMessageResponse: ackRes}
+	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}, messageClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.AckMessage(context.Background(), &apiv1.AckMessageRequest{
+		ChannelId: new(int64(2001)),
+		MessageId: new(int64(3001)),
+	})
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Equal(t, int64(1001), messageClient.ackMessageRequest.GetUserId())
+	require.Equal(t, int64(2001), messageClient.ackMessageRequest.GetChannelId())
+	require.Equal(t, int64(3001), messageClient.ackMessageRequest.GetMessageId())
+}
+
+func TestGetReadStatesMapsResponse(t *testing.T) {
+	st := new(messagev1.ChannelReadState)
+	st.SetChannelId(2001)
+	st.SetLastReadMessageId(3001)
+	st.SetMentionCount(3)
+	st.SetMissingMessageCount(10)
+	svcResp := new(messagev1.GetReadStatesResponse)
+	svcResp.SetStates([]*messagev1.ChannelReadState{st})
+
+	messageClient := &fakeMessageClient{getReadStatesResponse: svcResp}
+	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}, messageClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.GetReadStates(context.Background(), &apiv1.GetReadStatesRequest{
+		ChannelIds: []int64{2001, 2002},
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), messageClient.getReadStatesRequest.GetUserId())
+	require.Equal(t, []int64{2001, 2002}, messageClient.getReadStatesRequest.GetChannelIds())
+	require.Len(t, resp.GetStates(), 1)
+	require.Equal(t, int64(2001), resp.GetStates()[0].GetChannelId())
+	require.Equal(t, int64(3001), resp.GetStates()[0].GetLastReadMessageId())
+	require.Equal(t, int32(3), resp.GetStates()[0].GetMentionCount())
+	require.Equal(t, int32(10), resp.GetStates()[0].GetMissingMessageCount())
+}
+
+func TestGetReadStatesRequiresAccessToken(t *testing.T) {
+	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{}, &fakeMessageClient{}, "")
+	defer closeServer()
+
+	_, err := client.GetReadStates(context.Background(), &apiv1.GetReadStatesRequest{
+		ChannelIds: []int64{2001},
+	})
+	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }

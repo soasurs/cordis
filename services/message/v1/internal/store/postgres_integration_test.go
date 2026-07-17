@@ -7,6 +7,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 
@@ -36,6 +37,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("transact rollback", func(t *testing.T) { testTransactRollback(t, store) })
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("dm channels", func(t *testing.T) { testDmChannels(t, store) })
+	t.Run("read states", func(t *testing.T) { testReadStates(t, store, db) })
 }
 
 func testCreateAndGetMessage(t *testing.T, store Store) {
@@ -392,4 +394,106 @@ func requireCheckViolation(t *testing.T, err error) {
 	var pqErr *pq.Error
 	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
 	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+}
+
+func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS channel_read_states (
+		user_id BIGINT NOT NULL CHECK (user_id > 0),
+		channel_id BIGINT NOT NULL CHECK (channel_id > 0),
+		last_read_message_id BIGINT NOT NULL DEFAULT 0 CHECK (last_read_message_id >= 0),
+		mention_count INT NOT NULL DEFAULT 0 CHECK (mention_count >= 0),
+		updated_at BIGINT NOT NULL DEFAULT 0 CHECK (updated_at >= 0),
+		PRIMARY KEY (user_id, channel_id)
+	)`)
+	require.NoError(t, err)
+
+	const (
+		userID    = int64(9501)
+		channelID = int64(9601)
+	)
+
+	t.Run("ack list and no regress", func(t *testing.T) {
+		ctx := t.Context()
+		require.NoError(t, store.AckMessage(ctx, userID, channelID, 50))
+
+		states, err := store.ListChannelReadStates(ctx, userID, []int64{channelID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, int64(50), states[0].LastReadMessageID)
+
+		require.NoError(t, store.AckMessage(ctx, userID, channelID, 30))
+
+		states, err = store.ListChannelReadStates(ctx, userID, []int64{channelID})
+		require.NoError(t, err)
+		require.Len(t, states, 1)
+		require.Equal(t, int64(50), states[0].LastReadMessageID)
+	})
+
+	t.Run("count missing", func(t *testing.T) {
+		ctx := t.Context()
+
+		_, err := store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9701, ChannelID: channelID, AuthorID: userID,
+			Content: "own", Type: 1,
+		})
+		require.NoError(t, err)
+
+		_, err = store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9702, ChannelID: channelID, AuthorID: 9502,
+			Content: "other", Type: 1,
+		})
+		require.NoError(t, err)
+
+		_, err = store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9703, ChannelID: channelID, AuthorID: 9502,
+			Content: "deleted", Type: 1,
+		})
+		require.NoError(t, err)
+		_, err = store.DeleteMessage(ctx, 9703, 9502, false)
+		require.NoError(t, err)
+
+		missing, err := store.CountMissingMessages(ctx, channelID, 0, userID)
+		require.NoError(t, err)
+		require.Equal(t, int32(1), missing)
+	})
+
+	t.Run("count unread mentions", func(t *testing.T) {
+		ctx := t.Context()
+
+		_, err := store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9801, ChannelID: channelID, AuthorID: 9502,
+			Content: "mention", Type: 1,
+		})
+		require.NoError(t, err)
+		require.NoError(t, store.ReplaceMessageMentions(ctx, 9801, []int64{userID}))
+
+		_, err = store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9802, ChannelID: channelID, AuthorID: 9502,
+			Content: "mention2", Type: 1,
+		})
+		require.NoError(t, err)
+		require.NoError(t, store.ReplaceMessageMentions(ctx, 9802, []int64{userID}))
+
+		count, err := store.CountUnreadMentions(ctx, userID, channelID, 0)
+		require.NoError(t, err)
+		require.Equal(t, int32(2), count)
+
+		require.NoError(t, store.AckMessage(ctx, userID, channelID, 9802))
+
+		count, err = store.CountUnreadMentions(ctx, userID, channelID, 9802)
+		require.NoError(t, err)
+		require.Equal(t, int32(0), count)
+	})
+
+	t.Run("no read state defaults to zero", func(t *testing.T) {
+		ctx := t.Context()
+
+		missing, err := store.CountMissingMessages(ctx, 9699, 0, 9599)
+		require.NoError(t, err)
+		require.Equal(t, int32(0), missing)
+
+		mentions, err := store.CountUnreadMentions(ctx, 9599, 9699, 0)
+		require.NoError(t, err)
+		require.Equal(t, int32(0), mentions)
+	})
 }

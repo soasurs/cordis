@@ -20,6 +20,20 @@ service MessageService {
   // returned channel ID.
   rpc CreateDmChannel(CreateDmChannelRequest) returns (CreateDmChannelResponse);
   rpc ListDmChannels(ListDmChannelsRequest) returns (ListDmChannelsResponse);
+  // AckMessage moves the last-read position forward for one channel.
+  rpc AckMessage(AckMessageRequest) returns (AckMessageResponse);
+  rpc GetReadStates(GetReadStatesRequest) returns (GetReadStatesResponse);
+}
+
+// ChannelReadState is one user's read position and mention count in a
+// channel.
+message ChannelReadState {
+  int64 channel_id = 1;
+  // Only messages with a larger ID than this are unread.
+  int64 last_read_message_id = 2;
+  int32 mention_count = 3;
+  // Messages posted after the last-read position (author-excluded).
+  int32 missing_message_count = 4;
 }
 
 // DmChannel is a private 1:1 conversation from the caller's perspective.
@@ -186,4 +200,22 @@ message ListDmChannelsRequest {
 message ListDmChannelsResponse {
   repeated DmChannel channels = 1;
   int64 before_id = 2;
+}
+
+message AckMessageRequest {
+  int64 channel_id = 1;
+  // Only a larger ID moves the cursor forward.
+  int64 message_id = 2;
+}
+
+message AckMessageResponse {
+  bool ok = 1;
+}
+
+message GetReadStatesRequest {
+  repeated int64 channel_ids = 1;
+}
+
+message GetReadStatesResponse {
+  repeated ChannelReadState states = 1;
 }

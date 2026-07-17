@@ -35,9 +35,40 @@ go build ./...
 go vet ./...
 ```
 
-Tests use `testify/require`; SQL stores use `sqlmock`. Redis integration tests
-require an explicit integration tag and address. PostgreSQL integration tests
-are not currently part of the normal workflow.
+Tests use `testify/require`; SQL stores use `sqlmock`. Day-to-day development
+does not require Docker:
+
+```bash
+make test
+```
+
+Real-backend integration tests use the `integration` tag and start fixed-version
+PostgreSQL, Redis, Kafka (KRaft), and etcd via Testcontainers without requiring
+already-running services:
+
+```bash
+make test-integration
+```
+
+Integration tests cover every Store interface method against real backends;
+Guild and Message Kafka publishing; Redis Store methods for Presence and
+Session; Gateway Redis + etcd resolution; and the full Kafka → Dispatcher →
+Redis routes → etcd Session-node directory → gRPC Session dispatch chain.
+Kafka topics, consumer groups, and etcd prefixes use run-scoped random names to
+avoid cross-test pollution. Cross-service composition tests run the caller
+in-process against real service binaries (User, Guild) for Message channel
+authorization and Authenticator registration/login.
+
+For manual multi-service debugging use the fixed-version Compose stack:
+
+```bash
+make compose-up
+# run migrations and services in the documented startup order
+make compose-down
+```
+
+Compose keeps named volumes; run `docker compose down -v` to wipe local
+development data.
 
 For local startup, bring up PostgreSQL, Redis, etcd, and Kafka first; then start
 User, Authenticator, Guild, Message, Presence, and Session; finally start API,

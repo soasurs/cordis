@@ -85,6 +85,14 @@ go build ./...
 go vet ./...
 ```
 
+真实依赖测试使用 `integration` tag：
+
+```bash
+make test-integration
+```
+
+这些测试通过 Testcontainers 管理基础设施（需要 Docker），不依赖开发机上已有服务。
+
 修改 `proto/` 下的协议后重新生成代码：
 
 ```bash
@@ -97,6 +105,14 @@ make generate
 
 先启动 PostgreSQL、Redis、etcd 和 Kafka，再根据本地环境调整
 `services/<name>/v1/etc/` 下的 YAML 配置。
+
+仓库提供固定版本的本地依赖编排：
+
+```bash
+make compose-up
+```
+
+它会暴露配置默认使用的 `5432`、`6379`、`9092` 与 `2379` 端口。停止服务但保留本地数据请使用 `make compose-down`。
 
 Authenticator 需要令牌密钥：
 

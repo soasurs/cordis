@@ -1,0 +1,295 @@
+//go:build integration
+
+package store
+
+import (
+	"database/sql"
+	"errors"
+	"testing"
+
+	"github.com/lib/pq"
+	"github.com/stretchr/testify/require"
+
+	"github.com/soasurs/cordis/internal/testkit"
+	"github.com/soasurs/cordis/pkg/database"
+	"github.com/soasurs/cordis/pkg/migration"
+	messagemigrations "github.com/soasurs/cordis/services/message/v1/db/migrations"
+	"github.com/soasurs/cordis/services/message/v1/internal/model"
+)
+
+// TestSQLStoreWithPostgres shares one PostgreSQL container across all
+// integration subtests; each subtest works in its own channel/message ID
+// space.
+func TestSQLStoreWithPostgres(t *testing.T) {
+	postgres := testkit.StartPostgres(t)
+	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, db.Close()) })
+	require.NoError(t, migration.Apply(t.Context(), db, messagemigrations.Files))
+
+	store := New(db)
+	t.Run("create and get", func(t *testing.T) { testCreateAndGetMessage(t, store) })
+	t.Run("list pagination", func(t *testing.T) { testListMessages(t, store) })
+	t.Run("update", func(t *testing.T) { testUpdateMessage(t, store) })
+	t.Run("delete", func(t *testing.T) { testDeleteMessage(t, store) })
+	t.Run("mentions", func(t *testing.T) { testMessageMentions(t, store) })
+	t.Run("transact rollback", func(t *testing.T) { testTransactRollback(t, store) })
+	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
+}
+
+func testCreateAndGetMessage(t *testing.T, store Store) {
+	const channelID = int64(2001)
+	ctx := t.Context()
+
+	created, err := store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5001, ChannelID: channelID, AuthorID: 3001,
+		Content: "hello", Type: 1,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(5001), created.ID)
+	require.Equal(t, int64(1), created.Revision)
+	require.True(t, created.CreatedAt > 0)
+
+	reply, err := store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5002, ChannelID: channelID, AuthorID: 3002,
+		Content: "reply", Type: 19,
+		ReferencedMessageID: 5001, ReferencedChannelID: channelID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(5001), reply.ReferencedMessageID)
+	require.Equal(t, channelID, reply.ReferencedChannelID)
+
+	withAttachments, err := store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5003, ChannelID: channelID, AuthorID: 3001, Type: 1,
+		Attachments: []model.Attachment{{
+			Key: "k1", Filename: "a.png", Size: 42, ContentType: "image/png", Width: 10, Height: 20,
+		}},
+	})
+	require.NoError(t, err)
+	require.Len(t, withAttachments.Attachments, 1)
+
+	loaded, err := store.GetMessage(ctx, 5003)
+	require.NoError(t, err)
+	require.Equal(t, []model.Attachment{{
+		Key: "k1", Filename: "a.png", Size: 42, ContentType: "image/png", Width: 10, Height: 20,
+	}}, loaded.Attachments)
+
+	_, err = store.GetMessage(ctx, 9999)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func testListMessages(t *testing.T, store Store) {
+	const channelID = int64(2002)
+	ctx := t.Context()
+	for i := int64(1); i <= 10; i++ {
+		_, err := store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 5100 + i, ChannelID: channelID, AuthorID: 3001,
+			Content: "m", Type: 1,
+		})
+		require.NoError(t, err)
+	}
+
+	newest, err := store.ListMessages(ctx, ListMessagesParams{ChannelID: channelID, Limit: 3})
+	require.NoError(t, err)
+	require.Equal(t, []int64{5110, 5109, 5108}, messageIDs(newest))
+
+	before, err := store.ListMessages(ctx, ListMessagesParams{ChannelID: channelID, Before: 5105, Limit: 3})
+	require.NoError(t, err)
+	require.Equal(t, []int64{5104, 5103, 5102}, messageIDs(before))
+
+	after, err := store.ListMessages(ctx, ListMessagesParams{ChannelID: channelID, After: 5105, Limit: 3})
+	require.NoError(t, err)
+	require.Equal(t, []int64{5108, 5107, 5106}, messageIDs(after))
+
+	around, err := store.ListMessages(ctx, ListMessagesParams{ChannelID: channelID, Around: 5105, Limit: 4})
+	require.NoError(t, err)
+	require.Equal(t, []int64{5107, 5106, 5105, 5104}, messageIDs(around))
+
+	aroundEdge, err := store.ListMessages(ctx, ListMessagesParams{ChannelID: channelID, Around: 5110, Limit: 4})
+	require.NoError(t, err)
+	require.Equal(t, []int64{5110, 5109, 5108, 5107}, messageIDs(aroundEdge))
+
+	_, err = store.DeleteMessage(ctx, 5109, 0, true)
+	require.NoError(t, err)
+	newest, err = store.ListMessages(ctx, ListMessagesParams{ChannelID: channelID, Limit: 3})
+	require.NoError(t, err)
+	require.Equal(t, []int64{5110, 5108, 5107}, messageIDs(newest))
+
+	empty, err := store.ListMessages(ctx, ListMessagesParams{ChannelID: 9999, Limit: 3})
+	require.NoError(t, err)
+	require.Empty(t, empty)
+}
+
+func testUpdateMessage(t *testing.T, store Store) {
+	const channelID, authorID = int64(2003), int64(3001)
+	ctx := t.Context()
+	_, err := store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5201, ChannelID: channelID, AuthorID: authorID,
+		Content: "original", Type: 1,
+	})
+	require.NoError(t, err)
+
+	updated, err := store.UpdateMessage(ctx, UpdateMessageParams{
+		MessageID: 5201, ActorUserID: authorID, Content: ptr("edited"),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "edited", updated.Content)
+	require.Equal(t, int64(2), updated.Revision)
+	require.True(t, updated.EditedAt > 0)
+
+	_, err = store.UpdateMessage(ctx, UpdateMessageParams{
+		MessageID: 5201, ActorUserID: 9999, Content: ptr("hijack"),
+	})
+	require.ErrorIs(t, err, ErrPermissionDenied)
+
+	modUpdated, err := store.UpdateMessage(ctx, UpdateMessageParams{
+		MessageID: 5201, ActorUserID: 9999, HasModPermission: true,
+		Flags: ptr(int32(4096)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int32(4096), modUpdated.Flags)
+	require.Equal(t, "edited", modUpdated.Content)
+	require.Equal(t, int64(3), modUpdated.Revision)
+
+	withAttachments, err := store.UpdateMessage(ctx, UpdateMessageParams{
+		MessageID: 5201, ActorUserID: authorID,
+		Attachments: ptr([]model.Attachment{{Key: "k2", Filename: "b.png", Size: 1, ContentType: "image/png"}}),
+	})
+	require.NoError(t, err)
+	require.Len(t, withAttachments.Attachments, 1)
+
+	_, err = store.UpdateMessage(ctx, UpdateMessageParams{
+		MessageID: 9999, ActorUserID: authorID, Content: ptr("x"),
+	})
+	require.ErrorIs(t, err, sql.ErrNoRows)
+	_, err = store.UpdateMessage(ctx, UpdateMessageParams{
+		MessageID: 9999, ActorUserID: authorID, HasModPermission: true, Content: ptr("x"),
+	})
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func testDeleteMessage(t *testing.T, store Store) {
+	const channelID, authorID = int64(2004), int64(3001)
+	ctx := t.Context()
+	for _, messageID := range []int64{5301, 5302} {
+		_, err := store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: messageID, ChannelID: channelID, AuthorID: authorID,
+			Content: "m", Type: 1,
+		})
+		require.NoError(t, err)
+	}
+
+	_, err := store.DeleteMessage(ctx, 5301, 9999, false)
+	require.ErrorIs(t, err, ErrPermissionDenied)
+
+	deleted, err := store.DeleteMessage(ctx, 5301, authorID, false)
+	require.NoError(t, err)
+	require.True(t, deleted.DeletedAt > 0)
+	require.Equal(t, int64(2), deleted.Revision)
+	_, err = store.GetMessage(ctx, 5301)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+	_, err = store.DeleteMessage(ctx, 5301, authorID, false)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	modDeleted, err := store.DeleteMessage(ctx, 5302, 9999, true)
+	require.NoError(t, err)
+	require.True(t, modDeleted.DeletedAt > 0)
+	_, err = store.DeleteMessage(ctx, 5302, 9999, true)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func testMessageMentions(t *testing.T, store Store) {
+	const channelID = int64(2005)
+	ctx := t.Context()
+	_, err := store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5401, ChannelID: channelID, AuthorID: 3001,
+		Content: "m", Type: 1,
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, []int64{4002, 4001, 4002, 0, -1}))
+	mentions, err := store.ListMentionUserIDs(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001, 4002}, mentions)
+
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, []int64{4003}))
+	mentions, err = store.ListMentionUserIDs(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4003}, mentions)
+
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, nil))
+	mentions, err = store.ListMentionUserIDs(ctx, 5401)
+	require.NoError(t, err)
+	require.Empty(t, mentions)
+}
+
+func testTransactRollback(t *testing.T, store Store) {
+	const channelID = int64(2006)
+	ctx := t.Context()
+
+	require.NoError(t, store.Transact(ctx, func(tx Store) error {
+		if _, err := tx.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 5501, ChannelID: channelID, AuthorID: 3001,
+			Content: "committed", Type: 1,
+		}); err != nil {
+			return err
+		}
+		return tx.ReplaceMessageMentions(ctx, 5501, []int64{4001})
+	}))
+	loaded, err := store.GetMessage(ctx, 5501)
+	require.NoError(t, err)
+	require.Equal(t, "committed", loaded.Content)
+
+	err = store.Transact(ctx, func(tx Store) error {
+		if _, err := tx.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 5502, ChannelID: channelID, AuthorID: 3001,
+			Content: "rollback", Type: 1,
+		}); err != nil {
+			return err
+		}
+		return errors.New("force rollback")
+	})
+	require.Error(t, err)
+	_, err = store.GetMessage(ctx, 5502)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func testConstraintEnforcement(t *testing.T, store Store) {
+	const channelID = int64(2007)
+	ctx := t.Context()
+
+	_, err := store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5601, ChannelID: channelID, AuthorID: 3001,
+		Content: "", Type: 1,
+	})
+	requireCheckViolation(t, err)
+
+	_, err = store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5602, ChannelID: channelID, AuthorID: 3001,
+		Content: "m", Type: 2,
+	})
+	requireCheckViolation(t, err)
+
+	_, err = store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5603, ChannelID: channelID, AuthorID: 3001,
+		Content: "reply without reference", Type: 19,
+	})
+	requireCheckViolation(t, err)
+}
+
+func messageIDs(messages []*model.Message) []int64 {
+	out := make([]int64, 0, len(messages))
+	for _, message := range messages {
+		out = append(out, message.ID)
+	}
+	return out
+}
+
+func ptr[T any](v T) *T { return &v }
+
+func requireCheckViolation(t *testing.T, err error) {
+	t.Helper()
+	var pqErr *pq.Error
+	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
+	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+}

@@ -10,6 +10,9 @@
 make generate          # buf generate for external and internal protos
 make lint              # buf lint
 make test              # go test ./...
+make test-integration  # go test -tags=integration ./... (needs Docker; no pre-existing services)
+make compose-up        # fixed-version local Postgres/Redis/Kafka/etcd for manual runs
+make compose-down      # stop compose stack (named volumes kept; use `docker compose down -v` to wipe)
 
 # Focused checks
 go test ./services/gateway/v1/internal/server/... -v -count=1
@@ -129,7 +132,23 @@ go build ./services/guild/v1/...
 
 - Unit tests use `github.com/stretchr/testify/require`; follow that style for new assertions.
 - Store unit tests commonly use `sqlmock.QueryMatcherRegexp` plus local `sqlPattern()` helpers; keep SQL expectations exact enough to catch query changes.
-- Presence Redis integration tests are separate: run `CORDIS_TEST_REDIS_ADDR=127.0.0.1:6379 go test -tags=integration ./services/presence/v1/internal/store -v -count=1`.
+
+### Integration Tests
+
+- Integration tests are behind the `integration` build tag: `make test-integration` (or `go test -tags=integration ./... -count=1 -timeout=10m`). They need Docker but no pre-existing services; `internal/testkit` starts fixed-version PostgreSQL, Redis, Kafka (KRaft), and etcd via Testcontainers.
+- The Presence Redis integration test auto-starts Redis through testkit when `CORDIS_TEST_REDIS_ADDR` is unset; the env var only overrides the target.
+- Testing layers: RPC branch logic (validation, permissions, error mapping) stays in unit tests with fakes; store interface methods are fully covered by integration tests against real backends; cross-system seams get one integration path per interaction shape.
+- Store integration standard: every `Store` interface method is exercised against the real backend. Structure: one top-level `Test*WithPostgres` starts one container, applies embedded migrations, and dispatches domain-scoped subtest functions that each use a disjoint ID space. Constraint checks assert `pq.Error` codes (`23514` CHECK, `23505` unique). User/Authenticator/Guild/Message stores follow this; sub-100% remainder is driver error propagation only.
+- Dispatcher integration (`services/dispatcher/v1/internal/server`) uses a harness with run-scoped Kafka topics, consumer groups, and etcd prefixes. It covers channel and guild routes, `guild.created`/`guild.member.joined` user-route merge/dedupe, retry with offset-uncommitted assertions, and poison-pill drop-and-commit. Committed offsets are read with `kmsg.OffsetFetchRequest` (both legacy and group-style fields); do not add `kadm`.
+- `sessionregistry.EtcdDirectory` binds one instance to one node ID and one lease by design. Tests that simulate multiple Session nodes must create one registry instance per node (shared prefix); closing an instance revokes its lease and simulates a node crash. Read-side directories (`Ready`/`Resolve`) never register.
+- Gateway discovery integration covers IDENTIFY (no ready node, draining excluded) and RESUME failures (missing owner, expired owner, node crash via lease revoke, stale generation, draining node).
+
+### Cross-Service Composition Tests
+
+- Go `internal/` boundaries prevent one test package from importing two services' internal servers. Composition tests therefore run the caller in-process and dependencies as real service binaries: `testkit.BuildService` compiles the main package, `testkit.StartService` runs it with a temporary YAML config (real `conf.LoadConfig` + zrpc wiring) and SIGTERM cleanup; `testkit.FreeAddress` and `testkit.WaitServiceReady` handle ports and readiness probes.
+- Multiple services' embedded migrations may be applied to one shared PostgreSQL container; table names do not collide.
+- `services/message/v1/internal/server/composition_integration_test.go`: Message in-process against real User + Guild binaries; covers Guild→User member verification and Message→Guild channel authorization (allow, non-member NotFound, category InvalidArgument, MANAGE_MESSAGES, `@everyone` permission revocation, owner bypass).
+- `services/authenticator/v1/server/composition_integration_test.go`: Authenticator in-process against a real User binary; covers Register, duplicate-email `AlreadyExists` with `rpcerror` domain/reason propagation, Argon2id login, and refresh-token rotation.
 
 ## Runtime Env
 

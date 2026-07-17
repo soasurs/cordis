@@ -35,7 +35,29 @@ go build ./...
 go vet ./...
 ```
 
-单元测试使用 `testify/require`。SQL Store 测试以 `sqlmock` 校验查询。Redis 集成测试需要显式 integration tag 和 Redis 地址。当前仓库不要求 PostgreSQL 集成测试作为日常流程。
+单元测试使用 `testify/require`。SQL Store 测试以 `sqlmock` 校验查询；日常开发不要求 Docker：
+
+```bash
+make test
+```
+
+真实依赖测试显式使用 `integration` tag。它通过 Testcontainers 启动并清理固定版本的 PostgreSQL、Redis、Kafka（KRaft）与 etcd，不依赖开发机上已有的服务：
+
+```bash
+make test-integration
+```
+
+集成测试会执行 User、Authenticator、Guild 与 Message 的 SQL migration/事务；验证 Guild、Message 的真实 Kafka 发布；覆盖 Presence 与 Session 的 Redis Store、Gateway 的 Redis + etcd 解析，以及 Kafka → Dispatcher → Redis 路由 → etcd Session 节点目录 → gRPC Session 投递链路。Kafka topic、consumer group 与 etcd prefix 均按测试运行随机命名，避免并行运行互相污染。跨服务组合测试以调用方进程内、被依赖方真实二进制的方式，验证 Message → Guild(+User) 的频道授权和 Authenticator → User 的注册/登录。
+
+需要手动调试整套依赖时，使用仓库根目录的固定版本 Compose 编排：
+
+```bash
+make compose-up
+# 按 README 的顺序运行 migration 和各服务
+make compose-down
+```
+
+Compose 保存命名卷；如需删除本地开发数据，显式执行 `docker compose down -v`。
 
 ## 运行顺序
 

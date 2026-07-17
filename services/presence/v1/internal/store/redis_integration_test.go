@@ -9,6 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+
+	"github.com/soasurs/cordis/internal/testkit"
 )
 
 func TestRedisStoreGatewayRoutes(t *testing.T) {
@@ -248,7 +250,7 @@ func newIntegrationRedis(t *testing.T) *redis.Redis {
 	t.Helper()
 	addr := os.Getenv("CORDIS_TEST_REDIS_ADDR")
 	if addr == "" {
-		t.Skip("CORDIS_TEST_REDIS_ADDR is not set")
+		addr = testkit.StartRedis(t).Address
 	}
 
 	rds, err := redis.NewRedis(redis.RedisConf{

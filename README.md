@@ -90,6 +90,15 @@ go build ./...
 go vet ./...
 ```
 
+Real-backend integration tests use the `integration` tag:
+
+```bash
+make test-integration
+```
+
+This runs all integration tests with Testcontainers (needs Docker). No
+pre-existing services are required.
+
 Regenerate protobuf outputs after changing files under `proto/`:
 
 ```bash
@@ -102,6 +111,15 @@ Generated files under `gen/` should not be edited manually.
 
 Start PostgreSQL, Redis, etcd, and Kafka, then adjust the YAML files under
 `services/<name>/v1/etc/` for the local environment.
+
+A fixed-version Compose stack is provided for development:
+
+```bash
+make compose-up
+```
+
+It exposes the default ports `5432`, `6379`, `9092`, and `2379`. Stop the stack
+while keeping named volumes with `make compose-down`.
 
 Authenticator requires token secrets:
 

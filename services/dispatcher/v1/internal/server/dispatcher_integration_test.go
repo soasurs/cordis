@@ -1,0 +1,392 @@
+//go:build integration
+
+package server
+
+import (
+	"context"
+	"fmt"
+	"net"
+	"strconv"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/kmsg"
+	"github.com/zeromicro/go-zero/core/stores/redis"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	"github.com/soasurs/cordis/internal/testkit"
+	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/pkg/sessionregistry"
+	"github.com/soasurs/cordis/services/dispatcher/v1/config"
+	"github.com/soasurs/cordis/services/dispatcher/v1/internal/discovery"
+)
+
+// TestDispatcherIntegration shares Kafka, Redis, and etcd containers across
+// all subtests; each subtest uses run-scoped topics, consumer groups, etcd
+// prefixes, and route IDs.
+func TestDispatcherIntegration(t *testing.T) {
+	kafka := testkit.StartKafka(t)
+	redisContainer := testkit.StartRedis(t)
+	etcd := testkit.StartEtcd(t)
+	rds, err := redis.NewRedis(redis.RedisConf{Host: redisContainer.Address, Type: redis.NodeType})
+	require.NoError(t, err)
+	env := &dispatcherEnv{kafkaAddress: kafka.Address, rds: rds, etcdHosts: []string{etcd.Address}}
+
+	t.Run("channel route", func(t *testing.T) { testChannelRoute(t, env) })
+	t.Run("guild route merges user route nodes", func(t *testing.T) { testGuildRouteMergesUserNodes(t, env) })
+	t.Run("retry preserves uncommitted offset", func(t *testing.T) { testRetryPreservesUncommittedOffset(t, env) })
+	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
+}
+
+func testChannelRoute(t *testing.T, env *dispatcherEnv) {
+	const channelID = int64(7001)
+	h := newHarness(t, env)
+	node := newRecordingSessionServer()
+	address := startSessionServer(t, node)
+	h.registerNode(t, "session-a", "generation-1", address)
+	h.addRoute(t, discovery.RouteChannel, channelID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.messageTopic, strconv.FormatInt(channelID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","channel_id":"7001"}}`)
+
+	request := node.waitChannelEvent(t)
+	require.Equal(t, channelID, request.GetChannelId())
+	require.Equal(t, realtime.EventMessageCreated, request.GetEvent().GetType())
+	require.JSONEq(t, `{"id":"9001","channel_id":"7001"}`, request.GetEvent().GetJsonPayload())
+}
+
+func testGuildRouteMergesUserNodes(t *testing.T, env *dispatcherEnv) {
+	const (
+		guildID = int64(7101)
+		userID  = int64(7102)
+	)
+	h := newHarness(t, env)
+	nodeA := newRecordingSessionServer()
+	nodeB := newRecordingSessionServer()
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, nodeA))
+	h.registerNode(t, "session-b", "generation-1", startSessionServer(t, nodeB))
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteUser, userID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteUser, userID, "session-b", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.guildTopic, strconv.FormatInt(guildID, 10),
+		`{"t":"`+realtime.EventGuildMemberJoined+`","d":{"guild_id":"7101","user_id":"7102"}}`)
+
+	requestA := nodeA.waitGuildEvent(t)
+	require.Equal(t, guildID, requestA.GetGuildId())
+	require.Equal(t, realtime.EventGuildMemberJoined, requestA.GetEvent().GetType())
+	requestB := nodeB.waitGuildEvent(t)
+	require.Equal(t, guildID, requestB.GetGuildId())
+
+	h.produce(t, h.guildTopic, strconv.FormatInt(guildID, 10),
+		`{"t":"`+realtime.EventGuildUpdated+`","d":{"id":"7101","name":"Cordis"}}`)
+	updated := nodeA.waitGuildEvent(t)
+	require.Equal(t, realtime.EventGuildUpdated, updated.GetEvent().GetType())
+
+	time.Sleep(500 * time.Millisecond)
+	require.Equal(t, 2, nodeA.guildCalls(), "guild-route node must be deduplicated per dispatch")
+	require.Equal(t, 1, nodeB.guildCalls(), "user-only node must not receive plain guild events")
+}
+
+func testRetryPreservesUncommittedOffset(t *testing.T, env *dispatcherEnv) {
+	const channelID = int64(7201)
+	h := newHarness(t, env)
+	node := newRecordingSessionServer()
+	node.setChannelFailing(true)
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteChannel, channelID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.messageTopic, strconv.FormatInt(channelID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","channel_id":"7201"}}`)
+
+	require.Eventually(t, func() bool { return node.channelCalls() >= 2 },
+		30*time.Second, 20*time.Millisecond, "dispatcher did not retry the failing dispatch")
+	require.Equal(t, int64(-1), h.committedOffset(t, h.messageTopic),
+		"offset must stay uncommitted while dispatch keeps failing")
+
+	node.setChannelFailing(false)
+	request := node.waitChannelEvent(t)
+	require.Equal(t, channelID, request.GetChannelId())
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.messageTopic) == 1 },
+		15*time.Second, 50*time.Millisecond, "offset must be committed after successful dispatch")
+}
+
+func testPoisonPillDoesNotBlockPartition(t *testing.T, env *dispatcherEnv) {
+	const channelID = int64(7301)
+	h := newHarness(t, env)
+	node := newRecordingSessionServer()
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteChannel, channelID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.messageTopic, "poison", `not-json`)
+	h.produce(t, h.messageTopic, "poison", `{"t":"unsupported.event","d":{}}`)
+	h.produce(t, h.messageTopic, strconv.FormatInt(channelID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","channel_id":"7301"}}`)
+
+	request := node.waitChannelEvent(t)
+	require.Equal(t, channelID, request.GetChannelId())
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.messageTopic) == 3 },
+		15*time.Second, 50*time.Millisecond, "poison records must be dropped and committed")
+	require.Equal(t, 1, node.channelCalls(),
+		"poison records must not reach the session node")
+}
+
+type dispatcherEnv struct {
+	kafkaAddress string
+	rds          *redis.Redis
+	etcdHosts    []string
+}
+
+type dispatcherHarness struct {
+	env           *dispatcherEnv
+	runID         string
+	guildTopic    string
+	messageTopic  string
+	consumerGroup string
+	producer      *kgo.Client
+	registry      *sessionregistry.EtcdDirectory
+}
+
+func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
+	t.Helper()
+	runID := strconv.FormatInt(time.Now().UnixNano(), 10)
+	h := &dispatcherHarness{
+		env:           env,
+		runID:         runID,
+		guildTopic:    "cordis.integration.guild." + runID,
+		messageTopic:  "cordis.integration.message." + runID,
+		consumerGroup: "cordis.integration.dispatcher." + runID,
+	}
+
+	producer, err := kgo.NewClient(kgo.SeedBrokers(env.kafkaAddress))
+	require.NoError(t, err)
+	t.Cleanup(producer.Close)
+	h.producer = producer
+	testkit.CreateKafkaTopic(t, producer, h.guildTopic)
+	testkit.CreateKafkaTopic(t, producer, h.messageTopic)
+
+	registry, err := sessionregistry.New(sessionregistry.Config{
+		Hosts:              env.etcdHosts,
+		Prefix:             "/cordis/integration/" + runID,
+		DialTimeoutSeconds: 5,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, registry.Close()) })
+	h.registry = registry
+	return h
+}
+
+func (h *dispatcherHarness) registerNode(t *testing.T, nodeID, generation, address string) {
+	t.Helper()
+	registry, err := sessionregistry.New(sessionregistry.Config{
+		Hosts:              h.env.etcdHosts,
+		Prefix:             "/cordis/integration/" + h.runID,
+		DialTimeoutSeconds: 5,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, registry.Close()) })
+	require.NoError(t, registry.Register(t.Context(), sessionregistry.Node{
+		ID:         nodeID,
+		Generation: generation,
+		RPCAddress: address,
+		Status:     sessionregistry.StatusReady,
+	}, time.Minute))
+}
+
+func (h *dispatcherHarness) addRoute(t *testing.T, kind discovery.RouteKind, id int64, nodeID, generation string) {
+	t.Helper()
+	key := fmt.Sprintf("gateway:routes:%s:{%d}:nodes", kind, id)
+	expiresAt := time.Now().Add(time.Minute).UnixMilli()
+	_, err := h.env.rds.ZaddCtx(t.Context(), key, expiresAt, nodeID+"\x1f"+generation)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = h.env.rds.DelCtx(ctx, key)
+	})
+}
+
+func (h *dispatcherHarness) startDispatcher(t *testing.T) {
+	t.Helper()
+	dispatcher := New(config.Config{
+		Kafka: config.KafkaConfig{
+			Seeds:         []string{h.env.kafkaAddress},
+			GuildTopic:    h.guildTopic,
+			MessageTopic:  h.messageTopic,
+			ConsumerGroup: h.consumerGroup,
+		},
+		Dispatcher: config.DispatcherConfig{
+			DispatchTimeoutSeconds: 5,
+			RetryMinMilliseconds:   10,
+			RetryMaxSeconds:        1,
+		},
+	}, discovery.NewRedisResolver(h.env.rds, h.registry))
+
+	runCtx, cancel := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	go func() {
+		dispatcher.Run(runCtx)
+		close(done)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Error("dispatcher did not stop")
+		}
+	})
+}
+
+func (h *dispatcherHarness) produce(t *testing.T, topic, key, value string) {
+	t.Helper()
+	require.NoError(t, h.producer.ProduceSync(t.Context(), &kgo.Record{
+		Topic: topic,
+		Key:   []byte(key),
+		Value: []byte(value),
+	}).FirstErr())
+}
+
+// committedOffset returns the committed offset of partition 0 for the
+// harness consumer group, or -1 when nothing has been committed.
+func (h *dispatcherHarness) committedOffset(t *testing.T, topic string) int64 {
+	t.Helper()
+	req := kmsg.NewPtrOffsetFetchRequest()
+	req.Group = h.consumerGroup
+	legacyTopic := kmsg.NewOffsetFetchRequestTopic()
+	legacyTopic.Topic = topic
+	legacyTopic.Partitions = []int32{0}
+	req.Topics = append(req.Topics, legacyTopic)
+	reqGroup := kmsg.NewOffsetFetchRequestGroup()
+	reqGroup.Group = h.consumerGroup
+	groupTopic := kmsg.NewOffsetFetchRequestGroupTopic()
+	groupTopic.Topic = topic
+	groupTopic.Partitions = []int32{0}
+	reqGroup.Topics = append(reqGroup.Topics, groupTopic)
+	req.Groups = append(req.Groups, reqGroup)
+
+	resp, err := req.RequestWith(t.Context(), h.producer)
+	require.NoError(t, err)
+	for _, group := range resp.Groups {
+		for _, respTopic := range group.Topics {
+			for _, partition := range respTopic.Partitions {
+				if respTopic.Topic == topic && partition.Partition == 0 {
+					return partition.Offset
+				}
+			}
+		}
+	}
+	for _, respTopic := range resp.Topics {
+		for _, partition := range respTopic.Partitions {
+			if respTopic.Topic == topic && partition.Partition == 0 {
+				return partition.Offset
+			}
+		}
+	}
+	return -1
+}
+
+func startSessionServer(t *testing.T, server sessionv1.SessionServiceServer) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	grpcServer := grpc.NewServer()
+	sessionv1.RegisterSessionServiceServer(grpcServer, server)
+	go func() { _ = grpcServer.Serve(listener) }()
+	t.Cleanup(grpcServer.Stop)
+	return listener.Addr().String()
+}
+
+type recordingSessionServer struct {
+	sessionv1.UnimplementedSessionServiceServer
+
+	mu             sync.Mutex
+	channelFailing bool
+	channelCount   int
+	guildCount     int
+	channelEvents  chan *sessionv1.DispatchChannelEventRequest
+	guildEventsCh  chan *sessionv1.DispatchGuildEventRequest
+}
+
+func newRecordingSessionServer() *recordingSessionServer {
+	return &recordingSessionServer{
+		channelEvents: make(chan *sessionv1.DispatchChannelEventRequest, 16),
+		guildEventsCh: make(chan *sessionv1.DispatchGuildEventRequest, 16),
+	}
+}
+
+func (s *recordingSessionServer) DispatchChannelEvent(
+	_ context.Context,
+	req *sessionv1.DispatchChannelEventRequest,
+) (*sessionv1.DispatchChannelEventResponse, error) {
+	s.mu.Lock()
+	s.channelCount++
+	failing := s.channelFailing
+	s.mu.Unlock()
+	if failing {
+		return nil, status.Error(codes.Unavailable, "injected failure")
+	}
+	s.channelEvents <- req
+	return new(sessionv1.DispatchChannelEventResponse), nil
+}
+
+func (s *recordingSessionServer) DispatchGuildEvent(
+	_ context.Context,
+	req *sessionv1.DispatchGuildEventRequest,
+) (*sessionv1.DispatchGuildEventResponse, error) {
+	s.mu.Lock()
+	s.guildCount++
+	s.mu.Unlock()
+	s.guildEventsCh <- req
+	return new(sessionv1.DispatchGuildEventResponse), nil
+}
+
+func (s *recordingSessionServer) setChannelFailing(failing bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.channelFailing = failing
+}
+
+func (s *recordingSessionServer) channelCalls() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.channelCount
+}
+
+func (s *recordingSessionServer) waitChannelEvent(t *testing.T) *sessionv1.DispatchChannelEventRequest {
+	t.Helper()
+	select {
+	case request := <-s.channelEvents:
+		return request
+	case <-time.After(30 * time.Second):
+		t.Fatal("session node did not receive the channel event")
+		return nil
+	}
+}
+
+func (s *recordingSessionServer) guildCalls() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.guildCount
+}
+
+func (s *recordingSessionServer) waitGuildEvent(t *testing.T) *sessionv1.DispatchGuildEventRequest {
+	t.Helper()
+	select {
+	case request := <-s.guildEventsCh:
+		return request
+	case <-time.After(30 * time.Second):
+		t.Fatal("session node did not receive the guild event")
+		return nil
+	}
+}

@@ -13,6 +13,6 @@ func (s *userServer) GetUserProfile(ctx context.Context, req *userv1.GetUserProf
 	}
 
 	resp := new(userv1.GetUserProfileResponse)
-	resp.SetProfile(toPBUserProfile(profile))
+	resp.SetProfile(userProfileToProto(profile))
 	return resp, nil
 }

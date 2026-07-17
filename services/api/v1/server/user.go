@@ -138,10 +138,11 @@ func userToAPI(user *userv1.User) *apiv1.User {
 		return nil
 	}
 	return &apiv1.User{
-		UserId:    new(user.GetUserId()),
-		Email:     new(user.GetEmail()),
-		CreatedAt: new(user.GetCreatedAt()),
-		UpdatedAt: new(user.GetUpdatedAt()),
+		UserId:          new(user.GetUserId()),
+		Email:           new(user.GetEmail()),
+		CreatedAt:       new(user.GetCreatedAt()),
+		UpdatedAt:       new(user.GetUpdatedAt()),
+		EmailVerifiedAt: new(user.GetEmailVerifiedAt()),
 	}
 }
 

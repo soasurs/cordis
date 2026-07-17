@@ -21,16 +21,17 @@ const (
 )
 
 type User struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_Email       *string                `protobuf:"bytes,2,opt,name=email"`
-	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,4,opt,name=updated_at,json=updatedAt"`
-	xxx_hidden_DeletedAt   int64                  `protobuf:"varint,5,opt,name=deleted_at,json=deletedAt"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId          int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Email           *string                `protobuf:"bytes,2,opt,name=email"`
+	xxx_hidden_CreatedAt       int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt       int64                  `protobuf:"varint,4,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_DeletedAt       int64                  `protobuf:"varint,5,opt,name=deleted_at,json=deletedAt"`
+	xxx_hidden_EmailVerifiedAt int64                  `protobuf:"varint,6,opt,name=email_verified_at,json=emailVerifiedAt"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -96,29 +97,41 @@ func (x *User) GetDeletedAt() int64 {
 	return 0
 }
 
+func (x *User) GetEmailVerifiedAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_EmailVerifiedAt
+	}
+	return 0
+}
+
 func (x *User) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *User) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
 func (x *User) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
 }
 
 func (x *User) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
 func (x *User) SetDeletedAt(v int64) {
 	x.xxx_hidden_DeletedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *User) SetEmailVerifiedAt(v int64) {
+	x.xxx_hidden_EmailVerifiedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
 func (x *User) HasUserId() bool {
@@ -156,6 +169,13 @@ func (x *User) HasDeletedAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
+func (x *User) HasEmailVerifiedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
 func (x *User) ClearUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UserId = 0
@@ -181,6 +201,11 @@ func (x *User) ClearDeletedAt() {
 	x.xxx_hidden_DeletedAt = 0
 }
 
+func (x *User) ClearEmailVerifiedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_EmailVerifiedAt = 0
+}
+
 type User_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -189,6 +214,8 @@ type User_builder struct {
 	CreatedAt *int64
 	UpdatedAt *int64
 	DeletedAt *int64
+	// Zero when the current email has not been verified.
+	EmailVerifiedAt *int64
 }
 
 func (b0 User_builder) Build() *User {
@@ -196,24 +223,28 @@ func (b0 User_builder) Build() *User {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
 		x.xxx_hidden_Email = b.Email
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
 	if b.DeletedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
 		x.xxx_hidden_DeletedAt = *b.DeletedAt
+	}
+	if b.EmailVerifiedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_EmailVerifiedAt = *b.EmailVerifiedAt
 	}
 	return m0
 }
@@ -1497,6 +1528,189 @@ func (b0 ChangePasswordResponse_builder) Build() *ChangePasswordResponse {
 	return m0
 }
 
+type ResetPasswordRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_NewPassword *string                `protobuf:"bytes,2,opt,name=new_password,json=newPassword"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ResetPasswordRequest) Reset() {
+	*x = ResetPasswordRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetPasswordRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetPasswordRequest) ProtoMessage() {}
+
+func (x *ResetPasswordRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ResetPasswordRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *ResetPasswordRequest) GetNewPassword() string {
+	if x != nil {
+		if x.xxx_hidden_NewPassword != nil {
+			return *x.xxx_hidden_NewPassword
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ResetPasswordRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ResetPasswordRequest) SetNewPassword(v string) {
+	x.xxx_hidden_NewPassword = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ResetPasswordRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ResetPasswordRequest) HasNewPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ResetPasswordRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *ResetPasswordRequest) ClearNewPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_NewPassword = nil
+}
+
+type ResetPasswordRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId      *int64
+	NewPassword *string
+}
+
+func (b0 ResetPasswordRequest_builder) Build() *ResetPasswordRequest {
+	m0 := &ResetPasswordRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.NewPassword != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_NewPassword = b.NewPassword
+	}
+	return m0
+}
+
+type ResetPasswordResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ResetPasswordResponse) Reset() {
+	*x = ResetPasswordResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResetPasswordResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResetPasswordResponse) ProtoMessage() {}
+
+func (x *ResetPasswordResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ResetPasswordResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *ResetPasswordResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ResetPasswordResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ResetPasswordResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type ResetPasswordResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 ResetPasswordResponse_builder) Build() *ResetPasswordResponse {
+	m0 := &ResetPasswordResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type CheckEmailAvailabilityRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
@@ -1508,7 +1722,7 @@ type CheckEmailAvailabilityRequest struct {
 
 func (x *CheckEmailAvailabilityRequest) Reset() {
 	*x = CheckEmailAvailabilityRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[12]
+	mi := &file_user_v1_user_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1520,7 +1734,7 @@ func (x *CheckEmailAvailabilityRequest) String() string {
 func (*CheckEmailAvailabilityRequest) ProtoMessage() {}
 
 func (x *CheckEmailAvailabilityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[12]
+	mi := &file_user_v1_user_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1586,7 +1800,7 @@ type CheckEmailAvailabilityResponse struct {
 
 func (x *CheckEmailAvailabilityResponse) Reset() {
 	*x = CheckEmailAvailabilityResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[13]
+	mi := &file_user_v1_user_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1598,7 +1812,7 @@ func (x *CheckEmailAvailabilityResponse) String() string {
 func (*CheckEmailAvailabilityResponse) ProtoMessage() {}
 
 func (x *CheckEmailAvailabilityResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[13]
+	mi := &file_user_v1_user_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1662,7 +1876,7 @@ type UpdateEmailRequest struct {
 
 func (x *UpdateEmailRequest) Reset() {
 	*x = UpdateEmailRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[14]
+	mi := &file_user_v1_user_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1674,7 +1888,7 @@ func (x *UpdateEmailRequest) String() string {
 func (*UpdateEmailRequest) ProtoMessage() {}
 
 func (x *UpdateEmailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[14]
+	mi := &file_user_v1_user_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1767,7 +1981,7 @@ type UpdateEmailResponse struct {
 
 func (x *UpdateEmailResponse) Reset() {
 	*x = UpdateEmailResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[15]
+	mi := &file_user_v1_user_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1779,7 +1993,7 @@ func (x *UpdateEmailResponse) String() string {
 func (*UpdateEmailResponse) ProtoMessage() {}
 
 func (x *UpdateEmailResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[15]
+	mi := &file_user_v1_user_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1826,6 +2040,220 @@ func (b0 UpdateEmailResponse_builder) Build() *UpdateEmailResponse {
 	return m0
 }
 
+type MarkEmailVerifiedRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Email       *string                `protobuf:"bytes,2,opt,name=email"`
+	xxx_hidden_VerifiedAt  int64                  `protobuf:"varint,3,opt,name=verified_at,json=verifiedAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *MarkEmailVerifiedRequest) Reset() {
+	*x = MarkEmailVerifiedRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkEmailVerifiedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkEmailVerifiedRequest) ProtoMessage() {}
+
+func (x *MarkEmailVerifiedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MarkEmailVerifiedRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *MarkEmailVerifiedRequest) GetEmail() string {
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *MarkEmailVerifiedRequest) GetVerifiedAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_VerifiedAt
+	}
+	return 0
+}
+
+func (x *MarkEmailVerifiedRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *MarkEmailVerifiedRequest) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *MarkEmailVerifiedRequest) SetVerifiedAt(v int64) {
+	x.xxx_hidden_VerifiedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *MarkEmailVerifiedRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MarkEmailVerifiedRequest) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *MarkEmailVerifiedRequest) HasVerifiedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *MarkEmailVerifiedRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *MarkEmailVerifiedRequest) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Email = nil
+}
+
+func (x *MarkEmailVerifiedRequest) ClearVerifiedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_VerifiedAt = 0
+}
+
+type MarkEmailVerifiedRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId *int64
+	// The email address the verification token was issued for.
+	Email      *string
+	VerifiedAt *int64
+}
+
+func (b0 MarkEmailVerifiedRequest_builder) Build() *MarkEmailVerifiedRequest {
+	m0 := &MarkEmailVerifiedRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_Email = b.Email
+	}
+	if b.VerifiedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_VerifiedAt = *b.VerifiedAt
+	}
+	return m0
+}
+
+type MarkEmailVerifiedResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *MarkEmailVerifiedResponse) Reset() {
+	*x = MarkEmailVerifiedResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MarkEmailVerifiedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MarkEmailVerifiedResponse) ProtoMessage() {}
+
+func (x *MarkEmailVerifiedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MarkEmailVerifiedResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *MarkEmailVerifiedResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *MarkEmailVerifiedResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MarkEmailVerifiedResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type MarkEmailVerifiedResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 MarkEmailVerifiedResponse_builder) Build() *MarkEmailVerifiedResponse {
+	m0 := &MarkEmailVerifiedResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type UpdateUserProfileRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1839,7 +2267,7 @@ type UpdateUserProfileRequest struct {
 
 func (x *UpdateUserProfileRequest) Reset() {
 	*x = UpdateUserProfileRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[16]
+	mi := &file_user_v1_user_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1851,7 +2279,7 @@ func (x *UpdateUserProfileRequest) String() string {
 func (*UpdateUserProfileRequest) ProtoMessage() {}
 
 func (x *UpdateUserProfileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[16]
+	mi := &file_user_v1_user_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1976,7 +2404,7 @@ type UpdateUserProfileResponse struct {
 
 func (x *UpdateUserProfileResponse) Reset() {
 	*x = UpdateUserProfileResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[17]
+	mi := &file_user_v1_user_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1988,7 +2416,7 @@ func (x *UpdateUserProfileResponse) String() string {
 func (*UpdateUserProfileResponse) ProtoMessage() {}
 
 func (x *UpdateUserProfileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[17]
+	mi := &file_user_v1_user_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2039,7 +2467,7 @@ var File_user_v1_user_proto protoreflect.FileDescriptor
 
 const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
-	"\x12user/v1/user.proto\x12\auser.v1\"\x92\x01\n" +
+	"\x12user/v1/user.proto\x12\auser.v1\"\xbe\x01\n" +
 	"\x04User\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1d\n" +
@@ -2048,7 +2476,8 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\x12\x1d\n" +
 	"\n" +
-	"deleted_at\x18\x05 \x01(\x03R\tdeletedAt\"\xb6\x01\n" +
+	"deleted_at\x18\x05 \x01(\x03R\tdeletedAt\x12*\n" +
+	"\x11email_verified_at\x18\x06 \x01(\x03R\x0femailVerifiedAt\"\xb6\x01\n" +
 	"\vUserProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -2089,6 +2518,11 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\fold_password\x18\x02 \x01(\tR\voldPassword\x12!\n" +
 	"\fnew_password\x18\x03 \x01(\tR\vnewPassword\"(\n" +
 	"\x16ChangePasswordResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"R\n" +
+	"\x14ResetPasswordRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12!\n" +
+	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"'\n" +
+	"\x15ResetPasswordResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"5\n" +
 	"\x1dCheckEmailAvailabilityRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\">\n" +
@@ -2098,27 +2532,36 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\"8\n" +
 	"\x13UpdateEmailResponse\x12!\n" +
-	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"f\n" +
+	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"j\n" +
+	"\x18MarkEmailVerifiedRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x14\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1f\n" +
+	"\vverified_at\x18\x03 \x01(\x03R\n" +
+	"verifiedAt\"+\n" +
+	"\x19MarkEmailVerifiedResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"f\n" +
 	"\x18UpdateUserProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
 	"avatar_uri\x18\x03 \x01(\tR\tavatarUri\"K\n" +
 	"\x19UpdateUserProfileResponse\x12.\n" +
-	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile2\x9c\x05\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile2\xc8\x06\n" +
 	"\vUserService\x12E\n" +
 	"\n" +
 	"CreateUser\x12\x1a.user.v1.CreateUserRequest\x1a\x1b.user.v1.CreateUserResponse\x12<\n" +
 	"\aGetUser\x12\x17.user.v1.GetUserRequest\x1a\x18.user.v1.GetUserResponse\x12Q\n" +
 	"\x0eGetUserProfile\x12\x1e.user.v1.GetUserProfileRequest\x1a\x1f.user.v1.GetUserProfileResponse\x12Q\n" +
 	"\x0eVerifyPassword\x12\x1e.user.v1.VerifyPasswordRequest\x1a\x1f.user.v1.VerifyPasswordResponse\x12Q\n" +
-	"\x0eChangePassword\x12\x1e.user.v1.ChangePasswordRequest\x1a\x1f.user.v1.ChangePasswordResponse\x12i\n" +
+	"\x0eChangePassword\x12\x1e.user.v1.ChangePasswordRequest\x1a\x1f.user.v1.ChangePasswordResponse\x12N\n" +
+	"\rResetPassword\x12\x1d.user.v1.ResetPasswordRequest\x1a\x1e.user.v1.ResetPasswordResponse\x12i\n" +
 	"\x16CheckEmailAvailability\x12&.user.v1.CheckEmailAvailabilityRequest\x1a'.user.v1.CheckEmailAvailabilityResponse\x12H\n" +
 	"\vUpdateEmail\x12\x1b.user.v1.UpdateEmailRequest\x1a\x1c.user.v1.UpdateEmailResponse\x12Z\n" +
+	"\x11MarkEmailVerified\x12!.user.v1.MarkEmailVerifiedRequest\x1a\".user.v1.MarkEmailVerifiedResponse\x12Z\n" +
 	"\x11UpdateUserProfile\x12!.user.v1.UpdateUserProfileRequest\x1a\".user.v1.UpdateUserProfileResponseB\x83\x01\n" +
 	"\vcom.user.v1B\tUserProtoP\x01Z,github.com/soasurs/cordis/gen/user/v1;userv1\xa2\x02\x03UXX\xaa\x02\aUser.V1\xca\x02\aUser\\V1\xe2\x02\x13User\\V1\\GPBMetadata\xea\x02\bUser::V1b\beditionsp\xe8\a"
 
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_user_v1_user_proto_goTypes = []any{
 	(*User)(nil),                           // 0: user.v1.User
 	(*UserProfile)(nil),                    // 1: user.v1.UserProfile
@@ -2132,12 +2575,16 @@ var file_user_v1_user_proto_goTypes = []any{
 	(*VerifyPasswordResponse)(nil),         // 9: user.v1.VerifyPasswordResponse
 	(*ChangePasswordRequest)(nil),          // 10: user.v1.ChangePasswordRequest
 	(*ChangePasswordResponse)(nil),         // 11: user.v1.ChangePasswordResponse
-	(*CheckEmailAvailabilityRequest)(nil),  // 12: user.v1.CheckEmailAvailabilityRequest
-	(*CheckEmailAvailabilityResponse)(nil), // 13: user.v1.CheckEmailAvailabilityResponse
-	(*UpdateEmailRequest)(nil),             // 14: user.v1.UpdateEmailRequest
-	(*UpdateEmailResponse)(nil),            // 15: user.v1.UpdateEmailResponse
-	(*UpdateUserProfileRequest)(nil),       // 16: user.v1.UpdateUserProfileRequest
-	(*UpdateUserProfileResponse)(nil),      // 17: user.v1.UpdateUserProfileResponse
+	(*ResetPasswordRequest)(nil),           // 12: user.v1.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),          // 13: user.v1.ResetPasswordResponse
+	(*CheckEmailAvailabilityRequest)(nil),  // 14: user.v1.CheckEmailAvailabilityRequest
+	(*CheckEmailAvailabilityResponse)(nil), // 15: user.v1.CheckEmailAvailabilityResponse
+	(*UpdateEmailRequest)(nil),             // 16: user.v1.UpdateEmailRequest
+	(*UpdateEmailResponse)(nil),            // 17: user.v1.UpdateEmailResponse
+	(*MarkEmailVerifiedRequest)(nil),       // 18: user.v1.MarkEmailVerifiedRequest
+	(*MarkEmailVerifiedResponse)(nil),      // 19: user.v1.MarkEmailVerifiedResponse
+	(*UpdateUserProfileRequest)(nil),       // 20: user.v1.UpdateUserProfileRequest
+	(*UpdateUserProfileResponse)(nil),      // 21: user.v1.UpdateUserProfileResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	0,  // 0: user.v1.CreateUserResponse.user:type_name -> user.v1.User
@@ -2150,19 +2597,23 @@ var file_user_v1_user_proto_depIdxs = []int32{
 	6,  // 7: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
 	8,  // 8: user.v1.UserService.VerifyPassword:input_type -> user.v1.VerifyPasswordRequest
 	10, // 9: user.v1.UserService.ChangePassword:input_type -> user.v1.ChangePasswordRequest
-	12, // 10: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
-	14, // 11: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
-	16, // 12: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
-	3,  // 13: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
-	5,  // 14: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	7,  // 15: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
-	9,  // 16: user.v1.UserService.VerifyPassword:output_type -> user.v1.VerifyPasswordResponse
-	11, // 17: user.v1.UserService.ChangePassword:output_type -> user.v1.ChangePasswordResponse
-	13, // 18: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
-	15, // 19: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
-	17, // 20: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
-	13, // [13:21] is the sub-list for method output_type
-	5,  // [5:13] is the sub-list for method input_type
+	12, // 10: user.v1.UserService.ResetPassword:input_type -> user.v1.ResetPasswordRequest
+	14, // 11: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
+	16, // 12: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
+	18, // 13: user.v1.UserService.MarkEmailVerified:input_type -> user.v1.MarkEmailVerifiedRequest
+	20, // 14: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
+	3,  // 15: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
+	5,  // 16: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	7,  // 17: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
+	9,  // 18: user.v1.UserService.VerifyPassword:output_type -> user.v1.VerifyPasswordResponse
+	11, // 19: user.v1.UserService.ChangePassword:output_type -> user.v1.ChangePasswordResponse
+	13, // 20: user.v1.UserService.ResetPassword:output_type -> user.v1.ResetPasswordResponse
+	15, // 21: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
+	17, // 22: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
+	19, // 23: user.v1.UserService.MarkEmailVerified:output_type -> user.v1.MarkEmailVerifiedResponse
+	21, // 24: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
+	15, // [15:25] is the sub-list for method output_type
+	5,  // [5:15] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -2183,7 +2634,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

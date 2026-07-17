@@ -57,7 +57,7 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 	}
 
 	resp := &userv1.CreateUserResponse{}
-	resp.SetUser(toPBUser(user))
+	resp.SetUser(userToProto(user))
 	return resp, nil
 }
 

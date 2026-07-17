@@ -5,17 +5,18 @@ import (
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
 
-func toPBUser(user *model.User) *userv1.User {
+func userToProto(user *model.User) *userv1.User {
 	pbUser := new(userv1.User)
 	pbUser.SetUserId(user.UserID)
 	pbUser.SetEmail(user.Email)
 	pbUser.SetCreatedAt(user.CreatedAt)
 	pbUser.SetUpdatedAt(user.UpdatedAt)
 	pbUser.SetDeletedAt(user.DeletedAt)
+	pbUser.SetEmailVerifiedAt(user.EmailVerifiedAt)
 	return pbUser
 }
 
-func toPBUserProfile(profile *model.UserProfile) *userv1.UserProfile {
+func userProfileToProto(profile *model.UserProfile) *userv1.UserProfile {
 	pbProfile := new(userv1.UserProfile)
 	pbProfile.SetUserId(profile.UserID)
 	pbProfile.SetName(profile.Name)

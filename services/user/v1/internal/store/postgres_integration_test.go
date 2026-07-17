@@ -30,6 +30,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("profiles", func(t *testing.T) { testUserProfiles(t, store) })
 	t.Run("transact", func(t *testing.T) { testTransact(t, store) })
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
+	t.Run("email verification", func(t *testing.T) { testEmailVerification(t, store) })
 }
 
 func testUsers(t *testing.T, store Store) {
@@ -150,4 +151,33 @@ func requireUniqueViolation(t *testing.T, err error) {
 	var pqErr *pq.Error
 	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
 	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+}
+
+func testEmailVerification(t *testing.T, store Store) {
+	const userID = int64(5001)
+	ctx := t.Context()
+
+	created, err := store.CreateUser(ctx, userID, "verify@example.com", "hashed")
+	require.NoError(t, err)
+	require.Zero(t, created.EmailVerifiedAt)
+
+	// Verification only applies while the email still matches.
+	err = store.MarkUserEmailVerified(ctx, userID, "other@example.com", 4001)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	require.NoError(t, store.MarkUserEmailVerified(ctx, userID, "verify@example.com", 4001))
+	loaded, err := store.GetUser(ctx, userID)
+	require.NoError(t, err)
+	require.Equal(t, int64(4001), loaded.EmailVerifiedAt)
+
+	// Changing the email clears the verification state.
+	updated, err := store.UpdateUserEmail(ctx, userID, "changed@example.com")
+	require.NoError(t, err)
+	require.Zero(t, updated.EmailVerifiedAt)
+	loaded, err = store.GetUser(ctx, userID)
+	require.NoError(t, err)
+	require.Zero(t, loaded.EmailVerifiedAt)
+
+	err = store.MarkUserEmailVerified(ctx, userID+1, "changed@example.com", 4002)
+	require.ErrorIs(t, err, sql.ErrNoRows)
 }

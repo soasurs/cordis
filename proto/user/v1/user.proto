@@ -8,8 +8,14 @@ service UserService {
   rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
   rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse);
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  // ResetPassword replaces the password without the old password. It backs
+  // the token-based recovery flow and is never exposed publicly.
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
+  // MarkEmailVerified records verification only while the supplied email is
+  // still the user's current email.
+  rpc MarkEmailVerified(MarkEmailVerifiedRequest) returns (MarkEmailVerifiedResponse);
   // UpdateUserProfile replaces all mutable public profile fields.
   rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
 }
@@ -20,6 +26,8 @@ message User {
   int64 created_at = 3;
   int64 updated_at = 4;
   int64 deleted_at = 5;
+  // Zero when the current email has not been verified.
+  int64 email_verified_at = 6;
 }
 
 message UserProfile {
@@ -81,6 +89,15 @@ message ChangePasswordResponse {
   bool ok = 1;
 }
 
+message ResetPasswordRequest {
+  int64 user_id = 1;
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {
+  bool ok = 1;
+}
+
 message CheckEmailAvailabilityRequest {
   string email = 1;
 }
@@ -96,6 +113,17 @@ message UpdateEmailRequest {
 
 message UpdateEmailResponse {
   User user = 1;
+}
+
+message MarkEmailVerifiedRequest {
+  int64 user_id = 1;
+  // The email address the verification token was issued for.
+  string email = 2;
+  int64 verified_at = 3;
+}
+
+message MarkEmailVerifiedResponse {
+  bool ok = 1;
 }
 
 message UpdateUserProfileRequest {

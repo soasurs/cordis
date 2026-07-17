@@ -23,6 +23,6 @@ func (s *userServer) UpdateEmail(ctx context.Context, req *userv1.UpdateEmailReq
 	}
 
 	resp := new(userv1.UpdateEmailResponse)
-	resp.SetUser(toPBUser(user))
+	resp.SetUser(userToProto(user))
 	return resp, nil
 }

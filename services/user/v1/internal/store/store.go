@@ -17,6 +17,7 @@ type Store interface {
 	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
 	UpdateUserPassword(ctx context.Context, userID int64, hashedPassword string) error
 	UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error)
+	MarkUserEmailVerified(ctx context.Context, userID int64, email string, verifiedAt int64) error
 	CreateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)
 	GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error)
 	UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)

@@ -90,6 +90,7 @@ func (s *presenceServer) RegisterUserSession(ctx context.Context, req *presencev
 		return nil, err
 	}
 
+	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
 	presence, err := s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
 		UserID:      req.GetUserId(),
 		SessionID:   req.GetSessionId(),
@@ -102,6 +103,7 @@ func (s *presenceServer) RegisterUserSession(ctx context.Context, req *presencev
 	if err != nil {
 		return nil, err
 	}
+	s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, known, presence.Status)
 
 	resp := new(presencev1.RegisterUserSessionResponse)
 	resp.SetPresence(userPresenceToProto(presence))
@@ -113,6 +115,7 @@ func (s *presenceServer) RefreshUserSession(ctx context.Context, req *presencev1
 		return nil, err
 	}
 
+	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
 	presence, err := s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
 		UserID:      req.GetUserId(),
 		SessionID:   req.GetSessionId(),
@@ -125,6 +128,7 @@ func (s *presenceServer) RefreshUserSession(ctx context.Context, req *presencev1
 	if err != nil {
 		return nil, err
 	}
+	s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, known, presence.Status)
 
 	resp := new(presencev1.RefreshUserSessionResponse)
 	resp.SetPresence(userPresenceToProto(presence))
@@ -139,6 +143,7 @@ func (s *presenceServer) UpdateUserPresence(ctx context.Context, req *presencev1
 		return nil, errSessionIDRequired
 	}
 
+	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
 	presence, err := s.svcCtx.Store.UpdateUserSession(ctx, store.UserSession{
 		UserID:      req.GetUserId(),
 		SessionID:   req.GetSessionId(),
@@ -148,6 +153,7 @@ func (s *presenceServer) UpdateUserPresence(ctx context.Context, req *presencev1
 	if err != nil {
 		return nil, err
 	}
+	s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, known, presence.Status)
 
 	resp := new(presencev1.UpdateUserPresenceResponse)
 	resp.SetPresence(userPresenceToProto(presence))
@@ -162,8 +168,14 @@ func (s *presenceServer) RemoveUserSession(ctx context.Context, req *presencev1.
 		return nil, errSessionIDRequired
 	}
 
+	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
 	if err := s.svcCtx.Store.RemoveUserSession(ctx, req.GetUserId(), req.GetSessionId()); err != nil {
 		return nil, err
+	}
+	if known {
+		if presences, err := s.svcCtx.Store.ResolveUsersPresence(ctx, []int64{req.GetUserId()}); err == nil && len(presences) == 1 {
+			s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, true, presences[0].Status)
+		}
 	}
 
 	resp := new(presencev1.RemoveUserSessionResponse)

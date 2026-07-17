@@ -9,3 +9,8 @@ Presence:
   GatewayTTLSeconds: 30
   RouteTTLSeconds: 30
   UserSessionTTLSeconds: 60
+
+kafka:
+  seeds:
+    - 127.0.0.1:9092
+  topic: cordis.presence.events.v1

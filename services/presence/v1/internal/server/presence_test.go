@@ -235,6 +235,9 @@ type fakeStore struct {
 	removedSessionID string
 	resolvedUserIDs  []int64
 	presences        []store.UserPresence
+	// presenceSequence, when non-empty, feeds successive ResolveUsersPresence
+	// calls before falling back to presences.
+	presenceSequence [][]store.UserPresence
 }
 
 func (s *fakeStore) UpsertGateway(_ context.Context, gateway store.Gateway) (store.Gateway, error) {
@@ -316,5 +319,10 @@ func (s *fakeStore) ResolveUsersPresence(_ context.Context, userIDs []int64) ([]
 		return nil, s.err
 	}
 	s.resolvedUserIDs = append([]int64(nil), userIDs...)
+	if len(s.presenceSequence) > 0 {
+		next := s.presenceSequence[0]
+		s.presenceSequence = s.presenceSequence[1:]
+		return next, nil
+	}
 	return s.presences, nil
 }

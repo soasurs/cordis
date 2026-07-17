@@ -9,6 +9,8 @@ kafka:
     - 127.0.0.1:9092
   guildTopic: cordis.guild.events.v1
   messageTopic: cordis.message.events.v1
+  userTopic: cordis.user.events.v1
+  presenceTopic: cordis.presence.events.v1
   consumerGroup: cordis.dispatcher.v1
 
 redis:
@@ -25,3 +27,8 @@ dispatcher:
   dispatchTimeoutSeconds: 5
   retryMinMilliseconds: 100
   retryMaxSeconds: 5
+
+services:
+  user:
+    endpoints:
+      - 127.0.0.1:3000

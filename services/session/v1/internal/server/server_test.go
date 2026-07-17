@@ -68,6 +68,7 @@ func TestGatewayPayloadEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	require.Equal(t, `"1001"`, string(ready["user_id"]))
 	require.Equal(t, `"2002"`, string(ready["auth_session_id"]))
 	require.Equal(t, `3003`, string(ready["access_token_expires_at"]))
+	require.JSONEq(t, `[]`, string(ready["guild_ids"]))
 
 	const channelID = int64(9007199254740993)
 	session.mu.Lock()

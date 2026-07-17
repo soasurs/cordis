@@ -292,6 +292,7 @@ func (s *Server) identify(
 		"session_id":              session.id,
 		"session_node_id":         s.nodeID,
 		"access_token_expires_at": auth.GetExpiresAt(),
+		"guild_ids":               stringifyIDs(presenceGuildIDs(session)),
 	})
 	session.mu.Lock()
 	s.appendDispatchLocked(session, realtime.GatewayEventReady, ready)
@@ -595,7 +596,7 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	}
 	s.mu.Unlock()
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
-	s.removePresence(ctx, session)
+	s.removePresence(ctx, session, guildIDs)
 	s.refreshAllRoutes(ctx)
 }
 
@@ -658,6 +659,14 @@ func (s *Server) refreshOwner(ctx context.Context, session *logicalSession) erro
 	}, s.svcCtx.Cfg.Node.ResumeTTL())
 }
 
+// presenceGuildIDs snapshots the session's guild memberships for presence
+// transition fan-out.
+func presenceGuildIDs(session *logicalSession) []int64 {
+	session.mu.Lock()
+	defer session.mu.Unlock()
+	return mapKeys(session.guilds)
+}
+
 func (s *Server) registerPresence(ctx context.Context, session *logicalSession) error {
 	req := new(presencev1.RegisterUserSessionRequest)
 	req.SetUserId(session.userID)
@@ -667,6 +676,7 @@ func (s *Server) registerPresence(ctx context.Context, session *logicalSession) 
 	req.SetDeviceType(session.deviceType)
 	req.SetStatus(session.status)
 	req.SetClientState(session.clientState)
+	req.SetGuildIds(presenceGuildIDs(session))
 	_, err := s.svcCtx.PresenceClient.RegisterUserSession(ctx, req)
 	return err
 }
@@ -683,6 +693,7 @@ func (s *Server) refreshPresence(ctx context.Context, session *logicalSession) e
 	req.SetDeviceType(session.deviceType)
 	req.SetStatus(statusValue)
 	req.SetClientState(clientState)
+	req.SetGuildIds(presenceGuildIDs(session))
 	_, err := s.svcCtx.PresenceClient.RefreshUserSession(ctx, req)
 	return err
 }
@@ -696,14 +707,16 @@ func (s *Server) updatePresenceRPC(ctx context.Context, session *logicalSession)
 	req.SetSessionId(session.id)
 	req.SetStatus(statusValue)
 	req.SetClientState(clientState)
+	req.SetGuildIds(presenceGuildIDs(session))
 	_, err := s.svcCtx.PresenceClient.UpdateUserPresence(ctx, req)
 	return err
 }
 
-func (s *Server) removePresence(ctx context.Context, session *logicalSession) {
+func (s *Server) removePresence(ctx context.Context, session *logicalSession, guildIDs []int64) {
 	req := new(presencev1.RemoveUserSessionRequest)
 	req.SetUserId(session.userID)
 	req.SetSessionId(session.id)
+	req.SetGuildIds(guildIDs)
 	_, _ = s.svcCtx.PresenceClient.RemoveUserSession(ctx, req)
 }
 

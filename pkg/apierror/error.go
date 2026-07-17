@@ -141,6 +141,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodePermissionDenied,
 		message:     "Permission denied.",
 	},
+	{Domain: rpcerror.MessageDomain, Reason: rpcerror.MessageDmRequiresFriendship}: {
+		connectCode: connect.CodePermissionDenied,
+		publicCode:  CodePermissionDenied,
+		message:     "Direct messages require friendship.",
+	},
 	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildNotFound}: {
 		connectCode: connect.CodeNotFound,
 		publicCode:  CodeNotFound,

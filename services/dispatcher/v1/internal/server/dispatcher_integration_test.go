@@ -463,4 +463,13 @@ func testUserRoute(t *testing.T, env *dispatcherEnv) {
 		15*time.Second, 50*time.Millisecond, "poison record must be dropped and committed")
 	require.Equal(t, 3, node.userCalls(),
 		"poison record without user_id must not reach the session node")
+
+	// dm.channel.created arrives on the message topic but is user-routed.
+	h.produce(t, h.messageTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventDmChannelCreated+`","d":{"channel_id":"9001","user_id":"7401","recipient_id":"8001","created_at":1}}`)
+
+	request = node.waitUserEvent(t)
+	require.Equal(t, userID, request.GetUserId())
+	require.Equal(t, realtime.EventDmChannelCreated, request.GetEvent().GetType())
+	require.JSONEq(t, `{"channel_id":"9001","user_id":"7401","recipient_id":"8001","created_at":1}`, request.GetEvent().GetJsonPayload())
 }

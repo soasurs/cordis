@@ -8,9 +8,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
@@ -154,6 +157,7 @@ func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 		AuthenticatorClient: fakeAuthenticator{},
 		PresenceClient:      fakePresence{},
 		GuildClient:         fakeGuild{},
+		MessageClient:       fakeMessage{},
 	}))
 }
 
@@ -204,6 +208,14 @@ func (fakeAuthenticator) VerifyAccessToken(
 	resp.SetSessionId(2002)
 	resp.SetExpiresAt(3003)
 	return resp, nil
+}
+
+type fakeMessage struct {
+	messagev1.MessageServiceClient
+}
+
+func (fakeMessage) AuthorizeDmChannel(context.Context, *messagev1.AuthorizeDmChannelRequest, ...grpc.CallOption) (*messagev1.AuthorizeDmChannelResponse, error) {
+	return nil, status.Error(codes.NotFound, "dm channel not found")
 }
 
 type fakeGuild struct {
@@ -263,4 +275,59 @@ func (fakePresence) RemoveUserSession(
 	...grpc.CallOption,
 ) (*presencev1.RemoveUserSessionResponse, error) {
 	return new(presencev1.RemoveUserSessionResponse), nil
+}
+
+// notFoundGuild simulates Guild's response for channels it does not own.
+type notFoundGuild struct {
+	guildv1.GuildServiceClient
+}
+
+func (notFoundGuild) ListUserGuilds(context.Context, *guildv1.ListUserGuildsRequest, ...grpc.CallOption) (*guildv1.ListUserGuildsResponse, error) {
+	return new(guildv1.ListUserGuildsResponse), nil
+}
+
+func (notFoundGuild) AuthorizeGuildChannel(context.Context, *guildv1.AuthorizeGuildChannelRequest, ...grpc.CallOption) (*guildv1.AuthorizeGuildChannelResponse, error) {
+	return nil, status.Error(codes.NotFound, "guild channel not found")
+}
+
+type dmMessage struct {
+	messagev1.MessageServiceClient
+	allowed bool
+}
+
+func (m dmMessage) AuthorizeDmChannel(context.Context, *messagev1.AuthorizeDmChannelRequest, ...grpc.CallOption) (*messagev1.AuthorizeDmChannelResponse, error) {
+	resp := new(messagev1.AuthorizeDmChannelResponse)
+	resp.SetAllowed(m.allowed)
+	return resp, nil
+}
+
+func TestSubscribeFallsBackToDmChannels(t *testing.T) {
+	server := newTestServer()
+	server.svcCtx.GuildClient = notFoundGuild{}
+	server.svcCtx.MessageClient = dmMessage{allowed: true}
+
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-dm", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{555}))
+	session.mu.Lock()
+	_, subscribed := session.channels[555]
+	require.Zero(t, session.channelGuilds[555])
+	session.mu.Unlock()
+	require.True(t, subscribed)
+
+	// A non-participant is rejected.
+	server.svcCtx.MessageClient = dmMessage{allowed: false}
+	other, err := server.identify(t.Context(), "conn-dm-2", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+	other.mu.Lock()
+	otherBinding := other.binding
+	other.mu.Unlock()
+	err = server.subscribeChannels(t.Context(), other, otherBinding, []int64{555})
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }

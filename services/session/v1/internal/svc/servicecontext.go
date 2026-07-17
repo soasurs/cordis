@@ -6,6 +6,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/config"
@@ -19,6 +20,7 @@ type ServiceContext struct {
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
+	MessageClient       messagev1.MessageServiceClient
 }
 
 type Dependencies struct {
@@ -27,6 +29,7 @@ type Dependencies struct {
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
+	MessageClient       messagev1.MessageServiceClient
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -53,12 +56,18 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		_ = registry.Close()
 		return Dependencies{}, err
 	}
+	message, err := zrpc.NewClient(cfg.Services.Message)
+	if err != nil {
+		_ = registry.Close()
+		return Dependencies{}, err
+	}
 	return Dependencies{
 		Store:               store.NewRedisStore(rds),
 		SessionRegistry:     registry,
 		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(auth.Conn()),
 		PresenceClient:      presencev1.NewPresenceServiceClient(presence.Conn()),
 		GuildClient:         guildv1.NewGuildServiceClient(guild.Conn()),
+		MessageClient:       messagev1.NewMessageServiceClient(message.Conn()),
 	}, nil
 }
 
@@ -86,6 +95,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.GuildClient == nil {
 		panic("guild client is required")
 	}
+	if deps.MessageClient == nil {
+		panic("message client is required")
+	}
 	return &ServiceContext{
 		Cfg:                 cfg,
 		Store:               deps.Store,
@@ -93,6 +105,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		AuthenticatorClient: deps.AuthenticatorClient,
 		PresenceClient:      deps.PresenceClient,
 		GuildClient:         deps.GuildClient,
+		MessageClient:       deps.MessageClient,
 	}
 }
 

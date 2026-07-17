@@ -9,6 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -27,6 +28,7 @@ type ServiceContext struct {
 	Snowflake   *sn.Node
 	Publisher   EventPublisher
 	GuildClient guildv1.GuildServiceClient
+	UserClient  userv1.UserServiceClient
 }
 
 type Dependencies struct {
@@ -35,6 +37,7 @@ type Dependencies struct {
 	Kafka       *kgo.Client
 	Publisher   EventPublisher
 	GuildClient guildv1.GuildServiceClient
+	UserClient  userv1.UserServiceClient
 	DB          *sqlx.DB
 }
 
@@ -49,6 +52,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, err
 	}
 	guildRPCClient, err := zrpc.NewClient(cfg.Services.Guild)
+	if err != nil {
+		db.Close()
+		return Dependencies{}, err
+	}
+	userRPCClient, err := zrpc.NewClient(cfg.Services.User)
 	if err != nil {
 		db.Close()
 		return Dependencies{}, err
@@ -69,6 +77,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		Kafka:       kafkaClient,
 		DB:          db,
 		GuildClient: guildv1.NewGuildServiceClient(guildRPCClient.Conn()),
+		UserClient:  userv1.NewUserServiceClient(userRPCClient.Conn()),
 	}, nil
 }
 
@@ -90,6 +99,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.GuildClient == nil {
 		panic("guild client is required")
 	}
+	if deps.UserClient == nil {
+		panic("user client is required")
+	}
 
 	publisher := deps.Publisher
 	if publisher == nil && deps.Kafka != nil {
@@ -104,6 +116,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		Snowflake:   deps.Snowflake,
 		Publisher:   publisher,
 		GuildClient: deps.GuildClient,
+		UserClient:  deps.UserClient,
 	}
 }
 

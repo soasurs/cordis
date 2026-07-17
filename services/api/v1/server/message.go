@@ -205,3 +205,62 @@ func attachmentsToAPI(attachments []*messagev1.Attachment) []*apiv1.Attachment {
 	}
 	return values
 }
+
+func (s *messageServer) CreateDmChannel(ctx context.Context, req *apiv1.CreateDmChannelRequest) (*apiv1.CreateDmChannelResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.CreateDmChannelRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetTargetId(req.GetTargetId())
+	svcResp, err := s.svcCtx.MessageClient.CreateDmChannel(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.CreateDmChannelResponse{
+		Channel: dmChannelToAPI(svcResp.GetChannel(), auth.GetUserId()),
+	}, nil
+}
+
+func (s *messageServer) ListDmChannels(ctx context.Context, req *apiv1.ListDmChannelsRequest) (*apiv1.ListDmChannelsResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.ListDmChannelsRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetBeforeId(req.GetBeforeId())
+	svcReq.SetLimit(req.GetLimit())
+	svcResp, err := s.svcCtx.MessageClient.ListDmChannels(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+
+	channels := make([]*apiv1.DmChannel, 0, len(svcResp.GetChannels()))
+	for _, channel := range svcResp.GetChannels() {
+		channels = append(channels, dmChannelToAPI(channel, auth.GetUserId()))
+	}
+	return &apiv1.ListDmChannelsResponse{
+		Channels: channels,
+		BeforeId: new(svcResp.GetBeforeId()),
+	}, nil
+}
+
+// dmChannelToAPI converts the stored pair into the caller's perspective.
+func dmChannelToAPI(channel *messagev1.DmChannel, viewerID int64) *apiv1.DmChannel {
+	if channel == nil {
+		return nil
+	}
+	recipientID := channel.GetUserLo()
+	if viewerID == channel.GetUserLo() {
+		recipientID = channel.GetUserHi()
+	}
+	return &apiv1.DmChannel{
+		Id:          new(channel.GetId()),
+		RecipientId: new(recipientID),
+		CreatedAt:   new(channel.GetCreatedAt()),
+	}
+}

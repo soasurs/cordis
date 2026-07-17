@@ -15,6 +15,20 @@ service MessageService {
   rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
   // ListMessages returns messages in a channel ordered newest first.
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  // CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
+  // friend. Messages then flow through the regular message RPCs using the
+  // returned channel ID.
+  rpc CreateDmChannel(CreateDmChannelRequest) returns (CreateDmChannelResponse);
+  rpc ListDmChannels(ListDmChannelsRequest) returns (ListDmChannelsResponse);
+}
+
+// DmChannel is a private 1:1 conversation from the caller's perspective.
+// All timestamps are Unix time in milliseconds.
+message DmChannel {
+  int64 id = 1;
+  // The other participant.
+  int64 recipient_id = 2;
+  int64 created_at = 3;
 }
 
 // MessageType identifies the semantic kind of a message.
@@ -153,4 +167,23 @@ message ListMessagesResponse {
   int64 before_cursor = 2;
   // Largest message ID in this page, or zero when the page is empty.
   int64 after_cursor = 3;
+}
+
+message CreateDmChannelRequest {
+  int64 target_id = 1;
+}
+
+message CreateDmChannelResponse {
+  DmChannel channel = 1;
+}
+
+message ListDmChannelsRequest {
+  // Return channels with IDs smaller than this cursor.
+  int64 before_id = 1;
+  int32 limit = 2;
+}
+
+message ListDmChannelsResponse {
+  repeated DmChannel channels = 1;
+  int64 before_id = 2;
 }

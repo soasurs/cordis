@@ -3573,13 +3573,14 @@ func (b0 ListRelationshipsResponse_builder) Build() *ListRelationshipsResponse {
 }
 
 type CheckRelationshipsRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_TargetIds   []int64                `protobuf:"varint,2,rep,packed,name=target_ids,json=targetIds"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId         int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_TargetIds      []int64                `protobuf:"varint,2,rep,packed,name=target_ids,json=targetIds"`
+	xxx_hidden_IncludeReverse bool                   `protobuf:"varint,3,opt,name=include_reverse,json=includeReverse"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CheckRelationshipsRequest) Reset() {
@@ -3621,13 +3622,25 @@ func (x *CheckRelationshipsRequest) GetTargetIds() []int64 {
 	return nil
 }
 
+func (x *CheckRelationshipsRequest) GetIncludeReverse() bool {
+	if x != nil {
+		return x.xxx_hidden_IncludeReverse
+	}
+	return false
+}
+
 func (x *CheckRelationshipsRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *CheckRelationshipsRequest) SetTargetIds(v []int64) {
 	x.xxx_hidden_TargetIds = v
+}
+
+func (x *CheckRelationshipsRequest) SetIncludeReverse(v bool) {
+	x.xxx_hidden_IncludeReverse = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *CheckRelationshipsRequest) HasUserId() bool {
@@ -3637,9 +3650,21 @@ func (x *CheckRelationshipsRequest) HasUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
+func (x *CheckRelationshipsRequest) HasIncludeReverse() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *CheckRelationshipsRequest) ClearUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UserId = 0
+}
+
+func (x *CheckRelationshipsRequest) ClearIncludeReverse() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_IncludeReverse = false
 }
 
 type CheckRelationshipsRequest_builder struct {
@@ -3647,6 +3672,11 @@ type CheckRelationshipsRequest_builder struct {
 
 	UserId    *int64
 	TargetIds []int64
+	// When set, rows where a target points back at user_id are also returned
+	// (their user_id/target_id are the target's perspective). Both directions
+	// come from one query, so callers see a single consistent snapshot -
+	// primarily for block enforcement in DMs.
+	IncludeReverse *bool
 }
 
 func (b0 CheckRelationshipsRequest_builder) Build() *CheckRelationshipsRequest {
@@ -3654,10 +3684,14 @@ func (b0 CheckRelationshipsRequest_builder) Build() *CheckRelationshipsRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	x.xxx_hidden_TargetIds = b.TargetIds
+	if b.IncludeReverse != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_IncludeReverse = *b.IncludeReverse
+	}
 	return m0
 }
 
@@ -4013,11 +4047,12 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\"\x82\x01\n" +
 	"\x19ListRelationshipsResponse\x12;\n" +
 	"\rrelationships\x18\x01 \x03(\v2\x15.user.v1.RelationshipR\rrelationships\x12(\n" +
-	"\x10before_target_id\x18\x02 \x01(\x03R\x0ebeforeTargetId\"S\n" +
+	"\x10before_target_id\x18\x02 \x01(\x03R\x0ebeforeTargetId\"|\n" +
 	"\x19CheckRelationshipsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +
-	"target_ids\x18\x02 \x03(\x03R\ttargetIds\"Y\n" +
+	"target_ids\x18\x02 \x03(\x03R\ttargetIds\x12'\n" +
+	"\x0finclude_reverse\x18\x03 \x01(\bR\x0eincludeReverse\"Y\n" +
 	"\x1aCheckRelationshipsResponse\x12;\n" +
 	"\rrelationships\x18\x01 \x03(\v2\x15.user.v1.RelationshipR\rrelationships\"L\n" +
 	"\x15UpdateUsernameRequest\x12\x17\n" +

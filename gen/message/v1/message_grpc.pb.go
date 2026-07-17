@@ -19,11 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MessageService_CreateMessage_FullMethodName = "/message.v1.MessageService/CreateMessage"
-	MessageService_UpdateMessage_FullMethodName = "/message.v1.MessageService/UpdateMessage"
-	MessageService_DeleteMessage_FullMethodName = "/message.v1.MessageService/DeleteMessage"
-	MessageService_GetMessage_FullMethodName    = "/message.v1.MessageService/GetMessage"
-	MessageService_ListMessages_FullMethodName  = "/message.v1.MessageService/ListMessages"
+	MessageService_CreateMessage_FullMethodName      = "/message.v1.MessageService/CreateMessage"
+	MessageService_UpdateMessage_FullMethodName      = "/message.v1.MessageService/UpdateMessage"
+	MessageService_DeleteMessage_FullMethodName      = "/message.v1.MessageService/DeleteMessage"
+	MessageService_GetMessage_FullMethodName         = "/message.v1.MessageService/GetMessage"
+	MessageService_ListMessages_FullMethodName       = "/message.v1.MessageService/ListMessages"
+	MessageService_CreateDmChannel_FullMethodName    = "/message.v1.MessageService/CreateDmChannel"
+	MessageService_ListDmChannels_FullMethodName     = "/message.v1.MessageService/ListDmChannels"
+	MessageService_AuthorizeDmChannel_FullMethodName = "/message.v1.MessageService/AuthorizeDmChannel"
 )
 
 // MessageServiceClient is the client API for MessageService service.
@@ -42,6 +45,13 @@ type MessageServiceClient interface {
 	// ListMessages returns messages in a channel ordered by id descending
 	// (newest first). Uses cursor-based pagination.
 	ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...grpc.CallOption) (*ListMessagesResponse, error)
+	// CreateDmChannel opens (or idempotently returns) the 1:1 channel between
+	// two friends.
+	CreateDmChannel(ctx context.Context, in *CreateDmChannelRequest, opts ...grpc.CallOption) (*CreateDmChannelResponse, error)
+	ListDmChannels(ctx context.Context, in *ListDmChannelsRequest, opts ...grpc.CallOption) (*ListDmChannelsResponse, error)
+	// AuthorizeDmChannel reports whether the user participates in the DM
+	// channel. It backs Session channel subscriptions.
+	AuthorizeDmChannel(ctx context.Context, in *AuthorizeDmChannelRequest, opts ...grpc.CallOption) (*AuthorizeDmChannelResponse, error)
 }
 
 type messageServiceClient struct {
@@ -102,6 +112,36 @@ func (c *messageServiceClient) ListMessages(ctx context.Context, in *ListMessage
 	return out, nil
 }
 
+func (c *messageServiceClient) CreateDmChannel(ctx context.Context, in *CreateDmChannelRequest, opts ...grpc.CallOption) (*CreateDmChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateDmChannelResponse)
+	err := c.cc.Invoke(ctx, MessageService_CreateDmChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *messageServiceClient) ListDmChannels(ctx context.Context, in *ListDmChannelsRequest, opts ...grpc.CallOption) (*ListDmChannelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDmChannelsResponse)
+	err := c.cc.Invoke(ctx, MessageService_ListDmChannels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *messageServiceClient) AuthorizeDmChannel(ctx context.Context, in *AuthorizeDmChannelRequest, opts ...grpc.CallOption) (*AuthorizeDmChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthorizeDmChannelResponse)
+	err := c.cc.Invoke(ctx, MessageService_AuthorizeDmChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MessageServiceServer is the server API for MessageService service.
 // All implementations should embed UnimplementedMessageServiceServer
 // for forward compatibility.
@@ -118,6 +158,13 @@ type MessageServiceServer interface {
 	// ListMessages returns messages in a channel ordered by id descending
 	// (newest first). Uses cursor-based pagination.
 	ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesResponse, error)
+	// CreateDmChannel opens (or idempotently returns) the 1:1 channel between
+	// two friends.
+	CreateDmChannel(context.Context, *CreateDmChannelRequest) (*CreateDmChannelResponse, error)
+	ListDmChannels(context.Context, *ListDmChannelsRequest) (*ListDmChannelsResponse, error)
+	// AuthorizeDmChannel reports whether the user participates in the DM
+	// channel. It backs Session channel subscriptions.
+	AuthorizeDmChannel(context.Context, *AuthorizeDmChannelRequest) (*AuthorizeDmChannelResponse, error)
 }
 
 // UnimplementedMessageServiceServer should be embedded to have
@@ -141,6 +188,15 @@ func (UnimplementedMessageServiceServer) GetMessage(context.Context, *GetMessage
 }
 func (UnimplementedMessageServiceServer) ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListMessages not implemented")
+}
+func (UnimplementedMessageServiceServer) CreateDmChannel(context.Context, *CreateDmChannelRequest) (*CreateDmChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateDmChannel not implemented")
+}
+func (UnimplementedMessageServiceServer) ListDmChannels(context.Context, *ListDmChannelsRequest) (*ListDmChannelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListDmChannels not implemented")
+}
+func (UnimplementedMessageServiceServer) AuthorizeDmChannel(context.Context, *AuthorizeDmChannelRequest) (*AuthorizeDmChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeDmChannel not implemented")
 }
 func (UnimplementedMessageServiceServer) testEmbeddedByValue() {}
 
@@ -252,6 +308,60 @@ func _MessageService_ListMessages_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MessageService_CreateDmChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateDmChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessageServiceServer).CreateDmChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MessageService_CreateDmChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessageServiceServer).CreateDmChannel(ctx, req.(*CreateDmChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MessageService_ListDmChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDmChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessageServiceServer).ListDmChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MessageService_ListDmChannels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessageServiceServer).ListDmChannels(ctx, req.(*ListDmChannelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MessageService_AuthorizeDmChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthorizeDmChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessageServiceServer).AuthorizeDmChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MessageService_AuthorizeDmChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessageServiceServer).AuthorizeDmChannel(ctx, req.(*AuthorizeDmChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MessageService_ServiceDesc is the grpc.ServiceDesc for MessageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -278,6 +388,18 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMessages",
 			Handler:    _MessageService_ListMessages_Handler,
+		},
+		{
+			MethodName: "CreateDmChannel",
+			Handler:    _MessageService_CreateDmChannel_Handler,
+		},
+		{
+			MethodName: "ListDmChannels",
+			Handler:    _MessageService_ListDmChannels_Handler,
+		},
+		{
+			MethodName: "AuthorizeDmChannel",
+			Handler:    _MessageService_AuthorizeDmChannel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

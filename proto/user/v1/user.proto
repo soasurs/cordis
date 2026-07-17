@@ -225,6 +225,11 @@ message ListRelationshipsResponse {
 message CheckRelationshipsRequest {
   int64 user_id = 1;
   repeated int64 target_ids = 2;
+  // When set, rows where a target points back at user_id are also returned
+  // (their user_id/target_id are the target's perspective). Both directions
+  // come from one query, so callers see a single consistent snapshot -
+  // primarily for block enforcement in DMs.
+  bool include_reverse = 3;
 }
 
 message CheckRelationshipsResponse {

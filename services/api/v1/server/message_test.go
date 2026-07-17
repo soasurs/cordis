@@ -36,6 +36,13 @@ type fakeMessageClient struct {
 	listRequest    *messagev1.ListMessagesRequest
 	listResponse   *messagev1.ListMessagesResponse
 	listError      error
+
+	createDmChannelRequest  *messagev1.CreateDmChannelRequest
+	createDmChannelResponse *messagev1.CreateDmChannelResponse
+	createDmChannelError    error
+	listDmChannelsRequest   *messagev1.ListDmChannelsRequest
+	listDmChannelsResponse  *messagev1.ListDmChannelsResponse
+	listDmChannelsError     error
 }
 
 func (f *fakeMessageClient) CreateMessage(_ context.Context, req *messagev1.CreateMessageRequest, _ ...grpc.CallOption) (*messagev1.CreateMessageResponse, error) {
@@ -364,4 +371,73 @@ func updateMessageResponse(message *messagev1.Message) *messagev1.UpdateMessageR
 	resp := new(messagev1.UpdateMessageResponse)
 	resp.SetMessage(message)
 	return resp
+}
+
+func (f *fakeMessageClient) CreateDmChannel(_ context.Context, req *messagev1.CreateDmChannelRequest, _ ...grpc.CallOption) (*messagev1.CreateDmChannelResponse, error) {
+	f.createDmChannelRequest = req
+	if f.createDmChannelError != nil {
+		return nil, f.createDmChannelError
+	}
+	return f.createDmChannelResponse, nil
+}
+
+func (f *fakeMessageClient) ListDmChannels(_ context.Context, req *messagev1.ListDmChannelsRequest, _ ...grpc.CallOption) (*messagev1.ListDmChannelsResponse, error) {
+	f.listDmChannelsRequest = req
+	if f.listDmChannelsError != nil {
+		return nil, f.listDmChannelsError
+	}
+	return f.listDmChannelsResponse, nil
+}
+
+func TestCreateDmChannelUsesAuthenticatedUser(t *testing.T) {
+	channel := new(messagev1.DmChannel)
+	channel.SetId(500)
+	channel.SetUserLo(1001)
+	channel.SetUserHi(2002)
+	channel.SetCreatedAt(4001)
+	svcResp := new(messagev1.CreateDmChannelResponse)
+	svcResp.SetChannel(channel)
+
+	messageClient := &fakeMessageClient{createDmChannelResponse: svcResp}
+	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}, messageClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.CreateDmChannel(context.Background(), &apiv1.CreateDmChannelRequest{
+		TargetId: new(int64(2002)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), messageClient.createDmChannelRequest.GetUserId())
+	require.Equal(t, int64(2002), messageClient.createDmChannelRequest.GetTargetId())
+	// The stored pair is translated into the caller's perspective.
+	require.Equal(t, int64(2002), resp.GetChannel().GetRecipientId())
+	require.Equal(t, int64(500), resp.GetChannel().GetId())
+}
+
+func TestListDmChannelsMapsPerspective(t *testing.T) {
+	channel := new(messagev1.DmChannel)
+	channel.SetId(500)
+	channel.SetUserLo(42)
+	channel.SetUserHi(1001)
+	svcResp := new(messagev1.ListDmChannelsResponse)
+	svcResp.SetChannels([]*messagev1.DmChannel{channel})
+	svcResp.SetBeforeId(500)
+
+	messageClient := &fakeMessageClient{listDmChannelsResponse: svcResp}
+	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}, messageClient, "access-token")
+	defer closeServer()
+
+	resp, err := client.ListDmChannels(context.Background(), &apiv1.ListDmChannelsRequest{
+		BeforeId: new(int64(600)), Limit: new(int32(10)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), messageClient.listDmChannelsRequest.GetUserId())
+	require.Equal(t, int64(600), messageClient.listDmChannelsRequest.GetBeforeId())
+	require.Len(t, resp.GetChannels(), 1)
+	// The caller is user_hi here, so the recipient is user_lo.
+	require.Equal(t, int64(42), resp.GetChannels()[0].GetRecipientId())
+	require.Equal(t, int64(500), resp.GetBeforeId())
 }

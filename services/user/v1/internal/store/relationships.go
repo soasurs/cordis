@@ -93,6 +93,21 @@ func (s *SQLStore) ListRelationshipsByTargets(ctx context.Context, userID int64,
 	return relationships, nil
 }
 
+// ListRelationshipsBidirectional returns rows in both directions between
+// userID and each target from a single statement, so callers get one
+// consistent snapshot for block checks.
+func (s *SQLStore) ListRelationshipsBidirectional(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
+	var rows []*relationshipRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRelationshipsBidirectionalQuery, userID, pq.Array(targetIDs)); err != nil {
+		return nil, err
+	}
+	relationships := make([]*model.Relationship, 0, len(rows))
+	for _, row := range rows {
+		relationships = append(relationships, relationshipFromRow(row))
+	}
+	return relationships, nil
+}
+
 func relationshipFromRow(row *relationshipRow) *model.Relationship {
 	return &model.Relationship{
 		UserID:    row.UserID,

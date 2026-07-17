@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 )
@@ -13,6 +15,16 @@ const (
 )
 
 func (s *messageServer) requireChannelPermission(ctx context.Context, channelID, userID int64, permission uint64) error {
+	// DM channels are owned locally; a hit settles authorization without a
+	// Guild round trip. A miss falls through to the guild path.
+	dmChannel, err := s.svcCtx.Store.GetDmChannel(ctx, channelID)
+	if err == nil {
+		return s.authorizeDmMessage(ctx, dmChannel, userID, permission)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
 	req := new(guildv1.AuthorizeGuildChannelRequest)
 	req.SetChannelId(channelID)
 	req.SetUserId(userID)

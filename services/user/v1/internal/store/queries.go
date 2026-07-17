@@ -181,4 +181,11 @@ const (
 	FROM user_relationships
 	WHERE user_id = $1 AND target_id = ANY($2)
 	`
+
+	ListRelationshipsBidirectionalQuery = `
+	SELECT user_id, target_id, type, created_at, updated_at
+	FROM user_relationships
+	WHERE (user_id = $1 AND target_id = ANY($2))
+	   OR (target_id = $1 AND user_id = ANY($2))
+	`
 )

@@ -25,3 +25,25 @@ type Attachment struct {
 	Width       int32
 	Height      int32
 }
+
+// DmChannel is a private 1:1 conversation; participants are stored in
+// ascending user ID order.
+type DmChannel struct {
+	ID        int64
+	UserLo    int64
+	UserHi    int64
+	CreatedAt int64
+}
+
+// Participates reports whether userID is one of the two members.
+func (c *DmChannel) Participates(userID int64) bool {
+	return userID == c.UserLo || userID == c.UserHi
+}
+
+// OtherParticipant returns the peer of userID.
+func (c *DmChannel) OtherParticipant(userID int64) int64 {
+	if userID == c.UserLo {
+		return c.UserHi
+	}
+	return c.UserLo
+}

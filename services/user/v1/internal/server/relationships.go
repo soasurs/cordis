@@ -314,7 +314,11 @@ func (s *userServer) CheckRelationships(ctx context.Context, req *userv1.CheckRe
 		return nil, errBatchTooLarge
 	}
 
-	relationships, err := s.svcCtx.Store.ListRelationshipsByTargets(ctx, req.GetUserId(), targetIDs)
+	list := s.svcCtx.Store.ListRelationshipsByTargets
+	if req.GetIncludeReverse() {
+		list = s.svcCtx.Store.ListRelationshipsBidirectional
+	}
+	relationships, err := list(ctx, req.GetUserId(), targetIDs)
 	if err != nil {
 		return nil, mapStoreError(err)
 	}

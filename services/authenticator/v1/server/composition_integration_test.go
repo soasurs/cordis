@@ -64,6 +64,7 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 	t.Run("register creates user and session", func(t *testing.T) {
 		req := new(authenticatorv1.RegisterRequest)
 		req.SetName("Alice")
+		req.SetUsername("alice")
 		req.SetEmail("alice@example.com")
 		req.SetPassword("integration-password-1")
 		resp, err := service.Register(ctx, req)
@@ -78,6 +79,7 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 	t.Run("duplicate email propagates already exists", func(t *testing.T) {
 		req := new(authenticatorv1.RegisterRequest)
 		req.SetName("Alice2")
+		req.SetUsername("alice2")
 		req.SetEmail("alice@example.com")
 		req.SetPassword("integration-password-2")
 		_, err := service.Register(ctx, req)

@@ -23,21 +23,48 @@ import (
 
 type fakeUserClient struct {
 	userv1.UserServiceClient
-	getUserRequest                 *userv1.GetUserRequest
-	getUserResponse                *userv1.GetUserResponse
-	getUserError                   error
-	getUserProfileRequest          *userv1.GetUserProfileRequest
-	getUserProfileResponse         *userv1.GetUserProfileResponse
-	getUserProfileError            error
-	checkEmailAvailabilityRequest  *userv1.CheckEmailAvailabilityRequest
-	checkEmailAvailabilityResponse *userv1.CheckEmailAvailabilityResponse
-	checkEmailAvailabilityError    error
-	updateEmailRequest             *userv1.UpdateEmailRequest
-	updateEmailResponse            *userv1.UpdateEmailResponse
-	updateEmailError               error
-	updateUserProfileRequest       *userv1.UpdateUserProfileRequest
-	updateUserProfileResponse      *userv1.UpdateUserProfileResponse
-	updateUserProfileError         error
+	getUserRequest                   *userv1.GetUserRequest
+	getUserResponse                  *userv1.GetUserResponse
+	getUserError                     error
+	getUserProfileRequest            *userv1.GetUserProfileRequest
+	getUserProfileResponse           *userv1.GetUserProfileResponse
+	getUserProfileError              error
+	checkEmailAvailabilityRequest    *userv1.CheckEmailAvailabilityRequest
+	checkEmailAvailabilityResponse   *userv1.CheckEmailAvailabilityResponse
+	checkEmailAvailabilityError      error
+	updateEmailRequest               *userv1.UpdateEmailRequest
+	updateEmailResponse              *userv1.UpdateEmailResponse
+	updateEmailError                 error
+	updateUserProfileRequest         *userv1.UpdateUserProfileRequest
+	updateUserProfileResponse        *userv1.UpdateUserProfileResponse
+	updateUserProfileError           error
+	updateUsernameRequest            *userv1.UpdateUsernameRequest
+	updateUsernameResponse           *userv1.UpdateUsernameResponse
+	updateUsernameError              error
+	getUserProfileByUsernameRequest  *userv1.GetUserProfileByUsernameRequest
+	getUserProfileByUsernameResponse *userv1.GetUserProfileByUsernameResponse
+	getUserProfileByUsernameError    error
+	sendFriendRequestRequest         *userv1.SendFriendRequestRequest
+	sendFriendRequestResponse        *userv1.SendFriendRequestResponse
+	sendFriendRequestError           error
+	acceptFriendRequestRequest       *userv1.AcceptFriendRequestRequest
+	acceptFriendRequestResponse      *userv1.AcceptFriendRequestResponse
+	acceptFriendRequestError         error
+	declineFriendRequestRequest      *userv1.DeclineFriendRequestRequest
+	declineFriendRequestResponse     *userv1.DeclineFriendRequestResponse
+	declineFriendRequestError        error
+	removeFriendRequest              *userv1.RemoveFriendRequest
+	removeFriendResponse             *userv1.RemoveFriendResponse
+	removeFriendError                error
+	blockUserRequest                 *userv1.BlockUserRequest
+	blockUserResponse                *userv1.BlockUserResponse
+	blockUserError                   error
+	unblockUserRequest               *userv1.UnblockUserRequest
+	unblockUserResponse              *userv1.UnblockUserResponse
+	unblockUserError                 error
+	listRelationshipsRequest         *userv1.ListRelationshipsRequest
+	listRelationshipsResponse        *userv1.ListRelationshipsResponse
+	listRelationshipsError           error
 }
 
 func (f *fakeUserClient) GetUser(_ context.Context, req *userv1.GetUserRequest, _ ...grpc.CallOption) (*userv1.GetUserResponse, error) {

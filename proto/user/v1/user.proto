@@ -6,6 +6,8 @@ service UserService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
+  // GetUserProfileByUsername resolves the globally unique handle.
+  rpc GetUserProfileByUsername(GetUserProfileByUsernameRequest) returns (GetUserProfileByUsernameResponse);
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
   // MarkEmailVerified records verification only while the supplied email is
@@ -13,6 +15,41 @@ service UserService {
   rpc MarkEmailVerified(MarkEmailVerifiedRequest) returns (MarkEmailVerifiedResponse);
   // UpdateUserProfile replaces all mutable public profile fields.
   rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+  // UpdateUsername replaces the unique handle; the old handle is released
+  // immediately.
+  rpc UpdateUsername(UpdateUsernameRequest) returns (UpdateUsernameResponse);
+  rpc SendFriendRequest(SendFriendRequestRequest) returns (SendFriendRequestResponse);
+  rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
+  rpc DeclineFriendRequest(DeclineFriendRequestRequest) returns (DeclineFriendRequestResponse);
+  // RemoveFriend deletes a friendship or retracts a pending request in
+  // either direction.
+  rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+  rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+  rpc ListRelationships(ListRelationshipsRequest) returns (ListRelationshipsResponse);
+  // CheckRelationships is an internal batch lookup for other services,
+  // primarily to enforce blocks.
+  rpc CheckRelationships(CheckRelationshipsRequest) returns (CheckRelationshipsResponse);
+}
+
+// RelationshipType values match the stored representation.
+enum RelationshipType {
+  RELATIONSHIP_TYPE_UNSPECIFIED = 0;
+  // The user sent a friend request that is still pending.
+  RELATIONSHIP_TYPE_OUTGOING = 1;
+  // The user received a friend request that is still pending.
+  RELATIONSHIP_TYPE_INCOMING = 2;
+  RELATIONSHIP_TYPE_FRIEND = 3;
+  RELATIONSHIP_TYPE_BLOCKED = 4;
+}
+
+// Relationship is one user's view of their link to another user.
+message Relationship {
+  int64 user_id = 1;
+  int64 target_id = 2;
+  RelationshipType type = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
 }
 
 message User {
@@ -32,6 +69,8 @@ message UserProfile {
   int64 created_at = 4;
   int64 updated_at = 5;
   int64 deleted_at = 6;
+  // Globally unique lowercase handle.
+  string username = 7;
 }
 
 // User identity is owned by this service; authentication credentials are
@@ -41,6 +80,7 @@ message CreateUserRequest {
   string email = 2;
   reserved 3;
   reserved password;
+  string username = 4;
 }
 
 message CreateUserResponse {
@@ -101,5 +141,102 @@ message UpdateUserProfileRequest {
 }
 
 message UpdateUserProfileResponse {
+  UserProfile profile = 1;
+}
+
+message GetUserProfileByUsernameRequest {
+  string username = 1;
+}
+
+message GetUserProfileByUsernameResponse {
+  UserProfile profile = 1;
+}
+
+message SendFriendRequestRequest {
+  int64 user_id = 1;
+  int64 target_id = 2;
+}
+
+message SendFriendRequestResponse {
+  // Outgoing after a fresh request, or friend when the target had already
+  // sent a request the other way.
+  Relationship relationship = 1;
+}
+
+message AcceptFriendRequestRequest {
+  int64 user_id = 1;
+  int64 target_id = 2;
+}
+
+message AcceptFriendRequestResponse {
+  Relationship relationship = 1;
+}
+
+message DeclineFriendRequestRequest {
+  int64 user_id = 1;
+  int64 target_id = 2;
+}
+
+message DeclineFriendRequestResponse {
+  bool ok = 1;
+}
+
+message RemoveFriendRequest {
+  int64 user_id = 1;
+  int64 target_id = 2;
+}
+
+message RemoveFriendResponse {
+  bool ok = 1;
+}
+
+message BlockUserRequest {
+  int64 user_id = 1;
+  int64 target_id = 2;
+}
+
+message BlockUserResponse {
+  Relationship relationship = 1;
+}
+
+message UnblockUserRequest {
+  int64 user_id = 1;
+  int64 target_id = 2;
+}
+
+message UnblockUserResponse {
+  bool ok = 1;
+}
+
+message ListRelationshipsRequest {
+  int64 user_id = 1;
+  // Optional filter; unspecified returns every type.
+  RelationshipType type = 2;
+  // Return relationships with target IDs smaller than this cursor.
+  int64 before_target_id = 3;
+  int32 limit = 4;
+}
+
+message ListRelationshipsResponse {
+  repeated Relationship relationships = 1;
+  int64 before_target_id = 2;
+}
+
+message CheckRelationshipsRequest {
+  int64 user_id = 1;
+  repeated int64 target_ids = 2;
+}
+
+message CheckRelationshipsResponse {
+  // Only existing relationships are returned.
+  repeated Relationship relationships = 1;
+}
+
+message UpdateUsernameRequest {
+  int64 user_id = 1;
+  string username = 2;
+}
+
+message UpdateUsernameResponse {
   UserProfile profile = 1;
 }

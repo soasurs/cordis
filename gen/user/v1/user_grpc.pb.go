@@ -19,13 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUser_FullMethodName             = "/user.v1.UserService/CreateUser"
-	UserService_GetUser_FullMethodName                = "/user.v1.UserService/GetUser"
-	UserService_GetUserProfile_FullMethodName         = "/user.v1.UserService/GetUserProfile"
-	UserService_CheckEmailAvailability_FullMethodName = "/user.v1.UserService/CheckEmailAvailability"
-	UserService_UpdateEmail_FullMethodName            = "/user.v1.UserService/UpdateEmail"
-	UserService_MarkEmailVerified_FullMethodName      = "/user.v1.UserService/MarkEmailVerified"
-	UserService_UpdateUserProfile_FullMethodName      = "/user.v1.UserService/UpdateUserProfile"
+	UserService_CreateUser_FullMethodName               = "/user.v1.UserService/CreateUser"
+	UserService_GetUser_FullMethodName                  = "/user.v1.UserService/GetUser"
+	UserService_GetUserProfile_FullMethodName           = "/user.v1.UserService/GetUserProfile"
+	UserService_GetUserProfileByUsername_FullMethodName = "/user.v1.UserService/GetUserProfileByUsername"
+	UserService_CheckEmailAvailability_FullMethodName   = "/user.v1.UserService/CheckEmailAvailability"
+	UserService_UpdateEmail_FullMethodName              = "/user.v1.UserService/UpdateEmail"
+	UserService_MarkEmailVerified_FullMethodName        = "/user.v1.UserService/MarkEmailVerified"
+	UserService_UpdateUserProfile_FullMethodName        = "/user.v1.UserService/UpdateUserProfile"
+	UserService_UpdateUsername_FullMethodName           = "/user.v1.UserService/UpdateUsername"
+	UserService_SendFriendRequest_FullMethodName        = "/user.v1.UserService/SendFriendRequest"
+	UserService_AcceptFriendRequest_FullMethodName      = "/user.v1.UserService/AcceptFriendRequest"
+	UserService_DeclineFriendRequest_FullMethodName     = "/user.v1.UserService/DeclineFriendRequest"
+	UserService_RemoveFriend_FullMethodName             = "/user.v1.UserService/RemoveFriend"
+	UserService_BlockUser_FullMethodName                = "/user.v1.UserService/BlockUser"
+	UserService_UnblockUser_FullMethodName              = "/user.v1.UserService/UnblockUser"
+	UserService_ListRelationships_FullMethodName        = "/user.v1.UserService/ListRelationships"
+	UserService_CheckRelationships_FullMethodName       = "/user.v1.UserService/CheckRelationships"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -35,6 +45,8 @@ type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...grpc.CallOption) (*GetUserProfileResponse, error)
+	// GetUserProfileByUsername resolves the globally unique handle.
+	GetUserProfileByUsername(ctx context.Context, in *GetUserProfileByUsernameRequest, opts ...grpc.CallOption) (*GetUserProfileByUsernameResponse, error)
 	CheckEmailAvailability(ctx context.Context, in *CheckEmailAvailabilityRequest, opts ...grpc.CallOption) (*CheckEmailAvailabilityResponse, error)
 	UpdateEmail(ctx context.Context, in *UpdateEmailRequest, opts ...grpc.CallOption) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
@@ -42,6 +54,21 @@ type UserServiceClient interface {
 	MarkEmailVerified(ctx context.Context, in *MarkEmailVerifiedRequest, opts ...grpc.CallOption) (*MarkEmailVerifiedResponse, error)
 	// UpdateUserProfile replaces all mutable public profile fields.
 	UpdateUserProfile(ctx context.Context, in *UpdateUserProfileRequest, opts ...grpc.CallOption) (*UpdateUserProfileResponse, error)
+	// UpdateUsername replaces the unique handle; the old handle is released
+	// immediately.
+	UpdateUsername(ctx context.Context, in *UpdateUsernameRequest, opts ...grpc.CallOption) (*UpdateUsernameResponse, error)
+	SendFriendRequest(ctx context.Context, in *SendFriendRequestRequest, opts ...grpc.CallOption) (*SendFriendRequestResponse, error)
+	AcceptFriendRequest(ctx context.Context, in *AcceptFriendRequestRequest, opts ...grpc.CallOption) (*AcceptFriendRequestResponse, error)
+	DeclineFriendRequest(ctx context.Context, in *DeclineFriendRequestRequest, opts ...grpc.CallOption) (*DeclineFriendRequestResponse, error)
+	// RemoveFriend deletes a friendship or retracts a pending request in
+	// either direction.
+	RemoveFriend(ctx context.Context, in *RemoveFriendRequest, opts ...grpc.CallOption) (*RemoveFriendResponse, error)
+	BlockUser(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*BlockUserResponse, error)
+	UnblockUser(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*UnblockUserResponse, error)
+	ListRelationships(ctx context.Context, in *ListRelationshipsRequest, opts ...grpc.CallOption) (*ListRelationshipsResponse, error)
+	// CheckRelationships is an internal batch lookup for other services,
+	// primarily to enforce blocks.
+	CheckRelationships(ctx context.Context, in *CheckRelationshipsRequest, opts ...grpc.CallOption) (*CheckRelationshipsResponse, error)
 }
 
 type userServiceClient struct {
@@ -76,6 +103,16 @@ func (c *userServiceClient) GetUserProfile(ctx context.Context, in *GetUserProfi
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUserProfileResponse)
 	err := c.cc.Invoke(ctx, UserService_GetUserProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetUserProfileByUsername(ctx context.Context, in *GetUserProfileByUsernameRequest, opts ...grpc.CallOption) (*GetUserProfileByUsernameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserProfileByUsernameResponse)
+	err := c.cc.Invoke(ctx, UserService_GetUserProfileByUsername_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +159,96 @@ func (c *userServiceClient) UpdateUserProfile(ctx context.Context, in *UpdateUse
 	return out, nil
 }
 
+func (c *userServiceClient) UpdateUsername(ctx context.Context, in *UpdateUsernameRequest, opts ...grpc.CallOption) (*UpdateUsernameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUsernameResponse)
+	err := c.cc.Invoke(ctx, UserService_UpdateUsername_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) SendFriendRequest(ctx context.Context, in *SendFriendRequestRequest, opts ...grpc.CallOption) (*SendFriendRequestResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SendFriendRequestResponse)
+	err := c.cc.Invoke(ctx, UserService_SendFriendRequest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) AcceptFriendRequest(ctx context.Context, in *AcceptFriendRequestRequest, opts ...grpc.CallOption) (*AcceptFriendRequestResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AcceptFriendRequestResponse)
+	err := c.cc.Invoke(ctx, UserService_AcceptFriendRequest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) DeclineFriendRequest(ctx context.Context, in *DeclineFriendRequestRequest, opts ...grpc.CallOption) (*DeclineFriendRequestResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeclineFriendRequestResponse)
+	err := c.cc.Invoke(ctx, UserService_DeclineFriendRequest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) RemoveFriend(ctx context.Context, in *RemoveFriendRequest, opts ...grpc.CallOption) (*RemoveFriendResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveFriendResponse)
+	err := c.cc.Invoke(ctx, UserService_RemoveFriend_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) BlockUser(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*BlockUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BlockUserResponse)
+	err := c.cc.Invoke(ctx, UserService_BlockUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) UnblockUser(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*UnblockUserResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnblockUserResponse)
+	err := c.cc.Invoke(ctx, UserService_UnblockUser_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) ListRelationships(ctx context.Context, in *ListRelationshipsRequest, opts ...grpc.CallOption) (*ListRelationshipsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRelationshipsResponse)
+	err := c.cc.Invoke(ctx, UserService_ListRelationships_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) CheckRelationships(ctx context.Context, in *CheckRelationshipsRequest, opts ...grpc.CallOption) (*CheckRelationshipsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckRelationshipsResponse)
+	err := c.cc.Invoke(ctx, UserService_CheckRelationships_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations should embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -129,6 +256,8 @@ type UserServiceServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error)
+	// GetUserProfileByUsername resolves the globally unique handle.
+	GetUserProfileByUsername(context.Context, *GetUserProfileByUsernameRequest) (*GetUserProfileByUsernameResponse, error)
 	CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error)
 	UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
@@ -136,6 +265,21 @@ type UserServiceServer interface {
 	MarkEmailVerified(context.Context, *MarkEmailVerifiedRequest) (*MarkEmailVerifiedResponse, error)
 	// UpdateUserProfile replaces all mutable public profile fields.
 	UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*UpdateUserProfileResponse, error)
+	// UpdateUsername replaces the unique handle; the old handle is released
+	// immediately.
+	UpdateUsername(context.Context, *UpdateUsernameRequest) (*UpdateUsernameResponse, error)
+	SendFriendRequest(context.Context, *SendFriendRequestRequest) (*SendFriendRequestResponse, error)
+	AcceptFriendRequest(context.Context, *AcceptFriendRequestRequest) (*AcceptFriendRequestResponse, error)
+	DeclineFriendRequest(context.Context, *DeclineFriendRequestRequest) (*DeclineFriendRequestResponse, error)
+	// RemoveFriend deletes a friendship or retracts a pending request in
+	// either direction.
+	RemoveFriend(context.Context, *RemoveFriendRequest) (*RemoveFriendResponse, error)
+	BlockUser(context.Context, *BlockUserRequest) (*BlockUserResponse, error)
+	UnblockUser(context.Context, *UnblockUserRequest) (*UnblockUserResponse, error)
+	ListRelationships(context.Context, *ListRelationshipsRequest) (*ListRelationshipsResponse, error)
+	// CheckRelationships is an internal batch lookup for other services,
+	// primarily to enforce blocks.
+	CheckRelationships(context.Context, *CheckRelationshipsRequest) (*CheckRelationshipsResponse, error)
 }
 
 // UnimplementedUserServiceServer should be embedded to have
@@ -154,6 +298,9 @@ func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) 
 func (UnimplementedUserServiceServer) GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfile not implemented")
 }
+func (UnimplementedUserServiceServer) GetUserProfileByUsername(context.Context, *GetUserProfileByUsernameRequest) (*GetUserProfileByUsernameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfileByUsername not implemented")
+}
 func (UnimplementedUserServiceServer) CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckEmailAvailability not implemented")
 }
@@ -165,6 +312,33 @@ func (UnimplementedUserServiceServer) MarkEmailVerified(context.Context, *MarkEm
 }
 func (UnimplementedUserServiceServer) UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*UpdateUserProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserProfile not implemented")
+}
+func (UnimplementedUserServiceServer) UpdateUsername(context.Context, *UpdateUsernameRequest) (*UpdateUsernameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUsername not implemented")
+}
+func (UnimplementedUserServiceServer) SendFriendRequest(context.Context, *SendFriendRequestRequest) (*SendFriendRequestResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendFriendRequest not implemented")
+}
+func (UnimplementedUserServiceServer) AcceptFriendRequest(context.Context, *AcceptFriendRequestRequest) (*AcceptFriendRequestResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcceptFriendRequest not implemented")
+}
+func (UnimplementedUserServiceServer) DeclineFriendRequest(context.Context, *DeclineFriendRequestRequest) (*DeclineFriendRequestResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeclineFriendRequest not implemented")
+}
+func (UnimplementedUserServiceServer) RemoveFriend(context.Context, *RemoveFriendRequest) (*RemoveFriendResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveFriend not implemented")
+}
+func (UnimplementedUserServiceServer) BlockUser(context.Context, *BlockUserRequest) (*BlockUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BlockUser not implemented")
+}
+func (UnimplementedUserServiceServer) UnblockUser(context.Context, *UnblockUserRequest) (*UnblockUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnblockUser not implemented")
+}
+func (UnimplementedUserServiceServer) ListRelationships(context.Context, *ListRelationshipsRequest) (*ListRelationshipsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRelationships not implemented")
+}
+func (UnimplementedUserServiceServer) CheckRelationships(context.Context, *CheckRelationshipsRequest) (*CheckRelationshipsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckRelationships not implemented")
 }
 func (UnimplementedUserServiceServer) testEmbeddedByValue() {}
 
@@ -236,6 +410,24 @@ func _UserService_GetUserProfile_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetUserProfile(ctx, req.(*GetUserProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetUserProfileByUsername_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserProfileByUsernameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetUserProfileByUsername(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetUserProfileByUsername_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetUserProfileByUsername(ctx, req.(*GetUserProfileByUsernameRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -312,6 +504,168 @@ func _UserService_UpdateUserProfile_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_UpdateUsername_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUsernameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UpdateUsername(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UpdateUsername_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UpdateUsername(ctx, req.(*UpdateUsernameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_SendFriendRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SendFriendRequestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).SendFriendRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_SendFriendRequest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).SendFriendRequest(ctx, req.(*SendFriendRequestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_AcceptFriendRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcceptFriendRequestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AcceptFriendRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AcceptFriendRequest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AcceptFriendRequest(ctx, req.(*AcceptFriendRequestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_DeclineFriendRequest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeclineFriendRequestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).DeclineFriendRequest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_DeclineFriendRequest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).DeclineFriendRequest(ctx, req.(*DeclineFriendRequestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_RemoveFriend_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveFriendRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).RemoveFriend(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_RemoveFriend_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).RemoveFriend(ctx, req.(*RemoveFriendRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_BlockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BlockUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).BlockUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_BlockUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).BlockUser(ctx, req.(*BlockUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_UnblockUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnblockUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).UnblockUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_UnblockUser_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).UnblockUser(ctx, req.(*UnblockUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_ListRelationships_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRelationshipsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ListRelationships(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ListRelationships_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ListRelationships(ctx, req.(*ListRelationshipsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_CheckRelationships_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckRelationshipsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CheckRelationships(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CheckRelationships_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CheckRelationships(ctx, req.(*CheckRelationshipsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -332,6 +686,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_GetUserProfile_Handler,
 		},
 		{
+			MethodName: "GetUserProfileByUsername",
+			Handler:    _UserService_GetUserProfileByUsername_Handler,
+		},
+		{
 			MethodName: "CheckEmailAvailability",
 			Handler:    _UserService_CheckEmailAvailability_Handler,
 		},
@@ -346,6 +704,42 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateUserProfile",
 			Handler:    _UserService_UpdateUserProfile_Handler,
+		},
+		{
+			MethodName: "UpdateUsername",
+			Handler:    _UserService_UpdateUsername_Handler,
+		},
+		{
+			MethodName: "SendFriendRequest",
+			Handler:    _UserService_SendFriendRequest_Handler,
+		},
+		{
+			MethodName: "AcceptFriendRequest",
+			Handler:    _UserService_AcceptFriendRequest_Handler,
+		},
+		{
+			MethodName: "DeclineFriendRequest",
+			Handler:    _UserService_DeclineFriendRequest_Handler,
+		},
+		{
+			MethodName: "RemoveFriend",
+			Handler:    _UserService_RemoveFriend_Handler,
+		},
+		{
+			MethodName: "BlockUser",
+			Handler:    _UserService_BlockUser_Handler,
+		},
+		{
+			MethodName: "UnblockUser",
+			Handler:    _UserService_UnblockUser_Handler,
+		},
+		{
+			MethodName: "ListRelationships",
+			Handler:    _UserService_ListRelationships_Handler,
+		},
+		{
+			MethodName: "CheckRelationships",
+			Handler:    _UserService_CheckRelationships_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

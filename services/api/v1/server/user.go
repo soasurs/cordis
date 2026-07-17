@@ -128,6 +128,22 @@ func (s *userServer) ChangePassword(ctx context.Context, req *apiv1.ChangePasswo
 	}, nil
 }
 
+func (s *userServer) UpdateUsername(ctx context.Context, req *apiv1.UpdateUsernameRequest) (*apiv1.UpdateUsernameResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(userv1.UpdateUsernameRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetUsername(req.GetUsername())
+	svcResp, err := s.svcCtx.UserClient.UpdateUsername(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.UpdateUsernameResponse{Profile: userProfileToAPI(svcResp.GetProfile())}, nil
+}
+
 func userToAPI(user *userv1.User) *apiv1.User {
 	if user == nil {
 		return nil
@@ -147,6 +163,7 @@ func userProfileToAPI(profile *userv1.UserProfile) *apiv1.UserProfile {
 	}
 	return &apiv1.UserProfile{
 		UserId:    new(profile.GetUserId()),
+		Username:  new(profile.GetUsername()),
 		Name:      new(profile.GetName()),
 		AvatarUri: new(profile.GetAvatarUri()),
 		CreatedAt: new(profile.GetCreatedAt()),

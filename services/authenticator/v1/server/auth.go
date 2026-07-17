@@ -39,6 +39,9 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 	if req.GetPassword() == "" {
 		return nil, status.Error(codes.InvalidArgument, "password is required")
 	}
+	if strings.TrimSpace(req.GetUsername()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "username is required")
+	}
 
 	hashedPassword, err := password.Hash(req.GetPassword())
 	if err != nil {
@@ -48,6 +51,7 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 	createReq := new(userv1.CreateUserRequest)
 	createReq.SetName(name)
 	createReq.SetEmail(req.GetEmail())
+	createReq.SetUsername(req.GetUsername())
 
 	var userID int64
 	createResp, err := s.svcCtx.UserClient.CreateUser(ctx, createReq)

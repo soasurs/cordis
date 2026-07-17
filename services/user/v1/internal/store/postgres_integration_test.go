@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
@@ -14,6 +15,7 @@ import (
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/migration"
 	usermigrations "github.com/soasurs/cordis/services/user/v1/db/migrations"
+	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
 
 // TestSQLStoreWithPostgres shares one PostgreSQL container across all
@@ -31,6 +33,8 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("transact", func(t *testing.T) { testTransact(t, store) })
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("email verification", func(t *testing.T) { testEmailVerification(t, store) })
+	t.Run("usernames", func(t *testing.T) { testUsernames(t, store) })
+	t.Run("relationships", func(t *testing.T) { testRelationships(t, store) })
 }
 
 func testUsers(t *testing.T, store Store) {
@@ -73,7 +77,7 @@ func testUserProfiles(t *testing.T, store Store) {
 	const userID = int64(2001)
 	ctx := t.Context()
 
-	profile, err := store.CreateUserProfile(ctx, userID, "Alice", "avatar://a")
+	profile, err := store.CreateUserProfile(ctx, userID, "it_user_2001", "Alice", "avatar://a")
 	require.NoError(t, err)
 	require.Equal(t, userID, profile.UserID)
 	require.Equal(t, "Alice", profile.Name)
@@ -103,7 +107,7 @@ func testTransact(t *testing.T, store Store) {
 		if _, err := tx.CreateUser(ctx, userID, "tx@example.com"); err != nil {
 			return err
 		}
-		_, err := tx.CreateUserProfile(ctx, userID, "Tx", "")
+		_, err := tx.CreateUserProfile(ctx, userID, "it_user_3001", "Tx", "")
 		return err
 	}))
 	profile, err := store.GetUserProfile(ctx, userID)
@@ -172,4 +176,114 @@ func testEmailVerification(t *testing.T, store Store) {
 
 	err = store.MarkUserEmailVerified(ctx, userID+1, "changed@example.com", 4002)
 	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func testUsernames(t *testing.T, store Store) {
+	const userID = int64(6001)
+	ctx := t.Context()
+
+	_, err := store.CreateUser(ctx, userID, "handle@example.com")
+	require.NoError(t, err)
+	_, err = store.CreateUserProfile(ctx, userID, "handle_owner", "Handle Owner", "")
+	require.NoError(t, err)
+
+	profile, err := store.GetUserProfileByUsername(ctx, "handle_owner")
+	require.NoError(t, err)
+	require.Equal(t, userID, profile.UserID)
+	require.Equal(t, "handle_owner", profile.Username)
+
+	_, err = store.GetUserProfileByUsername(ctx, "missing_handle")
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	// The active unique index rejects a duplicate handle.
+	_, err = store.CreateUser(ctx, userID+1, "handle2@example.com")
+	require.NoError(t, err)
+	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second", "")
+	var pqErr *pq.Error
+	require.True(t, errors.As(err, &pqErr))
+	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+	require.Equal(t, "user_profiles_username_active_idx", pqErr.Constraint)
+
+	// The CHECK constraint rejects malformed handles.
+	_, err = store.CreateUserProfile(ctx, userID+1, "Bad Handle!", "Second", "")
+	require.True(t, errors.As(err, &pqErr))
+	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+
+	// Renaming releases the old handle for someone else to claim.
+	renamed, err := store.UpdateUsername(ctx, userID, "handle_renamed")
+	require.NoError(t, err)
+	require.Equal(t, "handle_renamed", renamed.Username)
+	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second", "")
+	require.NoError(t, err)
+	_, err = store.UpdateUsername(ctx, userID, "handle_owner")
+	require.True(t, errors.As(err, &pqErr))
+	require.Equal(t, "user_profiles_username_active_idx", pqErr.Constraint)
+	_, err = store.UpdateUsername(ctx, userID+99, "free_handle")
+	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func testRelationships(t *testing.T, store Store) {
+	const userA, userB, userC = int64(7001), int64(7002), int64(7003)
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+
+	require.NoError(t, store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userB, Type: model.RelationshipOutgoing, CreatedAt: now}))
+	require.NoError(t, store.UpsertRelationship(ctx, &model.Relationship{UserID: userB, TargetID: userA, Type: model.RelationshipIncoming, CreatedAt: now}))
+	require.NoError(t, store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userC, Type: model.RelationshipBlocked, CreatedAt: now}))
+
+	loaded, err := store.GetRelationship(ctx, userA, userB)
+	require.NoError(t, err)
+	require.Equal(t, model.RelationshipOutgoing, loaded.Type)
+	require.Zero(t, loaded.UpdatedAt)
+
+	// Upsert replaces the type and stamps updated_at.
+	require.NoError(t, store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userB, Type: model.RelationshipFriend, CreatedAt: now + 5}))
+	loaded, err = store.GetRelationship(ctx, userA, userB)
+	require.NoError(t, err)
+	require.Equal(t, model.RelationshipFriend, loaded.Type)
+	require.Equal(t, now+5, loaded.UpdatedAt)
+
+	relationships, err := store.ListRelationships(ctx, ListRelationshipsParams{UserID: userA, Limit: 10})
+	require.NoError(t, err)
+	require.Equal(t, []int64{userC, userB}, idsOfRelationships(relationships))
+
+	relationships, err = store.ListRelationships(ctx, ListRelationshipsParams{UserID: userA, Type: model.RelationshipBlocked, Limit: 10})
+	require.NoError(t, err)
+	require.Equal(t, []int64{userC}, idsOfRelationships(relationships))
+
+	relationships, err = store.ListRelationships(ctx, ListRelationshipsParams{UserID: userA, BeforeTargetID: userC, Limit: 10})
+	require.NoError(t, err)
+	require.Equal(t, []int64{userB}, idsOfRelationships(relationships))
+
+	relationships, err = store.ListRelationshipsByTargets(ctx, userA, []int64{userB, userC, 9999})
+	require.NoError(t, err)
+	require.Len(t, relationships, 2)
+
+	// DeleteRelationshipExceptBlocked never clears a block.
+	require.NoError(t, store.DeleteRelationshipExceptBlocked(ctx, userA, userC))
+	_, err = store.GetRelationship(ctx, userA, userC)
+	require.NoError(t, err)
+	require.NoError(t, store.DeleteRelationshipExceptBlocked(ctx, userA, userB))
+	_, err = store.GetRelationship(ctx, userA, userB)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	require.NoError(t, store.DeleteRelationship(ctx, userA, userC))
+	require.ErrorIs(t, store.DeleteRelationship(ctx, userA, userC), sql.ErrNoRows)
+
+	// Constraints: self relationships and unknown types are rejected.
+	var pqErr *pq.Error
+	err = store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userA, Type: model.RelationshipFriend, CreatedAt: now})
+	require.True(t, errors.As(err, &pqErr))
+	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	err = store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userB, Type: 9, CreatedAt: now})
+	require.True(t, errors.As(err, &pqErr))
+	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+}
+
+func idsOfRelationships(relationships []*model.Relationship) []int64 {
+	ids := make([]int64, 0, len(relationships))
+	for _, relationship := range relationships {
+		ids = append(ids, relationship.TargetID)
+	}
+	return ids
 }

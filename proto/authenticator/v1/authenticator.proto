@@ -49,6 +49,8 @@ message RegisterRequest {
   string password = 3;
   string user_agent = 4;
   string ip = 5;
+  // Globally unique lowercase handle.
+  string username = 6;
 }
 
 message RegisterResponse {

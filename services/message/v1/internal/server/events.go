@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	EventTypeMessageCreated = realtime.EventMessageCreated
-	EventTypeMessageUpdated = realtime.EventMessageUpdated
-	EventTypeMessageDeleted = realtime.EventMessageDeleted
+	EventTypeMessageCreated   = realtime.EventMessageCreated
+	EventTypeMessageUpdated   = realtime.EventMessageUpdated
+	EventTypeMessageDeleted   = realtime.EventMessageDeleted
+	EventTypeDmChannelCreated = realtime.EventDmChannelCreated
 )
 
 type eventEnvelope[T any] struct {
@@ -110,6 +111,22 @@ func idStrings(ids []int64) []string {
 		values[i] = strconv.FormatInt(id, 10)
 	}
 	return values
+}
+
+// newUserRoutedEvent keys the record by the decimal recipient user ID so
+// the dispatcher fans it out through user routes instead of channel routes.
+func newUserRoutedEvent[T any](eventType string, recipientID int64, data T) (messageEvent, error) {
+	payload, err := json.Marshal(eventEnvelope[T]{
+		Type: eventType,
+		Data: data,
+	})
+	if err != nil {
+		return messageEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
+	}
+	return messageEvent{
+		Key:     fmt.Appendf(nil, "%d", recipientID),
+		Payload: payload,
+	}, nil
 }
 
 func newEvent[T any](eventType string, channelID int64, data T) (messageEvent, error) {

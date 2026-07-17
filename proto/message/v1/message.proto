@@ -14,6 +14,22 @@ service MessageService {
   // ListMessages returns messages in a channel ordered by id descending
   // (newest first). Uses cursor-based pagination.
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  // CreateDmChannel opens (or idempotently returns) the 1:1 channel between
+  // two friends.
+  rpc CreateDmChannel(CreateDmChannelRequest) returns (CreateDmChannelResponse);
+  rpc ListDmChannels(ListDmChannelsRequest) returns (ListDmChannelsResponse);
+  // AuthorizeDmChannel reports whether the user participates in the DM
+  // channel. It backs Session channel subscriptions.
+  rpc AuthorizeDmChannel(AuthorizeDmChannelRequest) returns (AuthorizeDmChannelResponse);
+}
+
+// DmChannel is a private 1:1 conversation. Participants are stored in
+// ascending user ID order.
+message DmChannel {
+  int64 id = 1;
+  int64 user_lo = 2;
+  int64 user_hi = 3;
+  int64 created_at = 4;
 }
 
 // ============================================================
@@ -204,4 +220,34 @@ message ListMessagesResponse {
   // The largest message id in this page. Use as ListMessagesRequest.after
   // to fetch newer messages. 0 means this page is empty.
   int64 after_cursor = 4;
+}
+
+message CreateDmChannelRequest {
+  int64 user_id = 1;
+  int64 target_id = 2;
+}
+
+message CreateDmChannelResponse {
+  DmChannel channel = 1;
+}
+
+message ListDmChannelsRequest {
+  int64 user_id = 1;
+  // Return channels with IDs smaller than this cursor.
+  int64 before_id = 2;
+  int32 limit = 3;
+}
+
+message ListDmChannelsResponse {
+  repeated DmChannel channels = 1;
+  int64 before_id = 2;
+}
+
+message AuthorizeDmChannelRequest {
+  int64 channel_id = 1;
+  int64 user_id = 2;
+}
+
+message AuthorizeDmChannelResponse {
+  bool allowed = 1;
 }

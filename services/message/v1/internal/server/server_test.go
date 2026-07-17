@@ -408,13 +408,15 @@ func (p *fakePublisher) onlyRecord(t *testing.T) publishedRecord {
 type fakeStore struct {
 	messages    map[int64]*model.Message
 	mentions    map[int64][]int64
+	dmChannels  map[int64]*model.DmChannel
 	transactErr error
 }
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{
-		messages: make(map[int64]*model.Message),
-		mentions: make(map[int64][]int64),
+		messages:   make(map[int64]*model.Message),
+		mentions:   make(map[int64][]int64),
+		dmChannels: make(map[int64]*model.DmChannel),
 	}
 }
 
@@ -522,6 +524,55 @@ func (s *fakeStore) ReplaceMessageMentions(_ context.Context, messageID int64, u
 
 func (s *fakeStore) ListMentionUserIDs(_ context.Context, messageID int64) ([]int64, error) {
 	return append([]int64(nil), s.mentions[messageID]...), nil
+}
+
+func (s *fakeStore) CreateDmChannel(_ context.Context, channel *model.DmChannel) error {
+	for _, existing := range s.dmChannels {
+		if existing.UserLo == channel.UserLo && existing.UserHi == channel.UserHi {
+			return sql.ErrNoRows
+		}
+	}
+	value := *channel
+	s.dmChannels[channel.ID] = &value
+	return nil
+}
+
+func (s *fakeStore) GetDmChannel(_ context.Context, channelID int64) (*model.DmChannel, error) {
+	channel, ok := s.dmChannels[channelID]
+	if !ok {
+		return nil, sql.ErrNoRows
+	}
+	value := *channel
+	return &value, nil
+}
+
+func (s *fakeStore) GetDmChannelByPair(_ context.Context, userLo, userHi int64) (*model.DmChannel, error) {
+	for _, channel := range s.dmChannels {
+		if channel.UserLo == userLo && channel.UserHi == userHi {
+			value := *channel
+			return &value, nil
+		}
+	}
+	return nil, sql.ErrNoRows
+}
+
+func (s *fakeStore) ListDmChannels(_ context.Context, params store.ListDmChannelsParams) ([]*model.DmChannel, error) {
+	var channels []*model.DmChannel
+	for _, channel := range s.dmChannels {
+		if channel.UserLo != params.UserID && channel.UserHi != params.UserID {
+			continue
+		}
+		if params.BeforeID != 0 && channel.ID >= params.BeforeID {
+			continue
+		}
+		value := *channel
+		channels = append(channels, &value)
+	}
+	sort.Slice(channels, func(i, j int) bool { return channels[i].ID > channels[j].ID })
+	if len(channels) > params.Limit {
+		channels = channels[:params.Limit]
+	}
+	return channels, nil
 }
 
 func cloneMessage(message *model.Message) *model.Message {

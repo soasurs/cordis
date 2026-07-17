@@ -43,6 +43,7 @@ type ServiceConfig struct {
 	Authenticator zrpc.RpcClientConf
 	Presence      zrpc.RpcClientConf
 	Guild         zrpc.RpcClientConf
+	Message       zrpc.RpcClientConf
 }
 
 func (c Config) RPCConfig() zrpc.RpcServerConf {

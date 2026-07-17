@@ -18,6 +18,7 @@ type Config struct {
 
 type ServiceConfig struct {
 	Guild zrpc.RpcClientConf
+	User  zrpc.RpcClientConf
 }
 
 // KafkaConfig controls the Kafka producer connection and the event topic

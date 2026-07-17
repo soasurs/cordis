@@ -127,6 +127,69 @@ func (MessageFlag) EnumDescriptor() ([]byte, []int) {
 	return file_api_v1_message_proto_rawDescGZIP(), []int{1}
 }
 
+// DmChannel is a private 1:1 conversation from the caller's perspective.
+// All timestamps are Unix time in milliseconds.
+type DmChannel struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	// The other participant.
+	RecipientId   *int64 `protobuf:"varint,2,opt,name=recipient_id,json=recipientId" json:"recipient_id,omitempty"`
+	CreatedAt     *int64 `protobuf:"varint,3,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DmChannel) Reset() {
+	*x = DmChannel{}
+	mi := &file_api_v1_message_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DmChannel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DmChannel) ProtoMessage() {}
+
+func (x *DmChannel) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_message_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DmChannel.ProtoReflect.Descriptor instead.
+func (*DmChannel) Descriptor() ([]byte, []int) {
+	return file_api_v1_message_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *DmChannel) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *DmChannel) GetRecipientId() int64 {
+	if x != nil && x.RecipientId != nil {
+		return *x.RecipientId
+	}
+	return 0
+}
+
+func (x *DmChannel) GetCreatedAt() int64 {
+	if x != nil && x.CreatedAt != nil {
+		return *x.CreatedAt
+	}
+	return 0
+}
+
 // Message represents one message in a channel or thread.
 // All timestamps are Unix time in milliseconds.
 type Message struct {
@@ -154,7 +217,7 @@ type Message struct {
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_api_v1_message_proto_msgTypes[0]
+	mi := &file_api_v1_message_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -166,7 +229,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[0]
+	mi := &file_api_v1_message_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -179,7 +242,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{0}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Message) GetId() int64 {
@@ -290,7 +353,7 @@ type Attachment struct {
 
 func (x *Attachment) Reset() {
 	*x = Attachment{}
-	mi := &file_api_v1_message_proto_msgTypes[1]
+	mi := &file_api_v1_message_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -302,7 +365,7 @@ func (x *Attachment) String() string {
 func (*Attachment) ProtoMessage() {}
 
 func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[1]
+	mi := &file_api_v1_message_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -315,7 +378,7 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
 func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{1}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Attachment) GetKey() string {
@@ -371,7 +434,7 @@ type AttachmentList struct {
 
 func (x *AttachmentList) Reset() {
 	*x = AttachmentList{}
-	mi := &file_api_v1_message_proto_msgTypes[2]
+	mi := &file_api_v1_message_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -383,7 +446,7 @@ func (x *AttachmentList) String() string {
 func (*AttachmentList) ProtoMessage() {}
 
 func (x *AttachmentList) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[2]
+	mi := &file_api_v1_message_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -396,7 +459,7 @@ func (x *AttachmentList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AttachmentList.ProtoReflect.Descriptor instead.
 func (*AttachmentList) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{2}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AttachmentList) GetAttachments() []*Attachment {
@@ -416,7 +479,7 @@ type MentionList struct {
 
 func (x *MentionList) Reset() {
 	*x = MentionList{}
-	mi := &file_api_v1_message_proto_msgTypes[3]
+	mi := &file_api_v1_message_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -428,7 +491,7 @@ func (x *MentionList) String() string {
 func (*MentionList) ProtoMessage() {}
 
 func (x *MentionList) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[3]
+	mi := &file_api_v1_message_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -441,7 +504,7 @@ func (x *MentionList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MentionList.ProtoReflect.Descriptor instead.
 func (*MentionList) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{3}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *MentionList) GetUserIds() []int64 {
@@ -470,7 +533,7 @@ type CreateMessageRequest struct {
 
 func (x *CreateMessageRequest) Reset() {
 	*x = CreateMessageRequest{}
-	mi := &file_api_v1_message_proto_msgTypes[4]
+	mi := &file_api_v1_message_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -482,7 +545,7 @@ func (x *CreateMessageRequest) String() string {
 func (*CreateMessageRequest) ProtoMessage() {}
 
 func (x *CreateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[4]
+	mi := &file_api_v1_message_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -495,7 +558,7 @@ func (x *CreateMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMessageRequest.ProtoReflect.Descriptor instead.
 func (*CreateMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{4}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CreateMessageRequest) GetChannelId() int64 {
@@ -563,7 +626,7 @@ type CreateMessageResponse struct {
 
 func (x *CreateMessageResponse) Reset() {
 	*x = CreateMessageResponse{}
-	mi := &file_api_v1_message_proto_msgTypes[5]
+	mi := &file_api_v1_message_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -575,7 +638,7 @@ func (x *CreateMessageResponse) String() string {
 func (*CreateMessageResponse) ProtoMessage() {}
 
 func (x *CreateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[5]
+	mi := &file_api_v1_message_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -588,7 +651,7 @@ func (x *CreateMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateMessageResponse.ProtoReflect.Descriptor instead.
 func (*CreateMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{5}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CreateMessageResponse) GetMessage() *Message {
@@ -615,7 +678,7 @@ type UpdateMessageRequest struct {
 
 func (x *UpdateMessageRequest) Reset() {
 	*x = UpdateMessageRequest{}
-	mi := &file_api_v1_message_proto_msgTypes[6]
+	mi := &file_api_v1_message_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -627,7 +690,7 @@ func (x *UpdateMessageRequest) String() string {
 func (*UpdateMessageRequest) ProtoMessage() {}
 
 func (x *UpdateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[6]
+	mi := &file_api_v1_message_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -640,7 +703,7 @@ func (x *UpdateMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMessageRequest.ProtoReflect.Descriptor instead.
 func (*UpdateMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{6}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *UpdateMessageRequest) GetMessageId() int64 {
@@ -687,7 +750,7 @@ type UpdateMessageResponse struct {
 
 func (x *UpdateMessageResponse) Reset() {
 	*x = UpdateMessageResponse{}
-	mi := &file_api_v1_message_proto_msgTypes[7]
+	mi := &file_api_v1_message_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -699,7 +762,7 @@ func (x *UpdateMessageResponse) String() string {
 func (*UpdateMessageResponse) ProtoMessage() {}
 
 func (x *UpdateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[7]
+	mi := &file_api_v1_message_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -712,7 +775,7 @@ func (x *UpdateMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateMessageResponse.ProtoReflect.Descriptor instead.
 func (*UpdateMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{7}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UpdateMessageResponse) GetMessage() *Message {
@@ -731,7 +794,7 @@ type DeleteMessageRequest struct {
 
 func (x *DeleteMessageRequest) Reset() {
 	*x = DeleteMessageRequest{}
-	mi := &file_api_v1_message_proto_msgTypes[8]
+	mi := &file_api_v1_message_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -743,7 +806,7 @@ func (x *DeleteMessageRequest) String() string {
 func (*DeleteMessageRequest) ProtoMessage() {}
 
 func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[8]
+	mi := &file_api_v1_message_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -756,7 +819,7 @@ func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMessageRequest.ProtoReflect.Descriptor instead.
 func (*DeleteMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{8}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *DeleteMessageRequest) GetMessageId() int64 {
@@ -775,7 +838,7 @@ type DeleteMessageResponse struct {
 
 func (x *DeleteMessageResponse) Reset() {
 	*x = DeleteMessageResponse{}
-	mi := &file_api_v1_message_proto_msgTypes[9]
+	mi := &file_api_v1_message_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -787,7 +850,7 @@ func (x *DeleteMessageResponse) String() string {
 func (*DeleteMessageResponse) ProtoMessage() {}
 
 func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[9]
+	mi := &file_api_v1_message_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -800,7 +863,7 @@ func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteMessageResponse.ProtoReflect.Descriptor instead.
 func (*DeleteMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{9}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeleteMessageResponse) GetOk() bool {
@@ -819,7 +882,7 @@ type GetMessageRequest struct {
 
 func (x *GetMessageRequest) Reset() {
 	*x = GetMessageRequest{}
-	mi := &file_api_v1_message_proto_msgTypes[10]
+	mi := &file_api_v1_message_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -831,7 +894,7 @@ func (x *GetMessageRequest) String() string {
 func (*GetMessageRequest) ProtoMessage() {}
 
 func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[10]
+	mi := &file_api_v1_message_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -844,7 +907,7 @@ func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMessageRequest.ProtoReflect.Descriptor instead.
 func (*GetMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{10}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetMessageRequest) GetMessageId() int64 {
@@ -863,7 +926,7 @@ type GetMessageResponse struct {
 
 func (x *GetMessageResponse) Reset() {
 	*x = GetMessageResponse{}
-	mi := &file_api_v1_message_proto_msgTypes[11]
+	mi := &file_api_v1_message_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -875,7 +938,7 @@ func (x *GetMessageResponse) String() string {
 func (*GetMessageResponse) ProtoMessage() {}
 
 func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[11]
+	mi := &file_api_v1_message_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -888,7 +951,7 @@ func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMessageResponse.ProtoReflect.Descriptor instead.
 func (*GetMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{11}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetMessageResponse) GetMessage() *Message {
@@ -917,7 +980,7 @@ type ListMessagesRequest struct {
 
 func (x *ListMessagesRequest) Reset() {
 	*x = ListMessagesRequest{}
-	mi := &file_api_v1_message_proto_msgTypes[12]
+	mi := &file_api_v1_message_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -929,7 +992,7 @@ func (x *ListMessagesRequest) String() string {
 func (*ListMessagesRequest) ProtoMessage() {}
 
 func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[12]
+	mi := &file_api_v1_message_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -942,7 +1005,7 @@ func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMessagesRequest.ProtoReflect.Descriptor instead.
 func (*ListMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{12}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListMessagesRequest) GetChannelId() int64 {
@@ -1028,7 +1091,7 @@ type ListMessagesResponse struct {
 
 func (x *ListMessagesResponse) Reset() {
 	*x = ListMessagesResponse{}
-	mi := &file_api_v1_message_proto_msgTypes[13]
+	mi := &file_api_v1_message_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1040,7 +1103,7 @@ func (x *ListMessagesResponse) String() string {
 func (*ListMessagesResponse) ProtoMessage() {}
 
 func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_message_proto_msgTypes[13]
+	mi := &file_api_v1_message_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1053,7 +1116,7 @@ func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMessagesResponse.ProtoReflect.Descriptor instead.
 func (*ListMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{13}
+	return file_api_v1_message_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ListMessagesResponse) GetMessages() []*Message {
@@ -1077,11 +1140,209 @@ func (x *ListMessagesResponse) GetAfterCursor() int64 {
 	return 0
 }
 
+type CreateDmChannelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateDmChannelRequest) Reset() {
+	*x = CreateDmChannelRequest{}
+	mi := &file_api_v1_message_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDmChannelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDmChannelRequest) ProtoMessage() {}
+
+func (x *CreateDmChannelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_message_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateDmChannelRequest.ProtoReflect.Descriptor instead.
+func (*CreateDmChannelRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_message_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *CreateDmChannelRequest) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+type CreateDmChannelResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Channel       *DmChannel             `protobuf:"bytes,1,opt,name=channel" json:"channel,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateDmChannelResponse) Reset() {
+	*x = CreateDmChannelResponse{}
+	mi := &file_api_v1_message_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDmChannelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDmChannelResponse) ProtoMessage() {}
+
+func (x *CreateDmChannelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_message_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateDmChannelResponse.ProtoReflect.Descriptor instead.
+func (*CreateDmChannelResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_message_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *CreateDmChannelResponse) GetChannel() *DmChannel {
+	if x != nil {
+		return x.Channel
+	}
+	return nil
+}
+
+type ListDmChannelsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Return channels with IDs smaller than this cursor.
+	BeforeId      *int64 `protobuf:"varint,1,opt,name=before_id,json=beforeId" json:"before_id,omitempty"`
+	Limit         *int32 `protobuf:"varint,2,opt,name=limit" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDmChannelsRequest) Reset() {
+	*x = ListDmChannelsRequest{}
+	mi := &file_api_v1_message_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDmChannelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDmChannelsRequest) ProtoMessage() {}
+
+func (x *ListDmChannelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_message_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDmChannelsRequest.ProtoReflect.Descriptor instead.
+func (*ListDmChannelsRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_message_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListDmChannelsRequest) GetBeforeId() int64 {
+	if x != nil && x.BeforeId != nil {
+		return *x.BeforeId
+	}
+	return 0
+}
+
+func (x *ListDmChannelsRequest) GetLimit() int32 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
+	}
+	return 0
+}
+
+type ListDmChannelsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Channels      []*DmChannel           `protobuf:"bytes,1,rep,name=channels" json:"channels,omitempty"`
+	BeforeId      *int64                 `protobuf:"varint,2,opt,name=before_id,json=beforeId" json:"before_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDmChannelsResponse) Reset() {
+	*x = ListDmChannelsResponse{}
+	mi := &file_api_v1_message_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDmChannelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDmChannelsResponse) ProtoMessage() {}
+
+func (x *ListDmChannelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_message_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDmChannelsResponse.ProtoReflect.Descriptor instead.
+func (*ListDmChannelsResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_message_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListDmChannelsResponse) GetChannels() []*DmChannel {
+	if x != nil {
+		return x.Channels
+	}
+	return nil
+}
+
+func (x *ListDmChannelsResponse) GetBeforeId() int64 {
+	if x != nil && x.BeforeId != nil {
+		return *x.BeforeId
+	}
+	return 0
+}
+
 var File_api_v1_message_proto protoreflect.FileDescriptor
 
 const file_api_v1_message_proto_rawDesc = "" +
 	"\n" +
-	"\x14api/v1/message.proto\x12\x06api.v1\"\xc3\x03\n" +
+	"\x14api/v1/message.proto\x12\x06api.v1\"]\n" +
+	"\tDmChannel\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
+	"\frecipient_id\x18\x02 \x01(\x03R\vrecipientId\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\x03R\tcreatedAt\"\xc3\x03\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
@@ -1155,7 +1416,17 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\x14ListMessagesResponse\x12+\n" +
 	"\bmessages\x18\x01 \x03(\v2\x0f.api.v1.MessageR\bmessages\x12#\n" +
 	"\rbefore_cursor\x18\x02 \x01(\x03R\fbeforeCursor\x12!\n" +
-	"\fafter_cursor\x18\x03 \x01(\x03R\vafterCursor*~\n" +
+	"\fafter_cursor\x18\x03 \x01(\x03R\vafterCursor\"5\n" +
+	"\x16CreateDmChannelRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\"F\n" +
+	"\x17CreateDmChannelResponse\x12+\n" +
+	"\achannel\x18\x01 \x01(\v2\x11.api.v1.DmChannelR\achannel\"J\n" +
+	"\x15ListDmChannelsRequest\x12\x1b\n" +
+	"\tbefore_id\x18\x01 \x01(\x03R\bbeforeId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"d\n" +
+	"\x16ListDmChannelsResponse\x12-\n" +
+	"\bchannels\x18\x01 \x03(\v2\x11.api.v1.DmChannelR\bchannels\x12\x1b\n" +
+	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId*~\n" +
 	"\vMessageType\x12\x1c\n" +
 	"\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14MESSAGE_TYPE_DEFAULT\x10\x01\x12\x16\n" +
@@ -1164,14 +1435,16 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\vMessageFlag\x12\x1c\n" +
 	"\x18MESSAGE_FLAG_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17MESSAGE_FLAG_HAS_THREAD\x10 \x12(\n" +
-	"#MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS\x10\x80 2\x8a\x03\n" +
+	"#MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS\x10\x80 2\xaf\x04\n" +
 	"\x0eMessageService\x12L\n" +
 	"\rCreateMessage\x12\x1c.api.v1.CreateMessageRequest\x1a\x1d.api.v1.CreateMessageResponse\x12L\n" +
 	"\rUpdateMessage\x12\x1c.api.v1.UpdateMessageRequest\x1a\x1d.api.v1.UpdateMessageResponse\x12L\n" +
 	"\rDeleteMessage\x12\x1c.api.v1.DeleteMessageRequest\x1a\x1d.api.v1.DeleteMessageResponse\x12C\n" +
 	"\n" +
 	"GetMessage\x12\x19.api.v1.GetMessageRequest\x1a\x1a.api.v1.GetMessageResponse\x12I\n" +
-	"\fListMessages\x12\x1b.api.v1.ListMessagesRequest\x1a\x1c.api.v1.ListMessagesResponseB\x7f\n" +
+	"\fListMessages\x12\x1b.api.v1.ListMessagesRequest\x1a\x1c.api.v1.ListMessagesResponse\x12R\n" +
+	"\x0fCreateDmChannel\x12\x1e.api.v1.CreateDmChannelRequest\x1a\x1f.api.v1.CreateDmChannelResponse\x12O\n" +
+	"\x0eListDmChannels\x12\x1d.api.v1.ListDmChannelsRequest\x1a\x1e.api.v1.ListDmChannelsResponseB\x7f\n" +
 	"\n" +
 	"com.api.v1B\fMessageProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
@@ -1188,52 +1461,63 @@ func file_api_v1_message_proto_rawDescGZIP() []byte {
 }
 
 var file_api_v1_message_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_api_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_api_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_api_v1_message_proto_goTypes = []any{
-	(MessageType)(0),              // 0: api.v1.MessageType
-	(MessageFlag)(0),              // 1: api.v1.MessageFlag
-	(*Message)(nil),               // 2: api.v1.Message
-	(*Attachment)(nil),            // 3: api.v1.Attachment
-	(*AttachmentList)(nil),        // 4: api.v1.AttachmentList
-	(*MentionList)(nil),           // 5: api.v1.MentionList
-	(*CreateMessageRequest)(nil),  // 6: api.v1.CreateMessageRequest
-	(*CreateMessageResponse)(nil), // 7: api.v1.CreateMessageResponse
-	(*UpdateMessageRequest)(nil),  // 8: api.v1.UpdateMessageRequest
-	(*UpdateMessageResponse)(nil), // 9: api.v1.UpdateMessageResponse
-	(*DeleteMessageRequest)(nil),  // 10: api.v1.DeleteMessageRequest
-	(*DeleteMessageResponse)(nil), // 11: api.v1.DeleteMessageResponse
-	(*GetMessageRequest)(nil),     // 12: api.v1.GetMessageRequest
-	(*GetMessageResponse)(nil),    // 13: api.v1.GetMessageResponse
-	(*ListMessagesRequest)(nil),   // 14: api.v1.ListMessagesRequest
-	(*ListMessagesResponse)(nil),  // 15: api.v1.ListMessagesResponse
+	(MessageType)(0),                // 0: api.v1.MessageType
+	(MessageFlag)(0),                // 1: api.v1.MessageFlag
+	(*DmChannel)(nil),               // 2: api.v1.DmChannel
+	(*Message)(nil),                 // 3: api.v1.Message
+	(*Attachment)(nil),              // 4: api.v1.Attachment
+	(*AttachmentList)(nil),          // 5: api.v1.AttachmentList
+	(*MentionList)(nil),             // 6: api.v1.MentionList
+	(*CreateMessageRequest)(nil),    // 7: api.v1.CreateMessageRequest
+	(*CreateMessageResponse)(nil),   // 8: api.v1.CreateMessageResponse
+	(*UpdateMessageRequest)(nil),    // 9: api.v1.UpdateMessageRequest
+	(*UpdateMessageResponse)(nil),   // 10: api.v1.UpdateMessageResponse
+	(*DeleteMessageRequest)(nil),    // 11: api.v1.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),   // 12: api.v1.DeleteMessageResponse
+	(*GetMessageRequest)(nil),       // 13: api.v1.GetMessageRequest
+	(*GetMessageResponse)(nil),      // 14: api.v1.GetMessageResponse
+	(*ListMessagesRequest)(nil),     // 15: api.v1.ListMessagesRequest
+	(*ListMessagesResponse)(nil),    // 16: api.v1.ListMessagesResponse
+	(*CreateDmChannelRequest)(nil),  // 17: api.v1.CreateDmChannelRequest
+	(*CreateDmChannelResponse)(nil), // 18: api.v1.CreateDmChannelResponse
+	(*ListDmChannelsRequest)(nil),   // 19: api.v1.ListDmChannelsRequest
+	(*ListDmChannelsResponse)(nil),  // 20: api.v1.ListDmChannelsResponse
 }
 var file_api_v1_message_proto_depIdxs = []int32{
 	0,  // 0: api.v1.Message.type:type_name -> api.v1.MessageType
-	3,  // 1: api.v1.Message.attachments:type_name -> api.v1.Attachment
-	3,  // 2: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
+	4,  // 1: api.v1.Message.attachments:type_name -> api.v1.Attachment
+	4,  // 2: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
 	0,  // 3: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
-	3,  // 4: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
-	2,  // 5: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
-	4,  // 6: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
-	5,  // 7: api.v1.UpdateMessageRequest.mentions:type_name -> api.v1.MentionList
-	2,  // 8: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
-	2,  // 9: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
-	2,  // 10: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
-	6,  // 11: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
-	8,  // 12: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
-	10, // 13: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
-	12, // 14: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
-	14, // 15: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
-	7,  // 16: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
-	9,  // 17: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
-	11, // 18: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
-	13, // 19: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
-	15, // 20: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
-	16, // [16:21] is the sub-list for method output_type
-	11, // [11:16] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	4,  // 4: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
+	3,  // 5: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
+	5,  // 6: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
+	6,  // 7: api.v1.UpdateMessageRequest.mentions:type_name -> api.v1.MentionList
+	3,  // 8: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
+	3,  // 9: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
+	3,  // 10: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
+	2,  // 11: api.v1.CreateDmChannelResponse.channel:type_name -> api.v1.DmChannel
+	2,  // 12: api.v1.ListDmChannelsResponse.channels:type_name -> api.v1.DmChannel
+	7,  // 13: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
+	9,  // 14: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
+	11, // 15: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
+	13, // 16: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
+	15, // 17: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
+	17, // 18: api.v1.MessageService.CreateDmChannel:input_type -> api.v1.CreateDmChannelRequest
+	19, // 19: api.v1.MessageService.ListDmChannels:input_type -> api.v1.ListDmChannelsRequest
+	8,  // 20: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
+	10, // 21: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
+	12, // 22: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
+	14, // 23: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
+	16, // 24: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
+	18, // 25: api.v1.MessageService.CreateDmChannel:output_type -> api.v1.CreateDmChannelResponse
+	20, // 26: api.v1.MessageService.ListDmChannels:output_type -> api.v1.ListDmChannelsResponse
+	20, // [20:27] is the sub-list for method output_type
+	13, // [13:20] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_message_proto_init() }
@@ -1241,7 +1525,7 @@ func file_api_v1_message_proto_init() {
 	if File_api_v1_message_proto != nil {
 		return
 	}
-	file_api_v1_message_proto_msgTypes[12].OneofWrappers = []any{
+	file_api_v1_message_proto_msgTypes[13].OneofWrappers = []any{
 		(*ListMessagesRequest_Before)(nil),
 		(*ListMessagesRequest_After)(nil),
 		(*ListMessagesRequest_Around)(nil),
@@ -1252,7 +1536,7 @@ func file_api_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_message_proto_rawDesc), len(file_api_v1_message_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   14,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

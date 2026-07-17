@@ -53,6 +53,7 @@ func TestMessageGuildUserComposition(t *testing.T) {
 		Store:       store.New(db),
 		Snowflake:   node,
 		GuildClient: guildClient,
+		UserClient:  userClient,
 	}))
 
 	ctx := t.Context()
@@ -136,6 +137,138 @@ func TestMessageGuildUserComposition(t *testing.T) {
 		require.Equal(t, codes.PermissionDenied, status.Code(err))
 
 		createMessage(t, messageService, textChannelID, ownerID, "owner bypasses")
+	})
+
+	t.Run("direct messages", func(t *testing.T) {
+		aliceID := createUser(t, userClient, "alice-dm@example.com")
+		bobID := createUser(t, userClient, "bob-dm@example.com")
+		carolID := createUser(t, userClient, "carol-dm@example.com")
+
+		sendFriend := func(from, to int64) {
+			req := new(userv1.SendFriendRequestRequest)
+			req.SetUserId(from)
+			req.SetTargetId(to)
+			_, err := userClient.SendFriendRequest(t.Context(), req)
+			require.NoError(t, err)
+		}
+		acceptFriend := func(from, to int64) {
+			req := new(userv1.AcceptFriendRequestRequest)
+			req.SetUserId(from)
+			req.SetTargetId(to)
+			_, err := userClient.AcceptFriendRequest(t.Context(), req)
+			require.NoError(t, err)
+		}
+
+		sendFriend(aliceID, bobID)
+		acceptFriend(bobID, aliceID)
+
+		t.Run("non-friend cannot open dm", func(t *testing.T) {
+			req := new(messagev1.CreateDmChannelRequest)
+			req.SetUserId(carolID)
+			req.SetTargetId(aliceID)
+			_, err := messageService.CreateDmChannel(t.Context(), req)
+			require.Equal(t, codes.PermissionDenied, status.Code(err))
+		})
+
+		var dmChannelID int64
+
+		t.Run("friend opens dm", func(t *testing.T) {
+			req := new(messagev1.CreateDmChannelRequest)
+			req.SetUserId(aliceID)
+			req.SetTargetId(bobID)
+			resp, err := messageService.CreateDmChannel(t.Context(), req)
+			require.NoError(t, err)
+			dmChannel := resp.GetChannel()
+			require.Positive(t, dmChannel.GetId())
+			dmChannelID = dmChannel.GetId()
+
+			resp2, err := messageService.CreateDmChannel(t.Context(), req)
+			require.NoError(t, err)
+			require.Equal(t, dmChannelID, resp2.GetChannel().GetId())
+		})
+
+		var aliceMsgID int64
+
+		t.Run("messages in dm channel", func(t *testing.T) {
+			createReq := new(messagev1.CreateMessageRequest)
+			createReq.SetChannelId(dmChannelID)
+			createReq.SetAuthorId(aliceID)
+			createReq.SetContent("hello bob")
+			createResp, err := messageService.CreateMessage(t.Context(), createReq)
+			require.NoError(t, err)
+			aliceMsgID = createResp.GetMessage().GetId()
+
+			getReq := new(messagev1.GetMessageRequest)
+			getReq.SetMessageId(aliceMsgID)
+			getReq.SetUserId(bobID)
+			_, err = messageService.GetMessage(t.Context(), getReq)
+			require.NoError(t, err)
+
+			listReq := new(messagev1.ListMessagesRequest)
+			listReq.SetChannelId(dmChannelID)
+			listReq.SetUserId(bobID)
+			_, err = messageService.ListMessages(t.Context(), listReq)
+			require.NoError(t, err)
+
+			getReq = new(messagev1.GetMessageRequest)
+			getReq.SetMessageId(aliceMsgID)
+			getReq.SetUserId(carolID)
+			_, err = messageService.GetMessage(t.Context(), getReq)
+			require.Equal(t, codes.NotFound, status.Code(err))
+		})
+
+		t.Run("non-author edit denied in dm", func(t *testing.T) {
+			updateReq := new(messagev1.UpdateMessageRequest)
+			updateReq.SetMessageId(aliceMsgID)
+			updateReq.SetActorUserId(bobID)
+			updateReq.SetContent("hijacked by bob")
+			_, err := messageService.UpdateMessage(t.Context(), updateReq)
+			require.Equal(t, codes.PermissionDenied, status.Code(err))
+		})
+
+		t.Run("block prevents sending", func(t *testing.T) {
+			blockReq := new(userv1.BlockUserRequest)
+			blockReq.SetUserId(bobID)
+			blockReq.SetTargetId(aliceID)
+			_, err := userClient.BlockUser(t.Context(), blockReq)
+			require.NoError(t, err)
+
+			createReq := new(messagev1.CreateMessageRequest)
+			createReq.SetChannelId(dmChannelID)
+			createReq.SetAuthorId(aliceID)
+			createReq.SetContent("blocked")
+			_, err = messageService.CreateMessage(t.Context(), createReq)
+			require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+			createReq = new(messagev1.CreateMessageRequest)
+			createReq.SetChannelId(dmChannelID)
+			createReq.SetAuthorId(bobID)
+			createReq.SetContent("i blocked you")
+			_, err = messageService.CreateMessage(t.Context(), createReq)
+			require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+			listReq := new(messagev1.ListMessagesRequest)
+			listReq.SetChannelId(dmChannelID)
+			listReq.SetUserId(bobID)
+			listResp, err := messageService.ListMessages(t.Context(), listReq)
+			require.NoError(t, err)
+			require.Len(t, listResp.GetMessages(), 1)
+		})
+
+		t.Run("unblock restores sending", func(t *testing.T) {
+			unblockReq := new(userv1.UnblockUserRequest)
+			unblockReq.SetUserId(bobID)
+			unblockReq.SetTargetId(aliceID)
+			_, err := userClient.UnblockUser(t.Context(), unblockReq)
+			require.NoError(t, err)
+
+			createReq := new(messagev1.CreateMessageRequest)
+			createReq.SetChannelId(dmChannelID)
+			createReq.SetAuthorId(aliceID)
+			createReq.SetContent("back to normal")
+			_, err = messageService.CreateMessage(t.Context(), createReq)
+			require.NoError(t, err)
+		})
 	})
 }
 

@@ -20,6 +20,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
@@ -626,9 +627,29 @@ func (s *Server) authorizeChannel(ctx context.Context, userID, channelID int64) 
 	req.SetPermission(uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL))
 	resp, err := s.svcCtx.GuildClient.AuthorizeGuildChannel(ctx, req)
 	if err != nil {
+		// Unknown to Guild: the ID may be a DM channel owned by Message.
+		if status.Code(err) == codes.NotFound {
+			return s.authorizeDmChannel(ctx, userID, channelID)
+		}
 		return false, 0, err
 	}
 	return resp.GetAllowed(), resp.GetGuildId(), nil
+}
+
+// authorizeDmChannel asks Message whether the user participates in the DM
+// channel. DM subscriptions carry no guild, so the guild ID is zero.
+func (s *Server) authorizeDmChannel(ctx context.Context, userID, channelID int64) (bool, int64, error) {
+	req := new(messagev1.AuthorizeDmChannelRequest)
+	req.SetChannelId(channelID)
+	req.SetUserId(userID)
+	resp, err := s.svcCtx.MessageClient.AuthorizeDmChannel(ctx, req)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return false, 0, nil
+		}
+		return false, 0, err
+	}
+	return resp.GetAllowed(), 0, nil
 }
 
 func (s *Server) refreshOwner(ctx context.Context, session *logicalSession) error {

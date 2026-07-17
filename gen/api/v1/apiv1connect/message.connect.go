@@ -48,6 +48,12 @@ const (
 	// MessageServiceListMessagesProcedure is the fully-qualified name of the MessageService's
 	// ListMessages RPC.
 	MessageServiceListMessagesProcedure = "/api.v1.MessageService/ListMessages"
+	// MessageServiceCreateDmChannelProcedure is the fully-qualified name of the MessageService's
+	// CreateDmChannel RPC.
+	MessageServiceCreateDmChannelProcedure = "/api.v1.MessageService/CreateDmChannel"
+	// MessageServiceListDmChannelsProcedure is the fully-qualified name of the MessageService's
+	// ListDmChannels RPC.
+	MessageServiceListDmChannelsProcedure = "/api.v1.MessageService/ListDmChannels"
 )
 
 // MessageServiceClient is a client for the api.v1.MessageService service.
@@ -62,6 +68,11 @@ type MessageServiceClient interface {
 	GetMessage(context.Context, *v1.GetMessageRequest) (*v1.GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered newest first.
 	ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error)
+	// CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
+	// friend. Messages then flow through the regular message RPCs using the
+	// returned channel ID.
+	CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error)
+	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
 }
 
 // NewMessageServiceClient constructs a client for the api.v1.MessageService service. By default, it
@@ -105,16 +116,30 @@ func NewMessageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(messageServiceMethods.ByName("ListMessages")),
 			connect.WithClientOptions(opts...),
 		),
+		createDmChannel: connect.NewClient[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse](
+			httpClient,
+			baseURL+MessageServiceCreateDmChannelProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("CreateDmChannel")),
+			connect.WithClientOptions(opts...),
+		),
+		listDmChannels: connect.NewClient[v1.ListDmChannelsRequest, v1.ListDmChannelsResponse](
+			httpClient,
+			baseURL+MessageServiceListDmChannelsProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("ListDmChannels")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // messageServiceClient implements MessageServiceClient.
 type messageServiceClient struct {
-	createMessage *connect.Client[v1.CreateMessageRequest, v1.CreateMessageResponse]
-	updateMessage *connect.Client[v1.UpdateMessageRequest, v1.UpdateMessageResponse]
-	deleteMessage *connect.Client[v1.DeleteMessageRequest, v1.DeleteMessageResponse]
-	getMessage    *connect.Client[v1.GetMessageRequest, v1.GetMessageResponse]
-	listMessages  *connect.Client[v1.ListMessagesRequest, v1.ListMessagesResponse]
+	createMessage   *connect.Client[v1.CreateMessageRequest, v1.CreateMessageResponse]
+	updateMessage   *connect.Client[v1.UpdateMessageRequest, v1.UpdateMessageResponse]
+	deleteMessage   *connect.Client[v1.DeleteMessageRequest, v1.DeleteMessageResponse]
+	getMessage      *connect.Client[v1.GetMessageRequest, v1.GetMessageResponse]
+	listMessages    *connect.Client[v1.ListMessagesRequest, v1.ListMessagesResponse]
+	createDmChannel *connect.Client[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse]
+	listDmChannels  *connect.Client[v1.ListDmChannelsRequest, v1.ListDmChannelsResponse]
 }
 
 // CreateMessage calls api.v1.MessageService.CreateMessage.
@@ -162,6 +187,24 @@ func (c *messageServiceClient) ListMessages(ctx context.Context, req *v1.ListMes
 	return nil, err
 }
 
+// CreateDmChannel calls api.v1.MessageService.CreateDmChannel.
+func (c *messageServiceClient) CreateDmChannel(ctx context.Context, req *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error) {
+	response, err := c.createDmChannel.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListDmChannels calls api.v1.MessageService.ListDmChannels.
+func (c *messageServiceClient) ListDmChannels(ctx context.Context, req *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error) {
+	response, err := c.listDmChannels.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // MessageServiceHandler is an implementation of the api.v1.MessageService service.
 type MessageServiceHandler interface {
 	// CreateMessage creates a message authored by the bearer token owner.
@@ -174,6 +217,11 @@ type MessageServiceHandler interface {
 	GetMessage(context.Context, *v1.GetMessageRequest) (*v1.GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered newest first.
 	ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error)
+	// CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
+	// friend. Messages then flow through the regular message RPCs using the
+	// returned channel ID.
+	CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error)
+	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
 }
 
 // NewMessageServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -213,6 +261,18 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 		connect.WithSchema(messageServiceMethods.ByName("ListMessages")),
 		connect.WithHandlerOptions(opts...),
 	)
+	messageServiceCreateDmChannelHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceCreateDmChannelProcedure,
+		svc.CreateDmChannel,
+		connect.WithSchema(messageServiceMethods.ByName("CreateDmChannel")),
+		connect.WithHandlerOptions(opts...),
+	)
+	messageServiceListDmChannelsHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceListDmChannelsProcedure,
+		svc.ListDmChannels,
+		connect.WithSchema(messageServiceMethods.ByName("ListDmChannels")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.MessageService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case MessageServiceCreateMessageProcedure:
@@ -225,6 +285,10 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 			messageServiceGetMessageHandler.ServeHTTP(w, r)
 		case MessageServiceListMessagesProcedure:
 			messageServiceListMessagesHandler.ServeHTTP(w, r)
+		case MessageServiceCreateDmChannelProcedure:
+			messageServiceCreateDmChannelHandler.ServeHTTP(w, r)
+		case MessageServiceListDmChannelsProcedure:
+			messageServiceListDmChannelsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -252,4 +316,12 @@ func (UnimplementedMessageServiceHandler) GetMessage(context.Context, *v1.GetMes
 
 func (UnimplementedMessageServiceHandler) ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.ListMessages is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.CreateDmChannel is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.ListDmChannels is not implemented"))
 }

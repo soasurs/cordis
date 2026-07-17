@@ -53,7 +53,7 @@ func TestAPIIntegration(t *testing.T) {
 	mailerAddr := startMailer(t)
 	authAddr := startAuthenticator(t, postgres.DSN, userAddr, mailerAddr)
 	guildAddr := startGuild(t, postgres.DSN, userAddr)
-	messageAddr := startMessage(t, postgres.DSN, guildAddr)
+	messageAddr := startMessage(t, postgres.DSN, guildAddr, userAddr)
 
 	waitUserReady(t, userAddr)
 	waitAuthenticatorReady(t, authAddr)
@@ -367,6 +367,77 @@ func TestAPIIntegration(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, unblockResp.GetOk())
 	})
+
+	t.Run("direct message lifecycle", func(t *testing.T) {
+		strangerResp, err := authClient.Login(ctx, &apiv1.LoginRequest{
+			Email:    new("stranger@example.com"),
+			Password: new("stranger-password"),
+		})
+		require.NoError(t, err)
+		strangerTransport := &http.Client{Transport: bearerRoundTripper{base: http.DefaultTransport, accessToken: strangerResp.GetResult().GetAccessToken()}}
+		strangerUserClient := apiv1connect.NewUserServiceClient(strangerTransport, httpSrv.URL)
+		strangerMessageClient := apiv1connect.NewMessageServiceClient(strangerTransport, httpSrv.URL)
+
+		lookupResp, err := userClientWithToken.LookupUser(ctx, &apiv1.LookupUserRequest{Username: new("stranger")})
+		require.NoError(t, err)
+		strangerID := lookupResp.GetProfile().GetUserId()
+		meResp, err := userClientWithToken.GetCurrentUser(ctx, &apiv1.GetCurrentUserRequest{})
+		require.NoError(t, err)
+		testerID := meResp.GetUser().GetUserId()
+
+		// DMs require friendship: the earlier block stripped it.
+		_, err = messageClientWithToken.CreateDmChannel(ctx, &apiv1.CreateDmChannelRequest{TargetId: new(strangerID)})
+		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+
+		_, err = userClientWithToken.SendFriendRequest(ctx, &apiv1.SendFriendRequestRequest{TargetId: new(strangerID)})
+		require.NoError(t, err)
+		_, err = strangerUserClient.AcceptFriendRequest(ctx, &apiv1.AcceptFriendRequestRequest{TargetId: new(testerID)})
+		require.NoError(t, err)
+
+		channelResp, err := messageClientWithToken.CreateDmChannel(ctx, &apiv1.CreateDmChannelRequest{TargetId: new(strangerID)})
+		require.NoError(t, err)
+		dmChannelID := channelResp.GetChannel().GetId()
+		require.Equal(t, strangerID, channelResp.GetChannel().GetRecipientId())
+
+		// Idempotent reopen from the other side lands on the same channel.
+		reopenResp, err := strangerMessageClient.CreateDmChannel(ctx, &apiv1.CreateDmChannelRequest{TargetId: new(testerID)})
+		require.NoError(t, err)
+		require.Equal(t, dmChannelID, reopenResp.GetChannel().GetId())
+		require.Equal(t, testerID, reopenResp.GetChannel().GetRecipientId())
+
+		sendResp, err := messageClientWithToken.CreateMessage(ctx, &apiv1.CreateMessageRequest{
+			ChannelId: new(dmChannelID),
+			Content:   new("hello dm"),
+		})
+		require.NoError(t, err)
+		require.Equal(t, "hello dm", sendResp.GetMessage().GetContent())
+
+		listMessagesResp, err := strangerMessageClient.ListMessages(ctx, &apiv1.ListMessagesRequest{ChannelId: new(dmChannelID)})
+		require.NoError(t, err)
+		require.Len(t, listMessagesResp.GetMessages(), 1)
+
+		listChannelsResp, err := strangerMessageClient.ListDmChannels(ctx, &apiv1.ListDmChannelsRequest{})
+		require.NoError(t, err)
+		require.Len(t, listChannelsResp.GetChannels(), 1)
+		require.Equal(t, testerID, listChannelsResp.GetChannels()[0].GetRecipientId())
+
+		// A block freezes writing in both directions but keeps history readable.
+		_, err = strangerUserClient.BlockUser(ctx, &apiv1.BlockUserRequest{TargetId: new(testerID)})
+		require.NoError(t, err)
+		_, err = messageClientWithToken.CreateMessage(ctx, &apiv1.CreateMessageRequest{
+			ChannelId: new(dmChannelID),
+			Content:   new("blocked?"),
+		})
+		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+		_, err = strangerMessageClient.CreateMessage(ctx, &apiv1.CreateMessageRequest{
+			ChannelId: new(dmChannelID),
+			Content:   new("me neither"),
+		})
+		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+		listMessagesResp, err = messageClientWithToken.ListMessages(ctx, &apiv1.ListMessagesRequest{ChannelId: new(dmChannelID)})
+		require.NoError(t, err)
+		require.Len(t, listMessagesResp.GetMessages(), 1)
+	})
 }
 
 func startUser(t *testing.T, dsn string) string {
@@ -485,7 +556,7 @@ services:
 	return addr
 }
 
-func startMessage(t *testing.T, dsn, guildAddr string) string {
+func startMessage(t *testing.T, dsn, guildAddr, userAddr string) string {
 	t.Helper()
 	addr := testkit.FreeAddress(t)
 	binary := testkit.BuildService(t, "github.com/soasurs/cordis/services/message/v1")
@@ -502,7 +573,10 @@ services:
   guild:
     endpoints:
       - %s
-`, addr, dsn, guildAddr))
+  user:
+    endpoints:
+      - %s
+`, addr, dsn, guildAddr, userAddr))
 	return addr
 }
 

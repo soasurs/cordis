@@ -178,10 +178,12 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 		}
 		return false, s.dispatchChannel(ctx, channelID, event)
 	default:
-		if strings.HasPrefix(event.Type, "relationship.") {
+		// relationship.* and dm.* records are user-routed: the payload
+		// user_id names the recipient.
+		if strings.HasPrefix(event.Type, "relationship.") || strings.HasPrefix(event.Type, "dm.") {
 			userID := int64(routing.UserID)
 			if userID <= 0 {
-				return true, errors.New("relationship event user id is invalid")
+				return true, errors.New("user-routed event user id is invalid")
 			}
 			return false, s.dispatchUser(ctx, userID, event)
 		}

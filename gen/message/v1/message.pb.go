@@ -120,6 +120,173 @@ func (x MessageFlag) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// DmChannel is a private 1:1 conversation. Participants are stored in
+// ascending user ID order.
+type DmChannel struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_UserLo      int64                  `protobuf:"varint,2,opt,name=user_lo,json=userLo"`
+	xxx_hidden_UserHi      int64                  `protobuf:"varint,3,opt,name=user_hi,json=userHi"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DmChannel) Reset() {
+	*x = DmChannel{}
+	mi := &file_message_v1_message_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DmChannel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DmChannel) ProtoMessage() {}
+
+func (x *DmChannel) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DmChannel) GetId() int64 {
+	if x != nil {
+		return x.xxx_hidden_Id
+	}
+	return 0
+}
+
+func (x *DmChannel) GetUserLo() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserLo
+	}
+	return 0
+}
+
+func (x *DmChannel) GetUserHi() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserHi
+	}
+	return 0
+}
+
+func (x *DmChannel) GetCreatedAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
+	}
+	return 0
+}
+
+func (x *DmChannel) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *DmChannel) SetUserLo(v int64) {
+	x.xxx_hidden_UserLo = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *DmChannel) SetUserHi(v int64) {
+	x.xxx_hidden_UserHi = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *DmChannel) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *DmChannel) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DmChannel) HasUserLo() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DmChannel) HasUserHi() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *DmChannel) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *DmChannel) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = 0
+}
+
+func (x *DmChannel) ClearUserLo() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserLo = 0
+}
+
+func (x *DmChannel) ClearUserHi() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_UserHi = 0
+}
+
+func (x *DmChannel) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+type DmChannel_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id        *int64
+	UserLo    *int64
+	UserHi    *int64
+	CreatedAt *int64
+}
+
+func (b0 DmChannel_builder) Build() *DmChannel {
+	m0 := &DmChannel{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_Id = *b.Id
+	}
+	if b.UserLo != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_UserLo = *b.UserLo
+	}
+	if b.UserHi != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_UserHi = *b.UserHi
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	return m0
+}
+
 // Message represents a single message in a channel or thread.
 type Message struct {
 	state                          protoimpl.MessageState `protogen:"opaque.v1"`
@@ -144,7 +311,7 @@ type Message struct {
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_message_v1_message_proto_msgTypes[0]
+	mi := &file_message_v1_message_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +323,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[0]
+	mi := &file_message_v1_message_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -579,7 +746,7 @@ type Attachment struct {
 
 func (x *Attachment) Reset() {
 	*x = Attachment{}
-	mi := &file_message_v1_message_proto_msgTypes[1]
+	mi := &file_message_v1_message_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +758,7 @@ func (x *Attachment) String() string {
 func (*Attachment) ProtoMessage() {}
 
 func (x *Attachment) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[1]
+	mi := &file_message_v1_message_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -813,7 +980,7 @@ type AttachmentList struct {
 
 func (x *AttachmentList) Reset() {
 	*x = AttachmentList{}
-	mi := &file_message_v1_message_proto_msgTypes[2]
+	mi := &file_message_v1_message_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -825,7 +992,7 @@ func (x *AttachmentList) String() string {
 func (*AttachmentList) ProtoMessage() {}
 
 func (x *AttachmentList) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[2]
+	mi := &file_message_v1_message_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -875,7 +1042,7 @@ type MentionList struct {
 
 func (x *MentionList) Reset() {
 	*x = MentionList{}
-	mi := &file_message_v1_message_proto_msgTypes[3]
+	mi := &file_message_v1_message_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -887,7 +1054,7 @@ func (x *MentionList) String() string {
 func (*MentionList) ProtoMessage() {}
 
 func (x *MentionList) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[3]
+	mi := &file_message_v1_message_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -943,7 +1110,7 @@ type CreateMessageRequest struct {
 
 func (x *CreateMessageRequest) Reset() {
 	*x = CreateMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[4]
+	mi := &file_message_v1_message_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -955,7 +1122,7 @@ func (x *CreateMessageRequest) String() string {
 func (*CreateMessageRequest) ProtoMessage() {}
 
 func (x *CreateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[4]
+	mi := &file_message_v1_message_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1227,7 +1394,7 @@ type CreateMessageResponse struct {
 
 func (x *CreateMessageResponse) Reset() {
 	*x = CreateMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[5]
+	mi := &file_message_v1_message_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1239,7 +1406,7 @@ func (x *CreateMessageResponse) String() string {
 func (*CreateMessageResponse) ProtoMessage() {}
 
 func (x *CreateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[5]
+	mi := &file_message_v1_message_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1302,7 +1469,7 @@ type UpdateMessageRequest struct {
 
 func (x *UpdateMessageRequest) Reset() {
 	*x = UpdateMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[6]
+	mi := &file_message_v1_message_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1314,7 +1481,7 @@ func (x *UpdateMessageRequest) String() string {
 func (*UpdateMessageRequest) ProtoMessage() {}
 
 func (x *UpdateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[6]
+	mi := &file_message_v1_message_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1519,7 +1686,7 @@ type UpdateMessageResponse struct {
 
 func (x *UpdateMessageResponse) Reset() {
 	*x = UpdateMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[7]
+	mi := &file_message_v1_message_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1531,7 +1698,7 @@ func (x *UpdateMessageResponse) String() string {
 func (*UpdateMessageResponse) ProtoMessage() {}
 
 func (x *UpdateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[7]
+	mi := &file_message_v1_message_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1590,7 +1757,7 @@ type DeleteMessageRequest struct {
 
 func (x *DeleteMessageRequest) Reset() {
 	*x = DeleteMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[8]
+	mi := &file_message_v1_message_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1602,7 +1769,7 @@ func (x *DeleteMessageRequest) String() string {
 func (*DeleteMessageRequest) ProtoMessage() {}
 
 func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[8]
+	mi := &file_message_v1_message_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1695,7 +1862,7 @@ type DeleteMessageResponse struct {
 
 func (x *DeleteMessageResponse) Reset() {
 	*x = DeleteMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[9]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1707,7 +1874,7 @@ func (x *DeleteMessageResponse) String() string {
 func (*DeleteMessageResponse) ProtoMessage() {}
 
 func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[9]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1771,7 +1938,7 @@ type GetMessageRequest struct {
 
 func (x *GetMessageRequest) Reset() {
 	*x = GetMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[10]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1783,7 +1950,7 @@ func (x *GetMessageRequest) String() string {
 func (*GetMessageRequest) ProtoMessage() {}
 
 func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[10]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1873,7 +2040,7 @@ type GetMessageResponse struct {
 
 func (x *GetMessageResponse) Reset() {
 	*x = GetMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[11]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1885,7 +2052,7 @@ func (x *GetMessageResponse) String() string {
 func (*GetMessageResponse) ProtoMessage() {}
 
 func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[11]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1946,7 +2113,7 @@ type ListMessagesRequest struct {
 
 func (x *ListMessagesRequest) Reset() {
 	*x = ListMessagesRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[12]
+	mi := &file_message_v1_message_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1958,7 +2125,7 @@ func (x *ListMessagesRequest) String() string {
 func (*ListMessagesRequest) ProtoMessage() {}
 
 func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[12]
+	mi := &file_message_v1_message_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2204,7 +2371,7 @@ func (b0 ListMessagesRequest_builder) Build() *ListMessagesRequest {
 type case_ListMessagesRequest_Cursor protoreflect.FieldNumber
 
 func (x case_ListMessagesRequest_Cursor) String() string {
-	md := file_message_v1_message_proto_msgTypes[12].Descriptor()
+	md := file_message_v1_message_proto_msgTypes[13].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -2249,7 +2416,7 @@ type ListMessagesResponse struct {
 
 func (x *ListMessagesResponse) Reset() {
 	*x = ListMessagesResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[13]
+	mi := &file_message_v1_message_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2261,7 +2428,7 @@ func (x *ListMessagesResponse) String() string {
 func (*ListMessagesResponse) ProtoMessage() {}
 
 func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[13]
+	mi := &file_message_v1_message_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2361,12 +2528,598 @@ func (b0 ListMessagesResponse_builder) Build() *ListMessagesResponse {
 	return m0
 }
 
+type CreateDmChannelRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,2,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CreateDmChannelRequest) Reset() {
+	*x = CreateDmChannelRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDmChannelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDmChannelRequest) ProtoMessage() {}
+
+func (x *CreateDmChannelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateDmChannelRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *CreateDmChannelRequest) GetTargetId() int64 {
+	if x != nil {
+		return x.xxx_hidden_TargetId
+	}
+	return 0
+}
+
+func (x *CreateDmChannelRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *CreateDmChannelRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *CreateDmChannelRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateDmChannelRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateDmChannelRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *CreateDmChannelRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_TargetId = 0
+}
+
+type CreateDmChannelRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId   *int64
+	TargetId *int64
+}
+
+func (b0 CreateDmChannelRequest_builder) Build() *CreateDmChannelRequest {
+	m0 := &CreateDmChannelRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
+type CreateDmChannelResponse struct {
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channel *DmChannel             `protobuf:"bytes,1,opt,name=channel"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CreateDmChannelResponse) Reset() {
+	*x = CreateDmChannelResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDmChannelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDmChannelResponse) ProtoMessage() {}
+
+func (x *CreateDmChannelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateDmChannelResponse) GetChannel() *DmChannel {
+	if x != nil {
+		return x.xxx_hidden_Channel
+	}
+	return nil
+}
+
+func (x *CreateDmChannelResponse) SetChannel(v *DmChannel) {
+	x.xxx_hidden_Channel = v
+}
+
+func (x *CreateDmChannelResponse) HasChannel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Channel != nil
+}
+
+func (x *CreateDmChannelResponse) ClearChannel() {
+	x.xxx_hidden_Channel = nil
+}
+
+type CreateDmChannelResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channel *DmChannel
+}
+
+func (b0 CreateDmChannelResponse_builder) Build() *CreateDmChannelResponse {
+	m0 := &CreateDmChannelResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channel = b.Channel
+	return m0
+}
+
+type ListDmChannelsRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,3,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ListDmChannelsRequest) Reset() {
+	*x = ListDmChannelsRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDmChannelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDmChannelsRequest) ProtoMessage() {}
+
+func (x *ListDmChannelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListDmChannelsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *ListDmChannelsRequest) GetBeforeId() int64 {
+	if x != nil {
+		return x.xxx_hidden_BeforeId
+	}
+	return 0
+}
+
+func (x *ListDmChannelsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.xxx_hidden_Limit
+	}
+	return 0
+}
+
+func (x *ListDmChannelsRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *ListDmChannelsRequest) SetBeforeId(v int64) {
+	x.xxx_hidden_BeforeId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListDmChannelsRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListDmChannelsRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListDmChannelsRequest) HasBeforeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListDmChannelsRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListDmChannelsRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *ListDmChannelsRequest) ClearBeforeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeId = 0
+}
+
+func (x *ListDmChannelsRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListDmChannelsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId *int64
+	// Return channels with IDs smaller than this cursor.
+	BeforeId *int64
+	Limit    *int32
+}
+
+func (b0 ListDmChannelsRequest_builder) Build() *ListDmChannelsRequest {
+	m0 := &ListDmChannelsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.BeforeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_BeforeId = *b.BeforeId
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
+type ListDmChannelsResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channels    *[]*DmChannel          `protobuf:"bytes,1,rep,name=channels"`
+	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ListDmChannelsResponse) Reset() {
+	*x = ListDmChannelsResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDmChannelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDmChannelsResponse) ProtoMessage() {}
+
+func (x *ListDmChannelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListDmChannelsResponse) GetChannels() []*DmChannel {
+	if x != nil {
+		if x.xxx_hidden_Channels != nil {
+			return *x.xxx_hidden_Channels
+		}
+	}
+	return nil
+}
+
+func (x *ListDmChannelsResponse) GetBeforeId() int64 {
+	if x != nil {
+		return x.xxx_hidden_BeforeId
+	}
+	return 0
+}
+
+func (x *ListDmChannelsResponse) SetChannels(v []*DmChannel) {
+	x.xxx_hidden_Channels = &v
+}
+
+func (x *ListDmChannelsResponse) SetBeforeId(v int64) {
+	x.xxx_hidden_BeforeId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListDmChannelsResponse) HasBeforeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListDmChannelsResponse) ClearBeforeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeId = 0
+}
+
+type ListDmChannelsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channels []*DmChannel
+	BeforeId *int64
+}
+
+func (b0 ListDmChannelsResponse_builder) Build() *ListDmChannelsResponse {
+	m0 := &ListDmChannelsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channels = &b.Channels
+	if b.BeforeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_BeforeId = *b.BeforeId
+	}
+	return m0
+}
+
+type AuthorizeDmChannelRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AuthorizeDmChannelRequest) Reset() {
+	*x = AuthorizeDmChannelRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizeDmChannelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizeDmChannelRequest) ProtoMessage() {}
+
+func (x *AuthorizeDmChannelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AuthorizeDmChannelRequest) GetChannelId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelId
+	}
+	return 0
+}
+
+func (x *AuthorizeDmChannelRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *AuthorizeDmChannelRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *AuthorizeDmChannelRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *AuthorizeDmChannelRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AuthorizeDmChannelRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AuthorizeDmChannelRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *AuthorizeDmChannelRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+type AuthorizeDmChannelRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	UserId    *int64
+}
+
+func (b0 AuthorizeDmChannelRequest_builder) Build() *AuthorizeDmChannelRequest {
+	m0 := &AuthorizeDmChannelRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
+type AuthorizeDmChannelResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Allowed     bool                   `protobuf:"varint,1,opt,name=allowed"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AuthorizeDmChannelResponse) Reset() {
+	*x = AuthorizeDmChannelResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizeDmChannelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizeDmChannelResponse) ProtoMessage() {}
+
+func (x *AuthorizeDmChannelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AuthorizeDmChannelResponse) GetAllowed() bool {
+	if x != nil {
+		return x.xxx_hidden_Allowed
+	}
+	return false
+}
+
+func (x *AuthorizeDmChannelResponse) SetAllowed(v bool) {
+	x.xxx_hidden_Allowed = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *AuthorizeDmChannelResponse) HasAllowed() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AuthorizeDmChannelResponse) ClearAllowed() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Allowed = false
+}
+
+type AuthorizeDmChannelResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Allowed *bool
+}
+
+func (b0 AuthorizeDmChannelResponse_builder) Build() *AuthorizeDmChannelResponse {
+	m0 := &AuthorizeDmChannelResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Allowed != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Allowed = *b.Allowed
+	}
+	return m0
+}
+
 var File_message_v1_message_proto protoreflect.FileDescriptor
 
 const file_message_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"\x18message/v1/message.proto\x12\n" +
-	"message.v1\"\xcb\x03\n" +
+	"message.v1\"l\n" +
+	"\tDmChannel\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\auser_lo\x18\x02 \x01(\x03R\x06userLo\x12\x17\n" +
+	"\auser_hi\x18\x03 \x01(\x03R\x06userHi\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xcb\x03\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
@@ -2445,7 +3198,25 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x14ListMessagesResponse\x12/\n" +
 	"\bmessages\x18\x01 \x03(\v2\x13.message.v1.MessageR\bmessages\x12#\n" +
 	"\rbefore_cursor\x18\x03 \x01(\x03R\fbeforeCursor\x12!\n" +
-	"\fafter_cursor\x18\x04 \x01(\x03R\vafterCursorJ\x04\b\x02\x10\x03*~\n" +
+	"\fafter_cursor\x18\x04 \x01(\x03R\vafterCursorJ\x04\b\x02\x10\x03\"N\n" +
+	"\x16CreateDmChannelRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\ttarget_id\x18\x02 \x01(\x03R\btargetId\"J\n" +
+	"\x17CreateDmChannelResponse\x12/\n" +
+	"\achannel\x18\x01 \x01(\v2\x15.message.v1.DmChannelR\achannel\"c\n" +
+	"\x15ListDmChannelsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"h\n" +
+	"\x16ListDmChannelsResponse\x121\n" +
+	"\bchannels\x18\x01 \x03(\v2\x15.message.v1.DmChannelR\bchannels\x12\x1b\n" +
+	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\"S\n" +
+	"\x19AuthorizeDmChannelRequest\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"6\n" +
+	"\x1aAuthorizeDmChannelResponse\x12\x18\n" +
+	"\aallowed\x18\x01 \x01(\bR\aallowed*~\n" +
 	"\vMessageType\x12\x1c\n" +
 	"\x18MESSAGE_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14MESSAGE_TYPE_DEFAULT\x10\x01\x12\x16\n" +
@@ -2454,65 +3225,83 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\vMessageFlag\x12\x1c\n" +
 	"\x18MESSAGE_FLAG_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17MESSAGE_FLAG_HAS_THREAD\x10 \x12(\n" +
-	"#MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS\x10\x80 2\xb2\x03\n" +
+	"#MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS\x10\x80 2\xcc\x05\n" +
 	"\x0eMessageService\x12T\n" +
 	"\rCreateMessage\x12 .message.v1.CreateMessageRequest\x1a!.message.v1.CreateMessageResponse\x12T\n" +
 	"\rUpdateMessage\x12 .message.v1.UpdateMessageRequest\x1a!.message.v1.UpdateMessageResponse\x12T\n" +
 	"\rDeleteMessage\x12 .message.v1.DeleteMessageRequest\x1a!.message.v1.DeleteMessageResponse\x12K\n" +
 	"\n" +
 	"GetMessage\x12\x1d.message.v1.GetMessageRequest\x1a\x1e.message.v1.GetMessageResponse\x12Q\n" +
-	"\fListMessages\x12\x1f.message.v1.ListMessagesRequest\x1a .message.v1.ListMessagesResponseB\x9b\x01\n" +
+	"\fListMessages\x12\x1f.message.v1.ListMessagesRequest\x1a .message.v1.ListMessagesResponse\x12Z\n" +
+	"\x0fCreateDmChannel\x12\".message.v1.CreateDmChannelRequest\x1a#.message.v1.CreateDmChannelResponse\x12W\n" +
+	"\x0eListDmChannels\x12!.message.v1.ListDmChannelsRequest\x1a\".message.v1.ListDmChannelsResponse\x12c\n" +
+	"\x12AuthorizeDmChannel\x12%.message.v1.AuthorizeDmChannelRequest\x1a&.message.v1.AuthorizeDmChannelResponseB\x9b\x01\n" +
 	"\x0ecom.message.v1B\fMessageProtoP\x01Z2github.com/soasurs/cordis/gen/message/v1;messagev1\xa2\x02\x03MXX\xaa\x02\n" +
 	"Message.V1\xca\x02\n" +
 	"Message\\V1\xe2\x02\x16Message\\V1\\GPBMetadata\xea\x02\vMessage::V1b\beditionsp\xe8\a"
 
 var file_message_v1_message_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_message_v1_message_proto_goTypes = []any{
-	(MessageType)(0),              // 0: message.v1.MessageType
-	(MessageFlag)(0),              // 1: message.v1.MessageFlag
-	(*Message)(nil),               // 2: message.v1.Message
-	(*Attachment)(nil),            // 3: message.v1.Attachment
-	(*AttachmentList)(nil),        // 4: message.v1.AttachmentList
-	(*MentionList)(nil),           // 5: message.v1.MentionList
-	(*CreateMessageRequest)(nil),  // 6: message.v1.CreateMessageRequest
-	(*CreateMessageResponse)(nil), // 7: message.v1.CreateMessageResponse
-	(*UpdateMessageRequest)(nil),  // 8: message.v1.UpdateMessageRequest
-	(*UpdateMessageResponse)(nil), // 9: message.v1.UpdateMessageResponse
-	(*DeleteMessageRequest)(nil),  // 10: message.v1.DeleteMessageRequest
-	(*DeleteMessageResponse)(nil), // 11: message.v1.DeleteMessageResponse
-	(*GetMessageRequest)(nil),     // 12: message.v1.GetMessageRequest
-	(*GetMessageResponse)(nil),    // 13: message.v1.GetMessageResponse
-	(*ListMessagesRequest)(nil),   // 14: message.v1.ListMessagesRequest
-	(*ListMessagesResponse)(nil),  // 15: message.v1.ListMessagesResponse
+	(MessageType)(0),                   // 0: message.v1.MessageType
+	(MessageFlag)(0),                   // 1: message.v1.MessageFlag
+	(*DmChannel)(nil),                  // 2: message.v1.DmChannel
+	(*Message)(nil),                    // 3: message.v1.Message
+	(*Attachment)(nil),                 // 4: message.v1.Attachment
+	(*AttachmentList)(nil),             // 5: message.v1.AttachmentList
+	(*MentionList)(nil),                // 6: message.v1.MentionList
+	(*CreateMessageRequest)(nil),       // 7: message.v1.CreateMessageRequest
+	(*CreateMessageResponse)(nil),      // 8: message.v1.CreateMessageResponse
+	(*UpdateMessageRequest)(nil),       // 9: message.v1.UpdateMessageRequest
+	(*UpdateMessageResponse)(nil),      // 10: message.v1.UpdateMessageResponse
+	(*DeleteMessageRequest)(nil),       // 11: message.v1.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),      // 12: message.v1.DeleteMessageResponse
+	(*GetMessageRequest)(nil),          // 13: message.v1.GetMessageRequest
+	(*GetMessageResponse)(nil),         // 14: message.v1.GetMessageResponse
+	(*ListMessagesRequest)(nil),        // 15: message.v1.ListMessagesRequest
+	(*ListMessagesResponse)(nil),       // 16: message.v1.ListMessagesResponse
+	(*CreateDmChannelRequest)(nil),     // 17: message.v1.CreateDmChannelRequest
+	(*CreateDmChannelResponse)(nil),    // 18: message.v1.CreateDmChannelResponse
+	(*ListDmChannelsRequest)(nil),      // 19: message.v1.ListDmChannelsRequest
+	(*ListDmChannelsResponse)(nil),     // 20: message.v1.ListDmChannelsResponse
+	(*AuthorizeDmChannelRequest)(nil),  // 21: message.v1.AuthorizeDmChannelRequest
+	(*AuthorizeDmChannelResponse)(nil), // 22: message.v1.AuthorizeDmChannelResponse
 }
 var file_message_v1_message_proto_depIdxs = []int32{
 	0,  // 0: message.v1.Message.type:type_name -> message.v1.MessageType
-	3,  // 1: message.v1.Message.attachments:type_name -> message.v1.Attachment
-	3,  // 2: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
+	4,  // 1: message.v1.Message.attachments:type_name -> message.v1.Attachment
+	4,  // 2: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
 	0,  // 3: message.v1.CreateMessageRequest.type:type_name -> message.v1.MessageType
-	3,  // 4: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment
-	2,  // 5: message.v1.CreateMessageResponse.message:type_name -> message.v1.Message
-	4,  // 6: message.v1.UpdateMessageRequest.attachments:type_name -> message.v1.AttachmentList
-	5,  // 7: message.v1.UpdateMessageRequest.mentions:type_name -> message.v1.MentionList
-	2,  // 8: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
-	2,  // 9: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
-	2,  // 10: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
-	6,  // 11: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
-	8,  // 12: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
-	10, // 13: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
-	12, // 14: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
-	14, // 15: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
-	7,  // 16: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
-	9,  // 17: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
-	11, // 18: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
-	13, // 19: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
-	15, // 20: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
-	16, // [16:21] is the sub-list for method output_type
-	11, // [11:16] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	4,  // 4: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment
+	3,  // 5: message.v1.CreateMessageResponse.message:type_name -> message.v1.Message
+	5,  // 6: message.v1.UpdateMessageRequest.attachments:type_name -> message.v1.AttachmentList
+	6,  // 7: message.v1.UpdateMessageRequest.mentions:type_name -> message.v1.MentionList
+	3,  // 8: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
+	3,  // 9: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
+	3,  // 10: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
+	2,  // 11: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
+	2,  // 12: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
+	7,  // 13: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
+	9,  // 14: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
+	11, // 15: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
+	13, // 16: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
+	15, // 17: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
+	17, // 18: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
+	19, // 19: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
+	21, // 20: message.v1.MessageService.AuthorizeDmChannel:input_type -> message.v1.AuthorizeDmChannelRequest
+	8,  // 21: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
+	10, // 22: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
+	12, // 23: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
+	14, // 24: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
+	16, // 25: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
+	18, // 26: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
+	20, // 27: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
+	22, // 28: message.v1.MessageService.AuthorizeDmChannel:output_type -> message.v1.AuthorizeDmChannelResponse
+	21, // [21:29] is the sub-list for method output_type
+	13, // [13:21] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_message_v1_message_proto_init() }
@@ -2520,7 +3309,7 @@ func file_message_v1_message_proto_init() {
 	if File_message_v1_message_proto != nil {
 		return
 	}
-	file_message_v1_message_proto_msgTypes[12].OneofWrappers = []any{
+	file_message_v1_message_proto_msgTypes[13].OneofWrappers = []any{
 		(*listMessagesRequest_Before)(nil),
 		(*listMessagesRequest_After)(nil),
 		(*listMessagesRequest_Around)(nil),
@@ -2531,7 +3320,7 @@ func file_message_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_message_v1_message_proto_rawDesc), len(file_message_v1_message_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   14,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

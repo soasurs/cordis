@@ -194,3 +194,32 @@ const (
 		user_id ASC
 	`
 )
+
+const createDmChannelStatement = `
+	INSERT INTO dm_channels (id, user_lo, user_hi, created_at)
+	VALUES ($1, $2, $3, $4)
+	ON CONFLICT (user_lo, user_hi) DO NOTHING
+`
+
+const getDmChannelQuery = `
+	SELECT id, user_lo, user_hi, created_at
+	FROM dm_channels
+	WHERE id = $1
+	LIMIT 1
+`
+
+const getDmChannelByPairQuery = `
+	SELECT id, user_lo, user_hi, created_at
+	FROM dm_channels
+	WHERE user_lo = $1 AND user_hi = $2
+	LIMIT 1
+`
+
+const listDmChannelsQuery = `
+	SELECT id, user_lo, user_hi, created_at
+	FROM dm_channels
+	WHERE (user_lo = $1 OR user_hi = $1)
+	  AND ($2 = 0 OR id < $2)
+	ORDER BY id DESC
+	LIMIT $3
+`

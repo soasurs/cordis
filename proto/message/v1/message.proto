@@ -21,6 +21,9 @@ service MessageService {
   // AuthorizeDmChannel reports whether the user participates in the DM
   // channel. It backs Session channel subscriptions.
   rpc AuthorizeDmChannel(AuthorizeDmChannelRequest) returns (AuthorizeDmChannelResponse);
+  // AckMessage moves the last-read position forward for one channel.
+  rpc AckMessage(AckMessageRequest) returns (AckMessageResponse);
+  rpc GetReadStates(GetReadStatesRequest) returns (GetReadStatesResponse);
 }
 
 // DmChannel is a private 1:1 conversation. Participants are stored in
@@ -250,4 +253,37 @@ message AuthorizeDmChannelRequest {
 
 message AuthorizeDmChannelResponse {
   bool allowed = 1;
+}
+
+message AckMessageRequest {
+  int64 user_id = 1;
+  int64 channel_id = 2;
+  // Only a larger ID moves the cursor forward; smaller values are safe
+  // no-ops so concurrent acks cannot un-read messages.
+  int64 message_id = 3;
+}
+
+message AckMessageResponse {
+  bool ok = 1;
+}
+
+message GetReadStatesRequest {
+  int64 user_id = 1;
+  repeated int64 channel_ids = 2;
+}
+
+// ChannelReadState is one user's read position and mention count in a
+// channel.
+message ChannelReadState {
+  int64 channel_id = 1;
+  // Only messages with a larger ID are unread.
+  int64 last_read_message_id = 2;
+  int32 mention_count = 3;
+  // Count of messages newer than last_read_message_id (excluding deleted
+  // and author-owned). Set in GetReadStates; no meaning on input.
+  int32 missing_message_count = 4;
+}
+
+message GetReadStatesResponse {
+  repeated ChannelReadState states = 1;
 }

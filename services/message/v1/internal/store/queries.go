@@ -223,3 +223,36 @@ const listDmChannelsQuery = `
 	ORDER BY id DESC
 	LIMIT $3
 `
+
+const upsertChannelReadStateStatement = `
+	INSERT INTO channel_read_states (user_id, channel_id, last_read_message_id, mention_count, updated_at)
+	VALUES ($1, $2, $3, 0, $4)
+	ON CONFLICT (user_id, channel_id) DO UPDATE SET
+		last_read_message_id = GREATEST(channel_read_states.last_read_message_id, EXCLUDED.last_read_message_id),
+		updated_at = EXCLUDED.updated_at
+`
+
+const listChannelReadStatesQuery = `
+	SELECT user_id, channel_id, last_read_message_id, mention_count, updated_at
+	FROM channel_read_states
+	WHERE user_id = $1 AND channel_id = ANY($2)
+`
+
+const countMissingMessagesQuery = `
+	SELECT count(*)
+	FROM messages
+	WHERE channel_id = $1
+	AND id > $2
+	AND deleted_at = 0
+	AND author_id <> $3
+`
+
+const countUnreadMentionsQuery = `
+	SELECT count(*)
+	FROM message_mentions mm
+	JOIN messages m ON m.id = mm.message_id
+	WHERE mm.user_id = $1
+	AND m.channel_id = $2
+	AND m.id > $3
+	AND m.deleted_at = 0
+`

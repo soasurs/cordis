@@ -264,3 +264,45 @@ func dmChannelToAPI(channel *messagev1.DmChannel, viewerID int64) *apiv1.DmChann
 		CreatedAt:   new(channel.GetCreatedAt()),
 	}
 }
+
+func (s *messageServer) AckMessage(ctx context.Context, req *apiv1.AckMessageRequest) (*apiv1.AckMessageResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.AckMessageRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetChannelId(req.GetChannelId())
+	svcReq.SetMessageId(req.GetMessageId())
+	svcResp, err := s.svcCtx.MessageClient.AckMessage(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return &apiv1.AckMessageResponse{Ok: new(svcResp.GetOk())}, nil
+}
+
+func (s *messageServer) GetReadStates(ctx context.Context, req *apiv1.GetReadStatesRequest) (*apiv1.GetReadStatesResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+
+	svcReq := new(messagev1.GetReadStatesRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetChannelIds(req.GetChannelIds())
+	svcResp, err := s.svcCtx.MessageClient.GetReadStates(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	states := make([]*apiv1.ChannelReadState, 0, len(svcResp.GetStates()))
+	for _, st := range svcResp.GetStates() {
+		states = append(states, &apiv1.ChannelReadState{
+			ChannelId:           new(st.GetChannelId()),
+			LastReadMessageId:   new(st.GetLastReadMessageId()),
+			MentionCount:        new(st.GetMentionCount()),
+			MissingMessageCount: new(st.GetMissingMessageCount()),
+		})
+	}
+	return &apiv1.GetReadStatesResponse{States: states}, nil
+}

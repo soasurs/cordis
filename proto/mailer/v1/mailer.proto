@@ -1,0 +1,24 @@
+edition = "2023";
+
+package mailer.v1;
+
+// MailerService delivers transactional email for other cordis services. It
+// owns templates and provider integration; callers only supply the template
+// name and its variables.
+service MailerService {
+  rpc SendEmail(SendEmailRequest) returns (SendEmailResponse);
+}
+
+message SendEmailRequest {
+  string to = 1;
+  // Template identifier, for example "password_reset". Shared constants live
+  // in pkg/mail.
+  string template = 2;
+  // Template variables. Values may contain secrets such as one-time tokens
+  // and must never be logged verbatim.
+  map<string, string> variables = 3;
+}
+
+message SendEmailResponse {
+  bool ok = 1;
+}

@@ -24,3 +24,4 @@ inputs:
       - proto/guild
       - proto/presence
       - proto/session
+      - proto/mailer

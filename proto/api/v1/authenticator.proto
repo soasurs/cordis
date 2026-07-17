@@ -53,6 +53,8 @@ message RegisterRequest {
   string name = 1;
   string email = 2;
   string password = 3;
+  // Globally unique handle; lowercase letters, digits, and underscores.
+  string username = 4;
 }
 
 message RegisterResponse {

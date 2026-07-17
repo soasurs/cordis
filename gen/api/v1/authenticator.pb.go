@@ -124,10 +124,12 @@ func (x *AuthenticationResult) GetSessionExpiresAt() int64 {
 }
 
 type RegisterRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Email         *string                `protobuf:"bytes,2,opt,name=email" json:"email,omitempty"`
-	Password      *string                `protobuf:"bytes,3,opt,name=password" json:"password,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Name     *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Email    *string                `protobuf:"bytes,2,opt,name=email" json:"email,omitempty"`
+	Password *string                `protobuf:"bytes,3,opt,name=password" json:"password,omitempty"`
+	// Globally unique handle; lowercase letters, digits, and underscores.
+	Username      *string `protobuf:"bytes,4,opt,name=username" json:"username,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -179,6 +181,13 @@ func (x *RegisterRequest) GetEmail() string {
 func (x *RegisterRequest) GetPassword() string {
 	if x != nil && x.Password != nil {
 		return *x.Password
+	}
+	return ""
+}
+
+func (x *RegisterRequest) GetUsername() string {
+	if x != nil && x.Username != nil {
+		return *x.Username
 	}
 	return ""
 }
@@ -1839,11 +1848,12 @@ const file_api_v1_authenticator_proto_rawDesc = "" +
 	"\x17access_token_expires_at\x18\x05 \x01(\x03R\x14accessTokenExpiresAt\x12#\n" +
 	"\rrefresh_token\x18\x06 \x01(\tR\frefreshToken\x127\n" +
 	"\x18refresh_token_expires_at\x18\a \x01(\x03R\x15refreshTokenExpiresAt\x12,\n" +
-	"\x12session_expires_at\x18\b \x01(\x03R\x10sessionExpiresAt\"W\n" +
+	"\x12session_expires_at\x18\b \x01(\x03R\x10sessionExpiresAt\"s\n" +
 	"\x0fRegisterRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"H\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x1a\n" +
+	"\busername\x18\x04 \x01(\tR\busername\"H\n" +
 	"\x10RegisterResponse\x124\n" +
 	"\x06result\x18\x01 \x01(\v2\x1c.api.v1.AuthenticationResultR\x06result\"@\n" +
 	"\fLoginRequest\x12\x14\n" +

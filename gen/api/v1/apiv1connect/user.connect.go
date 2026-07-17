@@ -50,6 +50,30 @@ const (
 	// UserServiceChangePasswordProcedure is the fully-qualified name of the UserService's
 	// ChangePassword RPC.
 	UserServiceChangePasswordProcedure = "/api.v1.UserService/ChangePassword"
+	// UserServiceLookupUserProcedure is the fully-qualified name of the UserService's LookupUser RPC.
+	UserServiceLookupUserProcedure = "/api.v1.UserService/LookupUser"
+	// UserServiceUpdateUsernameProcedure is the fully-qualified name of the UserService's
+	// UpdateUsername RPC.
+	UserServiceUpdateUsernameProcedure = "/api.v1.UserService/UpdateUsername"
+	// UserServiceSendFriendRequestProcedure is the fully-qualified name of the UserService's
+	// SendFriendRequest RPC.
+	UserServiceSendFriendRequestProcedure = "/api.v1.UserService/SendFriendRequest"
+	// UserServiceAcceptFriendRequestProcedure is the fully-qualified name of the UserService's
+	// AcceptFriendRequest RPC.
+	UserServiceAcceptFriendRequestProcedure = "/api.v1.UserService/AcceptFriendRequest"
+	// UserServiceDeclineFriendRequestProcedure is the fully-qualified name of the UserService's
+	// DeclineFriendRequest RPC.
+	UserServiceDeclineFriendRequestProcedure = "/api.v1.UserService/DeclineFriendRequest"
+	// UserServiceRemoveFriendProcedure is the fully-qualified name of the UserService's RemoveFriend
+	// RPC.
+	UserServiceRemoveFriendProcedure = "/api.v1.UserService/RemoveFriend"
+	// UserServiceBlockUserProcedure is the fully-qualified name of the UserService's BlockUser RPC.
+	UserServiceBlockUserProcedure = "/api.v1.UserService/BlockUser"
+	// UserServiceUnblockUserProcedure is the fully-qualified name of the UserService's UnblockUser RPC.
+	UserServiceUnblockUserProcedure = "/api.v1.UserService/UnblockUser"
+	// UserServiceListRelationshipsProcedure is the fully-qualified name of the UserService's
+	// ListRelationships RPC.
+	UserServiceListRelationshipsProcedure = "/api.v1.UserService/ListRelationships"
 )
 
 // UserServiceClient is a client for the api.v1.UserService service.
@@ -67,6 +91,20 @@ type UserServiceClient interface {
 	// ChangePassword changes the bearer token owner's password after verifying the old password.
 	// A successful change revokes every other session owned by the user.
 	ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error)
+	// LookupUser resolves a username to a public profile.
+	LookupUser(context.Context, *v1.LookupUserRequest) (*v1.LookupUserResponse, error)
+	// UpdateUsername replaces the bearer token owner's unique handle; the old
+	// handle is released immediately.
+	UpdateUsername(context.Context, *v1.UpdateUsernameRequest) (*v1.UpdateUsernameResponse, error)
+	SendFriendRequest(context.Context, *v1.SendFriendRequestRequest) (*v1.SendFriendRequestResponse, error)
+	AcceptFriendRequest(context.Context, *v1.AcceptFriendRequestRequest) (*v1.AcceptFriendRequestResponse, error)
+	DeclineFriendRequest(context.Context, *v1.DeclineFriendRequestRequest) (*v1.DeclineFriendRequestResponse, error)
+	// RemoveFriend deletes a friendship or retracts a pending request in
+	// either direction.
+	RemoveFriend(context.Context, *v1.RemoveFriendRequest) (*v1.RemoveFriendResponse, error)
+	BlockUser(context.Context, *v1.BlockUserRequest) (*v1.BlockUserResponse, error)
+	UnblockUser(context.Context, *v1.UnblockUserRequest) (*v1.UnblockUserResponse, error)
+	ListRelationships(context.Context, *v1.ListRelationshipsRequest) (*v1.ListRelationshipsResponse, error)
 }
 
 // NewUserServiceClient constructs a client for the api.v1.UserService service. By default, it uses
@@ -116,6 +154,60 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(userServiceMethods.ByName("ChangePassword")),
 			connect.WithClientOptions(opts...),
 		),
+		lookupUser: connect.NewClient[v1.LookupUserRequest, v1.LookupUserResponse](
+			httpClient,
+			baseURL+UserServiceLookupUserProcedure,
+			connect.WithSchema(userServiceMethods.ByName("LookupUser")),
+			connect.WithClientOptions(opts...),
+		),
+		updateUsername: connect.NewClient[v1.UpdateUsernameRequest, v1.UpdateUsernameResponse](
+			httpClient,
+			baseURL+UserServiceUpdateUsernameProcedure,
+			connect.WithSchema(userServiceMethods.ByName("UpdateUsername")),
+			connect.WithClientOptions(opts...),
+		),
+		sendFriendRequest: connect.NewClient[v1.SendFriendRequestRequest, v1.SendFriendRequestResponse](
+			httpClient,
+			baseURL+UserServiceSendFriendRequestProcedure,
+			connect.WithSchema(userServiceMethods.ByName("SendFriendRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		acceptFriendRequest: connect.NewClient[v1.AcceptFriendRequestRequest, v1.AcceptFriendRequestResponse](
+			httpClient,
+			baseURL+UserServiceAcceptFriendRequestProcedure,
+			connect.WithSchema(userServiceMethods.ByName("AcceptFriendRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		declineFriendRequest: connect.NewClient[v1.DeclineFriendRequestRequest, v1.DeclineFriendRequestResponse](
+			httpClient,
+			baseURL+UserServiceDeclineFriendRequestProcedure,
+			connect.WithSchema(userServiceMethods.ByName("DeclineFriendRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		removeFriend: connect.NewClient[v1.RemoveFriendRequest, v1.RemoveFriendResponse](
+			httpClient,
+			baseURL+UserServiceRemoveFriendProcedure,
+			connect.WithSchema(userServiceMethods.ByName("RemoveFriend")),
+			connect.WithClientOptions(opts...),
+		),
+		blockUser: connect.NewClient[v1.BlockUserRequest, v1.BlockUserResponse](
+			httpClient,
+			baseURL+UserServiceBlockUserProcedure,
+			connect.WithSchema(userServiceMethods.ByName("BlockUser")),
+			connect.WithClientOptions(opts...),
+		),
+		unblockUser: connect.NewClient[v1.UnblockUserRequest, v1.UnblockUserResponse](
+			httpClient,
+			baseURL+UserServiceUnblockUserProcedure,
+			connect.WithSchema(userServiceMethods.ByName("UnblockUser")),
+			connect.WithClientOptions(opts...),
+		),
+		listRelationships: connect.NewClient[v1.ListRelationshipsRequest, v1.ListRelationshipsResponse](
+			httpClient,
+			baseURL+UserServiceListRelationshipsProcedure,
+			connect.WithSchema(userServiceMethods.ByName("ListRelationships")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -127,6 +219,15 @@ type userServiceClient struct {
 	updateEmail            *connect.Client[v1.UpdateEmailRequest, v1.UpdateEmailResponse]
 	updateUserProfile      *connect.Client[v1.UpdateUserProfileRequest, v1.UpdateUserProfileResponse]
 	changePassword         *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	lookupUser             *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
+	updateUsername         *connect.Client[v1.UpdateUsernameRequest, v1.UpdateUsernameResponse]
+	sendFriendRequest      *connect.Client[v1.SendFriendRequestRequest, v1.SendFriendRequestResponse]
+	acceptFriendRequest    *connect.Client[v1.AcceptFriendRequestRequest, v1.AcceptFriendRequestResponse]
+	declineFriendRequest   *connect.Client[v1.DeclineFriendRequestRequest, v1.DeclineFriendRequestResponse]
+	removeFriend           *connect.Client[v1.RemoveFriendRequest, v1.RemoveFriendResponse]
+	blockUser              *connect.Client[v1.BlockUserRequest, v1.BlockUserResponse]
+	unblockUser            *connect.Client[v1.UnblockUserRequest, v1.UnblockUserResponse]
+	listRelationships      *connect.Client[v1.ListRelationshipsRequest, v1.ListRelationshipsResponse]
 }
 
 // GetCurrentUser calls api.v1.UserService.GetCurrentUser.
@@ -183,6 +284,87 @@ func (c *userServiceClient) ChangePassword(ctx context.Context, req *v1.ChangePa
 	return nil, err
 }
 
+// LookupUser calls api.v1.UserService.LookupUser.
+func (c *userServiceClient) LookupUser(ctx context.Context, req *v1.LookupUserRequest) (*v1.LookupUserResponse, error) {
+	response, err := c.lookupUser.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UpdateUsername calls api.v1.UserService.UpdateUsername.
+func (c *userServiceClient) UpdateUsername(ctx context.Context, req *v1.UpdateUsernameRequest) (*v1.UpdateUsernameResponse, error) {
+	response, err := c.updateUsername.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SendFriendRequest calls api.v1.UserService.SendFriendRequest.
+func (c *userServiceClient) SendFriendRequest(ctx context.Context, req *v1.SendFriendRequestRequest) (*v1.SendFriendRequestResponse, error) {
+	response, err := c.sendFriendRequest.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// AcceptFriendRequest calls api.v1.UserService.AcceptFriendRequest.
+func (c *userServiceClient) AcceptFriendRequest(ctx context.Context, req *v1.AcceptFriendRequestRequest) (*v1.AcceptFriendRequestResponse, error) {
+	response, err := c.acceptFriendRequest.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// DeclineFriendRequest calls api.v1.UserService.DeclineFriendRequest.
+func (c *userServiceClient) DeclineFriendRequest(ctx context.Context, req *v1.DeclineFriendRequestRequest) (*v1.DeclineFriendRequestResponse, error) {
+	response, err := c.declineFriendRequest.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RemoveFriend calls api.v1.UserService.RemoveFriend.
+func (c *userServiceClient) RemoveFriend(ctx context.Context, req *v1.RemoveFriendRequest) (*v1.RemoveFriendResponse, error) {
+	response, err := c.removeFriend.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// BlockUser calls api.v1.UserService.BlockUser.
+func (c *userServiceClient) BlockUser(ctx context.Context, req *v1.BlockUserRequest) (*v1.BlockUserResponse, error) {
+	response, err := c.blockUser.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// UnblockUser calls api.v1.UserService.UnblockUser.
+func (c *userServiceClient) UnblockUser(ctx context.Context, req *v1.UnblockUserRequest) (*v1.UnblockUserResponse, error) {
+	response, err := c.unblockUser.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// ListRelationships calls api.v1.UserService.ListRelationships.
+func (c *userServiceClient) ListRelationships(ctx context.Context, req *v1.ListRelationshipsRequest) (*v1.ListRelationshipsResponse, error) {
+	response, err := c.listRelationships.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // UserServiceHandler is an implementation of the api.v1.UserService service.
 type UserServiceHandler interface {
 	// GetCurrentUser returns the private account and profile for the bearer token owner.
@@ -198,6 +380,20 @@ type UserServiceHandler interface {
 	// ChangePassword changes the bearer token owner's password after verifying the old password.
 	// A successful change revokes every other session owned by the user.
 	ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error)
+	// LookupUser resolves a username to a public profile.
+	LookupUser(context.Context, *v1.LookupUserRequest) (*v1.LookupUserResponse, error)
+	// UpdateUsername replaces the bearer token owner's unique handle; the old
+	// handle is released immediately.
+	UpdateUsername(context.Context, *v1.UpdateUsernameRequest) (*v1.UpdateUsernameResponse, error)
+	SendFriendRequest(context.Context, *v1.SendFriendRequestRequest) (*v1.SendFriendRequestResponse, error)
+	AcceptFriendRequest(context.Context, *v1.AcceptFriendRequestRequest) (*v1.AcceptFriendRequestResponse, error)
+	DeclineFriendRequest(context.Context, *v1.DeclineFriendRequestRequest) (*v1.DeclineFriendRequestResponse, error)
+	// RemoveFriend deletes a friendship or retracts a pending request in
+	// either direction.
+	RemoveFriend(context.Context, *v1.RemoveFriendRequest) (*v1.RemoveFriendResponse, error)
+	BlockUser(context.Context, *v1.BlockUserRequest) (*v1.BlockUserResponse, error)
+	UnblockUser(context.Context, *v1.UnblockUserRequest) (*v1.UnblockUserResponse, error)
+	ListRelationships(context.Context, *v1.ListRelationshipsRequest) (*v1.ListRelationshipsResponse, error)
 }
 
 // NewUserServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -243,6 +439,60 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(userServiceMethods.ByName("ChangePassword")),
 		connect.WithHandlerOptions(opts...),
 	)
+	userServiceLookupUserHandler := connect.NewUnaryHandlerSimple(
+		UserServiceLookupUserProcedure,
+		svc.LookupUser,
+		connect.WithSchema(userServiceMethods.ByName("LookupUser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceUpdateUsernameHandler := connect.NewUnaryHandlerSimple(
+		UserServiceUpdateUsernameProcedure,
+		svc.UpdateUsername,
+		connect.WithSchema(userServiceMethods.ByName("UpdateUsername")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceSendFriendRequestHandler := connect.NewUnaryHandlerSimple(
+		UserServiceSendFriendRequestProcedure,
+		svc.SendFriendRequest,
+		connect.WithSchema(userServiceMethods.ByName("SendFriendRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceAcceptFriendRequestHandler := connect.NewUnaryHandlerSimple(
+		UserServiceAcceptFriendRequestProcedure,
+		svc.AcceptFriendRequest,
+		connect.WithSchema(userServiceMethods.ByName("AcceptFriendRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceDeclineFriendRequestHandler := connect.NewUnaryHandlerSimple(
+		UserServiceDeclineFriendRequestProcedure,
+		svc.DeclineFriendRequest,
+		connect.WithSchema(userServiceMethods.ByName("DeclineFriendRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceRemoveFriendHandler := connect.NewUnaryHandlerSimple(
+		UserServiceRemoveFriendProcedure,
+		svc.RemoveFriend,
+		connect.WithSchema(userServiceMethods.ByName("RemoveFriend")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceBlockUserHandler := connect.NewUnaryHandlerSimple(
+		UserServiceBlockUserProcedure,
+		svc.BlockUser,
+		connect.WithSchema(userServiceMethods.ByName("BlockUser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceUnblockUserHandler := connect.NewUnaryHandlerSimple(
+		UserServiceUnblockUserProcedure,
+		svc.UnblockUser,
+		connect.WithSchema(userServiceMethods.ByName("UnblockUser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceListRelationshipsHandler := connect.NewUnaryHandlerSimple(
+		UserServiceListRelationshipsProcedure,
+		svc.ListRelationships,
+		connect.WithSchema(userServiceMethods.ByName("ListRelationships")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/api.v1.UserService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case UserServiceGetCurrentUserProcedure:
@@ -257,6 +507,24 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceUpdateUserProfileHandler.ServeHTTP(w, r)
 		case UserServiceChangePasswordProcedure:
 			userServiceChangePasswordHandler.ServeHTTP(w, r)
+		case UserServiceLookupUserProcedure:
+			userServiceLookupUserHandler.ServeHTTP(w, r)
+		case UserServiceUpdateUsernameProcedure:
+			userServiceUpdateUsernameHandler.ServeHTTP(w, r)
+		case UserServiceSendFriendRequestProcedure:
+			userServiceSendFriendRequestHandler.ServeHTTP(w, r)
+		case UserServiceAcceptFriendRequestProcedure:
+			userServiceAcceptFriendRequestHandler.ServeHTTP(w, r)
+		case UserServiceDeclineFriendRequestProcedure:
+			userServiceDeclineFriendRequestHandler.ServeHTTP(w, r)
+		case UserServiceRemoveFriendProcedure:
+			userServiceRemoveFriendHandler.ServeHTTP(w, r)
+		case UserServiceBlockUserProcedure:
+			userServiceBlockUserHandler.ServeHTTP(w, r)
+		case UserServiceUnblockUserProcedure:
+			userServiceUnblockUserHandler.ServeHTTP(w, r)
+		case UserServiceListRelationshipsProcedure:
+			userServiceListRelationshipsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -288,4 +556,40 @@ func (UnimplementedUserServiceHandler) UpdateUserProfile(context.Context, *v1.Up
 
 func (UnimplementedUserServiceHandler) ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.ChangePassword is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) LookupUser(context.Context, *v1.LookupUserRequest) (*v1.LookupUserResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.LookupUser is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) UpdateUsername(context.Context, *v1.UpdateUsernameRequest) (*v1.UpdateUsernameResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.UpdateUsername is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) SendFriendRequest(context.Context, *v1.SendFriendRequestRequest) (*v1.SendFriendRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.SendFriendRequest is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) AcceptFriendRequest(context.Context, *v1.AcceptFriendRequestRequest) (*v1.AcceptFriendRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.AcceptFriendRequest is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) DeclineFriendRequest(context.Context, *v1.DeclineFriendRequestRequest) (*v1.DeclineFriendRequestResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.DeclineFriendRequest is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) RemoveFriend(context.Context, *v1.RemoveFriendRequest) (*v1.RemoveFriendResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.RemoveFriend is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) BlockUser(context.Context, *v1.BlockUserRequest) (*v1.BlockUserResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.BlockUser is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) UnblockUser(context.Context, *v1.UnblockUserRequest) (*v1.UnblockUserResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.UnblockUser is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) ListRelationships(context.Context, *v1.ListRelationshipsRequest) (*v1.ListRelationshipsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.ListRelationships is not implemented"))
 }

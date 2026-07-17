@@ -1,6 +1,24 @@
 package server
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
+
+var usernamePattern = regexp.MustCompile(`^[a-z0-9_]{2,32}$`)
+
+// normalizeUsername lowercases the handle so lookups and uniqueness are
+// case-insensitive.
+func normalizeUsername(username string) string {
+	return strings.ToLower(strings.TrimSpace(username))
+}
+
+func validateUsername(username string) error {
+	if !usernamePattern.MatchString(username) {
+		return errInvalidUsername
+	}
+	return nil
+}
 
 const maxNameLength = 64
 
@@ -35,4 +53,19 @@ func validateName(name string) error {
 		return errNameTooLong
 	}
 	return nil
+}
+
+const (
+	defaultRelationshipLimit = 100
+	maxRelationshipLimit     = 200
+)
+
+func normalizeRelationshipLimit(value int32) (int, error) {
+	if value == 0 {
+		return defaultRelationshipLimit, nil
+	}
+	if value < 0 || int(value) > maxRelationshipLimit {
+		return 0, errInvalidLimit
+	}
+	return int(value), nil
 }

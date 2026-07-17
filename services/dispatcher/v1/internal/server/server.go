@@ -80,6 +80,7 @@ func New(cfg config.Config, resolver discovery.Resolver) *Server {
 		kgo.ConsumeTopics(
 			defaultString(cfg.Kafka.GuildTopic, "cordis.guild.events.v1"),
 			defaultString(cfg.Kafka.MessageTopic, "cordis.message.events.v1"),
+			defaultString(cfg.Kafka.UserTopic, "cordis.user.events.v1"),
 		),
 		kgo.DisableAutoCommit(),
 	)
@@ -177,6 +178,13 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 		}
 		return false, s.dispatchChannel(ctx, channelID, event)
 	default:
+		if strings.HasPrefix(event.Type, "relationship.") {
+			userID := int64(routing.UserID)
+			if userID <= 0 {
+				return true, errors.New("relationship event user id is invalid")
+			}
+			return false, s.dispatchUser(ctx, userID, event)
+		}
 		if !strings.HasPrefix(event.Type, "guild.") {
 			return true, errors.New("unsupported event type")
 		}
@@ -208,6 +216,22 @@ func (s *Server) dispatchChannel(ctx context.Context, channelID int64, event eve
 		req.SetChannelId(channelID)
 		req.SetEvent(protoEvent(event))
 		_, err := client.DispatchChannelEvent(ctx, req)
+		return err
+	})
+}
+
+// dispatchUser fans a user-routed event out to the recipient's session
+// nodes only.
+func (s *Server) dispatchUser(ctx context.Context, userID int64, event eventEnvelope) error {
+	nodes, err := s.resolver.Resolve(ctx, discovery.RouteUser, userID)
+	if err != nil {
+		return err
+	}
+	return s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
+		req := new(sessionv1.DispatchUserEventRequest)
+		req.SetUserId(userID)
+		req.SetEvent(protoEvent(event))
+		_, err := client.DispatchUserEvent(ctx, req)
 		return err
 	})
 }

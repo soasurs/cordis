@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"sort"
 	"testing"
 
 	"github.com/lib/pq"
@@ -26,6 +27,7 @@ func TestCreateUser(t *testing.T) {
 	req := new(userv1.CreateUserRequest)
 	req.SetName("display name")
 	req.SetEmail("user@example.com")
+	req.SetUsername("tester")
 
 	resp, err := server.CreateUser(context.Background(), req)
 	require.NoError(t, err)
@@ -33,6 +35,7 @@ func TestCreateUser(t *testing.T) {
 	require.Equal(t, "user@example.com", resp.GetUser().GetEmail())
 	require.NotNil(t, store.profile)
 	require.Equal(t, "display name", store.profile.Name)
+	require.Equal(t, "tester", store.profile.Username)
 }
 
 func TestCreateUserValidation(t *testing.T) {
@@ -40,6 +43,7 @@ func TestCreateUserValidation(t *testing.T) {
 
 	req := new(userv1.CreateUserRequest)
 	req.SetEmail("user@example.com")
+	req.SetUsername("tester")
 
 	_, err := server.CreateUser(context.Background(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -53,6 +57,7 @@ func TestCreateUserEmailAlreadyExists(t *testing.T) {
 	req := new(userv1.CreateUserRequest)
 	req.SetName("display name")
 	req.SetEmail("user@example.com")
+	req.SetUsername("tester")
 
 	_, err := server.CreateUser(context.Background(), req)
 	require.Equal(t, codes.AlreadyExists, status.Code(err))
@@ -206,6 +211,7 @@ func TestCreateUserNameTooLong(t *testing.T) {
 	req := new(userv1.CreateUserRequest)
 	req.SetName(string(make([]byte, 65)))
 	req.SetEmail("user@example.com")
+	req.SetUsername("tester")
 
 	_, err := server.CreateUser(context.Background(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -217,6 +223,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 	req := new(userv1.CreateUserRequest)
 	req.SetName("name")
 	req.SetEmail("no-at-sign")
+	req.SetUsername("tester")
 
 	_, err := server.CreateUser(context.Background(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -248,12 +255,17 @@ type fakeStore struct {
 	user                *model.User
 	profile             *model.UserProfile
 	createUserErr       error
+	createProfileErr    error
+	updateUsernameErr   error
 	getUserWithEmailErr error
 	emailAvailable      bool
+	relationships       map[[2]int64]*model.Relationship
 }
 
 func newFakeStore() *fakeStore {
-	return &fakeStore{}
+	return &fakeStore{
+		relationships: make(map[[2]int64]*model.Relationship),
+	}
 }
 
 func (s *fakeStore) Transact(ctx context.Context, fn func(txStore store.Store) error) error {
@@ -311,12 +323,16 @@ func (s *fakeStore) MarkUserEmailVerified(_ context.Context, userID int64, email
 	return nil
 }
 
-func (s *fakeStore) CreateUserProfile(_ context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
+func (s *fakeStore) CreateUserProfile(_ context.Context, userID int64, username, name, avatarURI string) (*model.UserProfile, error) {
+	if s.createProfileErr != nil {
+		return nil, s.createProfileErr
+	}
 	if s.user == nil || s.user.UserID != userID {
 		return nil, errors.New("missing user")
 	}
 	s.profile = &model.UserProfile{
 		UserID:    userID,
+		Username:  username,
 		Name:      name,
 		AvatarURI: avatarURI,
 	}
@@ -330,6 +346,24 @@ func (s *fakeStore) GetUserProfile(_ context.Context, userID int64) (*model.User
 	return s.profile, nil
 }
 
+func (s *fakeStore) UpdateUsername(_ context.Context, userID int64, username string) (*model.UserProfile, error) {
+	if s.profile == nil || s.profile.UserID != userID {
+		return nil, sql.ErrNoRows
+	}
+	if s.updateUsernameErr != nil {
+		return nil, s.updateUsernameErr
+	}
+	s.profile.Username = username
+	return s.profile, nil
+}
+
+func (s *fakeStore) GetUserProfileByUsername(_ context.Context, username string) (*model.UserProfile, error) {
+	if s.profile == nil || s.profile.Username == "" || s.profile.Username != username {
+		return nil, sql.ErrNoRows
+	}
+	return s.profile, nil
+}
+
 func (s *fakeStore) UpdateUserProfile(_ context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
 	if s.profile == nil || s.profile.UserID != userID {
 		return nil, sql.ErrNoRows
@@ -337,6 +371,85 @@ func (s *fakeStore) UpdateUserProfile(_ context.Context, userID int64, name, ava
 	s.profile.Name = name
 	s.profile.AvatarURI = avatarURI
 	return s.profile, nil
+}
+
+func (s *fakeStore) UpsertRelationship(_ context.Context, rel *model.Relationship) error {
+	key := [2]int64{rel.UserID, rel.TargetID}
+	if existing, ok := s.relationships[key]; ok {
+		existing.Type = rel.Type
+		existing.UpdatedAt = rel.CreatedAt
+	} else {
+		s.relationships[key] = &model.Relationship{
+			UserID:    rel.UserID,
+			TargetID:  rel.TargetID,
+			Type:      rel.Type,
+			CreatedAt: rel.CreatedAt,
+			UpdatedAt: 0,
+		}
+	}
+	return nil
+}
+
+func (s *fakeStore) GetRelationship(_ context.Context, userID, targetID int64) (*model.Relationship, error) {
+	key := [2]int64{userID, targetID}
+	if rel, ok := s.relationships[key]; ok {
+		return rel, nil
+	}
+	return nil, sql.ErrNoRows
+}
+
+func (s *fakeStore) DeleteRelationship(_ context.Context, userID, targetID int64) error {
+	key := [2]int64{userID, targetID}
+	if _, ok := s.relationships[key]; !ok {
+		return sql.ErrNoRows
+	}
+	delete(s.relationships, key)
+	return nil
+}
+
+func (s *fakeStore) DeleteRelationshipExceptBlocked(_ context.Context, userID, targetID int64) error {
+	key := [2]int64{userID, targetID}
+	if rel, ok := s.relationships[key]; ok && rel.Type != model.RelationshipBlocked {
+		delete(s.relationships, key)
+	}
+	return nil
+}
+
+func (s *fakeStore) ListRelationships(_ context.Context, params store.ListRelationshipsParams) ([]*model.Relationship, error) {
+	var result []*model.Relationship
+	for key, rel := range s.relationships {
+		if key[0] != params.UserID {
+			continue
+		}
+		if params.Type != 0 && rel.Type != params.Type {
+			continue
+		}
+		if params.BeforeTargetID != 0 && rel.TargetID >= params.BeforeTargetID {
+			continue
+		}
+		result = append(result, rel)
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].TargetID > result[j].TargetID
+	})
+	if len(result) > params.Limit {
+		result = result[:params.Limit]
+	}
+	return result, nil
+}
+
+func (s *fakeStore) ListRelationshipsByTargets(_ context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
+	targetSet := make(map[int64]bool, len(targetIDs))
+	for _, id := range targetIDs {
+		targetSet[id] = true
+	}
+	var result []*model.Relationship
+	for key, rel := range s.relationships {
+		if key[0] == userID && targetSet[key[1]] {
+			result = append(result, rel)
+		}
+	}
+	return result, nil
 }
 
 func TestMarkEmailVerified(t *testing.T) {
@@ -394,6 +507,7 @@ func TestEmailsAreNormalizedToLowercase(t *testing.T) {
 	req := new(userv1.CreateUserRequest)
 	req.SetName("display name")
 	req.SetEmail("  Alice@Example.COM ")
+	req.SetUsername("tester")
 	resp, err := server.CreateUser(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "alice@example.com", resp.GetUser().GetEmail())
@@ -428,4 +542,132 @@ func TestUpdateEmailSameAddressKeepsVerification(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "same@example.com", resp.GetUser().GetEmail())
 	require.Equal(t, int64(4001), resp.GetUser().GetEmailVerifiedAt())
+}
+
+func TestCreateUserInvalidUsername(t *testing.T) {
+	server := newTestUserServer(t, newFakeStore())
+
+	tests := []struct {
+		name     string
+		username string
+	}{
+		{"empty", ""},
+		{"too short", "a"},
+		{"has space", "has space"},
+		{"has emoji", "emoji😀"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := new(userv1.CreateUserRequest)
+			req.SetName("display name")
+			req.SetEmail("user@example.com")
+			req.SetUsername(tt.username)
+			_, err := server.CreateUser(context.Background(), req)
+			require.Equal(t, codes.InvalidArgument, status.Code(err))
+		})
+	}
+}
+
+func TestCreateUserUsernameNormalized(t *testing.T) {
+	store := newFakeStore()
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.CreateUserRequest)
+	req.SetName("display name")
+	req.SetEmail("user@example.com")
+	req.SetUsername("  MyName_1  ")
+
+	resp, err := server.CreateUser(context.Background(), req)
+	require.NoError(t, err)
+	require.NotZero(t, resp.GetUser().GetUserId())
+	require.Equal(t, "myname_1", store.profile.Username)
+}
+
+func TestCreateUserUsernameTaken(t *testing.T) {
+	store := newFakeStore()
+	store.createProfileErr = &pq.Error{Code: "23505", Constraint: "user_profiles_username_active_idx"}
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.CreateUserRequest)
+	req.SetName("display name")
+	req.SetEmail("user@example.com")
+	req.SetUsername("tester")
+
+	_, err := server.CreateUser(context.Background(), req)
+	require.Equal(t, codes.AlreadyExists, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.UserDomain, rpcerror.UserUsernameTaken))
+}
+
+func TestGetUserProfileByUsername(t *testing.T) {
+	store := newFakeStore()
+	store.profile = &model.UserProfile{
+		UserID:   1001,
+		Username: "alice",
+		Name:     "Alice",
+	}
+	server := newTestUserServer(t, store)
+
+	t.Run("found case insensitive", func(t *testing.T) {
+		req := new(userv1.GetUserProfileByUsernameRequest)
+		req.SetUsername("aLiCe")
+		resp, err := server.GetUserProfileByUsername(context.Background(), req)
+		require.NoError(t, err)
+		require.Equal(t, "alice", resp.GetProfile().GetUsername())
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		req := new(userv1.GetUserProfileByUsernameRequest)
+		req.SetUsername("unknown")
+		_, err := server.GetUserProfileByUsername(context.Background(), req)
+		require.Equal(t, codes.NotFound, status.Code(err))
+	})
+
+	t.Run("invalid format", func(t *testing.T) {
+		req := new(userv1.GetUserProfileByUsernameRequest)
+		req.SetUsername("a")
+		_, err := server.GetUserProfileByUsername(context.Background(), req)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+	})
+}
+
+func TestUpdateUsername(t *testing.T) {
+	store := newFakeStore()
+	store.profile = &model.UserProfile{UserID: 1001, Username: "old_name", Name: "Display"}
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.UpdateUsernameRequest)
+	req.SetUserId(1001)
+	req.SetUsername("  New_Name42  ")
+	resp, err := server.UpdateUsername(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, "new_name42", resp.GetProfile().GetUsername())
+	require.Equal(t, "new_name42", store.profile.Username)
+}
+
+func TestUpdateUsernameValidationAndConflicts(t *testing.T) {
+	store := newFakeStore()
+	store.profile = &model.UserProfile{UserID: 1001, Username: "old_name"}
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.UpdateUsernameRequest)
+	req.SetUsername("valid_name")
+	_, err := server.UpdateUsername(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	req.SetUserId(1001)
+	req.SetUsername("bad name!")
+	_, err = server.UpdateUsername(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	req.SetUsername("valid_name")
+	store.updateUsernameErr = &pq.Error{Code: "23505", Constraint: "user_profiles_username_active_idx"}
+	_, err = server.UpdateUsername(context.Background(), req)
+	require.Equal(t, codes.AlreadyExists, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.UserDomain, rpcerror.UserUsernameTaken))
+
+	store.updateUsernameErr = nil
+	req.SetUserId(9999)
+	_, err = server.UpdateUsername(context.Background(), req)
+	require.Equal(t, codes.NotFound, status.Code(err))
 }

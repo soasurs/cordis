@@ -17,6 +17,20 @@ service UserService {
   // ChangePassword changes the bearer token owner's password after verifying the old password.
   // A successful change revokes every other session owned by the user.
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  // LookupUser resolves a username to a public profile.
+  rpc LookupUser(LookupUserRequest) returns (LookupUserResponse);
+  // UpdateUsername replaces the bearer token owner's unique handle; the old
+  // handle is released immediately.
+  rpc UpdateUsername(UpdateUsernameRequest) returns (UpdateUsernameResponse);
+  rpc SendFriendRequest(SendFriendRequestRequest) returns (SendFriendRequestResponse);
+  rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
+  rpc DeclineFriendRequest(DeclineFriendRequestRequest) returns (DeclineFriendRequestResponse);
+  // RemoveFriend deletes a friendship or retracts a pending request in
+  // either direction.
+  rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+  rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+  rpc ListRelationships(ListRelationshipsRequest) returns (ListRelationshipsResponse);
 }
 
 // User contains private account fields and is only returned to the account owner.
@@ -38,6 +52,8 @@ message UserProfile {
   string avatar_uri = 3;
   int64 created_at = 4;
   int64 updated_at = 5;
+  // Globally unique lowercase handle.
+  string username = 6;
 }
 
 // The current user is derived from the Authorization bearer token.
@@ -89,4 +105,103 @@ message ChangePasswordRequest {
 
 message ChangePasswordResponse {
   bool ok = 1;
+}
+
+// RelationshipType mirrors user.v1.RelationshipType.
+enum RelationshipType {
+  RELATIONSHIP_TYPE_UNSPECIFIED = 0;
+  // The caller sent a friend request that is still pending.
+  RELATIONSHIP_TYPE_OUTGOING = 1;
+  // The caller received a friend request that is still pending.
+  RELATIONSHIP_TYPE_INCOMING = 2;
+  RELATIONSHIP_TYPE_FRIEND = 3;
+  RELATIONSHIP_TYPE_BLOCKED = 4;
+}
+
+// Relationship is the caller's view of their link to another user.
+// All timestamps are Unix time in milliseconds.
+message Relationship {
+  int64 target_id = 1;
+  RelationshipType type = 2;
+  int64 created_at = 3;
+  int64 updated_at = 4;
+}
+
+message LookupUserRequest {
+  string username = 1;
+}
+
+message LookupUserResponse {
+  UserProfile profile = 1;
+}
+
+message SendFriendRequestRequest {
+  int64 target_id = 1;
+}
+
+message SendFriendRequestResponse {
+  // Outgoing after a fresh request, or friend when the target had already
+  // sent a request the other way.
+  Relationship relationship = 1;
+}
+
+message AcceptFriendRequestRequest {
+  int64 target_id = 1;
+}
+
+message AcceptFriendRequestResponse {
+  Relationship relationship = 1;
+}
+
+message DeclineFriendRequestRequest {
+  int64 target_id = 1;
+}
+
+message DeclineFriendRequestResponse {
+  bool ok = 1;
+}
+
+message RemoveFriendRequest {
+  int64 target_id = 1;
+}
+
+message RemoveFriendResponse {
+  bool ok = 1;
+}
+
+message BlockUserRequest {
+  int64 target_id = 1;
+}
+
+message BlockUserResponse {
+  Relationship relationship = 1;
+}
+
+message UnblockUserRequest {
+  int64 target_id = 1;
+}
+
+message UnblockUserResponse {
+  bool ok = 1;
+}
+
+message ListRelationshipsRequest {
+  // Optional filter; unspecified returns every type.
+  RelationshipType type = 1;
+  // Return relationships with target IDs smaller than this cursor.
+  int64 before_target_id = 2;
+  int32 limit = 3;
+}
+
+message ListRelationshipsResponse {
+  repeated Relationship relationships = 1;
+  int64 before_target_id = 2;
+}
+
+message UpdateUsernameRequest {
+  string username = 1;
+}
+
+message UpdateUsernameResponse {
+  UserProfile profile = 1;
 }

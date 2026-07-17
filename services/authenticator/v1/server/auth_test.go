@@ -39,6 +39,7 @@ func TestRegister(t *testing.T) {
 
 	req := new(authenticatorv1.RegisterRequest)
 	req.SetName("  display name  ")
+	req.SetUsername("tester")
 	req.SetEmail("user@example.com")
 	req.SetPassword("password")
 	req.SetUserAgent("test-agent")
@@ -70,6 +71,7 @@ func TestRegisterUserError(t *testing.T) {
 
 	req := new(authenticatorv1.RegisterRequest)
 	req.SetName("display name")
+	req.SetUsername("tester")
 	req.SetEmail("user@example.com")
 	req.SetPassword("password")
 

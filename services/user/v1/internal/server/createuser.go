@@ -25,6 +25,10 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 	if err := isValidEmail(email); err != nil {
 		return nil, err
 	}
+	username := normalizeUsername(req.GetUsername())
+	if err := validateUsername(username); err != nil {
+		return nil, err
+	}
 	userID := s.svcCtx.Snowflake.Generate().Int64()
 
 	var user *model.User
@@ -35,12 +39,15 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 		}
 		user = createdUser
 
-		if _, err := txStore.CreateUserProfile(ctx, userID, req.GetName(), ""); err != nil {
+		if _, err := txStore.CreateUserProfile(ctx, userID, username, req.GetName(), ""); err != nil {
 			return err
 		}
 		return nil
 	})
 	if err != nil {
+		if isUsernameViolation(err) {
+			return nil, rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserUsernameTaken, "username is already taken")
+		}
 		if isUniqueViolation(err) {
 			return nil, rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists, "email already exists")
 		}
@@ -55,4 +62,11 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 func isUniqueViolation(err error) bool {
 	var pqErr *pq.Error
 	return errors.As(err, &pqErr) && pqErr.Code == "23505"
+}
+
+// isUsernameViolation distinguishes the handle's unique index from the email
+// index inside the same transaction.
+func isUsernameViolation(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == "user_profiles_username_active_idx"
 }

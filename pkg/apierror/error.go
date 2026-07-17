@@ -121,6 +121,26 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeInvalidArgument,
 		message:     "Invalid or expired token.",
 	},
+	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserUsernameTaken}: {
+		connectCode: connect.CodeAlreadyExists,
+		publicCode:  CodeAlreadyExists,
+		message:     "Username is already taken.",
+	},
+	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserRelationshipNotFound}: {
+		connectCode: connect.CodeNotFound,
+		publicCode:  CodeNotFound,
+		message:     "Resource not found.",
+	},
+	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserRelationshipAlreadyExists}: {
+		connectCode: connect.CodeAlreadyExists,
+		publicCode:  CodeAlreadyExists,
+		message:     "Resource already exists.",
+	},
+	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserRelationshipBlocked}: {
+		connectCode: connect.CodePermissionDenied,
+		publicCode:  CodePermissionDenied,
+		message:     "Permission denied.",
+	},
 	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildNotFound}: {
 		connectCode: connect.CodeNotFound,
 		publicCode:  CodeNotFound,

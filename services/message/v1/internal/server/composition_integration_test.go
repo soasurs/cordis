@@ -5,6 +5,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -217,6 +218,7 @@ func createUser(t *testing.T, client userv1.UserServiceClient, email string) int
 	t.Helper()
 	req := new(userv1.CreateUserRequest)
 	req.SetName("Tester")
+	req.SetUsername(strings.ReplaceAll(strings.SplitN(email, "@", 2)[0], "-", "_"))
 	req.SetEmail(email)
 	resp, err := client.CreateUser(t.Context(), req)
 	require.NoError(t, err)

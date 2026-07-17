@@ -94,6 +94,7 @@ func TestAPIIntegration(t *testing.T) {
 	t.Run("register", func(t *testing.T) {
 		resp, err := authClient.Register(ctx, &apiv1.RegisterRequest{
 			Name:     new("Integration Tester"),
+			Username: new("integration_tester"),
 			Email:    new(email),
 			Password: new("integration-password-1"),
 		})
@@ -254,6 +255,7 @@ func TestAPIIntegration(t *testing.T) {
 		if err != nil || !memberResp.GetResult().GetOk() {
 			regResp, regErr := authClient.Register(ctx, &apiv1.RegisterRequest{
 				Name:     new("Stranger"),
+				Username: new("stranger"),
 				Email:    new("stranger@example.com"),
 				Password: new("stranger-password"),
 			})
@@ -277,6 +279,7 @@ func TestAPIIntegration(t *testing.T) {
 	t.Run("register duplicate email", func(t *testing.T) {
 		_, err := authClient.Register(ctx, &apiv1.RegisterRequest{
 			Name:     new("Tester 2"),
+			Username: new("tester_two"),
 			Email:    new(email),
 			Password: new("another-password"),
 		})
@@ -289,6 +292,80 @@ func TestAPIIntegration(t *testing.T) {
 			Password: new("wrong-password"),
 		})
 		require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	})
+
+	t.Run("friendship lifecycle", func(t *testing.T) {
+		strangerResp, err := authClient.Login(ctx, &apiv1.LoginRequest{
+			Email:    new("stranger@example.com"),
+			Password: new("stranger-password"),
+		})
+		if err != nil || !strangerResp.GetResult().GetOk() {
+			regResp, regErr := authClient.Register(ctx, &apiv1.RegisterRequest{
+				Name:     new("Stranger"),
+				Username: new("stranger"),
+				Email:    new("stranger@example.com"),
+				Password: new("stranger-password"),
+			})
+			require.NoError(t, regErr)
+			require.True(t, regResp.GetResult().GetOk())
+			strangerResp, err = authClient.Login(ctx, &apiv1.LoginRequest{
+				Email:    new("stranger@example.com"),
+				Password: new("stranger-password"),
+			})
+			require.NoError(t, err)
+		}
+		strangerUserClient := apiv1connect.NewUserServiceClient(
+			&http.Client{Transport: bearerRoundTripper{base: http.DefaultTransport, accessToken: strangerResp.GetResult().GetAccessToken()}},
+			httpSrv.URL,
+		)
+
+		// The unique handle resolves to the target across real services.
+		lookupResp, err := userClientWithToken.LookupUser(ctx, &apiv1.LookupUserRequest{Username: new("STRANGER")})
+		require.NoError(t, err)
+		strangerID := lookupResp.GetProfile().GetUserId()
+		require.Positive(t, strangerID)
+		require.Equal(t, "stranger", lookupResp.GetProfile().GetUsername())
+
+		meResp, err := userClientWithToken.GetCurrentUser(ctx, &apiv1.GetCurrentUserRequest{})
+		require.NoError(t, err)
+		testerID := meResp.GetUser().GetUserId()
+
+		sendResp, err := userClientWithToken.SendFriendRequest(ctx, &apiv1.SendFriendRequestRequest{TargetId: new(strangerID)})
+		require.NoError(t, err)
+		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_OUTGOING, sendResp.GetRelationship().GetType())
+
+		listResp, err := strangerUserClient.ListRelationships(ctx, &apiv1.ListRelationshipsRequest{})
+		require.NoError(t, err)
+		require.Len(t, listResp.GetRelationships(), 1)
+		require.Equal(t, testerID, listResp.GetRelationships()[0].GetTargetId())
+		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_INCOMING, listResp.GetRelationships()[0].GetType())
+
+		acceptResp, err := strangerUserClient.AcceptFriendRequest(ctx, &apiv1.AcceptFriendRequestRequest{TargetId: new(testerID)})
+		require.NoError(t, err)
+		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND, acceptResp.GetRelationship().GetType())
+
+		listResp, err = userClientWithToken.ListRelationships(ctx, &apiv1.ListRelationshipsRequest{
+			Type: new(apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND),
+		})
+		require.NoError(t, err)
+		require.Len(t, listResp.GetRelationships(), 1)
+		require.Equal(t, strangerID, listResp.GetRelationships()[0].GetTargetId())
+
+		// Blocking strips the friendship and further requests are refused.
+		blockResp, err := userClientWithToken.BlockUser(ctx, &apiv1.BlockUserRequest{TargetId: new(strangerID)})
+		require.NoError(t, err)
+		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_BLOCKED, blockResp.GetRelationship().GetType())
+
+		listResp, err = strangerUserClient.ListRelationships(ctx, &apiv1.ListRelationshipsRequest{})
+		require.NoError(t, err)
+		require.Empty(t, listResp.GetRelationships())
+
+		_, err = strangerUserClient.SendFriendRequest(ctx, &apiv1.SendFriendRequestRequest{TargetId: new(testerID)})
+		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+
+		unblockResp, err := userClientWithToken.UnblockUser(ctx, &apiv1.UnblockUserRequest{TargetId: new(strangerID)})
+		require.NoError(t, err)
+		require.True(t, unblockResp.GetOk())
 	})
 }
 

@@ -78,6 +78,7 @@ func TestRegisterClaimsHalfRegisteredAccount(t *testing.T) {
 	// registration died between the two writes and the account never worked.
 	req := new(authenticatorv1.RegisterRequest)
 	req.SetName("display name")
+	req.SetUsername("tester")
 	req.SetEmail("user@example.com")
 	req.SetPassword("password")
 	resp, err := server.Register(context.Background(), req)
@@ -100,6 +101,7 @@ func TestRegisterDuplicateEmailKeepsAlreadyExists(t *testing.T) {
 
 	req := new(authenticatorv1.RegisterRequest)
 	req.SetName("display name")
+	req.SetUsername("tester")
 	req.SetEmail("user@example.com")
 	req.SetPassword("other-password")
 	_, err := server.Register(context.Background(), req)

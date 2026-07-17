@@ -16,6 +16,7 @@ func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterR
 	svcReq.SetName(req.GetName())
 	svcReq.SetEmail(req.GetEmail())
 	svcReq.SetPassword(req.GetPassword())
+	svcReq.SetUsername(req.GetUsername())
 	setClientMetadata(ctx, svcReq.SetUserAgent, svcReq.SetIp)
 
 	svcResp, err := s.svcCtx.AuthenticatorClient.Register(ctx, svcReq)

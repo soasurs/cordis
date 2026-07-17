@@ -45,9 +45,9 @@ func createUserExecPattern() string {
 func createUserProfileExecPattern() string {
 	return sqlPattern(`
 	INSERT INTO
-		user_profiles (user_id, name, avatar_uri, created_at, updated_at, deleted_at)
+		user_profiles (user_id, username, name, avatar_uri, created_at, updated_at, deleted_at)
 	VALUES
-		($1, $2, $3, $4, $5, $6);
+		($1, $2, $3, $4, $5, $6, $7);
 	`)
 }
 
@@ -123,12 +123,13 @@ func TestCreateUserProfile(t *testing.T) {
 	defer cleanup()
 
 	mock.ExpectExec(createUserProfileExecPattern()).
-		WithArgs(int64(1001), "display name", "avatar://1", sqlmock.AnyArg(), int64(0), int64(0)).
+		WithArgs(int64(1001), "alice", "display name", "avatar://1", sqlmock.AnyArg(), int64(0), int64(0)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	profile, err := store.CreateUserProfile(context.Background(), 1001, "display name", "avatar://1")
+	profile, err := store.CreateUserProfile(context.Background(), 1001, "alice", "display name", "avatar://1")
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), profile.UserID)
+	require.Equal(t, "alice", profile.Username)
 	require.Equal(t, "display name", profile.Name)
 	require.Equal(t, "avatar://1", profile.AvatarURI)
 }
@@ -137,8 +138,8 @@ func TestGetUserProfile(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()
 
-	rows := sqlmock.NewRows([]string{"user_id", "name", "avatar_uri", "created_at", "updated_at", "deleted_at"}).
-		AddRow(int64(1001), "display name", "avatar://1", int64(10), int64(20), int64(0))
+	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "avatar_uri", "created_at", "updated_at", "deleted_at"}).
+		AddRow(int64(1001), "alice", "display name", "avatar://1", int64(10), int64(20), int64(0))
 
 	mock.ExpectQuery(sqlPattern(GetUserProfileQuery)).
 		WithArgs(int64(1001), 0).
@@ -155,8 +156,8 @@ func TestUpdateUserProfile(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()
 
-	rows := sqlmock.NewRows([]string{"user_id", "name", "avatar_uri", "created_at", "updated_at", "deleted_at"}).
-		AddRow(int64(1001), "new name", "avatar://2", int64(10), int64(30), int64(0))
+	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "avatar_uri", "created_at", "updated_at", "deleted_at"}).
+		AddRow(int64(1001), "alice", "new name", "avatar://2", int64(10), int64(30), int64(0))
 
 	mock.ExpectQuery(sqlPattern(UpdateUserProfileQuery)).
 		WithArgs("new name", "avatar://2", sqlmock.AnyArg(), int64(1001), 0).
@@ -175,12 +176,12 @@ func TestTransactCommit(t *testing.T) {
 
 	mock.ExpectBegin()
 	mock.ExpectExec(createUserProfileExecPattern()).
-		WithArgs(int64(1001), "display name", "", sqlmock.AnyArg(), int64(0), int64(0)).
+		WithArgs(int64(1001), "alice", "display name", "", sqlmock.AnyArg(), int64(0), int64(0)).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectCommit()
 
 	err := store.Transact(context.Background(), func(txStore Store) error {
-		_, err := txStore.CreateUserProfile(context.Background(), 1001, "display name", "")
+		_, err := txStore.CreateUserProfile(context.Background(), 1001, "alice", "display name", "")
 		return err
 	})
 	require.NoError(t, err)

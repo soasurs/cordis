@@ -24,4 +24,7 @@ const (
 	EventMessageDeleted  = "message.deleted"
 	EventReactionAdded   = "reaction.added"
 	EventReactionRemoved = "reaction.removed"
+
+	EventRelationshipUpdated = "relationship.updated"
+	EventRelationshipRemoved = "relationship.removed"
 )

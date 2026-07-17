@@ -81,14 +81,14 @@ const (
 const (
 	CreateUserProfileStatement = `
 	INSERT INTO
-		user_profiles (user_id, name, avatar_uri, created_at, updated_at, deleted_at)
+		user_profiles (user_id, username, name, avatar_uri, created_at, updated_at, deleted_at)
 	VALUES
-		(:user_id, :name, :avatar_uri, :created_at, :updated_at, :deleted_at);
+		(:user_id, :username, :name, :avatar_uri, :created_at, :updated_at, :deleted_at);
 	`
 
 	GetUserProfileQuery = `
 	SELECT
-		user_id, name, avatar_uri, created_at, updated_at, deleted_at
+		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
 	FROM
 		user_profiles
 	WHERE
@@ -111,6 +111,74 @@ const (
 	AND
 		deleted_at = $5
 	RETURNING
-		user_id, name, avatar_uri, created_at, updated_at, deleted_at
+		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+	`
+
+	UpdateUsernameQuery = `
+	UPDATE
+		user_profiles
+	SET
+		username = $1,
+		updated_at = $2
+	WHERE
+		user_id = $3
+	AND
+		deleted_at = $4
+	RETURNING
+		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+	`
+
+	GetUserProfileByUsernameQuery = `
+	SELECT
+		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+	FROM
+		user_profiles
+	WHERE
+		username = $1
+	AND
+		deleted_at = $2
+	LIMIT
+		1
+	`
+
+	UpsertRelationshipStatement = `
+	INSERT INTO user_relationships (user_id, target_id, type, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, 0)
+	ON CONFLICT (user_id, target_id) DO UPDATE SET
+		type = EXCLUDED.type,
+		updated_at = EXCLUDED.created_at
+	`
+
+	GetRelationshipQuery = `
+	SELECT user_id, target_id, type, created_at, updated_at
+	FROM user_relationships
+	WHERE user_id = $1 AND target_id = $2
+	LIMIT 1
+	`
+
+	DeleteRelationshipStatement = `
+	DELETE FROM user_relationships
+	WHERE user_id = $1 AND target_id = $2
+	`
+
+	DeleteRelationshipExceptBlockedStatement = `
+	DELETE FROM user_relationships
+	WHERE user_id = $1 AND target_id = $2 AND type <> 4
+	`
+
+	ListRelationshipsQuery = `
+	SELECT user_id, target_id, type, created_at, updated_at
+	FROM user_relationships
+	WHERE user_id = $1
+	  AND ($2 = 0 OR type = $2)
+	  AND ($3 = 0 OR target_id < $3)
+	ORDER BY target_id DESC
+	LIMIT $4
+	`
+
+	ListRelationshipsByTargetsQuery = `
+	SELECT user_id, target_id, type, created_at, updated_at
+	FROM user_relationships
+	WHERE user_id = $1 AND target_id = ANY($2)
 	`
 )

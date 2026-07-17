@@ -21,6 +21,64 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// RelationshipType mirrors user.v1.RelationshipType.
+type RelationshipType int32
+
+const (
+	RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED RelationshipType = 0
+	// The caller sent a friend request that is still pending.
+	RelationshipType_RELATIONSHIP_TYPE_OUTGOING RelationshipType = 1
+	// The caller received a friend request that is still pending.
+	RelationshipType_RELATIONSHIP_TYPE_INCOMING RelationshipType = 2
+	RelationshipType_RELATIONSHIP_TYPE_FRIEND   RelationshipType = 3
+	RelationshipType_RELATIONSHIP_TYPE_BLOCKED  RelationshipType = 4
+)
+
+// Enum value maps for RelationshipType.
+var (
+	RelationshipType_name = map[int32]string{
+		0: "RELATIONSHIP_TYPE_UNSPECIFIED",
+		1: "RELATIONSHIP_TYPE_OUTGOING",
+		2: "RELATIONSHIP_TYPE_INCOMING",
+		3: "RELATIONSHIP_TYPE_FRIEND",
+		4: "RELATIONSHIP_TYPE_BLOCKED",
+	}
+	RelationshipType_value = map[string]int32{
+		"RELATIONSHIP_TYPE_UNSPECIFIED": 0,
+		"RELATIONSHIP_TYPE_OUTGOING":    1,
+		"RELATIONSHIP_TYPE_INCOMING":    2,
+		"RELATIONSHIP_TYPE_FRIEND":      3,
+		"RELATIONSHIP_TYPE_BLOCKED":     4,
+	}
+)
+
+func (x RelationshipType) Enum() *RelationshipType {
+	p := new(RelationshipType)
+	*p = x
+	return p
+}
+
+func (x RelationshipType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RelationshipType) Descriptor() protoreflect.EnumDescriptor {
+	return file_api_v1_user_proto_enumTypes[0].Descriptor()
+}
+
+func (RelationshipType) Type() protoreflect.EnumType {
+	return &file_api_v1_user_proto_enumTypes[0]
+}
+
+func (x RelationshipType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use RelationshipType.Descriptor instead.
+func (RelationshipType) EnumDescriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{0}
+}
+
 // User contains private account fields and is only returned to the account owner.
 // All timestamps are Unix time in milliseconds.
 type User struct {
@@ -103,12 +161,14 @@ func (x *User) GetEmailVerifiedAt() int64 {
 // UserProfile contains fields safe to expose to other users.
 // All timestamps are Unix time in milliseconds.
 type UserProfile struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        *int64                 `protobuf:"varint,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	AvatarUri     *string                `protobuf:"bytes,3,opt,name=avatar_uri,json=avatarUri" json:"avatar_uri,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,4,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,5,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	UserId    *int64                 `protobuf:"varint,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
+	Name      *string                `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	AvatarUri *string                `protobuf:"bytes,3,opt,name=avatar_uri,json=avatarUri" json:"avatar_uri,omitempty"`
+	CreatedAt *int64                 `protobuf:"varint,4,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	UpdatedAt *int64                 `protobuf:"varint,5,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	// Globally unique lowercase handle.
+	Username      *string `protobuf:"bytes,6,opt,name=username" json:"username,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -176,6 +236,13 @@ func (x *UserProfile) GetUpdatedAt() int64 {
 		return *x.UpdatedAt
 	}
 	return 0
+}
+
+func (x *UserProfile) GetUsername() string {
+	if x != nil && x.Username != nil {
+		return *x.Username
+	}
+	return ""
 }
 
 // The current user is derived from the Authorization bearer token.
@@ -724,6 +791,896 @@ func (x *ChangePasswordResponse) GetOk() bool {
 	return false
 }
 
+// Relationship is the caller's view of their link to another user.
+// All timestamps are Unix time in milliseconds.
+type Relationship struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	Type          *RelationshipType      `protobuf:"varint,2,opt,name=type,enum=api.v1.RelationshipType" json:"type,omitempty"`
+	CreatedAt     *int64                 `protobuf:"varint,3,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	UpdatedAt     *int64                 `protobuf:"varint,4,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Relationship) Reset() {
+	*x = Relationship{}
+	mi := &file_api_v1_user_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Relationship) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Relationship) ProtoMessage() {}
+
+func (x *Relationship) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Relationship.ProtoReflect.Descriptor instead.
+func (*Relationship) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Relationship) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+func (x *Relationship) GetType() RelationshipType {
+	if x != nil && x.Type != nil {
+		return *x.Type
+	}
+	return RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
+}
+
+func (x *Relationship) GetCreatedAt() int64 {
+	if x != nil && x.CreatedAt != nil {
+		return *x.CreatedAt
+	}
+	return 0
+}
+
+func (x *Relationship) GetUpdatedAt() int64 {
+	if x != nil && x.UpdatedAt != nil {
+		return *x.UpdatedAt
+	}
+	return 0
+}
+
+type LookupUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      *string                `protobuf:"bytes,1,opt,name=username" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupUserRequest) Reset() {
+	*x = LookupUserRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupUserRequest) ProtoMessage() {}
+
+func (x *LookupUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupUserRequest.ProtoReflect.Descriptor instead.
+func (*LookupUserRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *LookupUserRequest) GetUsername() string {
+	if x != nil && x.Username != nil {
+		return *x.Username
+	}
+	return ""
+}
+
+type LookupUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Profile       *UserProfile           `protobuf:"bytes,1,opt,name=profile" json:"profile,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LookupUserResponse) Reset() {
+	*x = LookupUserResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LookupUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LookupUserResponse) ProtoMessage() {}
+
+func (x *LookupUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LookupUserResponse.ProtoReflect.Descriptor instead.
+func (*LookupUserResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *LookupUserResponse) GetProfile() *UserProfile {
+	if x != nil {
+		return x.Profile
+	}
+	return nil
+}
+
+type SendFriendRequestRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendFriendRequestRequest) Reset() {
+	*x = SendFriendRequestRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendFriendRequestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendFriendRequestRequest) ProtoMessage() {}
+
+func (x *SendFriendRequestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendFriendRequestRequest.ProtoReflect.Descriptor instead.
+func (*SendFriendRequestRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SendFriendRequestRequest) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+type SendFriendRequestResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Outgoing after a fresh request, or friend when the target had already
+	// sent a request the other way.
+	Relationship  *Relationship `protobuf:"bytes,1,opt,name=relationship" json:"relationship,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendFriendRequestResponse) Reset() {
+	*x = SendFriendRequestResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendFriendRequestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendFriendRequestResponse) ProtoMessage() {}
+
+func (x *SendFriendRequestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendFriendRequestResponse.ProtoReflect.Descriptor instead.
+func (*SendFriendRequestResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SendFriendRequestResponse) GetRelationship() *Relationship {
+	if x != nil {
+		return x.Relationship
+	}
+	return nil
+}
+
+type AcceptFriendRequestRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcceptFriendRequestRequest) Reset() {
+	*x = AcceptFriendRequestRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcceptFriendRequestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcceptFriendRequestRequest) ProtoMessage() {}
+
+func (x *AcceptFriendRequestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcceptFriendRequestRequest.ProtoReflect.Descriptor instead.
+func (*AcceptFriendRequestRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *AcceptFriendRequestRequest) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+type AcceptFriendRequestResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Relationship  *Relationship          `protobuf:"bytes,1,opt,name=relationship" json:"relationship,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AcceptFriendRequestResponse) Reset() {
+	*x = AcceptFriendRequestResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AcceptFriendRequestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AcceptFriendRequestResponse) ProtoMessage() {}
+
+func (x *AcceptFriendRequestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AcceptFriendRequestResponse.ProtoReflect.Descriptor instead.
+func (*AcceptFriendRequestResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *AcceptFriendRequestResponse) GetRelationship() *Relationship {
+	if x != nil {
+		return x.Relationship
+	}
+	return nil
+}
+
+type DeclineFriendRequestRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeclineFriendRequestRequest) Reset() {
+	*x = DeclineFriendRequestRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeclineFriendRequestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeclineFriendRequestRequest) ProtoMessage() {}
+
+func (x *DeclineFriendRequestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeclineFriendRequestRequest.ProtoReflect.Descriptor instead.
+func (*DeclineFriendRequestRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *DeclineFriendRequestRequest) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+type DeclineFriendRequestResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeclineFriendRequestResponse) Reset() {
+	*x = DeclineFriendRequestResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeclineFriendRequestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeclineFriendRequestResponse) ProtoMessage() {}
+
+func (x *DeclineFriendRequestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeclineFriendRequestResponse.ProtoReflect.Descriptor instead.
+func (*DeclineFriendRequestResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *DeclineFriendRequestResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type RemoveFriendRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveFriendRequest) Reset() {
+	*x = RemoveFriendRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveFriendRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveFriendRequest) ProtoMessage() {}
+
+func (x *RemoveFriendRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveFriendRequest.ProtoReflect.Descriptor instead.
+func (*RemoveFriendRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *RemoveFriendRequest) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+type RemoveFriendResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveFriendResponse) Reset() {
+	*x = RemoveFriendResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveFriendResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveFriendResponse) ProtoMessage() {}
+
+func (x *RemoveFriendResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveFriendResponse.ProtoReflect.Descriptor instead.
+func (*RemoveFriendResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *RemoveFriendResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type BlockUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BlockUserRequest) Reset() {
+	*x = BlockUserRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BlockUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BlockUserRequest) ProtoMessage() {}
+
+func (x *BlockUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BlockUserRequest.ProtoReflect.Descriptor instead.
+func (*BlockUserRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *BlockUserRequest) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+type BlockUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Relationship  *Relationship          `protobuf:"bytes,1,opt,name=relationship" json:"relationship,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BlockUserResponse) Reset() {
+	*x = BlockUserResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BlockUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BlockUserResponse) ProtoMessage() {}
+
+func (x *BlockUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BlockUserResponse.ProtoReflect.Descriptor instead.
+func (*BlockUserResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *BlockUserResponse) GetRelationship() *Relationship {
+	if x != nil {
+		return x.Relationship
+	}
+	return nil
+}
+
+type UnblockUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnblockUserRequest) Reset() {
+	*x = UnblockUserRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnblockUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnblockUserRequest) ProtoMessage() {}
+
+func (x *UnblockUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnblockUserRequest.ProtoReflect.Descriptor instead.
+func (*UnblockUserRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *UnblockUserRequest) GetTargetId() int64 {
+	if x != nil && x.TargetId != nil {
+		return *x.TargetId
+	}
+	return 0
+}
+
+type UnblockUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnblockUserResponse) Reset() {
+	*x = UnblockUserResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnblockUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnblockUserResponse) ProtoMessage() {}
+
+func (x *UnblockUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnblockUserResponse.ProtoReflect.Descriptor instead.
+func (*UnblockUserResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *UnblockUserResponse) GetOk() bool {
+	if x != nil && x.Ok != nil {
+		return *x.Ok
+	}
+	return false
+}
+
+type ListRelationshipsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Optional filter; unspecified returns every type.
+	Type *RelationshipType `protobuf:"varint,1,opt,name=type,enum=api.v1.RelationshipType" json:"type,omitempty"`
+	// Return relationships with target IDs smaller than this cursor.
+	BeforeTargetId *int64 `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId" json:"before_target_id,omitempty"`
+	Limit          *int32 `protobuf:"varint,3,opt,name=limit" json:"limit,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListRelationshipsRequest) Reset() {
+	*x = ListRelationshipsRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRelationshipsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRelationshipsRequest) ProtoMessage() {}
+
+func (x *ListRelationshipsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRelationshipsRequest.ProtoReflect.Descriptor instead.
+func (*ListRelationshipsRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ListRelationshipsRequest) GetType() RelationshipType {
+	if x != nil && x.Type != nil {
+		return *x.Type
+	}
+	return RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
+}
+
+func (x *ListRelationshipsRequest) GetBeforeTargetId() int64 {
+	if x != nil && x.BeforeTargetId != nil {
+		return *x.BeforeTargetId
+	}
+	return 0
+}
+
+func (x *ListRelationshipsRequest) GetLimit() int32 {
+	if x != nil && x.Limit != nil {
+		return *x.Limit
+	}
+	return 0
+}
+
+type ListRelationshipsResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Relationships  []*Relationship        `protobuf:"bytes,1,rep,name=relationships" json:"relationships,omitempty"`
+	BeforeTargetId *int64                 `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId" json:"before_target_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListRelationshipsResponse) Reset() {
+	*x = ListRelationshipsResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRelationshipsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRelationshipsResponse) ProtoMessage() {}
+
+func (x *ListRelationshipsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRelationshipsResponse.ProtoReflect.Descriptor instead.
+func (*ListRelationshipsResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ListRelationshipsResponse) GetRelationships() []*Relationship {
+	if x != nil {
+		return x.Relationships
+	}
+	return nil
+}
+
+func (x *ListRelationshipsResponse) GetBeforeTargetId() int64 {
+	if x != nil && x.BeforeTargetId != nil {
+		return *x.BeforeTargetId
+	}
+	return 0
+}
+
+type UpdateUsernameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Username      *string                `protobuf:"bytes,1,opt,name=username" json:"username,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUsernameRequest) Reset() {
+	*x = UpdateUsernameRequest{}
+	mi := &file_api_v1_user_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUsernameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUsernameRequest) ProtoMessage() {}
+
+func (x *UpdateUsernameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUsernameRequest.ProtoReflect.Descriptor instead.
+func (*UpdateUsernameRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *UpdateUsernameRequest) GetUsername() string {
+	if x != nil && x.Username != nil {
+		return *x.Username
+	}
+	return ""
+}
+
+type UpdateUsernameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Profile       *UserProfile           `protobuf:"bytes,1,opt,name=profile" json:"profile,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateUsernameResponse) Reset() {
+	*x = UpdateUsernameResponse{}
+	mi := &file_api_v1_user_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateUsernameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateUsernameResponse) ProtoMessage() {}
+
+func (x *UpdateUsernameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_user_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateUsernameResponse.ProtoReflect.Descriptor instead.
+func (*UpdateUsernameResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_user_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *UpdateUsernameResponse) GetProfile() *UserProfile {
+	if x != nil {
+		return x.Profile
+	}
+	return nil
+}
+
 var File_api_v1_user_proto protoreflect.FileDescriptor
 
 const file_api_v1_user_proto_rawDesc = "" +
@@ -736,7 +1693,7 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"created_at\x18\x03 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\x12*\n" +
-	"\x11email_verified_at\x18\x05 \x01(\x03R\x0femailVerifiedAt\"\x97\x01\n" +
+	"\x11email_verified_at\x18\x05 \x01(\x03R\x0femailVerifiedAt\"\xb3\x01\n" +
 	"\vUserProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
@@ -745,7 +1702,8 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x04 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x05 \x01(\x03R\tupdatedAt\"\x17\n" +
+	"updated_at\x18\x05 \x01(\x03R\tupdatedAt\x12\x1a\n" +
+	"\busername\x18\x06 \x01(\tR\busername\"\x17\n" +
 	"\x15GetCurrentUserRequest\"i\n" +
 	"\x16GetCurrentUserResponse\x12 \n" +
 	"\x04user\x18\x01 \x01(\v2\f.api.v1.UserR\x04user\x12-\n" +
@@ -772,14 +1730,76 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"\fold_password\x18\x01 \x01(\tR\voldPassword\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"(\n" +
 	"\x16ChangePasswordResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok2\x8b\x04\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x97\x01\n" +
+	"\fRelationship\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\x12,\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x18.api.v1.RelationshipTypeR\x04type\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\"/\n" +
+	"\x11LookupUserRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"C\n" +
+	"\x12LookupUserResponse\x12-\n" +
+	"\aprofile\x18\x01 \x01(\v2\x13.api.v1.UserProfileR\aprofile\"7\n" +
+	"\x18SendFriendRequestRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\"U\n" +
+	"\x19SendFriendRequestResponse\x128\n" +
+	"\frelationship\x18\x01 \x01(\v2\x14.api.v1.RelationshipR\frelationship\"9\n" +
+	"\x1aAcceptFriendRequestRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\"W\n" +
+	"\x1bAcceptFriendRequestResponse\x128\n" +
+	"\frelationship\x18\x01 \x01(\v2\x14.api.v1.RelationshipR\frelationship\":\n" +
+	"\x1bDeclineFriendRequestRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\".\n" +
+	"\x1cDeclineFriendRequestResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"2\n" +
+	"\x13RemoveFriendRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\"&\n" +
+	"\x14RemoveFriendResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"/\n" +
+	"\x10BlockUserRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\"M\n" +
+	"\x11BlockUserResponse\x128\n" +
+	"\frelationship\x18\x01 \x01(\v2\x14.api.v1.RelationshipR\frelationship\"1\n" +
+	"\x12UnblockUserRequest\x12\x1b\n" +
+	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\"%\n" +
+	"\x13UnblockUserResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x88\x01\n" +
+	"\x18ListRelationshipsRequest\x12,\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x18.api.v1.RelationshipTypeR\x04type\x12(\n" +
+	"\x10before_target_id\x18\x02 \x01(\x03R\x0ebeforeTargetId\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\x81\x01\n" +
+	"\x19ListRelationshipsResponse\x12:\n" +
+	"\rrelationships\x18\x01 \x03(\v2\x14.api.v1.RelationshipR\rrelationships\x12(\n" +
+	"\x10before_target_id\x18\x02 \x01(\x03R\x0ebeforeTargetId\"3\n" +
+	"\x15UpdateUsernameRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\"G\n" +
+	"\x16UpdateUsernameResponse\x12-\n" +
+	"\aprofile\x18\x01 \x01(\v2\x13.api.v1.UserProfileR\aprofile*\xb2\x01\n" +
+	"\x10RelationshipType\x12!\n" +
+	"\x1dRELATIONSHIP_TYPE_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aRELATIONSHIP_TYPE_OUTGOING\x10\x01\x12\x1e\n" +
+	"\x1aRELATIONSHIP_TYPE_INCOMING\x10\x02\x12\x1c\n" +
+	"\x18RELATIONSHIP_TYPE_FRIEND\x10\x03\x12\x1d\n" +
+	"\x19RELATIONSHIP_TYPE_BLOCKED\x10\x042\xed\t\n" +
 	"\vUserService\x12O\n" +
 	"\x0eGetCurrentUser\x12\x1d.api.v1.GetCurrentUserRequest\x1a\x1e.api.v1.GetCurrentUserResponse\x12O\n" +
 	"\x0eGetUserProfile\x12\x1d.api.v1.GetUserProfileRequest\x1a\x1e.api.v1.GetUserProfileResponse\x12g\n" +
 	"\x16CheckEmailAvailability\x12%.api.v1.CheckEmailAvailabilityRequest\x1a&.api.v1.CheckEmailAvailabilityResponse\x12F\n" +
 	"\vUpdateEmail\x12\x1a.api.v1.UpdateEmailRequest\x1a\x1b.api.v1.UpdateEmailResponse\x12X\n" +
 	"\x11UpdateUserProfile\x12 .api.v1.UpdateUserProfileRequest\x1a!.api.v1.UpdateUserProfileResponse\x12O\n" +
-	"\x0eChangePassword\x12\x1d.api.v1.ChangePasswordRequest\x1a\x1e.api.v1.ChangePasswordResponseB|\n" +
+	"\x0eChangePassword\x12\x1d.api.v1.ChangePasswordRequest\x1a\x1e.api.v1.ChangePasswordResponse\x12C\n" +
+	"\n" +
+	"LookupUser\x12\x19.api.v1.LookupUserRequest\x1a\x1a.api.v1.LookupUserResponse\x12O\n" +
+	"\x0eUpdateUsername\x12\x1d.api.v1.UpdateUsernameRequest\x1a\x1e.api.v1.UpdateUsernameResponse\x12X\n" +
+	"\x11SendFriendRequest\x12 .api.v1.SendFriendRequestRequest\x1a!.api.v1.SendFriendRequestResponse\x12^\n" +
+	"\x13AcceptFriendRequest\x12\".api.v1.AcceptFriendRequestRequest\x1a#.api.v1.AcceptFriendRequestResponse\x12a\n" +
+	"\x14DeclineFriendRequest\x12#.api.v1.DeclineFriendRequestRequest\x1a$.api.v1.DeclineFriendRequestResponse\x12I\n" +
+	"\fRemoveFriend\x12\x1b.api.v1.RemoveFriendRequest\x1a\x1c.api.v1.RemoveFriendResponse\x12@\n" +
+	"\tBlockUser\x12\x18.api.v1.BlockUserRequest\x1a\x19.api.v1.BlockUserResponse\x12F\n" +
+	"\vUnblockUser\x12\x1a.api.v1.UnblockUserRequest\x1a\x1b.api.v1.UnblockUserResponse\x12X\n" +
+	"\x11ListRelationships\x12 .api.v1.ListRelationshipsRequest\x1a!.api.v1.ListRelationshipsResponseB|\n" +
 	"\n" +
 	"com.api.v1B\tUserProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
@@ -795,46 +1815,93 @@ func file_api_v1_user_proto_rawDescGZIP() []byte {
 	return file_api_v1_user_proto_rawDescData
 }
 
-var file_api_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_api_v1_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_api_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_api_v1_user_proto_goTypes = []any{
-	(*User)(nil),                           // 0: api.v1.User
-	(*UserProfile)(nil),                    // 1: api.v1.UserProfile
-	(*GetCurrentUserRequest)(nil),          // 2: api.v1.GetCurrentUserRequest
-	(*GetCurrentUserResponse)(nil),         // 3: api.v1.GetCurrentUserResponse
-	(*GetUserProfileRequest)(nil),          // 4: api.v1.GetUserProfileRequest
-	(*GetUserProfileResponse)(nil),         // 5: api.v1.GetUserProfileResponse
-	(*CheckEmailAvailabilityRequest)(nil),  // 6: api.v1.CheckEmailAvailabilityRequest
-	(*CheckEmailAvailabilityResponse)(nil), // 7: api.v1.CheckEmailAvailabilityResponse
-	(*UpdateEmailRequest)(nil),             // 8: api.v1.UpdateEmailRequest
-	(*UpdateEmailResponse)(nil),            // 9: api.v1.UpdateEmailResponse
-	(*UpdateUserProfileRequest)(nil),       // 10: api.v1.UpdateUserProfileRequest
-	(*UpdateUserProfileResponse)(nil),      // 11: api.v1.UpdateUserProfileResponse
-	(*ChangePasswordRequest)(nil),          // 12: api.v1.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),         // 13: api.v1.ChangePasswordResponse
+	(RelationshipType)(0),                  // 0: api.v1.RelationshipType
+	(*User)(nil),                           // 1: api.v1.User
+	(*UserProfile)(nil),                    // 2: api.v1.UserProfile
+	(*GetCurrentUserRequest)(nil),          // 3: api.v1.GetCurrentUserRequest
+	(*GetCurrentUserResponse)(nil),         // 4: api.v1.GetCurrentUserResponse
+	(*GetUserProfileRequest)(nil),          // 5: api.v1.GetUserProfileRequest
+	(*GetUserProfileResponse)(nil),         // 6: api.v1.GetUserProfileResponse
+	(*CheckEmailAvailabilityRequest)(nil),  // 7: api.v1.CheckEmailAvailabilityRequest
+	(*CheckEmailAvailabilityResponse)(nil), // 8: api.v1.CheckEmailAvailabilityResponse
+	(*UpdateEmailRequest)(nil),             // 9: api.v1.UpdateEmailRequest
+	(*UpdateEmailResponse)(nil),            // 10: api.v1.UpdateEmailResponse
+	(*UpdateUserProfileRequest)(nil),       // 11: api.v1.UpdateUserProfileRequest
+	(*UpdateUserProfileResponse)(nil),      // 12: api.v1.UpdateUserProfileResponse
+	(*ChangePasswordRequest)(nil),          // 13: api.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),         // 14: api.v1.ChangePasswordResponse
+	(*Relationship)(nil),                   // 15: api.v1.Relationship
+	(*LookupUserRequest)(nil),              // 16: api.v1.LookupUserRequest
+	(*LookupUserResponse)(nil),             // 17: api.v1.LookupUserResponse
+	(*SendFriendRequestRequest)(nil),       // 18: api.v1.SendFriendRequestRequest
+	(*SendFriendRequestResponse)(nil),      // 19: api.v1.SendFriendRequestResponse
+	(*AcceptFriendRequestRequest)(nil),     // 20: api.v1.AcceptFriendRequestRequest
+	(*AcceptFriendRequestResponse)(nil),    // 21: api.v1.AcceptFriendRequestResponse
+	(*DeclineFriendRequestRequest)(nil),    // 22: api.v1.DeclineFriendRequestRequest
+	(*DeclineFriendRequestResponse)(nil),   // 23: api.v1.DeclineFriendRequestResponse
+	(*RemoveFriendRequest)(nil),            // 24: api.v1.RemoveFriendRequest
+	(*RemoveFriendResponse)(nil),           // 25: api.v1.RemoveFriendResponse
+	(*BlockUserRequest)(nil),               // 26: api.v1.BlockUserRequest
+	(*BlockUserResponse)(nil),              // 27: api.v1.BlockUserResponse
+	(*UnblockUserRequest)(nil),             // 28: api.v1.UnblockUserRequest
+	(*UnblockUserResponse)(nil),            // 29: api.v1.UnblockUserResponse
+	(*ListRelationshipsRequest)(nil),       // 30: api.v1.ListRelationshipsRequest
+	(*ListRelationshipsResponse)(nil),      // 31: api.v1.ListRelationshipsResponse
+	(*UpdateUsernameRequest)(nil),          // 32: api.v1.UpdateUsernameRequest
+	(*UpdateUsernameResponse)(nil),         // 33: api.v1.UpdateUsernameResponse
 }
 var file_api_v1_user_proto_depIdxs = []int32{
-	0,  // 0: api.v1.GetCurrentUserResponse.user:type_name -> api.v1.User
-	1,  // 1: api.v1.GetCurrentUserResponse.profile:type_name -> api.v1.UserProfile
-	1,  // 2: api.v1.GetUserProfileResponse.profile:type_name -> api.v1.UserProfile
-	0,  // 3: api.v1.UpdateEmailResponse.user:type_name -> api.v1.User
-	1,  // 4: api.v1.UpdateUserProfileResponse.profile:type_name -> api.v1.UserProfile
-	2,  // 5: api.v1.UserService.GetCurrentUser:input_type -> api.v1.GetCurrentUserRequest
-	4,  // 6: api.v1.UserService.GetUserProfile:input_type -> api.v1.GetUserProfileRequest
-	6,  // 7: api.v1.UserService.CheckEmailAvailability:input_type -> api.v1.CheckEmailAvailabilityRequest
-	8,  // 8: api.v1.UserService.UpdateEmail:input_type -> api.v1.UpdateEmailRequest
-	10, // 9: api.v1.UserService.UpdateUserProfile:input_type -> api.v1.UpdateUserProfileRequest
-	12, // 10: api.v1.UserService.ChangePassword:input_type -> api.v1.ChangePasswordRequest
-	3,  // 11: api.v1.UserService.GetCurrentUser:output_type -> api.v1.GetCurrentUserResponse
-	5,  // 12: api.v1.UserService.GetUserProfile:output_type -> api.v1.GetUserProfileResponse
-	7,  // 13: api.v1.UserService.CheckEmailAvailability:output_type -> api.v1.CheckEmailAvailabilityResponse
-	9,  // 14: api.v1.UserService.UpdateEmail:output_type -> api.v1.UpdateEmailResponse
-	11, // 15: api.v1.UserService.UpdateUserProfile:output_type -> api.v1.UpdateUserProfileResponse
-	13, // 16: api.v1.UserService.ChangePassword:output_type -> api.v1.ChangePasswordResponse
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	1,  // 0: api.v1.GetCurrentUserResponse.user:type_name -> api.v1.User
+	2,  // 1: api.v1.GetCurrentUserResponse.profile:type_name -> api.v1.UserProfile
+	2,  // 2: api.v1.GetUserProfileResponse.profile:type_name -> api.v1.UserProfile
+	1,  // 3: api.v1.UpdateEmailResponse.user:type_name -> api.v1.User
+	2,  // 4: api.v1.UpdateUserProfileResponse.profile:type_name -> api.v1.UserProfile
+	0,  // 5: api.v1.Relationship.type:type_name -> api.v1.RelationshipType
+	2,  // 6: api.v1.LookupUserResponse.profile:type_name -> api.v1.UserProfile
+	15, // 7: api.v1.SendFriendRequestResponse.relationship:type_name -> api.v1.Relationship
+	15, // 8: api.v1.AcceptFriendRequestResponse.relationship:type_name -> api.v1.Relationship
+	15, // 9: api.v1.BlockUserResponse.relationship:type_name -> api.v1.Relationship
+	0,  // 10: api.v1.ListRelationshipsRequest.type:type_name -> api.v1.RelationshipType
+	15, // 11: api.v1.ListRelationshipsResponse.relationships:type_name -> api.v1.Relationship
+	2,  // 12: api.v1.UpdateUsernameResponse.profile:type_name -> api.v1.UserProfile
+	3,  // 13: api.v1.UserService.GetCurrentUser:input_type -> api.v1.GetCurrentUserRequest
+	5,  // 14: api.v1.UserService.GetUserProfile:input_type -> api.v1.GetUserProfileRequest
+	7,  // 15: api.v1.UserService.CheckEmailAvailability:input_type -> api.v1.CheckEmailAvailabilityRequest
+	9,  // 16: api.v1.UserService.UpdateEmail:input_type -> api.v1.UpdateEmailRequest
+	11, // 17: api.v1.UserService.UpdateUserProfile:input_type -> api.v1.UpdateUserProfileRequest
+	13, // 18: api.v1.UserService.ChangePassword:input_type -> api.v1.ChangePasswordRequest
+	16, // 19: api.v1.UserService.LookupUser:input_type -> api.v1.LookupUserRequest
+	32, // 20: api.v1.UserService.UpdateUsername:input_type -> api.v1.UpdateUsernameRequest
+	18, // 21: api.v1.UserService.SendFriendRequest:input_type -> api.v1.SendFriendRequestRequest
+	20, // 22: api.v1.UserService.AcceptFriendRequest:input_type -> api.v1.AcceptFriendRequestRequest
+	22, // 23: api.v1.UserService.DeclineFriendRequest:input_type -> api.v1.DeclineFriendRequestRequest
+	24, // 24: api.v1.UserService.RemoveFriend:input_type -> api.v1.RemoveFriendRequest
+	26, // 25: api.v1.UserService.BlockUser:input_type -> api.v1.BlockUserRequest
+	28, // 26: api.v1.UserService.UnblockUser:input_type -> api.v1.UnblockUserRequest
+	30, // 27: api.v1.UserService.ListRelationships:input_type -> api.v1.ListRelationshipsRequest
+	4,  // 28: api.v1.UserService.GetCurrentUser:output_type -> api.v1.GetCurrentUserResponse
+	6,  // 29: api.v1.UserService.GetUserProfile:output_type -> api.v1.GetUserProfileResponse
+	8,  // 30: api.v1.UserService.CheckEmailAvailability:output_type -> api.v1.CheckEmailAvailabilityResponse
+	10, // 31: api.v1.UserService.UpdateEmail:output_type -> api.v1.UpdateEmailResponse
+	12, // 32: api.v1.UserService.UpdateUserProfile:output_type -> api.v1.UpdateUserProfileResponse
+	14, // 33: api.v1.UserService.ChangePassword:output_type -> api.v1.ChangePasswordResponse
+	17, // 34: api.v1.UserService.LookupUser:output_type -> api.v1.LookupUserResponse
+	33, // 35: api.v1.UserService.UpdateUsername:output_type -> api.v1.UpdateUsernameResponse
+	19, // 36: api.v1.UserService.SendFriendRequest:output_type -> api.v1.SendFriendRequestResponse
+	21, // 37: api.v1.UserService.AcceptFriendRequest:output_type -> api.v1.AcceptFriendRequestResponse
+	23, // 38: api.v1.UserService.DeclineFriendRequest:output_type -> api.v1.DeclineFriendRequestResponse
+	25, // 39: api.v1.UserService.RemoveFriend:output_type -> api.v1.RemoveFriendResponse
+	27, // 40: api.v1.UserService.BlockUser:output_type -> api.v1.BlockUserResponse
+	29, // 41: api.v1.UserService.UnblockUser:output_type -> api.v1.UnblockUserResponse
+	31, // 42: api.v1.UserService.ListRelationships:output_type -> api.v1.ListRelationshipsResponse
+	28, // [28:43] is the sub-list for method output_type
+	13, // [13:28] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_user_proto_init() }
@@ -847,13 +1914,14 @@ func file_api_v1_user_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_user_proto_rawDesc), len(file_api_v1_user_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   14,
+			NumEnums:      1,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_api_v1_user_proto_goTypes,
 		DependencyIndexes: file_api_v1_user_proto_depIdxs,
+		EnumInfos:         file_api_v1_user_proto_enumTypes,
 		MessageInfos:      file_api_v1_user_proto_msgTypes,
 	}.Build()
 	File_api_v1_user_proto = out.File

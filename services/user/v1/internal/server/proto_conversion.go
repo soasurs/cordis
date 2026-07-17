@@ -19,10 +19,32 @@ func userToProto(user *model.User) *userv1.User {
 func userProfileToProto(profile *model.UserProfile) *userv1.UserProfile {
 	pbProfile := new(userv1.UserProfile)
 	pbProfile.SetUserId(profile.UserID)
+	pbProfile.SetUsername(profile.Username)
 	pbProfile.SetName(profile.Name)
 	pbProfile.SetAvatarUri(profile.AvatarURI)
 	pbProfile.SetCreatedAt(profile.CreatedAt)
 	pbProfile.SetUpdatedAt(profile.UpdatedAt)
 	pbProfile.SetDeletedAt(profile.DeletedAt)
 	return pbProfile
+}
+
+func relationshipToProto(relationship *model.Relationship) *userv1.Relationship {
+	if relationship == nil {
+		return nil
+	}
+	value := new(userv1.Relationship)
+	value.SetUserId(relationship.UserID)
+	value.SetTargetId(relationship.TargetID)
+	value.SetType(userv1.RelationshipType(relationship.Type))
+	value.SetCreatedAt(relationship.CreatedAt)
+	value.SetUpdatedAt(relationship.UpdatedAt)
+	return value
+}
+
+func relationshipsToProto(relationships []*model.Relationship) []*userv1.Relationship {
+	values := make([]*userv1.Relationship, 0, len(relationships))
+	for _, relationship := range relationships {
+		values = append(values, relationshipToProto(relationship))
+	}
+	return values
 }

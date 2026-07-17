@@ -64,9 +64,9 @@ const (
 	UPDATE
 		users
 	SET
-		email = $1,
-		updated_at = $2,
-		email_verified_at = 0
+		updated_at = CASE WHEN email = $1 THEN updated_at ELSE $2 END,
+		email_verified_at = CASE WHEN email = $1 THEN email_verified_at ELSE 0 END,
+		email = $1
 	WHERE
 		user_id = $3
 	AND

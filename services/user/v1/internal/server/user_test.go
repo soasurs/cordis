@@ -435,8 +435,10 @@ func (s *fakeStore) UpdateUserEmail(_ context.Context, userID int64, email strin
 	if s.user == nil || s.user.UserID != userID {
 		return nil, sql.ErrNoRows
 	}
-	s.user.Email = email
-	s.user.EmailVerifiedAt = 0
+	if s.user.Email != email {
+		s.user.Email = email
+		s.user.EmailVerifiedAt = 0
+	}
 	return s.user, nil
 }
 
@@ -570,4 +572,48 @@ func TestUpdateEmailClearsVerification(t *testing.T) {
 	require.NoError(t, err)
 	require.Zero(t, resp.GetUser().GetEmailVerifiedAt())
 	require.Zero(t, store.user.EmailVerifiedAt)
+}
+
+func TestEmailsAreNormalizedToLowercase(t *testing.T) {
+	store := newFakeStore()
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.CreateUserRequest)
+	req.SetName("display name")
+	req.SetEmail("  Alice@Example.COM ")
+	req.SetPassword("password")
+	resp, err := server.CreateUser(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, "alice@example.com", resp.GetUser().GetEmail())
+
+	getReq := new(userv1.GetUserRequest)
+	getReq.SetEmail("ALICE@example.com")
+	getResp, err := server.GetUser(context.Background(), getReq)
+	require.NoError(t, err)
+	require.Equal(t, "alice@example.com", getResp.GetUser().GetEmail())
+
+	updateReq := new(userv1.UpdateEmailRequest)
+	updateReq.SetUserId(getResp.GetUser().GetUserId())
+	updateReq.SetEmail("Bob@Example.com")
+	updateResp, err := server.UpdateEmail(context.Background(), updateReq)
+	require.NoError(t, err)
+	require.Equal(t, "bob@example.com", updateResp.GetUser().GetEmail())
+}
+
+func TestUpdateEmailSameAddressKeepsVerification(t *testing.T) {
+	store := newFakeStore()
+	store.user = &model.User{
+		UserID:          1001,
+		Email:           "same@example.com",
+		EmailVerifiedAt: 4001,
+	}
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.UpdateEmailRequest)
+	req.SetUserId(1001)
+	req.SetEmail("Same@Example.com")
+	resp, err := server.UpdateEmail(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, "same@example.com", resp.GetUser().GetEmail())
+	require.Equal(t, int64(4001), resp.GetUser().GetEmailVerifiedAt())
 }

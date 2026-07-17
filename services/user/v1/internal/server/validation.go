@@ -4,6 +4,13 @@ import "strings"
 
 const maxNameLength = 64
 
+// normalizeEmail canonicalizes an address for storage and lookup. Mailbox
+// local parts are case-insensitive at every mainstream provider, so the
+// whole address is lowercased once at the service boundary.
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
 func isValidEmail(email string) error {
 	// Basic structural check: exactly one @, non-empty local and domain parts with a dot.
 	if !strings.Contains(email, "@") {

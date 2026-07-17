@@ -10,7 +10,7 @@ import (
 )
 
 func (s *userServer) VerifyPassword(ctx context.Context, req *userv1.VerifyPasswordRequest) (*userv1.VerifyPasswordResponse, error) {
-	user, err := s.svcCtx.Store.GetUserWithEmail(ctx, req.GetEmail())
+	user, err := s.svcCtx.Store.GetUserWithEmail(ctx, normalizeEmail(req.GetEmail()))
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// Hash a dummy password to prevent timing side-channel that reveals email existence.

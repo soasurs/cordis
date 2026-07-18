@@ -3,6 +3,7 @@ package config
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/core/conf"
@@ -17,6 +18,11 @@ func TestLoadConfig(t *testing.T) {
 	require.False(t, cfg.Log.Stat)
 	require.True(t, cfg.Observability.Metrics.Enabled)
 	require.NotEmpty(t, cfg.Observability.Metrics.ListenOn)
+	require.Equal(t, "127.0.0.1:6379", cfg.RateLimit.Redis.Host)
+	require.True(t, cfg.RateLimit.Redis.NonBlock)
+	require.Equal(t, 1200, int(cfg.RateLimit.Policies["public_ip"].Limit))
+	require.Equal(t, 300, int(cfg.RateLimit.Policies["authenticated_user"].Limit))
+	require.Equal(t, time.Minute, cfg.RateLimit.Policies["public_ip"].Window)
 	require.False(t, cfg.Services.Authenticator.Middlewares.Duration)
 	require.False(t, cfg.Services.User.Middlewares.Duration)
 	require.False(t, cfg.Services.Message.Middlewares.Duration)

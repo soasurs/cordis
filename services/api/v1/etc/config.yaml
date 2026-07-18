@@ -15,6 +15,25 @@ observability:
     sampler: 1.0
     insecure: true
 
+rateLimit:
+  redis:
+    host: 127.0.0.1:6379
+    type: node
+    nonBlock: true
+  keyPrefix: "cordis:api:rate_limit:"
+  fallbackMaxKeys: 10000
+  fallbackRetryInterval: 1s
+  # Forwarded headers are ignored unless the immediate peer matches one of
+  # these CIDRs. Configure the actual load balancer networks in production.
+  trustedProxies: []
+  policies:
+    public_ip:
+      limit: 1200
+      window: 1m
+    authenticated_user:
+      limit: 300
+      window: 1m
+
 services:
   authenticator:
     endpoints:

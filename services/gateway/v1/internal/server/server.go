@@ -45,28 +45,59 @@ type sessionStream interface {
 }
 
 type Server struct {
-	svcCtx     *svc.ServiceContext
-	gatewayID  string
-	generation string
+	svcCtx          *svc.ServiceContext
+	gatewayID       string
+	generation      string
+	checkpoints     *checkpointManager
+	checkpointClose io.Closer
 }
 
 type client struct {
-	server       *Server
-	ws           *websocket.Conn
-	connectionID string
-	stream       sessionStream
-	streamConn   io.Closer
-	sourceScope  clientip.Scope
-	socketLease  socketlimit.LeaseHandle
-	eventWindow  time.Time
-	eventCount   int
-	writeMu      sync.Mutex
+	server               *Server
+	ws                   *websocket.Conn
+	connectionID         string
+	stream               sessionStream
+	streamConn           io.Closer
+	sourceScope          clientip.Scope
+	socketLease          socketlimit.LeaseHandle
+	eventWindow          time.Time
+	eventCount           int
+	writeMu              sync.Mutex
+	heartbeatMu          sync.Mutex
+	lastHeartbeat        time.Time
+	highestSequence      uint64
+	acknowledgedSequence uint64
+	sessionID            string
+	bindingEpoch         uint64
+	sessionAddress       string
 }
 
 func New(svcCtx *svc.ServiceContext) *Server {
-	return &Server{
-		svcCtx: svcCtx, gatewayID: randomID("gw"), generation: randomID("gen"),
+	return newServer(svcCtx, newGRPCCheckpointSender())
+}
+
+func newServer(svcCtx *svc.ServiceContext, sender checkpointSender) *Server {
+	gatewayID, generation := randomID("gw"), randomID("gen")
+	server := &Server{svcCtx: svcCtx, gatewayID: gatewayID, generation: generation}
+	server.checkpoints = newCheckpointManager(
+		sender, gatewayID, generation,
+		svcCtx.Cfg.Gateway.CheckpointInterval(), svcCtx.Cfg.Gateway.CheckpointLimit(),
+	)
+	if closer, ok := sender.(io.Closer); ok {
+		server.checkpointClose = closer
 	}
+	return server
+}
+
+func (s *Server) StartBackground(ctx context.Context) {
+	go s.checkpoints.run(ctx)
+}
+
+func (s *Server) Close() error {
+	if s.checkpointClose != nil {
+		return s.checkpointClose.Close()
+	}
+	return nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -176,13 +207,14 @@ func (c *client) run(ctx context.Context) {
 		return
 	}
 
-	stream, conn, err := c.connect(ctx, first)
+	stream, conn, address, err := c.connect(ctx, first)
 	if err != nil {
 		c.writeConnectError(ctx, first.Op, err)
 		return
 	}
 	c.stream = stream
 	c.streamConn = conn
+	c.sessionAddress = address
 	initial, err := c.stream.Recv()
 	if err != nil {
 		c.writeConnectError(ctx, first.Op, err)
@@ -194,6 +226,13 @@ func (c *client) run(ctx context.Context) {
 	if err := c.writeSessionFrame(ctx, initial); err != nil {
 		return
 	}
+	if c.sessionID == "" || c.bindingEpoch == 0 {
+		c.writeConnectError(ctx, first.Op, errors.New("session binding metadata is missing"))
+		return
+	}
+	c.heartbeatMu.Lock()
+	c.lastHeartbeat = time.Now()
+	c.heartbeatMu.Unlock()
 
 	recvErr := make(chan error, 1)
 	go func() {
@@ -205,7 +244,11 @@ func (c *client) run(ctx context.Context) {
 
 	for {
 		var msg envelope
-		if err := wsjson.Read(ctx, c.ws, &msg); err != nil {
+		deadline := c.heartbeatDeadline()
+		readCtx, cancel := context.WithDeadline(ctx, deadline)
+		err := wsjson.Read(readCtx, c.ws, &msg)
+		cancel()
+		if err != nil {
 			_ = c.sendDetach(true)
 			return
 		}
@@ -215,6 +258,14 @@ func (c *client) run(ctx context.Context) {
 			}))
 			_ = c.sendDetach(true)
 			return
+		}
+		if msg.Op == opHeartbeat {
+			if err := c.handleHeartbeat(ctx, msg); err != nil {
+				_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
+					Code: "operation_failed", Message: err.Error(),
+				}))
+			}
+			continue
 		}
 		frame, err := c.toGatewayFrame(msg)
 		if err != nil {
@@ -285,52 +336,89 @@ func (c *client) checkHandshakeRateLimit(ctx context.Context, first envelope) er
 	return nil
 }
 
-func (c *client) connect(ctx context.Context, first envelope) (sessionStream, io.Closer, error) {
+func (c *client) connect(ctx context.Context, first envelope) (sessionStream, io.Closer, string, error) {
 	var (
 		address string
 	)
 	if first.Op == opResume {
 		var data resumeData
 		if err := json.Unmarshal(first.D, &data); err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 		if strings.TrimSpace(data.SessionID) == "" {
-			return nil, nil, errors.New("session id is required")
+			return nil, nil, "", errors.New("session id is required")
 		}
 		var err error
 		address, err = c.server.svcCtx.Resolver.ResolveSession(ctx, data.SessionID)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 	} else {
 		var err error
 		address, err = c.server.svcCtx.Resolver.ResolveNode(ctx)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 	}
 	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	client := sessionv1.NewSessionServiceClient(conn)
 
 	stream, err := client.Connect(ctx)
 	if err != nil {
 		_ = conn.Close()
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	frame, err := c.toGatewayFrame(first)
 	if err != nil {
 		_ = stream.CloseSend()
 		_ = conn.Close()
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 	if err := stream.Send(frame); err != nil {
 		_ = conn.Close()
-		return nil, nil, err
+		return nil, nil, "", err
 	}
-	return stream, conn, nil
+	return stream, conn, address, nil
+}
+
+func (c *client) heartbeatDeadline() time.Time {
+	c.heartbeatMu.Lock()
+	defer c.heartbeatMu.Unlock()
+	return c.lastHeartbeat.Add(c.server.svcCtx.Cfg.Gateway.HeartbeatTimeout())
+}
+
+func (c *client) handleHeartbeat(ctx context.Context, msg envelope) error {
+	var sequence uint64
+	if len(msg.D) > 0 && string(msg.D) != "null" {
+		if err := json.Unmarshal(msg.D, &sequence); err != nil {
+			return errors.New("heartbeat sequence is invalid")
+		}
+	}
+
+	c.heartbeatMu.Lock()
+	if sequence > c.highestSequence {
+		c.heartbeatMu.Unlock()
+		return errors.New("heartbeat sequence is ahead of gateway")
+	}
+	c.lastHeartbeat = time.Now()
+	changed := false
+	if sequence > c.acknowledgedSequence {
+		c.acknowledgedSequence = sequence
+		changed = true
+	}
+	checkpoint := connectionCheckpoint{
+		address: c.sessionAddress, sessionID: c.sessionID, connectionID: c.connectionID,
+		bindingEpoch: c.bindingEpoch, sequence: c.acknowledgedSequence,
+	}
+	c.heartbeatMu.Unlock()
+
+	if changed {
+		c.server.checkpoints.record(checkpoint)
+	}
+	return c.write(ctx, makeEnvelope(opHeartbeatAck, eventHeartbeatAck, nil))
 }
 
 func (c *client) receiveSessionFrames(ctx context.Context) error {
@@ -464,15 +552,35 @@ func (c *client) writeSessionFrame(ctx context.Context, frame *sessionv1.Connect
 	if !json.Valid(payload) {
 		return errors.New("session returned invalid json payload")
 	}
-	return c.write(ctx, envelope{
+	if err := c.write(ctx, envelope{
 		Op: int(frame.GetOpcode()),
 		S:  frame.GetSequence(),
 		T:  frame.GetType(),
 		D:  payload,
-	})
+	}); err != nil {
+		return err
+	}
+	c.heartbeatMu.Lock()
+	if frame.GetSequence() > c.highestSequence {
+		c.highestSequence = frame.GetSequence()
+	}
+	if frame.GetSessionId() != "" {
+		c.sessionID = frame.GetSessionId()
+	}
+	if frame.GetBindingEpoch() != 0 {
+		c.bindingEpoch = frame.GetBindingEpoch()
+	}
+	c.heartbeatMu.Unlock()
+	return nil
 }
 
 func (c *client) close() {
+	c.heartbeatMu.Lock()
+	address, sessionID, bindingEpoch := c.sessionAddress, c.sessionID, c.bindingEpoch
+	c.heartbeatMu.Unlock()
+	if c.server.checkpoints != nil && address != "" && sessionID != "" {
+		c.server.checkpoints.remove(address, sessionID, c.connectionID, bindingEpoch)
+	}
 	if c.stream != nil {
 		_ = c.stream.CloseSend()
 	}

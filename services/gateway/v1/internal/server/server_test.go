@@ -297,6 +297,41 @@ func TestRealWebSocketClientLifecycle(t *testing.T) {
 	require.Equal(t, opHeartbeatAck, ack.Op)
 }
 
+func TestWebSocketHeartbeatTimeoutIsGatewayLocal(t *testing.T) {
+	sessionAddress := startFakeSessionServer(t)
+	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
+		Name:     "gateway.test",
+		ListenOn: "127.0.0.1:8081",
+		Gateway: config.GatewayConfig{
+			WebSocketPath:             "/ws",
+			HeartbeatIntervalMs:       25,
+			HeartbeatTimeoutIntervals: 2,
+			IdentifyTimeoutSeconds:    1,
+		},
+	}, svc.Dependencies{
+		Resolver: fakeResolver{address: sessionAddress},
+	}))
+
+	httpSrv := httptest.NewServer(gateway.Handler())
+	defer httpSrv.Close()
+	wsURL := "ws" + strings.TrimPrefix(httpSrv.URL, "http") + "/ws"
+	conn, _, err := websocket.Dial(t.Context(), wsURL, nil)
+	require.NoError(t, err)
+	defer conn.CloseNow()
+
+	var message envelope
+	require.NoError(t, wsjson.Read(t.Context(), conn, &message))
+	require.NoError(t, wsjson.Write(t.Context(), conn, envelope{
+		Op: opIdentify, D: json.RawMessage(`{"token":"access-token"}`),
+	}))
+	require.NoError(t, wsjson.Read(t.Context(), conn, &message))
+
+	readCtx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	err = wsjson.Read(readCtx, conn, &message)
+	require.Error(t, err)
+}
+
 type fakeSessionServer struct {
 	sessionv1.UnimplementedSessionServiceServer
 	name string
@@ -314,6 +349,8 @@ func (s fakeSessionServer) Connect(stream sessionv1.SessionService_ConnectServer
 		ready.SetSequence(1)
 		ready.SetType(eventReady)
 		ready.SetJsonPayload(`{"session_id":"sess-test-` + s.name + `"}`)
+		ready.SetSessionId("sess-test-" + s.name)
+		ready.SetBindingEpoch(1)
 		if err := stream.Send(ready); err != nil {
 			return err
 		}
@@ -323,6 +360,8 @@ func (s fakeSessionServer) Connect(stream sessionv1.SessionService_ConnectServer
 		resumed.SetSequence(100)
 		resumed.SetType(eventResumed)
 		resumed.SetJsonPayload(`{"session_id":"` + first.GetResume().GetSessionId() + `"}`)
+		resumed.SetSessionId(first.GetResume().GetSessionId())
+		resumed.SetBindingEpoch(2)
 		if err := stream.Send(resumed); err != nil {
 			return err
 		}
@@ -336,12 +375,7 @@ func (s fakeSessionServer) Connect(stream sessionv1.SessionService_ConnectServer
 		}
 		switch {
 		case frame.GetHeartbeat() != nil:
-			ack := new(sessionv1.ConnectResponse)
-			ack.SetOpcode(opHeartbeatAck)
-			ack.SetJsonPayload(`null`)
-			if err := stream.Send(ack); err != nil {
-				return err
-			}
+			return fmt.Errorf("gateway forwarded heartbeat to session")
 		case frame.GetSubscribe() != nil:
 			subscribed := new(sessionv1.ConnectResponse)
 			subscribed.SetOpcode(opDispatch)

@@ -17,6 +17,9 @@ gateway:
   maxPendingHandshakesPerIPv4Scope: 100
   maxPendingHandshakesPerIPv6Scope: 20
   maxClientEventsPerMinute: 120
+  heartbeatTimeoutIntervals: 2
+  checkpointIntervalMs: 5000
+  checkpointBatchSize: 500
 
 rateLimit:
   keyPrefix: "cordis:gateway:rate_limit:"

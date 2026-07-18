@@ -1105,17 +1105,19 @@ func (b0 Detach_builder) Build() *Detach {
 }
 
 type ConnectResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Opcode      int32                  `protobuf:"varint,1,opt,name=opcode"`
-	xxx_hidden_Sequence    uint64                 `protobuf:"varint,2,opt,name=sequence"`
-	xxx_hidden_Type        *string                `protobuf:"bytes,3,opt,name=type"`
-	xxx_hidden_JsonPayload *string                `protobuf:"bytes,4,opt,name=json_payload,json=jsonPayload"`
-	xxx_hidden_CloseCode   int32                  `protobuf:"varint,5,opt,name=close_code,json=closeCode"`
-	xxx_hidden_CloseReason *string                `protobuf:"bytes,6,opt,name=close_reason,json=closeReason"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Opcode       int32                  `protobuf:"varint,1,opt,name=opcode"`
+	xxx_hidden_Sequence     uint64                 `protobuf:"varint,2,opt,name=sequence"`
+	xxx_hidden_Type         *string                `protobuf:"bytes,3,opt,name=type"`
+	xxx_hidden_JsonPayload  *string                `protobuf:"bytes,4,opt,name=json_payload,json=jsonPayload"`
+	xxx_hidden_CloseCode    int32                  `protobuf:"varint,5,opt,name=close_code,json=closeCode"`
+	xxx_hidden_CloseReason  *string                `protobuf:"bytes,6,opt,name=close_reason,json=closeReason"`
+	xxx_hidden_SessionId    *string                `protobuf:"bytes,7,opt,name=session_id,json=sessionId"`
+	xxx_hidden_BindingEpoch uint64                 `protobuf:"varint,8,opt,name=binding_epoch,json=bindingEpoch"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ConnectResponse) Reset() {
@@ -1194,34 +1196,61 @@ func (x *ConnectResponse) GetCloseReason() string {
 	return ""
 }
 
+func (x *ConnectResponse) GetSessionId() string {
+	if x != nil {
+		if x.xxx_hidden_SessionId != nil {
+			return *x.xxx_hidden_SessionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ConnectResponse) GetBindingEpoch() uint64 {
+	if x != nil {
+		return x.xxx_hidden_BindingEpoch
+	}
+	return 0
+}
+
 func (x *ConnectResponse) SetOpcode(v int32) {
 	x.xxx_hidden_Opcode = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *ConnectResponse) SetSequence(v uint64) {
 	x.xxx_hidden_Sequence = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *ConnectResponse) SetType(v string) {
 	x.xxx_hidden_Type = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *ConnectResponse) SetJsonPayload(v string) {
 	x.xxx_hidden_JsonPayload = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *ConnectResponse) SetCloseCode(v int32) {
 	x.xxx_hidden_CloseCode = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *ConnectResponse) SetCloseReason(v string) {
 	x.xxx_hidden_CloseReason = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+}
+
+func (x *ConnectResponse) SetSessionId(v string) {
+	x.xxx_hidden_SessionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *ConnectResponse) SetBindingEpoch(v uint64) {
+	x.xxx_hidden_BindingEpoch = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *ConnectResponse) HasOpcode() bool {
@@ -1266,6 +1295,20 @@ func (x *ConnectResponse) HasCloseReason() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
+func (x *ConnectResponse) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *ConnectResponse) HasBindingEpoch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *ConnectResponse) ClearOpcode() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Opcode = 0
@@ -1296,6 +1339,16 @@ func (x *ConnectResponse) ClearCloseReason() {
 	x.xxx_hidden_CloseReason = nil
 }
 
+func (x *ConnectResponse) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_SessionId = nil
+}
+
+func (x *ConnectResponse) ClearBindingEpoch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_BindingEpoch = 0
+}
+
 type ConnectResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1305,6 +1358,10 @@ type ConnectResponse_builder struct {
 	JsonPayload *string
 	CloseCode   *int32
 	CloseReason *string
+	// Internal binding metadata consumed by Gateway and never exposed on the
+	// websocket protocol.
+	SessionId    *string
+	BindingEpoch *uint64
 }
 
 func (b0 ConnectResponse_builder) Build() *ConnectResponse {
@@ -1312,28 +1369,409 @@ func (b0 ConnectResponse_builder) Build() *ConnectResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Opcode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_Opcode = *b.Opcode
 	}
 	if b.Sequence != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_Sequence = *b.Sequence
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_Type = b.Type
 	}
 	if b.JsonPayload != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_JsonPayload = b.JsonPayload
 	}
 	if b.CloseCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_CloseCode = *b.CloseCode
 	}
 	if b.CloseReason != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_CloseReason = b.CloseReason
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_SessionId = b.SessionId
+	}
+	if b.BindingEpoch != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_BindingEpoch = *b.BindingEpoch
+	}
+	return m0
+}
+
+type GatewayConnectionCheckpoint struct {
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SessionId            *string                `protobuf:"bytes,1,opt,name=session_id,json=sessionId"`
+	xxx_hidden_ConnectionId         *string                `protobuf:"bytes,2,opt,name=connection_id,json=connectionId"`
+	xxx_hidden_BindingEpoch         uint64                 `protobuf:"varint,3,opt,name=binding_epoch,json=bindingEpoch"`
+	xxx_hidden_AcknowledgedSequence uint64                 `protobuf:"varint,4,opt,name=acknowledged_sequence,json=acknowledgedSequence"`
+	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
+	XXX_presence                    [1]uint32
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
+}
+
+func (x *GatewayConnectionCheckpoint) Reset() {
+	*x = GatewayConnectionCheckpoint{}
+	mi := &file_session_v1_session_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayConnectionCheckpoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayConnectionCheckpoint) ProtoMessage() {}
+
+func (x *GatewayConnectionCheckpoint) ProtoReflect() protoreflect.Message {
+	mi := &file_session_v1_session_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GatewayConnectionCheckpoint) GetSessionId() string {
+	if x != nil {
+		if x.xxx_hidden_SessionId != nil {
+			return *x.xxx_hidden_SessionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GatewayConnectionCheckpoint) GetConnectionId() string {
+	if x != nil {
+		if x.xxx_hidden_ConnectionId != nil {
+			return *x.xxx_hidden_ConnectionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GatewayConnectionCheckpoint) GetBindingEpoch() uint64 {
+	if x != nil {
+		return x.xxx_hidden_BindingEpoch
+	}
+	return 0
+}
+
+func (x *GatewayConnectionCheckpoint) GetAcknowledgedSequence() uint64 {
+	if x != nil {
+		return x.xxx_hidden_AcknowledgedSequence
+	}
+	return 0
+}
+
+func (x *GatewayConnectionCheckpoint) SetSessionId(v string) {
+	x.xxx_hidden_SessionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *GatewayConnectionCheckpoint) SetConnectionId(v string) {
+	x.xxx_hidden_ConnectionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *GatewayConnectionCheckpoint) SetBindingEpoch(v uint64) {
+	x.xxx_hidden_BindingEpoch = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *GatewayConnectionCheckpoint) SetAcknowledgedSequence(v uint64) {
+	x.xxx_hidden_AcknowledgedSequence = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *GatewayConnectionCheckpoint) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GatewayConnectionCheckpoint) HasConnectionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GatewayConnectionCheckpoint) HasBindingEpoch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GatewayConnectionCheckpoint) HasAcknowledgedSequence() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GatewayConnectionCheckpoint) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_SessionId = nil
+}
+
+func (x *GatewayConnectionCheckpoint) ClearConnectionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ConnectionId = nil
+}
+
+func (x *GatewayConnectionCheckpoint) ClearBindingEpoch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_BindingEpoch = 0
+}
+
+func (x *GatewayConnectionCheckpoint) ClearAcknowledgedSequence() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_AcknowledgedSequence = 0
+}
+
+type GatewayConnectionCheckpoint_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SessionId            *string
+	ConnectionId         *string
+	BindingEpoch         *uint64
+	AcknowledgedSequence *uint64
+}
+
+func (b0 GatewayConnectionCheckpoint_builder) Build() *GatewayConnectionCheckpoint {
+	m0 := &GatewayConnectionCheckpoint{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_SessionId = b.SessionId
+	}
+	if b.ConnectionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_ConnectionId = b.ConnectionId
+	}
+	if b.BindingEpoch != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_BindingEpoch = *b.BindingEpoch
+	}
+	if b.AcknowledgedSequence != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_AcknowledgedSequence = *b.AcknowledgedSequence
+	}
+	return m0
+}
+
+type SyncGatewayConnectionsRequest struct {
+	state                        protoimpl.MessageState          `protogen:"opaque.v1"`
+	xxx_hidden_GatewayId         *string                         `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId"`
+	xxx_hidden_GatewayGeneration *string                         `protobuf:"bytes,2,opt,name=gateway_generation,json=gatewayGeneration"`
+	xxx_hidden_Checkpoints       *[]*GatewayConnectionCheckpoint `protobuf:"bytes,3,rep,name=checkpoints"`
+	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
+	XXX_presence                 [1]uint32
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
+}
+
+func (x *SyncGatewayConnectionsRequest) Reset() {
+	*x = SyncGatewayConnectionsRequest{}
+	mi := &file_session_v1_session_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncGatewayConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncGatewayConnectionsRequest) ProtoMessage() {}
+
+func (x *SyncGatewayConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_session_v1_session_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *SyncGatewayConnectionsRequest) GetGatewayId() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayId != nil {
+			return *x.xxx_hidden_GatewayId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *SyncGatewayConnectionsRequest) GetGatewayGeneration() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayGeneration != nil {
+			return *x.xxx_hidden_GatewayGeneration
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *SyncGatewayConnectionsRequest) GetCheckpoints() []*GatewayConnectionCheckpoint {
+	if x != nil {
+		if x.xxx_hidden_Checkpoints != nil {
+			return *x.xxx_hidden_Checkpoints
+		}
+	}
+	return nil
+}
+
+func (x *SyncGatewayConnectionsRequest) SetGatewayId(v string) {
+	x.xxx_hidden_GatewayId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *SyncGatewayConnectionsRequest) SetGatewayGeneration(v string) {
+	x.xxx_hidden_GatewayGeneration = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *SyncGatewayConnectionsRequest) SetCheckpoints(v []*GatewayConnectionCheckpoint) {
+	x.xxx_hidden_Checkpoints = &v
+}
+
+func (x *SyncGatewayConnectionsRequest) HasGatewayId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *SyncGatewayConnectionsRequest) HasGatewayGeneration() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *SyncGatewayConnectionsRequest) ClearGatewayId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GatewayId = nil
+}
+
+func (x *SyncGatewayConnectionsRequest) ClearGatewayGeneration() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_GatewayGeneration = nil
+}
+
+type SyncGatewayConnectionsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GatewayId         *string
+	GatewayGeneration *string
+	Checkpoints       []*GatewayConnectionCheckpoint
+}
+
+func (b0 SyncGatewayConnectionsRequest_builder) Build() *SyncGatewayConnectionsRequest {
+	m0 := &SyncGatewayConnectionsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GatewayId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GatewayId = b.GatewayId
+	}
+	if b.GatewayGeneration != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_GatewayGeneration = b.GatewayGeneration
+	}
+	x.xxx_hidden_Checkpoints = &b.Checkpoints
+	return m0
+}
+
+type SyncGatewayConnectionsResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Applied     int32                  `protobuf:"varint,1,opt,name=applied"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *SyncGatewayConnectionsResponse) Reset() {
+	*x = SyncGatewayConnectionsResponse{}
+	mi := &file_session_v1_session_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncGatewayConnectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncGatewayConnectionsResponse) ProtoMessage() {}
+
+func (x *SyncGatewayConnectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_session_v1_session_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *SyncGatewayConnectionsResponse) GetApplied() int32 {
+	if x != nil {
+		return x.xxx_hidden_Applied
+	}
+	return 0
+}
+
+func (x *SyncGatewayConnectionsResponse) SetApplied(v int32) {
+	x.xxx_hidden_Applied = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *SyncGatewayConnectionsResponse) HasApplied() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *SyncGatewayConnectionsResponse) ClearApplied() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Applied = 0
+}
+
+type SyncGatewayConnectionsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Applied *int32
+}
+
+func (b0 SyncGatewayConnectionsResponse_builder) Build() *SyncGatewayConnectionsResponse {
+	m0 := &SyncGatewayConnectionsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Applied != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Applied = *b.Applied
 	}
 	return m0
 }
@@ -1350,7 +1788,7 @@ type EventEnvelope struct {
 
 func (x *EventEnvelope) Reset() {
 	*x = EventEnvelope{}
-	mi := &file_session_v1_session_proto_msgTypes[8]
+	mi := &file_session_v1_session_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1362,7 +1800,7 @@ func (x *EventEnvelope) String() string {
 func (*EventEnvelope) ProtoMessage() {}
 
 func (x *EventEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[8]
+	mi := &file_session_v1_session_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1461,7 +1899,7 @@ type DispatchGuildEventRequest struct {
 
 func (x *DispatchGuildEventRequest) Reset() {
 	*x = DispatchGuildEventRequest{}
-	mi := &file_session_v1_session_proto_msgTypes[9]
+	mi := &file_session_v1_session_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1473,7 +1911,7 @@ func (x *DispatchGuildEventRequest) String() string {
 func (*DispatchGuildEventRequest) ProtoMessage() {}
 
 func (x *DispatchGuildEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[9]
+	mi := &file_session_v1_session_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1561,7 +1999,7 @@ type DispatchChannelEventRequest struct {
 
 func (x *DispatchChannelEventRequest) Reset() {
 	*x = DispatchChannelEventRequest{}
-	mi := &file_session_v1_session_proto_msgTypes[10]
+	mi := &file_session_v1_session_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1573,7 +2011,7 @@ func (x *DispatchChannelEventRequest) String() string {
 func (*DispatchChannelEventRequest) ProtoMessage() {}
 
 func (x *DispatchChannelEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[10]
+	mi := &file_session_v1_session_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1661,7 +2099,7 @@ type DispatchUserEventRequest struct {
 
 func (x *DispatchUserEventRequest) Reset() {
 	*x = DispatchUserEventRequest{}
-	mi := &file_session_v1_session_proto_msgTypes[11]
+	mi := &file_session_v1_session_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1673,7 +2111,7 @@ func (x *DispatchUserEventRequest) String() string {
 func (*DispatchUserEventRequest) ProtoMessage() {}
 
 func (x *DispatchUserEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[11]
+	mi := &file_session_v1_session_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1760,7 +2198,7 @@ type DispatchGuildEventResponse struct {
 
 func (x *DispatchGuildEventResponse) Reset() {
 	*x = DispatchGuildEventResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[12]
+	mi := &file_session_v1_session_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1772,7 +2210,7 @@ func (x *DispatchGuildEventResponse) String() string {
 func (*DispatchGuildEventResponse) ProtoMessage() {}
 
 func (x *DispatchGuildEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[12]
+	mi := &file_session_v1_session_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1835,7 +2273,7 @@ type DispatchChannelEventResponse struct {
 
 func (x *DispatchChannelEventResponse) Reset() {
 	*x = DispatchChannelEventResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[13]
+	mi := &file_session_v1_session_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1847,7 +2285,7 @@ func (x *DispatchChannelEventResponse) String() string {
 func (*DispatchChannelEventResponse) ProtoMessage() {}
 
 func (x *DispatchChannelEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[13]
+	mi := &file_session_v1_session_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +2348,7 @@ type DispatchUserEventResponse struct {
 
 func (x *DispatchUserEventResponse) Reset() {
 	*x = DispatchUserEventResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[14]
+	mi := &file_session_v1_session_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1922,7 +2360,7 @@ func (x *DispatchUserEventResponse) String() string {
 func (*DispatchUserEventResponse) ProtoMessage() {}
 
 func (x *DispatchUserEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[14]
+	mi := &file_session_v1_session_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2012,7 +2450,7 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\vchannel_ids\x18\x01 \x03(\x03R\n" +
 	"channelIds\"&\n" +
 	"\x06Detach\x12\x1c\n" +
-	"\tresumable\x18\x01 \x01(\bR\tresumable\"\xbe\x01\n" +
+	"\tresumable\x18\x01 \x01(\bR\tresumable\"\x82\x02\n" +
 	"\x0fConnectResponse\x12\x16\n" +
 	"\x06opcode\x18\x01 \x01(\x05R\x06opcode\x12\x1a\n" +
 	"\bsequence\x18\x02 \x01(\x04R\bsequence\x12\x12\n" +
@@ -2020,7 +2458,23 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\fjson_payload\x18\x04 \x01(\tR\vjsonPayload\x12\x1d\n" +
 	"\n" +
 	"close_code\x18\x05 \x01(\x05R\tcloseCode\x12!\n" +
-	"\fclose_reason\x18\x06 \x01(\tR\vcloseReason\"F\n" +
+	"\fclose_reason\x18\x06 \x01(\tR\vcloseReason\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\a \x01(\tR\tsessionId\x12#\n" +
+	"\rbinding_epoch\x18\b \x01(\x04R\fbindingEpoch\"\xbb\x01\n" +
+	"\x1bGatewayConnectionCheckpoint\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12#\n" +
+	"\rconnection_id\x18\x02 \x01(\tR\fconnectionId\x12#\n" +
+	"\rbinding_epoch\x18\x03 \x01(\x04R\fbindingEpoch\x123\n" +
+	"\x15acknowledged_sequence\x18\x04 \x01(\x04R\x14acknowledgedSequence\"\xb8\x01\n" +
+	"\x1dSyncGatewayConnectionsRequest\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12-\n" +
+	"\x12gateway_generation\x18\x02 \x01(\tR\x11gatewayGeneration\x12I\n" +
+	"\vcheckpoints\x18\x03 \x03(\v2'.session.v1.GatewayConnectionCheckpointR\vcheckpoints\":\n" +
+	"\x1eSyncGatewayConnectionsResponse\x12\x18\n" +
+	"\aapplied\x18\x01 \x01(\x05R\aapplied\"F\n" +
 	"\rEventEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12!\n" +
 	"\fjson_payload\x18\x02 \x01(\tR\vjsonPayload\"g\n" +
@@ -2039,9 +2493,10 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\x1cDispatchChannelEventResponse\x12\x1c\n" +
 	"\tdelivered\x18\x01 \x01(\x05R\tdelivered\"9\n" +
 	"\x19DispatchUserEventResponse\x12\x1c\n" +
-	"\tdelivered\x18\x01 \x01(\x05R\tdelivered2\x8a\x03\n" +
+	"\tdelivered\x18\x01 \x01(\x05R\tdelivered2\xfb\x03\n" +
 	"\x0eSessionService\x12F\n" +
-	"\aConnect\x12\x1a.session.v1.ConnectRequest\x1a\x1b.session.v1.ConnectResponse(\x010\x01\x12c\n" +
+	"\aConnect\x12\x1a.session.v1.ConnectRequest\x1a\x1b.session.v1.ConnectResponse(\x010\x01\x12o\n" +
+	"\x16SyncGatewayConnections\x12).session.v1.SyncGatewayConnectionsRequest\x1a*.session.v1.SyncGatewayConnectionsResponse\x12c\n" +
 	"\x12DispatchGuildEvent\x12%.session.v1.DispatchGuildEventRequest\x1a&.session.v1.DispatchGuildEventResponse\x12i\n" +
 	"\x14DispatchChannelEvent\x12'.session.v1.DispatchChannelEventRequest\x1a(.session.v1.DispatchChannelEventResponse\x12`\n" +
 	"\x11DispatchUserEvent\x12$.session.v1.DispatchUserEventRequest\x1a%.session.v1.DispatchUserEventResponseB\x9b\x01\n" +
@@ -2049,23 +2504,26 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"Session.V1\xca\x02\n" +
 	"Session\\V1\xe2\x02\x16Session\\V1\\GPBMetadata\xea\x02\vSession::V1b\beditionsp\xe8\a"
 
-var file_session_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_session_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_session_v1_session_proto_goTypes = []any{
-	(*ConnectRequest)(nil),               // 0: session.v1.ConnectRequest
-	(*Identify)(nil),                     // 1: session.v1.Identify
-	(*Resume)(nil),                       // 2: session.v1.Resume
-	(*Heartbeat)(nil),                    // 3: session.v1.Heartbeat
-	(*PresenceUpdate)(nil),               // 4: session.v1.PresenceUpdate
-	(*SubscribeChannels)(nil),            // 5: session.v1.SubscribeChannels
-	(*Detach)(nil),                       // 6: session.v1.Detach
-	(*ConnectResponse)(nil),              // 7: session.v1.ConnectResponse
-	(*EventEnvelope)(nil),                // 8: session.v1.EventEnvelope
-	(*DispatchGuildEventRequest)(nil),    // 9: session.v1.DispatchGuildEventRequest
-	(*DispatchChannelEventRequest)(nil),  // 10: session.v1.DispatchChannelEventRequest
-	(*DispatchUserEventRequest)(nil),     // 11: session.v1.DispatchUserEventRequest
-	(*DispatchGuildEventResponse)(nil),   // 12: session.v1.DispatchGuildEventResponse
-	(*DispatchChannelEventResponse)(nil), // 13: session.v1.DispatchChannelEventResponse
-	(*DispatchUserEventResponse)(nil),    // 14: session.v1.DispatchUserEventResponse
+	(*ConnectRequest)(nil),                 // 0: session.v1.ConnectRequest
+	(*Identify)(nil),                       // 1: session.v1.Identify
+	(*Resume)(nil),                         // 2: session.v1.Resume
+	(*Heartbeat)(nil),                      // 3: session.v1.Heartbeat
+	(*PresenceUpdate)(nil),                 // 4: session.v1.PresenceUpdate
+	(*SubscribeChannels)(nil),              // 5: session.v1.SubscribeChannels
+	(*Detach)(nil),                         // 6: session.v1.Detach
+	(*ConnectResponse)(nil),                // 7: session.v1.ConnectResponse
+	(*GatewayConnectionCheckpoint)(nil),    // 8: session.v1.GatewayConnectionCheckpoint
+	(*SyncGatewayConnectionsRequest)(nil),  // 9: session.v1.SyncGatewayConnectionsRequest
+	(*SyncGatewayConnectionsResponse)(nil), // 10: session.v1.SyncGatewayConnectionsResponse
+	(*EventEnvelope)(nil),                  // 11: session.v1.EventEnvelope
+	(*DispatchGuildEventRequest)(nil),      // 12: session.v1.DispatchGuildEventRequest
+	(*DispatchChannelEventRequest)(nil),    // 13: session.v1.DispatchChannelEventRequest
+	(*DispatchUserEventRequest)(nil),       // 14: session.v1.DispatchUserEventRequest
+	(*DispatchGuildEventResponse)(nil),     // 15: session.v1.DispatchGuildEventResponse
+	(*DispatchChannelEventResponse)(nil),   // 16: session.v1.DispatchChannelEventResponse
+	(*DispatchUserEventResponse)(nil),      // 17: session.v1.DispatchUserEventResponse
 }
 var file_session_v1_session_proto_depIdxs = []int32{
 	1,  // 0: session.v1.ConnectRequest.identify:type_name -> session.v1.Identify
@@ -2074,22 +2532,25 @@ var file_session_v1_session_proto_depIdxs = []int32{
 	4,  // 3: session.v1.ConnectRequest.presence:type_name -> session.v1.PresenceUpdate
 	5,  // 4: session.v1.ConnectRequest.subscribe:type_name -> session.v1.SubscribeChannels
 	6,  // 5: session.v1.ConnectRequest.detach:type_name -> session.v1.Detach
-	8,  // 6: session.v1.DispatchGuildEventRequest.event:type_name -> session.v1.EventEnvelope
-	8,  // 7: session.v1.DispatchChannelEventRequest.event:type_name -> session.v1.EventEnvelope
-	8,  // 8: session.v1.DispatchUserEventRequest.event:type_name -> session.v1.EventEnvelope
-	0,  // 9: session.v1.SessionService.Connect:input_type -> session.v1.ConnectRequest
-	9,  // 10: session.v1.SessionService.DispatchGuildEvent:input_type -> session.v1.DispatchGuildEventRequest
-	10, // 11: session.v1.SessionService.DispatchChannelEvent:input_type -> session.v1.DispatchChannelEventRequest
-	11, // 12: session.v1.SessionService.DispatchUserEvent:input_type -> session.v1.DispatchUserEventRequest
-	7,  // 13: session.v1.SessionService.Connect:output_type -> session.v1.ConnectResponse
-	12, // 14: session.v1.SessionService.DispatchGuildEvent:output_type -> session.v1.DispatchGuildEventResponse
-	13, // 15: session.v1.SessionService.DispatchChannelEvent:output_type -> session.v1.DispatchChannelEventResponse
-	14, // 16: session.v1.SessionService.DispatchUserEvent:output_type -> session.v1.DispatchUserEventResponse
-	13, // [13:17] is the sub-list for method output_type
-	9,  // [9:13] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	8,  // 6: session.v1.SyncGatewayConnectionsRequest.checkpoints:type_name -> session.v1.GatewayConnectionCheckpoint
+	11, // 7: session.v1.DispatchGuildEventRequest.event:type_name -> session.v1.EventEnvelope
+	11, // 8: session.v1.DispatchChannelEventRequest.event:type_name -> session.v1.EventEnvelope
+	11, // 9: session.v1.DispatchUserEventRequest.event:type_name -> session.v1.EventEnvelope
+	0,  // 10: session.v1.SessionService.Connect:input_type -> session.v1.ConnectRequest
+	9,  // 11: session.v1.SessionService.SyncGatewayConnections:input_type -> session.v1.SyncGatewayConnectionsRequest
+	12, // 12: session.v1.SessionService.DispatchGuildEvent:input_type -> session.v1.DispatchGuildEventRequest
+	13, // 13: session.v1.SessionService.DispatchChannelEvent:input_type -> session.v1.DispatchChannelEventRequest
+	14, // 14: session.v1.SessionService.DispatchUserEvent:input_type -> session.v1.DispatchUserEventRequest
+	7,  // 15: session.v1.SessionService.Connect:output_type -> session.v1.ConnectResponse
+	10, // 16: session.v1.SessionService.SyncGatewayConnections:output_type -> session.v1.SyncGatewayConnectionsResponse
+	15, // 17: session.v1.SessionService.DispatchGuildEvent:output_type -> session.v1.DispatchGuildEventResponse
+	16, // 18: session.v1.SessionService.DispatchChannelEvent:output_type -> session.v1.DispatchChannelEventResponse
+	17, // 19: session.v1.SessionService.DispatchUserEvent:output_type -> session.v1.DispatchUserEventResponse
+	15, // [15:20] is the sub-list for method output_type
+	10, // [10:15] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_session_v1_session_proto_init() }
@@ -2111,7 +2572,7 @@ func file_session_v1_session_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_session_v1_session_proto_rawDesc), len(file_session_v1_session_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

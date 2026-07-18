@@ -93,12 +93,24 @@ send at most 120 Gateway events per minute by default. `IDENTIFY` is additionall
 limited by source scope, while `RESUME` is limited by both source scope and
 logical session ID; only these discrete rate-limit events use Redis.
 
+Gateway owns physical connection liveness. It validates heartbeat sequences,
+returns `HEARTBEAT_ACK` locally, and closes a socket after two missed advertised
+intervals. Only an advanced acknowledged sequence becomes dirty state; dirty
+checkpoints are coalesced, grouped by the owning Session node, and synchronized
+every five seconds in batches of up to 500 by default. Session binding epochs
+make delayed checkpoints from replaced connections harmless.
+
 ## Session
 
 gRPC on `:3006` and the stateful core of realtime delivery. It validates tokens,
 creates or resumes logical sessions, loads guild membership, owns local
 user/guild/channel indexes, authorizes channel subscriptions, assigns sequence
 numbers, and keeps up to 2048 replay events in memory.
+
+Session applies Gateway checkpoint batches to advance acknowledged sequences and
+trim replay windows. Client heartbeats do not directly refresh Redis ownership
+or Presence; logical-session leases are renewed independently of WebSocket
+heartbeat traffic.
 
 After token validation, `IDENTIFY` is limited by user ID and authenticator
 session ID. A Redis claim permits only one live logical session per authenticator

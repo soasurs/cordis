@@ -43,10 +43,11 @@ type replayEntry struct {
 }
 
 type binding struct {
-	id   string
-	send chan *sessionv1.ConnectResponse
-	done chan struct{}
-	once sync.Once
+	id    string
+	epoch uint64
+	send  chan *sessionv1.ConnectResponse
+	done  chan struct{}
+	once  sync.Once
 }
 
 func (b *binding) close() {
@@ -221,6 +222,8 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 	for {
 		select {
 		case frame := <-current.send:
+			frame.SetSessionId(session.id)
+			frame.SetBindingEpoch(current.epoch)
 			if err := stream.Send(frame); err != nil {
 				s.detach(session, current, true)
 				return err
@@ -235,6 +238,44 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 			return stream.Context().Err()
 		}
 	}
+}
+
+func (s *Server) SyncGatewayConnections(
+	_ context.Context,
+	req *sessionv1.SyncGatewayConnectionsRequest,
+) (*sessionv1.SyncGatewayConnectionsResponse, error) {
+	if strings.TrimSpace(req.GetGatewayId()) == "" || strings.TrimSpace(req.GetGatewayGeneration()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "gateway id and generation are required")
+	}
+
+	var applied int32
+	for _, checkpoint := range req.GetCheckpoints() {
+		s.mu.RLock()
+		session := s.sessions[checkpoint.GetSessionId()]
+		s.mu.RUnlock()
+		if session == nil {
+			continue
+		}
+
+		session.mu.Lock()
+		binding := session.binding
+		if binding == nil ||
+			binding.id != checkpoint.GetConnectionId() ||
+			binding.epoch != checkpoint.GetBindingEpoch() ||
+			session.gatewayID != req.GetGatewayId() ||
+			session.gatewayGeneration != req.GetGatewayGeneration() ||
+			checkpoint.GetAcknowledgedSequence() > session.sequence {
+			session.mu.Unlock()
+			continue
+		}
+		acknowledgeLocked(session, checkpoint.GetAcknowledgedSequence())
+		session.mu.Unlock()
+		applied++
+	}
+
+	resp := new(sessionv1.SyncGatewayConnectionsResponse)
+	resp.SetApplied(applied)
+	return resp, nil
 }
 
 func (s *Server) identify(
@@ -285,7 +326,7 @@ func (s *Server) identify(
 		_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 		return nil, err
 	}
-	b := newBinding(connectionID, s.svcCtx.Cfg.Node.QueueSize())
+	b := newBinding(connectionID, 1, s.svcCtx.Cfg.Node.QueueSize())
 	session.binding = b
 	session.bindingEpoch = 1
 
@@ -379,9 +420,9 @@ func (s *Server) resume(
 			replayCount++
 		}
 	}
-	b := newBinding(connectionID, max(s.svcCtx.Cfg.Node.QueueSize(), replayCount+1))
-	session.binding = b
 	session.bindingEpoch++
+	b := newBinding(connectionID, session.bindingEpoch, max(s.svcCtx.Cfg.Node.QueueSize(), replayCount+1))
+	session.binding = b
 	session.gatewayID = gatewayID
 	session.gatewayGeneration = gatewayGeneration
 	session.detachedAt = time.Time{}
@@ -435,7 +476,7 @@ func (s *Server) receiveFrames(stream sessionv1.SessionService_ConnectServer, se
 	}
 }
 
-func (s *Server) heartbeat(ctx context.Context, session *logicalSession, binding *binding, sequence uint64) error {
+func (s *Server) heartbeat(_ context.Context, session *logicalSession, binding *binding, sequence uint64) error {
 	session.mu.Lock()
 	if session.binding != binding {
 		session.mu.Unlock()
@@ -445,25 +486,24 @@ func (s *Server) heartbeat(ctx context.Context, session *logicalSession, binding
 		session.mu.Unlock()
 		return status.Error(codes.InvalidArgument, "heartbeat sequence is ahead of session")
 	}
-	if sequence > session.ackedSequence {
-		session.ackedSequence = sequence
-		cut := 0
-		for cut < len(session.replay) && session.replay[cut].sequence <= sequence {
-			cut++
-		}
-		session.replay = append(session.replay[:0], session.replay[cut:]...)
-	}
+	acknowledgeLocked(session, sequence)
 	session.mu.Unlock()
-	if err := s.refreshOwner(ctx, session); err != nil {
-		return err
-	}
-	if err := s.refreshPresence(ctx, session); err != nil {
-		return err
-	}
 	ack := new(sessionv1.ConnectResponse)
 	ack.SetOpcode(opHeartbeatAck)
 	ack.SetJsonPayload(`null`)
 	return enqueue(binding, ack)
+}
+
+func acknowledgeLocked(session *logicalSession, sequence uint64) {
+	if sequence <= session.ackedSequence {
+		return
+	}
+	session.ackedSequence = sequence
+	cut := 0
+	for cut < len(session.replay) && session.replay[cut].sequence <= sequence {
+		cut++
+	}
+	session.replay = append(session.replay[:0], session.replay[cut:]...)
 }
 
 func (s *Server) updatePresence(ctx context.Context, session *logicalSession, binding *binding, data *sessionv1.PresenceUpdate) error {
@@ -573,8 +613,8 @@ func enqueue(binding *binding, frame *sessionv1.ConnectResponse) error {
 	}
 }
 
-func newBinding(id string, queueSize int) *binding {
-	return &binding{id: id, send: make(chan *sessionv1.ConnectResponse, queueSize), done: make(chan struct{})}
+func newBinding(id string, epoch uint64, queueSize int) *binding {
+	return &binding{id: id, epoch: epoch, send: make(chan *sessionv1.ConnectResponse, queueSize), done: make(chan struct{})}
 }
 
 func cloneFrame(frame *sessionv1.ConnectResponse) *sessionv1.ConnectResponse {

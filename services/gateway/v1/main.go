@@ -34,9 +34,11 @@ func main() {
 	svcCtx := svc.NewServiceContext(*cfg)
 	defer svcCtx.Close()
 	gateway := server.New(svcCtx)
+	defer gateway.Close()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	gateway.StartBackground(ctx)
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenOn,

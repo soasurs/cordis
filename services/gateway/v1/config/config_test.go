@@ -23,6 +23,9 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, int64(100), cfg.Gateway.IPv4PendingHandshakeLimit())
 	require.Equal(t, int64(20), cfg.Gateway.IPv6PendingHandshakeLimit())
 	require.Equal(t, 120, cfg.Gateway.ClientEventLimit())
+	require.Equal(t, 90*time.Second, cfg.Gateway.HeartbeatTimeout())
+	require.Equal(t, 5*time.Second, cfg.Gateway.CheckpointInterval())
+	require.Equal(t, 500, cfg.Gateway.CheckpointLimit())
 	require.Equal(t, "127.0.0.1:6379", cfg.Redis.Host)
 	require.Equal(t, []string{"127.0.0.1:2379"}, cfg.SessionRegistry.Hosts)
 }

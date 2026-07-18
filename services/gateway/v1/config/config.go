@@ -42,6 +42,9 @@ type GatewayConfig struct {
 	MaxPendingHandshakesPerIPv4Scope int64  `json:",default=100"`
 	MaxPendingHandshakesPerIPv6Scope int64  `json:",default=20"`
 	MaxClientEventsPerMinute         int    `json:",default=120"`
+	HeartbeatTimeoutIntervals        int    `json:",default=2"`
+	CheckpointIntervalMs             int    `json:",default=5000"`
+	CheckpointBatchSize              int    `json:",default=500"`
 }
 
 func (c GatewayConfig) WebSocketRoute() string {
@@ -56,6 +59,28 @@ func (c GatewayConfig) HeartbeatInterval() time.Duration {
 		return 45 * time.Second
 	}
 	return time.Duration(c.HeartbeatIntervalMs) * time.Millisecond
+}
+
+func (c GatewayConfig) HeartbeatTimeout() time.Duration {
+	intervals := c.HeartbeatTimeoutIntervals
+	if intervals <= 0 {
+		intervals = 2
+	}
+	return c.HeartbeatInterval() * time.Duration(intervals)
+}
+
+func (c GatewayConfig) CheckpointInterval() time.Duration {
+	if c.CheckpointIntervalMs <= 0 {
+		return 5 * time.Second
+	}
+	return time.Duration(c.CheckpointIntervalMs) * time.Millisecond
+}
+
+func (c GatewayConfig) CheckpointLimit() int {
+	if c.CheckpointBatchSize <= 0 {
+		return 500
+	}
+	return c.CheckpointBatchSize
 }
 
 func (c GatewayConfig) IdentifyTimeout() time.Duration {

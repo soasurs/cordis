@@ -42,6 +42,11 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
 		}
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaGuildChannels, ScopeID: req.GetGuildId(), Limit: s.svcCtx.Cfg.Limits.Channels(),
+		}); err != nil {
+			return err
+		}
 		channels, err := txStore.ListGuildChannels(ctx, req.GetGuildId())
 		if err != nil {
 			return err
@@ -329,6 +334,12 @@ func (s *guildServer) UpsertGuildChannelPermissionOverwrite(
 			return permissionDenied()
 		}
 		if err := validateOverwriteTarget(ctx, txStore, authority, channel.GuildID, req.GetTargetType(), req.GetTargetId()); err != nil {
+			return err
+		}
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaChannelOverwrites, ScopeID: channel.ID, Limit: s.svcCtx.Cfg.Limits.Overwrites(),
+			TargetType: int32(req.GetTargetType()), TargetID: req.GetTargetId(),
+		}); err != nil {
 			return err
 		}
 		overwrite, err = txStore.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{

@@ -122,6 +122,18 @@ func TestCreateMessageRejectsVoiceChannel(t *testing.T) {
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
+func TestMessageResourceLimits(t *testing.T) {
+	attachments := make([]model.Attachment, 11)
+	require.Equal(t, codes.ResourceExhausted, status.Code(validateAttachments(attachments, 10)))
+
+	mentions := make([]int64, 101)
+	for i := range mentions {
+		mentions[i] = int64(i + 1)
+	}
+	require.Equal(t, codes.ResourceExhausted, status.Code(validateMentionUserIDs(mentions, 100)))
+	require.Equal(t, codes.InvalidArgument, status.Code(validateMentionUserIDs([]int64{1, 1}, 100)))
+}
+
 func TestCreateReplyValidatesReferencedChannel(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.messages[100] = &model.Message{

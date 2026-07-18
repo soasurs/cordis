@@ -80,6 +80,20 @@ func TestCreateGuildPublishFailureIsBestEffort(t *testing.T) {
 	require.Len(t, publisher.records, 1)
 }
 
+func TestCreateGuildMapsResourceLimit(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.quotaErr = store.ErrResourceLimitExceeded
+	server := newTestGuildServer(t, fakeStore, nil)
+	req := new(guildv1.CreateGuildRequest)
+	req.SetOwnerId(1001)
+	req.SetName("Cordis")
+
+	_, err := server.CreateGuild(t.Context(), req)
+	require.Equal(t, codes.ResourceExhausted, status.Code(err))
+	require.Len(t, fakeStore.quotas, 1)
+	require.Equal(t, store.QuotaOwnedGuilds, fakeStore.quotas[0].Kind)
+}
+
 func TestGetGuildHidesNonMember(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
@@ -230,6 +244,8 @@ type fakeStore struct {
 	bans         map[int64]map[int64]*model.GuildBan
 	invites      map[string]*model.GuildInvite
 	transactErr  error
+	quotaErr     error
+	quotas       []store.ResourceQuota
 
 	listOverwritesByChannelCalls int
 	listOverwritesByGuildCalls   int
@@ -251,6 +267,11 @@ func (s *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) err
 		return err
 	}
 	return s.transactErr
+}
+
+func (s *fakeStore) CheckResourceQuota(_ context.Context, quota store.ResourceQuota) error {
+	s.quotas = append(s.quotas, quota)
+	return s.quotaErr
 }
 
 func (s *fakeStore) CreateGuild(_ context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error) {

@@ -14,7 +14,30 @@ type Config struct {
 	Database   database.Config `json:",optional"`
 	Kafka      KafkaConfig     `json:",optional"`
 	ReadStates ReadStatesConfig
+	Limits     ResourceLimitsConfig
 	Services   ServiceConfig
+}
+
+// ResourceLimitsConfig controls per-message collection limits.
+type ResourceLimitsConfig struct {
+	AttachmentsPerMessage int `json:",default=10"`
+	MentionsPerMessage    int `json:",default=100"`
+}
+
+// Attachments returns the attachment limit per message.
+func (c ResourceLimitsConfig) Attachments() int {
+	if c.AttachmentsPerMessage <= 0 {
+		return 10
+	}
+	return c.AttachmentsPerMessage
+}
+
+// Mentions returns the unique mentioned-user limit per message.
+func (c ResourceLimitsConfig) Mentions() int {
+	if c.MentionsPerMessage <= 0 {
+		return 100
+	}
+	return c.MentionsPerMessage
 }
 
 // ReadStatesConfig controls bounded authorization fan-out and aggregate query

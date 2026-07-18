@@ -41,7 +41,10 @@ func validateContent(content string) error {
 	return nil
 }
 
-func validateAttachments(attachments []model.Attachment) error {
+func validateAttachments(attachments []model.Attachment, limit int) error {
+	if len(attachments) > limit {
+		return resourceLimitExceeded("attachment limit exceeded")
+	}
 	for _, attachment := range attachments {
 		if strings.TrimSpace(attachment.Key) == "" {
 			return invalidRequest("attachment key is required")
@@ -56,11 +59,19 @@ func validateAttachments(attachments []model.Attachment) error {
 	return nil
 }
 
-func validateMentionUserIDs(userIDs []int64) error {
+func validateMentionUserIDs(userIDs []int64, limit int) error {
+	if len(userIDs) > limit {
+		return resourceLimitExceeded("mention limit exceeded")
+	}
+	seen := make(map[int64]struct{}, len(userIDs))
 	for _, userID := range userIDs {
 		if userID <= 0 {
 			return invalidRequest("mention user id must be positive")
 		}
+		if _, ok := seen[userID]; ok {
+			return invalidRequest("mention user ids must be unique")
+		}
+		seen[userID] = struct{}{}
 	}
 	return nil
 }

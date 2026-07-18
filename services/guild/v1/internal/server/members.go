@@ -53,6 +53,16 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 		} else if !errors.Is(err, sql.ErrNoRows) {
 			return err
 		}
+		if _, err := txStore.GetGuildMember(ctx, req.GetGuildId(), req.GetUserId()); err == nil {
+			return store.ErrMemberAlreadyExists
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaJoinedGuilds, ScopeID: req.GetUserId(), Limit: s.svcCtx.Cfg.Limits.JoinedGuilds(), TargetID: req.GetGuildId(),
+		}); err != nil {
+			return err
+		}
 		member, err = txStore.CreateGuildMember(ctx, req.GetGuildId(), req.GetUserId(), joinedAt)
 		return err
 	})
@@ -252,6 +262,11 @@ func (s *guildServer) TransferGuildOwnership(ctx context.Context, req *guildv1.T
 			return permissionDenied()
 		}
 		if _, err := txStore.GetGuildMember(ctx, req.GetGuildId(), req.GetNewOwnerId()); err != nil {
+			return err
+		}
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaOwnedGuilds, ScopeID: req.GetNewOwnerId(), Limit: s.svcCtx.Cfg.Limits.OwnedGuilds(),
+		}); err != nil {
 			return err
 		}
 		updated, err = txStore.TransferGuildOwnership(ctx, req.GetGuildId(), req.GetActorUserId(), req.GetNewOwnerId())

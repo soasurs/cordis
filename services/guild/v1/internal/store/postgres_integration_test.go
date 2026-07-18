@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -41,6 +42,94 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("guild delete helpers", func(t *testing.T) { testGuildDeleteHelpers(t, store) })
 	t.Run("invites", func(t *testing.T) { testGuildInvites(t, store) })
+	t.Run("resource quotas", func(t *testing.T) { testResourceQuotas(t, store) })
+}
+
+func testResourceQuotas(t *testing.T, store Store) {
+	const ownerID = int64(29001)
+	ctx := t.Context()
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var ready sync.WaitGroup
+	ready.Add(2)
+
+	for i := range 2 {
+		guildID := int64(19001 + i)
+		go func() {
+			ready.Done()
+			<-start
+			results <- store.Transact(ctx, func(txStore Store) error {
+				if err := txStore.CheckResourceQuota(ctx, ResourceQuota{
+					Kind: QuotaOwnedGuilds, ScopeID: ownerID, Limit: 1,
+				}); err != nil {
+					return err
+				}
+				_, err := txStore.CreateGuild(ctx, guildID, ownerID, "quota", "", time.Now().UnixMilli())
+				return err
+			})
+		}()
+	}
+	ready.Wait()
+	close(start)
+
+	errs := []error{<-results, <-results}
+	var succeeded, exhausted int
+	for _, err := range errs {
+		switch {
+		case err == nil:
+			succeeded++
+		case errors.Is(err, ErrResourceLimitExceeded):
+			exhausted++
+		default:
+			require.NoError(t, err)
+		}
+	}
+	require.Equal(t, 1, succeeded)
+	require.Equal(t, 1, exhausted)
+
+	const guildID, memberID, channelID = int64(19100), int64(29100), int64(39100)
+	now := time.Now().UnixMilli()
+	seedGuild(t, store, guildID, memberID)
+	_, err := store.CreateGuildChannel(ctx, channelID, guildID, "general", 1, 0, "", 0, now)
+	require.NoError(t, err)
+	_, err = store.CreateGuildInvite(ctx, &model.GuildInvite{
+		ID: 49100, Code: "quota-active", GuildID: guildID, CreatorUserID: memberID, CreatedAt: now,
+	})
+	require.NoError(t, err)
+	_, err = store.CreateGuildInvite(ctx, &model.GuildInvite{
+		ID: 49101, Code: "quota-expired", GuildID: guildID, CreatorUserID: memberID, ExpiresAt: now - 1, CreatedAt: now,
+	})
+	require.NoError(t, err)
+	_, err = store.CreateGuildInvite(ctx, &model.GuildInvite{
+		ID: 49102, Code: "quota-exhausted", GuildID: guildID, CreatorUserID: memberID, MaxUses: 1, CreatedAt: now,
+	})
+	require.NoError(t, err)
+	_, err = store.ConsumeGuildInvite(ctx, "quota-exhausted", now)
+	require.NoError(t, err)
+	_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
+		ChannelID: channelID, GuildID: guildID, TargetType: 1, TargetID: guildID, CreatedAt: now,
+	})
+	require.NoError(t, err)
+
+	check := func(quota ResourceQuota) error {
+		return store.Transact(ctx, func(txStore Store) error {
+			return txStore.CheckResourceQuota(ctx, quota)
+		})
+	}
+	require.ErrorIs(t, check(ResourceQuota{Kind: QuotaOwnedGuilds, ScopeID: memberID, Limit: 1}), ErrResourceLimitExceeded)
+	require.ErrorIs(t, check(ResourceQuota{Kind: QuotaJoinedGuilds, ScopeID: memberID, Limit: 1}), ErrResourceLimitExceeded)
+	require.ErrorIs(t, check(ResourceQuota{
+		Kind: QuotaJoinedGuilds, ScopeID: memberID, Limit: 1, TargetID: guildID,
+	}), ErrMemberAlreadyExists)
+	require.ErrorIs(t, check(ResourceQuota{Kind: QuotaGuildRoles, ScopeID: guildID, Limit: 1}), ErrResourceLimitExceeded)
+	require.ErrorIs(t, check(ResourceQuota{Kind: QuotaGuildChannels, ScopeID: guildID, Limit: 1}), ErrResourceLimitExceeded)
+	require.ErrorIs(t, check(ResourceQuota{Kind: QuotaActiveInvites, ScopeID: guildID, Limit: 1, Now: now}), ErrResourceLimitExceeded)
+	require.NoError(t, check(ResourceQuota{
+		Kind: QuotaChannelOverwrites, ScopeID: channelID, Limit: 1, TargetType: 1, TargetID: guildID,
+	}))
+	require.ErrorIs(t, check(ResourceQuota{
+		Kind: QuotaChannelOverwrites, ScopeID: channelID, Limit: 1, TargetType: 2, TargetID: memberID,
+	}), ErrResourceLimitExceeded)
 }
 
 func testGuildCRUD(t *testing.T, store Store) {

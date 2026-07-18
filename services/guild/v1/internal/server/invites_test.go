@@ -203,8 +203,14 @@ func TestJoinGuildByInviteCreatesMemberAndPublishesEvent(t *testing.T) {
 	_, err = server.JoinGuildByInvite(t.Context(), req)
 	require.Equal(t, codes.AlreadyExists, status.Code(err))
 
-	// The invite is exhausted after max uses.
+	// The duplicate join does not consume a use; the next new member takes the
+	// final use and only the following join observes exhaustion.
 	req.SetUserId(2003)
+	_, err = server.JoinGuildByInvite(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int32(2), fakeStore.invites["join-me"].Uses)
+
+	req.SetUserId(2004)
 	_, err = server.JoinGuildByInvite(t.Context(), req)
 	require.Equal(t, codes.NotFound, status.Code(err))
 }

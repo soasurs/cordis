@@ -27,16 +27,25 @@ type Config struct {
 }
 
 type NodeConfig struct {
-	ID                   string
-	AdvertiseAddress     string
-	HeartbeatSeconds     int `json:",default=15"`
-	NodeTTLSeconds       int `json:",default=30"`
-	SessionResumeSeconds int `json:",default=120"`
-	MaxReplayEvents      int `json:",default=2048"`
-	RouteRefreshSeconds  int `json:",default=15"`
-	RouteTTLSeconds      int `json:",default=30"`
-	BindingQueueSize     int `json:",default=4096"`
-	DrainSeconds         int `json:",default=30"`
+	ID                    string
+	AdvertiseAddress      string
+	HeartbeatSeconds      int `json:",default=15"`
+	NodeTTLSeconds        int `json:",default=30"`
+	SessionResumeSeconds  int `json:",default=120"`
+	MaxReplayEvents       int `json:",default=2048"`
+	RouteRefreshSeconds   int `json:",default=15"`
+	RouteTTLSeconds       int `json:",default=30"`
+	BindingQueueSize      int `json:",default=4096"`
+	DrainSeconds          int `json:",default=30"`
+	MaxSubscribedChannels int `json:",default=500"`
+}
+
+// SubscribedChannelLimit returns the distinct channel limit per logical session.
+func (c NodeConfig) SubscribedChannelLimit() int {
+	if c.MaxSubscribedChannels <= 0 {
+		return 500
+	}
+	return c.MaxSubscribedChannels
 }
 
 type ServiceConfig struct {

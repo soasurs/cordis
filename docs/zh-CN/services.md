@@ -28,9 +28,13 @@
 
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 
+持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
+
 ## Message
 
 监听 `:3002`，拥有消息、附件、提及和回复关系。创建、读取、更新和删除操作先调用 Guild 授权。列表使用 `before`、`after` 或 `around` 游标分页。当前没有反应或自定义 emoji RPC。
+
+消息创建和更新默认最多携带 10 个附件和 100 个不重复的被提及用户 ID；两项上限均由 Message 服务配置。
 
 `GetReadStates` 会批量计算频道已读状态、未读消息数和未读提及数。一个请求内的频道授权 fan-out 使用配置化 worker 上限，避免无界跨服务调用；服务级 weighted semaphore 按去重后的频道数计权，限制单个 Message 实例上的总工作量。API 还使用进程内 keyed semaphore 限制每用户并发，并继续应用 authenticated-user 通用配额。这些并发容量都是单实例限制，不是全集群共享上限。
 
@@ -51,6 +55,8 @@
 - 分配递增 sequence，保存最多 2048 条内存回放记录；
 - 处理 heartbeat ACK、Presence 更新、detach 和 resume；
 - 接收 Dispatcher 的 Guild、频道和用户事件并本地 fanout。
+
+每个逻辑 Session 默认最多订阅 500 个不同频道。请求导致总数超出配置上限时会整体失败，不会部分添加频道。
 
 断线 Session 默认保留 120 秒。Resume 必须路由回原 Session 节点；节点进程丢失会同时丢失内存 Session。Session 节点通过 etcd 租约注册；进入 drain 后发布 draining 状态、拒绝新连接，并分批要求现有客户端重新 IDENTIFY。
 

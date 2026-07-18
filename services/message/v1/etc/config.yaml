@@ -39,6 +39,10 @@ readStates:
   authorizationConcurrency: 8
   maxConcurrentChannels: 800
 
+limits:
+  attachmentsPerMessage: 10
+  mentionsPerMessage: 100
+
 services:
   guild:
     endpoints:

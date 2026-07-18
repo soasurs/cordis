@@ -13,7 +13,37 @@ import (
 var (
 	ErrMemberAlreadyExists = errors.New("member already exists")
 	ErrUserBanned          = errors.New("user is banned")
+	// ErrResourceLimitExceeded indicates that a persistent resource quota is full.
+	ErrResourceLimitExceeded = errors.New("resource limit exceeded")
 )
+
+// QuotaKind identifies one independently serialized resource quota.
+type QuotaKind string
+
+const (
+	// QuotaOwnedGuilds limits active guild ownership by user.
+	QuotaOwnedGuilds QuotaKind = "owned_guilds"
+	// QuotaJoinedGuilds limits active guild memberships by user.
+	QuotaJoinedGuilds QuotaKind = "joined_guilds"
+	// QuotaGuildRoles limits active roles by guild, including the default role.
+	QuotaGuildRoles QuotaKind = "guild_roles"
+	// QuotaGuildChannels limits active channels by guild.
+	QuotaGuildChannels QuotaKind = "guild_channels"
+	// QuotaActiveInvites limits usable invites by guild.
+	QuotaActiveInvites QuotaKind = "active_invites"
+	// QuotaChannelOverwrites limits permission overwrites by channel.
+	QuotaChannelOverwrites QuotaKind = "channel_overwrites"
+)
+
+// ResourceQuota describes a quota check performed inside a store transaction.
+type ResourceQuota struct {
+	Kind       QuotaKind
+	ScopeID    int64
+	Limit      int
+	Now        int64
+	TargetType int32
+	TargetID   int64
+}
 
 type UpdateGuildParams struct {
 	GuildID int64
@@ -63,6 +93,7 @@ type UpdateGuildChannelParams struct {
 
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
+	CheckResourceQuota(ctx context.Context, quota ResourceQuota) error
 	CreateGuild(ctx context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error)
 	CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error)
 	CreateDefaultRole(ctx context.Context, guildID, createdAt int64) error

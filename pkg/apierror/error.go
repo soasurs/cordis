@@ -111,6 +111,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeInvalidArgument,
 		message:     "Invalid request.",
 	},
+	{Domain: rpcerror.MessageDomain, Reason: rpcerror.MessageResourceLimitExceeded}: {
+		connectCode: connect.CodeResourceExhausted,
+		publicCode:  CodeResourceExhausted,
+		message:     "Resource limit exceeded.",
+	},
 	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorInvalidPasswordResetToken}: {
 		connectCode: connect.CodeInvalidArgument,
 		publicCode:  CodeInvalidArgument,
@@ -170,6 +175,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		connectCode: connect.CodeNotFound,
 		publicCode:  CodeNotFound,
 		message:     "Resource not found.",
+	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildResourceLimitExceeded}: {
+		connectCode: connect.CodeResourceExhausted,
+		publicCode:  CodeResourceExhausted,
+		message:     "Resource limit exceeded.",
 	},
 }
 

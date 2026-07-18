@@ -47,12 +47,20 @@ permissions. Channel evaluation applies the default role, member roles, and
 member overwrites. Guild publishes dot-separated events directly to
 `cordis.guild.events.v1`.
 
+Persistent Guild resources have configuration-driven hard limits. The defaults
+are 10 owned and 100 joined guilds per user, 250 roles and 500 channels per
+guild, 100 active invites per guild, and 100 permission overwrites per channel.
+Quota checks and writes are serialized in the same PostgreSQL transaction.
+
 ## Message
 
 gRPC on `:3002`. Owns messages, attachments, mentions, and replies. Create,
 read, update, and delete operations ask Guild for authorization. Listing uses
 `before`, `after`, or `around` cursor pagination. Reaction and custom emoji RPCs
 are not currently implemented.
+
+Create and update requests allow at most 10 attachments and 100 unique mentioned
+user IDs by default. Both limits are configured by the Message service.
 
 `GetReadStates` batches channel read-state, unread-message, and unread-mention
 calculation. Channel authorization fan-out within one request uses a configured
@@ -81,6 +89,10 @@ gRPC on `:3006` and the stateful core of realtime delivery. It validates tokens,
 creates or resumes logical sessions, loads guild membership, owns local
 user/guild/channel indexes, authorizes channel subscriptions, assigns sequence
 numbers, and keeps up to 2048 replay events in memory.
+
+A logical session may subscribe to at most 500 distinct channels by default.
+Requests that would exceed the configured total fail atomically without adding
+any of the requested channels.
 
 Detached sessions live for 120 seconds by default. Resume must reach the
 original node. Session nodes register through etcd leases. Graceful drain

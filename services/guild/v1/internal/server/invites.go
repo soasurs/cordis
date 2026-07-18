@@ -33,14 +33,6 @@ func (s *guildServer) CreateGuildInvite(ctx context.Context, req *guildv1.Create
 	if req.GetExpiresInMs() < 0 {
 		return nil, invalidRequest("expires in must not be negative")
 	}
-	authority, err := loadMemberAuthority(ctx, s.svcCtx.Store, req.GetGuildId(), req.GetActorUserId())
-	if err != nil {
-		return nil, mapStoreError(err)
-	}
-	if !authority.has(PermissionCreateInvite) {
-		return nil, permissionDenied()
-	}
-
 	createdAt := time.Now().UnixMilli()
 	var expiresAt int64
 	if req.GetExpiresInMs() > 0 {
@@ -53,14 +45,29 @@ func (s *guildServer) CreateGuildInvite(ctx context.Context, req *guildv1.Create
 		if err != nil {
 			return nil, err
 		}
-		created, err = s.svcCtx.Store.CreateGuildInvite(ctx, &model.GuildInvite{
-			ID:            s.svcCtx.Snowflake.Generate().Int64(),
-			Code:          code,
-			GuildID:       req.GetGuildId(),
-			CreatorUserID: req.GetActorUserId(),
-			MaxUses:       req.GetMaxUses(),
-			ExpiresAt:     expiresAt,
-			CreatedAt:     createdAt,
+		err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+			authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
+			if err != nil {
+				return err
+			}
+			if !authority.has(PermissionCreateInvite) {
+				return permissionDenied()
+			}
+			if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+				Kind: store.QuotaActiveInvites, ScopeID: req.GetGuildId(), Limit: s.svcCtx.Cfg.Limits.ActiveInvites(), Now: createdAt,
+			}); err != nil {
+				return err
+			}
+			created, err = txStore.CreateGuildInvite(ctx, &model.GuildInvite{
+				ID:            s.svcCtx.Snowflake.Generate().Int64(),
+				Code:          code,
+				GuildID:       req.GetGuildId(),
+				CreatorUserID: req.GetActorUserId(),
+				MaxUses:       req.GetMaxUses(),
+				ExpiresAt:     expiresAt,
+				CreatedAt:     createdAt,
+			})
+			return err
 		})
 		if err == nil {
 			break
@@ -193,8 +200,25 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *guildv1.JoinGu
 	var guild *model.Guild
 	var member *model.GuildMember
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
-		// Consuming first keeps the use-count check atomic; a failed join
-		// below rolls the increment back together with the membership.
+		preview, err := txStore.GetGuildInvite(ctx, code)
+		if errors.Is(err, sql.ErrNoRows) || (err == nil && !inviteUsable(preview, joinedAt)) {
+			return inviteNotFound()
+		}
+		if err != nil {
+			return err
+		}
+		if _, err := txStore.GetGuildMember(ctx, preview.GuildID, req.GetUserId()); err == nil {
+			return store.ErrMemberAlreadyExists
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaJoinedGuilds, ScopeID: req.GetUserId(), Limit: s.svcCtx.Cfg.Limits.JoinedGuilds(), TargetID: preview.GuildID,
+		}); err != nil {
+			return err
+		}
+		// Consumption and membership creation remain in one transaction, so a
+		// failed membership write cannot burn an invite use.
 		invite, err := txStore.ConsumeGuildInvite(ctx, code, joinedAt)
 		if errors.Is(err, sql.ErrNoRows) {
 			return inviteNotFound()

@@ -461,6 +461,16 @@ func (s *Server) subscribeChannels(ctx context.Context, session *logicalSession,
 		session.mu.Unlock()
 		return status.Error(codes.Aborted, "stale session binding")
 	}
+	additional := 0
+	for _, channelID := range ids {
+		if _, subscribed := session.channels[channelID]; !subscribed {
+			additional++
+		}
+	}
+	if len(session.channels)+additional > s.svcCtx.Cfg.Node.SubscribedChannelLimit() {
+		session.mu.Unlock()
+		return status.Error(codes.ResourceExhausted, "subscribed channel limit exceeded")
+	}
 	for _, channelID := range ids {
 		session.channels[channelID] = struct{}{}
 		session.channelGuilds[channelID] = channelGuilds[channelID]

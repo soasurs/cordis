@@ -27,6 +27,16 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 	createdAt := time.Now().UnixMilli()
 	var created *model.Guild
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaOwnedGuilds, ScopeID: req.GetOwnerId(), Limit: s.svcCtx.Cfg.Limits.OwnedGuilds(),
+		}); err != nil {
+			return err
+		}
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaJoinedGuilds, ScopeID: req.GetOwnerId(), Limit: s.svcCtx.Cfg.Limits.JoinedGuilds(), TargetID: guildID,
+		}); err != nil {
+			return err
+		}
 		guild, err := txStore.CreateGuild(ctx, guildID, req.GetOwnerId(), name, req.GetIconUri(), createdAt)
 		if err != nil {
 			return err

@@ -16,4 +16,10 @@ func TestLoadConfig(t *testing.T) {
 	require.Empty(t, cfg.Kafka.Seeds)
 	require.NotEmpty(t, cfg.Database.DataSource)
 	require.False(t, cfg.Services.User.Middlewares.Duration)
+	require.Equal(t, 10, cfg.Limits.OwnedGuilds())
+	require.Equal(t, 100, cfg.Limits.JoinedGuilds())
+	require.Equal(t, 250, cfg.Limits.Roles())
+	require.Equal(t, 500, cfg.Limits.Channels())
+	require.Equal(t, 100, cfg.Limits.ActiveInvites())
+	require.Equal(t, 100, cfg.Limits.Overwrites())
 }

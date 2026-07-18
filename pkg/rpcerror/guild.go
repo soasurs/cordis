@@ -3,9 +3,10 @@ package rpcerror
 const (
 	GuildDomain = "guild.cordis"
 
-	GuildNotFound            = "guild_not_found"
-	GuildPermissionDenied    = "guild_permission_denied"
-	GuildInvalidRequest      = "guild_invalid_request"
-	GuildMemberAlreadyExists = "guild_member_already_exists"
-	GuildInviteNotFound      = "guild_invite_not_found"
+	GuildNotFound              = "guild_not_found"
+	GuildPermissionDenied      = "guild_permission_denied"
+	GuildInvalidRequest        = "guild_invalid_request"
+	GuildMemberAlreadyExists   = "guild_member_already_exists"
+	GuildInviteNotFound        = "guild_invite_not_found"
+	GuildResourceLimitExceeded = "guild_resource_limit_exceeded"
 )

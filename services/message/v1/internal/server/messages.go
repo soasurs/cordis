@@ -21,7 +21,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		return nil, err
 	}
 	attachments := attachmentsFromProto(req.GetAttachments())
-	if err := validateAttachments(attachments); err != nil {
+	if err := validateAttachments(attachments, s.svcCtx.Cfg.Limits.Attachments()); err != nil {
 		return nil, err
 	}
 	if err := validateFlags(req.GetFlags()); err != nil {
@@ -44,7 +44,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if (req.GetReferencedMessageId() == 0) != (req.GetReferencedChannelId() == 0) {
 		return nil, invalidRequest("referenced message and channel must be set together")
 	}
-	if err := validateMentionUserIDs(req.GetMentionUserIds()); err != nil {
+	if err := validateMentionUserIDs(req.GetMentionUserIds(), s.svcCtx.Cfg.Limits.Mentions()); err != nil {
 		return nil, err
 	}
 	if err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetAuthorId(), permissionSendMessages); err != nil {
@@ -145,13 +145,13 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	}
 	if req.HasAttachments() {
 		attachments := attachmentsFromProto(req.GetAttachments().GetAttachments())
-		if err := validateAttachments(attachments); err != nil {
+		if err := validateAttachments(attachments, s.svcCtx.Cfg.Limits.Attachments()); err != nil {
 			return nil, err
 		}
 		params.Attachments = &attachments
 	}
 	if req.HasMentions() {
-		if err := validateMentionUserIDs(req.GetMentions().GetUserIds()); err != nil {
+		if err := validateMentionUserIDs(req.GetMentions().GetUserIds(), s.svcCtx.Cfg.Limits.Mentions()); err != nil {
 			return nil, err
 		}
 	}

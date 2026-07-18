@@ -33,6 +33,20 @@ func TestFromRPCGuildMemberAlreadyExists(t *testing.T) {
 	require.Equal(t, CodeAlreadyExists, publicErrorInfo(t, connectErr).GetCode())
 }
 
+func TestFromRPCResourceLimitExceeded(t *testing.T) {
+	for _, tc := range []struct {
+		domain string
+		reason string
+	}{
+		{rpcerror.GuildDomain, rpcerror.GuildResourceLimitExceeded},
+		{rpcerror.MessageDomain, rpcerror.MessageResourceLimitExceeded},
+	} {
+		err := rpcerror.New(codes.ResourceExhausted, tc.domain, tc.reason, "resource limit exceeded")
+		connectErr := FromRPC(err)
+		require.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(connectErr))
+	}
+}
+
 func TestFromRPCStatusCode(t *testing.T) {
 	connectErr := FromRPC(status.Error(codes.InvalidArgument, "bad request"))
 

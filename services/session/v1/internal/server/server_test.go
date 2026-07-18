@@ -81,6 +81,29 @@ func TestGatewayPayloadEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	require.JSONEq(t, `["9007199254740993"]`, string(subscribed["channel_ids"]))
 }
 
+func TestSubscribeEnforcesTotalChannelLimitAtomically(t *testing.T) {
+	server := newTestServer()
+	server.svcCtx.Cfg.Node.MaxSubscribedChannels = 2
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-limit", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{10, 11}))
+	// Re-subscribing an existing channel consumes no additional capacity.
+	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{11}))
+
+	err = server.subscribeChannels(t.Context(), session, binding, []int64{12})
+	require.Equal(t, codes.ResourceExhausted, status.Code(err))
+	session.mu.Lock()
+	require.Len(t, session.channels, 2)
+	require.NotContains(t, session.channels, int64(12))
+	session.mu.Unlock()
+}
+
 func TestReplayWindowKeepsLatestEvents(t *testing.T) {
 	server := newTestServer()
 	server.svcCtx.Cfg.Node.MaxReplayEvents = 3

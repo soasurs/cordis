@@ -35,6 +35,11 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *guildv1.CreateGu
 		if !authority.canGrantPermissions(req.GetPermissions()) {
 			return permissionDenied()
 		}
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaGuildRoles, ScopeID: req.GetGuildId(), Limit: s.svcCtx.Cfg.Limits.Roles(),
+		}); err != nil {
+			return err
+		}
 		roles, err := txStore.ListGuildRoles(ctx, req.GetGuildId())
 		if err != nil {
 			return err

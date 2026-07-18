@@ -23,6 +23,10 @@ func permissionDenied() error {
 	return rpcerror.New(codes.PermissionDenied, rpcerror.MessageDomain, rpcerror.MessagePermissionDenied, "permission denied")
 }
 
+func resourceLimitExceeded(message string) error {
+	return rpcerror.New(codes.ResourceExhausted, rpcerror.MessageDomain, rpcerror.MessageResourceLimitExceeded, message)
+}
+
 func mapStoreError(err error) error {
 	if err == nil {
 		return nil

@@ -46,6 +46,7 @@ node:
   routeTTLSeconds: 30
   bindingQueueSize: 4096
   drainSeconds: 30
+  maxSubscribedChannels: 500
 
 services:
   authenticator:

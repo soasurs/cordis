@@ -35,6 +35,14 @@ kafka:
   topic: cordis.guild.events.v1
   publishTimeoutMs: 1000
 
+limits:
+  ownedGuildsPerUser: 10
+  joinedGuildsPerUser: 100
+  rolesPerGuild: 250
+  channelsPerGuild: 500
+  activeInvitesPerGuild: 100
+  overwritesPerChannel: 100
+
 services:
   user:
     endpoints:

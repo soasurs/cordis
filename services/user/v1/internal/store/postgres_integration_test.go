@@ -227,6 +227,10 @@ func testRelationships(t *testing.T, store Store) {
 	ctx := t.Context()
 	now := time.Now().UnixMilli()
 
+	require.NoError(t, store.Transact(ctx, func(txStore Store) error {
+		return txStore.LockRelationshipPair(ctx, userB, userA)
+	}))
+
 	require.NoError(t, store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userB, Type: model.RelationshipOutgoing, CreatedAt: now}))
 	require.NoError(t, store.UpsertRelationship(ctx, &model.Relationship{UserID: userB, TargetID: userA, Type: model.RelationshipIncoming, CreatedAt: now}))
 	require.NoError(t, store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userC, Type: model.RelationshipBlocked, CreatedAt: now}))

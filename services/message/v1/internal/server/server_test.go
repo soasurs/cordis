@@ -356,6 +356,7 @@ type fakeGuildClient struct {
 	allowManageMessages bool
 	denyAll             bool
 	channelType         guildv1.GuildChannelType
+	authorizeRequests   []*guildv1.AuthorizeGuildChannelRequest
 }
 
 func (f *fakeGuildClient) AuthorizeGuildChannel(
@@ -363,6 +364,7 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	req *guildv1.AuthorizeGuildChannelRequest,
 	_ ...grpc.CallOption,
 ) (*guildv1.AuthorizeGuildChannelResponse, error) {
+	f.authorizeRequests = append(f.authorizeRequests, req)
 	resp := new(guildv1.AuthorizeGuildChannelResponse)
 	resp.SetAllowed(!f.denyAll && (req.GetPermission()&permissionManageMessages == 0 || f.allowManageMessages))
 	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
@@ -663,6 +665,51 @@ func TestAckMessagePermissionDenied(t *testing.T) {
 
 	_, err := server.AckMessage(t.Context(), req)
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestGetReadStatesAuthorizesAndDeduplicatesChannels(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.readStates[1] = map[int64]int64{10: 50}
+	fakeGuild := new(fakeGuildClient)
+	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), fakeGuild)
+
+	req := new(messagev1.GetReadStatesRequest)
+	req.SetUserId(1)
+	req.SetChannelIds([]int64{10, 10, 20})
+	resp, err := server.GetReadStates(t.Context(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.GetStates(), 2)
+	require.Equal(t, int64(10), resp.GetStates()[0].GetChannelId())
+	require.Equal(t, int64(20), resp.GetStates()[1].GetChannelId())
+	require.Len(t, fakeGuild.authorizeRequests, 2)
+	require.Equal(t, permissionViewChannel, fakeGuild.authorizeRequests[0].GetPermission())
+}
+
+func TestGetReadStatesRejectsUnauthorizedChannel(t *testing.T) {
+	fakeGuild := &fakeGuildClient{denyAll: true}
+	server := newTestMessageServerWithGuild(t, newFakeStore(), new(fakePublisher), fakeGuild)
+
+	req := new(messagev1.GetReadStatesRequest)
+	req.SetUserId(1)
+	req.SetChannelIds([]int64{10})
+	_, err := server.GetReadStates(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestGetReadStatesRejectsInvalidBatch(t *testing.T) {
+	server := newTestMessageServer(t, newFakeStore(), new(fakePublisher))
+
+	req := new(messagev1.GetReadStatesRequest)
+	req.SetUserId(1)
+	req.SetChannelIds(make([]int64, maxReadStateChannels+1))
+	_, err := server.GetReadStates(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest))
+
+	req.SetChannelIds([]int64{0})
+	_, err = server.GetReadStates(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest))
 }
 
 func cloneMessage(message *model.Message) *model.Message {

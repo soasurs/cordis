@@ -260,6 +260,12 @@ type fakeStore struct {
 	getUserWithEmailErr error
 	emailAvailable      bool
 	relationships       map[[2]int64]*model.Relationship
+	lockedPairs         [][2]int64
+}
+
+func (s *fakeStore) LockRelationshipPair(_ context.Context, userID, targetID int64) error {
+	s.lockedPairs = append(s.lockedPairs, [2]int64{userID, targetID})
+	return nil
 }
 
 func newFakeStore() *fakeStore {

@@ -18,6 +18,19 @@ type relationshipRow struct {
 	UpdatedAt int64 `db:"updated_at"`
 }
 
+// LockRelationshipPair serializes mutations involving either user. Callers
+// must invoke it inside a transaction before reading relationship state.
+func (s *SQLStore) LockRelationshipPair(ctx context.Context, userID, targetID int64) error {
+	if targetID < userID {
+		userID, targetID = targetID, userID
+	}
+	if _, err := s.q.ExecContext(ctx, LockRelationshipUserStatement, userID); err != nil {
+		return err
+	}
+	_, err := s.q.ExecContext(ctx, LockRelationshipUserStatement, targetID)
+	return err
+}
+
 func (s *SQLStore) UpsertRelationship(ctx context.Context, relationship *model.Relationship) error {
 	_, err := s.q.ExecContext(
 		ctx,

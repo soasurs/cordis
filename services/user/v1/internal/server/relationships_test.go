@@ -82,6 +82,7 @@ func TestSendFriendRequestCreatesPendingPair(t *testing.T) {
 
 	require.Equal(t, model.RelationshipOutgoing, fake.relationships[pairKey(1001, 2002)].Type)
 	require.Equal(t, model.RelationshipIncoming, fake.relationships[pairKey(2002, 1001)].Type)
+	require.Equal(t, [][2]int64{{1001, 2002}}, fake.lockedPairs)
 
 	require.Len(t, publisher.records, 2)
 	require.Equal(t, "1001", publisher.records[0].key)

@@ -3,6 +3,8 @@
 package store
 
 import (
+	"context"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -15,7 +17,7 @@ import (
 
 func TestRedisStoreGatewayRoutes(t *testing.T) {
 	rds := newIntegrationRedis(t)
-	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute)
+	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
 	ctx := t.Context()
 	suffix := time.Now().UnixNano()
 	gatewayA := "gw-a-" + time.Now().Format("150405.000000000")
@@ -68,7 +70,7 @@ func TestRedisStoreGatewayRoutes(t *testing.T) {
 
 func TestRedisStoreFiltersStaleGeneration(t *testing.T) {
 	rds := newIntegrationRedis(t)
-	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute)
+	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
 	ctx := t.Context()
 	gatewayID := "gw-stale-" + time.Now().Format("150405.000000000")
 	channelID := time.Now().UnixNano()
@@ -99,7 +101,7 @@ func TestRedisStoreFiltersStaleGeneration(t *testing.T) {
 
 func TestRedisStoreFiltersExpiredRoutes(t *testing.T) {
 	rds := newIntegrationRedis(t)
-	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute)
+	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
 	ctx := t.Context()
 	gatewayID := "gw-expired-" + time.Now().Format("150405.000000000")
 	channelID := time.Now().UnixNano()
@@ -126,7 +128,7 @@ func TestRedisStoreFiltersExpiredRoutes(t *testing.T) {
 
 func TestRedisStoreUserPresenceLifecycle(t *testing.T) {
 	rds := newIntegrationRedis(t)
-	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute)
+	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
 	ctx := t.Context()
 	userID := time.Now().UnixNano()
 	sessionA := "sess-a-" + time.Now().Format("150405.000000000")
@@ -192,7 +194,7 @@ func TestRedisStoreUserPresenceLifecycle(t *testing.T) {
 
 func TestRedisStoreInvisiblePresenceResolvesOffline(t *testing.T) {
 	rds := newIntegrationRedis(t)
-	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute)
+	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
 	ctx := t.Context()
 	userID := time.Now().UnixNano()
 	sessionID := "sess-invisible-" + time.Now().Format("150405.000000000")
@@ -219,7 +221,7 @@ func TestRedisStoreInvisiblePresenceResolvesOffline(t *testing.T) {
 
 func TestRedisStoreFiltersExpiredUserSessions(t *testing.T) {
 	rds := newIntegrationRedis(t)
-	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute)
+	store := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
 	ctx := t.Context()
 	userID := time.Now().UnixNano()
 	sessionID := "sess-expired-" + time.Now().Format("150405.000000000")
@@ -244,6 +246,50 @@ func TestRedisStoreFiltersExpiredUserSessions(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, PresenceStatusOffline, resolved[0].Status)
 	require.Empty(t, resolved[0].Sessions)
+}
+
+func TestRedisStoreSerializesUserMutations(t *testing.T) {
+	rds := newIntegrationRedis(t)
+	storeA := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
+	storeB := NewRedisStore(rds, time.Minute, time.Minute, time.Minute, time.Second)
+	ctx := t.Context()
+	userID := time.Now().UnixNano()
+	t.Cleanup(func() {
+		_, _ = rds.DelCtx(ctx, userMutationLockKey(userID))
+	})
+
+	firstEntered := make(chan struct{})
+	releaseFirst := make(chan struct{})
+	firstDone := make(chan error, 1)
+	go func() {
+		firstDone <- storeA.WithUserMutation(ctx, userID, func(context.Context) error {
+			close(firstEntered)
+			<-releaseFirst
+			return nil
+		})
+	}()
+	select {
+	case <-firstEntered:
+	case <-time.After(time.Second):
+		t.Fatal("first mutation did not acquire the lock")
+	}
+
+	contendingCtx, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	err := storeB.WithUserMutation(contendingCtx, userID, func(context.Context) error {
+		return errors.New("second mutation entered while the first held the lock")
+	})
+	cancel()
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+
+	close(releaseFirst)
+	require.NoError(t, <-firstDone)
+	require.NoError(t, storeB.WithUserMutation(ctx, userID, func(context.Context) error { return nil }))
+
+	mutationErr := errors.New("mutation failed")
+	require.ErrorIs(t, storeA.WithUserMutation(ctx, userID, func(context.Context) error {
+		return mutationErr
+	}), mutationErr)
+	require.NoError(t, storeB.WithUserMutation(ctx, userID, func(context.Context) error { return nil }))
 }
 
 func newIntegrationRedis(t *testing.T) *redis.Redis {

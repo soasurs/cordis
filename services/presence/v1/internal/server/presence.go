@@ -90,20 +90,20 @@ func (s *presenceServer) RegisterUserSession(ctx context.Context, req *presencev
 		return nil, err
 	}
 
-	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
-	presence, err := s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
-		UserID:      req.GetUserId(),
-		SessionID:   req.GetSessionId(),
-		GatewayID:   req.GetGatewayId(),
-		Generation:  req.GetGeneration(),
-		DeviceType:  req.GetDeviceType(),
-		Status:      protoStatusToStore(req.GetStatus()),
-		ClientState: protoClientStateToStore(req.GetClientState()),
+	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
+		return s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
+			UserID:      req.GetUserId(),
+			SessionID:   req.GetSessionId(),
+			GatewayID:   req.GetGatewayId(),
+			Generation:  req.GetGeneration(),
+			DeviceType:  req.GetDeviceType(),
+			Status:      protoStatusToStore(req.GetStatus()),
+			ClientState: protoClientStateToStore(req.GetClientState()),
+		})
 	})
 	if err != nil {
 		return nil, err
 	}
-	s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, known, presence.Status)
 
 	resp := new(presencev1.RegisterUserSessionResponse)
 	resp.SetPresence(userPresenceToProto(presence))
@@ -115,20 +115,20 @@ func (s *presenceServer) RefreshUserSession(ctx context.Context, req *presencev1
 		return nil, err
 	}
 
-	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
-	presence, err := s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
-		UserID:      req.GetUserId(),
-		SessionID:   req.GetSessionId(),
-		GatewayID:   req.GetGatewayId(),
-		Generation:  req.GetGeneration(),
-		DeviceType:  req.GetDeviceType(),
-		Status:      protoStatusToStore(req.GetStatus()),
-		ClientState: protoClientStateToStore(req.GetClientState()),
+	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
+		return s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
+			UserID:      req.GetUserId(),
+			SessionID:   req.GetSessionId(),
+			GatewayID:   req.GetGatewayId(),
+			Generation:  req.GetGeneration(),
+			DeviceType:  req.GetDeviceType(),
+			Status:      protoStatusToStore(req.GetStatus()),
+			ClientState: protoClientStateToStore(req.GetClientState()),
+		})
 	})
 	if err != nil {
 		return nil, err
 	}
-	s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, known, presence.Status)
 
 	resp := new(presencev1.RefreshUserSessionResponse)
 	resp.SetPresence(userPresenceToProto(presence))
@@ -143,17 +143,17 @@ func (s *presenceServer) UpdateUserPresence(ctx context.Context, req *presencev1
 		return nil, errSessionIDRequired
 	}
 
-	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
-	presence, err := s.svcCtx.Store.UpdateUserSession(ctx, store.UserSession{
-		UserID:      req.GetUserId(),
-		SessionID:   req.GetSessionId(),
-		Status:      protoStatusToStore(req.GetStatus()),
-		ClientState: protoClientStateToStore(req.GetClientState()),
+	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
+		return s.svcCtx.Store.UpdateUserSession(ctx, store.UserSession{
+			UserID:      req.GetUserId(),
+			SessionID:   req.GetSessionId(),
+			Status:      protoStatusToStore(req.GetStatus()),
+			ClientState: protoClientStateToStore(req.GetClientState()),
+		})
 	})
 	if err != nil {
 		return nil, err
 	}
-	s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, known, presence.Status)
 
 	resp := new(presencev1.UpdateUserPresenceResponse)
 	resp.SetPresence(userPresenceToProto(presence))
@@ -168,19 +168,45 @@ func (s *presenceServer) RemoveUserSession(ctx context.Context, req *presencev1.
 		return nil, errSessionIDRequired
 	}
 
-	oldStatus, known := s.previousStatus(ctx, req.GetUserId())
-	if err := s.svcCtx.Store.RemoveUserSession(ctx, req.GetUserId(), req.GetSessionId()); err != nil {
-		return nil, err
-	}
-	if known {
-		if presences, err := s.svcCtx.Store.ResolveUsersPresence(ctx, []int64{req.GetUserId()}); err == nil && len(presences) == 1 {
-			s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, true, presences[0].Status)
+	err := s.svcCtx.Store.WithUserMutation(ctx, req.GetUserId(), func(ctx context.Context) error {
+		oldStatus, known := s.previousStatus(ctx, req.GetUserId())
+		if err := s.svcCtx.Store.RemoveUserSession(ctx, req.GetUserId(), req.GetSessionId()); err != nil {
+			return err
 		}
+		if known {
+			if presences, err := s.svcCtx.Store.ResolveUsersPresence(ctx, []int64{req.GetUserId()}); err == nil && len(presences) == 1 {
+				s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, true, presences[0].Status)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	resp := new(presencev1.RemoveUserSessionResponse)
 	resp.SetOk(true)
 	return resp, nil
+}
+
+func (s *presenceServer) mutateUserPresence(
+	ctx context.Context,
+	userID int64,
+	guildIDs []int64,
+	mutate func(context.Context) (store.UserPresence, error),
+) (store.UserPresence, error) {
+	var presence store.UserPresence
+	err := s.svcCtx.Store.WithUserMutation(ctx, userID, func(ctx context.Context) error {
+		oldStatus, known := s.previousStatus(ctx, userID)
+		var err error
+		presence, err = mutate(ctx)
+		if err != nil {
+			return err
+		}
+		s.publishTransition(ctx, userID, guildIDs, oldStatus, known, presence.Status)
+		return nil
+	})
+	return presence, err
 }
 
 func (s *presenceServer) ResolveUsersPresence(ctx context.Context, req *presencev1.ResolveUsersPresenceRequest) (*presencev1.ResolveUsersPresenceResponse, error) {

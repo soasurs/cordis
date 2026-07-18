@@ -50,6 +50,7 @@ type Store interface {
 	RefreshChannelRoutes(ctx context.Context, gatewayID, generation string, channelIDs []int64) (int, error)
 	DetachChannelRoute(ctx context.Context, gatewayID, generation string, channelID int64) error
 	ResolveChannelGateways(ctx context.Context, channelID int64) ([]Gateway, error)
+	WithUserMutation(ctx context.Context, userID int64, fn func(context.Context) error) error
 	UpsertUserSession(ctx context.Context, session UserSession) (UserPresence, error)
 	UpdateUserSession(ctx context.Context, session UserSession) (UserPresence, error)
 	RemoveUserSession(ctx context.Context, userID int64, sessionID string) error

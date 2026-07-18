@@ -45,7 +45,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	}
 
 	return Dependencies{
-		Store: store.NewRedisStore(rds, cfg.Presence.GatewayTTL(), cfg.Presence.RouteTTL(), cfg.Presence.UserSessionTTL()),
+		Store: store.NewRedisStore(rds, cfg.Presence.GatewayTTL(), cfg.Presence.RouteTTL(), cfg.Presence.UserSessionTTL(), cfg.Kafka.PublishTimeout()),
 		Redis: rds,
 		Kafka: kafkaClient,
 	}, nil

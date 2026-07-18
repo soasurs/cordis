@@ -48,6 +48,18 @@ node:
   drainSeconds: 30
   maxSubscribedChannels: 500
 
+rateLimit:
+  keyPrefix: "cordis:session:rate_limit:"
+  fallbackMaxKeys: 10000
+  fallbackRetryInterval: 1s
+  policies:
+    identify_user:
+      limit: 20
+      window: 5m
+    identify_auth_session:
+      limit: 5
+      window: 5m
+
 services:
   authenticator:
     endpoints:

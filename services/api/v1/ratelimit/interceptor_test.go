@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/soasurs/cordis/pkg/clientip"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 )
 
@@ -68,8 +69,8 @@ func TestUnaryInterceptorUsesPeerIPAndIgnoresSpoofedHeader(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "127.0.0.1", clientIP)
 	require.Equal(t, []limiterCall{{
-		policy: PolicySourceIPGuard,
-		key:    "127.0.0.1",
+		policy: PolicyForFamily(PolicySourceIPGuard, clientip.FamilyIPv4),
+		key:    "ipv4:127.0.0.1/32",
 		cost:   1,
 	}}, limiter.snapshot())
 }
@@ -94,7 +95,7 @@ func TestCheckAuthenticatedReturnsRetryAfter(t *testing.T) {
 	require.Equal(t, "2", connectErr.Meta().Get("Retry-After"))
 	require.Equal(t, "10", connectErr.Meta().Get("X-RateLimit-Limit"))
 	require.Equal(t, []limiterCall{
-		{policy: PolicySourceIPGuard, key: "127.0.0.1", cost: 1},
+		{policy: PolicyForFamily(PolicySourceIPGuard, clientip.FamilyIPv4), key: "ipv4:127.0.0.1/32", cost: 1},
 		{policy: PolicyAuthenticatedUser, key: "42", cost: 1},
 	}, limiter.snapshot())
 }
@@ -108,7 +109,7 @@ func TestEmailKeyNormalizesAndHashesEmail(t *testing.T) {
 
 func TestRequiredPoliciesReturnsCopy(t *testing.T) {
 	policies := RequiredPolicies()
-	require.Contains(t, policies, PolicyRegisterIP)
+	require.Contains(t, policies, PolicyForFamily(PolicyRegisterIP, clientip.FamilyIPv4))
 	policies[0] = "changed"
 	require.NotEqual(t, "changed", RequiredPolicies()[0])
 }

@@ -14,15 +14,34 @@ type Config struct {
 	ListenOn        string
 	Log             logx.LogConf
 	Gateway         GatewayConfig `json:",optional"`
+	RateLimit       RateLimitConfig
 	Redis           redis.RedisConf
 	SessionRegistry sessionregistry.Config
 }
 
+type RateLimitConfig struct {
+	KeyPrefix             string        `json:",default=cordis:gateway:rate_limit:"`
+	FallbackMaxKeys       int           `json:",default=10000"`
+	FallbackRetryInterval time.Duration `json:",default=1s"`
+	TrustedProxies        []string      `json:",optional"`
+	Policies              map[string]RateLimitPolicy
+}
+
+type RateLimitPolicy struct {
+	Limit  int64
+	Window time.Duration
+}
+
 type GatewayConfig struct {
-	WebSocketPath          string `json:",default=/ws"`
-	HeartbeatIntervalMs    int    `json:",default=45000"`
-	IdentifyTimeoutSeconds int    `json:",default=10"`
-	MaxMessageBytes        int64  `json:",default=65536"`
+	WebSocketPath                    string `json:",default=/ws"`
+	HeartbeatIntervalMs              int    `json:",default=45000"`
+	IdentifyTimeoutSeconds           int    `json:",default=10"`
+	MaxMessageBytes                  int64  `json:",default=65536"`
+	MaxConnectionsPerInstance        int64  `json:",default=50000"`
+	MaxPendingHandshakesPerInstance  int64  `json:",default=5000"`
+	MaxPendingHandshakesPerIPv4Scope int64  `json:",default=100"`
+	MaxPendingHandshakesPerIPv6Scope int64  `json:",default=20"`
+	MaxClientEventsPerMinute         int    `json:",default=120"`
 }
 
 func (c GatewayConfig) WebSocketRoute() string {
@@ -51,4 +70,39 @@ func (c GatewayConfig) MessageLimit() int64 {
 		return 65536
 	}
 	return c.MaxMessageBytes
+}
+
+func (c GatewayConfig) ConnectionLimit() int64 {
+	if c.MaxConnectionsPerInstance <= 0 {
+		return 50000
+	}
+	return c.MaxConnectionsPerInstance
+}
+
+func (c GatewayConfig) PendingHandshakeLimit() int64 {
+	if c.MaxPendingHandshakesPerInstance <= 0 {
+		return 5000
+	}
+	return c.MaxPendingHandshakesPerInstance
+}
+
+func (c GatewayConfig) IPv4PendingHandshakeLimit() int64 {
+	if c.MaxPendingHandshakesPerIPv4Scope <= 0 {
+		return 100
+	}
+	return c.MaxPendingHandshakesPerIPv4Scope
+}
+
+func (c GatewayConfig) IPv6PendingHandshakeLimit() int64 {
+	if c.MaxPendingHandshakesPerIPv6Scope <= 0 {
+		return 20
+	}
+	return c.MaxPendingHandshakesPerIPv6Scope
+}
+
+func (c GatewayConfig) ClientEventLimit() int {
+	if c.MaxClientEventsPerMinute <= 0 {
+		return 120
+	}
+	return c.MaxClientEventsPerMinute
 }

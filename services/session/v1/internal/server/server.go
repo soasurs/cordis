@@ -27,6 +27,7 @@ import (
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
 	"github.com/soasurs/cordis/services/session/v1/internal/svc"
+	sessionratelimit "github.com/soasurs/cordis/services/session/v1/ratelimit"
 )
 
 const (
@@ -253,6 +254,9 @@ func (s *Server) identify(
 	if !auth.GetOk() || auth.GetUserId() == 0 || auth.GetSessionId() == 0 {
 		return nil, status.Error(codes.Unauthenticated, "access token rejected")
 	}
+	if err := s.checkIdentifyRateLimits(ctx, auth.GetUserId(), auth.GetSessionId()); err != nil {
+		return nil, err
+	}
 
 	session := &logicalSession{
 		id:                randomID("sess"),
@@ -268,7 +272,17 @@ func (s *Server) identify(
 		channelGuilds:     make(map[int64]int64),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 	}
+	claimed, err := s.svcCtx.Store.ClaimAuthSession(
+		ctx, session.authSessionID, session.id, s.svcCtx.Cfg.Node.NodeTTL(),
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "claim auth session")
+	}
+	if !claimed {
+		return nil, status.Error(codes.ResourceExhausted, "auth session already has a logical session")
+	}
 	if err := s.loadGuilds(ctx, session); err != nil {
+		_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 		return nil, err
 	}
 	b := newBinding(connectionID, s.svcCtx.Cfg.Node.QueueSize())
@@ -298,6 +312,29 @@ func (s *Server) identify(
 	s.appendDispatchLocked(session, realtime.GatewayEventReady, ready)
 	session.mu.Unlock()
 	return session, nil
+}
+
+func (s *Server) checkIdentifyRateLimits(ctx context.Context, userID, authSessionID int64) error {
+	if s.svcCtx.RateLimiter == nil {
+		return nil
+	}
+	checks := []struct {
+		policy string
+		key    string
+	}{
+		{policy: sessionratelimit.PolicyIdentifyUser, key: strconv.FormatInt(userID, 10)},
+		{policy: sessionratelimit.PolicyIdentifyAuthSession, key: strconv.FormatInt(authSessionID, 10)},
+	}
+	for _, check := range checks {
+		decision, err := s.svcCtx.RateLimiter.Take(ctx, check.policy, check.key, 1)
+		if err != nil {
+			return status.Error(codes.Internal, "rate limiter unavailable")
+		}
+		if !decision.Allowed {
+			return status.Error(codes.ResourceExhausted, "identify rate limit exceeded")
+		}
+	}
+	return nil
 }
 
 func (s *Server) resume(
@@ -606,6 +643,7 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	}
 	s.mu.Unlock()
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
+	_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 	s.removePresence(ctx, session, guildIDs)
 	s.refreshAllRoutes(ctx)
 }
@@ -778,6 +816,18 @@ func (s *Server) refreshSessionLeases(ctx context.Context) {
 	}
 	s.mu.RUnlock()
 	for _, session := range sessions {
+		claimed, err := s.svcCtx.Store.RefreshAuthSession(
+			ctx, session.authSessionID, session.id, s.svcCtx.Cfg.Node.NodeTTL(),
+		)
+		if err != nil && ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("refresh auth session claim",
+				logx.Field("session_id", session.id),
+				logx.Field("error", err),
+			)
+		} else if err == nil && !claimed {
+			s.removeSession(ctx, session)
+			continue
+		}
 		if err := s.refreshOwner(ctx, session); err != nil && ctx.Err() == nil {
 			logx.WithContext(ctx).Errorw("refresh session owner",
 				logx.Field("session_id", session.id),

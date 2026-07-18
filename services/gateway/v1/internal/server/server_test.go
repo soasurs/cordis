@@ -29,6 +29,7 @@ import (
 
 func TestWebSocketForwardsSessionFrames(t *testing.T) {
 	sessionAddress := startFakeSessionServer(t)
+	socketLimiter := &gatewayFakeSocketLimiter{allowed: true}
 	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
 		Name:     "gateway.test",
 		ListenOn: "127.0.0.1:8081",
@@ -38,7 +39,8 @@ func TestWebSocketForwardsSessionFrames(t *testing.T) {
 			IdentifyTimeoutSeconds: 1,
 		},
 	}, svc.Dependencies{
-		Resolver: fakeResolver{address: sessionAddress},
+		Resolver:      fakeResolver{address: sessionAddress},
+		SocketLimiter: socketLimiter,
 	}))
 
 	conn, reader := connectWebSocket(t, gateway, "/ws")
@@ -53,6 +55,7 @@ func TestWebSocketForwardsSessionFrames(t *testing.T) {
 	require.Equal(t, opDispatch, ready.Op)
 	require.Equal(t, eventReady, ready.T)
 	require.Equal(t, uint64(1), ready.S)
+	require.True(t, socketLimiter.lease.ready.Load())
 
 	writeClientText(t, conn, `{"op":1,"d":1}`)
 	ack := readEnvelope(t, reader)
@@ -633,6 +636,7 @@ func connectWebSocket(t *testing.T, gateway *Server, path string) (net.Conn, *bu
 	}
 	req, err := http.NewRequest(http.MethodGet, "http://gateway.test"+path, nil)
 	require.NoError(t, err)
+	req.RemoteAddr = "127.0.0.1:43210"
 	req.Header.Set("Upgrade", "websocket")
 	req.Header.Set("Connection", "Upgrade")
 	req.Header.Set("Sec-WebSocket-Version", "13")

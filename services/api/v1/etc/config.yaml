@@ -27,34 +27,55 @@ rateLimit:
   # these CIDRs. Configure the actual load balancer networks in production.
   trustedProxies: []
   policies:
-    source_ip_guard:
+    source_ip_guard_ipv4:
+      limit: 20000
+      window: 1m
+    source_ip_guard_ipv6:
       limit: 20000
       window: 1m
     authenticated_user:
       limit: 300
       window: 1m
-    register_ip:
+    register_ip_ipv4:
+      limit: 300
+      window: 10m
+    register_ip_ipv6:
       limit: 30
       window: 10m
     register_email:
       limit: 3
       window: 1h
-    login_ip:
+    login_ip_ipv4:
+      limit: 1200
+      window: 5m
+    login_ip_ipv6:
       limit: 600
       window: 5m
     login_email:
       limit: 20
       window: 5m
-    confirm_password_reset_ip:
+    confirm_password_reset_ip_ipv4:
+      limit: 300
+      window: 10m
+    confirm_password_reset_ip_ipv6:
       limit: 30
       window: 10m
-    get_user_profile_ip:
+    get_user_profile_ip_ipv4:
+      limit: 6000
+      window: 1m
+    get_user_profile_ip_ipv6:
       limit: 600
       window: 1m
-    check_email_availability_ip:
+    check_email_availability_ip_ipv4:
+      limit: 600
+      window: 1m
+    check_email_availability_ip_ipv6:
       limit: 60
       window: 1m
-    recovery_request_ip:
+    recovery_request_ip_ipv4:
+      limit: 300
+      window: 10m
+    recovery_request_ip_ipv6:
       limit: 30
       window: 10m
     create_message_user:
@@ -87,7 +108,10 @@ rateLimit:
     join_guild_invite_user:
       limit: 10
       window: 10m
-    join_guild_invite_ip:
+    join_guild_invite_ip_ipv4:
+      limit: 300
+      window: 10m
+    join_guild_invite_ip_ipv6:
       limit: 30
       window: 10m
 

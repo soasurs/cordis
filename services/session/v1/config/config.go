@@ -21,9 +21,22 @@ type Config struct {
 	Telemetry       trace.Config            `json:",optional"`
 	Middlewares     zrpc.ServerMiddlewaresConf
 	Node            NodeConfig
+	RateLimit       RateLimitConfig
 	Redis           redis.RedisConf
 	SessionRegistry sessionregistry.Config
 	Services        ServiceConfig
+}
+
+type RateLimitConfig struct {
+	KeyPrefix             string        `json:",default=cordis:session:rate_limit:"`
+	FallbackMaxKeys       int           `json:",default=10000"`
+	FallbackRetryInterval time.Duration `json:",default=1s"`
+	Policies              map[string]RateLimitPolicy
+}
+
+type RateLimitPolicy struct {
+	Limit  int64
+	Window time.Duration
 }
 
 type NodeConfig struct {

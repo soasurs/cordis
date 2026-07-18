@@ -7,7 +7,8 @@ Message, converts public/internal protobuf models, and maps domain errors with
 `pkg/apierror`. It does not access domain databases.
 
 Public requests use Redis-backed named rate-limit policies with a bounded local
-fallback during Redis failures. Every request first consumes a source-IP guard;
+fallback during Redis failures. IP-based buckets use an IPv4 `/32` or IPv6
+`/64`; IPv4 policies have looser CGNAT-aware thresholds. Every request first consumes a source-IP guard;
 successful authentication then consumes the general user quota. Message
 creation, relationship writes, Guild resource creation, and invite joins also
 consume business-specific buckets. `GetReadStates` concurrency is bounded per
@@ -83,12 +84,26 @@ nodes through etcd, reads resume ownership from Redis, and proxies the WebSocket
 over a `SessionService.Connect` bidirectional stream. It owns no subscriptions
 and consumes no Kafka events.
 
+Before accepting a WebSocket, Gateway applies trusted-proxy-aware source limits
+using an IPv4 `/32` or IPv6 `/64`. Connection capacity is process-local: each
+instance defaults to 50,000 total sockets and 5,000 pending handshakes, with
+pending per-scope defaults of 100 for IPv4 and 20 for IPv6. A socket leaves the
+pending buckets after Session accepts IDENTIFY or RESUME. Client connections may
+send at most 120 Gateway events per minute by default. `IDENTIFY` is additionally
+limited by source scope, while `RESUME` is limited by both source scope and
+logical session ID; only these discrete rate-limit events use Redis.
+
 ## Session
 
 gRPC on `:3006` and the stateful core of realtime delivery. It validates tokens,
 creates or resumes logical sessions, loads guild membership, owns local
 user/guild/channel indexes, authorizes channel subscriptions, assigns sequence
 numbers, and keeps up to 2048 replay events in memory.
+
+After token validation, `IDENTIFY` is limited by user ID and authenticator
+session ID. A Redis claim permits only one live logical session per authenticator
+session; the claim is renewed while the logical session is retained, including
+the detached resume window.
 
 A logical session may subscribe to at most 500 distinct channels by default.
 Requests that would exceed the configured total fail atomically without adding

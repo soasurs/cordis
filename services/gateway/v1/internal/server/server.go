@@ -17,12 +17,16 @@ import (
 	"github.com/coder/websocket/wsjson"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	"github.com/soasurs/cordis/pkg/clientip"
 	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/pkg/socketlimit"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
+	gatewayratelimit "github.com/soasurs/cordis/services/gateway/v1/ratelimit"
 )
 
 const (
@@ -52,6 +56,10 @@ type client struct {
 	connectionID string
 	stream       sessionStream
 	streamConn   io.Closer
+	sourceScope  clientip.Scope
+	socketLease  socketlimit.LeaseHandle
+	eventWindow  time.Time
+	eventCount   int
 	writeMu      sync.Mutex
 }
 
@@ -71,6 +79,37 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	clientAddr, err := s.svcCtx.ClientIPResolver.Resolve(r.RemoteAddr, r.Header)
+	if err != nil {
+		http.Error(w, "invalid client address", http.StatusBadRequest)
+		return
+	}
+	sourceScope := clientip.SourceScope(clientAddr)
+	if !s.takeHTTPRateLimit(w, r,
+		gatewayratelimit.PolicyForFamily(gatewayratelimit.PolicyUpgradeIP, sourceScope.Family),
+		sourceScope.Key(),
+	) {
+		return
+	}
+	var lease socketlimit.LeaseHandle
+	if s.svcCtx.SocketLimiter != nil {
+		scopeLimit := s.svcCtx.Cfg.Gateway.IPv6PendingHandshakeLimit()
+		if sourceScope.Family == clientip.FamilyIPv4 {
+			scopeLimit = s.svcCtx.Cfg.Gateway.IPv4PendingHandshakeLimit()
+		}
+		var allowed bool
+		lease, allowed = s.svcCtx.SocketLimiter.Acquire(
+			sourceScope.Key(),
+			s.svcCtx.Cfg.Gateway.ConnectionLimit(),
+			s.svcCtx.Cfg.Gateway.PendingHandshakeLimit(),
+			scopeLimit,
+		)
+		if !allowed {
+			http.Error(w, "websocket capacity exceeded", http.StatusTooManyRequests)
+			return
+		}
+		defer lease.Release()
+	}
 	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		CompressionMode: websocket.CompressionDisabled,
 	})
@@ -85,8 +124,29 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		server:       s,
 		ws:           ws,
 		connectionID: randomID("conn"),
+		sourceScope:  sourceScope,
+		socketLease:  lease,
 	}
 	c.run(ctx)
+}
+
+func (s *Server) takeHTTPRateLimit(w http.ResponseWriter, r *http.Request, policy, key string) bool {
+	if s.svcCtx.RateLimiter == nil {
+		return true
+	}
+	decision, err := s.svcCtx.RateLimiter.Take(r.Context(), policy, key, 1)
+	if err != nil {
+		http.Error(w, "rate limiter unavailable", http.StatusServiceUnavailable)
+		return false
+	}
+	if decision.Allowed {
+		return true
+	}
+	if decision.RetryAfter > 0 {
+		w.Header().Set("Retry-After", strconv.FormatInt(max(int64(decision.RetryAfter/time.Second), 1), 10))
+	}
+	http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+	return false
 }
 
 func (c *client) run(ctx context.Context) {
@@ -111,6 +171,10 @@ func (c *client) run(ctx context.Context) {
 		}))
 		return
 	}
+	if err := c.checkHandshakeRateLimit(ctx, first); err != nil {
+		c.writeConnectError(ctx, first.Op, err)
+		return
+	}
 
 	stream, conn, err := c.connect(ctx, first)
 	if err != nil {
@@ -123,6 +187,9 @@ func (c *client) run(ctx context.Context) {
 	if err != nil {
 		c.writeConnectError(ctx, first.Op, err)
 		return
+	}
+	if c.socketLease != nil {
+		c.socketLease.MarkReady()
 	}
 	if err := c.writeSessionFrame(ctx, initial); err != nil {
 		return
@@ -139,6 +206,13 @@ func (c *client) run(ctx context.Context) {
 	for {
 		var msg envelope
 		if err := wsjson.Read(ctx, c.ws, &msg); err != nil {
+			_ = c.sendDetach(true)
+			return
+		}
+		if !c.allowClientEvent(time.Now()) {
+			_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
+				Code: "rate_limited", Message: "gateway event rate limit exceeded",
+			}))
 			_ = c.sendDetach(true)
 			return
 		}
@@ -161,6 +235,54 @@ func (c *client) run(ctx context.Context) {
 		default:
 		}
 	}
+}
+
+func (c *client) allowClientEvent(now time.Time) bool {
+	if c.eventWindow.IsZero() || now.Sub(c.eventWindow) >= time.Minute {
+		c.eventWindow = now
+		c.eventCount = 0
+	}
+	c.eventCount++
+	return c.eventCount <= c.server.svcCtx.Cfg.Gateway.ClientEventLimit()
+}
+
+func (c *client) checkHandshakeRateLimit(ctx context.Context, first envelope) error {
+	limiter := c.server.svcCtx.RateLimiter
+	if limiter == nil {
+		return nil
+	}
+	policy := gatewayratelimit.PolicyIdentifyIP
+	key := c.sourceScope.Key()
+	if first.Op == opResume {
+		var data resumeData
+		if err := json.Unmarshal(first.D, &data); err != nil {
+			return err
+		}
+		if strings.TrimSpace(data.SessionID) == "" {
+			return errors.New("session id is required")
+		}
+		policy = gatewayratelimit.PolicyResumeIP
+	}
+	policy = gatewayratelimit.PolicyForFamily(policy, c.sourceScope.Family)
+	decision, err := limiter.Take(ctx, policy, key, 1)
+	if err != nil {
+		return status.Error(codes.Unavailable, "rate limiter unavailable")
+	}
+	if !decision.Allowed {
+		return status.Error(codes.ResourceExhausted, "rate limit exceeded")
+	}
+	if first.Op == opResume {
+		var data resumeData
+		_ = json.Unmarshal(first.D, &data)
+		decision, err = limiter.Take(ctx, gatewayratelimit.PolicyResumeSession, data.SessionID, 1)
+		if err != nil {
+			return status.Error(codes.Unavailable, "rate limiter unavailable")
+		}
+		if !decision.Allowed {
+			return status.Error(codes.ResourceExhausted, "rate limit exceeded")
+		}
+	}
+	return nil
 }
 
 func (c *client) connect(ctx context.Context, first envelope) (sessionStream, io.Closer, error) {
@@ -309,6 +431,12 @@ func (c *client) sendDetach(resumable bool) error {
 }
 
 func (c *client) writeConnectError(ctx context.Context, opcode int, err error) {
+	if status.Code(err) == codes.ResourceExhausted {
+		_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
+			Code: "rate_limited", Message: status.Convert(err).Message(),
+		}))
+		return
+	}
 	if opcode == opResume {
 		_ = c.write(ctx, envelope{Op: opInvalid, D: json.RawMessage(`false`)})
 		return

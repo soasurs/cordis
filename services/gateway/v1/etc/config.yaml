@@ -12,6 +12,39 @@ gateway:
   heartbeatIntervalMs: 45000
   identifyTimeoutSeconds: 10
   maxMessageBytes: 65536
+  maxConnectionsPerInstance: 50000
+  maxPendingHandshakesPerInstance: 5000
+  maxPendingHandshakesPerIPv4Scope: 100
+  maxPendingHandshakesPerIPv6Scope: 20
+  maxClientEventsPerMinute: 120
+
+rateLimit:
+  keyPrefix: "cordis:gateway:rate_limit:"
+  fallbackMaxKeys: 10000
+  fallbackRetryInterval: 1s
+  trustedProxies: []
+  policies:
+    upgrade_ip_ipv4:
+      limit: 1200
+      window: 1m
+    upgrade_ip_ipv6:
+      limit: 120
+      window: 1m
+    identify_ip_ipv4:
+      limit: 300
+      window: 1m
+    identify_ip_ipv6:
+      limit: 30
+      window: 1m
+    resume_ip_ipv4:
+      limit: 600
+      window: 1m
+    resume_ip_ipv6:
+      limit: 60
+      window: 1m
+    resume_session:
+      limit: 10
+      window: 1m
 
 redis:
   host: 127.0.0.1:6379

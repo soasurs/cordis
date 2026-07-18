@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -56,8 +57,11 @@ func (l *recordingAPILimiter) Take(
 ) (coreratelimit.Decision, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.calls = append(l.calls, apiRateLimitCall{policy: policy, key: key})
-	if policy == l.rejectPolicy {
+	normalizedPolicy := strings.TrimSuffix(strings.TrimSuffix(policy, "_ipv4"), "_ipv6")
+	normalizedKey := strings.TrimPrefix(key, "ipv4:")
+	normalizedKey = strings.TrimSuffix(normalizedKey, "/32")
+	l.calls = append(l.calls, apiRateLimitCall{policy: normalizedPolicy, key: normalizedKey})
+	if normalizedPolicy == l.rejectPolicy {
 		return coreratelimit.Decision{Limit: 1, RetryAfter: time.Minute}, nil
 	}
 	return coreratelimit.Decision{Allowed: true, Limit: 100, Remaining: 99}, nil

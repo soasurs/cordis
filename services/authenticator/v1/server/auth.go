@@ -13,7 +13,6 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
-	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
@@ -43,7 +42,7 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 		return nil, status.Error(codes.InvalidArgument, "username is required")
 	}
 
-	hashedPassword, err := password.Hash(req.GetPassword())
+	hashedPassword, err := s.hashPassword(ctx, req.GetPassword())
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +117,9 @@ func (s *authenticatorServer) Login(ctx context.Context, req *authenticatorv1.Lo
 		if status.Code(err) == codes.NotFound {
 			// Burn a verification anyway so unknown emails cost the same as
 			// wrong passwords.
-			_, _ = password.Verify(dummyPasswordHash, req.GetPassword())
+			if _, verifyErr := s.verifyPassword(ctx, dummyPasswordHash, req.GetPassword()); verifyErr != nil {
+				return nil, verifyErr
+			}
 			return nil, invalidCredentialsError()
 		}
 		return nil, err

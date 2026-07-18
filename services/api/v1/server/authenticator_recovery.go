@@ -6,9 +6,13 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 )
 
 func (s *authenticatorServer) RequestPasswordReset(ctx context.Context, req *apiv1.RequestPasswordResetRequest) (*apiv1.RequestPasswordResetResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyRecoveryRequestIP); err != nil {
+		return nil, err
+	}
 	svcReq := new(authenticatorv1.RequestPasswordResetRequest)
 	svcReq.SetEmail(req.GetEmail())
 
@@ -23,6 +27,9 @@ func (s *authenticatorServer) RequestPasswordReset(ctx context.Context, req *api
 }
 
 func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *apiv1.ConfirmPasswordResetRequest) (*apiv1.ConfirmPasswordResetResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyConfirmPasswordResetIP); err != nil {
+		return nil, err
+	}
 	svcReq := new(authenticatorv1.ConfirmPasswordResetRequest)
 	svcReq.SetToken(req.GetToken())
 	svcReq.SetNewPassword(req.GetNewPassword())
@@ -40,6 +47,9 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *api
 func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, _ *apiv1.RequestEmailVerificationRequest) (*apiv1.RequestEmailVerificationResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyRecoveryRequestIP); err != nil {
 		return nil, err
 	}
 

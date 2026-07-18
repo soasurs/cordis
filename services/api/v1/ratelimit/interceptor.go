@@ -2,8 +2,11 @@ package ratelimit
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -20,7 +23,36 @@ const (
 	// PolicyAuthenticatedUser is the general per-user policy applied after
 	// access-token verification succeeds.
 	PolicyAuthenticatedUser = "authenticated_user"
+	// PolicyRegisterIP limits registration attempts from one source address.
+	PolicyRegisterIP = "register_ip"
+	// PolicyRegisterEmail limits registration attempts for one normalized email.
+	PolicyRegisterEmail = "register_email"
+	// PolicyLoginIP limits login attempts from one source address.
+	PolicyLoginIP = "login_ip"
+	// PolicyLoginEmail limits login attempts for one normalized email.
+	PolicyLoginEmail = "login_email"
+	// PolicyConfirmPasswordResetIP limits password-reset confirmations by source address.
+	PolicyConfirmPasswordResetIP = "confirm_password_reset_ip"
+	// PolicyGetUserProfileIP limits anonymous profile reads by source address.
+	PolicyGetUserProfileIP = "get_user_profile_ip"
+	// PolicyCheckEmailAvailabilityIP limits anonymous availability checks by source address.
+	PolicyCheckEmailAvailabilityIP = "check_email_availability_ip"
+	// PolicyRecoveryRequestIP limits aggregate recovery mail requests by source address.
+	PolicyRecoveryRequestIP = "recovery_request_ip"
 )
+
+var requiredPolicies = [...]string{
+	PolicySourceIPGuard,
+	PolicyAuthenticatedUser,
+	PolicyRegisterIP,
+	PolicyRegisterEmail,
+	PolicyLoginIP,
+	PolicyLoginEmail,
+	PolicyConfirmPasswordResetIP,
+	PolicyGetUserProfileIP,
+	PolicyCheckEmailAvailabilityIP,
+	PolicyRecoveryRequestIP,
+}
 
 type requestState struct {
 	limiter  coreratelimit.Limiter
@@ -63,18 +95,7 @@ func UnaryInterceptor(
 // request passed through UnaryInterceptor. Direct handler calls without an
 // interceptor are left unchanged for focused unit tests.
 func CheckAuthenticated(ctx context.Context, userID int64) error {
-	state, ok := ctx.Value(requestStateKey{}).(*requestState)
-	if !ok || state == nil {
-		return nil
-	}
-	decision, err := state.limiter.Take(ctx, PolicyAuthenticatedUser, strconv.FormatInt(userID, 10), 1)
-	if err != nil {
-		return limiterError(ctx, err)
-	}
-	if !decision.Allowed {
-		return exhaustedError(decision)
-	}
-	return nil
+	return CheckKey(ctx, PolicyAuthenticatedUser, strconv.FormatInt(userID, 10))
 }
 
 // ClientIP returns the trusted client address extracted by UnaryInterceptor.
@@ -84,6 +105,43 @@ func ClientIP(ctx context.Context) (string, bool) {
 		return "", false
 	}
 	return state.clientIP, true
+}
+
+// CheckIP consumes one unit from policy using the trusted client IP.
+func CheckIP(ctx context.Context, policy string) error {
+	clientIP, ok := ClientIP(ctx)
+	if !ok {
+		return nil
+	}
+	return CheckKey(ctx, policy, clientIP)
+}
+
+// CheckKey consumes one unit from a named policy. Direct handler calls that
+// bypass UnaryInterceptor are unchanged for focused unit tests.
+func CheckKey(ctx context.Context, policy, key string) error {
+	state, ok := ctx.Value(requestStateKey{}).(*requestState)
+	if !ok || state == nil {
+		return nil
+	}
+	decision, err := state.limiter.Take(ctx, policy, key, 1)
+	if err != nil {
+		return limiterError(ctx, err)
+	}
+	if !decision.Allowed {
+		return exhaustedError(decision)
+	}
+	return nil
+}
+
+// EmailKey returns a stable, non-reversible key for a normalized email.
+func EmailKey(email string) string {
+	normalized := strings.ToLower(strings.TrimSpace(email))
+	return fmt.Sprintf("%x", sha256.Sum256([]byte(normalized)))
+}
+
+// RequiredPolicies returns every API policy required at service startup.
+func RequiredPolicies() []string {
+	return append([]string(nil), requiredPolicies[:]...)
 }
 
 func limiterError(ctx context.Context, err error) error {

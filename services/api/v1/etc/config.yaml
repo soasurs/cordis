@@ -33,6 +33,30 @@ rateLimit:
     authenticated_user:
       limit: 300
       window: 1m
+    register_ip:
+      limit: 30
+      window: 10m
+    register_email:
+      limit: 3
+      window: 1h
+    login_ip:
+      limit: 600
+      window: 5m
+    login_email:
+      limit: 20
+      window: 5m
+    confirm_password_reset_ip:
+      limit: 30
+      window: 10m
+    get_user_profile_ip:
+      limit: 600
+      window: 1m
+    check_email_availability_ip:
+      limit: 60
+      window: 1m
+    recovery_request_ip:
+      limit: 30
+      window: 10m
 
 services:
   authenticator:

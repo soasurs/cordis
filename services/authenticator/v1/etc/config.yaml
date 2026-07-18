@@ -42,6 +42,9 @@ tokens:
 sessions:
   ttl: 720h
 
+password:
+  maxConcurrency: 4
+
 recovery:
   passwordResetTTL: 30m
   emailVerificationTTL: 24h

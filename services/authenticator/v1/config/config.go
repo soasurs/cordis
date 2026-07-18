@@ -14,9 +14,15 @@ type Config struct {
 	Database  database.Config
 	Tokens    TokenConfig
 	Sessions  SessionConfig
+	Password  PasswordConfig
 	TwoFactor TwoFactorConfig
 	Recovery  RecoveryConfig
 	Services  ServiceConfig
+}
+
+// PasswordConfig controls process-local protection for Argon2 work.
+type PasswordConfig struct {
+	MaxConcurrency int64 `json:",default=4"`
 }
 
 // RecoveryConfig bounds the lifetime of account recovery tokens and the

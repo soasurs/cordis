@@ -9,9 +9,16 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 )
 
 func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterRequest) (*apiv1.RegisterResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyRegisterIP); err != nil {
+		return nil, err
+	}
+	if err := apiratelimit.CheckKey(ctx, apiratelimit.PolicyRegisterEmail, apiratelimit.EmailKey(req.GetEmail())); err != nil {
+		return nil, err
+	}
 	svcReq := new(authenticatorv1.RegisterRequest)
 	svcReq.SetName(req.GetName())
 	svcReq.SetEmail(req.GetEmail())
@@ -30,6 +37,12 @@ func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterR
 }
 
 func (s *authenticatorServer) Login(ctx context.Context, req *apiv1.LoginRequest) (*apiv1.LoginResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyLoginIP); err != nil {
+		return nil, err
+	}
+	if err := apiratelimit.CheckKey(ctx, apiratelimit.PolicyLoginEmail, apiratelimit.EmailKey(req.GetEmail())); err != nil {
+		return nil, err
+	}
 	svcReq := new(authenticatorv1.LoginRequest)
 	svcReq.SetEmail(req.GetEmail())
 	svcReq.SetPassword(req.GetPassword())
@@ -231,6 +244,10 @@ func setClientMetadata(ctx context.Context, setUserAgent, setIP func(string)) {
 	}
 
 	setUserAgent(callInfo.RequestHeader().Get("User-Agent"))
+	if trustedIP, ok := apiratelimit.ClientIP(ctx); ok {
+		setIP(trustedIP)
+		return
+	}
 	setIP(clientIP(callInfo.Peer().Addr))
 }
 

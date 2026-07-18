@@ -138,12 +138,30 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		delivered := compositionMailer.sent[len(compositionMailer.sent)-1]
 		require.Equal(t, mail.TemplatePasswordReset, delivered.template)
 
-		confirmReq := new(authenticatorv1.ConfirmPasswordResetRequest)
-		confirmReq.SetToken(delivered.token)
-		confirmReq.SetNewPassword("integration-password-3")
-		confirmResp, err := service.ConfirmPasswordReset(ctx, confirmReq)
-		require.NoError(t, err)
-		require.True(t, confirmResp.GetOk())
+		confirm := func() error {
+			confirmReq := new(authenticatorv1.ConfirmPasswordResetRequest)
+			confirmReq.SetToken(delivered.token)
+			confirmReq.SetNewPassword("integration-password-3")
+			_, err := service.ConfirmPasswordReset(ctx, confirmReq)
+			return err
+		}
+		results := make(chan error, 2)
+		for range 2 {
+			go func() { results <- confirm() }()
+		}
+		var succeeded, rejected int
+		for range 2 {
+			err := <-results
+			if err == nil {
+				succeeded++
+				continue
+			}
+			require.Equal(t, codes.InvalidArgument, status.Code(err))
+			require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidPasswordResetToken))
+			rejected++
+		}
+		require.Equal(t, 1, succeeded)
+		require.Equal(t, 1, rejected)
 
 		// The old password no longer works; the new one does.
 		_, err = service.Login(ctx, loginReq)
@@ -159,7 +177,7 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		require.Equal(t, codes.Unauthenticated, status.Code(err))
 
 		// The reset token is single use.
-		_, err = service.ConfirmPasswordReset(ctx, confirmReq)
+		err = confirm()
 		require.Equal(t, codes.InvalidArgument, status.Code(err))
 		require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidPasswordResetToken))
 	})

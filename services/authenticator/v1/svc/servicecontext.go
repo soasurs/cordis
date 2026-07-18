@@ -12,6 +12,7 @@ import (
 
 	mailerv1 "github.com/soasurs/cordis/gen/mailer/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/concurrencylimit"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
@@ -31,6 +32,13 @@ type ServiceContext struct {
 	MailerClient mailerv1.MailerServiceClient
 	// RecoveryLimiter is optional; recovery flows skip throttling when nil.
 	RecoveryLimiter RecoveryLimiter
+	// PasswordLimiter bounds process-local Argon2 work.
+	PasswordLimiter PasswordLimiter
+}
+
+// PasswordLimiter acquires weighted permits before Argon2 work.
+type PasswordLimiter interface {
+	Acquire(ctx context.Context, weight int64) (func(), error)
 }
 
 // RecoveryLimiter throttles recovery mail requests per target key.
@@ -59,6 +67,7 @@ type Dependencies struct {
 	UserClient      userv1.UserServiceClient
 	MailerClient    mailerv1.MailerServiceClient
 	RecoveryLimiter RecoveryLimiter
+	PasswordLimiter PasswordLimiter
 	DB              *sqlx.DB
 }
 
@@ -80,6 +89,9 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	}
 	if cfg.Recovery.RequestIntervalSeconds <= 0 {
 		return Dependencies{}, errors.New("recovery request interval must be positive")
+	}
+	if cfg.Password.MaxConcurrency <= 0 {
+		return Dependencies{}, errors.New("password max concurrency must be positive")
 	}
 
 	twoFactorKeys := make([]twofactor.KeyConfig, 0, len(cfg.TwoFactor.Encryption.Keys))
@@ -135,6 +147,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		)}
 	}
 
+	passwordLimiter, err := concurrencylimit.New("authenticator_argon2", cfg.Password.MaxConcurrency)
+	if err != nil {
+		return Dependencies{}, err
+	}
+
 	db, err := database.NewPostgres(cfg.Database)
 	if err != nil {
 		return Dependencies{}, err
@@ -148,6 +165,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		UserClient:      userv1.NewUserServiceClient(userRPCClient.Conn()),
 		MailerClient:    mailerClient,
 		RecoveryLimiter: recoveryLimiter,
+		PasswordLimiter: passwordLimiter,
 		DB:              db,
 	}, nil
 }
@@ -179,6 +197,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.UserClient == nil {
 		panic("user client is required")
 	}
+	if cfg.Password.MaxConcurrency > 0 && deps.PasswordLimiter == nil {
+		panic("password limiter is required")
+	}
 	return &ServiceContext{
 		Cfg:             cfg,
 		Store:           deps.Store,
@@ -188,5 +209,6 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		UserClient:      deps.UserClient,
 		MailerClient:    deps.MailerClient,
 		RecoveryLimiter: deps.RecoveryLimiter,
+		PasswordLimiter: deps.PasswordLimiter,
 	}
 }

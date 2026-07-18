@@ -197,6 +197,8 @@ func TestConfirmPasswordResetSuccess(t *testing.T) {
 		ExpiresAt: now + 60_000,
 	}
 	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{}, new(fakeMailerClient))
+	limiter := new(recordingPasswordLimiter)
+	server.(*authenticatorServer).svcCtx.PasswordLimiter = limiter
 
 	req := new(authenticatorv1.ConfirmPasswordResetRequest)
 	req.SetToken("raw-reset-token")
@@ -214,11 +216,18 @@ func TestConfirmPasswordResetSuccess(t *testing.T) {
 	// All sessions are revoked: currentSessionID zero matches none.
 	require.Equal(t, int64(1001), sessionStore.revokedOtherUserID)
 	require.Zero(t, sessionStore.currentSessionID)
+	require.Equal(t, []bool{false, true}, sessionStore.passwordResetReads)
+	calls, releases := limiter.snapshot()
+	require.Equal(t, 1, calls)
+	require.Equal(t, 1, releases)
 
 	// The consumed token cannot be replayed.
 	_, err = server.ConfirmPasswordReset(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidPasswordResetToken))
+	calls, releases = limiter.snapshot()
+	require.Equal(t, 1, calls)
+	require.Equal(t, 1, releases)
 }
 
 func TestConfirmPasswordResetRejectsUnknownAndExpired(t *testing.T) {
@@ -231,6 +240,8 @@ func TestConfirmPasswordResetRejectsUnknownAndExpired(t *testing.T) {
 		ExpiresAt: now - 60_000,
 	}
 	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{}, new(fakeMailerClient))
+	limiter := new(recordingPasswordLimiter)
+	server.(*authenticatorServer).svcCtx.PasswordLimiter = limiter
 
 	req := new(authenticatorv1.ConfirmPasswordResetRequest)
 	req.SetToken("missing-token")
@@ -242,6 +253,9 @@ func TestConfirmPasswordResetRejectsUnknownAndExpired(t *testing.T) {
 	req.SetToken("expired-token")
 	_, err = server.ConfirmPasswordReset(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	calls, releases := limiter.snapshot()
+	require.Zero(t, calls)
+	require.Zero(t, releases)
 
 	req.SetToken("")
 	_, err = server.ConfirmPasswordReset(t.Context(), req)

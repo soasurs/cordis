@@ -23,4 +23,7 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.Services.User.Middlewares.Duration {
 		t.Fatal("user client duration middleware should be disabled")
 	}
+	if cfg.Password.MaxConcurrency != 4 {
+		t.Fatalf("unexpected password max concurrency: %d", cfg.Password.MaxConcurrency)
+	}
 }

@@ -16,7 +16,6 @@ import (
 	mailerv1 "github.com/soasurs/cordis/gen/mailer/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/mail"
-	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
@@ -88,13 +87,25 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *aut
 		return nil, status.Error(codes.InvalidArgument, "new password is required")
 	}
 
-	// The new password can be hashed before taking any row locks.
-	hashedPassword, err := password.Hash(req.GetNewPassword())
+	tokenHash := token.Hash(rawToken)
+	precheckNow := time.Now().UnixMilli()
+	reset, err := s.svcCtx.Store.GetPasswordResetToken(ctx, tokenHash, false)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, invalidPasswordResetTokenError()
+	}
+	if err != nil {
+		return nil, err
+	}
+	if reset.ConsumedAt != 0 || reset.ExpiresAt <= precheckNow {
+		return nil, invalidPasswordResetTokenError()
+	}
+
+	// Hash only after the low-cost token precheck, and before taking row locks.
+	hashedPassword, err := s.hashPassword(ctx, req.GetNewPassword())
 	if err != nil {
 		return nil, err
 	}
 
-	tokenHash := token.Hash(rawToken)
 	now := time.Now().UnixMilli()
 	// Credentials live in this database, so consuming the token, replacing
 	// the password, and revoking every session commit atomically.

@@ -16,8 +16,17 @@ Argon2id. User does not issue tokens.
 
 gRPC on `:3001`. Orchestrates registration and login, issues and refreshes
 tokens, verifies access tokens, and manages authentication sessions in
-PostgreSQL. User remains the authority for user and password data. Real startup
-requires access- and refresh-token secrets.
+PostgreSQL. User remains the authority for user identity, while Authenticator
+owns password credentials. Real startup requires access- and refresh-token
+secrets.
+
+All Argon2 hashing and verification is protected by a process-local weighted
+semaphore. Its capacity comes from `password.maxConcurrency` (default 4), and
+each Argon2 operation currently consumes weight 1. The configured capacity is
+therefore a fixed concurrency slot count per Authenticator instance, not a
+cluster-wide limit. Requests wait when all slots are occupied and stop waiting
+when their context expires or is canceled. The semaphore does not provide a
+separate bounded request queue; the outer API rate limiter bounds admission.
 
 ## Guild
 
@@ -37,6 +46,12 @@ gRPC on `:3002`. Owns messages, attachments, mentions, and replies. Create,
 read, update, and delete operations ask Guild for authorization. Listing uses
 `before`, `after`, or `around` cursor pagination. Reaction and custom emoji RPCs
 are not currently implemented.
+
+`GetReadStates` batches channel read-state, unread-message, and unread-mention
+calculation. Channel authorization fan-out within one request runs with a fixed
+worker bound to avoid unbounded cross-service calls; it is not a weighted
+semaphore shared across requests. External request volume remains subject to
+the API's general authenticated-user quota.
 
 Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a

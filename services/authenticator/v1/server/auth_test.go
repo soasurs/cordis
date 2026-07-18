@@ -36,6 +36,8 @@ func TestRegister(t *testing.T) {
 		createUserResponse: createUserResponse(1001, "user@example.com"),
 	}
 	server := newTestAuthenticatorServer(t, store, tokens, userClient)
+	limiter := new(recordingPasswordLimiter)
+	server.(*authenticatorServer).svcCtx.PasswordLimiter = limiter
 
 	req := new(authenticatorv1.RegisterRequest)
 	req.SetName("  display name  ")
@@ -61,6 +63,9 @@ func TestRegister(t *testing.T) {
 	require.NotNil(t, store.createdSession)
 	require.Equal(t, "test-agent", store.createdSession.UserAgent)
 	require.Equal(t, "127.0.0.1", store.createdSession.IP)
+	calls, releases := limiter.snapshot()
+	require.Equal(t, 1, calls)
+	require.Equal(t, 1, releases)
 }
 
 func TestRegisterUserError(t *testing.T) {
@@ -79,6 +84,21 @@ func TestRegisterUserError(t *testing.T) {
 	require.ErrorIs(t, err, expectedErr)
 }
 
+func TestRegisterPasswordLimiterErrorStopsBeforeUserRPC(t *testing.T) {
+	userClient := new(fakeUserClient)
+	server := newTestAuthenticatorServer(t, newFakeSessionStore(), newTestTokenManager(t), userClient)
+	server.(*authenticatorServer).svcCtx.PasswordLimiter = &recordingPasswordLimiter{err: context.Canceled}
+
+	req := new(authenticatorv1.RegisterRequest)
+	req.SetName("display name")
+	req.SetUsername("tester")
+	req.SetEmail("user@example.com")
+	req.SetPassword("password")
+	_, err := server.Register(t.Context(), req)
+	require.ErrorIs(t, err, context.Canceled)
+	require.Nil(t, userClient.createUserRequest)
+}
+
 func TestLogin(t *testing.T) {
 	store := newFakeSessionStore()
 	tokens := newTestTokenManager(t)
@@ -86,6 +106,8 @@ func TestLogin(t *testing.T) {
 	server := newTestAuthenticatorServer(t, store, tokens, &fakeUserClient{
 		getUserResponse: userResponse(1001, "user@example.com"),
 	})
+	limiter := new(recordingPasswordLimiter)
+	server.(*authenticatorServer).svcCtx.PasswordLimiter = limiter
 
 	req := new(authenticatorv1.LoginRequest)
 	req.SetEmail("user@example.com")
@@ -104,6 +126,26 @@ func TestLogin(t *testing.T) {
 	require.NotNil(t, store.createdSession)
 	require.Equal(t, "test-agent", store.createdSession.UserAgent)
 	require.Equal(t, "127.0.0.1", store.createdSession.IP)
+	calls, releases := limiter.snapshot()
+	require.Equal(t, 1, calls)
+	require.Equal(t, 1, releases)
+}
+
+func TestLoginUnknownEmailUsesPasswordLimiter(t *testing.T) {
+	server := newTestAuthenticatorServer(t, newFakeSessionStore(), newTestTokenManager(t), &fakeUserClient{
+		getUserErr: status.Error(codes.NotFound, "user not found"),
+	})
+	limiter := new(recordingPasswordLimiter)
+	server.(*authenticatorServer).svcCtx.PasswordLimiter = limiter
+
+	req := new(authenticatorv1.LoginRequest)
+	req.SetEmail("missing@example.com")
+	req.SetPassword("password")
+	_, err := server.Login(t.Context(), req)
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	calls, releases := limiter.snapshot()
+	require.Equal(t, 1, calls)
+	require.Equal(t, 1, releases)
 }
 
 func TestLoginInvalidCredentials(t *testing.T) {
@@ -588,6 +630,7 @@ type fakeSessionStore struct {
 	challenges         map[string]*model.TwoFactorLoginChallenge
 	recoveryCodes      map[int64]map[string]int64
 	passwordResets     map[string]*model.PasswordResetToken
+	passwordResetReads []bool
 	emailVerifications map[string]*model.EmailVerificationToken
 	credentials        map[int64]*model.UserCredential
 }
@@ -834,7 +877,8 @@ func (s *fakeSessionStore) UpsertPasswordResetToken(_ context.Context, token *mo
 	return nil
 }
 
-func (s *fakeSessionStore) GetPasswordResetToken(_ context.Context, tokenHash string, _ bool) (*model.PasswordResetToken, error) {
+func (s *fakeSessionStore) GetPasswordResetToken(_ context.Context, tokenHash string, forUpdate bool) (*model.PasswordResetToken, error) {
+	s.passwordResetReads = append(s.passwordResetReads, forUpdate)
 	token, ok := s.passwordResets[tokenHash]
 	if !ok {
 		return nil, sql.ErrNoRows

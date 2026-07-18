@@ -25,13 +25,15 @@ const dummyPasswordHash = "$argon2id$v=19$m=19456,t=2,p=1$c2FsdHNhbHRzYWx0c2FsdA
 func (s *authenticatorServer) verifyUserPassword(ctx context.Context, userID int64, plainPassword string) (bool, error) {
 	credential, err := s.svcCtx.Store.GetUserCredential(ctx, userID, false)
 	if errors.Is(err, sql.ErrNoRows) {
-		_, _ = password.Verify(dummyPasswordHash, plainPassword)
+		if _, verifyErr := s.verifyPassword(ctx, dummyPasswordHash, plainPassword); verifyErr != nil {
+			return false, verifyErr
+		}
 		return false, nil
 	}
 	if err != nil {
 		return false, err
 	}
-	return password.Verify(credential.HashedPassword, plainPassword)
+	return s.verifyPassword(ctx, credential.HashedPassword, plainPassword)
 }
 
 func (s *authenticatorServer) ChangePassword(ctx context.Context, req *authenticatorv1.ChangePasswordRequest) (*authenticatorv1.ChangePasswordResponse, error) {
@@ -44,10 +46,16 @@ func (s *authenticatorServer) ChangePassword(ctx context.Context, req *authentic
 
 	// Hash outside the transaction; only the verification of the old
 	// password has to happen under the row lock.
-	hashedPassword, err := password.Hash(req.GetNewPassword())
+	hashedPassword, err := s.hashPassword(ctx, req.GetNewPassword())
 	if err != nil {
 		return nil, err
 	}
+
+	release, err := s.acquirePasswordSlot(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 
 	now := time.Now().UnixMilli()
 	var ok bool
@@ -86,4 +94,29 @@ func (s *authenticatorServer) ChangePassword(ctx context.Context, req *authentic
 	resp := new(authenticatorv1.ChangePasswordResponse)
 	resp.SetOk(ok)
 	return resp, nil
+}
+
+func (s *authenticatorServer) hashPassword(ctx context.Context, plainPassword string) (string, error) {
+	release, err := s.acquirePasswordSlot(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer release()
+	return password.Hash(plainPassword)
+}
+
+func (s *authenticatorServer) verifyPassword(ctx context.Context, hashedPassword, plainPassword string) (bool, error) {
+	release, err := s.acquirePasswordSlot(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer release()
+	return password.Verify(hashedPassword, plainPassword)
+}
+
+func (s *authenticatorServer) acquirePasswordSlot(ctx context.Context) (func(), error) {
+	if s.svcCtx.PasswordLimiter == nil {
+		return func() {}, nil
+	}
+	return s.svcCtx.PasswordLimiter.Acquire(ctx, 1)
 }

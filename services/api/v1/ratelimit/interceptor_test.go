@@ -99,6 +99,20 @@ func TestCheckAuthenticatedReturnsRetryAfter(t *testing.T) {
 	}, limiter.snapshot())
 }
 
+func TestEmailKeyNormalizesAndHashesEmail(t *testing.T) {
+	key := EmailKey(" User@Example.COM ")
+	require.Equal(t, EmailKey("user@example.com"), key)
+	require.NotContains(t, key, "user@example.com")
+	require.Len(t, key, 64)
+}
+
+func TestRequiredPoliciesReturnsCopy(t *testing.T) {
+	policies := RequiredPolicies()
+	require.Contains(t, policies, PolicyRegisterIP)
+	policies[0] = "changed"
+	require.NotEqual(t, "changed", RequiredPolicies()[0])
+}
+
 func newTestClient(
 	t *testing.T,
 	limiter coreratelimit.Limiter,

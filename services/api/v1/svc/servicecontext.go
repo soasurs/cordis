@@ -49,7 +49,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if err != nil {
 		return Dependencies{}, err
 	}
-	for _, policy := range []string{apiratelimit.PolicySourceIPGuard, apiratelimit.PolicyAuthenticatedUser} {
+	for _, policy := range apiratelimit.RequiredPolicies() {
 		if _, ok := cfg.RateLimit.Policies[policy]; !ok {
 			return Dependencies{}, fmt.Errorf("api rate limit policy %q is required", policy)
 		}

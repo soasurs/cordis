@@ -8,6 +8,7 @@ import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 )
 
@@ -46,6 +47,9 @@ func (s *userServer) GetCurrentUser(ctx context.Context, _ *apiv1.GetCurrentUser
 }
 
 func (s *userServer) GetUserProfile(ctx context.Context, req *apiv1.GetUserProfileRequest) (*apiv1.GetUserProfileResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyGetUserProfileIP); err != nil {
+		return nil, err
+	}
 	svcReq := new(userv1.GetUserProfileRequest)
 	svcReq.SetUserId(req.GetUserId())
 	svcResp, err := s.svcCtx.UserClient.GetUserProfile(ctx, svcReq)
@@ -58,6 +62,9 @@ func (s *userServer) GetUserProfile(ctx context.Context, req *apiv1.GetUserProfi
 }
 
 func (s *userServer) CheckEmailAvailability(ctx context.Context, req *apiv1.CheckEmailAvailabilityRequest) (*apiv1.CheckEmailAvailabilityResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyCheckEmailAvailabilityIP); err != nil {
+		return nil, err
+	}
 	svcReq := new(userv1.CheckEmailAvailabilityRequest)
 	svcReq.SetEmail(req.GetEmail())
 	svcResp, err := s.svcCtx.UserClient.CheckEmailAvailability(ctx, svcReq)

@@ -25,7 +25,7 @@ func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessag
 	}
 
 	if err := s.svcCtx.Store.AckMessage(ctx, req.GetUserId(), req.GetChannelId(), req.GetMessageId()); err != nil {
-		return nil, err
+		return nil, mapStoreError(err)
 	}
 
 	resp := new(messagev1.AckMessageResponse)

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -19,8 +20,18 @@ type channelReadStateRow struct {
 }
 
 func (s *SQLStore) AckMessage(ctx context.Context, userID, channelID, messageID int64) error {
-	_, err := s.q.ExecContext(ctx, upsertChannelReadStateStatement, userID, channelID, messageID, time.Now().UnixMilli())
-	return err
+	result, err := s.q.ExecContext(ctx, upsertChannelReadStateStatement, userID, channelID, messageID, time.Now().UnixMilli())
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 func (s *SQLStore) ListChannelReadStates(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {

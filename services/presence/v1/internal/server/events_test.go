@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -20,10 +22,31 @@ type publishedPresenceRecord struct {
 }
 
 type fakePublisher struct {
-	records []publishedPresenceRecord
+	mu           sync.Mutex
+	records      []publishedPresenceRecord
+	publishCalls int
+	publishStart chan struct{}
+	publishBlock chan struct{}
 }
 
-func (p *fakePublisher) Publish(_ context.Context, key, payload []byte) error {
+func (p *fakePublisher) Publish(ctx context.Context, key, payload []byte) error {
+	p.mu.Lock()
+	isFirst := p.publishCalls == 0
+	p.publishCalls++
+	p.mu.Unlock()
+	if isFirst && p.publishStart != nil {
+		select {
+		case p.publishStart <- struct{}{}:
+		default:
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-p.publishBlock:
+		}
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.records = append(p.records, publishedPresenceRecord{key: string(key), payload: append([]byte(nil), payload...)})
 	return nil
 }
@@ -136,4 +159,64 @@ func TestRemoveUserSessionWithoutTransitionStaysSilent(t *testing.T) {
 	_, err := server.RemoveUserSession(context.Background(), req)
 	require.NoError(t, err)
 	require.Empty(t, publisher.records)
+}
+
+func TestConcurrentUpdatesPublishInMutationOrder(t *testing.T) {
+	server, fake, publisher := newTestServerWithPublisher()
+	fake.presences = []store.UserPresence{{UserID: 601, Status: store.PresenceStatusOnline}}
+	publisher.publishStart = make(chan struct{}, 1)
+	publisher.publishBlock = make(chan struct{})
+
+	update := func(status presencev1.PresenceStatus) error {
+		req := new(presencev1.UpdateUserPresenceRequest)
+		req.SetUserId(601)
+		req.SetSessionId("sess-1")
+		req.SetStatus(status)
+		_, err := server.UpdateUserPresence(t.Context(), req)
+		return err
+	}
+
+	firstDone := make(chan error, 1)
+	go func() {
+		firstDone <- update(presencev1.PresenceStatus_PRESENCE_STATUS_DND)
+	}()
+	select {
+	case <-publisher.publishStart:
+	case <-time.After(time.Second):
+		t.Fatal("first publish did not start")
+	}
+
+	secondDone := make(chan error, 1)
+	go func() {
+		secondDone <- update(presencev1.PresenceStatus_PRESENCE_STATUS_IDLE)
+	}()
+	select {
+	case err := <-secondDone:
+		t.Fatalf("second update completed before the first publish: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(publisher.publishBlock)
+	require.NoError(t, <-firstDone)
+	require.NoError(t, <-secondDone)
+
+	publisher.mu.Lock()
+	records := append([]publishedPresenceRecord(nil), publisher.records...)
+	publisher.mu.Unlock()
+	require.Len(t, records, 2)
+	require.Equal(t, []int32{int32(store.PresenceStatusDND), int32(store.PresenceStatusIdle)}, publishedStatuses(t, records))
+}
+
+func publishedStatuses(t *testing.T, records []publishedPresenceRecord) []int32 {
+	t.Helper()
+	statuses := make([]int32, 0, len(records))
+	for _, record := range records {
+		var envelope struct {
+			Data struct {
+				Status int32 `json:"status"`
+			} `json:"d"`
+		}
+		require.NoError(t, json.Unmarshal(record.payload, &envelope))
+		statuses = append(statuses, envelope.Data.Status)
+	}
+	return statuses
 }

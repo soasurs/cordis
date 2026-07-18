@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -215,6 +216,7 @@ func newTestServer() (presencev1.PresenceServiceServer, *fakeStore) {
 
 type fakeStore struct {
 	err error
+	mu  sync.Mutex
 
 	upserted store.Gateway
 
@@ -238,6 +240,12 @@ type fakeStore struct {
 	// presenceSequence, when non-empty, feeds successive ResolveUsersPresence
 	// calls before falling back to presences.
 	presenceSequence [][]store.UserPresence
+}
+
+func (s *fakeStore) WithUserMutation(ctx context.Context, _ int64, fn func(context.Context) error) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return fn(ctx)
 }
 
 func (s *fakeStore) UpsertGateway(_ context.Context, gateway store.Gateway) (store.Gateway, error) {
@@ -296,6 +304,7 @@ func (s *fakeStore) UpdateUserSession(_ context.Context, session store.UserSessi
 		return store.UserPresence{}, s.err
 	}
 	s.updatedSession = session
+	s.presences = []store.UserPresence{{UserID: session.UserID, Status: session.Status}}
 	return store.UserPresence{
 		UserID: session.UserID,
 		Status: session.Status,

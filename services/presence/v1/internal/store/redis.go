@@ -13,15 +13,22 @@ import (
 
 const routeMemberSeparator = "\x1f"
 
+const (
+	minUserMutationLockTTL = 10 * time.Second
+	userMutationLockGrace  = 5 * time.Second
+	userMutationLockRetry  = 25 * time.Millisecond
+)
+
 type RedisStore struct {
-	rds            *redis.Redis
-	gatewayTTL     time.Duration
-	routeTTL       time.Duration
-	userSessionTTL time.Duration
-	now            func() time.Time
+	rds             *redis.Redis
+	gatewayTTL      time.Duration
+	routeTTL        time.Duration
+	userSessionTTL  time.Duration
+	mutationLockTTL time.Duration
+	now             func() time.Time
 }
 
-func NewRedisStore(rds *redis.Redis, gatewayTTL, routeTTL, userSessionTTL time.Duration) *RedisStore {
+func NewRedisStore(rds *redis.Redis, gatewayTTL, routeTTL, userSessionTTL, publishTimeout time.Duration) *RedisStore {
 	if gatewayTTL <= 0 {
 		gatewayTTL = 30 * time.Second
 	}
@@ -31,12 +38,16 @@ func NewRedisStore(rds *redis.Redis, gatewayTTL, routeTTL, userSessionTTL time.D
 	if userSessionTTL <= 0 {
 		userSessionTTL = time.Minute
 	}
+	if publishTimeout <= 0 {
+		publishTimeout = time.Second
+	}
 	return &RedisStore{
-		rds:            rds,
-		gatewayTTL:     gatewayTTL,
-		routeTTL:       routeTTL,
-		userSessionTTL: userSessionTTL,
-		now:            time.Now,
+		rds:             rds,
+		gatewayTTL:      gatewayTTL,
+		routeTTL:        routeTTL,
+		userSessionTTL:  userSessionTTL,
+		mutationLockTTL: max(minUserMutationLockTTL, publishTimeout+userMutationLockGrace),
+		now:             time.Now,
 	}
 }
 
@@ -125,6 +136,40 @@ func (s *RedisStore) ResolveChannelGateways(ctx context.Context, channelID int64
 	}
 
 	return gateways, nil
+}
+
+// WithUserMutation serializes a user's presence mutation and transition
+// publication across Presence instances.
+func (s *RedisStore) WithUserMutation(ctx context.Context, userID int64, fn func(context.Context) error) (err error) {
+	lock := redis.NewRedisLock(s.rds, userMutationLockKey(userID))
+	lock.SetExpire(int((s.mutationLockTTL + time.Second - 1) / time.Second))
+	for {
+		acquired, err := lock.AcquireCtx(ctx)
+		if err != nil {
+			return err
+		}
+		if acquired {
+			break
+		}
+		timer := time.NewTimer(userMutationLockRetry)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-timer.C:
+		}
+	}
+	defer func() {
+		releaseCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
+		defer cancel()
+		released, releaseErr := lock.ReleaseCtx(releaseCtx)
+		if err == nil && releaseErr != nil {
+			err = fmt.Errorf("release user mutation lock: %w", releaseErr)
+		} else if err == nil && !released {
+			err = fmt.Errorf("release user mutation lock: lock expired")
+		}
+	}()
+	return fn(ctx)
 }
 
 func (s *RedisStore) UpsertUserSession(ctx context.Context, session UserSession) (UserPresence, error) {
@@ -324,6 +369,10 @@ func userSessionKey(sessionID string) string {
 
 func userSessionsKey(userID int64) string {
 	return fmt.Sprintf("presence:user:{%d}:sessions", userID)
+}
+
+func userMutationLockKey(userID int64) string {
+	return fmt.Sprintf("presence:user:{%d}:mutation-lock", userID)
 }
 
 func channelGatewaysKey(channelID int64) string {

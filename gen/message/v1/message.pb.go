@@ -3393,7 +3393,10 @@ func (x *GetReadStatesRequest) ClearUserId() {
 type GetReadStatesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId     *int64
+	UserId *int64
+	// Channels to query. At most 100 entries are accepted; IDs must be
+	// positive. Duplicate IDs are coalesced while preserving first-seen order.
+	// Invalid input returns INVALID_ARGUMENT.
 	ChannelIds []int64
 }
 

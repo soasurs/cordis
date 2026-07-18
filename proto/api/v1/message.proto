@@ -213,6 +213,9 @@ message AckMessageResponse {
 }
 
 message GetReadStatesRequest {
+  // Channels to query. At most 100 entries are accepted; IDs must be
+  // positive. Duplicate IDs are coalesced while preserving first-seen order.
+  // Invalid input returns INVALID_ARGUMENT.
   repeated int64 channel_ids = 1;
 }
 

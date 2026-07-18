@@ -704,10 +704,12 @@ func TestGetReadStatesRejectsInvalidBatch(t *testing.T) {
 	req.SetChannelIds(make([]int64, maxReadStateChannels+1))
 	_, err := server.GetReadStates(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest))
 
 	req.SetChannelIds([]int64{0})
 	_, err = server.GetReadStates(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest))
 }
 
 func cloneMessage(message *model.Message) *model.Message {

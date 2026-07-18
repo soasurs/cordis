@@ -1503,8 +1503,11 @@ func (x *AckMessageResponse) GetOk() bool {
 }
 
 type GetReadStatesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChannelIds    []int64                `protobuf:"varint,1,rep,packed,name=channel_ids,json=channelIds" json:"channel_ids,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Channels to query. At most 100 entries are accepted; IDs must be
+	// positive. Duplicate IDs are coalesced while preserving first-seen order.
+	// Invalid input returns INVALID_ARGUMENT.
+	ChannelIds    []int64 `protobuf:"varint,1,rep,packed,name=channel_ids,json=channelIds" json:"channel_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

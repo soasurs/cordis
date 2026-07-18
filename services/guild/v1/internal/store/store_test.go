@@ -236,6 +236,27 @@ func TestUpsertGuildChannelPermissionOverwrite(t *testing.T) {
 	require.Equal(t, int64(1), overwrite.Revision)
 }
 
+func TestListGuildChannelPermissionOverwritesByGuild(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"channel_id", "guild_id", "target_type", "target_id", "allow_bits", "deny_bits",
+		"revision", "created_at", "updated_at",
+	}).
+		AddRow(int64(4001), int64(1001), int32(1), int64(1001), int64(32), int64(0), int64(1), int64(10), int64(0)).
+		AddRow(int64(4002), int64(1001), int32(2), int64(2001), int64(0), int64(64), int64(1), int64(11), int64(0))
+	mock.ExpectQuery(sqlPattern(listGuildChannelPermissionOverwritesByGuildQuery)).
+		WithArgs(int64(1001)).
+		WillReturnRows(rows)
+
+	overwrites, err := store.ListGuildChannelPermissionOverwritesByGuild(context.Background(), 1001)
+	require.NoError(t, err)
+	require.Len(t, overwrites, 2)
+	require.Equal(t, int64(4001), overwrites[0].ChannelID)
+	require.Equal(t, int64(4002), overwrites[1].ChannelID)
+}
+
 func TestTransactRollback(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()

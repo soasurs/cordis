@@ -19,6 +19,15 @@ type channelReadStateRow struct {
 	UpdatedAt         int64 `db:"updated_at"`
 }
 
+type channelReadStateWithCountsRow struct {
+	UserID            int64 `db:"user_id"`
+	ChannelID         int64 `db:"channel_id"`
+	LastReadMessageID int64 `db:"last_read_message_id"`
+	MentionCount      int32 `db:"mention_count"`
+	MessageCount      int32 `db:"message_count"`
+	UpdatedAt         int64 `db:"updated_at"`
+}
+
 func (s *SQLStore) AckMessage(ctx context.Context, userID, channelID, messageID int64) error {
 	result, err := s.q.ExecContext(ctx, upsertChannelReadStateStatement, userID, channelID, messageID, time.Now().UnixMilli())
 	if err != nil {
@@ -48,6 +57,28 @@ func (s *SQLStore) ListChannelReadStates(ctx context.Context, userID int64, chan
 			UserID:            row.UserID,
 			ChannelID:         row.ChannelID,
 			LastReadMessageID: row.LastReadMessageID,
+			UpdatedAt:         row.UpdatedAt,
+		})
+	}
+	return states, nil
+}
+
+func (s *SQLStore) ListChannelReadStatesWithCounts(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
+	if len(channelIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*channelReadStateWithCountsRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listChannelReadStatesWithCountsQuery, userID, pq.Array(channelIDs)); err != nil {
+		return nil, err
+	}
+	states := make([]*model.ChannelReadState, 0, len(rows))
+	for _, row := range rows {
+		states = append(states, &model.ChannelReadState{
+			UserID:            row.UserID,
+			ChannelID:         row.ChannelID,
+			LastReadMessageID: row.LastReadMessageID,
+			MentionCount:      row.MentionCount,
+			MessageCount:      row.MessageCount,
 			UpdatedAt:         row.UpdatedAt,
 		})
 	}

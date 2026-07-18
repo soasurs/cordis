@@ -3,11 +3,15 @@ package server
 import (
 	"context"
 
+	"golang.org/x/sync/errgroup"
+
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
-	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
-const maxReadStateChannels = 100
+const (
+	maxReadStateChannels          = 100
+	readStateAuthorizationWorkers = 8
+)
 
 func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessageRequest) (*messagev1.AckMessageResponse, error) {
 	if req.GetUserId() <= 0 {
@@ -41,44 +45,25 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	if err != nil {
 		return nil, err
 	}
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(readStateAuthorizationWorkers)
 	for _, channelID := range channelIDs {
-		if err := s.requireChannelPermission(ctx, channelID, req.GetUserId(), permissionViewChannel); err != nil {
-			return nil, err
-		}
+		group.Go(func() error {
+			return s.requireChannelPermission(groupCtx, channelID, req.GetUserId(), permissionViewChannel)
+		})
+	}
+	if err := group.Wait(); err != nil {
+		return nil, err
 	}
 
-	states, err := s.svcCtx.Store.ListChannelReadStates(ctx, req.GetUserId(), channelIDs)
+	states, err := s.svcCtx.Store.ListChannelReadStatesWithCounts(ctx, req.GetUserId(), channelIDs)
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-
-	stateByChannel := make(map[int64]*model.ChannelReadState, len(states))
+	pbStates := make([]*messagev1.ChannelReadState, 0, len(states))
 	for _, st := range states {
-		stateByChannel[st.ChannelID] = st
-	}
-
-	var pbStates []*messagev1.ChannelReadState
-	for _, channelID := range channelIDs {
-		st, ok := stateByChannel[channelID]
-		if !ok {
-			// No read state means the user has never acked: count from zero.
-			st = &model.ChannelReadState{ChannelID: channelID}
-		}
-
-		missing, err := s.svcCtx.Store.CountMissingMessages(ctx, channelID, st.LastReadMessageID, req.GetUserId())
-		if err != nil {
-			return nil, err
-		}
-		st.MessageCount = missing
-
-		mentions, err := s.svcCtx.Store.CountUnreadMentions(ctx, req.GetUserId(), channelID, st.LastReadMessageID)
-		if err != nil {
-			return nil, err
-		}
-		st.MentionCount = mentions
-
 		pb := new(messagev1.ChannelReadState)
-		pb.SetChannelId(channelID)
+		pb.SetChannelId(st.ChannelID)
 		pb.SetLastReadMessageId(st.LastReadMessageID)
 		pb.SetMentionCount(st.MentionCount)
 		pb.SetMissingMessageCount(st.MessageCount)

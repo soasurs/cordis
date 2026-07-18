@@ -496,3 +496,10 @@ const listGuildChannelPermissionOverwritesQuery = `
     WHERE channel_id = $1
     ORDER BY target_type ASC, target_id ASC
 `
+
+const listGuildChannelPermissionOverwritesByGuildQuery = `
+    SELECT ` + channelOverwriteColumns + `
+    FROM guild_channel_permission_overwrites
+    WHERE guild_id = $1
+    ORDER BY channel_id ASC, target_type ASC, target_id ASC
+`

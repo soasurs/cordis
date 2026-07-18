@@ -441,6 +441,13 @@ func testGuildChannelOverwrites(t *testing.T, store Store) {
 		})
 		require.NoError(t, err)
 	}
+	ows, err = store.ListGuildChannelPermissionOverwritesByGuild(ctx, guildID)
+	require.NoError(t, err)
+	require.Len(t, ows, 4)
+	require.Equal(t, int64(channelID), ows[0].ChannelID)
+	require.Equal(t, int64(channelID), ows[1].ChannelID)
+	require.Equal(t, int64(channel2ID), ows[2].ChannelID)
+	require.Equal(t, int64(channel2ID), ows[3].ChannelID)
 	require.NoError(t, store.DeleteGuildChannelPermissionOverwritesForTarget(ctx, guildID, 1, 20899))
 	for _, ch := range []int64{channelID, channel2ID} {
 		ows, err = store.ListGuildChannelPermissionOverwrites(ctx, ch)

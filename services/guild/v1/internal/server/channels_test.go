@@ -126,6 +126,36 @@ func TestChannelOverwriteCanHideChannel(t *testing.T) {
 	require.Equal(t, codes.NotFound, status.Code(err))
 }
 
+func TestListGuildChannelsLoadsOverwritesOnce(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[30] = &model.Channel{
+		ID: 30, GuildID: 10, Name: "private", Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT), Revision: 1,
+	}
+	fakeStore.channels[31] = &model.Channel{
+		ID: 31, GuildID: 10, Name: "general", Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT), Revision: 1,
+	}
+	fakeStore.overwrites[30] = map[string]*model.ChannelPermissionOverwrite{
+		overwriteKey(int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER), 1002): {
+			ChannelID:  30,
+			GuildID:    10,
+			TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+			TargetID:   1002,
+			Deny:       PermissionViewChannel,
+		},
+	}
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	req := new(guildv1.ListGuildChannelsRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1002)
+	resp, err := server.ListGuildChannels(t.Context(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.GetChannels(), 1)
+	require.Equal(t, int64(31), resp.GetChannels()[0].GetId())
+	require.Equal(t, 1, fakeStore.listOverwritesByGuildCalls)
+	require.Zero(t, fakeStore.listOverwritesByChannelCalls)
+}
+
 func TestChannelOverwriteRejectsGuildOnlyPermission(t *testing.T) {
 	req := new(guildv1.UpsertGuildChannelPermissionOverwriteRequest)
 	req.SetChannelId(30)

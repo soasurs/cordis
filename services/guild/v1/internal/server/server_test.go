@@ -230,6 +230,9 @@ type fakeStore struct {
 	bans         map[int64]map[int64]*model.GuildBan
 	invites      map[string]*model.GuildInvite
 	transactErr  error
+
+	listOverwritesByChannelCalls int
+	listOverwritesByGuildCalls   int
 }
 
 func newFakeStore() *fakeStore {
@@ -823,6 +826,7 @@ func (s *fakeStore) DeleteGuildChannelPermissionOverwritesForTarget(_ context.Co
 }
 
 func (s *fakeStore) ListGuildChannelPermissionOverwrites(_ context.Context, channelID int64) ([]*model.ChannelPermissionOverwrite, error) {
+	s.listOverwritesByChannelCalls++
 	var values []*model.ChannelPermissionOverwrite
 	for _, overwrite := range s.overwrites[channelID] {
 		values = append(values, cloneOverwrite(overwrite))
@@ -832,6 +836,29 @@ func (s *fakeStore) ListGuildChannelPermissionOverwrites(_ context.Context, chan
 			return values[i].TargetID < values[j].TargetID
 		}
 		return values[i].TargetType < values[j].TargetType
+	})
+	return values, nil
+}
+
+func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuild(_ context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error) {
+	s.listOverwritesByGuildCalls++
+	var values []*model.ChannelPermissionOverwrite
+	for channelID, channel := range s.channels {
+		if channel.GuildID != guildID || channel.DeletedAt != 0 {
+			continue
+		}
+		for _, overwrite := range s.overwrites[channelID] {
+			values = append(values, cloneOverwrite(overwrite))
+		}
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].ChannelID != values[j].ChannelID {
+			return values[i].ChannelID < values[j].ChannelID
+		}
+		if values[i].TargetType != values[j].TargetType {
+			return values[i].TargetType < values[j].TargetType
+		}
+		return values[i].TargetID < values[j].TargetID
 	})
 	return values, nil
 }

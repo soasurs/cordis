@@ -116,6 +116,7 @@ type Store interface {
 	DeleteAllGuildChannelPermissionOverwrites(ctx context.Context, guildID int64) error
 	DeleteGuildChannelPermissionOverwritesForTarget(ctx context.Context, guildID int64, targetType int32, targetID int64) error
 	ListGuildChannelPermissionOverwrites(ctx context.Context, channelID int64) ([]*model.ChannelPermissionOverwrite, error)
+	ListGuildChannelPermissionOverwritesByGuild(ctx context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error)
 }
 
 type SQLStore struct {

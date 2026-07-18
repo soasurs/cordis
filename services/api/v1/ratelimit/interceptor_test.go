@@ -68,7 +68,7 @@ func TestUnaryInterceptorUsesPeerIPAndIgnoresSpoofedHeader(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "127.0.0.1", clientIP)
 	require.Equal(t, []limiterCall{{
-		policy: PolicyPublicIP,
+		policy: PolicySourceIPGuard,
 		key:    "127.0.0.1",
 		cost:   1,
 	}}, limiter.snapshot())
@@ -94,7 +94,7 @@ func TestCheckAuthenticatedReturnsRetryAfter(t *testing.T) {
 	require.Equal(t, "2", connectErr.Meta().Get("Retry-After"))
 	require.Equal(t, "10", connectErr.Meta().Get("X-RateLimit-Limit"))
 	require.Equal(t, []limiterCall{
-		{policy: PolicyPublicIP, key: "127.0.0.1", cost: 1},
+		{policy: PolicySourceIPGuard, key: "127.0.0.1", cost: 1},
 		{policy: PolicyAuthenticatedUser, key: "42", cost: 1},
 	}, limiter.snapshot())
 }

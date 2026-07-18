@@ -27,8 +27,8 @@ rateLimit:
   # these CIDRs. Configure the actual load balancer networks in production.
   trustedProxies: []
   policies:
-    public_ip:
-      limit: 1200
+    source_ip_guard:
+      limit: 20000
       window: 1m
     authenticated_user:
       limit: 300

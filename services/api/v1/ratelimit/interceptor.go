@@ -13,8 +13,10 @@ import (
 )
 
 const (
-	// PolicyPublicIP is the general source-IP policy for public API requests.
-	PolicyPublicIP = "public_ip"
+	// PolicySourceIPGuard is a high-volume safety guard shared by requests
+	// from one public source address. Per-user and endpoint policies provide
+	// the normal business quotas.
+	PolicySourceIPGuard = "source_ip_guard"
 	// PolicyAuthenticatedUser is the general per-user policy applied after
 	// access-token verification succeeds.
 	PolicyAuthenticatedUser = "authenticated_user"
@@ -27,7 +29,7 @@ type requestState struct {
 
 type requestStateKey struct{}
 
-// UnaryInterceptor applies the public source-IP policy and makes request
+// UnaryInterceptor applies the coarse source-IP guard and makes request
 // limiter state available to authentication and later endpoint policies.
 func UnaryInterceptor(
 	limiter coreratelimit.Limiter,
@@ -45,7 +47,7 @@ func UnaryInterceptor(
 			}
 			state := &requestState{limiter: limiter, clientIP: clientIP.String()}
 			ctx = context.WithValue(ctx, requestStateKey{}, state)
-			decision, err := limiter.Take(ctx, PolicyPublicIP, state.clientIP, 1)
+			decision, err := limiter.Take(ctx, PolicySourceIPGuard, state.clientIP, 1)
 			if err != nil {
 				return nil, limiterError(ctx, err)
 			}

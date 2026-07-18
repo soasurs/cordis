@@ -11,9 +11,17 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database database.Config `json:",optional"`
-	Kafka    KafkaConfig     `json:",optional"`
-	Services ServiceConfig
+	Database   database.Config `json:",optional"`
+	Kafka      KafkaConfig     `json:",optional"`
+	ReadStates ReadStatesConfig
+	Services   ServiceConfig
+}
+
+// ReadStatesConfig controls bounded authorization fan-out and aggregate query
+// concurrency for GetReadStates.
+type ReadStatesConfig struct {
+	AuthorizationConcurrency int   `json:",default=8"`
+	MaxConcurrentChannels    int64 `json:",default=800"`
 }
 
 type ServiceConfig struct {

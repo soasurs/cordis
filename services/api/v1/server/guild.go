@@ -7,6 +7,7 @@ import (
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 )
 
@@ -21,6 +22,9 @@ func NewGuild(svcCtx *svc.ServiceContext) apiv1connect.GuildServiceHandler {
 func (s *guildServer) CreateGuild(ctx context.Context, req *apiv1.CreateGuildRequest) (*apiv1.CreateGuildResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkUserPolicy(ctx, apiratelimit.PolicyCreateGuildUser, auth.GetUserId()); err != nil {
 		return nil, err
 	}
 	svcReq := new(guildv1.CreateGuildRequest)

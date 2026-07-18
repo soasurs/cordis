@@ -95,13 +95,7 @@ func (l *Limiter) InUse() int64 {
 }
 
 func (l *Limiter) validateWeight(weight int64) error {
-	if weight <= 0 {
-		return errors.New("concurrency limiter weight must be positive")
-	}
-	if weight > l.capacity {
-		return errors.New("concurrency limiter weight exceeds capacity")
-	}
-	return nil
+	return validateWeight(l.capacity, weight)
 }
 
 func (l *Limiter) addUsage(weight int64) {

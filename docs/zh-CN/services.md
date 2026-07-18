@@ -4,6 +4,8 @@
 
 公开 Connect-RPC HTTP 服务，监听 `:8080`。它代理 Authenticator、User、Guild 和 Message RPC，将内部 protobuf 转换为公开模型，并通过 `pkg/apierror` 将带 `google.rpc.ErrorInfo` 的内部错误转换为稳定的公开错误。API 本身不访问业务数据库。
 
+公开请求使用 Redis-backed 命名限流 policy，并在 Redis 故障时使用有界本地 fallback。所有请求先消费来源 IP guard；认证成功后再消费用户通用配额，消息创建、关系写入、Guild 资源创建和邀请加入还会消费对应业务桶。`GetReadStates` 在 API 实例内按用户限制并发；等待受请求 context 控制。
+
 ## User
 
 监听 `:3000`，拥有用户和资料数据。负责注册所需的用户创建、用户查询、邮箱可用性、邮箱更新、资料更新、密码校验和修改。密码使用 Argon2id 哈希。User 不签发令牌。
@@ -30,7 +32,7 @@
 
 监听 `:3002`，拥有消息、附件、提及和回复关系。创建、读取、更新和删除操作先调用 Guild 授权。列表使用 `before`、`after` 或 `around` 游标分页。当前没有反应或自定义 emoji RPC。
 
-`GetReadStates` 会批量计算频道已读状态、未读消息数和未读提及数。一个请求内的频道授权 fan-out 使用固定 worker 上限并发执行，避免无界跨服务调用；这不是跨请求共享的 weighted semaphore。外部调用量仍由 API 的 authenticated-user 通用配额限制。
+`GetReadStates` 会批量计算频道已读状态、未读消息数和未读提及数。一个请求内的频道授权 fan-out 使用配置化 worker 上限，避免无界跨服务调用；服务级 weighted semaphore 按去重后的频道数计权，限制单个 Message 实例上的总工作量。API 还使用进程内 keyed semaphore 限制每用户并发，并继续应用 authenticated-user 通用配额。这些并发容量都是单实例限制，不是全集群共享上限。
 
 允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `cordis.message.events.v1` 发布事件；发布失败只记录日志。
 

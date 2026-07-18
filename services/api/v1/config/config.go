@@ -17,6 +17,7 @@ type Config struct {
 	Log           logx.LogConf
 	Observability observability.Config
 	RateLimit     RateLimitConfig
+	ReadStates    ReadStatesConfig
 	Services      ServiceConfig
 }
 
@@ -28,6 +29,11 @@ type RateLimitConfig struct {
 	FallbackRetryInterval time.Duration `json:",default=1s"`
 	TrustedProxies        []string      `json:",optional"`
 	Policies              map[string]ratelimit.Policy
+}
+
+// ReadStatesConfig controls API-side per-user concurrency for GetReadStates.
+type ReadStatesConfig struct {
+	MaxConcurrencyPerUser int64 `json:",default=2"`
 }
 
 type ServiceConfig struct {

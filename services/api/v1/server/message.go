@@ -7,6 +7,7 @@ import (
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 )
 
@@ -21,6 +22,12 @@ func NewMessage(svcCtx *svc.ServiceContext) apiv1connect.MessageServiceHandler {
 func (s *messageServer) CreateMessage(ctx context.Context, req *apiv1.CreateMessageRequest) (*apiv1.CreateMessageResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkUserPolicy(ctx, apiratelimit.PolicyCreateMessageUser, auth.GetUserId()); err != nil {
+		return nil, err
+	}
+	if err := checkResourcePolicy(ctx, apiratelimit.PolicyCreateMessageChannel, req.GetChannelId()); err != nil {
 		return nil, err
 	}
 
@@ -287,6 +294,11 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *apiv1.GetReadSta
 	if err != nil {
 		return nil, err
 	}
+	release, err := acquireUserConcurrency(ctx, s.svcCtx.ReadStatesLimiter, auth.GetUserId())
+	if err != nil {
+		return nil, err
+	}
+	defer release()
 
 	svcReq := new(messagev1.GetReadStatesRequest)
 	svcReq.SetUserId(auth.GetUserId())

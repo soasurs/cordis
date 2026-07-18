@@ -2,15 +2,19 @@ package server
 
 import (
 	"context"
+	"errors"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 )
 
 const (
-	maxReadStateChannels          = 100
-	readStateAuthorizationWorkers = 8
+	maxReadStateChannels                     = 100
+	defaultReadStateAuthorizationConcurrency = 8
 )
 
 func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessageRequest) (*messagev1.AckMessageResponse, error) {
@@ -45,8 +49,14 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	if err != nil {
 		return nil, err
 	}
+	release, err := s.acquireReadStatesCapacity(ctx, int64(max(1, len(channelIDs))))
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+
 	group, groupCtx := errgroup.WithContext(ctx)
-	group.SetLimit(readStateAuthorizationWorkers)
+	group.SetLimit(s.readStateAuthorizationConcurrency())
 	for _, channelID := range channelIDs {
 		group.Go(func() error {
 			return s.requireChannelPermission(groupCtx, channelID, req.GetUserId(), permissionViewChannel)
@@ -73,6 +83,28 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	resp := new(messagev1.GetReadStatesResponse)
 	resp.SetStates(pbStates)
 	return resp, nil
+}
+
+func (s *messageServer) acquireReadStatesCapacity(ctx context.Context, weight int64) (func(), error) {
+	if s.svcCtx.ReadStatesLimiter == nil {
+		return func() {}, nil
+	}
+	release, err := s.svcCtx.ReadStatesLimiter.Acquire(ctx, weight)
+	if err == nil {
+		return release, nil
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return nil, status.FromContextError(err).Err()
+	}
+	logx.WithContext(ctx).Errorw("acquire read states capacity", logx.Field("error", err))
+	return nil, status.Error(codes.Internal, "read states concurrency limiter unavailable")
+}
+
+func (s *messageServer) readStateAuthorizationConcurrency() int {
+	if configured := s.svcCtx.Cfg.ReadStates.AuthorizationConcurrency; configured > 0 {
+		return configured
+	}
+	return defaultReadStateAuthorizationConcurrency
 }
 
 func normalizeReadStateChannelIDs(channelIDs []int64) ([]int64, error) {

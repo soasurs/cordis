@@ -57,6 +57,42 @@ rateLimit:
     recovery_request_ip:
       limit: 30
       window: 10m
+    create_message_user:
+      limit: 30
+      window: 10s
+    create_message_channel:
+      limit: 120
+      window: 10s
+    relationship_write:
+      limit: 60
+      window: 1m
+    send_friend_request_minute:
+      limit: 10
+      window: 1m
+    send_friend_request_day:
+      limit: 100
+      window: 24h
+    block_unblock_debounce:
+      limit: 1
+      window: 5s
+    create_guild_user:
+      limit: 5
+      window: 1h
+    guild_resource_create_actor:
+      limit: 30
+      window: 1m
+    guild_resource_create_guild:
+      limit: 100
+      window: 1h
+    join_guild_invite_user:
+      limit: 10
+      window: 10m
+    join_guild_invite_ip:
+      limit: 30
+      window: 10m
+
+readStates:
+  maxConcurrencyPerUser: 2
 
 services:
   authenticator:

@@ -13,6 +13,9 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *apiv1.CreateG
 	if err != nil {
 		return nil, err
 	}
+	if err := checkGuildResourceCreate(ctx, auth.GetUserId(), req.GetGuildId()); err != nil {
+		return nil, err
+	}
 	svcReq := new(guildv1.CreateGuildChannelRequest)
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())

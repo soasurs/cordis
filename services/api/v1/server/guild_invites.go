@@ -6,11 +6,15 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 )
 
 func (s *guildServer) CreateGuildInvite(ctx context.Context, req *apiv1.CreateGuildInviteRequest) (*apiv1.CreateGuildInviteResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkGuildResourceCreate(ctx, auth.GetUserId(), req.GetGuildId()); err != nil {
 		return nil, err
 	}
 	svcReq := new(guildv1.CreateGuildInviteRequest)
@@ -76,6 +80,12 @@ func (s *guildServer) DeleteGuildInvite(ctx context.Context, req *apiv1.DeleteGu
 func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *apiv1.JoinGuildByInviteRequest) (*apiv1.JoinGuildByInviteResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkUserPolicy(ctx, apiratelimit.PolicyJoinGuildInviteUser, auth.GetUserId()); err != nil {
+		return nil, err
+	}
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyJoinGuildInviteIP); err != nil {
 		return nil, err
 	}
 	svcReq := new(guildv1.JoinGuildByInviteRequest)

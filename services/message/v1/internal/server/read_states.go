@@ -7,7 +7,10 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
-const defaultLastReadID = int64(0)
+const (
+	defaultLastReadID    = int64(0)
+	maxReadStateChannels = 100
+)
 
 func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessageRequest) (*messagev1.AckMessageResponse, error) {
 	if req.GetUserId() <= 0 {
@@ -37,8 +40,17 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	if req.GetUserId() <= 0 {
 		return nil, invalidRequest("user id is required")
 	}
+	channelIDs, err := normalizeReadStateChannelIDs(req.GetChannelIds())
+	if err != nil {
+		return nil, err
+	}
+	for _, channelID := range channelIDs {
+		if err := s.requireChannelPermission(ctx, channelID, req.GetUserId(), permissionViewChannel); err != nil {
+			return nil, err
+		}
+	}
 
-	states, err := s.svcCtx.Store.ListChannelReadStates(ctx, req.GetUserId(), req.GetChannelIds())
+	states, err := s.svcCtx.Store.ListChannelReadStates(ctx, req.GetUserId(), channelIDs)
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
@@ -49,7 +61,7 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	}
 
 	var pbStates []*messagev1.ChannelReadState
-	for _, channelID := range req.GetChannelIds() {
+	for _, channelID := range channelIDs {
 		st, ok := stateByChannel[channelID]
 		if !ok {
 			// No read state means the user has never acked: count from zero.
@@ -79,4 +91,23 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	resp := new(messagev1.GetReadStatesResponse)
 	resp.SetStates(pbStates)
 	return resp, nil
+}
+
+func normalizeReadStateChannelIDs(channelIDs []int64) ([]int64, error) {
+	if len(channelIDs) > maxReadStateChannels {
+		return nil, invalidRequest("too many channel ids")
+	}
+	unique := make([]int64, 0, len(channelIDs))
+	seen := make(map[int64]struct{}, len(channelIDs))
+	for _, channelID := range channelIDs {
+		if channelID <= 0 {
+			return nil, invalidRequest("channel id is required")
+		}
+		if _, ok := seen[channelID]; ok {
+			continue
+		}
+		seen[channelID] = struct{}{}
+		unique = append(unique, channelID)
+	}
+	return unique, nil
 }

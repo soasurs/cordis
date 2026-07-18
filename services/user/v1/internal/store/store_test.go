@@ -51,6 +51,20 @@ func createUserProfileExecPattern() string {
 	`)
 }
 
+func TestLockRelationshipPairOrdersUserLocks(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	mock.ExpectExec(sqlPattern(LockRelationshipUserStatement)).
+		WithArgs(int64(1001)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectExec(sqlPattern(LockRelationshipUserStatement)).
+		WithArgs(int64(2002)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	require.NoError(t, store.LockRelationshipPair(context.Background(), 2002, 1001))
+}
+
 func TestCreateUser(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()

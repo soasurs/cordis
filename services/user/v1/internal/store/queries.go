@@ -149,6 +149,8 @@ const (
 		updated_at = EXCLUDED.created_at
 	`
 
+	LockRelationshipUserStatement = `SELECT pg_advisory_xact_lock($1)`
+
 	GetRelationshipQuery = `
 	SELECT user_id, target_id, type, created_at, updated_at
 	FROM user_relationships

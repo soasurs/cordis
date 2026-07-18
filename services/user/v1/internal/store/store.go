@@ -29,6 +29,7 @@ type Store interface {
 	GetUserProfileByUsername(ctx context.Context, username string) (*model.UserProfile, error)
 	UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)
 	UpdateUsername(ctx context.Context, userID int64, username string) (*model.UserProfile, error)
+	LockRelationshipPair(ctx context.Context, userID, targetID int64) error
 	UpsertRelationship(ctx context.Context, relationship *model.Relationship) error
 	GetRelationship(ctx context.Context, userID, targetID int64) (*model.Relationship, error)
 	DeleteRelationship(ctx context.Context, userID, targetID int64) error

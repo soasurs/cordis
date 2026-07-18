@@ -48,6 +48,9 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *userv1.SendFrie
 	now := time.Now().UnixMilli()
 	mutation := new(relationshipMutation)
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
 		own, err := getRelationship(ctx, tx, req.GetUserId(), req.GetTargetId())
 		if err != nil {
 			return err
@@ -100,6 +103,9 @@ func (s *userServer) AcceptFriendRequest(ctx context.Context, req *userv1.Accept
 	now := time.Now().UnixMilli()
 	mutation := new(relationshipMutation)
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
 		own, err := getRelationship(ctx, tx, req.GetUserId(), req.GetTargetId())
 		if err != nil {
 			return err
@@ -126,6 +132,9 @@ func (s *userServer) DeclineFriendRequest(ctx context.Context, req *userv1.Decli
 
 	mutation := new(relationshipMutation)
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
 		own, err := getRelationship(ctx, tx, req.GetUserId(), req.GetTargetId())
 		if err != nil {
 			return err
@@ -152,6 +161,9 @@ func (s *userServer) RemoveFriend(ctx context.Context, req *userv1.RemoveFriendR
 
 	mutation := new(relationshipMutation)
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
 		own, err := getRelationship(ctx, tx, req.GetUserId(), req.GetTargetId())
 		if err != nil {
 			return err
@@ -185,6 +197,9 @@ func (s *userServer) BlockUser(ctx context.Context, req *userv1.BlockUserRequest
 	now := time.Now().UnixMilli()
 	mutation := new(relationshipMutation)
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
 		own, err := getRelationship(ctx, tx, req.GetUserId(), req.GetTargetId())
 		if err != nil {
 			return err
@@ -247,6 +262,9 @@ func (s *userServer) UnblockUser(ctx context.Context, req *userv1.UnblockUserReq
 
 	mutation := new(relationshipMutation)
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
 		own, err := getRelationship(ctx, tx, req.GetUserId(), req.GetTargetId())
 		if err != nil {
 			return err

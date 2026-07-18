@@ -10,6 +10,7 @@ import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 )
 
 const bearerPrefix = "Bearer "
@@ -40,6 +41,9 @@ func authenticate(
 	}
 	if !resp.GetOk() || resp.GetUserId() <= 0 {
 		return nil, invalidAccessTokenError()
+	}
+	if err := apiratelimit.CheckAuthenticated(ctx, resp.GetUserId()); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }

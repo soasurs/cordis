@@ -1,9 +1,13 @@
 package config
 
 import (
+	"time"
+
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 
+	"github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/observability"
 )
 
@@ -12,7 +16,18 @@ type Config struct {
 	ListenOn      string
 	Log           logx.LogConf
 	Observability observability.Config
+	RateLimit     RateLimitConfig
 	Services      ServiceConfig
+}
+
+// RateLimitConfig defines API rate-limit storage, policies, and proxy trust.
+type RateLimitConfig struct {
+	Redis                 redis.RedisConf
+	KeyPrefix             string        `json:",default=cordis:api:rate_limit:"`
+	FallbackMaxKeys       int           `json:",default=10000"`
+	FallbackRetryInterval time.Duration `json:",default=1s"`
+	TrustedProxies        []string      `json:",optional"`
+	Policies              map[string]ratelimit.Policy
 }
 
 type ServiceConfig struct {

@@ -17,6 +17,7 @@ import (
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	"github.com/soasurs/cordis/services/api/v1/config"
 	"github.com/soasurs/cordis/services/api/v1/observability"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/server"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 )
@@ -49,21 +50,29 @@ func main() {
 	}()
 
 	svcCtx := svc.NewServiceContext(*cfg)
+	clientIPResolver, err := apiratelimit.NewClientIPResolver(cfg.RateLimit.TrustedProxies)
+	if err != nil {
+		panic(err)
+	}
+	interceptors := append(
+		observability.ConnectInterceptors(),
+		apiratelimit.UnaryInterceptor(svcCtx.RateLimiter, clientIPResolver),
+	)
 	path, handler := apiv1connect.NewAuthenticatorServiceHandler(
 		server.NewAuthenticator(svcCtx),
-		connect.WithInterceptors(observability.ConnectInterceptors()...),
+		connect.WithInterceptors(interceptors...),
 	)
 	userPath, userHandler := apiv1connect.NewUserServiceHandler(
 		server.NewUser(svcCtx),
-		connect.WithInterceptors(observability.ConnectInterceptors()...),
+		connect.WithInterceptors(interceptors...),
 	)
 	messagePath, messageHandler := apiv1connect.NewMessageServiceHandler(
 		server.NewMessage(svcCtx),
-		connect.WithInterceptors(observability.ConnectInterceptors()...),
+		connect.WithInterceptors(interceptors...),
 	)
 	guildPath, guildHandler := apiv1connect.NewGuildServiceHandler(
 		server.NewGuild(svcCtx),
-		connect.WithInterceptors(observability.ConnectInterceptors()...),
+		connect.WithInterceptors(interceptors...),
 	)
 
 	mux := http.NewServeMux()

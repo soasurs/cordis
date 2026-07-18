@@ -32,7 +32,7 @@ go build ./services/guild/v1/...
 
 ## Services
 
-- `services/api/v1`: public Connect-RPC HTTP API on `:8080`; authenticates callers, proxies User/Message/Guild operations to internal gRPC services, and maps errors through `pkg/apierror`.
+- `services/api/v1`: public Connect-RPC HTTP API on `:8080`; authenticates callers, proxies User/Message/Guild operations to internal gRPC services, and maps errors through `pkg/apierror`. Public requests use Redis-backed named rate-limit policies with a bounded local fallback; every request consumes a high-volume source-IP guard while successful access-token verification consumes the primary per-user quota. Forwarded client addresses are honored only from explicitly configured trusted proxy CIDRs.
 - `services/gateway/v1`: websocket gateway on `:8081`; forwards websocket frames over a bidirectional gRPC stream to Session and owns no logical session, replay, subscription, or Kafka state.
 - `services/session/v1`: stateful gRPC service on `:3006`; owns logical sessions, sequence numbers, 2048-event in-memory replay windows, subscriptions, Presence updates, and Gateway stream bindings.
 - `services/dispatcher/v1`: Kafka consumer for the Guild, Message, User, and Presence topics; resolves aggregate Session-node routes in Redis and dispatches events to Session gRPC. Presence transitions fan out along two paths - the payload `guild_ids` through guild routes and the user's friends (paged through User `ListRelationships`) plus the user's own devices through user routes; recipients reachable through both paths receive duplicates, which is accepted because presence updates are idempotent state.

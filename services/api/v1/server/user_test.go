@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,9 @@ import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/svc"
 )
 
@@ -67,6 +70,22 @@ type fakeUserClient struct {
 	listRelationshipsError           error
 }
 
+type authenticatedQuotaLimiter struct{}
+
+func (authenticatedQuotaLimiter) Take(
+	_ context.Context,
+	policy, _ string,
+	_ int64,
+) (coreratelimit.Decision, error) {
+	if policy == apiratelimit.PolicyAuthenticatedUser {
+		return coreratelimit.Decision{
+			Limit:      1,
+			RetryAfter: time.Minute,
+		}, nil
+	}
+	return coreratelimit.Decision{Allowed: true, Limit: 100, Remaining: 99}, nil
+}
+
 func (f *fakeUserClient) GetUser(_ context.Context, req *userv1.GetUserRequest, _ ...grpc.CallOption) (*userv1.GetUserResponse, error) {
 	f.getUserRequest = req
 	return f.getUserResponse, f.getUserError
@@ -110,6 +129,41 @@ func TestGetCurrentUserOverConnectHTTP(t *testing.T) {
 	require.Equal(t, int64(1001), userClient.getUserProfileRequest.GetUserId())
 	require.Equal(t, "user@example.com", resp.GetUser().GetEmail())
 	require.Equal(t, "display name", resp.GetProfile().GetName())
+}
+
+func TestGetCurrentUserAppliesAuthenticatedQuotaAfterTokenVerification(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	userClient := new(fakeUserClient)
+	resolver, err := apiratelimit.NewClientIPResolver(nil)
+	require.NoError(t, err)
+	path, handler := apiv1connect.NewUserServiceHandler(
+		NewUser(&svc.ServiceContext{
+			AuthenticatorClient: authenticatorClient,
+			UserClient:          userClient,
+		}),
+		connect.WithInterceptors(apiratelimit.UnaryInterceptor(authenticatedQuotaLimiter{}, resolver)),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	defer httpServer.Close()
+	client := apiv1connect.NewUserServiceClient(
+		&http.Client{Transport: bearerRoundTripper{
+			base:        http.DefaultTransport,
+			accessToken: "access-token",
+		}},
+		httpServer.URL,
+	)
+
+	_, err = client.GetCurrentUser(t.Context(), &apiv1.GetCurrentUserRequest{})
+	require.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
+	connectErr := new(connect.Error)
+	require.ErrorAs(t, err, &connectErr)
+	require.Equal(t, "60", connectErr.Meta().Get("Retry-After"))
+	require.NotNil(t, authenticatorClient.verifyRequest)
+	require.Nil(t, userClient.getUserRequest)
 }
 
 func TestGetCurrentUserRequiresAccessToken(t *testing.T) {

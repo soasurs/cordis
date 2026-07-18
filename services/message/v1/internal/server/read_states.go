@@ -7,10 +7,7 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
-const (
-	defaultLastReadID    = int64(0)
-	maxReadStateChannels = 100
-)
+const maxReadStateChannels = 100
 
 func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessageRequest) (*messagev1.AckMessageResponse, error) {
 	if req.GetUserId() <= 0 {

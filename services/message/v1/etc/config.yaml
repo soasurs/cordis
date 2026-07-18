@@ -35,6 +35,10 @@ kafka:
   topic: cordis.message.events.v1
   publishTimeoutMs: 1000
 
+readStates:
+  authorizationConcurrency: 8
+  maxConcurrentChannels: 800
+
 services:
   guild:
     endpoints:

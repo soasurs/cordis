@@ -6,6 +6,13 @@ Public Connect-RPC server on `:8080`. It proxies Authenticator, User, Guild, and
 Message, converts public/internal protobuf models, and maps domain errors with
 `pkg/apierror`. It does not access domain databases.
 
+Public requests use Redis-backed named rate-limit policies with a bounded local
+fallback during Redis failures. Every request first consumes a source-IP guard;
+successful authentication then consumes the general user quota. Message
+creation, relationship writes, Guild resource creation, and invite joins also
+consume business-specific buckets. `GetReadStates` concurrency is bounded per
+user within each API process, and waiting follows the request context.
+
 ## User
 
 gRPC on `:3000`. Owns users and profiles, email availability and updates,
@@ -48,10 +55,12 @@ read, update, and delete operations ask Guild for authorization. Listing uses
 are not currently implemented.
 
 `GetReadStates` batches channel read-state, unread-message, and unread-mention
-calculation. Channel authorization fan-out within one request runs with a fixed
-worker bound to avoid unbounded cross-service calls; it is not a weighted
-semaphore shared across requests. External request volume remains subject to
-the API's general authenticated-user quota.
+calculation. Channel authorization fan-out within one request uses a configured
+worker bound to avoid unbounded cross-service calls. A service-level weighted
+semaphore charges the deduplicated channel count and bounds aggregate work on
+each Message instance. API also applies a process-local keyed semaphore per
+user and the general authenticated-user quota. These concurrency capacities are
+per-instance rather than cluster-wide.
 
 Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a

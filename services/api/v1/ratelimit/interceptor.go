@@ -39,6 +39,28 @@ const (
 	PolicyCheckEmailAvailabilityIP = "check_email_availability_ip"
 	// PolicyRecoveryRequestIP limits aggregate recovery mail requests by source address.
 	PolicyRecoveryRequestIP = "recovery_request_ip"
+	// PolicyCreateMessageUser limits message creation by author.
+	PolicyCreateMessageUser = "create_message_user"
+	// PolicyCreateMessageChannel limits aggregate message creation in a channel.
+	PolicyCreateMessageChannel = "create_message_channel"
+	// PolicyRelationshipWrite is shared by relationship mutations from one user.
+	PolicyRelationshipWrite = "relationship_write"
+	// PolicySendFriendRequestMinute limits short-term friend requests by sender.
+	PolicySendFriendRequestMinute = "send_friend_request_minute"
+	// PolicySendFriendRequestDay limits daily friend requests by sender.
+	PolicySendFriendRequestDay = "send_friend_request_day"
+	// PolicyBlockUnblockDebounce is shared by block and unblock for one user pair.
+	PolicyBlockUnblockDebounce = "block_unblock_debounce"
+	// PolicyCreateGuildUser limits guild creation by owner.
+	PolicyCreateGuildUser = "create_guild_user"
+	// PolicyGuildResourceCreateActor limits role, channel, and invite creation by actor.
+	PolicyGuildResourceCreateActor = "guild_resource_create_actor"
+	// PolicyGuildResourceCreateGuild limits role, channel, and invite creation in a guild.
+	PolicyGuildResourceCreateGuild = "guild_resource_create_guild"
+	// PolicyJoinGuildInviteUser limits invite joins by user.
+	PolicyJoinGuildInviteUser = "join_guild_invite_user"
+	// PolicyJoinGuildInviteIP limits invite joins by source address.
+	PolicyJoinGuildInviteIP = "join_guild_invite_ip"
 )
 
 var requiredPolicies = [...]string{
@@ -52,6 +74,17 @@ var requiredPolicies = [...]string{
 	PolicyGetUserProfileIP,
 	PolicyCheckEmailAvailabilityIP,
 	PolicyRecoveryRequestIP,
+	PolicyCreateMessageUser,
+	PolicyCreateMessageChannel,
+	PolicyRelationshipWrite,
+	PolicySendFriendRequestMinute,
+	PolicySendFriendRequestDay,
+	PolicyBlockUnblockDebounce,
+	PolicyCreateGuildUser,
+	PolicyGuildResourceCreateActor,
+	PolicyGuildResourceCreateGuild,
+	PolicyJoinGuildInviteUser,
+	PolicyJoinGuildInviteIP,
 }
 
 type requestState struct {

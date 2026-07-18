@@ -6,6 +6,7 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 )
 
 func (s *userServer) LookupUser(ctx context.Context, req *apiv1.LookupUserRequest) (*apiv1.LookupUserResponse, error) {
@@ -27,6 +28,15 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *apiv1.SendFrien
 	if err != nil {
 		return nil, err
 	}
+	if err := checkRelationshipWrite(ctx, auth.GetUserId()); err != nil {
+		return nil, err
+	}
+	if err := checkUserPolicy(ctx, apiratelimit.PolicySendFriendRequestMinute, auth.GetUserId()); err != nil {
+		return nil, err
+	}
+	if err := checkUserPolicy(ctx, apiratelimit.PolicySendFriendRequestDay, auth.GetUserId()); err != nil {
+		return nil, err
+	}
 
 	svcReq := new(userv1.SendFriendRequestRequest)
 	svcReq.SetUserId(auth.GetUserId())
@@ -41,6 +51,9 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *apiv1.SendFrien
 func (s *userServer) AcceptFriendRequest(ctx context.Context, req *apiv1.AcceptFriendRequestRequest) (*apiv1.AcceptFriendRequestResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkRelationshipWrite(ctx, auth.GetUserId()); err != nil {
 		return nil, err
 	}
 
@@ -59,6 +72,9 @@ func (s *userServer) DeclineFriendRequest(ctx context.Context, req *apiv1.Declin
 	if err != nil {
 		return nil, err
 	}
+	if err := checkRelationshipWrite(ctx, auth.GetUserId()); err != nil {
+		return nil, err
+	}
 
 	svcReq := new(userv1.DeclineFriendRequestRequest)
 	svcReq.SetUserId(auth.GetUserId())
@@ -73,6 +89,9 @@ func (s *userServer) DeclineFriendRequest(ctx context.Context, req *apiv1.Declin
 func (s *userServer) RemoveFriend(ctx context.Context, req *apiv1.RemoveFriendRequest) (*apiv1.RemoveFriendResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkRelationshipWrite(ctx, auth.GetUserId()); err != nil {
 		return nil, err
 	}
 
@@ -91,6 +110,12 @@ func (s *userServer) BlockUser(ctx context.Context, req *apiv1.BlockUserRequest)
 	if err != nil {
 		return nil, err
 	}
+	if err := checkRelationshipWrite(ctx, auth.GetUserId()); err != nil {
+		return nil, err
+	}
+	if err := checkUserPairPolicy(ctx, apiratelimit.PolicyBlockUnblockDebounce, auth.GetUserId(), req.GetTargetId()); err != nil {
+		return nil, err
+	}
 
 	svcReq := new(userv1.BlockUserRequest)
 	svcReq.SetUserId(auth.GetUserId())
@@ -105,6 +130,12 @@ func (s *userServer) BlockUser(ctx context.Context, req *apiv1.BlockUserRequest)
 func (s *userServer) UnblockUser(ctx context.Context, req *apiv1.UnblockUserRequest) (*apiv1.UnblockUserResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkRelationshipWrite(ctx, auth.GetUserId()); err != nil {
+		return nil, err
+	}
+	if err := checkUserPairPolicy(ctx, apiratelimit.PolicyBlockUnblockDebounce, auth.GetUserId(), req.GetTargetId()); err != nil {
 		return nil, err
 	}
 

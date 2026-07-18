@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/zeromicro/go-zero/core/stores/redis"
@@ -10,10 +11,16 @@ import (
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/concurrencylimit"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/config"
 	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 )
+
+// KeyedConcurrencyLimiter bounds concurrent work independently per key.
+type KeyedConcurrencyLimiter interface {
+	Acquire(ctx context.Context, key string, weight int64) (func(), error)
+}
 
 type ServiceContext struct {
 	Cfg                 config.Config
@@ -22,6 +29,7 @@ type ServiceContext struct {
 	MessageClient       messagev1.MessageServiceClient
 	GuildClient         guildv1.GuildServiceClient
 	RateLimiter         coreratelimit.Limiter
+	ReadStatesLimiter   KeyedConcurrencyLimiter
 }
 
 type Dependencies struct {
@@ -30,9 +38,17 @@ type Dependencies struct {
 	MessageClient       messagev1.MessageServiceClient
 	GuildClient         guildv1.GuildServiceClient
 	RateLimiter         coreratelimit.Limiter
+	ReadStatesLimiter   KeyedConcurrencyLimiter
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
+	readStatesLimiter, err := concurrencylimit.NewKeyed(
+		"api_get_read_states_user",
+		cfg.ReadStates.MaxConcurrencyPerUser,
+	)
+	if err != nil {
+		return Dependencies{}, fmt.Errorf("create read states concurrency limiter: %w", err)
+	}
 	authenticatorClient, err := zrpc.NewClient(cfg.Services.Authenticator)
 	if err != nil {
 		return Dependencies{}, err
@@ -76,6 +92,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		MessageClient:       messagev1.NewMessageServiceClient(messageClient.Conn()),
 		GuildClient:         guildv1.NewGuildServiceClient(guildClient.Conn()),
 		RateLimiter:         limiter,
+		ReadStatesLimiter:   readStatesLimiter,
 	}, nil
 }
 
@@ -103,6 +120,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if len(cfg.RateLimit.Policies) > 0 && deps.RateLimiter == nil {
 		panic("api rate limiter is required")
 	}
+	if cfg.ReadStates.MaxConcurrencyPerUser > 0 && deps.ReadStatesLimiter == nil {
+		panic("read states concurrency limiter is required")
+	}
 	return &ServiceContext{
 		Cfg:                 cfg,
 		AuthenticatorClient: deps.AuthenticatorClient,
@@ -110,5 +130,6 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		MessageClient:       deps.MessageClient,
 		GuildClient:         deps.GuildClient,
 		RateLimiter:         deps.RateLimiter,
+		ReadStatesLimiter:   deps.ReadStatesLimiter,
 	}
 }

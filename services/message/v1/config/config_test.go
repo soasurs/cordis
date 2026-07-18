@@ -26,4 +26,10 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.Kafka.Topic != "cordis.message.events.v1" {
 		t.Fatalf("unexpected Kafka topic: %q", cfg.Kafka.Topic)
 	}
+	if cfg.ReadStates.AuthorizationConcurrency != 8 {
+		t.Fatalf("unexpected read states authorization concurrency: %d", cfg.ReadStates.AuthorizationConcurrency)
+	}
+	if cfg.ReadStates.MaxConcurrentChannels != 800 {
+		t.Fatalf("unexpected read states max concurrent channels: %d", cfg.ReadStates.MaxConcurrentChannels)
+	}
 }

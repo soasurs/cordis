@@ -754,6 +754,8 @@ func TestGetReadStatesAuthorizesAndDeduplicatesChannels(t *testing.T) {
 	fakeStore.mentions[52] = []int64{1}
 	fakeGuild := new(fakeGuildClient)
 	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), fakeGuild)
+	limiter := new(recordingReadStatesLimiter)
+	server.(*messageServer).svcCtx.ReadStatesLimiter = limiter
 
 	req := new(messagev1.GetReadStatesRequest)
 	req.SetUserId(1)
@@ -768,6 +770,8 @@ func TestGetReadStatesAuthorizesAndDeduplicatesChannels(t *testing.T) {
 	require.Equal(t, int32(1), resp.GetStates()[1].GetMentionCount())
 	require.Len(t, fakeGuild.authorizeRequests, 2)
 	require.Equal(t, permissionViewChannel, fakeGuild.authorizeRequests[0].GetPermission())
+	require.Equal(t, []int64{2}, limiter.weights)
+	require.Equal(t, 1, limiter.releases)
 }
 
 func TestGetReadStatesRejectsUnauthorizedChannel(t *testing.T) {
@@ -782,11 +786,13 @@ func TestGetReadStatesRejectsUnauthorizedChannel(t *testing.T) {
 }
 
 func TestGetReadStatesBoundsConcurrentAuthorization(t *testing.T) {
+	const authorizationConcurrency = 3
 	client := &boundedGuildClient{
 		started: make(chan struct{}, maxReadStateChannels),
 		release: make(chan struct{}),
 	}
 	server := newTestMessageServerWithGuild(t, newFakeStore(), new(fakePublisher), client)
+	server.(*messageServer).svcCtx.Cfg.ReadStates.AuthorizationConcurrency = authorizationConcurrency
 	req := new(messagev1.GetReadStatesRequest)
 	req.SetUserId(1)
 	channelIDs := make([]int64, maxReadStateChannels)
@@ -800,7 +806,7 @@ func TestGetReadStatesBoundsConcurrentAuthorization(t *testing.T) {
 		_, err := server.GetReadStates(t.Context(), req)
 		done <- err
 	}()
-	for range readStateAuthorizationWorkers {
+	for range authorizationConcurrency {
 		<-client.started
 	}
 	select {
@@ -808,11 +814,22 @@ func TestGetReadStatesBoundsConcurrentAuthorization(t *testing.T) {
 		t.Fatal("authorization exceeded worker limit")
 	default:
 	}
-	require.Equal(t, int32(readStateAuthorizationWorkers), client.maxInFlight.Load())
+	require.Equal(t, int32(authorizationConcurrency), client.maxInFlight.Load())
 
 	close(client.release)
 	require.NoError(t, <-done)
-	require.LessOrEqual(t, client.maxInFlight.Load(), int32(readStateAuthorizationWorkers))
+	require.LessOrEqual(t, client.maxInFlight.Load(), int32(authorizationConcurrency))
+}
+
+func TestGetReadStatesMapsLimiterCancellation(t *testing.T) {
+	server := newTestMessageServer(t, newFakeStore(), new(fakePublisher))
+	server.(*messageServer).svcCtx.ReadStatesLimiter = &recordingReadStatesLimiter{err: context.Canceled}
+
+	req := new(messagev1.GetReadStatesRequest)
+	req.SetUserId(1)
+	req.SetChannelIds([]int64{10})
+	_, err := server.GetReadStates(t.Context(), req)
+	require.Equal(t, codes.Canceled, status.Code(err))
 }
 
 func TestGetReadStatesRejectsInvalidBatch(t *testing.T) {
@@ -829,6 +846,20 @@ func TestGetReadStatesRejectsInvalidBatch(t *testing.T) {
 	_, err = server.GetReadStates(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest))
+}
+
+type recordingReadStatesLimiter struct {
+	weights  []int64
+	releases int
+	err      error
+}
+
+func (l *recordingReadStatesLimiter) Acquire(_ context.Context, weight int64) (func(), error) {
+	l.weights = append(l.weights, weight)
+	if l.err != nil {
+		return nil, l.err
+	}
+	return func() { l.releases++ }, nil
 }
 
 func cloneMessage(message *model.Message) *model.Message {

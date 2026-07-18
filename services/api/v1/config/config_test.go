@@ -37,6 +37,17 @@ func TestLoadConfig(t *testing.T) {
 		apiratelimit.PolicyGetUserProfileIP:         {limit: 600, window: time.Minute},
 		apiratelimit.PolicyCheckEmailAvailabilityIP: {limit: 60, window: time.Minute},
 		apiratelimit.PolicyRecoveryRequestIP:        {limit: 30, window: 10 * time.Minute},
+		apiratelimit.PolicyCreateMessageUser:        {limit: 30, window: 10 * time.Second},
+		apiratelimit.PolicyCreateMessageChannel:     {limit: 120, window: 10 * time.Second},
+		apiratelimit.PolicyRelationshipWrite:        {limit: 60, window: time.Minute},
+		apiratelimit.PolicySendFriendRequestMinute:  {limit: 10, window: time.Minute},
+		apiratelimit.PolicySendFriendRequestDay:     {limit: 100, window: 24 * time.Hour},
+		apiratelimit.PolicyBlockUnblockDebounce:     {limit: 1, window: 5 * time.Second},
+		apiratelimit.PolicyCreateGuildUser:          {limit: 5, window: time.Hour},
+		apiratelimit.PolicyGuildResourceCreateActor: {limit: 30, window: time.Minute},
+		apiratelimit.PolicyGuildResourceCreateGuild: {limit: 100, window: time.Hour},
+		apiratelimit.PolicyJoinGuildInviteUser:      {limit: 10, window: 10 * time.Minute},
+		apiratelimit.PolicyJoinGuildInviteIP:        {limit: 30, window: 10 * time.Minute},
 	}
 	for name, expected := range expectedPolicies {
 		policy, ok := cfg.RateLimit.Policies[name]
@@ -44,6 +55,7 @@ func TestLoadConfig(t *testing.T) {
 		require.Equal(t, expected.limit, policy.Limit, name)
 		require.Equal(t, expected.window, policy.Window, name)
 	}
+	require.Equal(t, int64(2), cfg.ReadStates.MaxConcurrencyPerUser)
 	require.False(t, cfg.Services.Authenticator.Middlewares.Duration)
 	require.False(t, cfg.Services.User.Middlewares.Duration)
 	require.False(t, cfg.Services.Message.Middlewares.Duration)

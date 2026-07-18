@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/zeromicro/go-zero/core/logx"
 
+	"github.com/soasurs/cordis/pkg/clientip"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 )
 
@@ -63,17 +64,21 @@ const (
 	PolicyJoinGuildInviteIP = "join_guild_invite_ip"
 )
 
-var requiredPolicies = [...]string{
+var ipPolicies = [...]string{
 	PolicySourceIPGuard,
-	PolicyAuthenticatedUser,
 	PolicyRegisterIP,
-	PolicyRegisterEmail,
 	PolicyLoginIP,
-	PolicyLoginEmail,
 	PolicyConfirmPasswordResetIP,
 	PolicyGetUserProfileIP,
 	PolicyCheckEmailAvailabilityIP,
 	PolicyRecoveryRequestIP,
+	PolicyJoinGuildInviteIP,
+}
+
+var requiredPolicies = [...]string{
+	PolicyAuthenticatedUser,
+	PolicyRegisterEmail,
+	PolicyLoginEmail,
 	PolicyCreateMessageUser,
 	PolicyCreateMessageChannel,
 	PolicyRelationshipWrite,
@@ -84,11 +89,11 @@ var requiredPolicies = [...]string{
 	PolicyGuildResourceCreateActor,
 	PolicyGuildResourceCreateGuild,
 	PolicyJoinGuildInviteUser,
-	PolicyJoinGuildInviteIP,
 }
 
 type requestState struct {
 	limiter  coreratelimit.Limiter
+	scope    clientip.Scope
 	clientIP string
 }
 
@@ -110,9 +115,13 @@ func UnaryInterceptor(
 				logx.WithContext(ctx).Errorw("resolve client ip", logx.Field("error", err))
 				return nil, connect.NewError(connect.CodeInternal, errors.New("resolve client address"))
 			}
-			state := &requestState{limiter: limiter, clientIP: clientIP.String()}
+			state := &requestState{
+				limiter: limiter, scope: clientip.SourceScope(clientIP), clientIP: clientIP.String(),
+			}
 			ctx = context.WithValue(ctx, requestStateKey{}, state)
-			decision, err := limiter.Take(ctx, PolicySourceIPGuard, state.clientIP, 1)
+			decision, err := limiter.Take(ctx,
+				PolicyForFamily(PolicySourceIPGuard, state.scope.Family), state.scope.Key(), 1,
+			)
 			if err != nil {
 				return nil, limiterError(ctx, err)
 			}
@@ -142,11 +151,11 @@ func ClientIP(ctx context.Context) (string, bool) {
 
 // CheckIP consumes one unit from policy using the trusted client IP.
 func CheckIP(ctx context.Context, policy string) error {
-	clientIP, ok := ClientIP(ctx)
-	if !ok {
+	state, ok := ctx.Value(requestStateKey{}).(*requestState)
+	if !ok || state == nil || !state.scope.Prefix.IsValid() {
 		return nil
 	}
-	return CheckKey(ctx, policy, clientIP)
+	return CheckKey(ctx, PolicyForFamily(policy, state.scope.Family), state.scope.Key())
 }
 
 // CheckKey consumes one unit from a named policy. Direct handler calls that
@@ -174,7 +183,19 @@ func EmailKey(email string) string {
 
 // RequiredPolicies returns every API policy required at service startup.
 func RequiredPolicies() []string {
-	return append([]string(nil), requiredPolicies[:]...)
+	result := append([]string(nil), requiredPolicies[:]...)
+	for _, policy := range ipPolicies {
+		result = append(result,
+			PolicyForFamily(policy, clientip.FamilyIPv4),
+			PolicyForFamily(policy, clientip.FamilyIPv6),
+		)
+	}
+	return result
+}
+
+// PolicyForFamily selects the configured policy for an IP source family.
+func PolicyForFamily(policy string, family clientip.Family) string {
+	return policy + "_" + string(family)
 }
 
 func limiterError(ctx context.Context, err error) error {

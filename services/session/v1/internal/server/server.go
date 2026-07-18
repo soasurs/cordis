@@ -27,6 +27,7 @@ import (
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
 	"github.com/soasurs/cordis/services/session/v1/internal/svc"
+	sessionratelimit "github.com/soasurs/cordis/services/session/v1/ratelimit"
 )
 
 const (
@@ -42,10 +43,11 @@ type replayEntry struct {
 }
 
 type binding struct {
-	id   string
-	send chan *sessionv1.ConnectResponse
-	done chan struct{}
-	once sync.Once
+	id    string
+	epoch uint64
+	send  chan *sessionv1.ConnectResponse
+	done  chan struct{}
+	once  sync.Once
 }
 
 func (b *binding) close() {
@@ -220,6 +222,8 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 	for {
 		select {
 		case frame := <-current.send:
+			frame.SetSessionId(session.id)
+			frame.SetBindingEpoch(current.epoch)
 			if err := stream.Send(frame); err != nil {
 				s.detach(session, current, true)
 				return err
@@ -234,6 +238,44 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 			return stream.Context().Err()
 		}
 	}
+}
+
+func (s *Server) SyncGatewayConnections(
+	_ context.Context,
+	req *sessionv1.SyncGatewayConnectionsRequest,
+) (*sessionv1.SyncGatewayConnectionsResponse, error) {
+	if strings.TrimSpace(req.GetGatewayId()) == "" || strings.TrimSpace(req.GetGatewayGeneration()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "gateway id and generation are required")
+	}
+
+	var applied int32
+	for _, checkpoint := range req.GetCheckpoints() {
+		s.mu.RLock()
+		session := s.sessions[checkpoint.GetSessionId()]
+		s.mu.RUnlock()
+		if session == nil {
+			continue
+		}
+
+		session.mu.Lock()
+		binding := session.binding
+		if binding == nil ||
+			binding.id != checkpoint.GetConnectionId() ||
+			binding.epoch != checkpoint.GetBindingEpoch() ||
+			session.gatewayID != req.GetGatewayId() ||
+			session.gatewayGeneration != req.GetGatewayGeneration() ||
+			checkpoint.GetAcknowledgedSequence() > session.sequence {
+			session.mu.Unlock()
+			continue
+		}
+		acknowledgeLocked(session, checkpoint.GetAcknowledgedSequence())
+		session.mu.Unlock()
+		applied++
+	}
+
+	resp := new(sessionv1.SyncGatewayConnectionsResponse)
+	resp.SetApplied(applied)
+	return resp, nil
 }
 
 func (s *Server) identify(
@@ -253,6 +295,9 @@ func (s *Server) identify(
 	if !auth.GetOk() || auth.GetUserId() == 0 || auth.GetSessionId() == 0 {
 		return nil, status.Error(codes.Unauthenticated, "access token rejected")
 	}
+	if err := s.checkIdentifyRateLimits(ctx, auth.GetUserId(), auth.GetSessionId()); err != nil {
+		return nil, err
+	}
 
 	session := &logicalSession{
 		id:                randomID("sess"),
@@ -268,10 +313,20 @@ func (s *Server) identify(
 		channelGuilds:     make(map[int64]int64),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 	}
+	claimed, err := s.svcCtx.Store.ClaimAuthSession(
+		ctx, session.authSessionID, session.id, s.svcCtx.Cfg.Node.NodeTTL(),
+	)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "claim auth session")
+	}
+	if !claimed {
+		return nil, status.Error(codes.ResourceExhausted, "auth session already has a logical session")
+	}
 	if err := s.loadGuilds(ctx, session); err != nil {
+		_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 		return nil, err
 	}
-	b := newBinding(connectionID, s.svcCtx.Cfg.Node.QueueSize())
+	b := newBinding(connectionID, 1, s.svcCtx.Cfg.Node.QueueSize())
 	session.binding = b
 	session.bindingEpoch = 1
 
@@ -298,6 +353,29 @@ func (s *Server) identify(
 	s.appendDispatchLocked(session, realtime.GatewayEventReady, ready)
 	session.mu.Unlock()
 	return session, nil
+}
+
+func (s *Server) checkIdentifyRateLimits(ctx context.Context, userID, authSessionID int64) error {
+	if s.svcCtx.RateLimiter == nil {
+		return nil
+	}
+	checks := []struct {
+		policy string
+		key    string
+	}{
+		{policy: sessionratelimit.PolicyIdentifyUser, key: strconv.FormatInt(userID, 10)},
+		{policy: sessionratelimit.PolicyIdentifyAuthSession, key: strconv.FormatInt(authSessionID, 10)},
+	}
+	for _, check := range checks {
+		decision, err := s.svcCtx.RateLimiter.Take(ctx, check.policy, check.key, 1)
+		if err != nil {
+			return status.Error(codes.Internal, "rate limiter unavailable")
+		}
+		if !decision.Allowed {
+			return status.Error(codes.ResourceExhausted, "identify rate limit exceeded")
+		}
+	}
+	return nil
 }
 
 func (s *Server) resume(
@@ -342,9 +420,9 @@ func (s *Server) resume(
 			replayCount++
 		}
 	}
-	b := newBinding(connectionID, max(s.svcCtx.Cfg.Node.QueueSize(), replayCount+1))
-	session.binding = b
 	session.bindingEpoch++
+	b := newBinding(connectionID, session.bindingEpoch, max(s.svcCtx.Cfg.Node.QueueSize(), replayCount+1))
+	session.binding = b
 	session.gatewayID = gatewayID
 	session.gatewayGeneration = gatewayGeneration
 	session.detachedAt = time.Time{}
@@ -398,7 +476,7 @@ func (s *Server) receiveFrames(stream sessionv1.SessionService_ConnectServer, se
 	}
 }
 
-func (s *Server) heartbeat(ctx context.Context, session *logicalSession, binding *binding, sequence uint64) error {
+func (s *Server) heartbeat(_ context.Context, session *logicalSession, binding *binding, sequence uint64) error {
 	session.mu.Lock()
 	if session.binding != binding {
 		session.mu.Unlock()
@@ -408,25 +486,24 @@ func (s *Server) heartbeat(ctx context.Context, session *logicalSession, binding
 		session.mu.Unlock()
 		return status.Error(codes.InvalidArgument, "heartbeat sequence is ahead of session")
 	}
-	if sequence > session.ackedSequence {
-		session.ackedSequence = sequence
-		cut := 0
-		for cut < len(session.replay) && session.replay[cut].sequence <= sequence {
-			cut++
-		}
-		session.replay = append(session.replay[:0], session.replay[cut:]...)
-	}
+	acknowledgeLocked(session, sequence)
 	session.mu.Unlock()
-	if err := s.refreshOwner(ctx, session); err != nil {
-		return err
-	}
-	if err := s.refreshPresence(ctx, session); err != nil {
-		return err
-	}
 	ack := new(sessionv1.ConnectResponse)
 	ack.SetOpcode(opHeartbeatAck)
 	ack.SetJsonPayload(`null`)
 	return enqueue(binding, ack)
+}
+
+func acknowledgeLocked(session *logicalSession, sequence uint64) {
+	if sequence <= session.ackedSequence {
+		return
+	}
+	session.ackedSequence = sequence
+	cut := 0
+	for cut < len(session.replay) && session.replay[cut].sequence <= sequence {
+		cut++
+	}
+	session.replay = append(session.replay[:0], session.replay[cut:]...)
 }
 
 func (s *Server) updatePresence(ctx context.Context, session *logicalSession, binding *binding, data *sessionv1.PresenceUpdate) error {
@@ -536,8 +613,8 @@ func enqueue(binding *binding, frame *sessionv1.ConnectResponse) error {
 	}
 }
 
-func newBinding(id string, queueSize int) *binding {
-	return &binding{id: id, send: make(chan *sessionv1.ConnectResponse, queueSize), done: make(chan struct{})}
+func newBinding(id string, epoch uint64, queueSize int) *binding {
+	return &binding{id: id, epoch: epoch, send: make(chan *sessionv1.ConnectResponse, queueSize), done: make(chan struct{})}
 }
 
 func cloneFrame(frame *sessionv1.ConnectResponse) *sessionv1.ConnectResponse {
@@ -606,6 +683,7 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	}
 	s.mu.Unlock()
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
+	_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 	s.removePresence(ctx, session, guildIDs)
 	s.refreshAllRoutes(ctx)
 }
@@ -778,6 +856,18 @@ func (s *Server) refreshSessionLeases(ctx context.Context) {
 	}
 	s.mu.RUnlock()
 	for _, session := range sessions {
+		claimed, err := s.svcCtx.Store.RefreshAuthSession(
+			ctx, session.authSessionID, session.id, s.svcCtx.Cfg.Node.NodeTTL(),
+		)
+		if err != nil && ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("refresh auth session claim",
+				logx.Field("session_id", session.id),
+				logx.Field("error", err),
+			)
+		} else if err == nil && !claimed {
+			s.removeSession(ctx, session)
+			continue
+		}
 		if err := s.refreshOwner(ctx, session); err != nil && ctx.Err() == nil {
 			logx.WithContext(ctx).Errorw("refresh session owner",
 				logx.Field("session_id", session.id),

@@ -8,6 +8,10 @@ service SessionService {
   // session binding. The first gateway message must contain identify or resume.
   rpc Connect(stream ConnectRequest) returns (stream ConnectResponse);
 
+  // SyncGatewayConnections applies coalesced heartbeat acknowledgements from
+  // one gateway process. Physical connection liveness remains gateway-local.
+  rpc SyncGatewayConnections(SyncGatewayConnectionsRequest) returns (SyncGatewayConnectionsResponse);
+
   // DispatchGuildEvent fans an event out to matching sessions on this node.
   rpc DispatchGuildEvent(DispatchGuildEventRequest) returns (DispatchGuildEventResponse);
 
@@ -69,6 +73,27 @@ message ConnectResponse {
   string json_payload = 4;
   int32 close_code = 5;
   string close_reason = 6;
+  // Internal binding metadata consumed by Gateway and never exposed on the
+  // websocket protocol.
+  string session_id = 7;
+  uint64 binding_epoch = 8;
+}
+
+message GatewayConnectionCheckpoint {
+  string session_id = 1;
+  string connection_id = 2;
+  uint64 binding_epoch = 3;
+  uint64 acknowledged_sequence = 4;
+}
+
+message SyncGatewayConnectionsRequest {
+  string gateway_id = 1;
+  string gateway_generation = 2;
+  repeated GatewayConnectionCheckpoint checkpoints = 3;
+}
+
+message SyncGatewayConnectionsResponse {
+  int32 applied = 1;
 }
 
 message EventEnvelope {

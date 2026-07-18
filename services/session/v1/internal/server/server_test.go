@@ -16,12 +16,39 @@ import (
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/config"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
 	"github.com/soasurs/cordis/services/session/v1/internal/svc"
+	sessionratelimit "github.com/soasurs/cordis/services/session/v1/ratelimit"
 )
+
+func TestIdentifyRejectsDuplicateAuthSessionClaim(t *testing.T) {
+	server := newTestServer()
+	server.svcCtx.Store = &fakeStore{rejectClaim: true}
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+
+	_, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
+
+	require.Equal(t, codes.ResourceExhausted, status.Code(err))
+}
+
+func TestIdentifyRateLimitsValidatedUserAndAuthSession(t *testing.T) {
+	server := newTestServer()
+	limiter := &sessionFakeRateLimiter{}
+	server.svcCtx.RateLimiter = limiter
+
+	err := server.checkIdentifyRateLimits(t.Context(), 1001, 2002)
+
+	require.NoError(t, err)
+	require.Equal(t, []sessionRateCall{
+		{policy: sessionratelimit.PolicyIdentifyUser, key: "1001"},
+		{policy: sessionratelimit.PolicyIdentifyAuthSession, key: "2002"},
+	}, limiter.calls)
+}
 
 func TestIdentifyAndResumeReplay(t *testing.T) {
 	server := newTestServer()
@@ -111,7 +138,7 @@ func TestReplayWindowKeepsLatestEvents(t *testing.T) {
 		guilds: make(map[int64]struct{}), channels: make(map[int64]struct{}),
 		channelGuilds: make(map[int64]int64),
 	}
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		server.appendDispatchLocked(session, realtime.EventMessageCreated, []byte(`{}`))
 	}
 	require.Equal(t, uint64(5), session.sequence)
@@ -186,10 +213,21 @@ func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 }
 
 type fakeStore struct {
-	refreshed []store.Route
-	detached  []store.Route
+	refreshed   []store.Route
+	detached    []store.Route
+	rejectClaim bool
 }
 
+func (s *fakeStore) ClaimAuthSession(context.Context, int64, string, time.Duration) (bool, error) {
+	if s.rejectClaim {
+		return false, nil
+	}
+	return true, nil
+}
+func (*fakeStore) RefreshAuthSession(context.Context, int64, string, time.Duration) (bool, error) {
+	return true, nil
+}
+func (*fakeStore) DeleteAuthSession(context.Context, int64, string) error     { return nil }
 func (*fakeStore) SetOwner(context.Context, store.Owner, time.Duration) error { return nil }
 func (*fakeStore) DeleteOwner(context.Context, string, string, string) error  { return nil }
 func (s *fakeStore) RefreshRoutes(_ context.Context, _, _ string, routes []store.Route, _ time.Duration) error {
@@ -199,6 +237,20 @@ func (s *fakeStore) RefreshRoutes(_ context.Context, _, _ string, routes []store
 func (s *fakeStore) DetachRoutes(_ context.Context, _, _ string, routes []store.Route) error {
 	s.detached = append(s.detached, routes...)
 	return nil
+}
+
+type sessionRateCall struct {
+	policy string
+	key    string
+}
+
+type sessionFakeRateLimiter struct {
+	calls []sessionRateCall
+}
+
+func (l *sessionFakeRateLimiter) Take(_ context.Context, policy, key string, _ int64) (coreratelimit.Decision, error) {
+	l.calls = append(l.calls, sessionRateCall{policy: policy, key: key})
+	return coreratelimit.Decision{Allowed: true}, nil
 }
 
 type fakeRegistry struct {

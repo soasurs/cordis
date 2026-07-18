@@ -1,6 +1,8 @@
 package svc
 
 import (
+	"fmt"
+
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 
@@ -8,9 +10,11 @@ import (
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
+	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/config"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
+	sessionratelimit "github.com/soasurs/cordis/services/session/v1/ratelimit"
 )
 
 type ServiceContext struct {
@@ -21,6 +25,7 @@ type ServiceContext struct {
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
 	MessageClient       messagev1.MessageServiceClient
+	RateLimiter         coreratelimit.Limiter
 }
 
 type Dependencies struct {
@@ -30,6 +35,7 @@ type Dependencies struct {
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
 	MessageClient       messagev1.MessageServiceClient
+	RateLimiter         coreratelimit.Limiter
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -61,6 +67,25 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		_ = registry.Close()
 		return Dependencies{}, err
 	}
+	policies := make(map[string]coreratelimit.Policy, len(cfg.RateLimit.Policies))
+	for name, policy := range cfg.RateLimit.Policies {
+		policies[name] = coreratelimit.Policy{Limit: policy.Limit, Window: policy.Window}
+	}
+	for _, name := range sessionratelimit.RequiredPolicies() {
+		if _, ok := policies[name]; !ok {
+			_ = registry.Close()
+			return Dependencies{}, fmt.Errorf("session rate limit policy %q is required", name)
+		}
+	}
+	limiter, err := coreratelimit.NewManager(coreratelimit.NewRedisBackend(rds), policies, coreratelimit.Options{
+		KeyPrefix:             cfg.RateLimit.KeyPrefix,
+		FallbackMaxKeys:       cfg.RateLimit.FallbackMaxKeys,
+		FallbackRetryInterval: cfg.RateLimit.FallbackRetryInterval,
+	})
+	if err != nil {
+		_ = registry.Close()
+		return Dependencies{}, err
+	}
 	return Dependencies{
 		Store:               store.NewRedisStore(rds),
 		SessionRegistry:     registry,
@@ -68,6 +93,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		PresenceClient:      presencev1.NewPresenceServiceClient(presence.Conn()),
 		GuildClient:         guildv1.NewGuildServiceClient(guild.Conn()),
 		MessageClient:       messagev1.NewMessageServiceClient(message.Conn()),
+		RateLimiter:         limiter,
 	}, nil
 }
 
@@ -98,6 +124,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.MessageClient == nil {
 		panic("message client is required")
 	}
+	if len(cfg.RateLimit.Policies) > 0 && deps.RateLimiter == nil {
+		panic("session rate limiter is required")
+	}
 	return &ServiceContext{
 		Cfg:                 cfg,
 		Store:               deps.Store,
@@ -106,6 +135,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		PresenceClient:      deps.PresenceClient,
 		GuildClient:         deps.GuildClient,
 		MessageClient:       deps.MessageClient,
+		RateLimiter:         deps.RateLimiter,
 	}
 }
 

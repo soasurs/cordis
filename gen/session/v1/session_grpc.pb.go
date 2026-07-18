@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionService_Connect_FullMethodName              = "/session.v1.SessionService/Connect"
-	SessionService_DispatchGuildEvent_FullMethodName   = "/session.v1.SessionService/DispatchGuildEvent"
-	SessionService_DispatchChannelEvent_FullMethodName = "/session.v1.SessionService/DispatchChannelEvent"
-	SessionService_DispatchUserEvent_FullMethodName    = "/session.v1.SessionService/DispatchUserEvent"
+	SessionService_Connect_FullMethodName                = "/session.v1.SessionService/Connect"
+	SessionService_SyncGatewayConnections_FullMethodName = "/session.v1.SessionService/SyncGatewayConnections"
+	SessionService_DispatchGuildEvent_FullMethodName     = "/session.v1.SessionService/DispatchGuildEvent"
+	SessionService_DispatchChannelEvent_FullMethodName   = "/session.v1.SessionService/DispatchChannelEvent"
+	SessionService_DispatchUserEvent_FullMethodName      = "/session.v1.SessionService/DispatchUserEvent"
 )
 
 // SessionServiceClient is the client API for SessionService service.
@@ -34,6 +35,9 @@ type SessionServiceClient interface {
 	// Connect carries one gateway connection for the lifetime of its logical
 	// session binding. The first gateway message must contain identify or resume.
 	Connect(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ConnectRequest, ConnectResponse], error)
+	// SyncGatewayConnections applies coalesced heartbeat acknowledgements from
+	// one gateway process. Physical connection liveness remains gateway-local.
+	SyncGatewayConnections(ctx context.Context, in *SyncGatewayConnectionsRequest, opts ...grpc.CallOption) (*SyncGatewayConnectionsResponse, error)
 	// DispatchGuildEvent fans an event out to matching sessions on this node.
 	DispatchGuildEvent(ctx context.Context, in *DispatchGuildEventRequest, opts ...grpc.CallOption) (*DispatchGuildEventResponse, error)
 	// DispatchChannelEvent fans an event out to channel subscribers on this node.
@@ -62,6 +66,16 @@ func (c *sessionServiceClient) Connect(ctx context.Context, opts ...grpc.CallOpt
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type SessionService_ConnectClient = grpc.BidiStreamingClient[ConnectRequest, ConnectResponse]
+
+func (c *sessionServiceClient) SyncGatewayConnections(ctx context.Context, in *SyncGatewayConnectionsRequest, opts ...grpc.CallOption) (*SyncGatewayConnectionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SyncGatewayConnectionsResponse)
+	err := c.cc.Invoke(ctx, SessionService_SyncGatewayConnections_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
 
 func (c *sessionServiceClient) DispatchGuildEvent(ctx context.Context, in *DispatchGuildEventRequest, opts ...grpc.CallOption) (*DispatchGuildEventResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -102,6 +116,9 @@ type SessionServiceServer interface {
 	// Connect carries one gateway connection for the lifetime of its logical
 	// session binding. The first gateway message must contain identify or resume.
 	Connect(grpc.BidiStreamingServer[ConnectRequest, ConnectResponse]) error
+	// SyncGatewayConnections applies coalesced heartbeat acknowledgements from
+	// one gateway process. Physical connection liveness remains gateway-local.
+	SyncGatewayConnections(context.Context, *SyncGatewayConnectionsRequest) (*SyncGatewayConnectionsResponse, error)
 	// DispatchGuildEvent fans an event out to matching sessions on this node.
 	DispatchGuildEvent(context.Context, *DispatchGuildEventRequest) (*DispatchGuildEventResponse, error)
 	// DispatchChannelEvent fans an event out to channel subscribers on this node.
@@ -119,6 +136,9 @@ type UnimplementedSessionServiceServer struct{}
 
 func (UnimplementedSessionServiceServer) Connect(grpc.BidiStreamingServer[ConnectRequest, ConnectResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method Connect not implemented")
+}
+func (UnimplementedSessionServiceServer) SyncGatewayConnections(context.Context, *SyncGatewayConnectionsRequest) (*SyncGatewayConnectionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SyncGatewayConnections not implemented")
 }
 func (UnimplementedSessionServiceServer) DispatchGuildEvent(context.Context, *DispatchGuildEventRequest) (*DispatchGuildEventResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DispatchGuildEvent not implemented")
@@ -155,6 +175,24 @@ func _SessionService_Connect_Handler(srv interface{}, stream grpc.ServerStream) 
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type SessionService_ConnectServer = grpc.BidiStreamingServer[ConnectRequest, ConnectResponse]
+
+func _SessionService_SyncGatewayConnections_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SyncGatewayConnectionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SessionServiceServer).SyncGatewayConnections(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SessionService_SyncGatewayConnections_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SessionServiceServer).SyncGatewayConnections(ctx, req.(*SyncGatewayConnectionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 func _SessionService_DispatchGuildEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DispatchGuildEventRequest)
@@ -217,6 +255,10 @@ var SessionService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "session.v1.SessionService",
 	HandlerType: (*SessionServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SyncGatewayConnections",
+			Handler:    _SessionService_SyncGatewayConnections_Handler,
+		},
 		{
 			MethodName: "DispatchGuildEvent",
 			Handler:    _SessionService_DispatchGuildEvent_Handler,

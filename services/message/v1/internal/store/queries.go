@@ -226,7 +226,9 @@ const listDmChannelsQuery = `
 
 const upsertChannelReadStateStatement = `
 	INSERT INTO channel_read_states (user_id, channel_id, last_read_message_id, mention_count, updated_at)
-	VALUES ($1, $2, $3, 0, $4)
+	SELECT $1, m.channel_id, m.id, 0, $4
+	FROM messages AS m
+	WHERE m.id = $3 AND m.channel_id = $2
 	ON CONFLICT (user_id, channel_id) DO UPDATE SET
 		last_read_message_id = GREATEST(channel_read_states.last_read_message_id, EXCLUDED.last_read_message_id),
 		updated_at = EXCLUDED.updated_at

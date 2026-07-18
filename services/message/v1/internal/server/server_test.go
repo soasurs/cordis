@@ -580,6 +580,10 @@ func (s *fakeStore) ListDmChannels(_ context.Context, params store.ListDmChannel
 }
 
 func (s *fakeStore) AckMessage(_ context.Context, userID, channelID, messageID int64) error {
+	message, ok := s.messages[messageID]
+	if !ok || message.ChannelID != channelID {
+		return sql.ErrNoRows
+	}
 	if s.readStates[userID] == nil {
 		s.readStates[userID] = make(map[int64]int64)
 	}
@@ -635,6 +639,7 @@ func (s *fakeStore) CountUnreadMentions(_ context.Context, userID, channelID, la
 
 func TestAckMessageSuccess(t *testing.T) {
 	fakeStore := newFakeStore()
+	fakeStore.messages[50] = &model.Message{ID: 50, ChannelID: 10, AuthorID: 2}
 	fakeGuild := &fakeGuildClient{}
 	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), fakeGuild)
 
@@ -648,6 +653,24 @@ func TestAckMessageSuccess(t *testing.T) {
 	require.True(t, resp.GetOk())
 
 	require.Equal(t, int64(50), fakeStore.readStates[1][10])
+}
+
+func TestAckMessageHidesMissingOrMismatchedMessage(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.messages[50] = &model.Message{ID: 50, ChannelID: 20, AuthorID: 2}
+	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), new(fakeGuildClient))
+
+	for _, messageID := range []int64{50, 999} {
+		req := new(messagev1.AckMessageRequest)
+		req.SetUserId(1)
+		req.SetChannelId(10)
+		req.SetMessageId(messageID)
+
+		_, err := server.AckMessage(t.Context(), req)
+		require.Equal(t, codes.NotFound, status.Code(err))
+		require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageNotFound))
+	}
+	require.Empty(t, fakeStore.readStates)
 }
 
 func TestAckMessagePermissionDenied(t *testing.T) {

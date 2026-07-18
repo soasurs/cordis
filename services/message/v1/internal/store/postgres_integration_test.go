@@ -414,6 +414,13 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 
 	t.Run("ack list and no regress", func(t *testing.T) {
 		ctx := t.Context()
+		for _, messageID := range []int64{30, 50} {
+			_, err := store.CreateMessage(ctx, CreateMessageParams{
+				MessageID: messageID, ChannelID: channelID, AuthorID: userID,
+				Content: "ack target", Type: 1,
+			})
+			require.NoError(t, err)
+		}
 		require.NoError(t, store.AckMessage(ctx, userID, channelID, 50))
 
 		states, err := store.ListChannelReadStates(ctx, userID, []int64{channelID})
@@ -427,6 +434,27 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 		require.NoError(t, err)
 		require.Len(t, states, 1)
 		require.Equal(t, int64(50), states[0].LastReadMessageID)
+	})
+
+	t.Run("ack validates channel and permits deleted message", func(t *testing.T) {
+		ctx := t.Context()
+		require.ErrorIs(t, store.AckMessage(ctx, userID, channelID, 9999), sql.ErrNoRows)
+
+		_, err := store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 60, ChannelID: channelID + 1, AuthorID: userID,
+			Content: "other channel", Type: 1,
+		})
+		require.NoError(t, err)
+		require.ErrorIs(t, store.AckMessage(ctx, userID, channelID, 60), sql.ErrNoRows)
+
+		_, err = store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 70, ChannelID: channelID, AuthorID: userID,
+			Content: "deleted ack target", Type: 1,
+		})
+		require.NoError(t, err)
+		_, err = store.DeleteMessage(ctx, 70, userID, false)
+		require.NoError(t, err)
+		require.NoError(t, store.AckMessage(ctx, userID, channelID, 70))
 	})
 
 	t.Run("count missing", func(t *testing.T) {

@@ -8,6 +8,8 @@ import (
 	"slices"
 	"sort"
 	"strconv"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -353,10 +355,44 @@ func newTestMessageServerWithGuild(
 
 type fakeGuildClient struct {
 	guildv1.GuildServiceClient
+	mu                  sync.Mutex
 	allowManageMessages bool
 	denyAll             bool
 	channelType         guildv1.GuildChannelType
 	authorizeRequests   []*guildv1.AuthorizeGuildChannelRequest
+}
+
+type boundedGuildClient struct {
+	guildv1.GuildServiceClient
+	started     chan struct{}
+	release     chan struct{}
+	inFlight    atomic.Int32
+	maxInFlight atomic.Int32
+}
+
+func (c *boundedGuildClient) AuthorizeGuildChannel(
+	ctx context.Context,
+	_ *guildv1.AuthorizeGuildChannelRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.AuthorizeGuildChannelResponse, error) {
+	inFlight := c.inFlight.Add(1)
+	defer c.inFlight.Add(-1)
+	for {
+		maximum := c.maxInFlight.Load()
+		if inFlight <= maximum || c.maxInFlight.CompareAndSwap(maximum, inFlight) {
+			break
+		}
+	}
+	c.started <- struct{}{}
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-c.release:
+	}
+	resp := new(guildv1.AuthorizeGuildChannelResponse)
+	resp.SetAllowed(true)
+	resp.SetChannelType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+	return resp, nil
 }
 
 func (f *fakeGuildClient) AuthorizeGuildChannel(
@@ -364,7 +400,9 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	req *guildv1.AuthorizeGuildChannelRequest,
 	_ ...grpc.CallOption,
 ) (*guildv1.AuthorizeGuildChannelResponse, error) {
+	f.mu.Lock()
 	f.authorizeRequests = append(f.authorizeRequests, req)
+	f.mu.Unlock()
 	resp := new(guildv1.AuthorizeGuildChannelResponse)
 	resp.SetAllowed(!f.denyAll && (req.GetPermission()&permissionManageMessages == 0 || f.allowManageMessages))
 	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
@@ -612,6 +650,24 @@ func (s *fakeStore) ListChannelReadStates(_ context.Context, userID int64, chann
 	return states, nil
 }
 
+func (s *fakeStore) ListChannelReadStatesWithCounts(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
+	states, err := s.ListChannelReadStates(ctx, userID, channelIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, state := range states {
+		state.MessageCount, err = s.CountMissingMessages(ctx, state.ChannelID, state.LastReadMessageID, userID)
+		if err != nil {
+			return nil, err
+		}
+		state.MentionCount, err = s.CountUnreadMentions(ctx, userID, state.ChannelID, state.LastReadMessageID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return states, nil
+}
+
 func (s *fakeStore) CountMissingMessages(_ context.Context, channelID, lastReadMessageID, userID int64) (int32, error) {
 	var count int32
 	for _, m := range s.messages {
@@ -693,6 +749,9 @@ func TestAckMessagePermissionDenied(t *testing.T) {
 func TestGetReadStatesAuthorizesAndDeduplicatesChannels(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.readStates[1] = map[int64]int64{10: 50}
+	fakeStore.messages[51] = &model.Message{ID: 51, ChannelID: 10, AuthorID: 2}
+	fakeStore.messages[52] = &model.Message{ID: 52, ChannelID: 20, AuthorID: 2}
+	fakeStore.mentions[52] = []int64{1}
 	fakeGuild := new(fakeGuildClient)
 	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), fakeGuild)
 
@@ -703,7 +762,10 @@ func TestGetReadStatesAuthorizesAndDeduplicatesChannels(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.GetStates(), 2)
 	require.Equal(t, int64(10), resp.GetStates()[0].GetChannelId())
+	require.Equal(t, int32(1), resp.GetStates()[0].GetMissingMessageCount())
 	require.Equal(t, int64(20), resp.GetStates()[1].GetChannelId())
+	require.Equal(t, int32(1), resp.GetStates()[1].GetMissingMessageCount())
+	require.Equal(t, int32(1), resp.GetStates()[1].GetMentionCount())
 	require.Len(t, fakeGuild.authorizeRequests, 2)
 	require.Equal(t, permissionViewChannel, fakeGuild.authorizeRequests[0].GetPermission())
 }
@@ -717,6 +779,40 @@ func TestGetReadStatesRejectsUnauthorizedChannel(t *testing.T) {
 	req.SetChannelIds([]int64{10})
 	_, err := server.GetReadStates(t.Context(), req)
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestGetReadStatesBoundsConcurrentAuthorization(t *testing.T) {
+	client := &boundedGuildClient{
+		started: make(chan struct{}, maxReadStateChannels),
+		release: make(chan struct{}),
+	}
+	server := newTestMessageServerWithGuild(t, newFakeStore(), new(fakePublisher), client)
+	req := new(messagev1.GetReadStatesRequest)
+	req.SetUserId(1)
+	channelIDs := make([]int64, maxReadStateChannels)
+	for i := range channelIDs {
+		channelIDs[i] = int64(i + 1)
+	}
+	req.SetChannelIds(channelIDs)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := server.GetReadStates(t.Context(), req)
+		done <- err
+	}()
+	for range readStateAuthorizationWorkers {
+		<-client.started
+	}
+	select {
+	case <-client.started:
+		t.Fatal("authorization exceeded worker limit")
+	default:
+	}
+	require.Equal(t, int32(readStateAuthorizationWorkers), client.maxInFlight.Load())
+
+	close(client.release)
+	require.NoError(t, <-done)
+	require.LessOrEqual(t, client.maxInFlight.Load(), int32(readStateAuthorizationWorkers))
 }
 
 func TestGetReadStatesRejectsInvalidBatch(t *testing.T) {

@@ -166,6 +166,18 @@ func (s *SQLStore) ListGuildChannelPermissionOverwrites(ctx context.Context, cha
 	return overwrites, nil
 }
 
+func (s *SQLStore) ListGuildChannelPermissionOverwritesByGuild(ctx context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error) {
+	var rows []*channelOverwriteRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByGuildQuery, guildID); err != nil {
+		return nil, err
+	}
+	overwrites := make([]*model.ChannelPermissionOverwrite, 0, len(rows))
+	for _, row := range rows {
+		overwrites = append(overwrites, channelOverwriteFromRow(row))
+	}
+	return overwrites, nil
+}
+
 func channelFromRow(row *channelRow) *model.Channel {
 	return &model.Channel{
 		ID: row.ID, GuildID: row.GuildID, Name: row.Name, Type: row.Type,

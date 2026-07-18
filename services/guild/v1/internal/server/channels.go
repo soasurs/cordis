@@ -97,13 +97,17 @@ func (s *guildServer) ListGuildChannels(ctx context.Context, req *guildv1.ListGu
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	overwrites, err := s.svcCtx.Store.ListGuildChannelPermissionOverwritesByGuild(ctx, req.GetGuildId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	overwritesByChannel := make(map[int64][]*model.ChannelPermissionOverwrite)
+	for _, overwrite := range overwrites {
+		overwritesByChannel[overwrite.ChannelID] = append(overwritesByChannel[overwrite.ChannelID], overwrite)
+	}
 	visible := make([]*model.Channel, 0, len(channels))
 	for _, channel := range channels {
-		overwrites, err := s.svcCtx.Store.ListGuildChannelPermissionOverwrites(ctx, channel.ID)
-		if err != nil {
-			return nil, mapStoreError(err)
-		}
-		if channelPermissions(authority, roles, overwrites, req.GetActorUserId())&PermissionViewChannel != 0 {
+		if channelPermissions(authority, roles, overwritesByChannel[channel.ID], req.GetActorUserId())&PermissionViewChannel != 0 {
 			visible = append(visible, channel)
 		}
 	}

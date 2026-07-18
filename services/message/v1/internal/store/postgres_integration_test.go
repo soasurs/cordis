@@ -524,4 +524,56 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 		require.NoError(t, err)
 		require.Equal(t, int32(0), mentions)
 	})
+
+	t.Run("batch read states with counts", func(t *testing.T) {
+		ctx := t.Context()
+		const (
+			batchUserID = int64(9511)
+			channel1ID  = int64(9611)
+			channel2ID  = int64(9612)
+			channel3ID  = int64(9613)
+		)
+
+		_, err := store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9901, ChannelID: channel1ID, AuthorID: 9512,
+			Content: "unread mention", Type: 1,
+		})
+		require.NoError(t, err)
+		require.NoError(t, store.ReplaceMessageMentions(ctx, 9901, []int64{batchUserID}))
+
+		_, err = store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9902, ChannelID: channel2ID, AuthorID: 9512,
+			Content: "read", Type: 1,
+		})
+		require.NoError(t, err)
+		require.NoError(t, store.AckMessage(ctx, batchUserID, channel2ID, 9902))
+
+		_, err = store.CreateMessage(ctx, CreateMessageParams{
+			MessageID: 9903, ChannelID: channel2ID, AuthorID: 9512,
+			Content: "new unread mention", Type: 1,
+		})
+		require.NoError(t, err)
+		require.NoError(t, store.ReplaceMessageMentions(ctx, 9903, []int64{batchUserID}))
+
+		states, err := store.ListChannelReadStatesWithCounts(
+			ctx, batchUserID, []int64{channel2ID, channel1ID, channel3ID},
+		)
+		require.NoError(t, err)
+		require.Len(t, states, 3)
+
+		require.Equal(t, channel2ID, states[0].ChannelID)
+		require.Equal(t, int64(9902), states[0].LastReadMessageID)
+		require.Equal(t, int32(1), states[0].MessageCount)
+		require.Equal(t, int32(1), states[0].MentionCount)
+
+		require.Equal(t, channel1ID, states[1].ChannelID)
+		require.Zero(t, states[1].LastReadMessageID)
+		require.Equal(t, int32(1), states[1].MessageCount)
+		require.Equal(t, int32(1), states[1].MentionCount)
+
+		require.Equal(t, channel3ID, states[2].ChannelID)
+		require.Zero(t, states[2].LastReadMessageID)
+		require.Zero(t, states[2].MessageCount)
+		require.Zero(t, states[2].MentionCount)
+	})
 }

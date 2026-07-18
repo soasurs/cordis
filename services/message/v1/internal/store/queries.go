@@ -240,6 +240,56 @@ const listChannelReadStatesQuery = `
 	WHERE user_id = $1 AND channel_id = ANY($2)
 `
 
+const listChannelReadStatesWithCountsQuery = `
+	WITH requested AS (
+		SELECT channel_id, ordinal
+		FROM unnest($2::bigint[]) WITH ORDINALITY AS requested(channel_id, ordinal)
+	),
+	watermarks AS (
+		SELECT
+			requested.channel_id,
+			requested.ordinal,
+			COALESCE(states.last_read_message_id, 0) AS last_read_message_id,
+			COALESCE(states.updated_at, 0) AS updated_at
+		FROM requested
+		LEFT JOIN channel_read_states AS states
+			ON states.user_id = $1
+			AND states.channel_id = requested.channel_id
+	),
+	message_counts AS (
+		SELECT messages.channel_id, count(*)::int AS missing_message_count
+		FROM messages
+		JOIN watermarks
+			ON watermarks.channel_id = messages.channel_id
+			AND messages.id > watermarks.last_read_message_id
+		WHERE messages.deleted_at = 0
+			AND messages.author_id <> $1
+		GROUP BY messages.channel_id
+	),
+	mention_counts AS (
+		SELECT messages.channel_id, count(*)::int AS mention_count
+		FROM message_mentions AS mentions
+		JOIN messages ON messages.id = mentions.message_id
+		JOIN watermarks
+			ON watermarks.channel_id = messages.channel_id
+			AND messages.id > watermarks.last_read_message_id
+		WHERE mentions.user_id = $1
+			AND messages.deleted_at = 0
+		GROUP BY messages.channel_id
+	)
+	SELECT
+		$1 AS user_id,
+		watermarks.channel_id,
+		watermarks.last_read_message_id,
+		COALESCE(mention_counts.mention_count, 0) AS mention_count,
+		COALESCE(message_counts.missing_message_count, 0) AS message_count,
+		watermarks.updated_at
+	FROM watermarks
+	LEFT JOIN message_counts ON message_counts.channel_id = watermarks.channel_id
+	LEFT JOIN mention_counts ON mention_counts.channel_id = watermarks.channel_id
+	ORDER BY watermarks.ordinal
+`
+
 const countMissingMessagesQuery = `
 	SELECT count(*)
 	FROM messages

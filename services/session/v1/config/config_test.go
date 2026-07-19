@@ -18,6 +18,8 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "session-local", cfg.Node.ID)
 	require.Equal(t, 2048, cfg.Node.MaxReplayEvents)
 	require.Equal(t, 500, cfg.Node.SubscribedChannelLimit())
+	require.Equal(t, 100, cfg.Node.VisibilityGuildLimit())
+	require.Equal(t, 500, cfg.Node.VisibilityChannelLimit())
 	require.Equal(t, 5, cfg.Node.PresenceUpdateLimit())
 	require.Equal(t, 20*time.Second, cfg.Node.PresenceUpdateWindow())
 	require.Equal(t, int64(20), cfg.RateLimit.Policies["identify_user"].Limit)

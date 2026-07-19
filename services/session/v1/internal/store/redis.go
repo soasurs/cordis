@@ -2,24 +2,11 @@ package store
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"strconv"
 	"time"
 
-	goredis "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/stores/redis"
-)
-
-//go:embed refresh_auth_session.lua
-var refreshAuthSessionLua string
-
-//go:embed delete_auth_session.lua
-var deleteAuthSessionLua string
-
-var (
-	refreshAuthSessionScript = redis.NewScript(refreshAuthSessionLua)
-	deleteAuthSessionScript  = redis.NewScript(deleteAuthSessionLua)
 )
 
 const routeMemberSeparator = "\x1f"
@@ -31,67 +18,6 @@ type RedisStore struct {
 
 func NewRedisStore(rds *redis.Redis) *RedisStore {
 	return &RedisStore{rds: rds, now: time.Now}
-}
-
-func (s *RedisStore) ClaimAuthSession(
-	ctx context.Context,
-	authSessionID int64,
-	logicalSessionID string,
-	ttl time.Duration,
-) (bool, error) {
-	seconds := max(int((ttl+time.Second-1)/time.Second), 1)
-	return s.rds.SetnxExCtx(ctx, authSessionKey(authSessionID), logicalSessionID, seconds)
-}
-
-func (s *RedisStore) RefreshAuthSession(
-	ctx context.Context,
-	authSessionID int64,
-	logicalSessionID string,
-	ttl time.Duration,
-) (bool, error) {
-	value, err := s.rds.ScriptRunCtx(ctx, refreshAuthSessionScript, []string{authSessionKey(authSessionID)},
-		logicalSessionID, max(ttl.Milliseconds(), int64(1)),
-	)
-	if err != nil {
-		return false, err
-	}
-	result, ok := value.(int64)
-	if !ok {
-		return false, fmt.Errorf("decode auth session refresh result: %T", value)
-	}
-	return result == 1, nil
-}
-
-func (s *RedisStore) RefreshAuthSessions(ctx context.Context, leases []AuthSessionLease, ttl time.Duration) ([]string, error) {
-	if len(leases) == 0 {
-		return nil, nil
-	}
-	results := make([]*goredis.Cmd, len(leases))
-	if err := s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
-		for i, lease := range leases {
-			results[i] = pipe.Eval(ctx, refreshAuthSessionLua, []string{authSessionKey(lease.AuthSessionID)},
-				lease.LogicalSessionID, max(ttl.Milliseconds(), int64(1)))
-		}
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-	lost := make([]string, 0)
-	for i, result := range results {
-		value, err := result.Int64()
-		if err != nil {
-			return nil, err
-		}
-		if value != 1 {
-			lost = append(lost, leases[i].LogicalSessionID)
-		}
-	}
-	return lost, nil
-}
-
-func (s *RedisStore) DeleteAuthSession(ctx context.Context, authSessionID int64, logicalSessionID string) error {
-	_, err := s.rds.ScriptRunCtx(ctx, deleteAuthSessionScript, []string{authSessionKey(authSessionID)}, logicalSessionID)
-	return err
 }
 
 func (s *RedisStore) SetOwner(ctx context.Context, owner Owner, ttl time.Duration) error {
@@ -161,10 +87,6 @@ func (s *RedisStore) DetachRoutes(ctx context.Context, nodeID, generation string
 
 func ownerKey(sessionID string) string {
 	return fmt.Sprintf("session:owners:{%s}", sessionID)
-}
-
-func authSessionKey(authSessionID int64) string {
-	return fmt.Sprintf("session:auth_sessions:{%d}:logical", authSessionID)
 }
 
 func routeKey(kind RouteKind, id int64) string {

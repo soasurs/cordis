@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	mathrand "math/rand/v2"
 	"os"
 	"strconv"
 	"strings"
@@ -36,6 +37,8 @@ const (
 	opHeartbeatAck = 11
 	opInvalid      = 9
 	guildPageSize  = 100
+	leaseJitter    = 0.2
+	leaseBatchSize = 500
 )
 
 type replayEntry struct {
@@ -319,18 +322,8 @@ func (s *Server) identify(
 		guilds:            make(map[int64]struct{}),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 	}
-	claimed, err := s.svcCtx.Store.ClaimAuthSession(
-		ctx, session.authSessionID, session.id, s.svcCtx.Cfg.Node.NodeTTL(),
-	)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "claim auth session")
-	}
-	if !claimed {
-		return nil, status.Error(codes.ResourceExhausted, "auth session already has a logical session")
-	}
 	visibilitySnapshots, err := s.loadOrReuseVisibilitySnapshots(ctx, session.userID)
 	if err != nil {
-		_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 		return nil, err
 	}
 	for guildID := range visibilitySnapshots {
@@ -704,7 +697,6 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	s.mu.Unlock()
 	s.releaseVisibilitySnapshots(session.userID)
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
-	_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 	s.removePresence(ctx, session, guildIDs)
 	s.refreshAllRoutes(ctx)
 }
@@ -828,65 +820,85 @@ func (s *Server) refreshRoutes(ctx context.Context) {
 }
 
 func (s *Server) refreshSessionLeaseLoop(ctx context.Context) {
-	ticker := time.NewTicker(s.svcCtx.Cfg.Node.RouteRefreshInterval())
-	defer ticker.Stop()
+	nextCycle := time.Now().Add(jitterDuration(s.svcCtx.Cfg.Node.SessionLeaseRefreshInterval()))
 	for {
-		s.refreshSessionLeases(ctx)
-		select {
-		case <-ctx.Done():
+		if !waitUntil(ctx, nextCycle) {
 			return
-		case <-ticker.C:
 		}
+		cycleStart := time.Now()
+		nextCycle = cycleStart.Add(jitterDuration(s.svcCtx.Cfg.Node.SessionLeaseRefreshInterval()))
+		s.refreshSessionLeases(ctx)
 	}
 }
 
+func jitterDuration(base time.Duration) time.Duration {
+	if base <= 0 {
+		return time.Millisecond
+	}
+	factor := 1 - leaseJitter + mathrand.Float64()*(2*leaseJitter)
+	return time.Duration(float64(base) * factor)
+}
+
+func waitUntil(ctx context.Context, target time.Time) bool {
+	delay := time.Until(target)
+	if delay <= 0 {
+		return ctx.Err() == nil
+	}
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+func batchRefreshOffset(batch, batchCount int, spread time.Duration) time.Duration {
+	if batchCount <= 1 || spread <= 0 {
+		return 0
+	}
+	slot := spread / time.Duration(batchCount)
+	if slot <= 0 {
+		return 0
+	}
+	return time.Duration(batch)*slot + time.Duration(mathrand.Int64N(int64(slot)))
+}
+
 func (s *Server) refreshSessionLeases(ctx context.Context) {
+	s.refreshSessionLeasesWithSpread(ctx, s.svcCtx.Cfg.Node.SessionLeaseSpreadWindow())
+}
+
+func (s *Server) refreshSessionLeasesWithSpread(ctx context.Context, spread time.Duration) {
 	s.mu.RLock()
 	sessions := make([]*logicalSession, 0, len(s.sessions))
 	for _, session := range s.sessions {
 		sessions = append(sessions, session)
 	}
 	s.mu.RUnlock()
-	const batchSize = 500
-	for start := 0; start < len(sessions); start += batchSize {
-		end := min(start+batchSize, len(sessions))
+	batchCount := (len(sessions) + leaseBatchSize - 1) / leaseBatchSize
+	cycleStart := time.Now()
+	for batch, start := 0, 0; start < len(sessions); batch, start = batch+1, start+leaseBatchSize {
+		if !waitUntil(ctx, cycleStart.Add(batchRefreshOffset(batch, batchCount, spread))) {
+			return
+		}
+		end := min(start+leaseBatchSize, len(sessions))
 		s.refreshSessionLeaseBatch(ctx, sessions[start:end])
 	}
 }
 
 func (s *Server) refreshSessionLeaseBatch(ctx context.Context, sessions []*logicalSession) {
-	leases := make([]store.AuthSessionLease, 0, len(sessions))
+	owners := make([]store.Owner, 0, len(sessions))
 	for _, session := range sessions {
-		leases = append(leases, store.AuthSessionLease{AuthSessionID: session.authSessionID, LogicalSessionID: session.id})
-	}
-	lostIDs, err := s.svcCtx.Store.RefreshAuthSessions(ctx, leases, s.svcCtx.Cfg.Node.NodeTTL())
-	if err != nil {
-		if ctx.Err() == nil {
-			logx.WithContext(ctx).Errorw("refresh auth session claims", logx.Field("count", len(sessions)), logx.Field("error", err))
-		}
-		lostIDs = nil
-	}
-	lost := make(map[string]struct{}, len(lostIDs))
-	for _, sessionID := range lostIDs {
-		lost[sessionID] = struct{}{}
-	}
-	retained := make([]*logicalSession, 0, len(sessions)-len(lost))
-	owners := make([]store.Owner, 0, len(sessions)-len(lost))
-	for _, session := range sessions {
-		if _, ok := lost[session.id]; ok {
-			s.removeSession(ctx, session)
-			continue
-		}
-		retained = append(retained, session)
 		owners = append(owners, store.Owner{SessionID: session.id, NodeID: s.nodeID, Generation: s.generation})
 	}
-	if err := s.svcCtx.Store.SetOwners(ctx, owners, s.svcCtx.Cfg.Node.NodeTTL()); err != nil && ctx.Err() == nil {
+	if err := s.svcCtx.Store.SetOwners(ctx, owners, s.svcCtx.Cfg.Node.ResumeTTL()); err != nil && ctx.Err() == nil {
 		logx.WithContext(ctx).Errorw("refresh session owners", logx.Field("count", len(owners)), logx.Field("error", err))
 	}
 	req := new(presencev1.RefreshUserSessionsRequest)
-	items := make([]*presencev1.RefreshUserSessionRequest, 0, len(retained))
-	byID := make(map[string]*logicalSession, len(retained))
-	for _, session := range retained {
+	items := make([]*presencev1.RefreshUserSessionRequest, 0, len(sessions))
+	byID := make(map[string]*logicalSession, len(sessions))
+	for _, session := range sessions {
 		items = append(items, presenceRefreshRequest(session))
 		byID[session.id] = session
 	}

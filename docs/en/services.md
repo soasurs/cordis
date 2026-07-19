@@ -133,14 +133,17 @@ one sequenced `session.reconcile` hint for that invalid snapshot generation.
 
 Session applies Gateway checkpoint batches to advance acknowledged sequences and
 trim replay windows. Client heartbeats do not directly refresh Redis ownership
-or Presence; logical-session leases are renewed independently of WebSocket
-heartbeat traffic through bounded batches, while aggregate route renewal runs
-in a separate loop.
+or Presence; logical-session owner leases are renewed with bounded Redis
+pipelines and Presence leases with a batch RPC, independently of WebSocket
+heartbeat traffic. Owner TTL equals the resume timeout; maintenance runs at one
+quarter of that timeout with ±20% cycle jitter to desynchronize Session nodes.
+Within a cycle, 500-session batches are assigned jittered slots in a bounded
+five-second spread window. Aggregate route renewal runs in a separate loop.
 
 After token validation, `IDENTIFY` is limited by user ID and authenticator
-session ID. A Redis claim permits only one live logical session per authenticator
-session; the claim is renewed while the logical session is retained, including
-the detached resume window.
+session ID. One authenticator session may create multiple concurrent logical
+sessions, such as separate browser tabs or devices. Each has an independent
+session ID, replay window, Presence lease, and transport binding.
 
 Dispatcher resolves Guild messages through aggregate Guild routes and includes
 the Guild and channel IDs in a dedicated Guild-message dispatch RPC. Session checks the server-owned

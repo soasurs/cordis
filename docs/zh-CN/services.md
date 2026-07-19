@@ -63,9 +63,9 @@
 
 IDENTIFY 通过 Guild visibility RPC 加载带 access revision 的不可变、有序频道快照，Store 查询按分页批量执行。同一节点上属于同一用户的逻辑 Session 共享一份快照集合，最后一个本地 Session 移除后释放。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。Guild access 事件按 revision 使受影响的快照失效；按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`，提示客户端通过 HTTP API 同步状态。
 
-Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Session ID 限速。每个认证 Session 通过 Redis claim 只能持有一个存活的逻辑 Session；逻辑 Session 留存期间会持续续租，包括断线后的 resume 窗口。
+Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Session ID 限速。同一个认证 Session 可以为多个浏览器页面或设备创建并存的逻辑 Session；每个逻辑 Session 拥有独立的 Session ID、回放窗口、Presence 租约和 transport binding。
 
-客户端 heartbeat 不再直接触发 Session 的 Redis owner 或 Presence 续租；逻辑 Session 租约通过有界批次独立维护，聚合 route 使用单独循环续租，不受 lease sweep 耗时影响。
+客户端 heartbeat 不再直接触发 Session 的 Redis owner 或 Presence 续租；逻辑 Session owner 以 resume timeout 为 TTL，通过有界 Redis pipeline 批量续租，Presence 通过批量 RPC 续租。维护周期为 resume timeout 的四分之一，并加入 ±20% cycle jitter 以打散不同 Session 节点；每批 500 个 Session，并分配到最长 5 秒刷新窗口内带 jitter 的 slot。聚合 route 使用单独循环续租，不受 lease sweep 耗时影响。
 
 Dispatcher 通过聚合 Guild route 定位 Guild 消息的候选 Session 节点，并通过专用 Guild-message RPC 携带 Guild 与频道 ID。Session 按本地用户检查服务端可见性快照，将消息投递给该用户的所有本地逻辑 Session。DM 消息为每个参与者各发布一条记录，并通过聚合 user route 投递。没有且仅有一个 Guild/user 聚合 route 的消息记录会被拒绝。
 

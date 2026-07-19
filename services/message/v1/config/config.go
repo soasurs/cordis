@@ -40,11 +40,9 @@ func (c ResourceLimitsConfig) Mentions() int {
 	return c.MentionsPerMessage
 }
 
-// ReadStatesConfig controls bounded authorization fan-out and aggregate query
-// concurrency for GetReadStates.
+// ReadStatesConfig controls aggregate GetReadStates concurrency.
 type ReadStatesConfig struct {
-	AuthorizationConcurrency int   `json:",default=8"`
-	MaxConcurrentChannels    int64 `json:",default=800"`
+	MaxConcurrentChannels int64 `json:",default=800"`
 }
 
 type ServiceConfig struct {

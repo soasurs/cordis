@@ -44,6 +44,8 @@ func TestDispatcherIntegration(t *testing.T) {
 	t.Run("retry preserves uncommitted offset", func(t *testing.T) { testRetryPreservesUncommittedOffset(t, env) })
 	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
 	t.Run("user route", func(t *testing.T) { testUserRoute(t, env) })
+	t.Run("presence fan-out", func(t *testing.T) { testPresenceFanOut(t, env) })
+	t.Run("presence friend lookup retry", func(t *testing.T) { testPresenceFriendLookupRetry(t, env) })
 }
 
 func testGuildMessageRoute(t *testing.T, env *dispatcherEnv) {
@@ -489,11 +491,75 @@ func testUserRoute(t *testing.T, env *dispatcherEnv) {
 	require.Equal(t, realtime.EventMessageCreated, request.GetEvent().GetType())
 }
 
+func testPresenceFanOut(t *testing.T, env *dispatcherEnv) {
+	const (
+		userID   = int64(7501)
+		friendID = int64(7502)
+		guildA   = int64(7503)
+		guildB   = int64(7504)
+	)
+	h := newHarness(t, env)
+	h.userClient.setFriends(userID, friendID, friendID, userID)
+	node := newRecordingSessionServer()
+	address := startSessionServer(t, node)
+	h.registerNode(t, "session-a", "generation-1", address)
+	h.addRoute(t, discovery.RouteGuild, guildA, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, guildB, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteUser, userID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteUser, friendID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.presenceTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventPresenceUpdated+`","d":{"user_id":"7501","status":1,"guild_ids":["7503","7503","0","7504"]}}`)
+
+	guildIDs := []int64{node.waitGuildEvent(t).GetGuildId(), node.waitGuildEvent(t).GetGuildId()}
+	userIDs := []int64{node.waitUserEvent(t).GetUserId(), node.waitUserEvent(t).GetUserId()}
+	require.ElementsMatch(t, []int64{guildA, guildB}, guildIDs)
+	require.ElementsMatch(t, []int64{userID, friendID}, userIDs)
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.presenceTopic) == 1 },
+		15*time.Second, 50*time.Millisecond, "presence offset must be committed after both paths succeed")
+	time.Sleep(500 * time.Millisecond)
+	require.Equal(t, 2, node.guildCalls(), "duplicate Guild routes must be dispatched once")
+	require.Equal(t, 2, node.userCalls(), "duplicate friend and self routes must be dispatched once")
+}
+
+func testPresenceFriendLookupRetry(t *testing.T, env *dispatcherEnv) {
+	const (
+		userID  = int64(7601)
+		guildID = int64(7602)
+	)
+	h := newHarness(t, env)
+	h.userClient.setError(status.Error(codes.Unavailable, "injected failure"))
+	node := newRecordingSessionServer()
+	address := startSessionServer(t, node)
+	h.registerNode(t, "session-a", "generation-1", address)
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteUser, userID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.presenceTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventPresenceUpdated+`","d":{"user_id":"7601","status":1,"guild_ids":["7602"]}}`)
+
+	require.Eventually(t, func() bool { return h.userClient.relationshipCalls() >= 2 },
+		15*time.Second, 20*time.Millisecond, "dispatcher did not retry the failed friend lookup")
+	require.Equal(t, 0, node.guildCalls(), "Guild delivery must wait for friend lookup")
+	require.Equal(t, int64(-1), h.committedOffset(t, h.presenceTopic),
+		"offset must stay uncommitted while friend lookup fails")
+
+	h.userClient.setError(nil)
+	require.Equal(t, guildID, node.waitGuildEvent(t).GetGuildId())
+	require.Equal(t, userID, node.waitUserEvent(t).GetUserId())
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.presenceTopic) == 1 },
+		15*time.Second, 50*time.Millisecond, "presence offset must commit after friend lookup recovers")
+}
+
 // fakeDispatcherUserClient serves friend lists for presence fan-out tests.
 type fakeDispatcherUserClient struct {
 	userv1.UserServiceClient
 	mu      sync.Mutex
 	friends map[int64][]int64
+	err     error
+	calls   int
 }
 
 func newFakeDispatcherUserClient() *fakeDispatcherUserClient {
@@ -506,9 +572,25 @@ func (f *fakeDispatcherUserClient) setFriends(userID int64, friendIDs ...int64) 
 	f.friends[userID] = friendIDs
 }
 
+func (f *fakeDispatcherUserClient) setError(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.err = err
+}
+
+func (f *fakeDispatcherUserClient) relationshipCalls() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.calls
+}
+
 func (f *fakeDispatcherUserClient) ListRelationships(_ context.Context, req *userv1.ListRelationshipsRequest, _ ...grpc.CallOption) (*userv1.ListRelationshipsResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.calls++
+	if f.err != nil {
+		return nil, f.err
+	}
 	resp := new(userv1.ListRelationshipsResponse)
 	if req.GetBeforeTargetId() != 0 {
 		// Single page is enough for the harness.
@@ -523,5 +605,8 @@ func (f *fakeDispatcherUserClient) ListRelationships(_ context.Context, req *use
 		values = append(values, row)
 	}
 	resp.SetRelationships(values)
+	if len(values) > 0 {
+		resp.SetBeforeTargetId(values[len(values)-1].GetTargetId())
+	}
 	return resp, nil
 }

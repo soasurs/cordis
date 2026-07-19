@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -201,6 +202,21 @@ func (s *SQLStore) GetGuildForMember(ctx context.Context, guildID, userID int64)
 		return nil, err
 	}
 	return guildFromRow(row), nil
+}
+
+func (s *SQLStore) ListGuildsForMemberByIDs(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Guild, error) {
+	if len(guildIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*guildRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildsForMemberByIDsQuery, pq.Array(guildIDs), userID); err != nil {
+		return nil, err
+	}
+	guilds := make([]*model.Guild, 0, len(rows))
+	for _, row := range rows {
+		guilds = append(guilds, guildFromRow(row))
+	}
+	return guilds, nil
 }
 
 func (s *SQLStore) ListUserGuilds(ctx context.Context, params ListUserGuildsParams) ([]*model.Guild, error) {

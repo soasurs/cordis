@@ -52,22 +52,37 @@ func loadMemberAuthority(
 	guildStore store.Store,
 	guildID, userID int64,
 ) (memberAuthority, error) {
+	authority, _, err := loadMemberAuthorityAndRoles(ctx, guildStore, guildID, userID)
+	return authority, err
+}
+
+func loadMemberAuthorityAndRoles(
+	ctx context.Context,
+	guildStore store.Store,
+	guildID, userID int64,
+) (memberAuthority, []*model.Role, error) {
 	guild, err := guildStore.GetGuildForMember(ctx, guildID, userID)
 	if err != nil {
-		return memberAuthority{}, err
+		return memberAuthority{}, nil, err
 	}
+	if guild.OwnerID == userID {
+		return memberAuthorityFromRoles(guild, nil, userID), nil, nil
+	}
+	roles, err := guildStore.ListGuildMemberRoles(ctx, guildID, userID)
+	if err != nil {
+		return memberAuthority{}, nil, err
+	}
+	return memberAuthorityFromRoles(guild, roles, userID), roles, nil
+}
+
+func memberAuthorityFromRoles(guild *model.Guild, roles []*model.Role, userID int64) memberAuthority {
 	if guild.OwnerID == userID {
 		return memberAuthority{
 			Guild:       guild,
 			Permissions: AllGuildPermissions,
 			HighestRole: math.MaxInt32,
 			IsOwner:     true,
-		}, nil
-	}
-
-	roles, err := guildStore.ListGuildMemberRoles(ctx, guildID, userID)
-	if err != nil {
-		return memberAuthority{}, err
+		}
 	}
 	var permissions uint64
 	var highestRole int32
@@ -84,7 +99,7 @@ func loadMemberAuthority(
 		Guild:       guild,
 		Permissions: permissions,
 		HighestRole: highestRole,
-	}, nil
+	}
 }
 
 func (authority memberAuthority) has(permission uint64) bool {

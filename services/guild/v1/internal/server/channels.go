@@ -100,11 +100,7 @@ func (s *guildServer) ListGuildChannels(ctx context.Context, req *guildv1.ListGu
 }
 
 func loadVisibleGuildChannels(ctx context.Context, guildStore store.Store, guildID, userID int64) ([]*model.Channel, error) {
-	authority, err := loadMemberAuthority(ctx, guildStore, guildID, userID)
-	if err != nil {
-		return nil, err
-	}
-	roles, err := guildStore.ListGuildMemberRoles(ctx, guildID, userID)
+	authority, roles, err := loadMemberAuthorityAndRoles(ctx, guildStore, guildID, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +108,25 @@ func loadVisibleGuildChannels(ctx context.Context, guildStore store.Store, guild
 	if err != nil {
 		return nil, err
 	}
+	if authority.IsOwner || authority.Permissions&PermissionAdministrator != 0 {
+		return channels, nil
+	}
 	overwrites, err := guildStore.ListGuildChannelPermissionOverwritesByGuild(ctx, guildID)
 	if err != nil {
 		return nil, err
+	}
+	return visibleGuildChannels(authority, roles, channels, overwrites, userID), nil
+}
+
+func visibleGuildChannels(
+	authority memberAuthority,
+	roles []*model.Role,
+	channels []*model.Channel,
+	overwrites []*model.ChannelPermissionOverwrite,
+	userID int64,
+) []*model.Channel {
+	if authority.IsOwner || authority.Permissions&PermissionAdministrator != 0 {
+		return channels
 	}
 	overwritesByChannel := make(map[int64][]*model.ChannelPermissionOverwrite)
 	for _, overwrite := range overwrites {
@@ -126,7 +138,7 @@ func loadVisibleGuildChannels(ctx context.Context, guildStore store.Store, guild
 			visible = append(visible, channel)
 		}
 	}
-	return visible, nil
+	return visible
 }
 
 func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.UpdateGuildChannelRequest) (*guildv1.UpdateGuildChannelResponse, error) {
@@ -291,19 +303,25 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 		if err := validateChannelPositions(current, positions); err != nil {
 			return err
 		}
+		currentByID := make(map[int64]*model.Channel, len(current))
+		for _, channel := range current {
+			currentByID[channel.ID] = channel
+		}
+		channelIDs := make([]int64, 0, len(positions))
+		channelPositions := make([]int32, 0, len(positions))
 		for channelID, position := range positions {
-			channel, err := txStore.GetGuildChannel(ctx, channelID)
-			if err != nil {
-				return err
-			}
-			if channel.GuildID != req.GetGuildId() {
+			if currentByID[channelID] == nil {
 				return notFound()
 			}
-			channel, err = txStore.UpdateGuildChannelPosition(ctx, channelID, position, updatedAt)
-			if err != nil {
-				return err
-			}
-			updated = append(updated, channel)
+			channelIDs = append(channelIDs, channelID)
+			channelPositions = append(channelPositions, position)
+		}
+		updated, err = txStore.UpdateGuildChannelPositions(ctx, req.GetGuildId(), channelIDs, channelPositions, updatedAt)
+		if err != nil {
+			return err
+		}
+		if len(updated) != len(channelIDs) {
+			return notFound()
 		}
 		channels, err = txStore.ListGuildChannels(ctx, req.GetGuildId())
 		return err
@@ -451,18 +469,99 @@ func (s *guildServer) AuthorizeGuildChannel(ctx context.Context, req *guildv1.Au
 	return resp, nil
 }
 
+func (s *guildServer) AuthorizeGuildChannels(ctx context.Context, req *guildv1.AuthorizeGuildChannelsRequest) (*guildv1.AuthorizeGuildChannelsResponse, error) {
+	if req.GetUserId() <= 0 || len(req.GetChannelIds()) == 0 {
+		return nil, invalidRequest("user id and channel ids are required")
+	}
+	if len(req.GetChannelIds()) > 100 {
+		return nil, invalidRequest("too many channel ids")
+	}
+	if req.GetPermission() == 0 || req.GetPermission()&^AllChannelPermissions != 0 {
+		return nil, invalidRequest("permission is invalid")
+	}
+	channelIDs := make([]int64, 0, len(req.GetChannelIds()))
+	seen := make(map[int64]struct{}, len(req.GetChannelIds()))
+	for _, channelID := range req.GetChannelIds() {
+		if channelID <= 0 {
+			return nil, invalidRequest("channel id is required")
+		}
+		if _, ok := seen[channelID]; ok {
+			continue
+		}
+		seen[channelID] = struct{}{}
+		channelIDs = append(channelIDs, channelID)
+	}
+	channels, err := s.svcCtx.Store.ListGuildChannelsByIDs(ctx, channelIDs)
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	if len(channels) != len(channelIDs) {
+		return nil, notFound()
+	}
+	channelsByID := make(map[int64]*model.Channel, len(channels))
+	guildIDs := make([]int64, 0)
+	seenGuilds := make(map[int64]struct{})
+	for _, channel := range channels {
+		channelsByID[channel.ID] = channel
+		if _, ok := seenGuilds[channel.GuildID]; !ok {
+			seenGuilds[channel.GuildID] = struct{}{}
+			guildIDs = append(guildIDs, channel.GuildID)
+		}
+	}
+	guilds, err := s.svcCtx.Store.ListGuildsForMemberByIDs(ctx, guildIDs, req.GetUserId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	if len(guilds) != len(guildIDs) {
+		return nil, notFound()
+	}
+	guildsByID := make(map[int64]*model.Guild, len(guilds))
+	for _, guild := range guilds {
+		guildsByID[guild.ID] = guild
+	}
+	roles, err := s.svcCtx.Store.ListGuildMemberRolesByGuilds(ctx, guildIDs, req.GetUserId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	overwrites, err := s.svcCtx.Store.ListGuildChannelPermissionOverwritesByChannels(ctx, channelIDs)
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	rolesByGuild := groupRolesByGuild(roles)
+	overwritesByChannel := make(map[int64][]*model.ChannelPermissionOverwrite)
+	for _, overwrite := range overwrites {
+		overwritesByChannel[overwrite.ChannelID] = append(overwritesByChannel[overwrite.ChannelID], overwrite)
+	}
+	authorizations := make([]*guildv1.GuildChannelAuthorization, 0, len(channelIDs))
+	for _, channelID := range channelIDs {
+		channel := channelsByID[channelID]
+		guild := guildsByID[channel.GuildID]
+		authority := memberAuthorityFromRoles(guild, rolesByGuild[guild.ID], req.GetUserId())
+		permissions := channelPermissions(authority, rolesByGuild[guild.ID], overwritesByChannel[channelID], req.GetUserId())
+		authorization := new(guildv1.GuildChannelAuthorization)
+		authorization.SetChannelId(channelID)
+		authorization.SetGuildId(channel.GuildID)
+		authorization.SetPermissions(permissions)
+		authorization.SetAllowed(permissions&req.GetPermission() == req.GetPermission())
+		authorization.SetChannelType(guildv1.GuildChannelType(channel.Type))
+		authorizations = append(authorizations, authorization)
+	}
+	resp := new(guildv1.AuthorizeGuildChannelsResponse)
+	resp.SetAuthorizations(authorizations)
+	return resp, nil
+}
+
 func (s *guildServer) loadAuthorizedChannel(ctx context.Context, channelID, userID int64) (*model.Channel, uint64, error) {
 	channel, err := s.svcCtx.Store.GetGuildChannel(ctx, channelID)
 	if err != nil {
 		return nil, 0, mapStoreError(err)
 	}
-	authority, err := loadMemberAuthority(ctx, s.svcCtx.Store, channel.GuildID, userID)
+	authority, roles, err := loadMemberAuthorityAndRoles(ctx, s.svcCtx.Store, channel.GuildID, userID)
 	if err != nil {
 		return nil, 0, mapStoreError(err)
 	}
-	roles, err := s.svcCtx.Store.ListGuildMemberRoles(ctx, channel.GuildID, userID)
-	if err != nil {
-		return nil, 0, mapStoreError(err)
+	if authority.IsOwner || authority.Permissions&PermissionAdministrator != 0 {
+		return channel, AllGuildPermissions, nil
 	}
 	overwrites, err := s.svcCtx.Store.ListGuildChannelPermissionOverwrites(ctx, channelID)
 	if err != nil {

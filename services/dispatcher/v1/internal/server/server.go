@@ -11,6 +11,7 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/core/logx"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -20,6 +21,8 @@ import (
 	"github.com/soasurs/cordis/services/dispatcher/v1/config"
 	"github.com/soasurs/cordis/services/dispatcher/v1/internal/discovery"
 )
+
+const presenceDispatchConcurrency = 16
 
 type eventEnvelope struct {
 	Type string          `json:"t"`
@@ -268,40 +271,70 @@ func (s *Server) dispatchUser(ctx context.Context, userID int64, event eventEnve
 // event more than once; presence updates are idempotent state, so
 // duplicates are harmless.
 func (s *Server) dispatchPresence(ctx context.Context, userID int64, event eventEnvelope, routing eventRouting) error {
+	friends, err := s.friendIDs(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	seenGuilds := make(map[int64]struct{}, len(routing.GuildIDs))
+	guildIDs := make([]int64, 0, len(routing.GuildIDs))
 	for _, rawGuildID := range routing.GuildIDs {
 		guildID := int64(rawGuildID)
 		if guildID <= 0 {
 			continue
 		}
-		nodes, err := s.resolver.Resolve(ctx, discovery.RouteGuild, guildID)
-		if err != nil {
-			return err
+		if _, ok := seenGuilds[guildID]; ok {
+			continue
 		}
-		if err := s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
-			req := new(sessionv1.DispatchGuildEventRequest)
-			req.SetGuildId(guildID)
-			req.SetEvent(protoEvent(event))
-			_, err := client.DispatchGuildEvent(ctx, req)
-			return err
-		}); err != nil {
-			return err
-		}
+		seenGuilds[guildID] = struct{}{}
+		guildIDs = append(guildIDs, guildID)
 	}
 
-	recipients, err := s.friendIDs(ctx, userID)
-	if err != nil {
-		return err
+	seenRecipients := make(map[int64]struct{}, len(friends)+1)
+	recipientIDs := make([]int64, 0, len(friends)+1)
+	for _, friendID := range friends {
+		if friendID <= 0 || friendID == userID {
+			continue
+		}
+		if _, ok := seenRecipients[friendID]; ok {
+			continue
+		}
+		seenRecipients[friendID] = struct{}{}
+		recipientIDs = append(recipientIDs, friendID)
 	}
+	friendCount := len(recipientIDs)
 	// The user's own other devices track the transition too.
-	recipients = append(recipients, userID)
-	logx.WithContext(ctx).Infow("presence fan-out", logx.Field("user_id", userID), logx.Field("guild_count", len(routing.GuildIDs)), logx.Field("friend_count", len(recipients)-1), logx.Field("total_recipients", len(recipients)))
-	for _, recipientID := range recipients {
-		logx.WithContext(ctx).Infow("dispatch user presence", logx.Field("recipient_id", recipientID))
-		if err := s.dispatchUser(ctx, recipientID, event); err != nil {
-			return err
+	recipientIDs = append(recipientIDs, userID)
+
+	logx.WithContext(ctx).Infow("presence fan-out", logx.Field("user_id", userID), logx.Field("guild_count", len(guildIDs)), logx.Field("friend_count", friendCount), logx.Field("total_recipients", len(recipientIDs)))
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.SetLimit(presenceDispatchConcurrency)
+	// Submit the two paths in round-robin order. Group.Go blocks when the
+	// limit is full, so submitting every Guild first could otherwise delay
+	// friend and self delivery behind several slow Guild batches.
+	for i := range max(len(guildIDs), len(recipientIDs)) {
+		if i < len(guildIDs) {
+			guildID := guildIDs[i]
+			group.Go(func() error {
+				nodes, err := s.resolver.Resolve(groupCtx, discovery.RouteGuild, guildID)
+				if err != nil {
+					return err
+				}
+				return s.forEachNode(groupCtx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
+					req := new(sessionv1.DispatchGuildEventRequest)
+					req.SetGuildId(guildID)
+					req.SetEvent(protoEvent(event))
+					_, err := client.DispatchGuildEvent(ctx, req)
+					return err
+				})
+			})
+		}
+		if i < len(recipientIDs) {
+			recipientID := recipientIDs[i]
+			group.Go(func() error { return s.dispatchUser(groupCtx, recipientID, event) })
 		}
 	}
-	return nil
+	return group.Wait()
 }
 
 // friendIDs pages through the user's friendships.

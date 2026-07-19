@@ -5,16 +5,15 @@ import (
 	"errors"
 
 	"github.com/zeromicro/go-zero/core/logx"
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 )
 
 const (
-	maxReadStateChannels                     = 100
-	defaultReadStateAuthorizationConcurrency = 8
+	maxReadStateChannels = 100
 )
 
 func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessageRequest) (*messagev1.AckMessageResponse, error) {
@@ -55,15 +54,7 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	}
 	defer release()
 
-	group, groupCtx := errgroup.WithContext(ctx)
-	group.SetLimit(s.readStateAuthorizationConcurrency())
-	for _, channelID := range channelIDs {
-		group.Go(func() error {
-			_, err := s.requireChannelPermission(groupCtx, channelID, req.GetUserId(), permissionViewChannel)
-			return err
-		})
-	}
-	if err := group.Wait(); err != nil {
+	if err := s.authorizeReadStateChannels(ctx, req.GetUserId(), channelIDs); err != nil {
 		return nil, err
 	}
 
@@ -86,6 +77,61 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	return resp, nil
 }
 
+func (s *messageServer) authorizeReadStateChannels(ctx context.Context, userID int64, channelIDs []int64) error {
+	dmChannels, err := s.svcCtx.Store.ListDmChannelsByIDs(ctx, channelIDs)
+	if err != nil {
+		return mapStoreError(err)
+	}
+	dmByID := make(map[int64]struct{}, len(dmChannels))
+	for _, channel := range dmChannels {
+		if err := s.authorizeDmMessage(ctx, channel, userID, permissionViewChannel); err != nil {
+			return err
+		}
+		dmByID[channel.ID] = struct{}{}
+	}
+	guildChannelIDs := make([]int64, 0, len(channelIDs)-len(dmChannels))
+	for _, channelID := range channelIDs {
+		if _, ok := dmByID[channelID]; !ok {
+			guildChannelIDs = append(guildChannelIDs, channelID)
+		}
+	}
+	if len(guildChannelIDs) == 0 {
+		return nil
+	}
+	req := new(guildv1.AuthorizeGuildChannelsRequest)
+	req.SetUserId(userID)
+	req.SetChannelIds(guildChannelIDs)
+	req.SetPermission(permissionViewChannel)
+	resp, err := s.svcCtx.GuildClient.AuthorizeGuildChannels(ctx, req)
+	if err != nil {
+		return err
+	}
+	if len(resp.GetAuthorizations()) != len(guildChannelIDs) {
+		return errors.New("guild channel authorization returned incomplete batch")
+	}
+	expected := make(map[int64]struct{}, len(guildChannelIDs))
+	for _, channelID := range guildChannelIDs {
+		expected[channelID] = struct{}{}
+	}
+	for _, authorization := range resp.GetAuthorizations() {
+		if _, ok := expected[authorization.GetChannelId()]; !ok {
+			return errors.New("guild channel authorization returned unexpected channel")
+		}
+		delete(expected, authorization.GetChannelId())
+		if !authorization.GetAllowed() {
+			return permissionDenied()
+		}
+		if authorization.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY ||
+			authorization.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE {
+			return invalidRequest("messages are only supported in text channels")
+		}
+	}
+	if len(expected) != 0 {
+		return errors.New("guild channel authorization returned incomplete batch")
+	}
+	return nil
+}
+
 func (s *messageServer) acquireReadStatesCapacity(ctx context.Context, weight int64) (func(), error) {
 	if s.svcCtx.ReadStatesLimiter == nil {
 		return func() {}, nil
@@ -99,13 +145,6 @@ func (s *messageServer) acquireReadStatesCapacity(ctx context.Context, weight in
 	}
 	logx.WithContext(ctx).Errorw("acquire read states capacity", logx.Field("error", err))
 	return nil, status.Error(codes.Internal, "read states concurrency limiter unavailable")
-}
-
-func (s *messageServer) readStateAuthorizationConcurrency() int {
-	if configured := s.svcCtx.Cfg.ReadStates.AuthorizationConcurrency; configured > 0 {
-		return configured
-	}
-	return defaultReadStateAuthorizationConcurrency
 }
 
 func normalizeReadStateChannelIDs(channelIDs []int64) ([]int64, error) {

@@ -52,6 +52,12 @@ func TestRedisStoreUserPresenceLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, PresenceStatusDND, presence.Status)
 	require.Len(t, presence.Sessions, 2)
+	missing, err := store.RefreshUserSessions(ctx, []UserSession{
+		{UserID: userID, SessionID: sessionA, GatewayID: "gw-a", Generation: "gen-1"},
+		{UserID: userID, SessionID: "missing", GatewayID: "gw-a", Generation: "gen-1"},
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{"missing"}, missing)
 
 	resolved, err := store.ResolveUsersPresence(ctx, []int64{userID, userID + 1})
 	require.NoError(t, err)

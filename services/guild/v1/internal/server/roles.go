@@ -251,8 +251,10 @@ func (s *guildServer) ReorderGuildRoles(ctx context.Context, req *guildv1.Reorde
 		if err != nil {
 			return err
 		}
+		currentByID := make(map[int64]*model.Role, len(currentRoles))
 		finalPositions := make(map[int32]int64, len(currentRoles))
 		for _, role := range currentRoles {
+			currentByID[role.ID] = role
 			if role.IsDefault {
 				continue
 			}
@@ -265,10 +267,12 @@ func (s *guildServer) ReorderGuildRoles(ctx context.Context, req *guildv1.Reorde
 			}
 			finalPositions[position] = role.ID
 		}
+		roleIDs := make([]int64, 0, len(positions))
+		rolePositions := make([]int32, 0, len(positions))
 		for roleID, position := range positions {
-			role, err := txStore.GetGuildRole(ctx, req.GetGuildId(), roleID)
-			if err != nil {
-				return err
+			role := currentByID[roleID]
+			if role == nil {
+				return notFound()
 			}
 			if role.IsDefault || !authority.canManageRole(role) {
 				return permissionDenied()
@@ -276,11 +280,15 @@ func (s *guildServer) ReorderGuildRoles(ctx context.Context, req *guildv1.Reorde
 			if !authority.IsOwner && position >= authority.HighestRole {
 				return permissionDenied()
 			}
-			updated, err := txStore.UpdateGuildRolePosition(ctx, req.GetGuildId(), roleID, position, updatedAt)
-			if err != nil {
-				return err
-			}
-			reordered = append(reordered, updated)
+			roleIDs = append(roleIDs, roleID)
+			rolePositions = append(rolePositions, position)
+		}
+		reordered, err = txStore.UpdateGuildRolePositions(ctx, req.GetGuildId(), roleIDs, rolePositions, updatedAt)
+		if err != nil {
+			return err
+		}
+		if len(reordered) != len(roleIDs) {
+			return notFound()
 		}
 		roles, err = txStore.ListGuildRoles(ctx, req.GetGuildId())
 		return err

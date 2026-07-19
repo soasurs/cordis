@@ -54,9 +54,6 @@ type Dependencies struct {
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
-	if cfg.ReadStates.AuthorizationConcurrency <= 0 {
-		return Dependencies{}, errors.New("read states authorization concurrency must be positive")
-	}
 	if cfg.ReadStates.MaxConcurrentChannels < maxReadStateChannelsPerRequest {
 		return Dependencies{}, errors.New("read states max concurrent channels must be at least 100")
 	}

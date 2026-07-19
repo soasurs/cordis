@@ -80,6 +80,21 @@ const getGuildForMemberQuery = `
     LIMIT 1
 `
 
+const listGuildsForMemberByIDsQuery = `
+    SELECT ` + guildColumns + `
+    FROM guilds
+    WHERE id = ANY($1)
+      AND deleted_at = 0
+      AND EXISTS (
+          SELECT 1
+          FROM guild_members
+          WHERE guild_id = guilds.id
+            AND user_id = $2
+            AND deleted_at = 0
+      )
+    ORDER BY id ASC
+`
+
 const listUserGuildsQuery = `
     SELECT ` + guildColumns + `
     FROM guilds
@@ -343,6 +358,23 @@ const addGuildMemberRoleStatement = `
     ON CONFLICT (guild_id, user_id, role_id) DO NOTHING
 `
 
+const updateGuildRolePositionsQuery = `
+    WITH requested(id, position) AS (
+        SELECT * FROM unnest($2::bigint[], $3::integer[])
+    )
+    UPDATE roles AS r
+    SET position = requested.position,
+        revision = r.revision + 1,
+        updated_at = $4
+    FROM requested
+    WHERE r.guild_id = $1
+      AND r.id = requested.id
+      AND r.is_default = FALSE
+      AND r.deleted_at = 0
+    RETURNING r.id, r.guild_id, r.name, r.permissions, r.position, r.is_default,
+              r.revision, r.created_at, r.updated_at, r.deleted_at
+`
+
 const removeGuildMemberRoleStatement = `
     DELETE FROM guild_member_roles
     WHERE guild_id = $1
@@ -384,6 +416,23 @@ const listGuildMemberRolesQuery = `
     ORDER BY position DESC, id ASC
 `
 
+const listGuildMemberRolesByGuildsQuery = `
+    SELECT ` + roleColumns + `
+    FROM roles
+    WHERE guild_id = ANY($1)
+      AND deleted_at = 0
+      AND (
+          is_default = TRUE
+          OR id IN (
+              SELECT role_id
+              FROM guild_member_roles
+              WHERE guild_id = ANY($1)
+                AND user_id = $2
+          )
+      )
+    ORDER BY guild_id ASC, position DESC, id ASC
+`
+
 const createGuildChannelQuery = `
     INSERT INTO guild_channels (
         id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at, parent_id
@@ -398,12 +447,28 @@ const getGuildChannelQuery = `
     LIMIT 1
 `
 
+const listGuildChannelsByIDsQuery = `
+    SELECT ` + channelColumns + `
+    FROM guild_channels
+    WHERE id = ANY($1)
+      AND deleted_at = 0
+    ORDER BY id ASC
+`
+
 const listGuildChannelsQuery = `
     SELECT ` + channelColumns + `
     FROM guild_channels
     WHERE guild_id = $1
       AND deleted_at = 0
     ORDER BY position ASC, id ASC
+`
+
+const listGuildChannelsByGuildsQuery = `
+    SELECT ` + channelColumns + `
+    FROM guild_channels
+    WHERE guild_id = ANY($1)
+      AND deleted_at = 0
+    ORDER BY guild_id ASC, position ASC, id ASC
 `
 
 const updateGuildChannelQuery = `
@@ -419,10 +484,11 @@ const updateGuildChannelQuery = `
 
 const updateGuildChannelPositionQuery = `
     UPDATE guild_channels
-    SET position = $2,
+    SET position = $3,
         revision = revision + 1,
-        updated_at = $3
-    WHERE id = $1
+        updated_at = $4
+    WHERE guild_id = $1
+      AND id = $2
       AND deleted_at = 0
     RETURNING ` + channelColumns
 
@@ -442,6 +508,22 @@ const deleteGuildChannelsStatement = `
         deleted_at = $2
     WHERE guild_id = $1
       AND deleted_at = 0
+`
+
+const updateGuildChannelPositionsQuery = `
+    WITH requested(id, position) AS (
+        SELECT * FROM unnest($2::bigint[], $3::integer[])
+    )
+    UPDATE guild_channels AS c
+    SET position = requested.position,
+        revision = c.revision + 1,
+        updated_at = $4
+    FROM requested
+    WHERE c.guild_id = $1
+      AND c.id = requested.id
+      AND c.deleted_at = 0
+    RETURNING c.id, c.guild_id, c.name, c.type, c.position, c.topic,
+              c.revision, c.created_at, c.updated_at, c.deleted_at, c.parent_id
 `
 
 const clearGuildChannelParentStatement = `
@@ -497,9 +579,36 @@ const listGuildChannelPermissionOverwritesQuery = `
     ORDER BY target_type ASC, target_id ASC
 `
 
+const listGuildChannelPermissionOverwritesByChannelsQuery = `
+    SELECT ` + channelOverwriteColumns + `
+    FROM guild_channel_permission_overwrites
+    WHERE channel_id = ANY($1)
+    ORDER BY channel_id ASC, target_type ASC, target_id ASC
+`
+
 const listGuildChannelPermissionOverwritesByGuildQuery = `
     SELECT ` + channelOverwriteColumns + `
     FROM guild_channel_permission_overwrites
     WHERE guild_id = $1
     ORDER BY channel_id ASC, target_type ASC, target_id ASC
+`
+
+const listGuildChannelPermissionOverwritesByGuildsQuery = `
+    SELECT ` + channelOverwriteColumns + `
+    FROM guild_channel_permission_overwrites AS o
+    WHERE o.guild_id = ANY($1)
+      AND (
+          (o.target_type = 2 AND o.target_id = $2)
+          OR (o.target_type = 1 AND (
+              o.target_id = o.guild_id
+              OR EXISTS (
+                  SELECT 1
+                  FROM guild_member_roles AS mr
+                  WHERE mr.guild_id = o.guild_id
+                    AND mr.user_id = $2
+                    AND mr.role_id = o.target_id
+              )
+          ))
+      )
+    ORDER BY guild_id ASC, channel_id ASC, target_type ASC, target_id ASC
 `

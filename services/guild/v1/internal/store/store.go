@@ -98,6 +98,7 @@ type Store interface {
 	CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error)
 	CreateDefaultRole(ctx context.Context, guildID, createdAt int64) error
 	GetGuildForMember(ctx context.Context, guildID, userID int64) (*model.Guild, error)
+	ListGuildsForMemberByIDs(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Guild, error)
 	ListUserGuilds(ctx context.Context, params ListUserGuildsParams) ([]*model.Guild, error)
 	UpdateGuild(ctx context.Context, params UpdateGuildParams) (*model.Guild, error)
 	DeleteGuild(ctx context.Context, guildID, deletedAt int64) (*model.Guild, error)
@@ -126,6 +127,7 @@ type Store interface {
 	ListGuildRoles(ctx context.Context, guildID int64) ([]*model.Role, error)
 	UpdateGuildRole(ctx context.Context, params UpdateGuildRoleParams) (*model.Role, error)
 	UpdateGuildRolePosition(ctx context.Context, guildID, roleID int64, position int32, updatedAt int64) (*model.Role, error)
+	UpdateGuildRolePositions(ctx context.Context, guildID int64, roleIDs []int64, positions []int32, updatedAt int64) ([]*model.Role, error)
 	DeleteGuildRole(ctx context.Context, guildID, roleID, deletedAt int64) (*model.Role, error)
 	AddGuildMemberRole(ctx context.Context, guildID, userID, roleID, createdAt int64) error
 	RemoveGuildMemberRole(ctx context.Context, guildID, userID, roleID int64) error
@@ -133,11 +135,15 @@ type Store interface {
 	DeleteGuildRoleAssignments(ctx context.Context, guildID, roleID int64) error
 	DeleteAllGuildRoleAssignments(ctx context.Context, guildID int64) error
 	ListGuildMemberRoles(ctx context.Context, guildID, userID int64) ([]*model.Role, error)
+	ListGuildMemberRolesByGuilds(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Role, error)
 	CreateGuildChannel(ctx context.Context, channelID, guildID int64, name string, channelType, position int32, topic string, parentID, createdAt int64) (*model.Channel, error)
 	GetGuildChannel(ctx context.Context, channelID int64) (*model.Channel, error)
+	ListGuildChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.Channel, error)
 	ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error)
+	ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error)
 	UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error)
-	UpdateGuildChannelPosition(ctx context.Context, channelID int64, position int32, updatedAt int64) (*model.Channel, error)
+	UpdateGuildChannelPosition(ctx context.Context, guildID, channelID int64, position int32, updatedAt int64) (*model.Channel, error)
+	UpdateGuildChannelPositions(ctx context.Context, guildID int64, channelIDs []int64, positions []int32, updatedAt int64) ([]*model.Channel, error)
 	DeleteGuildChannel(ctx context.Context, channelID, deletedAt int64) (*model.Channel, error)
 	DeleteGuildChannels(ctx context.Context, guildID, deletedAt int64) error
 	ClearGuildChannelParent(ctx context.Context, guildID, parentID, updatedAt int64) error
@@ -147,7 +153,9 @@ type Store interface {
 	DeleteAllGuildChannelPermissionOverwrites(ctx context.Context, guildID int64) error
 	DeleteGuildChannelPermissionOverwritesForTarget(ctx context.Context, guildID int64, targetType int32, targetID int64) error
 	ListGuildChannelPermissionOverwrites(ctx context.Context, channelID int64) ([]*model.ChannelPermissionOverwrite, error)
+	ListGuildChannelPermissionOverwritesByChannels(ctx context.Context, channelIDs []int64) ([]*model.ChannelPermissionOverwrite, error)
 	ListGuildChannelPermissionOverwritesByGuild(ctx context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error)
+	ListGuildChannelPermissionOverwritesByGuilds(ctx context.Context, guildIDs []int64, userID int64) ([]*model.ChannelPermissionOverwrite, error)
 }
 
 type SQLStore struct {

@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PresenceService_RegisterUserSession_FullMethodName  = "/presence.v1.PresenceService/RegisterUserSession"
 	PresenceService_RefreshUserSession_FullMethodName   = "/presence.v1.PresenceService/RefreshUserSession"
+	PresenceService_RefreshUserSessions_FullMethodName  = "/presence.v1.PresenceService/RefreshUserSessions"
 	PresenceService_UpdateUserPresence_FullMethodName   = "/presence.v1.PresenceService/UpdateUserPresence"
 	PresenceService_RemoveUserSession_FullMethodName    = "/presence.v1.PresenceService/RemoveUserSession"
 	PresenceService_ResolveUsersPresence_FullMethodName = "/presence.v1.PresenceService/ResolveUsersPresence"
@@ -38,6 +39,10 @@ type PresenceServiceClient interface {
 	// RefreshUserSession renews a logical Session lease and may update client
 	// state such as foreground/background.
 	RefreshUserSession(ctx context.Context, in *RefreshUserSessionRequest, opts ...grpc.CallOption) (*RefreshUserSessionResponse, error)
+	// RefreshUserSessions renews existing logical Session leases in one batch.
+	// Missing leases are returned so Session can register them through the
+	// transition-aware single-session path.
+	RefreshUserSessions(ctx context.Context, in *RefreshUserSessionsRequest, opts ...grpc.CallOption) (*RefreshUserSessionsResponse, error)
 	// UpdateUserPresence updates a websocket session's visible presence state.
 	UpdateUserPresence(ctx context.Context, in *UpdateUserPresenceRequest, opts ...grpc.CallOption) (*UpdateUserPresenceResponse, error)
 	// RemoveUserSession removes a logical Session when its resume window ends.
@@ -71,6 +76,16 @@ func (c *presenceServiceClient) RefreshUserSession(ctx context.Context, in *Refr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RefreshUserSessionResponse)
 	err := c.cc.Invoke(ctx, PresenceService_RefreshUserSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *presenceServiceClient) RefreshUserSessions(ctx context.Context, in *RefreshUserSessionsRequest, opts ...grpc.CallOption) (*RefreshUserSessionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshUserSessionsResponse)
+	err := c.cc.Invoke(ctx, PresenceService_RefreshUserSessions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +134,10 @@ type PresenceServiceServer interface {
 	// RefreshUserSession renews a logical Session lease and may update client
 	// state such as foreground/background.
 	RefreshUserSession(context.Context, *RefreshUserSessionRequest) (*RefreshUserSessionResponse, error)
+	// RefreshUserSessions renews existing logical Session leases in one batch.
+	// Missing leases are returned so Session can register them through the
+	// transition-aware single-session path.
+	RefreshUserSessions(context.Context, *RefreshUserSessionsRequest) (*RefreshUserSessionsResponse, error)
 	// UpdateUserPresence updates a websocket session's visible presence state.
 	UpdateUserPresence(context.Context, *UpdateUserPresenceRequest) (*UpdateUserPresenceResponse, error)
 	// RemoveUserSession removes a logical Session when its resume window ends.
@@ -142,6 +161,9 @@ func (UnimplementedPresenceServiceServer) RegisterUserSession(context.Context, *
 }
 func (UnimplementedPresenceServiceServer) RefreshUserSession(context.Context, *RefreshUserSessionRequest) (*RefreshUserSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshUserSession not implemented")
+}
+func (UnimplementedPresenceServiceServer) RefreshUserSessions(context.Context, *RefreshUserSessionsRequest) (*RefreshUserSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RefreshUserSessions not implemented")
 }
 func (UnimplementedPresenceServiceServer) UpdateUserPresence(context.Context, *UpdateUserPresenceRequest) (*UpdateUserPresenceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserPresence not implemented")
@@ -204,6 +226,24 @@ func _PresenceService_RefreshUserSession_Handler(srv interface{}, ctx context.Co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(PresenceServiceServer).RefreshUserSession(ctx, req.(*RefreshUserSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PresenceService_RefreshUserSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshUserSessionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PresenceServiceServer).RefreshUserSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PresenceService_RefreshUserSessions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PresenceServiceServer).RefreshUserSessions(ctx, req.(*RefreshUserSessionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -276,6 +316,10 @@ var PresenceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshUserSession",
 			Handler:    _PresenceService_RefreshUserSession_Handler,
+		},
+		{
+			MethodName: "RefreshUserSessions",
+			Handler:    _PresenceService_RefreshUserSessions_Handler,
 		},
 		{
 			MethodName: "UpdateUserPresence",

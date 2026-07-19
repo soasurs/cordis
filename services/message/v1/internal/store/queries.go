@@ -208,6 +208,13 @@ const getDmChannelQuery = `
 	LIMIT 1
 `
 
+const listDmChannelsByIDsQuery = `
+    SELECT id, user_lo, user_hi, created_at
+    FROM dm_channels
+    WHERE id = ANY($1)
+    ORDER BY id ASC
+`
+
 const getDmChannelByPairQuery = `
 	SELECT id, user_lo, user_hi, created_at
 	FROM dm_channels

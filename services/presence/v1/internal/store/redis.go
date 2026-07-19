@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -15,6 +16,16 @@ const (
 	userMutationLockGrace  = 5 * time.Second
 	userMutationLockRetry  = 25 * time.Millisecond
 )
+
+const refreshUserSessionLua = `
+local values = redis.call('HMGET', KEYS[1], 'user_id', 'gateway_id', 'generation')
+if values[1] ~= ARGV[1] or values[2] ~= ARGV[2] or values[3] ~= ARGV[3] then
+  return 0
+end
+redis.call('HSET', KEYS[1], 'last_seen_at', ARGV[4], 'expires_at', ARGV[5])
+redis.call('PEXPIRE', KEYS[1], ARGV[6])
+return 1
+`
 
 type RedisStore struct {
 	rds             *redis.Redis
@@ -74,6 +85,50 @@ func (s *RedisStore) WithUserMutation(ctx context.Context, userID int64, fn func
 
 func (s *RedisStore) UpsertUserSession(ctx context.Context, session UserSession) (UserPresence, error) {
 	return s.writeUserSession(ctx, normalizeUserSession(session))
+}
+
+func (s *RedisStore) RefreshUserSessions(ctx context.Context, sessions []UserSession) ([]string, error) {
+	if len(sessions) == 0 {
+		return nil, nil
+	}
+	results := make([]*goredis.Cmd, len(sessions))
+	now := s.now()
+	expiresAt := now.Add(s.userSessionTTL).UnixMilli()
+	if err := s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
+		for i, session := range sessions {
+			results[i] = pipe.Eval(ctx, refreshUserSessionLua, []string{userSessionKey(session.SessionID)},
+				strconv.FormatInt(session.UserID, 10), session.GatewayID, session.Generation,
+				strconv.FormatInt(now.UnixMilli(), 10), strconv.FormatInt(expiresAt, 10),
+				max(s.userSessionTTL.Milliseconds(), int64(1)))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	live := make([]UserSession, 0, len(sessions))
+	missing := make([]string, 0)
+	for i, session := range sessions {
+		refreshed, err := results[i].Int64()
+		if err != nil {
+			return nil, err
+		}
+		if refreshed != 1 {
+			missing = append(missing, session.SessionID)
+			continue
+		}
+		live = append(live, session)
+	}
+	if err := s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
+		for _, session := range live {
+			userKey := userSessionsKey(session.UserID)
+			pipe.ZAdd(ctx, userKey, redis.Z{Score: float64(expiresAt), Member: session.SessionID})
+			pipe.Expire(ctx, userKey, s.userSessionTTL+time.Minute)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return missing, nil
 }
 
 func (s *RedisStore) UpdateUserSession(ctx context.Context, session UserSession) (UserPresence, error) {

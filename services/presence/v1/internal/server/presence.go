@@ -3,6 +3,9 @@ package server
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	"github.com/soasurs/cordis/services/presence/v1/internal/store"
 )
@@ -54,6 +57,38 @@ func (s *presenceServer) RefreshUserSession(ctx context.Context, req *presencev1
 
 	resp := new(presencev1.RefreshUserSessionResponse)
 	resp.SetPresence(userPresenceToProto(presence))
+	return resp, nil
+}
+
+func (s *presenceServer) RefreshUserSessions(ctx context.Context, req *presencev1.RefreshUserSessionsRequest) (*presencev1.RefreshUserSessionsResponse, error) {
+	if len(req.GetSessions()) == 0 {
+		return new(presencev1.RefreshUserSessionsResponse), nil
+	}
+	if len(req.GetSessions()) > 500 {
+		return nil, status.Error(codes.InvalidArgument, "too many sessions")
+	}
+	sessions := make([]store.UserSession, 0, len(req.GetSessions()))
+	seen := make(map[string]struct{}, len(req.GetSessions()))
+	for _, item := range req.GetSessions() {
+		if err := validateUserSessionRequest(item.GetUserId(), item.GetSessionId(), item.GetGatewayId(), item.GetGeneration()); err != nil {
+			return nil, err
+		}
+		if _, ok := seen[item.GetSessionId()]; ok {
+			return nil, status.Error(codes.InvalidArgument, "session id must be unique")
+		}
+		seen[item.GetSessionId()] = struct{}{}
+		sessions = append(sessions, store.UserSession{
+			UserID: item.GetUserId(), SessionID: item.GetSessionId(), GatewayID: item.GetGatewayId(),
+			Generation: item.GetGeneration(), DeviceType: item.GetDeviceType(),
+			Status: protoStatusToStore(item.GetStatus()), ClientState: protoClientStateToStore(item.GetClientState()),
+		})
+	}
+	missing, err := s.svcCtx.Store.RefreshUserSessions(ctx, sessions)
+	if err != nil {
+		return nil, err
+	}
+	resp := new(presencev1.RefreshUserSessionsResponse)
+	resp.SetMissingSessionIds(missing)
 	return resp, nil
 }
 

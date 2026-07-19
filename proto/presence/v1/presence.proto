@@ -12,6 +12,11 @@ service PresenceService {
   // state such as foreground/background.
   rpc RefreshUserSession(RefreshUserSessionRequest) returns (RefreshUserSessionResponse);
 
+  // RefreshUserSessions renews existing logical Session leases in one batch.
+  // Missing leases are returned so Session can register them through the
+  // transition-aware single-session path.
+  rpc RefreshUserSessions(RefreshUserSessionsRequest) returns (RefreshUserSessionsResponse);
+
   // UpdateUserPresence updates a websocket session's visible presence state.
   rpc UpdateUserPresence(UpdateUserPresenceRequest) returns (UpdateUserPresenceResponse);
 
@@ -91,6 +96,14 @@ message RefreshUserSessionRequest {
 
 message RefreshUserSessionResponse {
   UserPresence presence = 1;
+}
+
+message RefreshUserSessionsRequest {
+  repeated RefreshUserSessionRequest sessions = 1;
+}
+
+message RefreshUserSessionsResponse {
+  repeated string missing_session_ids = 1;
 }
 
 message UpdateUserPresenceRequest {

@@ -72,8 +72,8 @@ Create and update requests allow at most 10 attachments and 100 unique mentioned
 user IDs by default. Both limits are configured by the Message service.
 
 `GetReadStates` batches channel read-state, unread-message, and unread-mention
-calculation. Channel authorization fan-out within one request uses a configured
-worker bound to avoid unbounded cross-service calls. A service-level weighted
+calculation. It resolves DM channels in one store query and authorizes the
+remaining Guild channels through one batch RPC. A service-level weighted
 semaphore charges the deduplicated channel count and bounds aggregate work on
 each Message instance. API also applies a process-local keyed semaphore per
 user and the general authenticated-user quota. These concurrency capacities are
@@ -119,7 +119,8 @@ creates or resumes logical sessions, loads Guild visibility, owns local
 user/Guild indexes, assigns sequence numbers, and keeps up to 2048 replay
 events in memory.
 
-IDENTIFY uses the paginated Guild visibility RPC to load immutable, sorted
+IDENTIFY uses the paginated Guild visibility RPC, whose store reads are batched
+per page, to load immutable, sorted
 channel snapshots with their access revisions. A snapshot set is shared by all
 of the user's logical Sessions on the node and released after the last local
 Session is removed. Loading is bounded to 100 Guilds and 500 visible channels
@@ -133,7 +134,8 @@ one sequenced `session.reconcile` hint for that invalid snapshot generation.
 Session applies Gateway checkpoint batches to advance acknowledged sequences and
 trim replay windows. Client heartbeats do not directly refresh Redis ownership
 or Presence; logical-session leases are renewed independently of WebSocket
-heartbeat traffic.
+heartbeat traffic through bounded batches, while aggregate route renewal runs
+in a separate loop.
 
 After token validation, `IDENTIFY` is limited by user ID and authenticator
 session ID. A Redis claim permits only one live logical session per authenticator

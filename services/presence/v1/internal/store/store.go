@@ -41,6 +41,7 @@ type UserPresence struct {
 type Store interface {
 	WithUserMutation(ctx context.Context, userID int64, fn func(context.Context) error) error
 	UpsertUserSession(ctx context.Context, session UserSession) (UserPresence, error)
+	RefreshUserSessions(ctx context.Context, sessions []UserSession) ([]string, error)
 	UpdateUserSession(ctx context.Context, session UserSession) (UserPresence, error)
 	RemoveUserSession(ctx context.Context, userID int64, sessionID string) error
 	ResolveUsersPresence(ctx context.Context, userIDs []int64) ([]UserPresence, error)

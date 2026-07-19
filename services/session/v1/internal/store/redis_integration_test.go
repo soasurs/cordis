@@ -29,6 +29,15 @@ func TestRedisStorePersistsOwnersAndRoutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"node-1", "generation-1", owner[2]}, owner)
 	require.NotEmpty(t, owner[2])
+	require.NoError(t, store.SetOwners(ctx, []Owner{
+		{SessionID: "session-2", NodeID: "node-1", Generation: "generation-1"},
+		{SessionID: "session-3", NodeID: "node-1", Generation: "generation-1"},
+	}, time.Minute))
+	for _, sessionID := range []string{"session-2", "session-3"} {
+		values, err := rds.HmgetCtx(ctx, ownerKey(sessionID), "node_id", "generation")
+		require.NoError(t, err)
+		require.Equal(t, []string{"node-1", "generation-1"}, values)
+	}
 
 	routes := []Route{{Kind: RouteUser, ID: 1001}, {Kind: RouteGuild, ID: 2001}}
 	require.NoError(t, store.RefreshRoutes(ctx, "node-1", "generation-1", routes, time.Minute))
@@ -91,6 +100,12 @@ func TestRedisStoreClaimsOneLogicalSessionPerAuthSession(t *testing.T) {
 	refreshed, err = store.RefreshAuthSession(ctx, 1001, "logical-1", time.Minute)
 	require.NoError(t, err)
 	require.True(t, refreshed)
+	lost, err := store.RefreshAuthSessions(ctx, []AuthSessionLease{
+		{AuthSessionID: 1001, LogicalSessionID: "logical-1"},
+		{AuthSessionID: 1002, LogicalSessionID: "logical-missing"},
+	}, time.Minute)
+	require.NoError(t, err)
+	require.Equal(t, []string{"logical-missing"}, lost)
 
 	require.NoError(t, store.DeleteAuthSession(ctx, 1001, "logical-2"))
 	exists, err := rds.ExistsCtx(ctx, authSessionKey(1001))

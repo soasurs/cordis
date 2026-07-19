@@ -348,6 +348,9 @@ func testDmChannels(t *testing.T, store Store) {
 		require.NoError(t, err)
 		require.Len(t, channels, 3)
 		require.Equal(t, []int64{9103, 9102, 9101}, dmChannelIDs(channels))
+		channels, err = store.ListDmChannelsByIDs(ctx, []int64{9101, 9103, 9999})
+		require.NoError(t, err)
+		require.Equal(t, []int64{9101, 9103}, dmChannelIDs(channels))
 	})
 
 	t.Run("list from hi perspective", func(t *testing.T) {

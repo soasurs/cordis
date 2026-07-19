@@ -376,11 +376,12 @@ func newTestMessageServerWithGuild(
 
 type fakeGuildClient struct {
 	guildv1.GuildServiceClient
-	mu                  sync.Mutex
-	allowManageMessages bool
-	denyAll             bool
-	channelType         guildv1.GuildChannelType
-	authorizeRequests   []*guildv1.AuthorizeGuildChannelRequest
+	mu                     sync.Mutex
+	allowManageMessages    bool
+	denyAll                bool
+	channelType            guildv1.GuildChannelType
+	authorizeRequests      []*guildv1.AuthorizeGuildChannelRequest
+	authorizeBatchRequests []*guildv1.AuthorizeGuildChannelsRequest
 }
 
 type boundedGuildClient struct {
@@ -417,6 +418,39 @@ func (c *boundedGuildClient) AuthorizeGuildChannel(
 	return resp, nil
 }
 
+func (c *boundedGuildClient) AuthorizeGuildChannels(
+	ctx context.Context,
+	req *guildv1.AuthorizeGuildChannelsRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.AuthorizeGuildChannelsResponse, error) {
+	inFlight := c.inFlight.Add(1)
+	defer c.inFlight.Add(-1)
+	for {
+		maximum := c.maxInFlight.Load()
+		if inFlight <= maximum || c.maxInFlight.CompareAndSwap(maximum, inFlight) {
+			break
+		}
+	}
+	c.started <- struct{}{}
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-c.release:
+	}
+	resp := new(guildv1.AuthorizeGuildChannelsResponse)
+	values := make([]*guildv1.GuildChannelAuthorization, 0, len(req.GetChannelIds()))
+	for _, channelID := range req.GetChannelIds() {
+		value := new(guildv1.GuildChannelAuthorization)
+		value.SetChannelId(channelID)
+		value.SetAllowed(true)
+		value.SetGuildId(9001)
+		value.SetChannelType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+		values = append(values, value)
+	}
+	resp.SetAuthorizations(values)
+	return resp, nil
+}
+
 func (f *fakeGuildClient) AuthorizeGuildChannel(
 	_ context.Context,
 	req *guildv1.AuthorizeGuildChannelRequest,
@@ -430,6 +464,29 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	resp.SetGuildId(9001)
 	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
 	resp.SetChannelType(f.channelType)
+	return resp, nil
+}
+
+func (f *fakeGuildClient) AuthorizeGuildChannels(
+	_ context.Context,
+	req *guildv1.AuthorizeGuildChannelsRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.AuthorizeGuildChannelsResponse, error) {
+	f.mu.Lock()
+	f.authorizeBatchRequests = append(f.authorizeBatchRequests, req)
+	f.mu.Unlock()
+	values := make([]*guildv1.GuildChannelAuthorization, 0, len(req.GetChannelIds()))
+	for _, channelID := range req.GetChannelIds() {
+		value := new(guildv1.GuildChannelAuthorization)
+		value.SetChannelId(channelID)
+		value.SetAllowed(!f.denyAll)
+		value.SetGuildId(9001)
+		value.SetPermissions(permissionViewChannel | permissionSendMessages)
+		value.SetChannelType(f.channelType)
+		values = append(values, value)
+	}
+	resp := new(guildv1.AuthorizeGuildChannelsResponse)
+	resp.SetAuthorizations(values)
 	return resp, nil
 }
 
@@ -640,6 +697,17 @@ func (s *fakeStore) ListDmChannels(_ context.Context, params store.ListDmChannel
 	return channels, nil
 }
 
+func (s *fakeStore) ListDmChannelsByIDs(_ context.Context, channelIDs []int64) ([]*model.DmChannel, error) {
+	channels := make([]*model.DmChannel, 0)
+	for _, channelID := range channelIDs {
+		if channel := s.dmChannels[channelID]; channel != nil {
+			value := *channel
+			channels = append(channels, &value)
+		}
+	}
+	return channels, nil
+}
+
 func (s *fakeStore) AckMessage(_ context.Context, userID, channelID, messageID int64) error {
 	message, ok := s.messages[messageID]
 	if !ok || message.ChannelID != channelID {
@@ -791,8 +859,9 @@ func TestGetReadStatesAuthorizesAndDeduplicatesChannels(t *testing.T) {
 	require.Equal(t, int64(20), resp.GetStates()[1].GetChannelId())
 	require.Equal(t, int32(1), resp.GetStates()[1].GetMissingMessageCount())
 	require.Equal(t, int32(1), resp.GetStates()[1].GetMentionCount())
-	require.Len(t, fakeGuild.authorizeRequests, 2)
-	require.Equal(t, permissionViewChannel, fakeGuild.authorizeRequests[0].GetPermission())
+	require.Len(t, fakeGuild.authorizeBatchRequests, 1)
+	require.Equal(t, permissionViewChannel, fakeGuild.authorizeBatchRequests[0].GetPermission())
+	require.Equal(t, []int64{10, 20}, fakeGuild.authorizeBatchRequests[0].GetChannelIds())
 	require.Equal(t, []int64{2}, limiter.weights)
 	require.Equal(t, 1, limiter.releases)
 }
@@ -808,14 +877,12 @@ func TestGetReadStatesRejectsUnauthorizedChannel(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
-func TestGetReadStatesBoundsConcurrentAuthorization(t *testing.T) {
-	const authorizationConcurrency = 3
+func TestGetReadStatesBatchesAuthorization(t *testing.T) {
 	client := &boundedGuildClient{
 		started: make(chan struct{}, maxReadStateChannels),
 		release: make(chan struct{}),
 	}
 	server := newTestMessageServerWithGuild(t, newFakeStore(), new(fakePublisher), client)
-	server.(*messageServer).svcCtx.Cfg.ReadStates.AuthorizationConcurrency = authorizationConcurrency
 	req := new(messagev1.GetReadStatesRequest)
 	req.SetUserId(1)
 	channelIDs := make([]int64, maxReadStateChannels)
@@ -829,19 +896,17 @@ func TestGetReadStatesBoundsConcurrentAuthorization(t *testing.T) {
 		_, err := server.GetReadStates(t.Context(), req)
 		done <- err
 	}()
-	for range authorizationConcurrency {
-		<-client.started
-	}
+	<-client.started
 	select {
 	case <-client.started:
-		t.Fatal("authorization exceeded worker limit")
+		t.Fatal("authorization used more than one batch")
 	default:
 	}
-	require.Equal(t, int32(authorizationConcurrency), client.maxInFlight.Load())
+	require.Equal(t, int32(1), client.maxInFlight.Load())
 
 	close(client.release)
 	require.NoError(t, <-done)
-	require.LessOrEqual(t, client.maxInFlight.Load(), int32(authorizationConcurrency))
+	require.Equal(t, int32(1), client.maxInFlight.Load())
 }
 
 func TestGetReadStatesMapsLimiterCancellation(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -58,9 +59,39 @@ func (s *SQLStore) GetGuildChannel(ctx context.Context, channelID int64) (*model
 	return channelFromRow(row), nil
 }
 
+func (s *SQLStore) ListGuildChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.Channel, error) {
+	if len(channelIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*channelRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsByIDsQuery, pq.Array(channelIDs)); err != nil {
+		return nil, err
+	}
+	channels := make([]*model.Channel, 0, len(rows))
+	for _, row := range rows {
+		channels = append(channels, channelFromRow(row))
+	}
+	return channels, nil
+}
+
 func (s *SQLStore) ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error) {
 	var rows []*channelRow
 	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsQuery, guildID); err != nil {
+		return nil, err
+	}
+	channels := make([]*model.Channel, 0, len(rows))
+	for _, row := range rows {
+		channels = append(channels, channelFromRow(row))
+	}
+	return channels, nil
+}
+
+func (s *SQLStore) ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error) {
+	if len(guildIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*channelRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsByGuildsQuery, pq.Array(guildIDs)); err != nil {
 		return nil, err
 	}
 	channels := make([]*model.Channel, 0, len(rows))
@@ -93,12 +124,27 @@ func (s *SQLStore) UpdateGuildChannel(ctx context.Context, params UpdateGuildCha
 	return channelFromRow(row), nil
 }
 
-func (s *SQLStore) UpdateGuildChannelPosition(ctx context.Context, channelID int64, position int32, updatedAt int64) (*model.Channel, error) {
+func (s *SQLStore) UpdateGuildChannelPosition(ctx context.Context, guildID, channelID int64, position int32, updatedAt int64) (*model.Channel, error) {
 	row := new(channelRow)
-	if err := sqlx.GetContext(ctx, s.q, row, updateGuildChannelPositionQuery, channelID, position, updatedAt); err != nil {
+	if err := sqlx.GetContext(ctx, s.q, row, updateGuildChannelPositionQuery, guildID, channelID, position, updatedAt); err != nil {
 		return nil, err
 	}
 	return channelFromRow(row), nil
+}
+
+func (s *SQLStore) UpdateGuildChannelPositions(ctx context.Context, guildID int64, channelIDs []int64, positions []int32, updatedAt int64) ([]*model.Channel, error) {
+	if len(channelIDs) == 0 || len(channelIDs) != len(positions) {
+		return nil, nil
+	}
+	var rows []*channelRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildChannelPositionsQuery, guildID, pq.Array(channelIDs), pq.Array(positions), updatedAt); err != nil {
+		return nil, err
+	}
+	channels := make([]*model.Channel, 0, len(rows))
+	for _, row := range rows {
+		channels = append(channels, channelFromRow(row))
+	}
+	return channels, nil
 }
 
 func (s *SQLStore) DeleteGuildChannel(ctx context.Context, channelID, deletedAt int64) (*model.Channel, error) {
@@ -166,9 +212,39 @@ func (s *SQLStore) ListGuildChannelPermissionOverwrites(ctx context.Context, cha
 	return overwrites, nil
 }
 
+func (s *SQLStore) ListGuildChannelPermissionOverwritesByChannels(ctx context.Context, channelIDs []int64) ([]*model.ChannelPermissionOverwrite, error) {
+	if len(channelIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*channelOverwriteRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByChannelsQuery, pq.Array(channelIDs)); err != nil {
+		return nil, err
+	}
+	overwrites := make([]*model.ChannelPermissionOverwrite, 0, len(rows))
+	for _, row := range rows {
+		overwrites = append(overwrites, channelOverwriteFromRow(row))
+	}
+	return overwrites, nil
+}
+
 func (s *SQLStore) ListGuildChannelPermissionOverwritesByGuild(ctx context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error) {
 	var rows []*channelOverwriteRow
 	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByGuildQuery, guildID); err != nil {
+		return nil, err
+	}
+	overwrites := make([]*model.ChannelPermissionOverwrite, 0, len(rows))
+	for _, row := range rows {
+		overwrites = append(overwrites, channelOverwriteFromRow(row))
+	}
+	return overwrites, nil
+}
+
+func (s *SQLStore) ListGuildChannelPermissionOverwritesByGuilds(ctx context.Context, guildIDs []int64, userID int64) ([]*model.ChannelPermissionOverwrite, error) {
+	if len(guildIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*channelOverwriteRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByGuildsQuery, pq.Array(guildIDs), userID); err != nil {
 		return nil, err
 	}
 	overwrites := make([]*model.ChannelPermissionOverwrite, 0, len(rows))

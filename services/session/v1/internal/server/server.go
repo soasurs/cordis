@@ -131,6 +131,7 @@ func New(svcCtx *svc.ServiceContext) *Server {
 func (s *Server) StartBackground(ctx context.Context) {
 	go s.refreshNode(ctx)
 	go s.refreshRoutes(ctx)
+	go s.refreshSessionLeaseLoop(ctx)
 	go s.cleanupDetached(ctx)
 }
 
@@ -818,6 +819,18 @@ func (s *Server) refreshRoutes(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		s.refreshAllRoutes(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func (s *Server) refreshSessionLeaseLoop(ctx context.Context) {
+	ticker := time.NewTicker(s.svcCtx.Cfg.Node.RouteRefreshInterval())
+	defer ticker.Stop()
+	for {
 		s.refreshSessionLeases(ctx)
 		select {
 		case <-ctx.Done():
@@ -834,32 +847,80 @@ func (s *Server) refreshSessionLeases(ctx context.Context) {
 		sessions = append(sessions, session)
 	}
 	s.mu.RUnlock()
+	const batchSize = 500
+	for start := 0; start < len(sessions); start += batchSize {
+		end := min(start+batchSize, len(sessions))
+		s.refreshSessionLeaseBatch(ctx, sessions[start:end])
+	}
+}
+
+func (s *Server) refreshSessionLeaseBatch(ctx context.Context, sessions []*logicalSession) {
+	leases := make([]store.AuthSessionLease, 0, len(sessions))
 	for _, session := range sessions {
-		claimed, err := s.svcCtx.Store.RefreshAuthSession(
-			ctx, session.authSessionID, session.id, s.svcCtx.Cfg.Node.NodeTTL(),
-		)
-		if err != nil && ctx.Err() == nil {
-			logx.WithContext(ctx).Errorw("refresh auth session claim",
-				logx.Field("session_id", session.id),
-				logx.Field("error", err),
-			)
-		} else if err == nil && !claimed {
+		leases = append(leases, store.AuthSessionLease{AuthSessionID: session.authSessionID, LogicalSessionID: session.id})
+	}
+	lostIDs, err := s.svcCtx.Store.RefreshAuthSessions(ctx, leases, s.svcCtx.Cfg.Node.NodeTTL())
+	if err != nil {
+		if ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("refresh auth session claims", logx.Field("count", len(sessions)), logx.Field("error", err))
+		}
+		lostIDs = nil
+	}
+	lost := make(map[string]struct{}, len(lostIDs))
+	for _, sessionID := range lostIDs {
+		lost[sessionID] = struct{}{}
+	}
+	retained := make([]*logicalSession, 0, len(sessions)-len(lost))
+	owners := make([]store.Owner, 0, len(sessions)-len(lost))
+	for _, session := range sessions {
+		if _, ok := lost[session.id]; ok {
 			s.removeSession(ctx, session)
 			continue
 		}
-		if err := s.refreshOwner(ctx, session); err != nil && ctx.Err() == nil {
-			logx.WithContext(ctx).Errorw("refresh session owner",
-				logx.Field("session_id", session.id),
-				logx.Field("error", err),
-			)
+		retained = append(retained, session)
+		owners = append(owners, store.Owner{SessionID: session.id, NodeID: s.nodeID, Generation: s.generation})
+	}
+	if err := s.svcCtx.Store.SetOwners(ctx, owners, s.svcCtx.Cfg.Node.NodeTTL()); err != nil && ctx.Err() == nil {
+		logx.WithContext(ctx).Errorw("refresh session owners", logx.Field("count", len(owners)), logx.Field("error", err))
+	}
+	req := new(presencev1.RefreshUserSessionsRequest)
+	items := make([]*presencev1.RefreshUserSessionRequest, 0, len(retained))
+	byID := make(map[string]*logicalSession, len(retained))
+	for _, session := range retained {
+		items = append(items, presenceRefreshRequest(session))
+		byID[session.id] = session
+	}
+	req.SetSessions(items)
+	resp, err := s.svcCtx.PresenceClient.RefreshUserSessions(ctx, req)
+	if err != nil {
+		if ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("refresh session presences", logx.Field("count", len(items)), logx.Field("error", err))
 		}
-		if err := s.refreshPresence(ctx, session); err != nil && ctx.Err() == nil {
-			logx.WithContext(ctx).Errorw("refresh session presence",
-				logx.Field("session_id", session.id),
-				logx.Field("error", err),
-			)
+		return
+	}
+	for _, sessionID := range resp.GetMissingSessionIds() {
+		if session := byID[sessionID]; session != nil {
+			if err := s.registerPresence(ctx, session); err != nil && ctx.Err() == nil {
+				logx.WithContext(ctx).Errorw("register missing session presence", logx.Field("session_id", sessionID), logx.Field("error", err))
+			}
 		}
 	}
+}
+
+func presenceRefreshRequest(session *logicalSession) *presencev1.RefreshUserSessionRequest {
+	session.mu.Lock()
+	statusValue, clientState := session.status, session.clientState
+	session.mu.Unlock()
+	req := new(presencev1.RefreshUserSessionRequest)
+	req.SetUserId(session.userID)
+	req.SetSessionId(session.id)
+	req.SetGatewayId(session.gatewayID)
+	req.SetGeneration(session.gatewayGeneration)
+	req.SetDeviceType(session.deviceType)
+	req.SetStatus(statusValue)
+	req.SetClientState(clientState)
+	req.SetGuildIds(presenceGuildIDs(session))
+	return req
 }
 
 func (s *Server) refreshAllRoutes(ctx context.Context) {

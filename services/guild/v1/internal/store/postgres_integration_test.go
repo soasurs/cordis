@@ -240,6 +240,9 @@ func testGuildCRUD(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 	require.Equal(t, int64(guildID), list[0].ID)
+	byIDs, err := store.ListGuildsForMemberByIDs(ctx, []int64{guildID, guildID2, 99999}, ownerID)
+	require.NoError(t, err)
+	require.Equal(t, []int64{guildID, guildID2}, idsOf(byIDs, func(g *model.Guild) int64 { return g.ID }))
 
 	dg, err := store.DeleteGuild(ctx, guildID, now)
 	require.NoError(t, err)
@@ -412,6 +415,9 @@ func testGuildRolesCRUD(t *testing.T, store Store) {
 	moved, err := store.UpdateGuildRolePosition(ctx, guildID, 10501, 15, now)
 	require.NoError(t, err)
 	require.Equal(t, int32(15), moved.Position)
+	movedRoles, err := store.UpdateGuildRolePositions(ctx, guildID, []int64{10501, 10502}, []int32{6, 7}, now)
+	require.NoError(t, err)
+	require.Len(t, movedRoles, 2)
 
 	_, err = store.UpdateGuildRolePosition(ctx, guildID, guildID, 100, now)
 	require.ErrorIs(t, err, sql.ErrNoRows)
@@ -471,6 +477,9 @@ func testGuildMemberRoles(t *testing.T, store Store) {
 	memberRoles, err = store.ListGuildMemberRoles(ctx, guildID, memberID)
 	require.NoError(t, err)
 	require.Len(t, memberRoles, 1)
+	memberRoles, err = store.ListGuildMemberRolesByGuilds(ctx, []int64{guildID}, memberID)
+	require.NoError(t, err)
+	require.Len(t, memberRoles, 1)
 
 	require.NoError(t, store.AddGuildMemberRole(ctx, guildID, ownerID, 10601, now))
 	require.NoError(t, store.DeleteAllGuildRoleAssignments(ctx, guildID))
@@ -507,6 +516,12 @@ func testGuildChannels(t *testing.T, store Store) {
 	channels, err := store.ListGuildChannels(ctx, guildID)
 	require.NoError(t, err)
 	require.Equal(t, []int64{10701, 10702, 10703}, idsOf(channels, func(c *model.Channel) int64 { return c.ID }))
+	channels, err = store.ListGuildChannelsByIDs(ctx, []int64{10703, 10701})
+	require.NoError(t, err)
+	require.Equal(t, []int64{10701, 10703}, idsOf(channels, func(c *model.Channel) int64 { return c.ID }))
+	channels, err = store.ListGuildChannelsByGuilds(ctx, []int64{guildID})
+	require.NoError(t, err)
+	require.Len(t, channels, 3)
 
 	updated, err := store.UpdateGuildChannel(ctx, UpdateGuildChannelParams{
 		ChannelID: 10702, Topic: ptr("desc"), ParentID: ptr(int64(0)), UpdatedAt: now,
@@ -516,9 +531,17 @@ func testGuildChannels(t *testing.T, store Store) {
 	require.Equal(t, int64(0), updated.ParentID)
 	require.Equal(t, int64(2), updated.Revision)
 
-	moved, err := store.UpdateGuildChannelPosition(ctx, 10702, 5, now)
+	_, err = store.UpdateGuildChannelPosition(ctx, guildID+1, 10702, 5, now)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+	moved, err := store.UpdateGuildChannelPosition(ctx, guildID, 10702, 5, now)
 	require.NoError(t, err)
 	require.Equal(t, int32(5), moved.Position)
+	movedChannels, err := store.UpdateGuildChannelPositions(ctx, guildID+1, []int64{10702, 10703}, []int32{6, 7}, now)
+	require.NoError(t, err)
+	require.Empty(t, movedChannels)
+	movedChannels, err = store.UpdateGuildChannelPositions(ctx, guildID, []int64{10702, 10703}, []int32{6, 7}, now)
+	require.NoError(t, err)
+	require.Len(t, movedChannels, 2)
 
 	deleted, err := store.DeleteGuildChannel(ctx, cat.ID, now)
 	require.NoError(t, err)
@@ -608,6 +631,12 @@ func testGuildChannelOverwrites(t *testing.T, store Store) {
 	require.Equal(t, int64(channelID), ows[1].ChannelID)
 	require.Equal(t, int64(channel2ID), ows[2].ChannelID)
 	require.Equal(t, int64(channel2ID), ows[3].ChannelID)
+	ows, err = store.ListGuildChannelPermissionOverwritesByChannels(ctx, []int64{channel2ID})
+	require.NoError(t, err)
+	require.Len(t, ows, 2)
+	ows, err = store.ListGuildChannelPermissionOverwritesByGuilds(ctx, []int64{guildID}, 20898)
+	require.NoError(t, err)
+	require.Len(t, ows, 2)
 	require.NoError(t, store.DeleteGuildChannelPermissionOverwritesForTarget(ctx, guildID, 1, 20899))
 	for _, ch := range []int64{channelID, channel2ID} {
 		ows, err = store.ListGuildChannelPermissionOverwrites(ctx, ch)

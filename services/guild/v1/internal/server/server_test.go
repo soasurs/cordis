@@ -344,6 +344,19 @@ func (s *fakeStore) GetGuildForMember(_ context.Context, guildID, userID int64) 
 	return cloneGuild(guild), nil
 }
 
+func (s *fakeStore) ListGuildsForMemberByIDs(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Guild, error) {
+	var guilds []*model.Guild
+	for _, guildID := range guildIDs {
+		guild, err := s.GetGuildForMember(ctx, guildID, userID)
+		if err == nil {
+			guilds = append(guilds, guild)
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+	}
+	return guilds, nil
+}
+
 func (s *fakeStore) ListUserGuilds(_ context.Context, params store.ListUserGuildsParams) ([]*model.Guild, error) {
 	var guilds []*model.Guild
 	for id, guild := range s.guilds {
@@ -661,6 +674,18 @@ func (s *fakeStore) UpdateGuildRolePosition(_ context.Context, guildID, roleID i
 	return cloneRole(role), nil
 }
 
+func (s *fakeStore) UpdateGuildRolePositions(ctx context.Context, guildID int64, roleIDs []int64, positions []int32, updatedAt int64) ([]*model.Role, error) {
+	roles := make([]*model.Role, 0, len(roleIDs))
+	for i, roleID := range roleIDs {
+		role, err := s.UpdateGuildRolePosition(ctx, guildID, roleID, positions[i], updatedAt)
+		if err != nil {
+			return nil, err
+		}
+		roles = append(roles, role)
+	}
+	return roles, nil
+}
+
 func (s *fakeStore) DeleteGuildRole(_ context.Context, guildID, roleID, deletedAt int64) (*model.Role, error) {
 	role := s.roles[guildID][roleID]
 	if role == nil || role.DeletedAt != 0 || role.IsDefault {
@@ -719,6 +744,18 @@ func (s *fakeStore) ListGuildMemberRoles(_ context.Context, guildID, userID int6
 	return roles, nil
 }
 
+func (s *fakeStore) ListGuildMemberRolesByGuilds(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Role, error) {
+	var roles []*model.Role
+	for _, guildID := range guildIDs {
+		values, err := s.ListGuildMemberRoles(ctx, guildID, userID)
+		if err != nil {
+			return nil, err
+		}
+		roles = append(roles, values...)
+	}
+	return roles, nil
+}
+
 func (s *fakeStore) CreateGuildChannel(
 	_ context.Context,
 	channelID, guildID int64,
@@ -744,6 +781,19 @@ func (s *fakeStore) GetGuildChannel(_ context.Context, channelID int64) (*model.
 	return cloneChannel(channel), nil
 }
 
+func (s *fakeStore) ListGuildChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.Channel, error) {
+	var channels []*model.Channel
+	for _, channelID := range channelIDs {
+		channel, err := s.GetGuildChannel(ctx, channelID)
+		if err == nil {
+			channels = append(channels, channel)
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+	}
+	return channels, nil
+}
+
 func (s *fakeStore) ListGuildChannels(_ context.Context, guildID int64) ([]*model.Channel, error) {
 	var channels []*model.Channel
 	for _, channel := range s.channels {
@@ -757,6 +807,18 @@ func (s *fakeStore) ListGuildChannels(_ context.Context, guildID int64) ([]*mode
 		}
 		return channels[i].Position < channels[j].Position
 	})
+	return channels, nil
+}
+
+func (s *fakeStore) ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error) {
+	var channels []*model.Channel
+	for _, guildID := range guildIDs {
+		values, err := s.ListGuildChannels(ctx, guildID)
+		if err != nil {
+			return nil, err
+		}
+		channels = append(channels, values...)
+	}
 	return channels, nil
 }
 
@@ -779,15 +841,27 @@ func (s *fakeStore) UpdateGuildChannel(_ context.Context, params store.UpdateGui
 	return cloneChannel(channel), nil
 }
 
-func (s *fakeStore) UpdateGuildChannelPosition(_ context.Context, channelID int64, position int32, updatedAt int64) (*model.Channel, error) {
+func (s *fakeStore) UpdateGuildChannelPosition(_ context.Context, guildID, channelID int64, position int32, updatedAt int64) (*model.Channel, error) {
 	channel := s.channels[channelID]
-	if channel == nil || channel.DeletedAt != 0 {
+	if channel == nil || channel.GuildID != guildID || channel.DeletedAt != 0 {
 		return nil, sql.ErrNoRows
 	}
 	channel.Position = position
 	channel.Revision++
 	channel.UpdatedAt = updatedAt
 	return cloneChannel(channel), nil
+}
+
+func (s *fakeStore) UpdateGuildChannelPositions(ctx context.Context, guildID int64, channelIDs []int64, positions []int32, updatedAt int64) ([]*model.Channel, error) {
+	channels := make([]*model.Channel, 0, len(channelIDs))
+	for i, channelID := range channelIDs {
+		channel, err := s.UpdateGuildChannelPosition(ctx, guildID, channelID, positions[i], updatedAt)
+		if err != nil {
+			return nil, err
+		}
+		channels = append(channels, channel)
+	}
+	return channels, nil
 }
 
 func (s *fakeStore) DeleteGuildChannel(_ context.Context, channelID, deletedAt int64) (*model.Channel, error) {
@@ -882,6 +956,18 @@ func (s *fakeStore) ListGuildChannelPermissionOverwrites(_ context.Context, chan
 	return values, nil
 }
 
+func (s *fakeStore) ListGuildChannelPermissionOverwritesByChannels(ctx context.Context, channelIDs []int64) ([]*model.ChannelPermissionOverwrite, error) {
+	var overwrites []*model.ChannelPermissionOverwrite
+	for _, channelID := range channelIDs {
+		values, err := s.ListGuildChannelPermissionOverwrites(ctx, channelID)
+		if err != nil {
+			return nil, err
+		}
+		overwrites = append(overwrites, values...)
+	}
+	return overwrites, nil
+}
+
 func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuild(_ context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error) {
 	s.listOverwritesByGuildCalls++
 	var values []*model.ChannelPermissionOverwrite
@@ -903,6 +989,18 @@ func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuild(_ context.Contex
 		return values[i].TargetID < values[j].TargetID
 	})
 	return values, nil
+}
+
+func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuilds(ctx context.Context, guildIDs []int64, _ int64) ([]*model.ChannelPermissionOverwrite, error) {
+	var overwrites []*model.ChannelPermissionOverwrite
+	for _, guildID := range guildIDs {
+		values, err := s.ListGuildChannelPermissionOverwritesByGuild(ctx, guildID)
+		if err != nil {
+			return nil, err
+		}
+		overwrites = append(overwrites, values...)
+	}
+	return overwrites, nil
 }
 
 func testGuild(id, ownerID int64) *model.Guild {

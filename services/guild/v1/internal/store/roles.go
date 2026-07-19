@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -97,6 +98,21 @@ func (s *SQLStore) UpdateGuildRolePosition(
 	return roleFromRow(row), nil
 }
 
+func (s *SQLStore) UpdateGuildRolePositions(ctx context.Context, guildID int64, roleIDs []int64, positions []int32, updatedAt int64) ([]*model.Role, error) {
+	if len(roleIDs) == 0 || len(roleIDs) != len(positions) {
+		return nil, nil
+	}
+	var rows []*roleRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildRolePositionsQuery, guildID, pq.Array(roleIDs), pq.Array(positions), updatedAt); err != nil {
+		return nil, err
+	}
+	roles := make([]*model.Role, 0, len(rows))
+	for _, row := range rows {
+		roles = append(roles, roleFromRow(row))
+	}
+	return roles, nil
+}
+
 func (s *SQLStore) DeleteGuildRole(ctx context.Context, guildID, roleID, deletedAt int64) (*model.Role, error) {
 	row := new(roleRow)
 	if err := sqlx.GetContext(ctx, s.q, row, deleteGuildRoleQuery, guildID, roleID, deletedAt); err != nil {
@@ -133,6 +149,21 @@ func (s *SQLStore) DeleteAllGuildRoleAssignments(ctx context.Context, guildID in
 func (s *SQLStore) ListGuildMemberRoles(ctx context.Context, guildID, userID int64) ([]*model.Role, error) {
 	var rows []*roleRow
 	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberRolesQuery, guildID, userID); err != nil {
+		return nil, err
+	}
+	roles := make([]*model.Role, 0, len(rows))
+	for _, row := range rows {
+		roles = append(roles, roleFromRow(row))
+	}
+	return roles, nil
+}
+
+func (s *SQLStore) ListGuildMemberRolesByGuilds(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Role, error) {
+	if len(guildIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*roleRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberRolesByGuildsQuery, pq.Array(guildIDs), userID); err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))

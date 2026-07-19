@@ -52,6 +52,7 @@ type Store interface {
 	ListMentionUserIDs(ctx context.Context, messageID int64) ([]int64, error)
 	CreateDmChannel(ctx context.Context, channel *model.DmChannel) error
 	GetDmChannel(ctx context.Context, channelID int64) (*model.DmChannel, error)
+	ListDmChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.DmChannel, error)
 	GetDmChannelByPair(ctx context.Context, userLo, userHi int64) (*model.DmChannel, error)
 	ListDmChannels(ctx context.Context, params ListDmChannelsParams) ([]*model.DmChannel, error)
 	AckMessage(ctx context.Context, userID, channelID, messageID int64) error

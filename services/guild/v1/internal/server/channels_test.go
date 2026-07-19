@@ -73,6 +73,25 @@ func TestCreateAndAuthorizeGuildChannel(t *testing.T) {
 	require.True(t, authResp.GetAllowed())
 }
 
+func TestAuthorizeGuildChannelsBatchesPermissionInputs(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[101] = &model.Channel{ID: 101, GuildID: 10, Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)}
+	fakeStore.channels[102] = &model.Channel{ID: 102, GuildID: 10, Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE)}
+	server := newTestGuildServer(t, fakeStore, nil)
+	req := new(guildv1.AuthorizeGuildChannelsRequest)
+	req.SetUserId(1002)
+	req.SetChannelIds([]int64{102, 101})
+	req.SetPermission(PermissionViewChannel)
+
+	resp, err := server.AuthorizeGuildChannels(t.Context(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.GetAuthorizations(), 2)
+	require.Equal(t, int64(102), resp.GetAuthorizations()[0].GetChannelId())
+	require.True(t, resp.GetAuthorizations()[0].GetAllowed())
+	require.Equal(t, guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE, resp.GetAuthorizations()[0].GetChannelType())
+	require.Equal(t, int64(101), resp.GetAuthorizations()[1].GetChannelId())
+}
+
 func TestCategoryAndVoiceChannelMetadata(t *testing.T) {
 	fakeStore := roleTestStore()
 	server := newTestGuildServer(t, fakeStore, nil)

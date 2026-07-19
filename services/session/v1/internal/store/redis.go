@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
@@ -61,22 +62,58 @@ func (s *RedisStore) RefreshAuthSession(
 	return result == 1, nil
 }
 
+func (s *RedisStore) RefreshAuthSessions(ctx context.Context, leases []AuthSessionLease, ttl time.Duration) ([]string, error) {
+	if len(leases) == 0 {
+		return nil, nil
+	}
+	results := make([]*goredis.Cmd, len(leases))
+	if err := s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
+		for i, lease := range leases {
+			results[i] = pipe.Eval(ctx, refreshAuthSessionLua, []string{authSessionKey(lease.AuthSessionID)},
+				lease.LogicalSessionID, max(ttl.Milliseconds(), int64(1)))
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	lost := make([]string, 0)
+	for i, result := range results {
+		value, err := result.Int64()
+		if err != nil {
+			return nil, err
+		}
+		if value != 1 {
+			lost = append(lost, leases[i].LogicalSessionID)
+		}
+	}
+	return lost, nil
+}
+
 func (s *RedisStore) DeleteAuthSession(ctx context.Context, authSessionID int64, logicalSessionID string) error {
 	_, err := s.rds.ScriptRunCtx(ctx, deleteAuthSessionScript, []string{authSessionKey(authSessionID)}, logicalSessionID)
 	return err
 }
 
 func (s *RedisStore) SetOwner(ctx context.Context, owner Owner, ttl time.Duration) error {
+	return s.SetOwners(ctx, []Owner{owner}, ttl)
+}
+
+func (s *RedisStore) SetOwners(ctx context.Context, owners []Owner, ttl time.Duration) error {
+	if len(owners) == 0 {
+		return nil
+	}
 	now := s.now()
-	owner.ExpiresAt = now.Add(ttl).UnixMilli()
-	key := ownerKey(owner.SessionID)
 	return s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
-		pipe.HSet(ctx, key, map[string]any{
-			"node_id":    owner.NodeID,
-			"generation": owner.Generation,
-			"expires_at": strconv.FormatInt(owner.ExpiresAt, 10),
-		})
-		pipe.Expire(ctx, key, ttl)
+		for _, owner := range owners {
+			owner.ExpiresAt = now.Add(ttl).UnixMilli()
+			key := ownerKey(owner.SessionID)
+			pipe.HSet(ctx, key, map[string]any{
+				"node_id":    owner.NodeID,
+				"generation": owner.Generation,
+				"expires_at": strconv.FormatInt(owner.ExpiresAt, 10),
+			})
+			pipe.Expire(ctx, key, ttl)
+		}
 		return nil
 	})
 }

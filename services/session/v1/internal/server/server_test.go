@@ -197,6 +197,25 @@ func TestReplayWindowKeepsLatestEvents(t *testing.T) {
 	require.Equal(t, uint64(3), session.replay[0].sequence)
 }
 
+func TestRefreshSessionLeasesBatchesStoreAndPresence(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+	fakeStore := server.svcCtx.Store.(*fakeStore)
+	presence := new(batchPresence)
+	server.svcCtx.PresenceClient = presence
+
+	server.refreshSessionLeases(t.Context())
+
+	require.Equal(t, []store.AuthSessionLease{{AuthSessionID: session.authSessionID, LogicalSessionID: session.id}}, fakeStore.batchLeases)
+	require.Equal(t, []store.Owner{{SessionID: session.id, NodeID: server.nodeID, Generation: server.generation}}, fakeStore.batchOwners)
+	require.Len(t, presence.requests, 1)
+	require.Len(t, presence.requests[0].GetSessions(), 1)
+	require.Equal(t, session.id, presence.requests[0].GetSessions()[0].GetSessionId())
+}
+
 func TestResumeExpandsBindingQueueForReplay(t *testing.T) {
 	server := newTestServer()
 	server.svcCtx.Cfg.Node.BindingQueueSize = 1
@@ -262,9 +281,12 @@ func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 }
 
 type fakeStore struct {
-	refreshed   []store.Route
-	detached    []store.Route
-	rejectClaim bool
+	refreshed      []store.Route
+	detached       []store.Route
+	rejectClaim    bool
+	batchLeases    []store.AuthSessionLease
+	batchOwners    []store.Owner
+	lostSessionIDs []string
 }
 
 func (s *fakeStore) ClaimAuthSession(context.Context, int64, string, time.Duration) (bool, error) {
@@ -276,9 +298,17 @@ func (s *fakeStore) ClaimAuthSession(context.Context, int64, string, time.Durati
 func (*fakeStore) RefreshAuthSession(context.Context, int64, string, time.Duration) (bool, error) {
 	return true, nil
 }
+func (s *fakeStore) RefreshAuthSessions(_ context.Context, leases []store.AuthSessionLease, _ time.Duration) ([]string, error) {
+	s.batchLeases = append([]store.AuthSessionLease(nil), leases...)
+	return append([]string(nil), s.lostSessionIDs...), nil
+}
 func (*fakeStore) DeleteAuthSession(context.Context, int64, string) error     { return nil }
 func (*fakeStore) SetOwner(context.Context, store.Owner, time.Duration) error { return nil }
-func (*fakeStore) DeleteOwner(context.Context, string, string, string) error  { return nil }
+func (s *fakeStore) SetOwners(_ context.Context, owners []store.Owner, _ time.Duration) error {
+	s.batchOwners = append([]store.Owner(nil), owners...)
+	return nil
+}
+func (*fakeStore) DeleteOwner(context.Context, string, string, string) error { return nil }
 func (s *fakeStore) RefreshRoutes(_ context.Context, _, _ string, routes []store.Route, _ time.Duration) error {
 	s.refreshed = append([]store.Route(nil), routes...)
 	return nil
@@ -372,6 +402,20 @@ type recordingPresence struct {
 	updates []*presencev1.UpdateUserPresenceRequest
 }
 
+type batchPresence struct {
+	fakePresence
+	requests []*presencev1.RefreshUserSessionsRequest
+}
+
+func (p *batchPresence) RefreshUserSessions(
+	_ context.Context,
+	req *presencev1.RefreshUserSessionsRequest,
+	_ ...grpc.CallOption,
+) (*presencev1.RefreshUserSessionsResponse, error) {
+	p.requests = append(p.requests, req)
+	return new(presencev1.RefreshUserSessionsResponse), nil
+}
+
 func (p *recordingPresence) UpdateUserPresence(
 	_ context.Context,
 	req *presencev1.UpdateUserPresenceRequest,
@@ -395,6 +439,14 @@ func (fakePresence) RefreshUserSession(
 	...grpc.CallOption,
 ) (*presencev1.RefreshUserSessionResponse, error) {
 	return new(presencev1.RefreshUserSessionResponse), nil
+}
+
+func (fakePresence) RefreshUserSessions(
+	context.Context,
+	*presencev1.RefreshUserSessionsRequest,
+	...grpc.CallOption,
+) (*presencev1.RefreshUserSessionsResponse, error) {
+	return new(presencev1.RefreshUserSessionsResponse), nil
 }
 
 func (fakePresence) UpdateUserPresence(

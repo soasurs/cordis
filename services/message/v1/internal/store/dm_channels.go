@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -47,6 +48,21 @@ func (s *SQLStore) GetDmChannel(ctx context.Context, channelID int64) (*model.Dm
 		return nil, err
 	}
 	return dmChannelFromRow(row), nil
+}
+
+func (s *SQLStore) ListDmChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.DmChannel, error) {
+	if len(channelIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*dmChannelRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listDmChannelsByIDsQuery, pq.Array(channelIDs)); err != nil {
+		return nil, err
+	}
+	channels := make([]*model.DmChannel, 0, len(rows))
+	for _, row := range rows {
+		channels = append(channels, dmChannelFromRow(row))
+	}
+	return channels, nil
 }
 
 func (s *SQLStore) GetDmChannelByPair(ctx context.Context, userLo, userHi int64) (*model.DmChannel, error) {

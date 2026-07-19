@@ -42,6 +42,27 @@ func TestRegisterUserSession(t *testing.T) {
 	}, fake.upsertedSession)
 }
 
+func TestRefreshUserSessions(t *testing.T) {
+	server, fake := newTestServer()
+	fake.missingSessionIDs = []string{"sess-b"}
+	req := new(presencev1.RefreshUserSessionsRequest)
+	items := make([]*presencev1.RefreshUserSessionRequest, 0, 2)
+	for _, sessionID := range []string{"sess-a", "sess-b"} {
+		item := new(presencev1.RefreshUserSessionRequest)
+		item.SetUserId(1001)
+		item.SetSessionId(sessionID)
+		item.SetGatewayId("gw-a")
+		item.SetGeneration("gen-1")
+		items = append(items, item)
+	}
+	req.SetSessions(items)
+
+	resp, err := server.RefreshUserSessions(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []string{"sess-b"}, resp.GetMissingSessionIds())
+	require.Len(t, fake.refreshedSessions, 2)
+}
+
 func TestRegisterUserSessionValidation(t *testing.T) {
 	server, _ := newTestServer()
 
@@ -148,7 +169,9 @@ type fakeStore struct {
 	presences        []store.UserPresence
 	// presenceSequence, when non-empty, feeds successive ResolveUsersPresence
 	// calls before falling back to presences.
-	presenceSequence [][]store.UserPresence
+	presenceSequence  [][]store.UserPresence
+	missingSessionIDs []string
+	refreshedSessions []store.UserSession
 }
 
 func (s *fakeStore) WithUserMutation(ctx context.Context, _ int64, fn func(context.Context) error) error {
@@ -169,6 +192,14 @@ func (s *fakeStore) UpsertUserSession(_ context.Context, session store.UserSessi
 			session,
 		},
 	}, nil
+}
+
+func (s *fakeStore) RefreshUserSessions(_ context.Context, sessions []store.UserSession) ([]string, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	s.refreshedSessions = append([]store.UserSession(nil), sessions...)
+	return append([]string(nil), s.missingSessionIDs...), nil
 }
 
 func (s *fakeStore) UpdateUserSession(_ context.Context, session store.UserSession) (store.UserPresence, error) {

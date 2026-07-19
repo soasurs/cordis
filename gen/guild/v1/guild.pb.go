@@ -11746,6 +11746,381 @@ func (b0 AuthorizeGuildChannelResponse_builder) Build() *AuthorizeGuildChannelRe
 	return m0
 }
 
+type AuthorizeGuildChannelsRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_ChannelIds  []int64                `protobuf:"varint,2,rep,packed,name=channel_ids,json=channelIds"`
+	xxx_hidden_Permission  uint64                 `protobuf:"varint,3,opt,name=permission"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AuthorizeGuildChannelsRequest) Reset() {
+	*x = AuthorizeGuildChannelsRequest{}
+	mi := &file_guild_v1_guild_proto_msgTypes[95]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizeGuildChannelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizeGuildChannelsRequest) ProtoMessage() {}
+
+func (x *AuthorizeGuildChannelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_guild_v1_guild_proto_msgTypes[95]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AuthorizeGuildChannelsRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *AuthorizeGuildChannelsRequest) GetChannelIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelIds
+	}
+	return nil
+}
+
+func (x *AuthorizeGuildChannelsRequest) GetPermission() uint64 {
+	if x != nil {
+		return x.xxx_hidden_Permission
+	}
+	return 0
+}
+
+func (x *AuthorizeGuildChannelsRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *AuthorizeGuildChannelsRequest) SetChannelIds(v []int64) {
+	x.xxx_hidden_ChannelIds = v
+}
+
+func (x *AuthorizeGuildChannelsRequest) SetPermission(v uint64) {
+	x.xxx_hidden_Permission = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *AuthorizeGuildChannelsRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AuthorizeGuildChannelsRequest) HasPermission() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AuthorizeGuildChannelsRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *AuthorizeGuildChannelsRequest) ClearPermission() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Permission = 0
+}
+
+type AuthorizeGuildChannelsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId     *int64
+	ChannelIds []int64
+	Permission *uint64
+}
+
+func (b0 AuthorizeGuildChannelsRequest_builder) Build() *AuthorizeGuildChannelsRequest {
+	m0 := &AuthorizeGuildChannelsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	x.xxx_hidden_ChannelIds = b.ChannelIds
+	if b.Permission != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Permission = *b.Permission
+	}
+	return m0
+}
+
+type GuildChannelAuthorization struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Permissions uint64                 `protobuf:"varint,3,opt,name=permissions"`
+	xxx_hidden_Allowed     bool                   `protobuf:"varint,4,opt,name=allowed"`
+	xxx_hidden_ChannelType GuildChannelType       `protobuf:"varint,5,opt,name=channel_type,json=channelType,enum=guild.v1.GuildChannelType"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *GuildChannelAuthorization) Reset() {
+	*x = GuildChannelAuthorization{}
+	mi := &file_guild_v1_guild_proto_msgTypes[96]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GuildChannelAuthorization) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GuildChannelAuthorization) ProtoMessage() {}
+
+func (x *GuildChannelAuthorization) ProtoReflect() protoreflect.Message {
+	mi := &file_guild_v1_guild_proto_msgTypes[96]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GuildChannelAuthorization) GetChannelId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelId
+	}
+	return 0
+}
+
+func (x *GuildChannelAuthorization) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
+func (x *GuildChannelAuthorization) GetPermissions() uint64 {
+	if x != nil {
+		return x.xxx_hidden_Permissions
+	}
+	return 0
+}
+
+func (x *GuildChannelAuthorization) GetAllowed() bool {
+	if x != nil {
+		return x.xxx_hidden_Allowed
+	}
+	return false
+}
+
+func (x *GuildChannelAuthorization) GetChannelType() GuildChannelType {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
+			return x.xxx_hidden_ChannelType
+		}
+	}
+	return GuildChannelType_GUILD_CHANNEL_TYPE_UNSPECIFIED
+}
+
+func (x *GuildChannelAuthorization) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *GuildChannelAuthorization) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *GuildChannelAuthorization) SetPermissions(v uint64) {
+	x.xxx_hidden_Permissions = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *GuildChannelAuthorization) SetAllowed(v bool) {
+	x.xxx_hidden_Allowed = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *GuildChannelAuthorization) SetChannelType(v GuildChannelType) {
+	x.xxx_hidden_ChannelType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *GuildChannelAuthorization) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildChannelAuthorization) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildChannelAuthorization) HasPermissions() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildChannelAuthorization) HasAllowed() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildChannelAuthorization) HasChannelType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildChannelAuthorization) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *GuildChannelAuthorization) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildChannelAuthorization) ClearPermissions() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Permissions = 0
+}
+
+func (x *GuildChannelAuthorization) ClearAllowed() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Allowed = false
+}
+
+func (x *GuildChannelAuthorization) ClearChannelType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_ChannelType = GuildChannelType_GUILD_CHANNEL_TYPE_UNSPECIFIED
+}
+
+type GuildChannelAuthorization_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId   *int64
+	GuildId     *int64
+	Permissions *uint64
+	Allowed     *bool
+	ChannelType *GuildChannelType
+}
+
+func (b0 GuildChannelAuthorization_builder) Build() *GuildChannelAuthorization {
+	m0 := &GuildChannelAuthorization{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.Permissions != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_Permissions = *b.Permissions
+	}
+	if b.Allowed != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_Allowed = *b.Allowed
+	}
+	if b.ChannelType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_ChannelType = *b.ChannelType
+	}
+	return m0
+}
+
+type AuthorizeGuildChannelsResponse struct {
+	state                     protoimpl.MessageState        `protogen:"opaque.v1"`
+	xxx_hidden_Authorizations *[]*GuildChannelAuthorization `protobuf:"bytes,1,rep,name=authorizations"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *AuthorizeGuildChannelsResponse) Reset() {
+	*x = AuthorizeGuildChannelsResponse{}
+	mi := &file_guild_v1_guild_proto_msgTypes[97]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthorizeGuildChannelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthorizeGuildChannelsResponse) ProtoMessage() {}
+
+func (x *AuthorizeGuildChannelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_guild_v1_guild_proto_msgTypes[97]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AuthorizeGuildChannelsResponse) GetAuthorizations() []*GuildChannelAuthorization {
+	if x != nil {
+		if x.xxx_hidden_Authorizations != nil {
+			return *x.xxx_hidden_Authorizations
+		}
+	}
+	return nil
+}
+
+func (x *AuthorizeGuildChannelsResponse) SetAuthorizations(v []*GuildChannelAuthorization) {
+	x.xxx_hidden_Authorizations = &v
+}
+
+type AuthorizeGuildChannelsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Authorizations []*GuildChannelAuthorization
+}
+
+func (b0 AuthorizeGuildChannelsResponse_builder) Build() *AuthorizeGuildChannelsResponse {
+	m0 := &AuthorizeGuildChannelsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Authorizations = &b.Authorizations
+	return m0
+}
+
 var File_guild_v1_guild_proto protoreflect.FileDescriptor
 
 const file_guild_v1_guild_proto_rawDesc = "" +
@@ -12131,7 +12506,23 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x19\n" +
 	"\bguild_id\x18\x02 \x01(\x03R\aguildId\x12 \n" +
 	"\vpermissions\x18\x03 \x01(\x04R\vpermissions\x12=\n" +
-	"\fchannel_type\x18\x04 \x01(\x0e2\x1a.guild.v1.GuildChannelTypeR\vchannelType*\xc2\x03\n" +
+	"\fchannel_type\x18\x04 \x01(\x0e2\x1a.guild.v1.GuildChannelTypeR\vchannelType\"y\n" +
+	"\x1dAuthorizeGuildChannelsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1f\n" +
+	"\vchannel_ids\x18\x02 \x03(\x03R\n" +
+	"channelIds\x12\x1e\n" +
+	"\n" +
+	"permission\x18\x03 \x01(\x04R\n" +
+	"permission\"\xd0\x01\n" +
+	"\x19GuildChannelAuthorization\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x19\n" +
+	"\bguild_id\x18\x02 \x01(\x03R\aguildId\x12 \n" +
+	"\vpermissions\x18\x03 \x01(\x04R\vpermissions\x12\x18\n" +
+	"\aallowed\x18\x04 \x01(\bR\aallowed\x12=\n" +
+	"\fchannel_type\x18\x05 \x01(\x0e2\x1a.guild.v1.GuildChannelTypeR\vchannelType\"m\n" +
+	"\x1eAuthorizeGuildChannelsResponse\x12K\n" +
+	"\x0eauthorizations\x18\x01 \x03(\v2#.guild.v1.GuildChannelAuthorizationR\x0eauthorizations*\xc2\x03\n" +
 	"\x0fGuildPermission\x12 \n" +
 	"\x1cGUILD_PERMISSION_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eGUILD_PERMISSION_ADMINISTRATOR\x10\x01\x12!\n" +
@@ -12153,7 +12544,7 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x1cGuildPermissionOverwriteType\x12/\n" +
 	"+GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$GUILD_PERMISSION_OVERWRITE_TYPE_ROLE\x10\x01\x12*\n" +
-	"&GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER\x10\x022\x80 \n" +
+	"&GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER\x10\x022\xed \n" +
 	"\fGuildService\x12J\n" +
 	"\vCreateGuild\x12\x1c.guild.v1.CreateGuildRequest\x1a\x1d.guild.v1.CreateGuildResponse\x12A\n" +
 	"\bGetGuild\x12\x19.guild.v1.GetGuildRequest\x1a\x1a.guild.v1.GetGuildResponse\x12S\n" +
@@ -12197,12 +12588,13 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"%UpsertGuildChannelPermissionOverwrite\x126.guild.v1.UpsertGuildChannelPermissionOverwriteRequest\x1a7.guild.v1.UpsertGuildChannelPermissionOverwriteResponse\x12\x98\x01\n" +
 	"%DeleteGuildChannelPermissionOverwrite\x126.guild.v1.DeleteGuildChannelPermissionOverwriteRequest\x1a7.guild.v1.DeleteGuildChannelPermissionOverwriteResponse\x12\x95\x01\n" +
 	"$ListGuildChannelPermissionOverwrites\x125.guild.v1.ListGuildChannelPermissionOverwritesRequest\x1a6.guild.v1.ListGuildChannelPermissionOverwritesResponse\x12h\n" +
-	"\x15AuthorizeGuildChannel\x12&.guild.v1.AuthorizeGuildChannelRequest\x1a'.guild.v1.AuthorizeGuildChannelResponseB\x8b\x01\n" +
+	"\x15AuthorizeGuildChannel\x12&.guild.v1.AuthorizeGuildChannelRequest\x1a'.guild.v1.AuthorizeGuildChannelResponse\x12k\n" +
+	"\x16AuthorizeGuildChannels\x12'.guild.v1.AuthorizeGuildChannelsRequest\x1a(.guild.v1.AuthorizeGuildChannelsResponseB\x8b\x01\n" +
 	"\fcom.guild.v1B\n" +
 	"GuildProtoP\x01Z.github.com/soasurs/cordis/gen/guild/v1;guildv1\xa2\x02\x03GXX\xaa\x02\bGuild.V1\xca\x02\bGuild\\V1\xe2\x02\x14Guild\\V1\\GPBMetadata\xea\x02\tGuild::V1b\beditionsp\xe8\a"
 
 var file_guild_v1_guild_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_guild_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 95)
+var file_guild_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 98)
 var file_guild_v1_guild_proto_goTypes = []any{
 	(GuildPermission)(0),                                  // 0: guild.v1.GuildPermission
 	(GuildChannelType)(0),                                 // 1: guild.v1.GuildChannelType
@@ -12302,136 +12694,143 @@ var file_guild_v1_guild_proto_goTypes = []any{
 	(*ListGuildChannelPermissionOverwritesResponse)(nil),  // 95: guild.v1.ListGuildChannelPermissionOverwritesResponse
 	(*AuthorizeGuildChannelRequest)(nil),                  // 96: guild.v1.AuthorizeGuildChannelRequest
 	(*AuthorizeGuildChannelResponse)(nil),                 // 97: guild.v1.AuthorizeGuildChannelResponse
+	(*AuthorizeGuildChannelsRequest)(nil),                 // 98: guild.v1.AuthorizeGuildChannelsRequest
+	(*GuildChannelAuthorization)(nil),                     // 99: guild.v1.GuildChannelAuthorization
+	(*AuthorizeGuildChannelsResponse)(nil),                // 100: guild.v1.AuthorizeGuildChannelsResponse
 }
 var file_guild_v1_guild_proto_depIdxs = []int32{
-	1,  // 0: guild.v1.GuildChannel.type:type_name -> guild.v1.GuildChannelType
-	2,  // 1: guild.v1.GuildChannelPermissionOverwrite.target_type:type_name -> guild.v1.GuildPermissionOverwriteType
-	3,  // 2: guild.v1.CreateGuildResponse.guild:type_name -> guild.v1.Guild
-	3,  // 3: guild.v1.GetGuildResponse.guild:type_name -> guild.v1.Guild
-	3,  // 4: guild.v1.ListUserGuildsResponse.guilds:type_name -> guild.v1.Guild
-	15, // 5: guild.v1.ListUserGuildChannelVisibilitiesResponse.visibilities:type_name -> guild.v1.GuildChannelVisibility
-	15, // 6: guild.v1.GetUserGuildChannelVisibilityResponse.visibility:type_name -> guild.v1.GuildChannelVisibility
-	3,  // 7: guild.v1.UpdateGuildResponse.guild:type_name -> guild.v1.Guild
-	4,  // 8: guild.v1.AddGuildMemberResponse.member:type_name -> guild.v1.GuildMember
-	4,  // 9: guild.v1.GetGuildMemberResponse.member:type_name -> guild.v1.GuildMember
-	4,  // 10: guild.v1.ListGuildMembersResponse.members:type_name -> guild.v1.GuildMember
-	4,  // 11: guild.v1.UpdateGuildMemberResponse.member:type_name -> guild.v1.GuildMember
-	5,  // 12: guild.v1.BanGuildMemberResponse.ban:type_name -> guild.v1.GuildBan
-	5,  // 13: guild.v1.ListGuildBansResponse.bans:type_name -> guild.v1.GuildBan
-	3,  // 14: guild.v1.TransferGuildOwnershipResponse.guild:type_name -> guild.v1.Guild
-	44, // 15: guild.v1.CreateGuildInviteResponse.invite:type_name -> guild.v1.GuildInvite
-	45, // 16: guild.v1.GetGuildInviteResponse.preview:type_name -> guild.v1.GuildInvitePreview
-	44, // 17: guild.v1.ListGuildInvitesResponse.invites:type_name -> guild.v1.GuildInvite
-	3,  // 18: guild.v1.JoinGuildByInviteResponse.guild:type_name -> guild.v1.Guild
-	4,  // 19: guild.v1.JoinGuildByInviteResponse.member:type_name -> guild.v1.GuildMember
-	6,  // 20: guild.v1.CreateGuildRoleResponse.role:type_name -> guild.v1.GuildRole
-	6,  // 21: guild.v1.GetGuildRoleResponse.role:type_name -> guild.v1.GuildRole
-	6,  // 22: guild.v1.ListGuildRolesResponse.roles:type_name -> guild.v1.GuildRole
-	6,  // 23: guild.v1.UpdateGuildRoleResponse.role:type_name -> guild.v1.GuildRole
-	66, // 24: guild.v1.ReorderGuildRolesRequest.positions:type_name -> guild.v1.GuildRolePosition
-	6,  // 25: guild.v1.ReorderGuildRolesResponse.roles:type_name -> guild.v1.GuildRole
-	6,  // 26: guild.v1.ListGuildMemberRolesResponse.roles:type_name -> guild.v1.GuildRole
-	1,  // 27: guild.v1.CreateGuildChannelRequest.type:type_name -> guild.v1.GuildChannelType
-	7,  // 28: guild.v1.CreateGuildChannelResponse.channel:type_name -> guild.v1.GuildChannel
-	7,  // 29: guild.v1.GetGuildChannelResponse.channel:type_name -> guild.v1.GuildChannel
-	7,  // 30: guild.v1.ListGuildChannelsResponse.channels:type_name -> guild.v1.GuildChannel
-	7,  // 31: guild.v1.UpdateGuildChannelResponse.channel:type_name -> guild.v1.GuildChannel
-	87, // 32: guild.v1.ReorderGuildChannelsRequest.positions:type_name -> guild.v1.GuildChannelPosition
-	7,  // 33: guild.v1.ReorderGuildChannelsResponse.channels:type_name -> guild.v1.GuildChannel
-	2,  // 34: guild.v1.UpsertGuildChannelPermissionOverwriteRequest.target_type:type_name -> guild.v1.GuildPermissionOverwriteType
-	8,  // 35: guild.v1.UpsertGuildChannelPermissionOverwriteResponse.overwrite:type_name -> guild.v1.GuildChannelPermissionOverwrite
-	2,  // 36: guild.v1.DeleteGuildChannelPermissionOverwriteRequest.target_type:type_name -> guild.v1.GuildPermissionOverwriteType
-	8,  // 37: guild.v1.ListGuildChannelPermissionOverwritesResponse.overwrites:type_name -> guild.v1.GuildChannelPermissionOverwrite
-	1,  // 38: guild.v1.AuthorizeGuildChannelResponse.channel_type:type_name -> guild.v1.GuildChannelType
-	9,  // 39: guild.v1.GuildService.CreateGuild:input_type -> guild.v1.CreateGuildRequest
-	11, // 40: guild.v1.GuildService.GetGuild:input_type -> guild.v1.GetGuildRequest
-	13, // 41: guild.v1.GuildService.ListUserGuilds:input_type -> guild.v1.ListUserGuildsRequest
-	16, // 42: guild.v1.GuildService.ListUserGuildChannelVisibilities:input_type -> guild.v1.ListUserGuildChannelVisibilitiesRequest
-	18, // 43: guild.v1.GuildService.GetUserGuildChannelVisibility:input_type -> guild.v1.GetUserGuildChannelVisibilityRequest
-	20, // 44: guild.v1.GuildService.UpdateGuild:input_type -> guild.v1.UpdateGuildRequest
-	22, // 45: guild.v1.GuildService.DeleteGuild:input_type -> guild.v1.DeleteGuildRequest
-	24, // 46: guild.v1.GuildService.AddGuildMember:input_type -> guild.v1.AddGuildMemberRequest
-	26, // 47: guild.v1.GuildService.GetGuildMember:input_type -> guild.v1.GetGuildMemberRequest
-	28, // 48: guild.v1.GuildService.ListGuildMembers:input_type -> guild.v1.ListGuildMembersRequest
-	30, // 49: guild.v1.GuildService.UpdateGuildMember:input_type -> guild.v1.UpdateGuildMemberRequest
-	32, // 50: guild.v1.GuildService.KickGuildMember:input_type -> guild.v1.KickGuildMemberRequest
-	34, // 51: guild.v1.GuildService.BanGuildMember:input_type -> guild.v1.BanGuildMemberRequest
-	36, // 52: guild.v1.GuildService.UnbanGuildMember:input_type -> guild.v1.UnbanGuildMemberRequest
-	38, // 53: guild.v1.GuildService.ListGuildBans:input_type -> guild.v1.ListGuildBansRequest
-	40, // 54: guild.v1.GuildService.LeaveGuild:input_type -> guild.v1.LeaveGuildRequest
-	42, // 55: guild.v1.GuildService.TransferGuildOwnership:input_type -> guild.v1.TransferGuildOwnershipRequest
-	46, // 56: guild.v1.GuildService.CreateGuildInvite:input_type -> guild.v1.CreateGuildInviteRequest
-	48, // 57: guild.v1.GuildService.GetGuildInvite:input_type -> guild.v1.GetGuildInviteRequest
-	50, // 58: guild.v1.GuildService.ListGuildInvites:input_type -> guild.v1.ListGuildInvitesRequest
-	52, // 59: guild.v1.GuildService.DeleteGuildInvite:input_type -> guild.v1.DeleteGuildInviteRequest
-	54, // 60: guild.v1.GuildService.JoinGuildByInvite:input_type -> guild.v1.JoinGuildByInviteRequest
-	56, // 61: guild.v1.GuildService.CreateGuildRole:input_type -> guild.v1.CreateGuildRoleRequest
-	58, // 62: guild.v1.GuildService.GetGuildRole:input_type -> guild.v1.GetGuildRoleRequest
-	60, // 63: guild.v1.GuildService.ListGuildRoles:input_type -> guild.v1.ListGuildRolesRequest
-	62, // 64: guild.v1.GuildService.UpdateGuildRole:input_type -> guild.v1.UpdateGuildRoleRequest
-	64, // 65: guild.v1.GuildService.DeleteGuildRole:input_type -> guild.v1.DeleteGuildRoleRequest
-	67, // 66: guild.v1.GuildService.ReorderGuildRoles:input_type -> guild.v1.ReorderGuildRolesRequest
-	69, // 67: guild.v1.GuildService.AddGuildMemberRole:input_type -> guild.v1.AddGuildMemberRoleRequest
-	71, // 68: guild.v1.GuildService.RemoveGuildMemberRole:input_type -> guild.v1.RemoveGuildMemberRoleRequest
-	73, // 69: guild.v1.GuildService.ListGuildMemberRoles:input_type -> guild.v1.ListGuildMemberRolesRequest
-	75, // 70: guild.v1.GuildService.GetGuildMemberPermissions:input_type -> guild.v1.GetGuildMemberPermissionsRequest
-	77, // 71: guild.v1.GuildService.CreateGuildChannel:input_type -> guild.v1.CreateGuildChannelRequest
-	79, // 72: guild.v1.GuildService.GetGuildChannel:input_type -> guild.v1.GetGuildChannelRequest
-	81, // 73: guild.v1.GuildService.ListGuildChannels:input_type -> guild.v1.ListGuildChannelsRequest
-	83, // 74: guild.v1.GuildService.UpdateGuildChannel:input_type -> guild.v1.UpdateGuildChannelRequest
-	85, // 75: guild.v1.GuildService.DeleteGuildChannel:input_type -> guild.v1.DeleteGuildChannelRequest
-	88, // 76: guild.v1.GuildService.ReorderGuildChannels:input_type -> guild.v1.ReorderGuildChannelsRequest
-	90, // 77: guild.v1.GuildService.UpsertGuildChannelPermissionOverwrite:input_type -> guild.v1.UpsertGuildChannelPermissionOverwriteRequest
-	92, // 78: guild.v1.GuildService.DeleteGuildChannelPermissionOverwrite:input_type -> guild.v1.DeleteGuildChannelPermissionOverwriteRequest
-	94, // 79: guild.v1.GuildService.ListGuildChannelPermissionOverwrites:input_type -> guild.v1.ListGuildChannelPermissionOverwritesRequest
-	96, // 80: guild.v1.GuildService.AuthorizeGuildChannel:input_type -> guild.v1.AuthorizeGuildChannelRequest
-	10, // 81: guild.v1.GuildService.CreateGuild:output_type -> guild.v1.CreateGuildResponse
-	12, // 82: guild.v1.GuildService.GetGuild:output_type -> guild.v1.GetGuildResponse
-	14, // 83: guild.v1.GuildService.ListUserGuilds:output_type -> guild.v1.ListUserGuildsResponse
-	17, // 84: guild.v1.GuildService.ListUserGuildChannelVisibilities:output_type -> guild.v1.ListUserGuildChannelVisibilitiesResponse
-	19, // 85: guild.v1.GuildService.GetUserGuildChannelVisibility:output_type -> guild.v1.GetUserGuildChannelVisibilityResponse
-	21, // 86: guild.v1.GuildService.UpdateGuild:output_type -> guild.v1.UpdateGuildResponse
-	23, // 87: guild.v1.GuildService.DeleteGuild:output_type -> guild.v1.DeleteGuildResponse
-	25, // 88: guild.v1.GuildService.AddGuildMember:output_type -> guild.v1.AddGuildMemberResponse
-	27, // 89: guild.v1.GuildService.GetGuildMember:output_type -> guild.v1.GetGuildMemberResponse
-	29, // 90: guild.v1.GuildService.ListGuildMembers:output_type -> guild.v1.ListGuildMembersResponse
-	31, // 91: guild.v1.GuildService.UpdateGuildMember:output_type -> guild.v1.UpdateGuildMemberResponse
-	33, // 92: guild.v1.GuildService.KickGuildMember:output_type -> guild.v1.KickGuildMemberResponse
-	35, // 93: guild.v1.GuildService.BanGuildMember:output_type -> guild.v1.BanGuildMemberResponse
-	37, // 94: guild.v1.GuildService.UnbanGuildMember:output_type -> guild.v1.UnbanGuildMemberResponse
-	39, // 95: guild.v1.GuildService.ListGuildBans:output_type -> guild.v1.ListGuildBansResponse
-	41, // 96: guild.v1.GuildService.LeaveGuild:output_type -> guild.v1.LeaveGuildResponse
-	43, // 97: guild.v1.GuildService.TransferGuildOwnership:output_type -> guild.v1.TransferGuildOwnershipResponse
-	47, // 98: guild.v1.GuildService.CreateGuildInvite:output_type -> guild.v1.CreateGuildInviteResponse
-	49, // 99: guild.v1.GuildService.GetGuildInvite:output_type -> guild.v1.GetGuildInviteResponse
-	51, // 100: guild.v1.GuildService.ListGuildInvites:output_type -> guild.v1.ListGuildInvitesResponse
-	53, // 101: guild.v1.GuildService.DeleteGuildInvite:output_type -> guild.v1.DeleteGuildInviteResponse
-	55, // 102: guild.v1.GuildService.JoinGuildByInvite:output_type -> guild.v1.JoinGuildByInviteResponse
-	57, // 103: guild.v1.GuildService.CreateGuildRole:output_type -> guild.v1.CreateGuildRoleResponse
-	59, // 104: guild.v1.GuildService.GetGuildRole:output_type -> guild.v1.GetGuildRoleResponse
-	61, // 105: guild.v1.GuildService.ListGuildRoles:output_type -> guild.v1.ListGuildRolesResponse
-	63, // 106: guild.v1.GuildService.UpdateGuildRole:output_type -> guild.v1.UpdateGuildRoleResponse
-	65, // 107: guild.v1.GuildService.DeleteGuildRole:output_type -> guild.v1.DeleteGuildRoleResponse
-	68, // 108: guild.v1.GuildService.ReorderGuildRoles:output_type -> guild.v1.ReorderGuildRolesResponse
-	70, // 109: guild.v1.GuildService.AddGuildMemberRole:output_type -> guild.v1.AddGuildMemberRoleResponse
-	72, // 110: guild.v1.GuildService.RemoveGuildMemberRole:output_type -> guild.v1.RemoveGuildMemberRoleResponse
-	74, // 111: guild.v1.GuildService.ListGuildMemberRoles:output_type -> guild.v1.ListGuildMemberRolesResponse
-	76, // 112: guild.v1.GuildService.GetGuildMemberPermissions:output_type -> guild.v1.GetGuildMemberPermissionsResponse
-	78, // 113: guild.v1.GuildService.CreateGuildChannel:output_type -> guild.v1.CreateGuildChannelResponse
-	80, // 114: guild.v1.GuildService.GetGuildChannel:output_type -> guild.v1.GetGuildChannelResponse
-	82, // 115: guild.v1.GuildService.ListGuildChannels:output_type -> guild.v1.ListGuildChannelsResponse
-	84, // 116: guild.v1.GuildService.UpdateGuildChannel:output_type -> guild.v1.UpdateGuildChannelResponse
-	86, // 117: guild.v1.GuildService.DeleteGuildChannel:output_type -> guild.v1.DeleteGuildChannelResponse
-	89, // 118: guild.v1.GuildService.ReorderGuildChannels:output_type -> guild.v1.ReorderGuildChannelsResponse
-	91, // 119: guild.v1.GuildService.UpsertGuildChannelPermissionOverwrite:output_type -> guild.v1.UpsertGuildChannelPermissionOverwriteResponse
-	93, // 120: guild.v1.GuildService.DeleteGuildChannelPermissionOverwrite:output_type -> guild.v1.DeleteGuildChannelPermissionOverwriteResponse
-	95, // 121: guild.v1.GuildService.ListGuildChannelPermissionOverwrites:output_type -> guild.v1.ListGuildChannelPermissionOverwritesResponse
-	97, // 122: guild.v1.GuildService.AuthorizeGuildChannel:output_type -> guild.v1.AuthorizeGuildChannelResponse
-	81, // [81:123] is the sub-list for method output_type
-	39, // [39:81] is the sub-list for method input_type
-	39, // [39:39] is the sub-list for extension type_name
-	39, // [39:39] is the sub-list for extension extendee
-	0,  // [0:39] is the sub-list for field type_name
+	1,   // 0: guild.v1.GuildChannel.type:type_name -> guild.v1.GuildChannelType
+	2,   // 1: guild.v1.GuildChannelPermissionOverwrite.target_type:type_name -> guild.v1.GuildPermissionOverwriteType
+	3,   // 2: guild.v1.CreateGuildResponse.guild:type_name -> guild.v1.Guild
+	3,   // 3: guild.v1.GetGuildResponse.guild:type_name -> guild.v1.Guild
+	3,   // 4: guild.v1.ListUserGuildsResponse.guilds:type_name -> guild.v1.Guild
+	15,  // 5: guild.v1.ListUserGuildChannelVisibilitiesResponse.visibilities:type_name -> guild.v1.GuildChannelVisibility
+	15,  // 6: guild.v1.GetUserGuildChannelVisibilityResponse.visibility:type_name -> guild.v1.GuildChannelVisibility
+	3,   // 7: guild.v1.UpdateGuildResponse.guild:type_name -> guild.v1.Guild
+	4,   // 8: guild.v1.AddGuildMemberResponse.member:type_name -> guild.v1.GuildMember
+	4,   // 9: guild.v1.GetGuildMemberResponse.member:type_name -> guild.v1.GuildMember
+	4,   // 10: guild.v1.ListGuildMembersResponse.members:type_name -> guild.v1.GuildMember
+	4,   // 11: guild.v1.UpdateGuildMemberResponse.member:type_name -> guild.v1.GuildMember
+	5,   // 12: guild.v1.BanGuildMemberResponse.ban:type_name -> guild.v1.GuildBan
+	5,   // 13: guild.v1.ListGuildBansResponse.bans:type_name -> guild.v1.GuildBan
+	3,   // 14: guild.v1.TransferGuildOwnershipResponse.guild:type_name -> guild.v1.Guild
+	44,  // 15: guild.v1.CreateGuildInviteResponse.invite:type_name -> guild.v1.GuildInvite
+	45,  // 16: guild.v1.GetGuildInviteResponse.preview:type_name -> guild.v1.GuildInvitePreview
+	44,  // 17: guild.v1.ListGuildInvitesResponse.invites:type_name -> guild.v1.GuildInvite
+	3,   // 18: guild.v1.JoinGuildByInviteResponse.guild:type_name -> guild.v1.Guild
+	4,   // 19: guild.v1.JoinGuildByInviteResponse.member:type_name -> guild.v1.GuildMember
+	6,   // 20: guild.v1.CreateGuildRoleResponse.role:type_name -> guild.v1.GuildRole
+	6,   // 21: guild.v1.GetGuildRoleResponse.role:type_name -> guild.v1.GuildRole
+	6,   // 22: guild.v1.ListGuildRolesResponse.roles:type_name -> guild.v1.GuildRole
+	6,   // 23: guild.v1.UpdateGuildRoleResponse.role:type_name -> guild.v1.GuildRole
+	66,  // 24: guild.v1.ReorderGuildRolesRequest.positions:type_name -> guild.v1.GuildRolePosition
+	6,   // 25: guild.v1.ReorderGuildRolesResponse.roles:type_name -> guild.v1.GuildRole
+	6,   // 26: guild.v1.ListGuildMemberRolesResponse.roles:type_name -> guild.v1.GuildRole
+	1,   // 27: guild.v1.CreateGuildChannelRequest.type:type_name -> guild.v1.GuildChannelType
+	7,   // 28: guild.v1.CreateGuildChannelResponse.channel:type_name -> guild.v1.GuildChannel
+	7,   // 29: guild.v1.GetGuildChannelResponse.channel:type_name -> guild.v1.GuildChannel
+	7,   // 30: guild.v1.ListGuildChannelsResponse.channels:type_name -> guild.v1.GuildChannel
+	7,   // 31: guild.v1.UpdateGuildChannelResponse.channel:type_name -> guild.v1.GuildChannel
+	87,  // 32: guild.v1.ReorderGuildChannelsRequest.positions:type_name -> guild.v1.GuildChannelPosition
+	7,   // 33: guild.v1.ReorderGuildChannelsResponse.channels:type_name -> guild.v1.GuildChannel
+	2,   // 34: guild.v1.UpsertGuildChannelPermissionOverwriteRequest.target_type:type_name -> guild.v1.GuildPermissionOverwriteType
+	8,   // 35: guild.v1.UpsertGuildChannelPermissionOverwriteResponse.overwrite:type_name -> guild.v1.GuildChannelPermissionOverwrite
+	2,   // 36: guild.v1.DeleteGuildChannelPermissionOverwriteRequest.target_type:type_name -> guild.v1.GuildPermissionOverwriteType
+	8,   // 37: guild.v1.ListGuildChannelPermissionOverwritesResponse.overwrites:type_name -> guild.v1.GuildChannelPermissionOverwrite
+	1,   // 38: guild.v1.AuthorizeGuildChannelResponse.channel_type:type_name -> guild.v1.GuildChannelType
+	1,   // 39: guild.v1.GuildChannelAuthorization.channel_type:type_name -> guild.v1.GuildChannelType
+	99,  // 40: guild.v1.AuthorizeGuildChannelsResponse.authorizations:type_name -> guild.v1.GuildChannelAuthorization
+	9,   // 41: guild.v1.GuildService.CreateGuild:input_type -> guild.v1.CreateGuildRequest
+	11,  // 42: guild.v1.GuildService.GetGuild:input_type -> guild.v1.GetGuildRequest
+	13,  // 43: guild.v1.GuildService.ListUserGuilds:input_type -> guild.v1.ListUserGuildsRequest
+	16,  // 44: guild.v1.GuildService.ListUserGuildChannelVisibilities:input_type -> guild.v1.ListUserGuildChannelVisibilitiesRequest
+	18,  // 45: guild.v1.GuildService.GetUserGuildChannelVisibility:input_type -> guild.v1.GetUserGuildChannelVisibilityRequest
+	20,  // 46: guild.v1.GuildService.UpdateGuild:input_type -> guild.v1.UpdateGuildRequest
+	22,  // 47: guild.v1.GuildService.DeleteGuild:input_type -> guild.v1.DeleteGuildRequest
+	24,  // 48: guild.v1.GuildService.AddGuildMember:input_type -> guild.v1.AddGuildMemberRequest
+	26,  // 49: guild.v1.GuildService.GetGuildMember:input_type -> guild.v1.GetGuildMemberRequest
+	28,  // 50: guild.v1.GuildService.ListGuildMembers:input_type -> guild.v1.ListGuildMembersRequest
+	30,  // 51: guild.v1.GuildService.UpdateGuildMember:input_type -> guild.v1.UpdateGuildMemberRequest
+	32,  // 52: guild.v1.GuildService.KickGuildMember:input_type -> guild.v1.KickGuildMemberRequest
+	34,  // 53: guild.v1.GuildService.BanGuildMember:input_type -> guild.v1.BanGuildMemberRequest
+	36,  // 54: guild.v1.GuildService.UnbanGuildMember:input_type -> guild.v1.UnbanGuildMemberRequest
+	38,  // 55: guild.v1.GuildService.ListGuildBans:input_type -> guild.v1.ListGuildBansRequest
+	40,  // 56: guild.v1.GuildService.LeaveGuild:input_type -> guild.v1.LeaveGuildRequest
+	42,  // 57: guild.v1.GuildService.TransferGuildOwnership:input_type -> guild.v1.TransferGuildOwnershipRequest
+	46,  // 58: guild.v1.GuildService.CreateGuildInvite:input_type -> guild.v1.CreateGuildInviteRequest
+	48,  // 59: guild.v1.GuildService.GetGuildInvite:input_type -> guild.v1.GetGuildInviteRequest
+	50,  // 60: guild.v1.GuildService.ListGuildInvites:input_type -> guild.v1.ListGuildInvitesRequest
+	52,  // 61: guild.v1.GuildService.DeleteGuildInvite:input_type -> guild.v1.DeleteGuildInviteRequest
+	54,  // 62: guild.v1.GuildService.JoinGuildByInvite:input_type -> guild.v1.JoinGuildByInviteRequest
+	56,  // 63: guild.v1.GuildService.CreateGuildRole:input_type -> guild.v1.CreateGuildRoleRequest
+	58,  // 64: guild.v1.GuildService.GetGuildRole:input_type -> guild.v1.GetGuildRoleRequest
+	60,  // 65: guild.v1.GuildService.ListGuildRoles:input_type -> guild.v1.ListGuildRolesRequest
+	62,  // 66: guild.v1.GuildService.UpdateGuildRole:input_type -> guild.v1.UpdateGuildRoleRequest
+	64,  // 67: guild.v1.GuildService.DeleteGuildRole:input_type -> guild.v1.DeleteGuildRoleRequest
+	67,  // 68: guild.v1.GuildService.ReorderGuildRoles:input_type -> guild.v1.ReorderGuildRolesRequest
+	69,  // 69: guild.v1.GuildService.AddGuildMemberRole:input_type -> guild.v1.AddGuildMemberRoleRequest
+	71,  // 70: guild.v1.GuildService.RemoveGuildMemberRole:input_type -> guild.v1.RemoveGuildMemberRoleRequest
+	73,  // 71: guild.v1.GuildService.ListGuildMemberRoles:input_type -> guild.v1.ListGuildMemberRolesRequest
+	75,  // 72: guild.v1.GuildService.GetGuildMemberPermissions:input_type -> guild.v1.GetGuildMemberPermissionsRequest
+	77,  // 73: guild.v1.GuildService.CreateGuildChannel:input_type -> guild.v1.CreateGuildChannelRequest
+	79,  // 74: guild.v1.GuildService.GetGuildChannel:input_type -> guild.v1.GetGuildChannelRequest
+	81,  // 75: guild.v1.GuildService.ListGuildChannels:input_type -> guild.v1.ListGuildChannelsRequest
+	83,  // 76: guild.v1.GuildService.UpdateGuildChannel:input_type -> guild.v1.UpdateGuildChannelRequest
+	85,  // 77: guild.v1.GuildService.DeleteGuildChannel:input_type -> guild.v1.DeleteGuildChannelRequest
+	88,  // 78: guild.v1.GuildService.ReorderGuildChannels:input_type -> guild.v1.ReorderGuildChannelsRequest
+	90,  // 79: guild.v1.GuildService.UpsertGuildChannelPermissionOverwrite:input_type -> guild.v1.UpsertGuildChannelPermissionOverwriteRequest
+	92,  // 80: guild.v1.GuildService.DeleteGuildChannelPermissionOverwrite:input_type -> guild.v1.DeleteGuildChannelPermissionOverwriteRequest
+	94,  // 81: guild.v1.GuildService.ListGuildChannelPermissionOverwrites:input_type -> guild.v1.ListGuildChannelPermissionOverwritesRequest
+	96,  // 82: guild.v1.GuildService.AuthorizeGuildChannel:input_type -> guild.v1.AuthorizeGuildChannelRequest
+	98,  // 83: guild.v1.GuildService.AuthorizeGuildChannels:input_type -> guild.v1.AuthorizeGuildChannelsRequest
+	10,  // 84: guild.v1.GuildService.CreateGuild:output_type -> guild.v1.CreateGuildResponse
+	12,  // 85: guild.v1.GuildService.GetGuild:output_type -> guild.v1.GetGuildResponse
+	14,  // 86: guild.v1.GuildService.ListUserGuilds:output_type -> guild.v1.ListUserGuildsResponse
+	17,  // 87: guild.v1.GuildService.ListUserGuildChannelVisibilities:output_type -> guild.v1.ListUserGuildChannelVisibilitiesResponse
+	19,  // 88: guild.v1.GuildService.GetUserGuildChannelVisibility:output_type -> guild.v1.GetUserGuildChannelVisibilityResponse
+	21,  // 89: guild.v1.GuildService.UpdateGuild:output_type -> guild.v1.UpdateGuildResponse
+	23,  // 90: guild.v1.GuildService.DeleteGuild:output_type -> guild.v1.DeleteGuildResponse
+	25,  // 91: guild.v1.GuildService.AddGuildMember:output_type -> guild.v1.AddGuildMemberResponse
+	27,  // 92: guild.v1.GuildService.GetGuildMember:output_type -> guild.v1.GetGuildMemberResponse
+	29,  // 93: guild.v1.GuildService.ListGuildMembers:output_type -> guild.v1.ListGuildMembersResponse
+	31,  // 94: guild.v1.GuildService.UpdateGuildMember:output_type -> guild.v1.UpdateGuildMemberResponse
+	33,  // 95: guild.v1.GuildService.KickGuildMember:output_type -> guild.v1.KickGuildMemberResponse
+	35,  // 96: guild.v1.GuildService.BanGuildMember:output_type -> guild.v1.BanGuildMemberResponse
+	37,  // 97: guild.v1.GuildService.UnbanGuildMember:output_type -> guild.v1.UnbanGuildMemberResponse
+	39,  // 98: guild.v1.GuildService.ListGuildBans:output_type -> guild.v1.ListGuildBansResponse
+	41,  // 99: guild.v1.GuildService.LeaveGuild:output_type -> guild.v1.LeaveGuildResponse
+	43,  // 100: guild.v1.GuildService.TransferGuildOwnership:output_type -> guild.v1.TransferGuildOwnershipResponse
+	47,  // 101: guild.v1.GuildService.CreateGuildInvite:output_type -> guild.v1.CreateGuildInviteResponse
+	49,  // 102: guild.v1.GuildService.GetGuildInvite:output_type -> guild.v1.GetGuildInviteResponse
+	51,  // 103: guild.v1.GuildService.ListGuildInvites:output_type -> guild.v1.ListGuildInvitesResponse
+	53,  // 104: guild.v1.GuildService.DeleteGuildInvite:output_type -> guild.v1.DeleteGuildInviteResponse
+	55,  // 105: guild.v1.GuildService.JoinGuildByInvite:output_type -> guild.v1.JoinGuildByInviteResponse
+	57,  // 106: guild.v1.GuildService.CreateGuildRole:output_type -> guild.v1.CreateGuildRoleResponse
+	59,  // 107: guild.v1.GuildService.GetGuildRole:output_type -> guild.v1.GetGuildRoleResponse
+	61,  // 108: guild.v1.GuildService.ListGuildRoles:output_type -> guild.v1.ListGuildRolesResponse
+	63,  // 109: guild.v1.GuildService.UpdateGuildRole:output_type -> guild.v1.UpdateGuildRoleResponse
+	65,  // 110: guild.v1.GuildService.DeleteGuildRole:output_type -> guild.v1.DeleteGuildRoleResponse
+	68,  // 111: guild.v1.GuildService.ReorderGuildRoles:output_type -> guild.v1.ReorderGuildRolesResponse
+	70,  // 112: guild.v1.GuildService.AddGuildMemberRole:output_type -> guild.v1.AddGuildMemberRoleResponse
+	72,  // 113: guild.v1.GuildService.RemoveGuildMemberRole:output_type -> guild.v1.RemoveGuildMemberRoleResponse
+	74,  // 114: guild.v1.GuildService.ListGuildMemberRoles:output_type -> guild.v1.ListGuildMemberRolesResponse
+	76,  // 115: guild.v1.GuildService.GetGuildMemberPermissions:output_type -> guild.v1.GetGuildMemberPermissionsResponse
+	78,  // 116: guild.v1.GuildService.CreateGuildChannel:output_type -> guild.v1.CreateGuildChannelResponse
+	80,  // 117: guild.v1.GuildService.GetGuildChannel:output_type -> guild.v1.GetGuildChannelResponse
+	82,  // 118: guild.v1.GuildService.ListGuildChannels:output_type -> guild.v1.ListGuildChannelsResponse
+	84,  // 119: guild.v1.GuildService.UpdateGuildChannel:output_type -> guild.v1.UpdateGuildChannelResponse
+	86,  // 120: guild.v1.GuildService.DeleteGuildChannel:output_type -> guild.v1.DeleteGuildChannelResponse
+	89,  // 121: guild.v1.GuildService.ReorderGuildChannels:output_type -> guild.v1.ReorderGuildChannelsResponse
+	91,  // 122: guild.v1.GuildService.UpsertGuildChannelPermissionOverwrite:output_type -> guild.v1.UpsertGuildChannelPermissionOverwriteResponse
+	93,  // 123: guild.v1.GuildService.DeleteGuildChannelPermissionOverwrite:output_type -> guild.v1.DeleteGuildChannelPermissionOverwriteResponse
+	95,  // 124: guild.v1.GuildService.ListGuildChannelPermissionOverwrites:output_type -> guild.v1.ListGuildChannelPermissionOverwritesResponse
+	97,  // 125: guild.v1.GuildService.AuthorizeGuildChannel:output_type -> guild.v1.AuthorizeGuildChannelResponse
+	100, // 126: guild.v1.GuildService.AuthorizeGuildChannels:output_type -> guild.v1.AuthorizeGuildChannelsResponse
+	84,  // [84:127] is the sub-list for method output_type
+	41,  // [41:84] is the sub-list for method input_type
+	41,  // [41:41] is the sub-list for extension type_name
+	41,  // [41:41] is the sub-list for extension extendee
+	0,   // [0:41] is the sub-list for field type_name
 }
 
 func init() { file_guild_v1_guild_proto_init() }
@@ -12445,7 +12844,7 @@ func file_guild_v1_guild_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_guild_v1_guild_proto_rawDesc), len(file_guild_v1_guild_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   95,
+			NumMessages:   98,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

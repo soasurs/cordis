@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -64,15 +65,15 @@ type messageDeletedPayload struct {
 }
 
 func newMessageCreatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
-	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs))
+	return newMessageEvents(EventTypeMessageCreated, audience, messagePayloadFromModel(message, mentionUserIDs))
 }
 
 func newMessageUpdatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
-	return newMessageEvents(EventTypeMessageUpdated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs))
+	return newMessageEvents(EventTypeMessageUpdated, audience, messagePayloadFromModel(message, mentionUserIDs))
 }
 
 func newMessageDeletedEvents(message *model.Message, audience messageAudience) ([]messageEvent, error) {
-	return newMessageDeletedRoutingEvents(EventTypeMessageDeleted, message.ChannelID, audience, messageDeletedPayload{
+	return newMessageDeletedRoutingEvents(EventTypeMessageDeleted, audience, messageDeletedPayload{
 		MessageID: strconv.FormatInt(message.ID, 10),
 		ChannelID: strconv.FormatInt(message.ChannelID, 10),
 		Revision:  message.Revision,
@@ -80,24 +81,58 @@ func newMessageDeletedEvents(message *model.Message, audience messageAudience) (
 	})
 }
 
-func newMessageEvents(eventType string, channelID int64, audience messageAudience, data messagePayload) ([]messageEvent, error) {
+func newMessageEvents(eventType string, audience messageAudience, data messagePayload) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
 		event, err := newEvent(eventType, audience.guildID, data)
 		return singleEvent(event, err)
 	}
-	event, err := newEvent(eventType, channelID, data)
-	return singleEvent(event, err)
+	if err := validateDmAudience(audience.userIDs); err != nil {
+		return nil, err
+	}
+	events := make([]messageEvent, 0, len(audience.userIDs))
+	for _, userID := range audience.userIDs {
+		data.UserID = strconv.FormatInt(userID, 10)
+		event, err := newUserRoutedEvent(eventType, userID, data)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+	return events, nil
 }
 
-func newMessageDeletedRoutingEvents(eventType string, channelID int64, audience messageAudience, data messageDeletedPayload) ([]messageEvent, error) {
+func newMessageDeletedRoutingEvents(eventType string, audience messageAudience, data messageDeletedPayload) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
 		event, err := newEvent(eventType, audience.guildID, data)
 		return singleEvent(event, err)
 	}
-	event, err := newEvent(eventType, channelID, data)
-	return singleEvent(event, err)
+	if err := validateDmAudience(audience.userIDs); err != nil {
+		return nil, err
+	}
+	events := make([]messageEvent, 0, len(audience.userIDs))
+	for _, userID := range audience.userIDs {
+		data.UserID = strconv.FormatInt(userID, 10)
+		event, err := newUserRoutedEvent(eventType, userID, data)
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+	return events, nil
+}
+
+func validateDmAudience(userIDs []int64) error {
+	if len(userIDs) == 0 {
+		return errors.New("dm message audience is empty")
+	}
+	for _, userID := range userIDs {
+		if userID <= 0 {
+			return errors.New("dm message audience contains invalid user id")
+		}
+	}
+	return nil
 }
 
 func singleEvent(event messageEvent, err error) ([]messageEvent, error) {

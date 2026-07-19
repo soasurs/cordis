@@ -22,6 +22,7 @@ const (
 	GuildService_CreateGuild_FullMethodName                           = "/guild.v1.GuildService/CreateGuild"
 	GuildService_GetGuild_FullMethodName                              = "/guild.v1.GuildService/GetGuild"
 	GuildService_ListUserGuilds_FullMethodName                        = "/guild.v1.GuildService/ListUserGuilds"
+	GuildService_ListUserGuildChannelVisibilities_FullMethodName      = "/guild.v1.GuildService/ListUserGuildChannelVisibilities"
 	GuildService_UpdateGuild_FullMethodName                           = "/guild.v1.GuildService/UpdateGuild"
 	GuildService_DeleteGuild_FullMethodName                           = "/guild.v1.GuildService/DeleteGuild"
 	GuildService_AddGuildMember_FullMethodName                        = "/guild.v1.GuildService/AddGuildMember"
@@ -70,6 +71,9 @@ type GuildServiceClient interface {
 	CreateGuild(ctx context.Context, in *CreateGuildRequest, opts ...grpc.CallOption) (*CreateGuildResponse, error)
 	GetGuild(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*GetGuildResponse, error)
 	ListUserGuilds(ctx context.Context, in *ListUserGuildsRequest, opts ...grpc.CallOption) (*ListUserGuildsResponse, error)
+	// ListUserGuildChannelVisibilities returns paginated, server-authoritative
+	// visible channel snapshots for the user's active Guild memberships.
+	ListUserGuildChannelVisibilities(ctx context.Context, in *ListUserGuildChannelVisibilitiesRequest, opts ...grpc.CallOption) (*ListUserGuildChannelVisibilitiesResponse, error)
 	UpdateGuild(ctx context.Context, in *UpdateGuildRequest, opts ...grpc.CallOption) (*UpdateGuildResponse, error)
 	DeleteGuild(ctx context.Context, in *DeleteGuildRequest, opts ...grpc.CallOption) (*DeleteGuildResponse, error)
 	AddGuildMember(ctx context.Context, in *AddGuildMemberRequest, opts ...grpc.CallOption) (*AddGuildMemberResponse, error)
@@ -141,6 +145,16 @@ func (c *guildServiceClient) ListUserGuilds(ctx context.Context, in *ListUserGui
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUserGuildsResponse)
 	err := c.cc.Invoke(ctx, GuildService_ListUserGuilds_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) ListUserGuildChannelVisibilities(ctx context.Context, in *ListUserGuildChannelVisibilitiesRequest, opts ...grpc.CallOption) (*ListUserGuildChannelVisibilitiesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserGuildChannelVisibilitiesResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListUserGuildChannelVisibilities_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -526,6 +540,9 @@ type GuildServiceServer interface {
 	CreateGuild(context.Context, *CreateGuildRequest) (*CreateGuildResponse, error)
 	GetGuild(context.Context, *GetGuildRequest) (*GetGuildResponse, error)
 	ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error)
+	// ListUserGuildChannelVisibilities returns paginated, server-authoritative
+	// visible channel snapshots for the user's active Guild memberships.
+	ListUserGuildChannelVisibilities(context.Context, *ListUserGuildChannelVisibilitiesRequest) (*ListUserGuildChannelVisibilitiesResponse, error)
 	UpdateGuild(context.Context, *UpdateGuildRequest) (*UpdateGuildResponse, error)
 	DeleteGuild(context.Context, *DeleteGuildRequest) (*DeleteGuildResponse, error)
 	AddGuildMember(context.Context, *AddGuildMemberRequest) (*AddGuildMemberResponse, error)
@@ -580,6 +597,9 @@ func (UnimplementedGuildServiceServer) GetGuild(context.Context, *GetGuildReques
 }
 func (UnimplementedGuildServiceServer) ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUserGuilds not implemented")
+}
+func (UnimplementedGuildServiceServer) ListUserGuildChannelVisibilities(context.Context, *ListUserGuildChannelVisibilitiesRequest) (*ListUserGuildChannelVisibilitiesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUserGuildChannelVisibilities not implemented")
 }
 func (UnimplementedGuildServiceServer) UpdateGuild(context.Context, *UpdateGuildRequest) (*UpdateGuildResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGuild not implemented")
@@ -762,6 +782,24 @@ func _GuildService_ListUserGuilds_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GuildServiceServer).ListUserGuilds(ctx, req.(*ListUserGuildsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_ListUserGuildChannelVisibilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserGuildChannelVisibilitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListUserGuildChannelVisibilities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListUserGuildChannelVisibilities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListUserGuildChannelVisibilities(ctx, req.(*ListUserGuildChannelVisibilitiesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1450,6 +1488,10 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListUserGuilds",
 			Handler:    _GuildService_ListUserGuilds_Handler,
+		},
+		{
+			MethodName: "ListUserGuildChannelVisibilities",
+			Handler:    _GuildService_ListUserGuildChannelVisibilities_Handler,
 		},
 		{
 			MethodName: "UpdateGuild",

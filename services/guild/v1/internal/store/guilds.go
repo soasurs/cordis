@@ -12,14 +12,15 @@ import (
 )
 
 type guildRow struct {
-	ID        int64  `db:"id"`
-	OwnerID   int64  `db:"owner_id"`
-	Name      string `db:"name"`
-	IconURI   string `db:"icon_uri"`
-	Revision  int64  `db:"revision"`
-	CreatedAt int64  `db:"created_at"`
-	UpdatedAt int64  `db:"updated_at"`
-	DeletedAt int64  `db:"deleted_at"`
+	ID             int64  `db:"id"`
+	OwnerID        int64  `db:"owner_id"`
+	Name           string `db:"name"`
+	IconURI        string `db:"icon_uri"`
+	Revision       int64  `db:"revision"`
+	AccessRevision int64  `db:"access_revision"`
+	CreatedAt      int64  `db:"created_at"`
+	UpdatedAt      int64  `db:"updated_at"`
+	DeletedAt      int64  `db:"deleted_at"`
 }
 
 func (s *SQLStore) CreateGuild(ctx context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error) {
@@ -261,13 +262,14 @@ func (s *SQLStore) DeleteGuildRoles(ctx context.Context, guildID, deletedAt int6
 
 func guildFromRow(row *guildRow) *model.Guild {
 	return &model.Guild{
-		ID:        row.ID,
-		OwnerID:   row.OwnerID,
-		Name:      row.Name,
-		IconURI:   row.IconURI,
-		Revision:  row.Revision,
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: row.UpdatedAt,
-		DeletedAt: row.DeletedAt,
+		ID:             row.ID,
+		OwnerID:        row.OwnerID,
+		Name:           row.Name,
+		IconURI:        row.IconURI,
+		Revision:       row.Revision,
+		AccessRevision: row.AccessRevision,
+		CreatedAt:      row.CreatedAt,
+		UpdatedAt:      row.UpdatedAt,
+		DeletedAt:      row.DeletedAt,
 	}
 }

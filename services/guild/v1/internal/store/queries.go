@@ -1,7 +1,7 @@
 package store
 
 const guildColumns = `
-    id, owner_id, name, icon_uri, revision, created_at, updated_at, deleted_at
+    id, owner_id, name, icon_uri, revision, access_revision, created_at, updated_at, deleted_at
 `
 
 const guildMemberColumns = `

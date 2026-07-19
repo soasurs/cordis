@@ -90,21 +90,31 @@ func (s *guildServer) ListGuildChannels(ctx context.Context, req *guildv1.ListGu
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err
 	}
-	authority, err := loadMemberAuthority(ctx, s.svcCtx.Store, req.GetGuildId(), req.GetActorUserId())
+	visible, err := loadVisibleGuildChannels(ctx, s.svcCtx.Store, req.GetGuildId(), req.GetActorUserId())
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	roles, err := s.svcCtx.Store.ListGuildMemberRoles(ctx, req.GetGuildId(), req.GetActorUserId())
+	resp := new(guildv1.ListGuildChannelsResponse)
+	resp.SetChannels(guildChannelsToProto(visible))
+	return resp, nil
+}
+
+func loadVisibleGuildChannels(ctx context.Context, guildStore store.Store, guildID, userID int64) ([]*model.Channel, error) {
+	authority, err := loadMemberAuthority(ctx, guildStore, guildID, userID)
 	if err != nil {
-		return nil, mapStoreError(err)
+		return nil, err
 	}
-	channels, err := s.svcCtx.Store.ListGuildChannels(ctx, req.GetGuildId())
+	roles, err := guildStore.ListGuildMemberRoles(ctx, guildID, userID)
 	if err != nil {
-		return nil, mapStoreError(err)
+		return nil, err
 	}
-	overwrites, err := s.svcCtx.Store.ListGuildChannelPermissionOverwritesByGuild(ctx, req.GetGuildId())
+	channels, err := guildStore.ListGuildChannels(ctx, guildID)
 	if err != nil {
-		return nil, mapStoreError(err)
+		return nil, err
+	}
+	overwrites, err := guildStore.ListGuildChannelPermissionOverwritesByGuild(ctx, guildID)
+	if err != nil {
+		return nil, err
 	}
 	overwritesByChannel := make(map[int64][]*model.ChannelPermissionOverwrite)
 	for _, overwrite := range overwrites {
@@ -112,13 +122,11 @@ func (s *guildServer) ListGuildChannels(ctx context.Context, req *guildv1.ListGu
 	}
 	visible := make([]*model.Channel, 0, len(channels))
 	for _, channel := range channels {
-		if channelPermissions(authority, roles, overwritesByChannel[channel.ID], req.GetActorUserId())&PermissionViewChannel != 0 {
+		if channelPermissions(authority, roles, overwritesByChannel[channel.ID], userID)&PermissionViewChannel != 0 {
 			visible = append(visible, channel)
 		}
 	}
-	resp := new(guildv1.ListGuildChannelsResponse)
-	resp.SetChannels(guildChannelsToProto(visible))
-	return resp, nil
+	return visible, nil
 }
 
 func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.UpdateGuildChannelRequest) (*guildv1.UpdateGuildChannelResponse, error) {

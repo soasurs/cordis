@@ -53,6 +53,13 @@ are 10 owned and 100 joined guilds per user, 250 roles and 500 channels per
 guild, 100 active invites per guild, and 100 permission overwrites per channel.
 Quota checks and writes are serialized in the same PostgreSQL transaction.
 
+`ListUserGuildChannelVisibilities` pages through a user's active Guild
+memberships and returns the complete, ascending set of visible channel IDs for
+each Guild. Every snapshot carries a persistent `access_revision`. PostgreSQL
+triggers advance this monotonic revision whenever membership, role permissions
+or assignments, channels, permission overwrites, ownership, or Guild deletion
+can change access.
+
 ## Message
 
 gRPC on `:3002`. Owns messages, attachments, mentions, and replies. Create,

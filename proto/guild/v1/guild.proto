@@ -39,6 +39,9 @@ service GuildService {
   // ListUserGuildChannelVisibilities returns paginated, server-authoritative
   // visible channel snapshots for the user's active Guild memberships.
   rpc ListUserGuildChannelVisibilities(ListUserGuildChannelVisibilitiesRequest) returns (ListUserGuildChannelVisibilitiesResponse);
+  // GetUserGuildChannelVisibility returns a single Guild visibility snapshot
+  // for an on-demand snapshot reload by Session nodes.
+  rpc GetUserGuildChannelVisibility(GetUserGuildChannelVisibilityRequest) returns (GetUserGuildChannelVisibilityResponse);
   rpc UpdateGuild(UpdateGuildRequest) returns (UpdateGuildResponse);
   rpc DeleteGuild(DeleteGuildRequest) returns (DeleteGuildResponse);
   rpc AddGuildMember(AddGuildMemberRequest) returns (AddGuildMemberResponse);
@@ -192,6 +195,16 @@ message ListUserGuildChannelVisibilitiesResponse {
   repeated GuildChannelVisibility visibilities = 1;
   // Smallest Guild ID in this page, or zero when this page is empty.
   int64 before_guild_id = 2;
+}
+
+
+message GetUserGuildChannelVisibilityRequest {
+  int64 user_id = 1;
+  int64 guild_id = 2;
+}
+
+message GetUserGuildChannelVisibilityResponse {
+  GuildChannelVisibility visibility = 1;
 }
 
 message UpdateGuildRequest {

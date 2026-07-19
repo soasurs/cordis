@@ -240,6 +240,14 @@ func (failingVisibilityGuild) ListUserGuildChannelVisibilities(
 	return nil, status.Error(codes.Unavailable, "guild unavailable")
 }
 
+func (failingVisibilityGuild) GetUserGuildChannelVisibility(
+	context.Context,
+	*guildv1.GetUserGuildChannelVisibilityRequest,
+	...grpc.CallOption,
+) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
+	return nil, status.Error(codes.Unavailable, "guild unavailable")
+}
+
 func (g *authorizingGuild) AuthorizeGuildChannel(
 	context.Context,
 	*guildv1.AuthorizeGuildChannelRequest,

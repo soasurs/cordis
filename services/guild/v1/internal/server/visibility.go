@@ -54,3 +54,40 @@ func (s *guildServer) ListUserGuildChannelVisibilities(
 	}
 	return resp, nil
 }
+
+func (s *guildServer) GetUserGuildChannelVisibility(
+	ctx context.Context,
+	req *guildv1.GetUserGuildChannelVisibilityRequest,
+) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
+	if req.GetUserId() <= 0 {
+		return nil, invalidRequest("user id is required")
+	}
+	if req.GetGuildId() <= 0 {
+		return nil, invalidRequest("guild id is required")
+	}
+
+	guild, err := s.svcCtx.Store.GetGuild(ctx, req.GetGuildId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+
+	channels, err := loadVisibleGuildChannels(ctx, s.svcCtx.Store, req.GetGuildId(), req.GetUserId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+
+	channelIDs := make([]int64, 0, len(channels))
+	for _, channel := range channels {
+		channelIDs = append(channelIDs, channel.ID)
+	}
+	slices.Sort(channelIDs)
+
+	visibility := new(guildv1.GuildChannelVisibility)
+	visibility.SetGuildId(req.GetGuildId())
+	visibility.SetAccessRevision(guild.AccessRevision)
+	visibility.SetVisibleChannelIds(channelIDs)
+
+	resp := new(guildv1.GetUserGuildChannelVisibilityResponse)
+	resp.SetVisibility(visibility)
+	return resp, nil
+}

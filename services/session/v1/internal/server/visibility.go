@@ -98,6 +98,30 @@ func (s *Server) loadVisibilitySnapshots(ctx context.Context, userID int64) (map
 	}
 }
 
+// loadSingleVisibilitySnapshot loads channel visibility for one Guild through
+// the dedicated single-guild RPC. It does not paginate or load other Guilds.
+func (s *Server) loadSingleVisibilitySnapshot(ctx context.Context, userID, guildID int64) (*visibilitySnapshot, error) {
+	req := new(guildv1.GetUserGuildChannelVisibilityRequest)
+	req.SetUserId(userID)
+	req.SetGuildId(guildID)
+	resp, err := s.svcCtx.GuildClient.GetUserGuildChannelVisibility(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	v := resp.GetVisibility()
+	if v == nil || v.GetGuildId() != guildID || v.GetAccessRevision() <= 0 {
+		return nil, status.Error(codes.Internal, "guild visibility response is invalid")
+	}
+	channelIDs := v.GetVisibleChannelIds()
+	if len(channelIDs) > s.svcCtx.Cfg.Node.VisibilityChannelLimit() || !strictlyIncreasingPositive(channelIDs) {
+		return nil, status.Error(codes.Internal, "guild visibility channel ids are invalid")
+	}
+	return &visibilitySnapshot{
+		accessRevision: v.GetAccessRevision(),
+		channelIDs:     slices.Clone(channelIDs),
+	}, nil
+}
+
 func strictlyIncreasingPositive(ids []int64) bool {
 	for i, id := range ids {
 		if id <= 0 || (i > 0 && id <= ids[i-1]) {
@@ -241,13 +265,9 @@ func (s *Server) reloadVisibilitySnapshot(ctx context.Context, userID, guildID i
 		if !ok {
 			return nil, status.Error(codes.FailedPrecondition, "guild visibility snapshot is not retained")
 		}
-		snapshots, err := s.loadVisibilitySnapshots(ctx, userID)
+		candidate, err := s.loadSingleVisibilitySnapshot(ctx, userID, guildID)
 		if err != nil {
 			return nil, err
-		}
-		candidate := snapshots[guildID]
-		if candidate == nil {
-			return nil, status.Error(codes.PermissionDenied, "guild visibility snapshot is unavailable")
 		}
 		if candidate.accessRevision < requiredRevision {
 			return nil, status.Error(codes.Aborted, "guild visibility revision is stale")

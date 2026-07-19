@@ -174,6 +174,23 @@ func (g *racingVisibilityGuild) ListUserGuildChannelVisibilities(
 	return visibilityResponse(visibility(9001, 9, 7001)), nil
 }
 
+func (g *racingVisibilityGuild) GetUserGuildChannelVisibility(
+	_ context.Context,
+	req *guildv1.GetUserGuildChannelVisibilityRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
+	g.calls++
+	r := new(guildv1.GetUserGuildChannelVisibilityResponse)
+	if g.calls == 1 {
+		close(g.started)
+		<-g.release
+		r.SetVisibility(visibility(9001, 8, 7001))
+		return r, nil
+	}
+	r.SetVisibility(visibility(9001, 9, 7001))
+	return r, nil
+}
+
 func (g *visibilityGuild) ListUserGuildChannelVisibilities(
 	_ context.Context,
 	req *guildv1.ListUserGuildChannelVisibilitiesRequest,
@@ -186,6 +203,27 @@ func (g *visibilityGuild) ListUserGuildChannelVisibilities(
 	resp := g.responses[g.calls]
 	g.calls++
 	return resp, nil
+}
+
+func (g *visibilityGuild) GetUserGuildChannelVisibility(
+	ctx context.Context,
+	req *guildv1.GetUserGuildChannelVisibilityRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
+	listReq := new(guildv1.ListUserGuildChannelVisibilitiesRequest)
+	listReq.SetUserId(req.GetUserId())
+	resp, err := g.ListUserGuildChannelVisibilities(ctx, listReq)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range resp.GetVisibilities() {
+		if v.GetGuildId() == req.GetGuildId() {
+			r := new(guildv1.GetUserGuildChannelVisibilityResponse)
+			r.SetVisibility(v)
+			return r, nil
+		}
+	}
+	return nil, status.Error(codes.NotFound, "guild not found")
 }
 
 func visibility(guildID, revision int64, channelIDs ...int64) *guildv1.GuildChannelVisibility {

@@ -33,15 +33,12 @@ func TestDispatchRecordRoutesDmMessageByRecipient(t *testing.T) {
 	require.Equal(t, int64(1001), resolver.id)
 }
 
-func TestDispatchRecordFallsBackToLegacyChannelRoute(t *testing.T) {
-	resolver := &fakeResolver{}
-	server := &Server{resolver: resolver}
+func TestDispatchRecordRejectsMessageWithoutAggregateRoute(t *testing.T) {
+	server := &Server{resolver: &fakeResolver{}}
 	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"}}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
-	require.NoError(t, err)
-	require.False(t, permanent)
-	require.Equal(t, discovery.RouteChannel, resolver.kind)
-	require.Equal(t, int64(7001), resolver.id)
+	require.Error(t, err)
+	require.True(t, permanent)
 }
 
 func TestDispatchRecordAcceptsStringGuildIDs(t *testing.T) {

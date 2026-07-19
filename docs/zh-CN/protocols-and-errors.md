@@ -19,15 +19,14 @@ WebSocket 消息采用 `op`、可选 `s`、可选 `t` 和 `d`。主要 opcode：
 - `1`：heartbeat；
 - `2`：identify；
 - `3`：Presence 更新；
-- `4`：频道订阅；
 - `6`：resume；
 - `9`：invalid session；
 - `10`：hello；
 - `11`：heartbeat ACK。
 
-领域事件的 `t` 使用小写点分名称；Gateway 生命周期事件使用 `HELLO`、`READY`、`RESUMED`、`SUBSCRIBED`、`HEARTBEAT_ACK` 和 `ERROR`。
+领域事件的 `t` 使用小写点分名称；Gateway 生命周期事件使用 `HELLO`、`READY`、`RESUMED`、`HEARTBEAT_ACK` 和 `ERROR`。
 
-WebSocket JSON 中的 Snowflake ID 使用十进制字符串。`SUBSCRIBE.channel_ids` 只接受字符串，`READY`、`SUBSCRIBED` 和领域事件 payload 中的 ID 也输出为字符串；sequence、revision 和时间戳仍使用 JSON number。
+WebSocket JSON 中的 Snowflake ID 使用十进制字符串。`READY` 和领域事件 payload 中的 ID 输出为字符串；sequence、revision 和时间戳仍使用 JSON number。
 
 ## 内部错误
 

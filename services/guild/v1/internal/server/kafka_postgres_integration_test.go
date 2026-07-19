@@ -74,4 +74,11 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	require.NoError(t, json.Unmarshal(record.Value, &envelope))
 	require.Equal(t, EventTypeGuildCreated, envelope.Type)
 	require.Equal(t, strconv.FormatInt(created.GetGuild().GetId(), 10), envelope.Data.ID)
+	var revisionEnvelope struct {
+		Data struct {
+			AccessRevision int64 `json:"access_revision"`
+		} `json:"d"`
+	}
+	require.NoError(t, json.Unmarshal(record.Value, &revisionEnvelope))
+	require.GreaterOrEqual(t, revisionEnvelope.Data.AccessRevision, int64(3))
 }

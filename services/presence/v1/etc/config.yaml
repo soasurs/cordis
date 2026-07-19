@@ -6,8 +6,6 @@ Redis:
   Type: node
 
 Presence:
-  GatewayTTLSeconds: 30
-  RouteTTLSeconds: 30
   UserSessionTTLSeconds: 60
 
 kafka:

@@ -19,16 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MessageService_CreateMessage_FullMethodName      = "/message.v1.MessageService/CreateMessage"
-	MessageService_UpdateMessage_FullMethodName      = "/message.v1.MessageService/UpdateMessage"
-	MessageService_DeleteMessage_FullMethodName      = "/message.v1.MessageService/DeleteMessage"
-	MessageService_GetMessage_FullMethodName         = "/message.v1.MessageService/GetMessage"
-	MessageService_ListMessages_FullMethodName       = "/message.v1.MessageService/ListMessages"
-	MessageService_CreateDmChannel_FullMethodName    = "/message.v1.MessageService/CreateDmChannel"
-	MessageService_ListDmChannels_FullMethodName     = "/message.v1.MessageService/ListDmChannels"
-	MessageService_AuthorizeDmChannel_FullMethodName = "/message.v1.MessageService/AuthorizeDmChannel"
-	MessageService_AckMessage_FullMethodName         = "/message.v1.MessageService/AckMessage"
-	MessageService_GetReadStates_FullMethodName      = "/message.v1.MessageService/GetReadStates"
+	MessageService_CreateMessage_FullMethodName   = "/message.v1.MessageService/CreateMessage"
+	MessageService_UpdateMessage_FullMethodName   = "/message.v1.MessageService/UpdateMessage"
+	MessageService_DeleteMessage_FullMethodName   = "/message.v1.MessageService/DeleteMessage"
+	MessageService_GetMessage_FullMethodName      = "/message.v1.MessageService/GetMessage"
+	MessageService_ListMessages_FullMethodName    = "/message.v1.MessageService/ListMessages"
+	MessageService_CreateDmChannel_FullMethodName = "/message.v1.MessageService/CreateDmChannel"
+	MessageService_ListDmChannels_FullMethodName  = "/message.v1.MessageService/ListDmChannels"
+	MessageService_AckMessage_FullMethodName      = "/message.v1.MessageService/AckMessage"
+	MessageService_GetReadStates_FullMethodName   = "/message.v1.MessageService/GetReadStates"
 )
 
 // MessageServiceClient is the client API for MessageService service.
@@ -51,9 +50,6 @@ type MessageServiceClient interface {
 	// two friends.
 	CreateDmChannel(ctx context.Context, in *CreateDmChannelRequest, opts ...grpc.CallOption) (*CreateDmChannelResponse, error)
 	ListDmChannels(ctx context.Context, in *ListDmChannelsRequest, opts ...grpc.CallOption) (*ListDmChannelsResponse, error)
-	// AuthorizeDmChannel reports whether the user participates in the DM
-	// channel. It backs Session channel subscriptions.
-	AuthorizeDmChannel(ctx context.Context, in *AuthorizeDmChannelRequest, opts ...grpc.CallOption) (*AuthorizeDmChannelResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(ctx context.Context, in *AckMessageRequest, opts ...grpc.CallOption) (*AckMessageResponse, error)
 	GetReadStates(ctx context.Context, in *GetReadStatesRequest, opts ...grpc.CallOption) (*GetReadStatesResponse, error)
@@ -137,16 +133,6 @@ func (c *messageServiceClient) ListDmChannels(ctx context.Context, in *ListDmCha
 	return out, nil
 }
 
-func (c *messageServiceClient) AuthorizeDmChannel(ctx context.Context, in *AuthorizeDmChannelRequest, opts ...grpc.CallOption) (*AuthorizeDmChannelResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AuthorizeDmChannelResponse)
-	err := c.cc.Invoke(ctx, MessageService_AuthorizeDmChannel_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *messageServiceClient) AckMessage(ctx context.Context, in *AckMessageRequest, opts ...grpc.CallOption) (*AckMessageResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AckMessageResponse)
@@ -187,9 +173,6 @@ type MessageServiceServer interface {
 	// two friends.
 	CreateDmChannel(context.Context, *CreateDmChannelRequest) (*CreateDmChannelResponse, error)
 	ListDmChannels(context.Context, *ListDmChannelsRequest) (*ListDmChannelsResponse, error)
-	// AuthorizeDmChannel reports whether the user participates in the DM
-	// channel. It backs Session channel subscriptions.
-	AuthorizeDmChannel(context.Context, *AuthorizeDmChannelRequest) (*AuthorizeDmChannelResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(context.Context, *AckMessageRequest) (*AckMessageResponse, error)
 	GetReadStates(context.Context, *GetReadStatesRequest) (*GetReadStatesResponse, error)
@@ -222,9 +205,6 @@ func (UnimplementedMessageServiceServer) CreateDmChannel(context.Context, *Creat
 }
 func (UnimplementedMessageServiceServer) ListDmChannels(context.Context, *ListDmChannelsRequest) (*ListDmChannelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListDmChannels not implemented")
-}
-func (UnimplementedMessageServiceServer) AuthorizeDmChannel(context.Context, *AuthorizeDmChannelRequest) (*AuthorizeDmChannelResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeDmChannel not implemented")
 }
 func (UnimplementedMessageServiceServer) AckMessage(context.Context, *AckMessageRequest) (*AckMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AckMessage not implemented")
@@ -378,24 +358,6 @@ func _MessageService_ListDmChannels_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MessageService_AuthorizeDmChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthorizeDmChannelRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MessageServiceServer).AuthorizeDmChannel(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MessageService_AuthorizeDmChannel_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessageServiceServer).AuthorizeDmChannel(ctx, req.(*AuthorizeDmChannelRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _MessageService_AckMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AckMessageRequest)
 	if err := dec(in); err != nil {
@@ -466,10 +428,6 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListDmChannels",
 			Handler:    _MessageService_ListDmChannels_Handler,
-		},
-		{
-			MethodName: "AuthorizeDmChannel",
-			Handler:    _MessageService_AuthorizeDmChannel_Handler,
 		},
 		{
 			MethodName: "AckMessage",

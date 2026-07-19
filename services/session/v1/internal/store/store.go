@@ -15,9 +15,8 @@ type Owner struct {
 type RouteKind string
 
 const (
-	RouteUser    RouteKind = "users"
-	RouteGuild   RouteKind = "guilds"
-	RouteChannel RouteKind = "channels"
+	RouteUser  RouteKind = "users"
+	RouteGuild RouteKind = "guilds"
 )
 
 type Route struct {

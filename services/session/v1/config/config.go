@@ -50,9 +50,10 @@ type NodeConfig struct {
 	RouteTTLSeconds       int `json:",default=30"`
 	BindingQueueSize      int `json:",default=4096"`
 	DrainSeconds          int `json:",default=30"`
-	MaxSubscribedChannels int `json:",default=500"`
 	MaxVisibilityGuilds   int `json:",default=100"`
 	MaxVisibilityChannels int `json:",default=500"`
+	MaxSnapshotReloads    int `json:",default=16"`
+	SnapshotReloadSeconds int `json:",default=2"`
 	MaxPresenceUpdates    int `json:",default=5"`
 	PresenceWindowSeconds int `json:",default=20"`
 }
@@ -73,14 +74,6 @@ func (c NodeConfig) PresenceUpdateWindow() time.Duration {
 	return time.Duration(c.PresenceWindowSeconds) * time.Second
 }
 
-// SubscribedChannelLimit returns the distinct channel limit per logical session.
-func (c NodeConfig) SubscribedChannelLimit() int {
-	if c.MaxSubscribedChannels <= 0 {
-		return 500
-	}
-	return c.MaxSubscribedChannels
-}
-
 // VisibilityGuildLimit bounds the number of Guild snapshots loaded for one user.
 func (c NodeConfig) VisibilityGuildLimit() int {
 	if c.MaxVisibilityGuilds <= 0 {
@@ -97,11 +90,26 @@ func (c NodeConfig) VisibilityChannelLimit() int {
 	return c.MaxVisibilityChannels
 }
 
+// SnapshotReloadLimit bounds concurrent Guild visibility reloads per Session node.
+func (c NodeConfig) SnapshotReloadLimit() int64 {
+	if c.MaxSnapshotReloads <= 0 {
+		return 16
+	}
+	return int64(c.MaxSnapshotReloads)
+}
+
+// SnapshotReloadTimeout bounds one on-demand Guild visibility reload.
+func (c NodeConfig) SnapshotReloadTimeout() time.Duration {
+	if c.SnapshotReloadSeconds <= 0 {
+		return 2 * time.Second
+	}
+	return time.Duration(c.SnapshotReloadSeconds) * time.Second
+}
+
 type ServiceConfig struct {
 	Authenticator zrpc.RpcClientConf
 	Presence      zrpc.RpcClientConf
 	Guild         zrpc.RpcClientConf
-	Message       zrpc.RpcClientConf
 }
 
 func (c Config) RPCConfig() zrpc.RpcServerConf {

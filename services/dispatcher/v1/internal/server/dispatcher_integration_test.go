@@ -60,6 +60,7 @@ func testGuildMessageRoute(t *testing.T, env *dispatcherEnv) {
 
 	request := node.waitChannelEvent(t)
 	require.Equal(t, int64(7001), request.GetChannelId())
+	require.Equal(t, guildID, request.GetGuildId())
 	require.Equal(t, realtime.EventMessageCreated, request.GetEvent().GetType())
 	require.JSONEq(t, `{"id":"9001","guild_id":"7000","channel_id":"7001"}`, request.GetEvent().GetJsonPayload())
 }
@@ -327,23 +328,23 @@ type recordingSessionServer struct {
 	channelCount   int
 	guildCount     int
 	userCount      int
-	channelEvents  chan *sessionv1.DispatchChannelEventRequest
+	channelEvents  chan *sessionv1.DispatchGuildMessageEventRequest
 	guildEventsCh  chan *sessionv1.DispatchGuildEventRequest
 	userEventsCh   chan *sessionv1.DispatchUserEventRequest
 }
 
 func newRecordingSessionServer() *recordingSessionServer {
 	return &recordingSessionServer{
-		channelEvents: make(chan *sessionv1.DispatchChannelEventRequest, 16),
+		channelEvents: make(chan *sessionv1.DispatchGuildMessageEventRequest, 16),
 		guildEventsCh: make(chan *sessionv1.DispatchGuildEventRequest, 16),
 		userEventsCh:  make(chan *sessionv1.DispatchUserEventRequest, 16),
 	}
 }
 
-func (s *recordingSessionServer) DispatchChannelEvent(
+func (s *recordingSessionServer) DispatchGuildMessageEvent(
 	_ context.Context,
-	req *sessionv1.DispatchChannelEventRequest,
-) (*sessionv1.DispatchChannelEventResponse, error) {
+	req *sessionv1.DispatchGuildMessageEventRequest,
+) (*sessionv1.DispatchGuildMessageEventResponse, error) {
 	s.mu.Lock()
 	s.channelCount++
 	failing := s.channelFailing
@@ -352,7 +353,7 @@ func (s *recordingSessionServer) DispatchChannelEvent(
 		return nil, status.Error(codes.Unavailable, "injected failure")
 	}
 	s.channelEvents <- req
-	return new(sessionv1.DispatchChannelEventResponse), nil
+	return new(sessionv1.DispatchGuildMessageEventResponse), nil
 }
 
 func (s *recordingSessionServer) DispatchGuildEvent(
@@ -389,7 +390,7 @@ func (s *recordingSessionServer) channelCalls() int {
 	return s.channelCount
 }
 
-func (s *recordingSessionServer) waitChannelEvent(t *testing.T) *sessionv1.DispatchChannelEventRequest {
+func (s *recordingSessionServer) waitChannelEvent(t *testing.T) *sessionv1.DispatchGuildMessageEventRequest {
 	t.Helper()
 	select {
 	case request := <-s.channelEvents:

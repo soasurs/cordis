@@ -2928,186 +2928,6 @@ func (b0 ListDmChannelsResponse_builder) Build() *ListDmChannelsResponse {
 	return m0
 }
 
-type AuthorizeDmChannelRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *AuthorizeDmChannelRequest) Reset() {
-	*x = AuthorizeDmChannelRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AuthorizeDmChannelRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AuthorizeDmChannelRequest) ProtoMessage() {}
-
-func (x *AuthorizeDmChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *AuthorizeDmChannelRequest) GetChannelId() int64 {
-	if x != nil {
-		return x.xxx_hidden_ChannelId
-	}
-	return 0
-}
-
-func (x *AuthorizeDmChannelRequest) GetUserId() int64 {
-	if x != nil {
-		return x.xxx_hidden_UserId
-	}
-	return 0
-}
-
-func (x *AuthorizeDmChannelRequest) SetChannelId(v int64) {
-	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *AuthorizeDmChannelRequest) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *AuthorizeDmChannelRequest) HasChannelId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *AuthorizeDmChannelRequest) HasUserId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *AuthorizeDmChannelRequest) ClearChannelId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_ChannelId = 0
-}
-
-func (x *AuthorizeDmChannelRequest) ClearUserId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_UserId = 0
-}
-
-type AuthorizeDmChannelRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	ChannelId *int64
-	UserId    *int64
-}
-
-func (b0 AuthorizeDmChannelRequest_builder) Build() *AuthorizeDmChannelRequest {
-	m0 := &AuthorizeDmChannelRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_ChannelId = *b.ChannelId
-	}
-	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_UserId = *b.UserId
-	}
-	return m0
-}
-
-type AuthorizeDmChannelResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Allowed     bool                   `protobuf:"varint,1,opt,name=allowed"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *AuthorizeDmChannelResponse) Reset() {
-	*x = AuthorizeDmChannelResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AuthorizeDmChannelResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AuthorizeDmChannelResponse) ProtoMessage() {}
-
-func (x *AuthorizeDmChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *AuthorizeDmChannelResponse) GetAllowed() bool {
-	if x != nil {
-		return x.xxx_hidden_Allowed
-	}
-	return false
-}
-
-func (x *AuthorizeDmChannelResponse) SetAllowed(v bool) {
-	x.xxx_hidden_Allowed = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *AuthorizeDmChannelResponse) HasAllowed() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *AuthorizeDmChannelResponse) ClearAllowed() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Allowed = false
-}
-
-type AuthorizeDmChannelResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Allowed *bool
-}
-
-func (b0 AuthorizeDmChannelResponse_builder) Build() *AuthorizeDmChannelResponse {
-	m0 := &AuthorizeDmChannelResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Allowed != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Allowed = *b.Allowed
-	}
-	return m0
-}
-
 type AckMessageRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3121,7 +2941,7 @@ type AckMessageRequest struct {
 
 func (x *AckMessageRequest) Reset() {
 	*x = AckMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[21]
+	mi := &file_message_v1_message_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3133,7 +2953,7 @@ func (x *AckMessageRequest) String() string {
 func (*AckMessageRequest) ProtoMessage() {}
 
 func (x *AckMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[21]
+	mi := &file_message_v1_message_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3256,7 +3076,7 @@ type AckMessageResponse struct {
 
 func (x *AckMessageResponse) Reset() {
 	*x = AckMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[22]
+	mi := &file_message_v1_message_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3268,7 +3088,7 @@ func (x *AckMessageResponse) String() string {
 func (*AckMessageResponse) ProtoMessage() {}
 
 func (x *AckMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[22]
+	mi := &file_message_v1_message_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3332,7 +3152,7 @@ type GetReadStatesRequest struct {
 
 func (x *GetReadStatesRequest) Reset() {
 	*x = GetReadStatesRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[23]
+	mi := &file_message_v1_message_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3344,7 +3164,7 @@ func (x *GetReadStatesRequest) String() string {
 func (*GetReadStatesRequest) ProtoMessage() {}
 
 func (x *GetReadStatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[23]
+	mi := &file_message_v1_message_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3428,7 +3248,7 @@ type ChannelReadState struct {
 
 func (x *ChannelReadState) Reset() {
 	*x = ChannelReadState{}
-	mi := &file_message_v1_message_proto_msgTypes[24]
+	mi := &file_message_v1_message_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3440,7 +3260,7 @@ func (x *ChannelReadState) String() string {
 func (*ChannelReadState) ProtoMessage() {}
 
 func (x *ChannelReadState) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[24]
+	mi := &file_message_v1_message_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3591,7 +3411,7 @@ type GetReadStatesResponse struct {
 
 func (x *GetReadStatesResponse) Reset() {
 	*x = GetReadStatesResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[25]
+	mi := &file_message_v1_message_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3603,7 +3423,7 @@ func (x *GetReadStatesResponse) String() string {
 func (*GetReadStatesResponse) ProtoMessage() {}
 
 func (x *GetReadStatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[25]
+	mi := &file_message_v1_message_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3743,13 +3563,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\"h\n" +
 	"\x16ListDmChannelsResponse\x121\n" +
 	"\bchannels\x18\x01 \x03(\v2\x15.message.v1.DmChannelR\bchannels\x12\x1b\n" +
-	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\"S\n" +
-	"\x19AuthorizeDmChannelRequest\x12\x1d\n" +
-	"\n" +
-	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x03R\x06userId\"6\n" +
-	"\x1aAuthorizeDmChannelResponse\x12\x18\n" +
-	"\aallowed\x18\x01 \x01(\bR\aallowed\"j\n" +
+	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\"j\n" +
 	"\x11AckMessageRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +
@@ -3778,7 +3592,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\vMessageFlag\x12\x1c\n" +
 	"\x18MESSAGE_FLAG_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17MESSAGE_FLAG_HAS_THREAD\x10 \x12(\n" +
-	"#MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS\x10\x80 2\xef\x06\n" +
+	"#MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS\x10\x80 2\x8a\x06\n" +
 	"\x0eMessageService\x12T\n" +
 	"\rCreateMessage\x12 .message.v1.CreateMessageRequest\x1a!.message.v1.CreateMessageResponse\x12T\n" +
 	"\rUpdateMessage\x12 .message.v1.UpdateMessageRequest\x1a!.message.v1.UpdateMessageResponse\x12T\n" +
@@ -3787,8 +3601,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"GetMessage\x12\x1d.message.v1.GetMessageRequest\x1a\x1e.message.v1.GetMessageResponse\x12Q\n" +
 	"\fListMessages\x12\x1f.message.v1.ListMessagesRequest\x1a .message.v1.ListMessagesResponse\x12Z\n" +
 	"\x0fCreateDmChannel\x12\".message.v1.CreateDmChannelRequest\x1a#.message.v1.CreateDmChannelResponse\x12W\n" +
-	"\x0eListDmChannels\x12!.message.v1.ListDmChannelsRequest\x1a\".message.v1.ListDmChannelsResponse\x12c\n" +
-	"\x12AuthorizeDmChannel\x12%.message.v1.AuthorizeDmChannelRequest\x1a&.message.v1.AuthorizeDmChannelResponse\x12K\n" +
+	"\x0eListDmChannels\x12!.message.v1.ListDmChannelsRequest\x1a\".message.v1.ListDmChannelsResponse\x12K\n" +
 	"\n" +
 	"AckMessage\x12\x1d.message.v1.AckMessageRequest\x1a\x1e.message.v1.AckMessageResponse\x12T\n" +
 	"\rGetReadStates\x12 .message.v1.GetReadStatesRequest\x1a!.message.v1.GetReadStatesResponseB\x9b\x01\n" +
@@ -3797,36 +3610,34 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"Message\\V1\xe2\x02\x16Message\\V1\\GPBMetadata\xea\x02\vMessage::V1b\beditionsp\xe8\a"
 
 var file_message_v1_message_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_message_v1_message_proto_goTypes = []any{
-	(MessageType)(0),                   // 0: message.v1.MessageType
-	(MessageFlag)(0),                   // 1: message.v1.MessageFlag
-	(*DmChannel)(nil),                  // 2: message.v1.DmChannel
-	(*Message)(nil),                    // 3: message.v1.Message
-	(*Attachment)(nil),                 // 4: message.v1.Attachment
-	(*AttachmentList)(nil),             // 5: message.v1.AttachmentList
-	(*MentionList)(nil),                // 6: message.v1.MentionList
-	(*CreateMessageRequest)(nil),       // 7: message.v1.CreateMessageRequest
-	(*CreateMessageResponse)(nil),      // 8: message.v1.CreateMessageResponse
-	(*UpdateMessageRequest)(nil),       // 9: message.v1.UpdateMessageRequest
-	(*UpdateMessageResponse)(nil),      // 10: message.v1.UpdateMessageResponse
-	(*DeleteMessageRequest)(nil),       // 11: message.v1.DeleteMessageRequest
-	(*DeleteMessageResponse)(nil),      // 12: message.v1.DeleteMessageResponse
-	(*GetMessageRequest)(nil),          // 13: message.v1.GetMessageRequest
-	(*GetMessageResponse)(nil),         // 14: message.v1.GetMessageResponse
-	(*ListMessagesRequest)(nil),        // 15: message.v1.ListMessagesRequest
-	(*ListMessagesResponse)(nil),       // 16: message.v1.ListMessagesResponse
-	(*CreateDmChannelRequest)(nil),     // 17: message.v1.CreateDmChannelRequest
-	(*CreateDmChannelResponse)(nil),    // 18: message.v1.CreateDmChannelResponse
-	(*ListDmChannelsRequest)(nil),      // 19: message.v1.ListDmChannelsRequest
-	(*ListDmChannelsResponse)(nil),     // 20: message.v1.ListDmChannelsResponse
-	(*AuthorizeDmChannelRequest)(nil),  // 21: message.v1.AuthorizeDmChannelRequest
-	(*AuthorizeDmChannelResponse)(nil), // 22: message.v1.AuthorizeDmChannelResponse
-	(*AckMessageRequest)(nil),          // 23: message.v1.AckMessageRequest
-	(*AckMessageResponse)(nil),         // 24: message.v1.AckMessageResponse
-	(*GetReadStatesRequest)(nil),       // 25: message.v1.GetReadStatesRequest
-	(*ChannelReadState)(nil),           // 26: message.v1.ChannelReadState
-	(*GetReadStatesResponse)(nil),      // 27: message.v1.GetReadStatesResponse
+	(MessageType)(0),                // 0: message.v1.MessageType
+	(MessageFlag)(0),                // 1: message.v1.MessageFlag
+	(*DmChannel)(nil),               // 2: message.v1.DmChannel
+	(*Message)(nil),                 // 3: message.v1.Message
+	(*Attachment)(nil),              // 4: message.v1.Attachment
+	(*AttachmentList)(nil),          // 5: message.v1.AttachmentList
+	(*MentionList)(nil),             // 6: message.v1.MentionList
+	(*CreateMessageRequest)(nil),    // 7: message.v1.CreateMessageRequest
+	(*CreateMessageResponse)(nil),   // 8: message.v1.CreateMessageResponse
+	(*UpdateMessageRequest)(nil),    // 9: message.v1.UpdateMessageRequest
+	(*UpdateMessageResponse)(nil),   // 10: message.v1.UpdateMessageResponse
+	(*DeleteMessageRequest)(nil),    // 11: message.v1.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),   // 12: message.v1.DeleteMessageResponse
+	(*GetMessageRequest)(nil),       // 13: message.v1.GetMessageRequest
+	(*GetMessageResponse)(nil),      // 14: message.v1.GetMessageResponse
+	(*ListMessagesRequest)(nil),     // 15: message.v1.ListMessagesRequest
+	(*ListMessagesResponse)(nil),    // 16: message.v1.ListMessagesResponse
+	(*CreateDmChannelRequest)(nil),  // 17: message.v1.CreateDmChannelRequest
+	(*CreateDmChannelResponse)(nil), // 18: message.v1.CreateDmChannelResponse
+	(*ListDmChannelsRequest)(nil),   // 19: message.v1.ListDmChannelsRequest
+	(*ListDmChannelsResponse)(nil),  // 20: message.v1.ListDmChannelsResponse
+	(*AckMessageRequest)(nil),       // 21: message.v1.AckMessageRequest
+	(*AckMessageResponse)(nil),      // 22: message.v1.AckMessageResponse
+	(*GetReadStatesRequest)(nil),    // 23: message.v1.GetReadStatesRequest
+	(*ChannelReadState)(nil),        // 24: message.v1.ChannelReadState
+	(*GetReadStatesResponse)(nil),   // 25: message.v1.GetReadStatesResponse
 }
 var file_message_v1_message_proto_depIdxs = []int32{
 	0,  // 0: message.v1.Message.type:type_name -> message.v1.MessageType
@@ -3842,7 +3653,7 @@ var file_message_v1_message_proto_depIdxs = []int32{
 	3,  // 10: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
 	2,  // 11: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
 	2,  // 12: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
-	26, // 13: message.v1.GetReadStatesResponse.states:type_name -> message.v1.ChannelReadState
+	24, // 13: message.v1.GetReadStatesResponse.states:type_name -> message.v1.ChannelReadState
 	7,  // 14: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
 	9,  // 15: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
 	11, // 16: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
@@ -3850,21 +3661,19 @@ var file_message_v1_message_proto_depIdxs = []int32{
 	15, // 18: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
 	17, // 19: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
 	19, // 20: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
-	21, // 21: message.v1.MessageService.AuthorizeDmChannel:input_type -> message.v1.AuthorizeDmChannelRequest
-	23, // 22: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
-	25, // 23: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
-	8,  // 24: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
-	10, // 25: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
-	12, // 26: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
-	14, // 27: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
-	16, // 28: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
-	18, // 29: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
-	20, // 30: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
-	22, // 31: message.v1.MessageService.AuthorizeDmChannel:output_type -> message.v1.AuthorizeDmChannelResponse
-	24, // 32: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
-	27, // 33: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
-	24, // [24:34] is the sub-list for method output_type
-	14, // [14:24] is the sub-list for method input_type
+	21, // 21: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
+	23, // 22: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
+	8,  // 23: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
+	10, // 24: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
+	12, // 25: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
+	14, // 26: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
+	16, // 27: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
+	18, // 28: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
+	20, // 29: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
+	22, // 30: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
+	25, // 31: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
+	23, // [23:32] is the sub-list for method output_type
+	14, // [14:23] is the sub-list for method input_type
 	14, // [14:14] is the sub-list for extension type_name
 	14, // [14:14] is the sub-list for extension extendee
 	0,  // [0:14] is the sub-list for field type_name
@@ -3886,7 +3695,7 @@ func file_message_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_message_v1_message_proto_rawDesc), len(file_message_v1_message_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   26,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

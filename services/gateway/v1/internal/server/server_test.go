@@ -87,25 +87,6 @@ func TestWebSocketRejectsMissingHandshake(t *testing.T) {
 	require.Equal(t, eventError, failure.T)
 }
 
-func TestToGatewayFrameParsesStringChannelIDs(t *testing.T) {
-	client := &client{connectionID: "connection-test", server: &Server{gatewayID: "gateway-test"}}
-	frame, err := client.toGatewayFrame(envelope{
-		Op: opSubscribe,
-		D:  json.RawMessage(`{"channel_ids":["9007199254740993"]}`),
-	})
-	require.NoError(t, err)
-	require.Equal(t, []int64{9007199254740993}, frame.GetSubscribe().GetChannelIds())
-}
-
-func TestToGatewayFrameRejectsNumericChannelIDs(t *testing.T) {
-	client := &client{connectionID: "connection-test", server: &Server{gatewayID: "gateway-test"}}
-	_, err := client.toGatewayFrame(envelope{
-		Op: opSubscribe,
-		D:  json.RawMessage(`{"channel_ids":[9007199254740993]}`),
-	})
-	require.Error(t, err)
-}
-
 func TestToGatewayFramePresenceUpdate(t *testing.T) {
 	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
 	frame, err := client.toGatewayFrame(envelope{
@@ -145,51 +126,6 @@ func TestToGatewayFrameIdentifyInvalidJSON(t *testing.T) {
 	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
 	_, err := client.toGatewayFrame(envelope{
 		Op: opIdentify,
-		D:  json.RawMessage(`invalid`),
-	})
-	require.Error(t, err)
-}
-
-func TestToGatewayFrameSubscribeEmptyChannelIDs(t *testing.T) {
-	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
-	_, err := client.toGatewayFrame(envelope{
-		Op: opSubscribe,
-		D:  json.RawMessage(`{"channel_ids":[]}`),
-	})
-	require.NoError(t, err)
-}
-
-func TestToGatewayFrameSubscribeInvalidID(t *testing.T) {
-	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
-	_, err := client.toGatewayFrame(envelope{
-		Op: opSubscribe,
-		D:  json.RawMessage(`{"channel_ids":["abc"]}`),
-	})
-	require.Error(t, err)
-}
-
-func TestToGatewayFrameSubscribeZeroID(t *testing.T) {
-	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
-	_, err := client.toGatewayFrame(envelope{
-		Op: opSubscribe,
-		D:  json.RawMessage(`{"channel_ids":["0"]}`),
-	})
-	require.Error(t, err)
-}
-
-func TestToGatewayFrameSubscribeNegativeID(t *testing.T) {
-	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
-	_, err := client.toGatewayFrame(envelope{
-		Op: opSubscribe,
-		D:  json.RawMessage(`{"channel_ids":["-1"]}`),
-	})
-	require.Error(t, err)
-}
-
-func TestToGatewayFrameSubscribeInvalidJSON(t *testing.T) {
-	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
-	_, err := client.toGatewayFrame(envelope{
-		Op: opSubscribe,
 		D:  json.RawMessage(`invalid`),
 	})
 	require.Error(t, err)
@@ -240,6 +176,15 @@ func TestToGatewayFrameUnknownOpcode(t *testing.T) {
 	_, err := client.toGatewayFrame(envelope{
 		Op: 99,
 		D:  json.RawMessage(`{}`),
+	})
+	require.Error(t, err)
+}
+
+func TestToGatewayFrameRejectsRemovedSubscribeOpcode(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: 4,
+		D:  json.RawMessage(`{"channel_ids":["42"]}`),
 	})
 	require.Error(t, err)
 }
@@ -382,14 +327,6 @@ func (s fakeSessionServer) Connect(stream sessionv1.SessionService_ConnectServer
 		switch {
 		case frame.GetHeartbeat() != nil:
 			return fmt.Errorf("gateway forwarded heartbeat to session")
-		case frame.GetSubscribe() != nil:
-			subscribed := new(sessionv1.ConnectResponse)
-			subscribed.SetOpcode(opDispatch)
-			subscribed.SetType(eventSubscribed)
-			subscribed.SetJsonPayload(`{"channel_ids":["42"]}`)
-			if err := stream.Send(subscribed); err != nil {
-				return err
-			}
 		case frame.GetPresence() != nil:
 		case frame.GetDetach() != nil:
 			return nil
@@ -435,33 +372,6 @@ func TestWebSocketResumeLifecycle(t *testing.T) {
 	require.Equal(t, opDispatch, resumed.Op)
 	require.Equal(t, eventResumed, resumed.T)
 	require.Equal(t, uint64(100), resumed.S)
-}
-
-func TestWebSocketSubscribeLifecycle(t *testing.T) {
-	sessionAddress := startFakeSessionServer(t)
-	gateway := New(svc.NewServiceContextWithDependencies(config.Config{
-		Name:     "gateway.test",
-		ListenOn: "127.0.0.1:8081",
-		Gateway: config.GatewayConfig{
-			WebSocketPath:          "/ws",
-			HeartbeatIntervalMs:    50,
-			IdentifyTimeoutSeconds: 5,
-		},
-	}, svc.Dependencies{
-		Resolver: fakeResolver{address: sessionAddress},
-	}))
-
-	conn, reader := connectWebSocket(t, gateway, "/ws")
-	defer conn.Close()
-
-	_ = readEnvelope(t, reader)
-	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
-	_ = readEnvelope(t, reader)
-
-	writeClientText(t, conn, `{"op":4,"d":{"channel_ids":["42"]}}`)
-	subscribed := readEnvelope(t, reader)
-	require.Equal(t, opDispatch, subscribed.Op)
-	require.Equal(t, eventSubscribed, subscribed.T)
 }
 
 func TestWebSocketPresenceUpdate(t *testing.T) {

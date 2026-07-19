@@ -58,7 +58,8 @@ memberships and returns the complete, ascending set of visible channel IDs for
 each Guild. Every snapshot carries a persistent `access_revision`. PostgreSQL
 triggers advance this monotonic revision whenever membership, role permissions
 or assignments, channels, permission overwrites, ownership, or Guild deletion
-can change access.
+can change access. Published Guild events include the committed revision while
+the Guild still exists.
 
 ## Message
 
@@ -90,8 +91,8 @@ on a best-effort basis; failures are logged. Guild message records carry
 HTTP/WebSocket on `:8081`, exposing `/ws` and `/health`. It sends `HELLO`,
 requires `IDENTIFY` or `RESUME` as the first client message, discovers Session
 nodes through etcd, reads resume ownership from Redis, and proxies the WebSocket
-over a `SessionService.Connect` bidirectional stream. It owns no subscriptions
-and consumes no Kafka events.
+over a `SessionService.Connect` bidirectional stream. It owns no logical routing
+state and consumes no Kafka events.
 
 Before accepting a WebSocket, Gateway applies trusted-proxy-aware source limits
 using an IPv4 `/32` or IPv6 `/64`. Connection capacity is process-local: each
@@ -115,16 +116,19 @@ make delayed checkpoints from replaced connections harmless.
 
 gRPC on `:3006` and the stateful core of realtime delivery. It validates tokens,
 creates or resumes logical sessions, loads Guild visibility, owns local
-user/guild/channel indexes, authorizes channel subscriptions, assigns sequence
-numbers, and keeps up to 2048 replay events in memory.
+user/Guild indexes, assigns sequence numbers, and keeps up to 2048 replay
+events in memory.
 
 IDENTIFY uses the paginated Guild visibility RPC to load immutable, sorted
 channel snapshots with their access revisions. A snapshot set is shared by all
 of the user's logical Sessions on the node and released after the last local
 Session is removed. Loading is bounded to 100 Guilds and 500 visible channels
-per Guild by default. Missing, malformed, oversized, or invalid snapshots are
-not usable for authorization. Message delivery remains on channel subscriptions
-until revision-bearing invalidation and bounded rebuild are connected.
+per Guild by default. Guild access events invalidate affected snapshots by
+revision. On-demand rebuilds are singleflighted per user and Guild, bounded to
+16 concurrent calls per Session node, and time out after two seconds by
+default. A stale, missing, malformed, oversized, or otherwise invalid snapshot
+fails closed. If rebuilding fails, Session skips the sensitive event and emits
+one sequenced `session.reconcile` hint for that invalid snapshot generation.
 
 Session applies Gateway checkpoint batches to advance acknowledged sequences and
 trim replay windows. Client heartbeats do not directly refresh Redis ownership
@@ -136,17 +140,12 @@ session ID. A Redis claim permits only one live logical session per authenticato
 session; the claim is renewed while the logical session is retained, including
 the detached resume window.
 
-A logical session may subscribe to at most 500 distinct channels by default.
-Requests that would exceed the configured total fail atomically without adding
-any of the requested channels.
-
-Dispatcher resolves Guild messages through aggregate Guild routes, then invokes
-the existing channel dispatch RPC on candidate nodes. Until server-owned
-visibility snapshots replace client subscriptions, Session therefore forwards
-a Guild message only to local sessions subscribed to its channel. Legacy
-message records without an aggregate route ID continue through channel routes
-during the rolling migration. DM message records resolve directly through
-aggregate user routes.
+Dispatcher resolves Guild messages through aggregate Guild routes and includes
+the Guild and channel IDs in a dedicated Guild-message dispatch RPC. Session checks the server-owned
+visibility snapshot once per local user and forwards the message to all of that
+user's logical sessions. DM message records resolve directly through aggregate
+user routes. Message records without exactly one aggregate Guild/user route are
+rejected.
 
 No-op Presence updates are discarded. Changed updates are limited to five per
 logical session every 20 seconds, then consume a shared per-user quota of ten per
@@ -169,7 +168,7 @@ once and there is no general event-ID deduplication.
 
 ## Presence
 
-gRPC on `:3003`. Redis-backed gateway, legacy channel-route, and user-device
-presence storage. TTL and generation checks filter stale records. Multi-device
-sessions aggregate into user presence, while `INVISIBLE` is exposed as offline.
-Session still uses Presence to register and refresh online state.
+gRPC on `:3003`. Redis-backed user-device presence storage. TTL and generation
+checks filter stale sessions. Multi-device sessions aggregate into user
+presence, while `INVISIBLE` is exposed as offline. Session uses Presence to
+register and refresh online state.

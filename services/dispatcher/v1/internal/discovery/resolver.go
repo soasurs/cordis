@@ -18,9 +18,8 @@ const routeMemberSeparator = "\x1f"
 type RouteKind string
 
 const (
-	RouteUser    RouteKind = "users"
-	RouteGuild   RouteKind = "guilds"
-	RouteChannel RouteKind = "channels"
+	RouteUser  RouteKind = "users"
+	RouteGuild RouteKind = "guilds"
 )
 
 type Node struct {

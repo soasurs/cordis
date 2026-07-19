@@ -117,24 +117,6 @@ func (s *messageServer) ListDmChannels(ctx context.Context, req *messagev1.ListD
 	return resp, nil
 }
 
-func (s *messageServer) AuthorizeDmChannel(ctx context.Context, req *messagev1.AuthorizeDmChannelRequest) (*messagev1.AuthorizeDmChannelResponse, error) {
-	if req.GetChannelId() <= 0 {
-		return nil, invalidRequest("channel id is required")
-	}
-	if req.GetUserId() <= 0 {
-		return nil, invalidRequest("user id is required")
-	}
-
-	channel, err := s.svcCtx.Store.GetDmChannel(ctx, req.GetChannelId())
-	if err != nil {
-		return nil, mapStoreError(err)
-	}
-
-	resp := new(messagev1.AuthorizeDmChannelResponse)
-	resp.SetAllowed(channel.Participates(req.GetUserId()))
-	return resp, nil
-}
-
 // authorizeDmMessage enforces DM semantics for the message RPCs: only
 // participants may act, nobody holds moderator powers, and sending requires
 // that neither side blocks the other.
@@ -210,8 +192,7 @@ type dmChannelCreatedPayload struct {
 }
 
 // newDmChannelCreatedEvent builds one user-routed record; the key is the
-// decimal recipient user ID so the dispatcher reaches their sessions even
-// though nobody subscribes to the channel yet.
+// decimal recipient user ID so the dispatcher reaches every recipient Session.
 func newDmChannelCreatedEvent(channel *model.DmChannel, recipientID int64) (messageEvent, error) {
 	payload := dmChannelCreatedPayload{
 		ChannelID:   strconv.FormatInt(channel.ID, 10),

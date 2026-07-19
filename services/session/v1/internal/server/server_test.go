@@ -13,7 +13,6 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
-	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
@@ -97,38 +96,6 @@ func TestGatewayPayloadEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	require.Equal(t, `3003`, string(ready["access_token_expires_at"]))
 	require.JSONEq(t, `[]`, string(ready["guild_ids"]))
 
-	const channelID = int64(9007199254740993)
-	session.mu.Lock()
-	binding := session.binding
-	session.mu.Unlock()
-	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{channelID}))
-
-	var subscribed map[string]json.RawMessage
-	require.NoError(t, json.Unmarshal([]byte(session.replay[len(session.replay)-1].frame.GetJsonPayload()), &subscribed))
-	require.JSONEq(t, `["9007199254740993"]`, string(subscribed["channel_ids"]))
-}
-
-func TestSubscribeEnforcesTotalChannelLimitAtomically(t *testing.T) {
-	server := newTestServer()
-	server.svcCtx.Cfg.Node.MaxSubscribedChannels = 2
-	identify := new(sessionv1.Identify)
-	identify.SetToken("token")
-	session, err := server.identify(t.Context(), "conn-limit", "gateway-a", "gen-a", identify)
-	require.NoError(t, err)
-
-	session.mu.Lock()
-	binding := session.binding
-	session.mu.Unlock()
-	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{10, 11}))
-	// Re-subscribing an existing channel consumes no additional capacity.
-	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{11}))
-
-	err = server.subscribeChannels(t.Context(), session, binding, []int64{12})
-	require.Equal(t, codes.ResourceExhausted, status.Code(err))
-	session.mu.Lock()
-	require.Len(t, session.channels, 2)
-	require.NotContains(t, session.channels, int64(12))
-	session.mu.Unlock()
 }
 
 func TestPresenceDeduplicatesNoOpUpdates(t *testing.T) {
@@ -219,8 +186,7 @@ func TestReplayWindowKeepsLatestEvents(t *testing.T) {
 	server := newTestServer()
 	server.svcCtx.Cfg.Node.MaxReplayEvents = 3
 	session := &logicalSession{
-		guilds: make(map[int64]struct{}), channels: make(map[int64]struct{}),
-		channelGuilds: make(map[int64]int64),
+		guilds: make(map[int64]struct{}),
 	}
 	for range 5 {
 		server.appendDispatchLocked(session, realtime.EventMessageCreated, []byte(`{}`))
@@ -292,7 +258,6 @@ func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 		AuthenticatorClient: fakeAuthenticator{},
 		PresenceClient:      fakePresence{},
 		GuildClient:         fakeGuild{},
-		MessageClient:       fakeMessage{},
 	}))
 }
 
@@ -375,14 +340,6 @@ func (fakeAuthenticator) VerifyAccessToken(
 	return resp, nil
 }
 
-type fakeMessage struct {
-	messagev1.MessageServiceClient
-}
-
-func (fakeMessage) AuthorizeDmChannel(context.Context, *messagev1.AuthorizeDmChannelRequest, ...grpc.CallOption) (*messagev1.AuthorizeDmChannelResponse, error) {
-	return nil, status.Error(codes.NotFound, "dm channel not found")
-}
-
 type fakeGuild struct {
 	guildv1.GuildServiceClient
 }
@@ -454,59 +411,4 @@ func (fakePresence) RemoveUserSession(
 	...grpc.CallOption,
 ) (*presencev1.RemoveUserSessionResponse, error) {
 	return new(presencev1.RemoveUserSessionResponse), nil
-}
-
-// notFoundGuild simulates Guild's response for channels it does not own.
-type notFoundGuild struct {
-	guildv1.GuildServiceClient
-}
-
-func (notFoundGuild) ListUserGuildChannelVisibilities(context.Context, *guildv1.ListUserGuildChannelVisibilitiesRequest, ...grpc.CallOption) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
-	return new(guildv1.ListUserGuildChannelVisibilitiesResponse), nil
-}
-
-func (notFoundGuild) AuthorizeGuildChannel(context.Context, *guildv1.AuthorizeGuildChannelRequest, ...grpc.CallOption) (*guildv1.AuthorizeGuildChannelResponse, error) {
-	return nil, status.Error(codes.NotFound, "guild channel not found")
-}
-
-type dmMessage struct {
-	messagev1.MessageServiceClient
-	allowed bool
-}
-
-func (m dmMessage) AuthorizeDmChannel(context.Context, *messagev1.AuthorizeDmChannelRequest, ...grpc.CallOption) (*messagev1.AuthorizeDmChannelResponse, error) {
-	resp := new(messagev1.AuthorizeDmChannelResponse)
-	resp.SetAllowed(m.allowed)
-	return resp, nil
-}
-
-func TestSubscribeFallsBackToDmChannels(t *testing.T) {
-	server := newTestServer()
-	server.svcCtx.GuildClient = notFoundGuild{}
-	server.svcCtx.MessageClient = dmMessage{allowed: true}
-
-	identify := new(sessionv1.Identify)
-	identify.SetToken("token")
-	session, err := server.identify(t.Context(), "conn-dm", "gateway-a", "gen-a", identify)
-	require.NoError(t, err)
-
-	session.mu.Lock()
-	binding := session.binding
-	session.mu.Unlock()
-	require.NoError(t, server.subscribeChannels(t.Context(), session, binding, []int64{555}))
-	session.mu.Lock()
-	_, subscribed := session.channels[555]
-	require.Zero(t, session.channelGuilds[555])
-	session.mu.Unlock()
-	require.True(t, subscribed)
-
-	// A non-participant is rejected.
-	server.svcCtx.MessageClient = dmMessage{allowed: false}
-	other, err := server.identify(t.Context(), "conn-dm-2", "gateway-a", "gen-a", identify)
-	require.NoError(t, err)
-	other.mu.Lock()
-	otherBinding := other.binding
-	other.mu.Unlock()
-	err = server.subscribeChannels(t.Context(), other, otherBinding, []int64{555})
-	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }

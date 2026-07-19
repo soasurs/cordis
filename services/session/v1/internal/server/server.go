@@ -15,13 +15,13 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
-	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
@@ -71,8 +71,6 @@ type logicalSession struct {
 	replay            []replayEntry
 	replayFloor       uint64
 	guilds            map[int64]struct{}
-	channels          map[int64]struct{}
-	channelGuilds     map[int64]int64
 	binding           *binding
 	bindingEpoch      uint64
 	detachedAt        time.Time
@@ -92,12 +90,13 @@ type Server struct {
 	sessions map[string]*logicalSession
 	users    map[int64]map[*logicalSession]struct{}
 	guilds   map[int64]map[*logicalSession]struct{}
-	channels map[int64]map[*logicalSession]struct{}
 	draining atomic.Bool
 
-	visibilityMu    sync.RWMutex
-	visibilityUsers map[int64]*userVisibilityState
-	visibilityLoads singleflight.Group
+	visibilityMu        sync.RWMutex
+	visibilityUsers     map[int64]*userVisibilityState
+	visibilityLoads     singleflight.Group
+	visibilityReloads   singleflight.Group
+	visibilityReloadSem *semaphore.Weighted
 
 	routeMu         sync.Mutex
 	publishedRoutes map[store.Route]struct{}
@@ -116,16 +115,16 @@ func New(svcCtx *svc.ServiceContext) *Server {
 		rpcAddress = svcCtx.Cfg.ListenOn
 	}
 	return &Server{
-		svcCtx:          svcCtx,
-		nodeID:          nodeID,
-		generation:      randomID("gen"),
-		rpcAddress:      rpcAddress,
-		sessions:        make(map[string]*logicalSession),
-		users:           make(map[int64]map[*logicalSession]struct{}),
-		guilds:          make(map[int64]map[*logicalSession]struct{}),
-		channels:        make(map[int64]map[*logicalSession]struct{}),
-		visibilityUsers: make(map[int64]*userVisibilityState),
-		publishedRoutes: make(map[store.Route]struct{}),
+		svcCtx:              svcCtx,
+		nodeID:              nodeID,
+		generation:          randomID("gen"),
+		rpcAddress:          rpcAddress,
+		sessions:            make(map[string]*logicalSession),
+		users:               make(map[int64]map[*logicalSession]struct{}),
+		guilds:              make(map[int64]map[*logicalSession]struct{}),
+		visibilityUsers:     make(map[int64]*userVisibilityState),
+		visibilityReloadSem: semaphore.NewWeighted(svcCtx.Cfg.Node.SnapshotReloadLimit()),
+		publishedRoutes:     make(map[store.Route]struct{}),
 	}
 }
 
@@ -317,8 +316,6 @@ func (s *Server) identify(
 		status:            statusFromString(data.GetStatus()),
 		clientState:       clientStateFromString(data.GetClientState()),
 		guilds:            make(map[int64]struct{}),
-		channels:          make(map[int64]struct{}),
-		channelGuilds:     make(map[int64]int64),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 	}
 	claimed, err := s.svcCtx.Store.ClaimAuthSession(
@@ -475,10 +472,6 @@ func (s *Server) receiveFrames(stream sessionv1.SessionService_ConnectServer, se
 			if err := s.updatePresence(stream.Context(), session, binding, frame.GetPresence()); err != nil {
 				return err
 			}
-		case frame.GetSubscribe() != nil:
-			if err := s.subscribeChannels(stream.Context(), session, binding, frame.GetSubscribe().GetChannelIds()); err != nil {
-				return err
-			}
 		case frame.GetDetach() != nil:
 			s.detach(session, binding, frame.GetDetach().GetResumable())
 			return nil
@@ -577,51 +570,6 @@ func (s *Server) updatePresence(ctx context.Context, session *logicalSession, bi
 	return nil
 }
 
-func (s *Server) subscribeChannels(ctx context.Context, session *logicalSession, binding *binding, ids []int64) error {
-	ids, err := normalizeIDs(ids)
-	if err != nil {
-		return err
-	}
-	channelGuilds := make(map[int64]int64, len(ids))
-	for _, channelID := range ids {
-		if ok, guildID, err := s.authorizeChannel(ctx, session.userID, channelID); err != nil {
-			return err
-		} else if !ok {
-			return status.Error(codes.PermissionDenied, "channel subscription permission denied")
-		} else {
-			channelGuilds[channelID] = guildID
-		}
-	}
-	session.mu.Lock()
-	if session.binding != binding {
-		session.mu.Unlock()
-		return status.Error(codes.Aborted, "stale session binding")
-	}
-	additional := 0
-	for _, channelID := range ids {
-		if _, subscribed := session.channels[channelID]; !subscribed {
-			additional++
-		}
-	}
-	if len(session.channels)+additional > s.svcCtx.Cfg.Node.SubscribedChannelLimit() {
-		session.mu.Unlock()
-		return status.Error(codes.ResourceExhausted, "subscribed channel limit exceeded")
-	}
-	for _, channelID := range ids {
-		session.channels[channelID] = struct{}{}
-		session.channelGuilds[channelID] = channelGuilds[channelID]
-	}
-	session.mu.Unlock()
-	s.addChannelIndexes(session, ids)
-	s.refreshAllRoutes(ctx)
-
-	payload, _ := json.Marshal(map[string]any{"channel_ids": stringifyIDs(ids)})
-	session.mu.Lock()
-	s.appendDispatchLocked(session, realtime.GatewayEventSubscribed, payload)
-	session.mu.Unlock()
-	return nil
-}
-
 func (s *Server) takeOperationRateLimit(
 	ctx context.Context,
 	policy, key string,
@@ -717,14 +665,6 @@ func (s *Server) addSession(session *logicalSession, snapshots map[int64]*visibi
 	s.retainVisibilitySnapshots(session.userID, snapshots)
 }
 
-func (s *Server) addChannelIndexes(session *logicalSession, channelIDs []int64) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for _, channelID := range channelIDs {
-		addIndex(s.channels, channelID, session)
-	}
-}
-
 func addIndex(index map[int64]map[*logicalSession]struct{}, id int64, session *logicalSession) {
 	set := index[id]
 	if set == nil {
@@ -748,7 +688,6 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 		session.binding = nil
 	}
 	guildIDs := mapKeys(session.guilds)
-	channelIDs := mapKeys(session.channels)
 	session.mu.Unlock()
 
 	s.mu.Lock()
@@ -761,9 +700,6 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	for _, guildID := range guildIDs {
 		removeIndex(s.guilds, guildID, session)
 	}
-	for _, channelID := range channelIDs {
-		removeIndex(s.channels, channelID, session)
-	}
 	s.mu.Unlock()
 	s.releaseVisibilitySnapshots(session.userID)
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
@@ -772,36 +708,16 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	s.refreshAllRoutes(ctx)
 }
 
-func (s *Server) authorizeChannel(ctx context.Context, userID, channelID int64) (bool, int64, error) {
+func (s *Server) authorizeChannel(ctx context.Context, userID, channelID int64) (bool, error) {
 	req := new(guildv1.AuthorizeGuildChannelRequest)
 	req.SetUserId(userID)
 	req.SetChannelId(channelID)
 	req.SetPermission(uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL))
 	resp, err := s.svcCtx.GuildClient.AuthorizeGuildChannel(ctx, req)
 	if err != nil {
-		// Unknown to Guild: the ID may be a DM channel owned by Message.
-		if status.Code(err) == codes.NotFound {
-			return s.authorizeDmChannel(ctx, userID, channelID)
-		}
-		return false, 0, err
+		return false, err
 	}
-	return resp.GetAllowed(), resp.GetGuildId(), nil
-}
-
-// authorizeDmChannel asks Message whether the user participates in the DM
-// channel. DM subscriptions carry no guild, so the guild ID is zero.
-func (s *Server) authorizeDmChannel(ctx context.Context, userID, channelID int64) (bool, int64, error) {
-	req := new(messagev1.AuthorizeDmChannelRequest)
-	req.SetChannelId(channelID)
-	req.SetUserId(userID)
-	resp, err := s.svcCtx.MessageClient.AuthorizeDmChannel(ctx, req)
-	if err != nil {
-		if status.Code(err) == codes.NotFound {
-			return false, 0, nil
-		}
-		return false, 0, err
-	}
-	return resp.GetAllowed(), 0, nil
+	return resp.GetAllowed(), nil
 }
 
 func (s *Server) refreshOwner(ctx context.Context, session *logicalSession) error {
@@ -984,15 +900,12 @@ func (s *Server) refreshAllRoutes(ctx context.Context) {
 func (s *Server) routeSnapshot() []store.Route {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	routes := make([]store.Route, 0, len(s.users)+len(s.guilds)+len(s.channels))
+	routes := make([]store.Route, 0, len(s.users)+len(s.guilds))
 	for id := range s.users {
 		routes = append(routes, store.Route{Kind: store.RouteUser, ID: id})
 	}
 	for id := range s.guilds {
 		routes = append(routes, store.Route{Kind: store.RouteGuild, ID: id})
-	}
-	for id := range s.channels {
-		routes = append(routes, store.Route{Kind: store.RouteChannel, ID: id})
 	}
 	return routes
 }
@@ -1023,25 +936,6 @@ func (s *Server) cleanupDetached(ctx context.Context) {
 			}
 		}
 	}
-}
-
-func normalizeIDs(ids []int64) ([]int64, error) {
-	seen := make(map[int64]struct{}, len(ids))
-	result := make([]int64, 0, len(ids))
-	for _, id := range ids {
-		if id <= 0 {
-			return nil, status.Error(codes.InvalidArgument, "channel id must be positive")
-		}
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		result = append(result, id)
-	}
-	if len(result) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "channel ids are required")
-	}
-	return result, nil
 }
 
 func stringifyIDs(ids []int64) []string {

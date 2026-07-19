@@ -39,8 +39,8 @@ flowchart LR
 
 - API 负责公开协议转换、身份信息传递和公开错误映射，不承载领域数据。
 - User、Authenticator、Guild、Message 是领域服务，PostgreSQL 中的数据由各服务分别拥有。
-- Gateway 只负责 WebSocket 传输，不持有逻辑 Session 和订阅状态。
-- Session 是有状态实时服务，持有逻辑会话、订阅索引和内存回放缓冲区。
+- Gateway 只负责 WebSocket 传输，不持有逻辑 Session 或路由状态。
+- Session 是有状态实时服务，持有逻辑会话、可见性快照和内存回放缓冲区。
 - Dispatcher 消费领域事件，借助 Redis 路由到相关 Session 节点。
 - etcd 保存带租约的 Session 节点目录；Redis 保存 Resume owner 和用户、Guild、频道的聚合路由。
 - Presence 管理在线状态并依赖 Redis。

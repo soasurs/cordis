@@ -8,7 +8,7 @@
 4. Gateway 从 etcd 选择可用 Session 节点；Resume 先从 Redis 查找 Session owner，再用 etcd 校验节点 generation。
 5. Gateway 建立 `SessionService.Connect` 双向流，并发送首条 `ConnectRequest`。
 6. IDENTIFY 成功后 Session 返回 sequence 化的 `READY`；RESUME 成功后重放缺失事件并返回 `RESUMED`。
-7. 后续心跳、Presence、订阅和 detach 经同一条流传递。
+7. 后续 Presence、detach 和服务端事件经同一条流传递；Gateway 本地处理 heartbeat，并批量向 Session 同步 sequence checkpoint。
 
 Gateway 实例身份包含 ID 与 generation，可区分同名进程重启。逻辑 Session 与 WebSocket connection 分离，因此一次断线重连可以绑定到原 Session。
 
@@ -18,19 +18,18 @@ Gateway 实例身份包含 ID 与 generation，可区分同名进程重启。逻
 
 Resume sequence 低于 replay floor、超过服务端 sequence，或 Session 已过期时，Resume 无效，客户端必须重新 IDENTIFY。缓冲区只在内存中，不跨 Session 节点迁移。
 
-## 订阅与权限
+## 路由与权限
 
-IDENTIFY 自动建立用户和 Guild 路由。频道需客户端显式订阅，Session 调用 Guild 的 `AuthorizeGuildChannel` 校验 `VIEW_CHANNEL`。频道权限相关 Guild 事件到达后，Session 会重新授权本节点相关会话；无权会话不再收到对应事件。
+IDENTIFY 自动建立用户和 Guild 路由。Dispatcher 按 Guild 将消息路由到候选 Session 节点；Session 通过带 revision 的用户可见性快照过滤，然后投递给该用户的全部本地逻辑 Session。权限事件会使受影响快照失效；重建失败时保持 fail closed，并为当前失效代发送一次带 sequence 的 `session.reconcile`。
 
-成员被踢出或封禁时，事件先投递给当前 Guild 会话，再撤销其 Guild 和相关频道索引。这样客户端能够收到导致订阅失效的最终状态事件。
+成员被踢出或封禁时，事件先投递给当前 Guild 会话，再撤销其 Guild 索引。这样客户端能够收到导致访问失效的最终状态事件。
 
 ## etcd 节点目录与 Redis 索引
 
 - `/cordis/session/nodes/{node_id}`：etcd 租约 key，保存节点 generation、RPC 地址和 ready/draining 状态。
 - `session:owners:{session_id}`：逻辑 Session 所属节点。
 - `gateway:routes:users:{id}:nodes`：用户所在 Session 节点。
-- `gateway:routes:guilds:{id}:nodes`：Guild 订阅所在节点。
-- `gateway:routes:channels:{id}:nodes`：频道订阅所在节点。
+- `gateway:routes:guilds:{id}:nodes`：Guild 成员所在 Session 节点。
 
 路由成员包含 node ID 与 generation。Redis TTL 与 etcd 租约、读取时 generation 校验共同排除旧进程记录。
 

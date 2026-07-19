@@ -117,942 +117,6 @@ func (x ClientState) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-type GatewayInstance struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GatewayId   *string                `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId"`
-	xxx_hidden_Generation  *string                `protobuf:"bytes,2,opt,name=generation"`
-	xxx_hidden_RpcAddr     *string                `protobuf:"bytes,3,opt,name=rpc_addr,json=rpcAddr"`
-	xxx_hidden_ExpiresAt   int64                  `protobuf:"varint,4,opt,name=expires_at,json=expiresAt"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *GatewayInstance) Reset() {
-	*x = GatewayInstance{}
-	mi := &file_presence_v1_presence_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GatewayInstance) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GatewayInstance) ProtoMessage() {}
-
-func (x *GatewayInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *GatewayInstance) GetGatewayId() string {
-	if x != nil {
-		if x.xxx_hidden_GatewayId != nil {
-			return *x.xxx_hidden_GatewayId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *GatewayInstance) GetGeneration() string {
-	if x != nil {
-		if x.xxx_hidden_Generation != nil {
-			return *x.xxx_hidden_Generation
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *GatewayInstance) GetRpcAddr() string {
-	if x != nil {
-		if x.xxx_hidden_RpcAddr != nil {
-			return *x.xxx_hidden_RpcAddr
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *GatewayInstance) GetExpiresAt() int64 {
-	if x != nil {
-		return x.xxx_hidden_ExpiresAt
-	}
-	return 0
-}
-
-func (x *GatewayInstance) SetGatewayId(v string) {
-	x.xxx_hidden_GatewayId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
-}
-
-func (x *GatewayInstance) SetGeneration(v string) {
-	x.xxx_hidden_Generation = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *GatewayInstance) SetRpcAddr(v string) {
-	x.xxx_hidden_RpcAddr = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
-}
-
-func (x *GatewayInstance) SetExpiresAt(v int64) {
-	x.xxx_hidden_ExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
-}
-
-func (x *GatewayInstance) HasGatewayId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *GatewayInstance) HasGeneration() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *GatewayInstance) HasRpcAddr() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *GatewayInstance) HasExpiresAt() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *GatewayInstance) ClearGatewayId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_GatewayId = nil
-}
-
-func (x *GatewayInstance) ClearGeneration() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Generation = nil
-}
-
-func (x *GatewayInstance) ClearRpcAddr() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_RpcAddr = nil
-}
-
-func (x *GatewayInstance) ClearExpiresAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_ExpiresAt = 0
-}
-
-type GatewayInstance_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	GatewayId  *string
-	Generation *string
-	RpcAddr    *string
-	ExpiresAt  *int64
-}
-
-func (b0 GatewayInstance_builder) Build() *GatewayInstance {
-	m0 := &GatewayInstance{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.GatewayId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
-		x.xxx_hidden_GatewayId = b.GatewayId
-	}
-	if b.Generation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
-		x.xxx_hidden_Generation = b.Generation
-	}
-	if b.RpcAddr != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_RpcAddr = b.RpcAddr
-	}
-	if b.ExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
-		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
-	}
-	return m0
-}
-
-type RegisterGatewayRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GatewayId   *string                `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId"`
-	xxx_hidden_Generation  *string                `protobuf:"bytes,2,opt,name=generation"`
-	xxx_hidden_RpcAddr     *string                `protobuf:"bytes,3,opt,name=rpc_addr,json=rpcAddr"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *RegisterGatewayRequest) Reset() {
-	*x = RegisterGatewayRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RegisterGatewayRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterGatewayRequest) ProtoMessage() {}
-
-func (x *RegisterGatewayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *RegisterGatewayRequest) GetGatewayId() string {
-	if x != nil {
-		if x.xxx_hidden_GatewayId != nil {
-			return *x.xxx_hidden_GatewayId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *RegisterGatewayRequest) GetGeneration() string {
-	if x != nil {
-		if x.xxx_hidden_Generation != nil {
-			return *x.xxx_hidden_Generation
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *RegisterGatewayRequest) GetRpcAddr() string {
-	if x != nil {
-		if x.xxx_hidden_RpcAddr != nil {
-			return *x.xxx_hidden_RpcAddr
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *RegisterGatewayRequest) SetGatewayId(v string) {
-	x.xxx_hidden_GatewayId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *RegisterGatewayRequest) SetGeneration(v string) {
-	x.xxx_hidden_Generation = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *RegisterGatewayRequest) SetRpcAddr(v string) {
-	x.xxx_hidden_RpcAddr = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
-}
-
-func (x *RegisterGatewayRequest) HasGatewayId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *RegisterGatewayRequest) HasGeneration() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *RegisterGatewayRequest) HasRpcAddr() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *RegisterGatewayRequest) ClearGatewayId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_GatewayId = nil
-}
-
-func (x *RegisterGatewayRequest) ClearGeneration() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Generation = nil
-}
-
-func (x *RegisterGatewayRequest) ClearRpcAddr() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_RpcAddr = nil
-}
-
-type RegisterGatewayRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	GatewayId  *string
-	Generation *string
-	RpcAddr    *string
-}
-
-func (b0 RegisterGatewayRequest_builder) Build() *RegisterGatewayRequest {
-	m0 := &RegisterGatewayRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.GatewayId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_GatewayId = b.GatewayId
-	}
-	if b.Generation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_Generation = b.Generation
-	}
-	if b.RpcAddr != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_RpcAddr = b.RpcAddr
-	}
-	return m0
-}
-
-type RegisterGatewayResponse struct {
-	state              protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Gateway *GatewayInstance       `protobuf:"bytes,1,opt,name=gateway"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *RegisterGatewayResponse) Reset() {
-	*x = RegisterGatewayResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RegisterGatewayResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RegisterGatewayResponse) ProtoMessage() {}
-
-func (x *RegisterGatewayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *RegisterGatewayResponse) GetGateway() *GatewayInstance {
-	if x != nil {
-		return x.xxx_hidden_Gateway
-	}
-	return nil
-}
-
-func (x *RegisterGatewayResponse) SetGateway(v *GatewayInstance) {
-	x.xxx_hidden_Gateway = v
-}
-
-func (x *RegisterGatewayResponse) HasGateway() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_Gateway != nil
-}
-
-func (x *RegisterGatewayResponse) ClearGateway() {
-	x.xxx_hidden_Gateway = nil
-}
-
-type RegisterGatewayResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Gateway *GatewayInstance
-}
-
-func (b0 RegisterGatewayResponse_builder) Build() *RegisterGatewayResponse {
-	m0 := &RegisterGatewayResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Gateway = b.Gateway
-	return m0
-}
-
-type RefreshChannelRoutesRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GatewayId   *string                `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId"`
-	xxx_hidden_Generation  *string                `protobuf:"bytes,2,opt,name=generation"`
-	xxx_hidden_ChannelIds  []int64                `protobuf:"varint,3,rep,packed,name=channel_ids,json=channelIds"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *RefreshChannelRoutesRequest) Reset() {
-	*x = RefreshChannelRoutesRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RefreshChannelRoutesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RefreshChannelRoutesRequest) ProtoMessage() {}
-
-func (x *RefreshChannelRoutesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *RefreshChannelRoutesRequest) GetGatewayId() string {
-	if x != nil {
-		if x.xxx_hidden_GatewayId != nil {
-			return *x.xxx_hidden_GatewayId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *RefreshChannelRoutesRequest) GetGeneration() string {
-	if x != nil {
-		if x.xxx_hidden_Generation != nil {
-			return *x.xxx_hidden_Generation
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *RefreshChannelRoutesRequest) GetChannelIds() []int64 {
-	if x != nil {
-		return x.xxx_hidden_ChannelIds
-	}
-	return nil
-}
-
-func (x *RefreshChannelRoutesRequest) SetGatewayId(v string) {
-	x.xxx_hidden_GatewayId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *RefreshChannelRoutesRequest) SetGeneration(v string) {
-	x.xxx_hidden_Generation = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *RefreshChannelRoutesRequest) SetChannelIds(v []int64) {
-	x.xxx_hidden_ChannelIds = v
-}
-
-func (x *RefreshChannelRoutesRequest) HasGatewayId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *RefreshChannelRoutesRequest) HasGeneration() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *RefreshChannelRoutesRequest) ClearGatewayId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_GatewayId = nil
-}
-
-func (x *RefreshChannelRoutesRequest) ClearGeneration() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Generation = nil
-}
-
-type RefreshChannelRoutesRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	GatewayId  *string
-	Generation *string
-	ChannelIds []int64
-}
-
-func (b0 RefreshChannelRoutesRequest_builder) Build() *RefreshChannelRoutesRequest {
-	m0 := &RefreshChannelRoutesRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.GatewayId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_GatewayId = b.GatewayId
-	}
-	if b.Generation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_Generation = b.Generation
-	}
-	x.xxx_hidden_ChannelIds = b.ChannelIds
-	return m0
-}
-
-type RefreshChannelRoutesResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Refreshed   int32                  `protobuf:"varint,1,opt,name=refreshed"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *RefreshChannelRoutesResponse) Reset() {
-	*x = RefreshChannelRoutesResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RefreshChannelRoutesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RefreshChannelRoutesResponse) ProtoMessage() {}
-
-func (x *RefreshChannelRoutesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *RefreshChannelRoutesResponse) GetRefreshed() int32 {
-	if x != nil {
-		return x.xxx_hidden_Refreshed
-	}
-	return 0
-}
-
-func (x *RefreshChannelRoutesResponse) SetRefreshed(v int32) {
-	x.xxx_hidden_Refreshed = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *RefreshChannelRoutesResponse) HasRefreshed() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *RefreshChannelRoutesResponse) ClearRefreshed() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Refreshed = 0
-}
-
-type RefreshChannelRoutesResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Refreshed *int32
-}
-
-func (b0 RefreshChannelRoutesResponse_builder) Build() *RefreshChannelRoutesResponse {
-	m0 := &RefreshChannelRoutesResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Refreshed != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Refreshed = *b.Refreshed
-	}
-	return m0
-}
-
-type DetachChannelRouteRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GatewayId   *string                `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId"`
-	xxx_hidden_Generation  *string                `protobuf:"bytes,2,opt,name=generation"`
-	xxx_hidden_ChannelId   int64                  `protobuf:"varint,3,opt,name=channel_id,json=channelId"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *DetachChannelRouteRequest) Reset() {
-	*x = DetachChannelRouteRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DetachChannelRouteRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DetachChannelRouteRequest) ProtoMessage() {}
-
-func (x *DetachChannelRouteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *DetachChannelRouteRequest) GetGatewayId() string {
-	if x != nil {
-		if x.xxx_hidden_GatewayId != nil {
-			return *x.xxx_hidden_GatewayId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *DetachChannelRouteRequest) GetGeneration() string {
-	if x != nil {
-		if x.xxx_hidden_Generation != nil {
-			return *x.xxx_hidden_Generation
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *DetachChannelRouteRequest) GetChannelId() int64 {
-	if x != nil {
-		return x.xxx_hidden_ChannelId
-	}
-	return 0
-}
-
-func (x *DetachChannelRouteRequest) SetGatewayId(v string) {
-	x.xxx_hidden_GatewayId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *DetachChannelRouteRequest) SetGeneration(v string) {
-	x.xxx_hidden_Generation = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *DetachChannelRouteRequest) SetChannelId(v int64) {
-	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
-}
-
-func (x *DetachChannelRouteRequest) HasGatewayId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *DetachChannelRouteRequest) HasGeneration() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *DetachChannelRouteRequest) HasChannelId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *DetachChannelRouteRequest) ClearGatewayId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_GatewayId = nil
-}
-
-func (x *DetachChannelRouteRequest) ClearGeneration() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Generation = nil
-}
-
-func (x *DetachChannelRouteRequest) ClearChannelId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_ChannelId = 0
-}
-
-type DetachChannelRouteRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	GatewayId  *string
-	Generation *string
-	ChannelId  *int64
-}
-
-func (b0 DetachChannelRouteRequest_builder) Build() *DetachChannelRouteRequest {
-	m0 := &DetachChannelRouteRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.GatewayId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_GatewayId = b.GatewayId
-	}
-	if b.Generation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_Generation = b.Generation
-	}
-	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_ChannelId = *b.ChannelId
-	}
-	return m0
-}
-
-type DetachChannelRouteResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *DetachChannelRouteResponse) Reset() {
-	*x = DetachChannelRouteResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DetachChannelRouteResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DetachChannelRouteResponse) ProtoMessage() {}
-
-func (x *DetachChannelRouteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *DetachChannelRouteResponse) GetOk() bool {
-	if x != nil {
-		return x.xxx_hidden_Ok
-	}
-	return false
-}
-
-func (x *DetachChannelRouteResponse) SetOk(v bool) {
-	x.xxx_hidden_Ok = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *DetachChannelRouteResponse) HasOk() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *DetachChannelRouteResponse) ClearOk() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Ok = false
-}
-
-type DetachChannelRouteResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Ok *bool
-}
-
-func (b0 DetachChannelRouteResponse_builder) Build() *DetachChannelRouteResponse {
-	m0 := &DetachChannelRouteResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Ok != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Ok = *b.Ok
-	}
-	return m0
-}
-
-type ResolveChannelGatewaysRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ResolveChannelGatewaysRequest) Reset() {
-	*x = ResolveChannelGatewaysRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResolveChannelGatewaysRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResolveChannelGatewaysRequest) ProtoMessage() {}
-
-func (x *ResolveChannelGatewaysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ResolveChannelGatewaysRequest) GetChannelId() int64 {
-	if x != nil {
-		return x.xxx_hidden_ChannelId
-	}
-	return 0
-}
-
-func (x *ResolveChannelGatewaysRequest) SetChannelId(v int64) {
-	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *ResolveChannelGatewaysRequest) HasChannelId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ResolveChannelGatewaysRequest) ClearChannelId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_ChannelId = 0
-}
-
-type ResolveChannelGatewaysRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	ChannelId *int64
-}
-
-func (b0 ResolveChannelGatewaysRequest_builder) Build() *ResolveChannelGatewaysRequest {
-	m0 := &ResolveChannelGatewaysRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_ChannelId = *b.ChannelId
-	}
-	return m0
-}
-
-type ResolveChannelGatewaysResponse struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Gateways *[]*GatewayInstance    `protobuf:"bytes,1,rep,name=gateways"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *ResolveChannelGatewaysResponse) Reset() {
-	*x = ResolveChannelGatewaysResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResolveChannelGatewaysResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResolveChannelGatewaysResponse) ProtoMessage() {}
-
-func (x *ResolveChannelGatewaysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ResolveChannelGatewaysResponse) GetGateways() []*GatewayInstance {
-	if x != nil {
-		if x.xxx_hidden_Gateways != nil {
-			return *x.xxx_hidden_Gateways
-		}
-	}
-	return nil
-}
-
-func (x *ResolveChannelGatewaysResponse) SetGateways(v []*GatewayInstance) {
-	x.xxx_hidden_Gateways = &v
-}
-
-type ResolveChannelGatewaysResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	Gateways []*GatewayInstance
-}
-
-func (b0 ResolveChannelGatewaysResponse_builder) Build() *ResolveChannelGatewaysResponse {
-	m0 := &ResolveChannelGatewaysResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Gateways = &b.Gateways
-	return m0
-}
-
 type UserSession struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1072,7 +136,7 @@ type UserSession struct {
 
 func (x *UserSession) Reset() {
 	*x = UserSession{}
-	mi := &file_presence_v1_presence_proto_msgTypes[9]
+	mi := &file_presence_v1_presence_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1084,7 +148,7 @@ func (x *UserSession) String() string {
 func (*UserSession) ProtoMessage() {}
 
 func (x *UserSession) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[9]
+	mi := &file_presence_v1_presence_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1398,7 +462,7 @@ type UserPresence struct {
 
 func (x *UserPresence) Reset() {
 	*x = UserPresence{}
-	mi := &file_presence_v1_presence_proto_msgTypes[10]
+	mi := &file_presence_v1_presence_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1410,7 +474,7 @@ func (x *UserPresence) String() string {
 func (*UserPresence) ProtoMessage() {}
 
 func (x *UserPresence) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[10]
+	mi := &file_presence_v1_presence_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1555,7 +619,7 @@ type RegisterUserSessionRequest struct {
 
 func (x *RegisterUserSessionRequest) Reset() {
 	*x = RegisterUserSessionRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[11]
+	mi := &file_presence_v1_presence_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1567,7 +631,7 @@ func (x *RegisterUserSessionRequest) String() string {
 func (*RegisterUserSessionRequest) ProtoMessage() {}
 
 func (x *RegisterUserSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[11]
+	mi := &file_presence_v1_presence_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1833,7 +897,7 @@ type RegisterUserSessionResponse struct {
 
 func (x *RegisterUserSessionResponse) Reset() {
 	*x = RegisterUserSessionResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[12]
+	mi := &file_presence_v1_presence_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1845,7 +909,7 @@ func (x *RegisterUserSessionResponse) String() string {
 func (*RegisterUserSessionResponse) ProtoMessage() {}
 
 func (x *RegisterUserSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[12]
+	mi := &file_presence_v1_presence_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +974,7 @@ type RefreshUserSessionRequest struct {
 
 func (x *RefreshUserSessionRequest) Reset() {
 	*x = RefreshUserSessionRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[13]
+	mi := &file_presence_v1_presence_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1922,7 +986,7 @@ func (x *RefreshUserSessionRequest) String() string {
 func (*RefreshUserSessionRequest) ProtoMessage() {}
 
 func (x *RefreshUserSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[13]
+	mi := &file_presence_v1_presence_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2188,7 +1252,7 @@ type RefreshUserSessionResponse struct {
 
 func (x *RefreshUserSessionResponse) Reset() {
 	*x = RefreshUserSessionResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[14]
+	mi := &file_presence_v1_presence_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2200,7 +1264,7 @@ func (x *RefreshUserSessionResponse) String() string {
 func (*RefreshUserSessionResponse) ProtoMessage() {}
 
 func (x *RefreshUserSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[14]
+	mi := &file_presence_v1_presence_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2262,7 +1326,7 @@ type UpdateUserPresenceRequest struct {
 
 func (x *UpdateUserPresenceRequest) Reset() {
 	*x = UpdateUserPresenceRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[15]
+	mi := &file_presence_v1_presence_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2274,7 +1338,7 @@ func (x *UpdateUserPresenceRequest) String() string {
 func (*UpdateUserPresenceRequest) ProtoMessage() {}
 
 func (x *UpdateUserPresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[15]
+	mi := &file_presence_v1_presence_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2444,7 +1508,7 @@ type UpdateUserPresenceResponse struct {
 
 func (x *UpdateUserPresenceResponse) Reset() {
 	*x = UpdateUserPresenceResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[16]
+	mi := &file_presence_v1_presence_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2456,7 +1520,7 @@ func (x *UpdateUserPresenceResponse) String() string {
 func (*UpdateUserPresenceResponse) ProtoMessage() {}
 
 func (x *UpdateUserPresenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[16]
+	mi := &file_presence_v1_presence_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2516,7 +1580,7 @@ type RemoveUserSessionRequest struct {
 
 func (x *RemoveUserSessionRequest) Reset() {
 	*x = RemoveUserSessionRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[17]
+	mi := &file_presence_v1_presence_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2528,7 +1592,7 @@ func (x *RemoveUserSessionRequest) String() string {
 func (*RemoveUserSessionRequest) ProtoMessage() {}
 
 func (x *RemoveUserSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[17]
+	mi := &file_presence_v1_presence_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2638,7 +1702,7 @@ type RemoveUserSessionResponse struct {
 
 func (x *RemoveUserSessionResponse) Reset() {
 	*x = RemoveUserSessionResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[18]
+	mi := &file_presence_v1_presence_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2650,7 +1714,7 @@ func (x *RemoveUserSessionResponse) String() string {
 func (*RemoveUserSessionResponse) ProtoMessage() {}
 
 func (x *RemoveUserSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[18]
+	mi := &file_presence_v1_presence_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2711,7 +1775,7 @@ type ResolveUsersPresenceRequest struct {
 
 func (x *ResolveUsersPresenceRequest) Reset() {
 	*x = ResolveUsersPresenceRequest{}
-	mi := &file_presence_v1_presence_proto_msgTypes[19]
+	mi := &file_presence_v1_presence_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2723,7 +1787,7 @@ func (x *ResolveUsersPresenceRequest) String() string {
 func (*ResolveUsersPresenceRequest) ProtoMessage() {}
 
 func (x *ResolveUsersPresenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[19]
+	mi := &file_presence_v1_presence_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2768,7 +1832,7 @@ type ResolveUsersPresenceResponse struct {
 
 func (x *ResolveUsersPresenceResponse) Reset() {
 	*x = ResolveUsersPresenceResponse{}
-	mi := &file_presence_v1_presence_proto_msgTypes[20]
+	mi := &file_presence_v1_presence_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2780,7 +1844,7 @@ func (x *ResolveUsersPresenceResponse) String() string {
 func (*ResolveUsersPresenceResponse) ProtoMessage() {}
 
 func (x *ResolveUsersPresenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_presence_v1_presence_proto_msgTypes[20]
+	mi := &file_presence_v1_presence_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2822,50 +1886,7 @@ var File_presence_v1_presence_proto protoreflect.FileDescriptor
 
 const file_presence_v1_presence_proto_rawDesc = "" +
 	"\n" +
-	"\x1apresence/v1/presence.proto\x12\vpresence.v1\"\x8a\x01\n" +
-	"\x0fGatewayInstance\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12\x1e\n" +
-	"\n" +
-	"generation\x18\x02 \x01(\tR\n" +
-	"generation\x12\x19\n" +
-	"\brpc_addr\x18\x03 \x01(\tR\arpcAddr\x12\x1d\n" +
-	"\n" +
-	"expires_at\x18\x04 \x01(\x03R\texpiresAt\"r\n" +
-	"\x16RegisterGatewayRequest\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12\x1e\n" +
-	"\n" +
-	"generation\x18\x02 \x01(\tR\n" +
-	"generation\x12\x19\n" +
-	"\brpc_addr\x18\x03 \x01(\tR\arpcAddr\"Q\n" +
-	"\x17RegisterGatewayResponse\x126\n" +
-	"\agateway\x18\x01 \x01(\v2\x1c.presence.v1.GatewayInstanceR\agateway\"}\n" +
-	"\x1bRefreshChannelRoutesRequest\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12\x1e\n" +
-	"\n" +
-	"generation\x18\x02 \x01(\tR\n" +
-	"generation\x12\x1f\n" +
-	"\vchannel_ids\x18\x03 \x03(\x03R\n" +
-	"channelIds\"<\n" +
-	"\x1cRefreshChannelRoutesResponse\x12\x1c\n" +
-	"\trefreshed\x18\x01 \x01(\x05R\trefreshed\"y\n" +
-	"\x19DetachChannelRouteRequest\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\x01 \x01(\tR\tgatewayId\x12\x1e\n" +
-	"\n" +
-	"generation\x18\x02 \x01(\tR\n" +
-	"generation\x12\x1d\n" +
-	"\n" +
-	"channel_id\x18\x03 \x01(\x03R\tchannelId\",\n" +
-	"\x1aDetachChannelRouteResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\">\n" +
-	"\x1dResolveChannelGatewaysRequest\x12\x1d\n" +
-	"\n" +
-	"channel_id\x18\x01 \x01(\x03R\tchannelId\"Z\n" +
-	"\x1eResolveChannelGatewaysResponse\x128\n" +
-	"\bgateways\x18\x01 \x03(\v2\x1c.presence.v1.GatewayInstanceR\bgateways\"\xd8\x02\n" +
+	"\x1apresence/v1/presence.proto\x12\vpresence.v1\"\xd8\x02\n" +
 	"\vUserSession\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +
@@ -2951,12 +1972,8 @@ const file_presence_v1_presence_proto_rawDesc = "" +
 	"\vClientState\x12\x1c\n" +
 	"\x18CLIENT_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17CLIENT_STATE_FOREGROUND\x10\x01\x12\x1b\n" +
-	"\x17CLIENT_STATE_BACKGROUND\x10\x022\xbf\a\n" +
-	"\x0fPresenceService\x12\\\n" +
-	"\x0fRegisterGateway\x12#.presence.v1.RegisterGatewayRequest\x1a$.presence.v1.RegisterGatewayResponse\x12k\n" +
-	"\x14RefreshChannelRoutes\x12(.presence.v1.RefreshChannelRoutesRequest\x1a).presence.v1.RefreshChannelRoutesResponse\x12e\n" +
-	"\x12DetachChannelRoute\x12&.presence.v1.DetachChannelRouteRequest\x1a'.presence.v1.DetachChannelRouteResponse\x12q\n" +
-	"\x16ResolveChannelGateways\x12*.presence.v1.ResolveChannelGatewaysRequest\x1a+.presence.v1.ResolveChannelGatewaysResponse\x12h\n" +
+	"\x17CLIENT_STATE_BACKGROUND\x10\x022\x9a\x04\n" +
+	"\x0fPresenceService\x12h\n" +
 	"\x13RegisterUserSession\x12'.presence.v1.RegisterUserSessionRequest\x1a(.presence.v1.RegisterUserSessionResponse\x12e\n" +
 	"\x12RefreshUserSession\x12&.presence.v1.RefreshUserSessionRequest\x1a'.presence.v1.RefreshUserSessionResponse\x12e\n" +
 	"\x12UpdateUserPresence\x12&.presence.v1.UpdateUserPresenceRequest\x1a'.presence.v1.UpdateUserPresenceResponse\x12b\n" +
@@ -2965,72 +1982,53 @@ const file_presence_v1_presence_proto_rawDesc = "" +
 	"\x0fcom.presence.v1B\rPresenceProtoP\x01Z4github.com/soasurs/cordis/gen/presence/v1;presencev1\xa2\x02\x03PXX\xaa\x02\vPresence.V1\xca\x02\vPresence\\V1\xe2\x02\x17Presence\\V1\\GPBMetadata\xea\x02\fPresence::V1b\beditionsp\xe8\a"
 
 var file_presence_v1_presence_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_presence_v1_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_presence_v1_presence_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_presence_v1_presence_proto_goTypes = []any{
-	(PresenceStatus)(0),                    // 0: presence.v1.PresenceStatus
-	(ClientState)(0),                       // 1: presence.v1.ClientState
-	(*GatewayInstance)(nil),                // 2: presence.v1.GatewayInstance
-	(*RegisterGatewayRequest)(nil),         // 3: presence.v1.RegisterGatewayRequest
-	(*RegisterGatewayResponse)(nil),        // 4: presence.v1.RegisterGatewayResponse
-	(*RefreshChannelRoutesRequest)(nil),    // 5: presence.v1.RefreshChannelRoutesRequest
-	(*RefreshChannelRoutesResponse)(nil),   // 6: presence.v1.RefreshChannelRoutesResponse
-	(*DetachChannelRouteRequest)(nil),      // 7: presence.v1.DetachChannelRouteRequest
-	(*DetachChannelRouteResponse)(nil),     // 8: presence.v1.DetachChannelRouteResponse
-	(*ResolveChannelGatewaysRequest)(nil),  // 9: presence.v1.ResolveChannelGatewaysRequest
-	(*ResolveChannelGatewaysResponse)(nil), // 10: presence.v1.ResolveChannelGatewaysResponse
-	(*UserSession)(nil),                    // 11: presence.v1.UserSession
-	(*UserPresence)(nil),                   // 12: presence.v1.UserPresence
-	(*RegisterUserSessionRequest)(nil),     // 13: presence.v1.RegisterUserSessionRequest
-	(*RegisterUserSessionResponse)(nil),    // 14: presence.v1.RegisterUserSessionResponse
-	(*RefreshUserSessionRequest)(nil),      // 15: presence.v1.RefreshUserSessionRequest
-	(*RefreshUserSessionResponse)(nil),     // 16: presence.v1.RefreshUserSessionResponse
-	(*UpdateUserPresenceRequest)(nil),      // 17: presence.v1.UpdateUserPresenceRequest
-	(*UpdateUserPresenceResponse)(nil),     // 18: presence.v1.UpdateUserPresenceResponse
-	(*RemoveUserSessionRequest)(nil),       // 19: presence.v1.RemoveUserSessionRequest
-	(*RemoveUserSessionResponse)(nil),      // 20: presence.v1.RemoveUserSessionResponse
-	(*ResolveUsersPresenceRequest)(nil),    // 21: presence.v1.ResolveUsersPresenceRequest
-	(*ResolveUsersPresenceResponse)(nil),   // 22: presence.v1.ResolveUsersPresenceResponse
+	(PresenceStatus)(0),                  // 0: presence.v1.PresenceStatus
+	(ClientState)(0),                     // 1: presence.v1.ClientState
+	(*UserSession)(nil),                  // 2: presence.v1.UserSession
+	(*UserPresence)(nil),                 // 3: presence.v1.UserPresence
+	(*RegisterUserSessionRequest)(nil),   // 4: presence.v1.RegisterUserSessionRequest
+	(*RegisterUserSessionResponse)(nil),  // 5: presence.v1.RegisterUserSessionResponse
+	(*RefreshUserSessionRequest)(nil),    // 6: presence.v1.RefreshUserSessionRequest
+	(*RefreshUserSessionResponse)(nil),   // 7: presence.v1.RefreshUserSessionResponse
+	(*UpdateUserPresenceRequest)(nil),    // 8: presence.v1.UpdateUserPresenceRequest
+	(*UpdateUserPresenceResponse)(nil),   // 9: presence.v1.UpdateUserPresenceResponse
+	(*RemoveUserSessionRequest)(nil),     // 10: presence.v1.RemoveUserSessionRequest
+	(*RemoveUserSessionResponse)(nil),    // 11: presence.v1.RemoveUserSessionResponse
+	(*ResolveUsersPresenceRequest)(nil),  // 12: presence.v1.ResolveUsersPresenceRequest
+	(*ResolveUsersPresenceResponse)(nil), // 13: presence.v1.ResolveUsersPresenceResponse
 }
 var file_presence_v1_presence_proto_depIdxs = []int32{
-	2,  // 0: presence.v1.RegisterGatewayResponse.gateway:type_name -> presence.v1.GatewayInstance
-	2,  // 1: presence.v1.ResolveChannelGatewaysResponse.gateways:type_name -> presence.v1.GatewayInstance
-	0,  // 2: presence.v1.UserSession.status:type_name -> presence.v1.PresenceStatus
-	1,  // 3: presence.v1.UserSession.client_state:type_name -> presence.v1.ClientState
-	0,  // 4: presence.v1.UserPresence.status:type_name -> presence.v1.PresenceStatus
-	11, // 5: presence.v1.UserPresence.sessions:type_name -> presence.v1.UserSession
-	0,  // 6: presence.v1.RegisterUserSessionRequest.status:type_name -> presence.v1.PresenceStatus
-	1,  // 7: presence.v1.RegisterUserSessionRequest.client_state:type_name -> presence.v1.ClientState
-	12, // 8: presence.v1.RegisterUserSessionResponse.presence:type_name -> presence.v1.UserPresence
-	0,  // 9: presence.v1.RefreshUserSessionRequest.status:type_name -> presence.v1.PresenceStatus
-	1,  // 10: presence.v1.RefreshUserSessionRequest.client_state:type_name -> presence.v1.ClientState
-	12, // 11: presence.v1.RefreshUserSessionResponse.presence:type_name -> presence.v1.UserPresence
-	0,  // 12: presence.v1.UpdateUserPresenceRequest.status:type_name -> presence.v1.PresenceStatus
-	1,  // 13: presence.v1.UpdateUserPresenceRequest.client_state:type_name -> presence.v1.ClientState
-	12, // 14: presence.v1.UpdateUserPresenceResponse.presence:type_name -> presence.v1.UserPresence
-	12, // 15: presence.v1.ResolveUsersPresenceResponse.presences:type_name -> presence.v1.UserPresence
-	3,  // 16: presence.v1.PresenceService.RegisterGateway:input_type -> presence.v1.RegisterGatewayRequest
-	5,  // 17: presence.v1.PresenceService.RefreshChannelRoutes:input_type -> presence.v1.RefreshChannelRoutesRequest
-	7,  // 18: presence.v1.PresenceService.DetachChannelRoute:input_type -> presence.v1.DetachChannelRouteRequest
-	9,  // 19: presence.v1.PresenceService.ResolveChannelGateways:input_type -> presence.v1.ResolveChannelGatewaysRequest
-	13, // 20: presence.v1.PresenceService.RegisterUserSession:input_type -> presence.v1.RegisterUserSessionRequest
-	15, // 21: presence.v1.PresenceService.RefreshUserSession:input_type -> presence.v1.RefreshUserSessionRequest
-	17, // 22: presence.v1.PresenceService.UpdateUserPresence:input_type -> presence.v1.UpdateUserPresenceRequest
-	19, // 23: presence.v1.PresenceService.RemoveUserSession:input_type -> presence.v1.RemoveUserSessionRequest
-	21, // 24: presence.v1.PresenceService.ResolveUsersPresence:input_type -> presence.v1.ResolveUsersPresenceRequest
-	4,  // 25: presence.v1.PresenceService.RegisterGateway:output_type -> presence.v1.RegisterGatewayResponse
-	6,  // 26: presence.v1.PresenceService.RefreshChannelRoutes:output_type -> presence.v1.RefreshChannelRoutesResponse
-	8,  // 27: presence.v1.PresenceService.DetachChannelRoute:output_type -> presence.v1.DetachChannelRouteResponse
-	10, // 28: presence.v1.PresenceService.ResolveChannelGateways:output_type -> presence.v1.ResolveChannelGatewaysResponse
-	14, // 29: presence.v1.PresenceService.RegisterUserSession:output_type -> presence.v1.RegisterUserSessionResponse
-	16, // 30: presence.v1.PresenceService.RefreshUserSession:output_type -> presence.v1.RefreshUserSessionResponse
-	18, // 31: presence.v1.PresenceService.UpdateUserPresence:output_type -> presence.v1.UpdateUserPresenceResponse
-	20, // 32: presence.v1.PresenceService.RemoveUserSession:output_type -> presence.v1.RemoveUserSessionResponse
-	22, // 33: presence.v1.PresenceService.ResolveUsersPresence:output_type -> presence.v1.ResolveUsersPresenceResponse
-	25, // [25:34] is the sub-list for method output_type
-	16, // [16:25] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	0,  // 0: presence.v1.UserSession.status:type_name -> presence.v1.PresenceStatus
+	1,  // 1: presence.v1.UserSession.client_state:type_name -> presence.v1.ClientState
+	0,  // 2: presence.v1.UserPresence.status:type_name -> presence.v1.PresenceStatus
+	2,  // 3: presence.v1.UserPresence.sessions:type_name -> presence.v1.UserSession
+	0,  // 4: presence.v1.RegisterUserSessionRequest.status:type_name -> presence.v1.PresenceStatus
+	1,  // 5: presence.v1.RegisterUserSessionRequest.client_state:type_name -> presence.v1.ClientState
+	3,  // 6: presence.v1.RegisterUserSessionResponse.presence:type_name -> presence.v1.UserPresence
+	0,  // 7: presence.v1.RefreshUserSessionRequest.status:type_name -> presence.v1.PresenceStatus
+	1,  // 8: presence.v1.RefreshUserSessionRequest.client_state:type_name -> presence.v1.ClientState
+	3,  // 9: presence.v1.RefreshUserSessionResponse.presence:type_name -> presence.v1.UserPresence
+	0,  // 10: presence.v1.UpdateUserPresenceRequest.status:type_name -> presence.v1.PresenceStatus
+	1,  // 11: presence.v1.UpdateUserPresenceRequest.client_state:type_name -> presence.v1.ClientState
+	3,  // 12: presence.v1.UpdateUserPresenceResponse.presence:type_name -> presence.v1.UserPresence
+	3,  // 13: presence.v1.ResolveUsersPresenceResponse.presences:type_name -> presence.v1.UserPresence
+	4,  // 14: presence.v1.PresenceService.RegisterUserSession:input_type -> presence.v1.RegisterUserSessionRequest
+	6,  // 15: presence.v1.PresenceService.RefreshUserSession:input_type -> presence.v1.RefreshUserSessionRequest
+	8,  // 16: presence.v1.PresenceService.UpdateUserPresence:input_type -> presence.v1.UpdateUserPresenceRequest
+	10, // 17: presence.v1.PresenceService.RemoveUserSession:input_type -> presence.v1.RemoveUserSessionRequest
+	12, // 18: presence.v1.PresenceService.ResolveUsersPresence:input_type -> presence.v1.ResolveUsersPresenceRequest
+	5,  // 19: presence.v1.PresenceService.RegisterUserSession:output_type -> presence.v1.RegisterUserSessionResponse
+	7,  // 20: presence.v1.PresenceService.RefreshUserSession:output_type -> presence.v1.RefreshUserSessionResponse
+	9,  // 21: presence.v1.PresenceService.UpdateUserPresence:output_type -> presence.v1.UpdateUserPresenceResponse
+	11, // 22: presence.v1.PresenceService.RemoveUserSession:output_type -> presence.v1.RemoveUserSessionResponse
+	13, // 23: presence.v1.PresenceService.ResolveUsersPresence:output_type -> presence.v1.ResolveUsersPresenceResponse
+	19, // [19:24] is the sub-list for method output_type
+	14, // [14:19] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_presence_v1_presence_proto_init() }
@@ -3044,7 +2042,7 @@ func file_presence_v1_presence_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_presence_v1_presence_proto_rawDesc), len(file_presence_v1_presence_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   21,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

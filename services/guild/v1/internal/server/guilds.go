@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
@@ -216,6 +218,24 @@ func (s *guildServer) publishEvent(ctx context.Context, event guildEvent, buildE
 	if s.svcCtx.Publisher == nil {
 		return
 	}
+	if event.Type != EventTypeGuildDeleted {
+		guild, err := s.svcCtx.Store.GetGuild(ctx, event.GuildID)
+		if err != nil {
+			logx.WithContext(ctx).Errorw("load guild access revision for event",
+				logx.Field("guild_id", event.GuildID),
+				logx.Field("event_type", event.Type),
+				logx.Field("error", err),
+			)
+		} else if payload, err := addEventAccessRevision(event.Payload, guild.AccessRevision); err != nil {
+			logx.WithContext(ctx).Errorw("add guild access revision to event",
+				logx.Field("guild_id", event.GuildID),
+				logx.Field("event_type", event.Type),
+				logx.Field("error", err),
+			)
+		} else {
+			event.Payload = payload
+		}
+	}
 	publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.svcCtx.Cfg.Kafka.PublishTimeout())
 	defer cancel()
 	if err := s.svcCtx.Publisher.Publish(publishCtx, event.Key, event.Payload); err != nil {
@@ -225,6 +245,29 @@ func (s *guildServer) publishEvent(ctx context.Context, event guildEvent, buildE
 			logx.Field("error", err),
 		)
 	}
+}
+
+func addEventAccessRevision(payload []byte, accessRevision int64) ([]byte, error) {
+	var envelope struct {
+		Type string                     `json:"t"`
+		Data map[string]json.RawMessage `json:"d"`
+	}
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		return nil, fmt.Errorf("unmarshal guild event: %w", err)
+	}
+	if envelope.Data == nil {
+		return nil, fmt.Errorf("guild event data is missing")
+	}
+	revision, err := json.Marshal(accessRevision)
+	if err != nil {
+		return nil, fmt.Errorf("marshal guild access revision: %w", err)
+	}
+	envelope.Data["access_revision"] = revision
+	encoded, err := json.Marshal(envelope)
+	if err != nil {
+		return nil, fmt.Errorf("marshal guild event: %w", err)
+	}
+	return encoded, nil
 }
 
 func guildToProto(guild *model.Guild) *guildv1.Guild {

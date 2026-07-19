@@ -123,15 +123,6 @@ func (x *ConnectRequest) GetPresence() *PresenceUpdate {
 	return nil
 }
 
-func (x *ConnectRequest) GetSubscribe() *SubscribeChannels {
-	if x != nil {
-		if x, ok := x.xxx_hidden_Payload.(*connectRequest_Subscribe); ok {
-			return x.Subscribe
-		}
-	}
-	return nil
-}
-
 func (x *ConnectRequest) GetDetach() *Detach {
 	if x != nil {
 		if x, ok := x.xxx_hidden_Payload.(*connectRequest_Detach); ok {
@@ -186,14 +177,6 @@ func (x *ConnectRequest) SetPresence(v *PresenceUpdate) {
 		return
 	}
 	x.xxx_hidden_Payload = &connectRequest_Presence{v}
-}
-
-func (x *ConnectRequest) SetSubscribe(v *SubscribeChannels) {
-	if v == nil {
-		x.xxx_hidden_Payload = nil
-		return
-	}
-	x.xxx_hidden_Payload = &connectRequest_Subscribe{v}
 }
 
 func (x *ConnectRequest) SetDetach(v *Detach) {
@@ -264,14 +247,6 @@ func (x *ConnectRequest) HasPresence() bool {
 	return ok
 }
 
-func (x *ConnectRequest) HasSubscribe() bool {
-	if x == nil {
-		return false
-	}
-	_, ok := x.xxx_hidden_Payload.(*connectRequest_Subscribe)
-	return ok
-}
-
 func (x *ConnectRequest) HasDetach() bool {
 	if x == nil {
 		return false
@@ -323,12 +298,6 @@ func (x *ConnectRequest) ClearPresence() {
 	}
 }
 
-func (x *ConnectRequest) ClearSubscribe() {
-	if _, ok := x.xxx_hidden_Payload.(*connectRequest_Subscribe); ok {
-		x.xxx_hidden_Payload = nil
-	}
-}
-
 func (x *ConnectRequest) ClearDetach() {
 	if _, ok := x.xxx_hidden_Payload.(*connectRequest_Detach); ok {
 		x.xxx_hidden_Payload = nil
@@ -340,7 +309,6 @@ const ConnectRequest_Identify_case case_ConnectRequest_Payload = 2
 const ConnectRequest_Resume_case case_ConnectRequest_Payload = 3
 const ConnectRequest_Heartbeat_case case_ConnectRequest_Payload = 4
 const ConnectRequest_Presence_case case_ConnectRequest_Payload = 5
-const ConnectRequest_Subscribe_case case_ConnectRequest_Payload = 6
 const ConnectRequest_Detach_case case_ConnectRequest_Payload = 7
 
 func (x *ConnectRequest) WhichPayload() case_ConnectRequest_Payload {
@@ -356,8 +324,6 @@ func (x *ConnectRequest) WhichPayload() case_ConnectRequest_Payload {
 		return ConnectRequest_Heartbeat_case
 	case *connectRequest_Presence:
 		return ConnectRequest_Presence_case
-	case *connectRequest_Subscribe:
-		return ConnectRequest_Subscribe_case
 	case *connectRequest_Detach:
 		return ConnectRequest_Detach_case
 	default:
@@ -376,7 +342,6 @@ type ConnectRequest_builder struct {
 	Resume    *Resume
 	Heartbeat *Heartbeat
 	Presence  *PresenceUpdate
-	Subscribe *SubscribeChannels
 	Detach    *Detach
 	// -- end of xxx_hidden_Payload
 }
@@ -408,9 +373,6 @@ func (b0 ConnectRequest_builder) Build() *ConnectRequest {
 	}
 	if b.Presence != nil {
 		x.xxx_hidden_Payload = &connectRequest_Presence{b.Presence}
-	}
-	if b.Subscribe != nil {
-		x.xxx_hidden_Payload = &connectRequest_Subscribe{b.Subscribe}
 	}
 	if b.Detach != nil {
 		x.xxx_hidden_Payload = &connectRequest_Detach{b.Detach}
@@ -448,10 +410,6 @@ type connectRequest_Presence struct {
 	Presence *PresenceUpdate `protobuf:"bytes,5,opt,name=presence,oneof"`
 }
 
-type connectRequest_Subscribe struct {
-	Subscribe *SubscribeChannels `protobuf:"bytes,6,opt,name=subscribe,oneof"`
-}
-
 type connectRequest_Detach struct {
 	Detach *Detach `protobuf:"bytes,7,opt,name=detach,oneof"`
 }
@@ -463,8 +421,6 @@ func (*connectRequest_Resume) isConnectRequest_Payload() {}
 func (*connectRequest_Heartbeat) isConnectRequest_Payload() {}
 
 func (*connectRequest_Presence) isConnectRequest_Payload() {}
-
-func (*connectRequest_Subscribe) isConnectRequest_Payload() {}
 
 func (*connectRequest_Detach) isConnectRequest_Payload() {}
 
@@ -972,63 +928,6 @@ func (b0 PresenceUpdate_builder) Build() *PresenceUpdate {
 	return m0
 }
 
-type SubscribeChannels struct {
-	state                 protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChannelIds []int64                `protobuf:"varint,1,rep,packed,name=channel_ids,json=channelIds"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *SubscribeChannels) Reset() {
-	*x = SubscribeChannels{}
-	mi := &file_session_v1_session_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeChannels) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeChannels) ProtoMessage() {}
-
-func (x *SubscribeChannels) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *SubscribeChannels) GetChannelIds() []int64 {
-	if x != nil {
-		return x.xxx_hidden_ChannelIds
-	}
-	return nil
-}
-
-func (x *SubscribeChannels) SetChannelIds(v []int64) {
-	x.xxx_hidden_ChannelIds = v
-}
-
-type SubscribeChannels_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	ChannelIds []int64
-}
-
-func (b0 SubscribeChannels_builder) Build() *SubscribeChannels {
-	m0 := &SubscribeChannels{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_ChannelIds = b.ChannelIds
-	return m0
-}
-
 type Detach struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Resumable   bool                   `protobuf:"varint,1,opt,name=resumable"`
@@ -1040,7 +939,7 @@ type Detach struct {
 
 func (x *Detach) Reset() {
 	*x = Detach{}
-	mi := &file_session_v1_session_proto_msgTypes[6]
+	mi := &file_session_v1_session_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1052,7 +951,7 @@ func (x *Detach) String() string {
 func (*Detach) ProtoMessage() {}
 
 func (x *Detach) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[6]
+	mi := &file_session_v1_session_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1122,7 +1021,7 @@ type ConnectResponse struct {
 
 func (x *ConnectResponse) Reset() {
 	*x = ConnectResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[7]
+	mi := &file_session_v1_session_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1134,7 +1033,7 @@ func (x *ConnectResponse) String() string {
 func (*ConnectResponse) ProtoMessage() {}
 
 func (x *ConnectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[7]
+	mi := &file_session_v1_session_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1417,7 +1316,7 @@ type GatewayConnectionCheckpoint struct {
 
 func (x *GatewayConnectionCheckpoint) Reset() {
 	*x = GatewayConnectionCheckpoint{}
-	mi := &file_session_v1_session_proto_msgTypes[8]
+	mi := &file_session_v1_session_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1429,7 +1328,7 @@ func (x *GatewayConnectionCheckpoint) String() string {
 func (*GatewayConnectionCheckpoint) ProtoMessage() {}
 
 func (x *GatewayConnectionCheckpoint) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[8]
+	mi := &file_session_v1_session_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1587,7 +1486,7 @@ type SyncGatewayConnectionsRequest struct {
 
 func (x *SyncGatewayConnectionsRequest) Reset() {
 	*x = SyncGatewayConnectionsRequest{}
-	mi := &file_session_v1_session_proto_msgTypes[9]
+	mi := &file_session_v1_session_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1599,7 +1498,7 @@ func (x *SyncGatewayConnectionsRequest) String() string {
 func (*SyncGatewayConnectionsRequest) ProtoMessage() {}
 
 func (x *SyncGatewayConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[9]
+	mi := &file_session_v1_session_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1712,7 +1611,7 @@ type SyncGatewayConnectionsResponse struct {
 
 func (x *SyncGatewayConnectionsResponse) Reset() {
 	*x = SyncGatewayConnectionsResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[10]
+	mi := &file_session_v1_session_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1724,7 +1623,7 @@ func (x *SyncGatewayConnectionsResponse) String() string {
 func (*SyncGatewayConnectionsResponse) ProtoMessage() {}
 
 func (x *SyncGatewayConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[10]
+	mi := &file_session_v1_session_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1788,7 +1687,7 @@ type EventEnvelope struct {
 
 func (x *EventEnvelope) Reset() {
 	*x = EventEnvelope{}
-	mi := &file_session_v1_session_proto_msgTypes[11]
+	mi := &file_session_v1_session_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1800,7 +1699,7 @@ func (x *EventEnvelope) String() string {
 func (*EventEnvelope) ProtoMessage() {}
 
 func (x *EventEnvelope) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[11]
+	mi := &file_session_v1_session_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1899,7 +1798,7 @@ type DispatchGuildEventRequest struct {
 
 func (x *DispatchGuildEventRequest) Reset() {
 	*x = DispatchGuildEventRequest{}
-	mi := &file_session_v1_session_proto_msgTypes[12]
+	mi := &file_session_v1_session_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1911,7 +1810,7 @@ func (x *DispatchGuildEventRequest) String() string {
 func (*DispatchGuildEventRequest) ProtoMessage() {}
 
 func (x *DispatchGuildEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[12]
+	mi := &file_session_v1_session_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1987,31 +1886,32 @@ func (b0 DispatchGuildEventRequest_builder) Build() *DispatchGuildEventRequest {
 	return m0
 }
 
-type DispatchChannelEventRequest struct {
+type DispatchGuildMessageEventRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	xxx_hidden_Event       *EventEnvelope         `protobuf:"bytes,2,opt,name=event"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,2,opt,name=channel_id,json=channelId"`
+	xxx_hidden_Event       *EventEnvelope         `protobuf:"bytes,3,opt,name=event"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
 	sizeCache              protoimpl.SizeCache
 }
 
-func (x *DispatchChannelEventRequest) Reset() {
-	*x = DispatchChannelEventRequest{}
-	mi := &file_session_v1_session_proto_msgTypes[13]
+func (x *DispatchGuildMessageEventRequest) Reset() {
+	*x = DispatchGuildMessageEventRequest{}
+	mi := &file_session_v1_session_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DispatchChannelEventRequest) String() string {
+func (x *DispatchGuildMessageEventRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DispatchChannelEventRequest) ProtoMessage() {}
+func (*DispatchGuildMessageEventRequest) ProtoMessage() {}
 
-func (x *DispatchChannelEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[13]
+func (x *DispatchGuildMessageEventRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_session_v1_session_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2022,65 +1922,94 @@ func (x *DispatchChannelEventRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *DispatchChannelEventRequest) GetChannelId() int64 {
+func (x *DispatchGuildMessageEventRequest) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
+func (x *DispatchGuildMessageEventRequest) GetChannelId() int64 {
 	if x != nil {
 		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
-func (x *DispatchChannelEventRequest) GetEvent() *EventEnvelope {
+func (x *DispatchGuildMessageEventRequest) GetEvent() *EventEnvelope {
 	if x != nil {
 		return x.xxx_hidden_Event
 	}
 	return nil
 }
 
-func (x *DispatchChannelEventRequest) SetChannelId(v int64) {
-	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+func (x *DispatchGuildMessageEventRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
-func (x *DispatchChannelEventRequest) SetEvent(v *EventEnvelope) {
+func (x *DispatchGuildMessageEventRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *DispatchGuildMessageEventRequest) SetEvent(v *EventEnvelope) {
 	x.xxx_hidden_Event = v
 }
 
-func (x *DispatchChannelEventRequest) HasChannelId() bool {
+func (x *DispatchGuildMessageEventRequest) HasGuildId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *DispatchChannelEventRequest) HasEvent() bool {
+func (x *DispatchGuildMessageEventRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DispatchGuildMessageEventRequest) HasEvent() bool {
 	if x == nil {
 		return false
 	}
 	return x.xxx_hidden_Event != nil
 }
 
-func (x *DispatchChannelEventRequest) ClearChannelId() {
+func (x *DispatchGuildMessageEventRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *DispatchGuildMessageEventRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_ChannelId = 0
 }
 
-func (x *DispatchChannelEventRequest) ClearEvent() {
+func (x *DispatchGuildMessageEventRequest) ClearEvent() {
 	x.xxx_hidden_Event = nil
 }
 
-type DispatchChannelEventRequest_builder struct {
+type DispatchGuildMessageEventRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	GuildId   *int64
 	ChannelId *int64
 	Event     *EventEnvelope
 }
 
-func (b0 DispatchChannelEventRequest_builder) Build() *DispatchChannelEventRequest {
-	m0 := &DispatchChannelEventRequest{}
+func (b0 DispatchGuildMessageEventRequest_builder) Build() *DispatchGuildMessageEventRequest {
+	m0 := &DispatchGuildMessageEventRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	x.xxx_hidden_Event = b.Event
@@ -2099,7 +2028,7 @@ type DispatchUserEventRequest struct {
 
 func (x *DispatchUserEventRequest) Reset() {
 	*x = DispatchUserEventRequest{}
-	mi := &file_session_v1_session_proto_msgTypes[14]
+	mi := &file_session_v1_session_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2111,7 +2040,7 @@ func (x *DispatchUserEventRequest) String() string {
 func (*DispatchUserEventRequest) ProtoMessage() {}
 
 func (x *DispatchUserEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[14]
+	mi := &file_session_v1_session_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2198,7 +2127,7 @@ type DispatchGuildEventResponse struct {
 
 func (x *DispatchGuildEventResponse) Reset() {
 	*x = DispatchGuildEventResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[15]
+	mi := &file_session_v1_session_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2210,7 +2139,7 @@ func (x *DispatchGuildEventResponse) String() string {
 func (*DispatchGuildEventResponse) ProtoMessage() {}
 
 func (x *DispatchGuildEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[15]
+	mi := &file_session_v1_session_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2262,7 +2191,7 @@ func (b0 DispatchGuildEventResponse_builder) Build() *DispatchGuildEventResponse
 	return m0
 }
 
-type DispatchChannelEventResponse struct {
+type DispatchGuildMessageEventResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Delivered   int32                  `protobuf:"varint,1,opt,name=delivered"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
@@ -2271,21 +2200,21 @@ type DispatchChannelEventResponse struct {
 	sizeCache              protoimpl.SizeCache
 }
 
-func (x *DispatchChannelEventResponse) Reset() {
-	*x = DispatchChannelEventResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[16]
+func (x *DispatchGuildMessageEventResponse) Reset() {
+	*x = DispatchGuildMessageEventResponse{}
+	mi := &file_session_v1_session_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DispatchChannelEventResponse) String() string {
+func (x *DispatchGuildMessageEventResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DispatchChannelEventResponse) ProtoMessage() {}
+func (*DispatchGuildMessageEventResponse) ProtoMessage() {}
 
-func (x *DispatchChannelEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[16]
+func (x *DispatchGuildMessageEventResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_session_v1_session_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2296,38 +2225,38 @@ func (x *DispatchChannelEventResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *DispatchChannelEventResponse) GetDelivered() int32 {
+func (x *DispatchGuildMessageEventResponse) GetDelivered() int32 {
 	if x != nil {
 		return x.xxx_hidden_Delivered
 	}
 	return 0
 }
 
-func (x *DispatchChannelEventResponse) SetDelivered(v int32) {
+func (x *DispatchGuildMessageEventResponse) SetDelivered(v int32) {
 	x.xxx_hidden_Delivered = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
 }
 
-func (x *DispatchChannelEventResponse) HasDelivered() bool {
+func (x *DispatchGuildMessageEventResponse) HasDelivered() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *DispatchChannelEventResponse) ClearDelivered() {
+func (x *DispatchGuildMessageEventResponse) ClearDelivered() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Delivered = 0
 }
 
-type DispatchChannelEventResponse_builder struct {
+type DispatchGuildMessageEventResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Delivered *int32
 }
 
-func (b0 DispatchChannelEventResponse_builder) Build() *DispatchChannelEventResponse {
-	m0 := &DispatchChannelEventResponse{}
+func (b0 DispatchGuildMessageEventResponse_builder) Build() *DispatchGuildMessageEventResponse {
+	m0 := &DispatchGuildMessageEventResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Delivered != nil {
@@ -2348,7 +2277,7 @@ type DispatchUserEventResponse struct {
 
 func (x *DispatchUserEventResponse) Reset() {
 	*x = DispatchUserEventResponse{}
-	mi := &file_session_v1_session_proto_msgTypes[17]
+	mi := &file_session_v1_session_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2360,7 +2289,7 @@ func (x *DispatchUserEventResponse) String() string {
 func (*DispatchUserEventResponse) ProtoMessage() {}
 
 func (x *DispatchUserEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_session_v1_session_proto_msgTypes[17]
+	mi := &file_session_v1_session_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2417,7 +2346,7 @@ var File_session_v1_session_proto protoreflect.FileDescriptor
 const file_session_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"\x18session/v1/session.proto\x12\n" +
-	"session.v1\"\xce\x03\n" +
+	"session.v1\"\x95\x03\n" +
 	"\x0eConnectRequest\x12#\n" +
 	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12\x1d\n" +
 	"\n" +
@@ -2426,10 +2355,9 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\bidentify\x18\x02 \x01(\v2\x14.session.v1.IdentifyH\x00R\bidentify\x12,\n" +
 	"\x06resume\x18\x03 \x01(\v2\x12.session.v1.ResumeH\x00R\x06resume\x125\n" +
 	"\theartbeat\x18\x04 \x01(\v2\x15.session.v1.HeartbeatH\x00R\theartbeat\x128\n" +
-	"\bpresence\x18\x05 \x01(\v2\x1a.session.v1.PresenceUpdateH\x00R\bpresence\x12=\n" +
-	"\tsubscribe\x18\x06 \x01(\v2\x1d.session.v1.SubscribeChannelsH\x00R\tsubscribe\x12,\n" +
+	"\bpresence\x18\x05 \x01(\v2\x1a.session.v1.PresenceUpdateH\x00R\bpresence\x12,\n" +
 	"\x06detach\x18\a \x01(\v2\x12.session.v1.DetachH\x00R\x06detachB\t\n" +
-	"\apayload\"|\n" +
+	"\apayloadJ\x04\b\x06\x10\a\"|\n" +
 	"\bIdentify\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1f\n" +
 	"\vdevice_type\x18\x02 \x01(\tR\n" +
@@ -2445,10 +2373,7 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\bsequence\x18\x01 \x01(\x04R\bsequence\"K\n" +
 	"\x0ePresenceUpdate\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12!\n" +
-	"\fclient_state\x18\x02 \x01(\tR\vclientState\"4\n" +
-	"\x11SubscribeChannels\x12\x1f\n" +
-	"\vchannel_ids\x18\x01 \x03(\x03R\n" +
-	"channelIds\"&\n" +
+	"\fclient_state\x18\x02 \x01(\tR\vclientState\"&\n" +
 	"\x06Detach\x12\x1c\n" +
 	"\tresumable\x18\x01 \x01(\bR\tresumable\"\x82\x02\n" +
 	"\x0fConnectResponse\x12\x16\n" +
@@ -2480,77 +2405,76 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\fjson_payload\x18\x02 \x01(\tR\vjsonPayload\"g\n" +
 	"\x19DispatchGuildEventRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12/\n" +
-	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"m\n" +
-	"\x1bDispatchChannelEventRequest\x12\x1d\n" +
+	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"\x8d\x01\n" +
+	" DispatchGuildMessageEventRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x1d\n" +
 	"\n" +
-	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12/\n" +
-	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"d\n" +
+	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12/\n" +
+	"\x05event\x18\x03 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"d\n" +
 	"\x18DispatchUserEventRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12/\n" +
 	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\":\n" +
 	"\x1aDispatchGuildEventResponse\x12\x1c\n" +
-	"\tdelivered\x18\x01 \x01(\x05R\tdelivered\"<\n" +
-	"\x1cDispatchChannelEventResponse\x12\x1c\n" +
+	"\tdelivered\x18\x01 \x01(\x05R\tdelivered\"A\n" +
+	"!DispatchGuildMessageEventResponse\x12\x1c\n" +
 	"\tdelivered\x18\x01 \x01(\x05R\tdelivered\"9\n" +
 	"\x19DispatchUserEventResponse\x12\x1c\n" +
-	"\tdelivered\x18\x01 \x01(\x05R\tdelivered2\xfb\x03\n" +
+	"\tdelivered\x18\x01 \x01(\x05R\tdelivered2\x8a\x04\n" +
 	"\x0eSessionService\x12F\n" +
 	"\aConnect\x12\x1a.session.v1.ConnectRequest\x1a\x1b.session.v1.ConnectResponse(\x010\x01\x12o\n" +
 	"\x16SyncGatewayConnections\x12).session.v1.SyncGatewayConnectionsRequest\x1a*.session.v1.SyncGatewayConnectionsResponse\x12c\n" +
-	"\x12DispatchGuildEvent\x12%.session.v1.DispatchGuildEventRequest\x1a&.session.v1.DispatchGuildEventResponse\x12i\n" +
-	"\x14DispatchChannelEvent\x12'.session.v1.DispatchChannelEventRequest\x1a(.session.v1.DispatchChannelEventResponse\x12`\n" +
+	"\x12DispatchGuildEvent\x12%.session.v1.DispatchGuildEventRequest\x1a&.session.v1.DispatchGuildEventResponse\x12x\n" +
+	"\x19DispatchGuildMessageEvent\x12,.session.v1.DispatchGuildMessageEventRequest\x1a-.session.v1.DispatchGuildMessageEventResponse\x12`\n" +
 	"\x11DispatchUserEvent\x12$.session.v1.DispatchUserEventRequest\x1a%.session.v1.DispatchUserEventResponseB\x9b\x01\n" +
 	"\x0ecom.session.v1B\fSessionProtoP\x01Z2github.com/soasurs/cordis/gen/session/v1;sessionv1\xa2\x02\x03SXX\xaa\x02\n" +
 	"Session.V1\xca\x02\n" +
 	"Session\\V1\xe2\x02\x16Session\\V1\\GPBMetadata\xea\x02\vSession::V1b\beditionsp\xe8\a"
 
-var file_session_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_session_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_session_v1_session_proto_goTypes = []any{
-	(*ConnectRequest)(nil),                 // 0: session.v1.ConnectRequest
-	(*Identify)(nil),                       // 1: session.v1.Identify
-	(*Resume)(nil),                         // 2: session.v1.Resume
-	(*Heartbeat)(nil),                      // 3: session.v1.Heartbeat
-	(*PresenceUpdate)(nil),                 // 4: session.v1.PresenceUpdate
-	(*SubscribeChannels)(nil),              // 5: session.v1.SubscribeChannels
-	(*Detach)(nil),                         // 6: session.v1.Detach
-	(*ConnectResponse)(nil),                // 7: session.v1.ConnectResponse
-	(*GatewayConnectionCheckpoint)(nil),    // 8: session.v1.GatewayConnectionCheckpoint
-	(*SyncGatewayConnectionsRequest)(nil),  // 9: session.v1.SyncGatewayConnectionsRequest
-	(*SyncGatewayConnectionsResponse)(nil), // 10: session.v1.SyncGatewayConnectionsResponse
-	(*EventEnvelope)(nil),                  // 11: session.v1.EventEnvelope
-	(*DispatchGuildEventRequest)(nil),      // 12: session.v1.DispatchGuildEventRequest
-	(*DispatchChannelEventRequest)(nil),    // 13: session.v1.DispatchChannelEventRequest
-	(*DispatchUserEventRequest)(nil),       // 14: session.v1.DispatchUserEventRequest
-	(*DispatchGuildEventResponse)(nil),     // 15: session.v1.DispatchGuildEventResponse
-	(*DispatchChannelEventResponse)(nil),   // 16: session.v1.DispatchChannelEventResponse
-	(*DispatchUserEventResponse)(nil),      // 17: session.v1.DispatchUserEventResponse
+	(*ConnectRequest)(nil),                    // 0: session.v1.ConnectRequest
+	(*Identify)(nil),                          // 1: session.v1.Identify
+	(*Resume)(nil),                            // 2: session.v1.Resume
+	(*Heartbeat)(nil),                         // 3: session.v1.Heartbeat
+	(*PresenceUpdate)(nil),                    // 4: session.v1.PresenceUpdate
+	(*Detach)(nil),                            // 5: session.v1.Detach
+	(*ConnectResponse)(nil),                   // 6: session.v1.ConnectResponse
+	(*GatewayConnectionCheckpoint)(nil),       // 7: session.v1.GatewayConnectionCheckpoint
+	(*SyncGatewayConnectionsRequest)(nil),     // 8: session.v1.SyncGatewayConnectionsRequest
+	(*SyncGatewayConnectionsResponse)(nil),    // 9: session.v1.SyncGatewayConnectionsResponse
+	(*EventEnvelope)(nil),                     // 10: session.v1.EventEnvelope
+	(*DispatchGuildEventRequest)(nil),         // 11: session.v1.DispatchGuildEventRequest
+	(*DispatchGuildMessageEventRequest)(nil),  // 12: session.v1.DispatchGuildMessageEventRequest
+	(*DispatchUserEventRequest)(nil),          // 13: session.v1.DispatchUserEventRequest
+	(*DispatchGuildEventResponse)(nil),        // 14: session.v1.DispatchGuildEventResponse
+	(*DispatchGuildMessageEventResponse)(nil), // 15: session.v1.DispatchGuildMessageEventResponse
+	(*DispatchUserEventResponse)(nil),         // 16: session.v1.DispatchUserEventResponse
 }
 var file_session_v1_session_proto_depIdxs = []int32{
 	1,  // 0: session.v1.ConnectRequest.identify:type_name -> session.v1.Identify
 	2,  // 1: session.v1.ConnectRequest.resume:type_name -> session.v1.Resume
 	3,  // 2: session.v1.ConnectRequest.heartbeat:type_name -> session.v1.Heartbeat
 	4,  // 3: session.v1.ConnectRequest.presence:type_name -> session.v1.PresenceUpdate
-	5,  // 4: session.v1.ConnectRequest.subscribe:type_name -> session.v1.SubscribeChannels
-	6,  // 5: session.v1.ConnectRequest.detach:type_name -> session.v1.Detach
-	8,  // 6: session.v1.SyncGatewayConnectionsRequest.checkpoints:type_name -> session.v1.GatewayConnectionCheckpoint
-	11, // 7: session.v1.DispatchGuildEventRequest.event:type_name -> session.v1.EventEnvelope
-	11, // 8: session.v1.DispatchChannelEventRequest.event:type_name -> session.v1.EventEnvelope
-	11, // 9: session.v1.DispatchUserEventRequest.event:type_name -> session.v1.EventEnvelope
-	0,  // 10: session.v1.SessionService.Connect:input_type -> session.v1.ConnectRequest
-	9,  // 11: session.v1.SessionService.SyncGatewayConnections:input_type -> session.v1.SyncGatewayConnectionsRequest
-	12, // 12: session.v1.SessionService.DispatchGuildEvent:input_type -> session.v1.DispatchGuildEventRequest
-	13, // 13: session.v1.SessionService.DispatchChannelEvent:input_type -> session.v1.DispatchChannelEventRequest
-	14, // 14: session.v1.SessionService.DispatchUserEvent:input_type -> session.v1.DispatchUserEventRequest
-	7,  // 15: session.v1.SessionService.Connect:output_type -> session.v1.ConnectResponse
-	10, // 16: session.v1.SessionService.SyncGatewayConnections:output_type -> session.v1.SyncGatewayConnectionsResponse
-	15, // 17: session.v1.SessionService.DispatchGuildEvent:output_type -> session.v1.DispatchGuildEventResponse
-	16, // 18: session.v1.SessionService.DispatchChannelEvent:output_type -> session.v1.DispatchChannelEventResponse
-	17, // 19: session.v1.SessionService.DispatchUserEvent:output_type -> session.v1.DispatchUserEventResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	5,  // 4: session.v1.ConnectRequest.detach:type_name -> session.v1.Detach
+	7,  // 5: session.v1.SyncGatewayConnectionsRequest.checkpoints:type_name -> session.v1.GatewayConnectionCheckpoint
+	10, // 6: session.v1.DispatchGuildEventRequest.event:type_name -> session.v1.EventEnvelope
+	10, // 7: session.v1.DispatchGuildMessageEventRequest.event:type_name -> session.v1.EventEnvelope
+	10, // 8: session.v1.DispatchUserEventRequest.event:type_name -> session.v1.EventEnvelope
+	0,  // 9: session.v1.SessionService.Connect:input_type -> session.v1.ConnectRequest
+	8,  // 10: session.v1.SessionService.SyncGatewayConnections:input_type -> session.v1.SyncGatewayConnectionsRequest
+	11, // 11: session.v1.SessionService.DispatchGuildEvent:input_type -> session.v1.DispatchGuildEventRequest
+	12, // 12: session.v1.SessionService.DispatchGuildMessageEvent:input_type -> session.v1.DispatchGuildMessageEventRequest
+	13, // 13: session.v1.SessionService.DispatchUserEvent:input_type -> session.v1.DispatchUserEventRequest
+	6,  // 14: session.v1.SessionService.Connect:output_type -> session.v1.ConnectResponse
+	9,  // 15: session.v1.SessionService.SyncGatewayConnections:output_type -> session.v1.SyncGatewayConnectionsResponse
+	14, // 16: session.v1.SessionService.DispatchGuildEvent:output_type -> session.v1.DispatchGuildEventResponse
+	15, // 17: session.v1.SessionService.DispatchGuildMessageEvent:output_type -> session.v1.DispatchGuildMessageEventResponse
+	16, // 18: session.v1.SessionService.DispatchUserEvent:output_type -> session.v1.DispatchUserEventResponse
+	14, // [14:19] is the sub-list for method output_type
+	9,  // [9:14] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_session_v1_session_proto_init() }
@@ -2563,7 +2487,6 @@ func file_session_v1_session_proto_init() {
 		(*connectRequest_Resume)(nil),
 		(*connectRequest_Heartbeat)(nil),
 		(*connectRequest_Presence)(nil),
-		(*connectRequest_Subscribe)(nil),
 		(*connectRequest_Detach)(nil),
 	}
 	type x struct{}
@@ -2572,7 +2495,7 @@ func file_session_v1_session_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_session_v1_session_proto_rawDesc), len(file_session_v1_session_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

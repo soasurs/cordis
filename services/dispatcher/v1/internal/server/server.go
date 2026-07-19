@@ -187,9 +187,7 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 		case userID > 0 && guildID == 0:
 			return false, s.dispatchUser(ctx, userID, event)
 		case guildID == 0 && userID == 0:
-			// Compatibility for records produced before aggregate message
-			// routing. Remove after every Message instance emits route IDs.
-			return false, s.dispatchChannel(ctx, channelID, event)
+			return true, errors.New("message event aggregate route is missing")
 		default:
 			return true, errors.New("message event aggregate route is invalid")
 		}
@@ -231,33 +229,19 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 	}
 }
 
-func (s *Server) dispatchChannel(ctx context.Context, channelID int64, event eventEnvelope) error {
-	nodes, err := s.resolver.Resolve(ctx, discovery.RouteChannel, channelID)
-	if err != nil {
-		return err
-	}
-	return s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
-		req := new(sessionv1.DispatchChannelEventRequest)
-		req.SetChannelId(channelID)
-		req.SetEvent(protoEvent(event))
-		_, err := client.DispatchChannelEvent(ctx, req)
-		return err
-	})
-}
-
 // dispatchGuildMessage uses the aggregate Guild route to locate candidate
-// Session nodes, then retains channel-level filtering on each node until
-// server-owned visibility snapshots replace client channel subscriptions.
+// Session nodes. Each node filters recipients through its visibility snapshots.
 func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID int64, event eventEnvelope) error {
 	nodes, err := s.resolver.Resolve(ctx, discovery.RouteGuild, guildID)
 	if err != nil {
 		return err
 	}
 	return s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
-		req := new(sessionv1.DispatchChannelEventRequest)
+		req := new(sessionv1.DispatchGuildMessageEventRequest)
+		req.SetGuildId(guildID)
 		req.SetChannelId(channelID)
 		req.SetEvent(protoEvent(event))
-		_, err := client.DispatchChannelEvent(ctx, req)
+		_, err := client.DispatchGuildMessageEvent(ctx, req)
 		return err
 	})
 }

@@ -14,15 +14,27 @@ const (
 	permissionManageMessages = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES)
 )
 
-func (s *messageServer) requireChannelPermission(ctx context.Context, channelID, userID int64, permission uint64) error {
+type messageAudience struct {
+	guildID int64
+	userIDs []int64
+}
+
+func (s *messageServer) requireChannelPermission(
+	ctx context.Context,
+	channelID, userID int64,
+	permission uint64,
+) (messageAudience, error) {
 	// DM channels are owned locally; a hit settles authorization without a
 	// Guild round trip. A miss falls through to the guild path.
 	dmChannel, err := s.svcCtx.Store.GetDmChannel(ctx, channelID)
 	if err == nil {
-		return s.authorizeDmMessage(ctx, dmChannel, userID, permission)
+		if err := s.authorizeDmMessage(ctx, dmChannel, userID, permission); err != nil {
+			return messageAudience{}, err
+		}
+		return messageAudience{userIDs: []int64{dmChannel.UserLo, dmChannel.UserHi}}, nil
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		return err
+		return messageAudience{}, err
 	}
 
 	req := new(guildv1.AuthorizeGuildChannelRequest)
@@ -31,14 +43,17 @@ func (s *messageServer) requireChannelPermission(ctx context.Context, channelID,
 	req.SetPermission(permission)
 	resp, err := s.svcCtx.GuildClient.AuthorizeGuildChannel(ctx, req)
 	if err != nil {
-		return err
+		return messageAudience{}, err
 	}
 	if !resp.GetAllowed() {
-		return permissionDenied()
+		return messageAudience{}, permissionDenied()
 	}
 	if resp.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY ||
 		resp.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE {
-		return invalidRequest("messages are only supported in text channels")
+		return messageAudience{}, invalidRequest("messages are only supported in text channels")
 	}
-	return nil
+	if resp.GetGuildId() <= 0 {
+		return messageAudience{}, errors.New("guild channel authorization returned invalid guild id")
+	}
+	return messageAudience{guildID: resp.GetGuildId()}, nil
 }

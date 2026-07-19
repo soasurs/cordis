@@ -28,7 +28,9 @@ type messageEvent struct {
 
 type messagePayload struct {
 	MessageID           string           `json:"id"`
+	GuildID             string           `json:"guild_id,omitempty"`
 	ChannelID           string           `json:"channel_id"`
+	UserID              string           `json:"user_id,omitempty"`
 	AuthorID            string           `json:"author_id"`
 	Content             string           `json:"content"`
 	Type                int32            `json:"type"`
@@ -54,26 +56,55 @@ type attachmentJSON struct {
 
 type messageDeletedPayload struct {
 	MessageID string `json:"id"`
+	GuildID   string `json:"guild_id,omitempty"`
 	ChannelID string `json:"channel_id"`
+	UserID    string `json:"user_id,omitempty"`
 	Revision  int64  `json:"revision"`
 	DeletedAt int64  `json:"deleted_at"`
 }
 
-func newMessageCreatedEvent(message *model.Message, mentionUserIDs []int64) (messageEvent, error) {
-	return newEvent(EventTypeMessageCreated, message.ChannelID, messagePayloadFromModel(message, mentionUserIDs))
+func newMessageCreatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
+	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs))
 }
 
-func newMessageUpdatedEvent(message *model.Message, mentionUserIDs []int64) (messageEvent, error) {
-	return newEvent(EventTypeMessageUpdated, message.ChannelID, messagePayloadFromModel(message, mentionUserIDs))
+func newMessageUpdatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
+	return newMessageEvents(EventTypeMessageUpdated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs))
 }
 
-func newMessageDeletedEvent(message *model.Message) (messageEvent, error) {
-	return newEvent(EventTypeMessageDeleted, message.ChannelID, messageDeletedPayload{
+func newMessageDeletedEvents(message *model.Message, audience messageAudience) ([]messageEvent, error) {
+	return newMessageDeletedRoutingEvents(EventTypeMessageDeleted, message.ChannelID, audience, messageDeletedPayload{
 		MessageID: strconv.FormatInt(message.ID, 10),
 		ChannelID: strconv.FormatInt(message.ChannelID, 10),
 		Revision:  message.Revision,
 		DeletedAt: message.DeletedAt,
 	})
+}
+
+func newMessageEvents(eventType string, channelID int64, audience messageAudience, data messagePayload) ([]messageEvent, error) {
+	if audience.guildID > 0 {
+		data.GuildID = strconv.FormatInt(audience.guildID, 10)
+		event, err := newEvent(eventType, audience.guildID, data)
+		return singleEvent(event, err)
+	}
+	event, err := newEvent(eventType, channelID, data)
+	return singleEvent(event, err)
+}
+
+func newMessageDeletedRoutingEvents(eventType string, channelID int64, audience messageAudience, data messageDeletedPayload) ([]messageEvent, error) {
+	if audience.guildID > 0 {
+		data.GuildID = strconv.FormatInt(audience.guildID, 10)
+		event, err := newEvent(eventType, audience.guildID, data)
+		return singleEvent(event, err)
+	}
+	event, err := newEvent(eventType, channelID, data)
+	return singleEvent(event, err)
+}
+
+func singleEvent(event messageEvent, err error) ([]messageEvent, error) {
+	if err != nil {
+		return nil, err
+	}
+	return []messageEvent{event}, nil
 }
 
 func messagePayloadFromModel(message *model.Message, mentionUserIDs []int64) messagePayload {

@@ -47,10 +47,11 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, []int64{30, 31}, fakeStore.mentions[resp.GetMessage().GetId()])
 
 	record := publisher.onlyRecord(t)
-	require.Equal(t, "10", string(record.key))
+	require.Equal(t, "9001", string(record.key))
 	var envelope eventEnvelope[messagePayload]
 	require.NoError(t, json.Unmarshal(record.payload, &envelope))
 	require.Equal(t, EventTypeMessageCreated, envelope.Type)
+	require.Equal(t, "9001", envelope.Data.GuildID)
 	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), envelope.Data.MessageID)
 	require.Equal(t, int64(1), envelope.Data.Revision)
 }
@@ -61,14 +62,16 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 		ReferencedMessageID: 9007199254740996, ReferencedChannelID: 9007199254740997,
 		Revision: 1,
 	}
-	event, err := newMessageCreatedEvent(message, []int64{9007199254740998})
+	events, err := newMessageCreatedEvents(message, []int64{9007199254740998}, messageAudience{guildID: 9007199254740999})
 	require.NoError(t, err)
+	require.Len(t, events, 1)
 
 	var envelope eventEnvelope[map[string]json.RawMessage]
-	require.NoError(t, json.Unmarshal(event.Payload, &envelope))
+	require.NoError(t, json.Unmarshal(events[0].Payload, &envelope))
 	require.Equal(t, `"9007199254740993"`, string(envelope.Data["id"]))
 	require.Equal(t, `"9007199254740994"`, string(envelope.Data["channel_id"]))
 	require.Equal(t, `"9007199254740995"`, string(envelope.Data["author_id"]))
+	require.Equal(t, `"9007199254740999"`, string(envelope.Data["guild_id"]))
 	require.Equal(t, `"9007199254740996"`, string(envelope.Data["referenced_message_id"]))
 	require.Equal(t, `"9007199254740997"`, string(envelope.Data["referenced_channel_id"]))
 	require.JSONEq(t, `["9007199254740998"]`, string(envelope.Data["mention_user_ids"]))
@@ -403,6 +406,7 @@ func (c *boundedGuildClient) AuthorizeGuildChannel(
 	}
 	resp := new(guildv1.AuthorizeGuildChannelResponse)
 	resp.SetAllowed(true)
+	resp.SetGuildId(9001)
 	resp.SetChannelType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
 	return resp, nil
 }
@@ -417,6 +421,7 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	f.mu.Unlock()
 	resp := new(guildv1.AuthorizeGuildChannelResponse)
 	resp.SetAllowed(!f.denyAll && (req.GetPermission()&permissionManageMessages == 0 || f.allowManageMessages))
+	resp.SetGuildId(9001)
 	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
 	resp.SetChannelType(f.channelType)
 	return resp, nil

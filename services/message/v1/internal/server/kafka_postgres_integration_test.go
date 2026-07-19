@@ -70,10 +70,11 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	require.Empty(t, records.Errors())
 	require.Len(t, records.Records(), 1)
 	record := records.Records()[0]
-	require.Equal(t, "2001", string(record.Key))
+	require.Equal(t, "9001", string(record.Key))
 
 	var envelope eventEnvelope[messagePayload]
 	require.NoError(t, json.Unmarshal(record.Value, &envelope))
 	require.Equal(t, EventTypeMessageCreated, envelope.Type)
+	require.Equal(t, "9001", envelope.Data.GuildID)
 	require.Equal(t, strconv.FormatInt(created.GetMessage().GetId(), 10), envelope.Data.MessageID)
 }

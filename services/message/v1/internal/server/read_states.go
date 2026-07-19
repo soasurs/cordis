@@ -28,7 +28,7 @@ func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessag
 		return nil, invalidRequest("message id is required")
 	}
 
-	if err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetUserId(), permissionViewChannel); err != nil {
+	if _, err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetUserId(), permissionViewChannel); err != nil {
 		return nil, err
 	}
 
@@ -59,7 +59,8 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	group.SetLimit(s.readStateAuthorizationConcurrency())
 	for _, channelID := range channelIDs {
 		group.Go(func() error {
-			return s.requireChannelPermission(groupCtx, channelID, req.GetUserId(), permissionViewChannel)
+			_, err := s.requireChannelPermission(groupCtx, channelID, req.GetUserId(), permissionViewChannel)
+			return err
 		})
 	}
 	if err := group.Wait(); err != nil {

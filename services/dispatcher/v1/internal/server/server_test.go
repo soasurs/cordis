@@ -11,7 +11,29 @@ import (
 	"github.com/soasurs/cordis/services/dispatcher/v1/internal/discovery"
 )
 
-func TestDispatchRecordUsesDotSeparatedMessageEvent(t *testing.T) {
+func TestDispatchRecordRoutesGuildMessageByGuild(t *testing.T) {
+	resolver := &fakeResolver{}
+	server := &Server{resolver: resolver}
+	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","guild_id":"8001","channel_id":"7001"}}`)
+	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
+	require.NoError(t, err)
+	require.False(t, permanent)
+	require.Equal(t, discovery.RouteGuild, resolver.kind)
+	require.Equal(t, int64(8001), resolver.id)
+}
+
+func TestDispatchRecordRoutesDmMessageByRecipient(t *testing.T) {
+	resolver := &fakeResolver{}
+	server := &Server{resolver: resolver}
+	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001","user_id":"1001"}}`)
+	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
+	require.NoError(t, err)
+	require.False(t, permanent)
+	require.Equal(t, discovery.RouteUser, resolver.kind)
+	require.Equal(t, int64(1001), resolver.id)
+}
+
+func TestDispatchRecordFallsBackToLegacyChannelRoute(t *testing.T) {
 	resolver := &fakeResolver{}
 	server := &Server{resolver: resolver}
 	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"}}`)

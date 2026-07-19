@@ -179,7 +179,20 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 		if channelID <= 0 {
 			return true, errors.New("message event channel id is invalid")
 		}
-		return false, s.dispatchChannel(ctx, channelID, event)
+		guildID := int64(routing.GuildID)
+		userID := int64(routing.UserID)
+		switch {
+		case guildID > 0 && userID == 0:
+			return false, s.dispatchGuildMessage(ctx, guildID, channelID, event)
+		case userID > 0 && guildID == 0:
+			return false, s.dispatchUser(ctx, userID, event)
+		case guildID == 0 && userID == 0:
+			// Compatibility for records produced before aggregate message
+			// routing. Remove after every Message instance emits route IDs.
+			return false, s.dispatchChannel(ctx, channelID, event)
+		default:
+			return true, errors.New("message event aggregate route is invalid")
+		}
 	default:
 		if strings.HasPrefix(event.Type, "presence.") {
 			userID := int64(routing.UserID)
@@ -220,6 +233,23 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 
 func (s *Server) dispatchChannel(ctx context.Context, channelID int64, event eventEnvelope) error {
 	nodes, err := s.resolver.Resolve(ctx, discovery.RouteChannel, channelID)
+	if err != nil {
+		return err
+	}
+	return s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
+		req := new(sessionv1.DispatchChannelEventRequest)
+		req.SetChannelId(channelID)
+		req.SetEvent(protoEvent(event))
+		_, err := client.DispatchChannelEvent(ctx, req)
+		return err
+	})
+}
+
+// dispatchGuildMessage uses the aggregate Guild route to locate candidate
+// Session nodes, then retains channel-level filtering on each node until
+// server-owned visibility snapshots replace client channel subscriptions.
+func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID int64, event eventEnvelope) error {
+	nodes, err := s.resolver.Resolve(ctx, discovery.RouteGuild, guildID)
 	if err != nil {
 		return err
 	}

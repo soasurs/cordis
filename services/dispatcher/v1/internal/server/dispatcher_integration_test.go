@@ -39,29 +39,29 @@ func TestDispatcherIntegration(t *testing.T) {
 	require.NoError(t, err)
 	env := &dispatcherEnv{kafkaAddress: kafka.Address, rds: rds, etcdHosts: []string{etcd.Address}}
 
-	t.Run("channel route", func(t *testing.T) { testChannelRoute(t, env) })
+	t.Run("guild message route", func(t *testing.T) { testGuildMessageRoute(t, env) })
 	t.Run("guild route merges user route nodes", func(t *testing.T) { testGuildRouteMergesUserNodes(t, env) })
 	t.Run("retry preserves uncommitted offset", func(t *testing.T) { testRetryPreservesUncommittedOffset(t, env) })
 	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
 	t.Run("user route", func(t *testing.T) { testUserRoute(t, env) })
 }
 
-func testChannelRoute(t *testing.T, env *dispatcherEnv) {
-	const channelID = int64(7001)
+func testGuildMessageRoute(t *testing.T, env *dispatcherEnv) {
+	const guildID = int64(7000)
 	h := newHarness(t, env)
 	node := newRecordingSessionServer()
 	address := startSessionServer(t, node)
 	h.registerNode(t, "session-a", "generation-1", address)
-	h.addRoute(t, discovery.RouteChannel, channelID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
 	h.startDispatcher(t)
 
-	h.produce(t, h.messageTopic, strconv.FormatInt(channelID, 10),
-		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","channel_id":"7001"}}`)
+	h.produce(t, h.messageTopic, strconv.FormatInt(guildID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7000","channel_id":"7001"}}`)
 
 	request := node.waitChannelEvent(t)
-	require.Equal(t, channelID, request.GetChannelId())
+	require.Equal(t, int64(7001), request.GetChannelId())
 	require.Equal(t, realtime.EventMessageCreated, request.GetEvent().GetType())
-	require.JSONEq(t, `{"id":"9001","channel_id":"7001"}`, request.GetEvent().GetJsonPayload())
+	require.JSONEq(t, `{"id":"9001","guild_id":"7000","channel_id":"7001"}`, request.GetEvent().GetJsonPayload())
 }
 
 func testGuildRouteMergesUserNodes(t *testing.T, env *dispatcherEnv) {
@@ -99,16 +99,16 @@ func testGuildRouteMergesUserNodes(t *testing.T, env *dispatcherEnv) {
 }
 
 func testRetryPreservesUncommittedOffset(t *testing.T, env *dispatcherEnv) {
-	const channelID = int64(7201)
+	const guildID = int64(7200)
 	h := newHarness(t, env)
 	node := newRecordingSessionServer()
 	node.setChannelFailing(true)
 	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
-	h.addRoute(t, discovery.RouteChannel, channelID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
 	h.startDispatcher(t)
 
-	h.produce(t, h.messageTopic, strconv.FormatInt(channelID, 10),
-		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","channel_id":"7201"}}`)
+	h.produce(t, h.messageTopic, strconv.FormatInt(guildID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7200","channel_id":"7201"}}`)
 
 	require.Eventually(t, func() bool { return node.channelCalls() >= 2 },
 		30*time.Second, 20*time.Millisecond, "dispatcher did not retry the failing dispatch")
@@ -117,26 +117,26 @@ func testRetryPreservesUncommittedOffset(t *testing.T, env *dispatcherEnv) {
 
 	node.setChannelFailing(false)
 	request := node.waitChannelEvent(t)
-	require.Equal(t, channelID, request.GetChannelId())
+	require.Equal(t, int64(7201), request.GetChannelId())
 	require.Eventually(t, func() bool { return h.committedOffset(t, h.messageTopic) == 1 },
 		15*time.Second, 50*time.Millisecond, "offset must be committed after successful dispatch")
 }
 
 func testPoisonPillDoesNotBlockPartition(t *testing.T, env *dispatcherEnv) {
-	const channelID = int64(7301)
+	const guildID = int64(7300)
 	h := newHarness(t, env)
 	node := newRecordingSessionServer()
 	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
-	h.addRoute(t, discovery.RouteChannel, channelID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
 	h.startDispatcher(t)
 
 	h.produce(t, h.messageTopic, "poison", `not-json`)
 	h.produce(t, h.messageTopic, "poison", `{"t":"unsupported.event","d":{}}`)
-	h.produce(t, h.messageTopic, strconv.FormatInt(channelID, 10),
-		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","channel_id":"7301"}}`)
+	h.produce(t, h.messageTopic, strconv.FormatInt(guildID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7300","channel_id":"7301"}}`)
 
 	request := node.waitChannelEvent(t)
-	require.Equal(t, channelID, request.GetChannelId())
+	require.Equal(t, int64(7301), request.GetChannelId())
 	require.Eventually(t, func() bool { return h.committedOffset(t, h.messageTopic) == 3 },
 		15*time.Second, 50*time.Millisecond, "poison records must be dropped and committed")
 	require.Equal(t, 1, node.channelCalls(),
@@ -479,6 +479,13 @@ func testUserRoute(t *testing.T, env *dispatcherEnv) {
 	require.Equal(t, userID, request.GetUserId())
 	require.Equal(t, realtime.EventDmChannelCreated, request.GetEvent().GetType())
 	require.JSONEq(t, `{"channel_id":"9001","user_id":"7401","recipient_id":"8001","created_at":1}`, request.GetEvent().GetJsonPayload())
+
+	h.produce(t, h.messageTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9101","channel_id":"9001","user_id":"7401"}}`)
+
+	request = node.waitUserEvent(t)
+	require.Equal(t, userID, request.GetUserId())
+	require.Equal(t, realtime.EventMessageCreated, request.GetEvent().GetType())
 }
 
 // fakeDispatcherUserClient serves friend lists for presence fan-out tests.

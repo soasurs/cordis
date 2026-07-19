@@ -159,6 +159,13 @@ func TestDmMessagesFlowBetweenParticipants(t *testing.T) {
 	created, err := server.CreateMessage(context.Background(), createReq)
 	require.NoError(t, err)
 	messageID := created.GetMessage().GetId()
+	require.Len(t, publisher.records, 1)
+	require.Equal(t, "500", string(publisher.records[0].key))
+	var envelope eventEnvelope[messagePayload]
+	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
+	require.Equal(t, EventTypeMessageCreated, envelope.Type)
+	require.Empty(t, envelope.Data.UserID)
+	require.Empty(t, envelope.Data.GuildID)
 
 	// The other participant reads; outsiders see nothing.
 	getReq := new(messagev1.GetMessageRequest)

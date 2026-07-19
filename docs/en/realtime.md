@@ -41,8 +41,6 @@ before the user's Guild index is revoked.
 - `/cordis/session/nodes/{node_id}`: leased etcd key containing generation,
   RPC address, and ready/draining state;
 - `session:owners:{session_id}`: logical Session owner;
-- `session:auth_sessions:{auth_session_id}`: logical Session ID plus owning
-  Session node ID and generation;
 - `gateway:routes:users:{id}:nodes`;
 - `gateway:routes:guilds:{id}:nodes`.
 

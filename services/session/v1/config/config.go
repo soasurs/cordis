@@ -142,6 +142,18 @@ func (c NodeConfig) ResumeTTL() time.Duration {
 	return time.Duration(c.SessionResumeSeconds) * time.Second
 }
 
+// SessionLeaseRefreshInterval returns the base interval for renewing logical
+// Session owner and Presence leases. The runtime adds jitter to this value.
+func (c NodeConfig) SessionLeaseRefreshInterval() time.Duration {
+	return c.ResumeTTL() / 4
+}
+
+// SessionLeaseSpreadWindow bounds how long one maintenance cycle may spread
+// its Redis pipelines and Presence RPCs.
+func (c NodeConfig) SessionLeaseSpreadWindow() time.Duration {
+	return min(c.SessionLeaseRefreshInterval()/4, 5*time.Second)
+}
+
 func (c NodeConfig) ReplayLimit() int {
 	if c.MaxReplayEvents <= 0 {
 		return 2048

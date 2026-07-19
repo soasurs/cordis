@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"testing"
 	"time"
 
@@ -24,53 +25,19 @@ import (
 	sessionratelimit "github.com/soasurs/cordis/services/session/v1/ratelimit"
 )
 
-func TestIdentifyRejectsDuplicateAuthSessionClaim(t *testing.T) {
-	server := newTestServerWithRegistry(&fakeRegistry{resolveNode: sessionregistry.Node{
-		ID: "session-live", Generation: "generation-live", RPCAddress: "127.0.0.1:3006", Status: sessionregistry.StatusReady,
-	}})
-	server.svcCtx.Store = &fakeStore{rejectClaim: true}
+func TestIdentifyAllowsMultipleLogicalSessionsPerAuthSession(t *testing.T) {
+	server := newTestServer()
 	identify := new(sessionv1.Identify)
 	identify.SetToken("token")
 
-	_, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
-
-	require.Equal(t, codes.ResourceExhausted, status.Code(err))
-}
-
-func TestIdentifyTakesOverAuthSessionClaimAfterOldGenerationExpires(t *testing.T) {
-	registry := &fakeRegistry{resolveErr: sessionregistry.ErrNodeNotFound}
-	server := newTestServerWithRegistry(registry)
-	fakeStore := &fakeStore{rejectClaim: true, allowTakeover: true}
-	server.svcCtx.Store = fakeStore
-	identify := new(sessionv1.Identify)
-	identify.SetToken("token")
-
-	session, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
-
+	first, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
 	require.NoError(t, err)
-	require.Equal(t, "session-live", registry.resolvedNodeID)
-	require.Equal(t, "generation-live", registry.resolvedGeneration)
-	require.Equal(t, store.AuthSessionClaim{
-		AuthSessionID: 2002, LogicalSessionID: "logical-live",
-		NodeID: "session-live", Generation: "generation-live",
-	}, fakeStore.takeoverExpected)
-	require.Equal(t, store.AuthSessionClaim{
-		AuthSessionID: 2002, LogicalSessionID: session.id,
-		NodeID: server.nodeID, Generation: server.generation,
-	}, fakeStore.takeoverReplacement)
-}
-
-func TestIdentifyDoesNotTakeOverAuthSessionClaimFromDrainingNode(t *testing.T) {
-	server := newTestServerWithRegistry(&fakeRegistry{resolveErr: sessionregistry.ErrNodeNotReady})
-	fakeStore := &fakeStore{rejectClaim: true, allowTakeover: true}
-	server.svcCtx.Store = fakeStore
-	identify := new(sessionv1.Identify)
-	identify.SetToken("token")
-
-	_, err := server.identify(t.Context(), "conn-a", "gateway-a", "gen-a", identify)
-
-	require.Equal(t, codes.ResourceExhausted, status.Code(err))
-	require.Empty(t, fakeStore.takeoverReplacement.LogicalSessionID)
+	second, err := server.identify(t.Context(), "conn-b", "gateway-b", "gen-b", identify)
+	require.NoError(t, err)
+	require.NotEqual(t, first.id, second.id)
+	require.Equal(t, first.authSessionID, second.authSessionID)
+	require.Len(t, server.sessions, 2)
+	require.Len(t, server.users[first.userID], 2)
 }
 
 func TestIdentifyRateLimitsValidatedUserAndAuthSession(t *testing.T) {
@@ -247,14 +214,56 @@ func TestRefreshSessionLeasesBatchesStoreAndPresence(t *testing.T) {
 
 	server.refreshSessionLeases(t.Context())
 
-	require.Equal(t, []store.AuthSessionClaim{{
-		AuthSessionID: session.authSessionID, LogicalSessionID: session.id,
-		NodeID: server.nodeID, Generation: server.generation,
-	}}, fakeStore.batchClaims)
 	require.Equal(t, []store.Owner{{SessionID: session.id, NodeID: server.nodeID, Generation: server.generation}}, fakeStore.batchOwners)
+	require.Equal(t, 120*time.Second, fakeStore.batchOwnerTTL)
 	require.Len(t, presence.requests, 1)
 	require.Len(t, presence.requests[0].GetSessions(), 1)
 	require.Equal(t, session.id, presence.requests[0].GetSessions()[0].GetSessionId())
+}
+
+func TestJitterDurationStaysWithinLeaseWindow(t *testing.T) {
+	base := time.Minute
+	for range 100 {
+		got := jitterDuration(base)
+		require.GreaterOrEqual(t, got, 48*time.Second)
+		require.LessOrEqual(t, got, 72*time.Second)
+	}
+}
+
+func TestBatchRefreshOffsetStaysWithinAssignedSlot(t *testing.T) {
+	const batchCount = 100
+	spread := 5 * time.Second
+	slot := spread / batchCount
+	for batch := range batchCount {
+		offset := batchRefreshOffset(batch, batchCount, spread)
+		require.GreaterOrEqual(t, offset, time.Duration(batch)*slot)
+		require.Less(t, offset, time.Duration(batch+1)*slot)
+	}
+	require.Zero(t, batchRefreshOffset(0, 1, spread))
+}
+
+func TestRefreshSessionLeasesUsesBoundedBatches(t *testing.T) {
+	server := newTestServer()
+	fakeStore := server.svcCtx.Store.(*fakeStore)
+	presence := new(batchPresence)
+	server.svcCtx.PresenceClient = presence
+	for i := range 1001 {
+		session := &logicalSession{
+			id: "session-" + strconv.Itoa(i), userID: int64(i + 1), guilds: make(map[int64]struct{}),
+		}
+		server.sessions[session.id] = session
+	}
+
+	server.refreshSessionLeasesWithSpread(t.Context(), 0)
+
+	require.Len(t, fakeStore.ownerBatches, 3)
+	require.Len(t, fakeStore.ownerBatches[0], 500)
+	require.Len(t, fakeStore.ownerBatches[1], 500)
+	require.Len(t, fakeStore.ownerBatches[2], 1)
+	require.Len(t, presence.requests, 3)
+	require.Len(t, presence.requests[0].GetSessions(), 500)
+	require.Len(t, presence.requests[1].GetSessions(), 500)
+	require.Len(t, presence.requests[2].GetSessions(), 1)
 }
 
 func TestResumeExpandsBindingQueueForReplay(t *testing.T) {
@@ -322,44 +331,18 @@ func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 }
 
 type fakeStore struct {
-	refreshed           []store.Route
-	detached            []store.Route
-	rejectClaim         bool
-	allowTakeover       bool
-	takeoverExpected    store.AuthSessionClaim
-	takeoverReplacement store.AuthSessionClaim
-	batchClaims         []store.AuthSessionClaim
-	batchOwners         []store.Owner
-	lostSessionIDs      []string
+	refreshed     []store.Route
+	detached      []store.Route
+	batchOwners   []store.Owner
+	batchOwnerTTL time.Duration
+	ownerBatches  [][]store.Owner
 }
 
-func (s *fakeStore) ClaimAuthSession(_ context.Context, claim store.AuthSessionClaim, _ time.Duration) (store.AuthSessionClaimResult, error) {
-	if s.rejectClaim {
-		return store.AuthSessionClaimResult{Existing: store.AuthSessionClaim{
-			AuthSessionID: claim.AuthSessionID, LogicalSessionID: "logical-live",
-			NodeID: "session-live", Generation: "generation-live",
-		}}, nil
-	}
-	return store.AuthSessionClaimResult{Claimed: true}, nil
-}
-func (s *fakeStore) TakeoverAuthSession(_ context.Context, expected, replacement store.AuthSessionClaim, _ time.Duration) (bool, error) {
-	s.takeoverExpected = expected
-	s.takeoverReplacement = replacement
-	return s.allowTakeover, nil
-}
-func (*fakeStore) RefreshAuthSession(context.Context, store.AuthSessionClaim, time.Duration) (bool, error) {
-	return true, nil
-}
-func (s *fakeStore) RefreshAuthSessions(_ context.Context, claims []store.AuthSessionClaim, _ time.Duration) ([]string, error) {
-	s.batchClaims = append([]store.AuthSessionClaim(nil), claims...)
-	return append([]string(nil), s.lostSessionIDs...), nil
-}
-func (*fakeStore) DeleteAuthSession(context.Context, store.AuthSessionClaim) error {
-	return nil
-}
 func (*fakeStore) SetOwner(context.Context, store.Owner, time.Duration) error { return nil }
-func (s *fakeStore) SetOwners(_ context.Context, owners []store.Owner, _ time.Duration) error {
+func (s *fakeStore) SetOwners(_ context.Context, owners []store.Owner, ttl time.Duration) error {
 	s.batchOwners = append([]store.Owner(nil), owners...)
+	s.batchOwnerTTL = ttl
+	s.ownerBatches = append(s.ownerBatches, append([]store.Owner(nil), owners...))
 	return nil
 }
 func (*fakeStore) DeleteOwner(context.Context, string, string, string) error { return nil }

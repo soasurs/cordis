@@ -17,7 +17,6 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "0.0.0.0:3006", cfg.ListenOn)
 	require.Equal(t, "session-local", cfg.Node.ID)
 	require.Equal(t, 2048, cfg.Node.MaxReplayEvents)
-	require.Equal(t, 500, cfg.Node.SubscribedChannelLimit())
 	require.Equal(t, 100, cfg.Node.VisibilityGuildLimit())
 	require.Equal(t, 500, cfg.Node.VisibilityChannelLimit())
 	require.Equal(t, int64(16), cfg.Node.SnapshotReloadLimit())

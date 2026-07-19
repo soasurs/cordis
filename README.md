@@ -44,7 +44,7 @@ flowchart LR
 
 - API exposes the public Connect-RPC interface.
 - Gateway is a stateless WebSocket transport adapter.
-- Session owns logical sessions, subscriptions, sequence numbers, and in-memory
+- Session owns logical sessions, visibility snapshots, sequence numbers, and in-memory
   replay buffers.
 - Dispatcher consumes Kafka events and routes them to Session nodes.
 - etcd stores the leased, low-cardinality Session-node directory.

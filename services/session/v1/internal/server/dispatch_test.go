@@ -13,29 +13,25 @@ import (
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
-	"github.com/soasurs/cordis/services/session/v1/internal/store"
 )
 
-func TestChannelOverwriteRevokesDeniedSubscription(t *testing.T) {
+func TestChannelOverwriteSkipsDeniedSession(t *testing.T) {
 	guild := &authorizingGuild{allowed: false}
 	server := newTestServerWithGuild(guild)
-	session := testLogicalSession(1001, 9001, 7001)
+	session := testLogicalSession(1001, 9001)
 	server.addSession(session, nil)
-	server.addChannelIndexes(session, []int64{7001})
 
 	req := guildEventRequest(9001, realtime.EventGuildChannelOverwriteUpdated, `{"guild_id":"9001","channel_id":"7001"}`)
 	resp, err := server.DispatchGuildEvent(t.Context(), req)
 	require.NoError(t, err)
 	require.Zero(t, resp.GetDelivered())
-	require.Empty(t, server.channelSessions(7001))
-	require.NotContains(t, session.channels, int64(7001))
 }
 
 func TestMemberOverwriteInvalidatesOnlyAffectedVisibilitySnapshot(t *testing.T) {
 	guild := &authorizingGuild{allowed: true}
 	server := newTestServerWithGuild(guild)
-	affected := testLogicalSession(1001, 9001, 0)
-	unaffected := testLogicalSession(1002, 9001, 0)
+	affected := testLogicalSession(1001, 9001)
+	unaffected := testLogicalSession(1002, 9001)
 	server.addSession(affected, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 	server.addSession(unaffected, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 
@@ -51,27 +47,27 @@ func TestMemberOverwriteInvalidatesOnlyAffectedVisibilitySnapshot(t *testing.T) 
 	require.Equal(t, int64(7), snapshot.accessRevision)
 }
 
-func TestMemberRoleUpdateReauthorizesAffectedUser(t *testing.T) {
-	guild := &authorizingGuild{allowed: false}
-	server := newTestServerWithGuild(guild)
-	affected := testLogicalSession(1001, 9001, 7001)
-	unaffected := testLogicalSession(1002, 9001, 7001)
-	server.addSession(affected, nil)
-	server.addSession(unaffected, nil)
-	server.addChannelIndexes(affected, []int64{7001})
-	server.addChannelIndexes(unaffected, []int64{7001})
+func TestMemberRoleUpdateInvalidatesAffectedUser(t *testing.T) {
+	server := newTestServer()
+	affected := testLogicalSession(1001, 9001)
+	unaffected := testLogicalSession(1002, 9001)
+	server.addSession(affected, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
+	server.addSession(unaffected, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 
-	req := guildEventRequest(9001, realtime.EventGuildMemberRolesUpdated, `{"guild_id":"9001","user_id":"1001"}`)
+	req := guildEventRequest(9001, realtime.EventGuildMemberRolesUpdated,
+		`{"guild_id":"9001","user_id":"1001","access_revision":8}`)
 	_, err := server.DispatchGuildEvent(t.Context(), req)
 	require.NoError(t, err)
-	require.NotContains(t, affected.channels, int64(7001))
-	require.Contains(t, unaffected.channels, int64(7001))
+	_, ok := server.visibilitySnapshotFor(1001, 9001)
+	require.False(t, ok)
+	_, ok = server.visibilitySnapshotFor(1002, 9001)
+	require.True(t, ok)
 }
 
 func TestMemberRemovalRevokesVisibilityAndGuildIndex(t *testing.T) {
 	server := newTestServer()
-	removed := testLogicalSession(1001, 9001, 0)
-	remaining := testLogicalSession(1002, 9001, 0)
+	removed := testLogicalSession(1001, 9001)
+	remaining := testLogicalSession(1002, 9001)
 	server.addSession(removed, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 	server.addSession(remaining, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 
@@ -91,81 +87,61 @@ func TestMemberRemovalRevokesVisibilityAndGuildIndex(t *testing.T) {
 	require.True(t, ok)
 }
 
-func TestChannelDeletedBroadcastsAndCleansSubscriptions(t *testing.T) {
+func TestChannelDeletedBroadcastsAndInvalidatesVisibility(t *testing.T) {
 	server := newTestServer()
-	subscribed := testLogicalSession(1001, 9001, 7001)
-	guildOnly := testLogicalSession(1002, 9001, 0)
-	server.addSession(subscribed, nil)
-	server.addSession(guildOnly, nil)
-	server.addChannelIndexes(subscribed, []int64{7001})
+	first := testLogicalSession(1001, 9001)
+	second := testLogicalSession(1002, 9001)
+	server.addSession(first, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
+	server.addSession(second, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 
-	req := guildEventRequest(9001, realtime.EventGuildChannelDeleted, `{"id":"7001","guild_id":"9001"}`)
+	req := guildEventRequest(9001, realtime.EventGuildChannelDeleted,
+		`{"id":"7001","guild_id":"9001","access_revision":8}`)
 	resp, err := server.DispatchGuildEvent(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, int32(2), resp.GetDelivered())
-	require.Empty(t, server.channelSessions(7001))
-	require.NotContains(t, subscribed.channels, int64(7001))
-	require.NotContains(t, subscribed.channelGuilds, int64(7001))
+	_, ok := server.visibilitySnapshotFor(1001, 9001)
+	require.False(t, ok)
+	_, ok = server.visibilitySnapshotFor(1002, 9001)
+	require.False(t, ok)
 }
 
-func TestChannelRemovalDetachesPublishedRoute(t *testing.T) {
+func TestGuildMessageUsesVisibilitySnapshots(t *testing.T) {
 	server := newTestServer()
-	session := testLogicalSession(1001, 9001, 7001)
-	server.addSession(session, nil)
-	server.addChannelIndexes(session, []int64{7001})
-	server.refreshAllRoutes(t.Context())
-
-	server.unsubscribeSessionChannel(session, 7001)
-
-	fakeStore := server.svcCtx.Store.(*fakeStore)
-	require.Contains(t, fakeStore.detached, store.Route{Kind: store.RouteChannel, ID: 7001})
-}
-
-func TestGuildMessageUsesVisibilitySnapshotsInsteadOfSubscriptions(t *testing.T) {
-	server := newTestServer()
-	first := testLogicalSession(1001, 9001, 0)
-	second := testLogicalSession(1001, 9001, 0)
+	first := testLogicalSession(1001, 9001)
+	second := testLogicalSession(1001, 9001)
 	second.id = "session-1001-b"
-	denied := testLogicalSession(1002, 9001, 7001)
+	denied := testLogicalSession(1002, 9001)
 	server.addSession(first, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 	server.addSession(second, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 	server.addSession(denied, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7002}}})
 
 	req := channelEventRequest(9001, 7001, realtime.EventMessageCreated, `{"id":"8001"}`)
-	resp, err := server.DispatchChannelEvent(t.Context(), req)
+	resp, err := server.DispatchGuildMessageEvent(t.Context(), req)
 
 	require.NoError(t, err)
 	require.Equal(t, int32(2), resp.GetDelivered())
 	require.Equal(t, realtime.EventMessageCreated, first.replay[0].frame.GetType())
 	require.Equal(t, realtime.EventMessageCreated, second.replay[0].frame.GetType())
-	require.Empty(t, denied.replay, "a legacy channel subscription cannot bypass visibility")
+	require.Empty(t, denied.replay)
 }
 
-func TestLegacyChannelEventUsesSubscriptions(t *testing.T) {
+func TestGuildMessageRejectsMissingGuildID(t *testing.T) {
 	server := newTestServer()
-	subscribed := testLogicalSession(1001, 9001, 7001)
-	guildOnly := testLogicalSession(1002, 9001, 0)
-	server.addSession(subscribed, nil)
-	server.addSession(guildOnly, nil)
-	server.addChannelIndexes(subscribed, []int64{7001})
 
-	resp, err := server.DispatchChannelEvent(
+	_, err := server.DispatchGuildMessageEvent(
 		t.Context(),
 		channelEventRequest(0, 7001, realtime.EventMessageCreated, `{"id":"8001"}`),
 	)
 
-	require.NoError(t, err)
-	require.Equal(t, int32(1), resp.GetDelivered())
-	require.Len(t, subscribed.replay, 1)
-	require.Empty(t, guildOnly.replay)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
-func TestChannelEventRejectsNegativeGuildID(t *testing.T) {
+func TestGuildMessageRejectsNonMessageEvent(t *testing.T) {
 	server := newTestServer()
 
-	_, err := server.DispatchChannelEvent(
+	_, err := server.DispatchGuildMessageEvent(
 		t.Context(),
-		channelEventRequest(-1, 7001, realtime.EventMessageCreated, `{"id":"8001"}`),
+		channelEventRequest(9001, 7001, realtime.EventGuildUpdated, `{"id":"9001"}`),
 	)
 
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -176,11 +152,11 @@ func TestGuildMessageReloadsInvalidVisibilitySnapshot(t *testing.T) {
 	server.svcCtx.GuildClient = &visibilityGuild{responses: []*guildv1.ListUserGuildChannelVisibilitiesResponse{
 		visibilityResponse(visibility(9001, 8, 7001)),
 	}}
-	session := testLogicalSession(1001, 9001, 0)
+	session := testLogicalSession(1001, 9001)
 	server.addSession(session, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7002}}})
 	require.True(t, server.invalidateVisibilityGuild(1001, 9001, 8))
 
-	resp, err := server.DispatchChannelEvent(
+	resp, err := server.DispatchGuildMessageEvent(
 		t.Context(),
 		channelEventRequest(9001, 7001, realtime.EventMessageCreated, `{"id":"8001"}`),
 	)
@@ -195,14 +171,14 @@ func TestGuildMessageReloadsInvalidVisibilitySnapshot(t *testing.T) {
 func TestGuildMessageReloadFailureRequestsReconciliationOnce(t *testing.T) {
 	server := newTestServer()
 	server.svcCtx.GuildClient = failingVisibilityGuild{}
-	session := testLogicalSession(1001, 9001, 0)
+	session := testLogicalSession(1001, 9001)
 	server.addSession(session, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 	server.invalidateVisibilityGuild(1001, 9001, 8)
 	req := channelEventRequest(9001, 7001, realtime.EventMessageCreated, `{"id":"8001"}`)
 
-	first, err := server.DispatchChannelEvent(t.Context(), req)
+	first, err := server.DispatchGuildMessageEvent(t.Context(), req)
 	require.NoError(t, err)
-	second, err := server.DispatchChannelEvent(t.Context(), req)
+	second, err := server.DispatchGuildMessageEvent(t.Context(), req)
 	require.NoError(t, err)
 
 	require.Zero(t, first.GetDelivered())
@@ -218,18 +194,12 @@ func newTestServerWithGuild(guild guildv1.GuildServiceClient) *Server {
 	return server
 }
 
-func testLogicalSession(userID, guildID, channelID int64) *logicalSession {
-	session := &logicalSession{
+func testLogicalSession(userID, guildID int64) *logicalSession {
+	return &logicalSession{
 		id: "session-" + strconv.FormatInt(userID, 10), userID: userID,
-		guilds:   map[int64]struct{}{guildID: {}},
-		channels: make(map[int64]struct{}), channelGuilds: make(map[int64]int64),
+		guilds: map[int64]struct{}{guildID: {}},
 		replay: make([]replayEntry, 0),
 	}
-	if channelID > 0 {
-		session.channels[channelID] = struct{}{}
-		session.channelGuilds[channelID] = guildID
-	}
-	return session
 }
 
 func guildEventRequest(guildID int64, eventType, payload string) *sessionv1.DispatchGuildEventRequest {
@@ -242,11 +212,11 @@ func guildEventRequest(guildID int64, eventType, payload string) *sessionv1.Disp
 	return req
 }
 
-func channelEventRequest(guildID, channelID int64, eventType, payload string) *sessionv1.DispatchChannelEventRequest {
+func channelEventRequest(guildID, channelID int64, eventType, payload string) *sessionv1.DispatchGuildMessageEventRequest {
 	event := new(sessionv1.EventEnvelope)
 	event.SetType(eventType)
 	event.SetJsonPayload(payload)
-	req := new(sessionv1.DispatchChannelEventRequest)
+	req := new(sessionv1.DispatchGuildMessageEventRequest)
 	req.SetGuildId(guildID)
 	req.SetChannelId(channelID)
 	req.SetEvent(event)

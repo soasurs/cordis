@@ -272,25 +272,3 @@ func TestListDmChannelsPaginates(t *testing.T) {
 	require.Len(t, resp.GetChannels(), 1)
 	require.Equal(t, int64(501), resp.GetChannels()[0].GetId())
 }
-
-func TestAuthorizeDmChannel(t *testing.T) {
-	fake := newFakeStore()
-	seedDmChannel(fake, 500, 1001, 2002)
-	server := newDmTestServer(t, fake, nil, newFakeUserClient())
-
-	req := new(messagev1.AuthorizeDmChannelRequest)
-	req.SetChannelId(500)
-	req.SetUserId(1001)
-	resp, err := server.AuthorizeDmChannel(context.Background(), req)
-	require.NoError(t, err)
-	require.True(t, resp.GetAllowed())
-
-	req.SetUserId(3003)
-	resp, err = server.AuthorizeDmChannel(context.Background(), req)
-	require.NoError(t, err)
-	require.False(t, resp.GetAllowed())
-
-	req.SetChannelId(999)
-	_, err = server.AuthorizeDmChannel(context.Background(), req)
-	require.Equal(t, codes.NotFound, status.Code(err))
-}

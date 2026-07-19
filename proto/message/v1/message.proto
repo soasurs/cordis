@@ -18,9 +18,6 @@ service MessageService {
   // two friends.
   rpc CreateDmChannel(CreateDmChannelRequest) returns (CreateDmChannelResponse);
   rpc ListDmChannels(ListDmChannelsRequest) returns (ListDmChannelsResponse);
-  // AuthorizeDmChannel reports whether the user participates in the DM
-  // channel. It backs Session channel subscriptions.
-  rpc AuthorizeDmChannel(AuthorizeDmChannelRequest) returns (AuthorizeDmChannelResponse);
   // AckMessage moves the last-read position forward for one channel.
   rpc AckMessage(AckMessageRequest) returns (AckMessageResponse);
   rpc GetReadStates(GetReadStatesRequest) returns (GetReadStatesResponse);
@@ -244,15 +241,6 @@ message ListDmChannelsRequest {
 message ListDmChannelsResponse {
   repeated DmChannel channels = 1;
   int64 before_id = 2;
-}
-
-message AuthorizeDmChannelRequest {
-  int64 channel_id = 1;
-  int64 user_id = 2;
-}
-
-message AuthorizeDmChannelResponse {
-  bool allowed = 1;
 }
 
 message AckMessageRequest {

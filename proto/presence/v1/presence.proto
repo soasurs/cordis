@@ -2,41 +2,21 @@ edition = "2023";
 
 package presence.v1;
 
-// PresenceService tracks realtime gateway liveness and channel routing.
-// It does not own channel permissions or websocket connections; gateways
-// validate subscriptions locally and publish only aggregate routes here.
+// PresenceService tracks per-device user presence and aggregate status.
 service PresenceService {
-  // RegisterGateway records the current process generation and direct gRPC
-  // address for a gateway instance. Gateways call this on startup and as a
-  // heartbeat.
-  rpc RegisterGateway(RegisterGatewayRequest) returns (RegisterGatewayResponse);
-
-  // RefreshChannelRoutes renews the gateway route for every listed channel.
-  // Gateways call this when the first local subscriber appears and then
-  // periodically while local subscribers remain.
-  rpc RefreshChannelRoutes(RefreshChannelRoutesRequest) returns (RefreshChannelRoutesResponse);
-
-  // DetachChannelRoute removes a channel route when a gateway no longer has
-  // local subscribers for that channel.
-  rpc DetachChannelRoute(DetachChannelRouteRequest) returns (DetachChannelRouteResponse);
-
-  // ResolveChannelGateways returns live gateway instances that currently
-  // carry sessions interested in a channel.
-  rpc ResolveChannelGateways(ResolveChannelGatewaysRequest) returns (ResolveChannelGatewaysResponse);
-
-  // RegisterUserSession records a websocket gateway session for a user.
-  // Gateways call this after IDENTIFY/RESUME has authenticated the user.
+  // RegisterUserSession records one logical Session device for a user.
+  // Session calls this after IDENTIFY authenticates the user.
   rpc RegisterUserSession(RegisterUserSessionRequest) returns (RegisterUserSessionResponse);
 
-  // RefreshUserSession renews a websocket session heartbeat and may update
-  // client state such as foreground/background.
+  // RefreshUserSession renews a logical Session lease and may update client
+  // state such as foreground/background.
   rpc RefreshUserSession(RefreshUserSessionRequest) returns (RefreshUserSessionResponse);
 
   // UpdateUserPresence updates a websocket session's visible presence state.
   rpc UpdateUserPresence(UpdateUserPresenceRequest) returns (UpdateUserPresenceResponse);
 
-  // RemoveUserSession removes a websocket session when the gateway observes a
-  // normal disconnect. Abnormal disconnects are cleaned up by TTL.
+  // RemoveUserSession removes a logical Session when its resume window ends.
+  // Sessions lost with their node are cleaned up by TTL.
   rpc RemoveUserSession(RemoveUserSessionRequest) returns (RemoveUserSessionResponse);
 
   // ResolveUsersPresence returns aggregated live presence for the requested
@@ -58,51 +38,6 @@ enum ClientState {
   CLIENT_STATE_UNSPECIFIED = 0;
   CLIENT_STATE_FOREGROUND = 1;
   CLIENT_STATE_BACKGROUND = 2;
-}
-
-message GatewayInstance {
-  string gateway_id = 1;
-  string generation = 2;
-  string rpc_addr = 3;
-  int64 expires_at = 4;
-}
-
-message RegisterGatewayRequest {
-  string gateway_id = 1;
-  string generation = 2;
-  string rpc_addr = 3;
-}
-
-message RegisterGatewayResponse {
-  GatewayInstance gateway = 1;
-}
-
-message RefreshChannelRoutesRequest {
-  string gateway_id = 1;
-  string generation = 2;
-  repeated int64 channel_ids = 3;
-}
-
-message RefreshChannelRoutesResponse {
-  int32 refreshed = 1;
-}
-
-message DetachChannelRouteRequest {
-  string gateway_id = 1;
-  string generation = 2;
-  int64 channel_id = 3;
-}
-
-message DetachChannelRouteResponse {
-  bool ok = 1;
-}
-
-message ResolveChannelGatewaysRequest {
-  int64 channel_id = 1;
-}
-
-message ResolveChannelGatewaysResponse {
-  repeated GatewayInstance gateways = 1;
 }
 
 message UserSession {

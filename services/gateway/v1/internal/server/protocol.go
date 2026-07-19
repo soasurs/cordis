@@ -7,7 +7,6 @@ const (
 	opHeartbeat    = 1
 	opIdentify     = 2
 	opPresence     = 3
-	opSubscribe    = 4
 	opResume       = 6
 	opReconnect    = 7
 	opInvalid      = 9
@@ -44,10 +43,6 @@ type resumeData struct {
 type presenceData struct {
 	Status      string `json:"status,omitempty"`
 	ClientState string `json:"client_state,omitempty"`
-}
-
-type subscribeData struct {
-	ChannelIDs []string `json:"channel_ids"`
 }
 
 type errorData struct {

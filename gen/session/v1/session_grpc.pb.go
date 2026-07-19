@@ -19,11 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SessionService_Connect_FullMethodName                = "/session.v1.SessionService/Connect"
-	SessionService_SyncGatewayConnections_FullMethodName = "/session.v1.SessionService/SyncGatewayConnections"
-	SessionService_DispatchGuildEvent_FullMethodName     = "/session.v1.SessionService/DispatchGuildEvent"
-	SessionService_DispatchChannelEvent_FullMethodName   = "/session.v1.SessionService/DispatchChannelEvent"
-	SessionService_DispatchUserEvent_FullMethodName      = "/session.v1.SessionService/DispatchUserEvent"
+	SessionService_Connect_FullMethodName                   = "/session.v1.SessionService/Connect"
+	SessionService_SyncGatewayConnections_FullMethodName    = "/session.v1.SessionService/SyncGatewayConnections"
+	SessionService_DispatchGuildEvent_FullMethodName        = "/session.v1.SessionService/DispatchGuildEvent"
+	SessionService_DispatchGuildMessageEvent_FullMethodName = "/session.v1.SessionService/DispatchGuildMessageEvent"
+	SessionService_DispatchUserEvent_FullMethodName         = "/session.v1.SessionService/DispatchUserEvent"
 )
 
 // SessionServiceClient is the client API for SessionService service.
@@ -40,9 +40,9 @@ type SessionServiceClient interface {
 	SyncGatewayConnections(ctx context.Context, in *SyncGatewayConnectionsRequest, opts ...grpc.CallOption) (*SyncGatewayConnectionsResponse, error)
 	// DispatchGuildEvent fans an event out to matching sessions on this node.
 	DispatchGuildEvent(ctx context.Context, in *DispatchGuildEventRequest, opts ...grpc.CallOption) (*DispatchGuildEventResponse, error)
-	// DispatchChannelEvent filters Guild events through server-owned visibility
-	// snapshots. Legacy events without guild_id use channel subscribers.
-	DispatchChannelEvent(ctx context.Context, in *DispatchChannelEventRequest, opts ...grpc.CallOption) (*DispatchChannelEventResponse, error)
+	// DispatchGuildMessageEvent filters a Guild message event through
+	// server-owned visibility snapshots.
+	DispatchGuildMessageEvent(ctx context.Context, in *DispatchGuildMessageEventRequest, opts ...grpc.CallOption) (*DispatchGuildMessageEventResponse, error)
 	// DispatchUserEvent fans an event out to sessions for one user on this node.
 	DispatchUserEvent(ctx context.Context, in *DispatchUserEventRequest, opts ...grpc.CallOption) (*DispatchUserEventResponse, error)
 }
@@ -88,10 +88,10 @@ func (c *sessionServiceClient) DispatchGuildEvent(ctx context.Context, in *Dispa
 	return out, nil
 }
 
-func (c *sessionServiceClient) DispatchChannelEvent(ctx context.Context, in *DispatchChannelEventRequest, opts ...grpc.CallOption) (*DispatchChannelEventResponse, error) {
+func (c *sessionServiceClient) DispatchGuildMessageEvent(ctx context.Context, in *DispatchGuildMessageEventRequest, opts ...grpc.CallOption) (*DispatchGuildMessageEventResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DispatchChannelEventResponse)
-	err := c.cc.Invoke(ctx, SessionService_DispatchChannelEvent_FullMethodName, in, out, cOpts...)
+	out := new(DispatchGuildMessageEventResponse)
+	err := c.cc.Invoke(ctx, SessionService_DispatchGuildMessageEvent_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -122,9 +122,9 @@ type SessionServiceServer interface {
 	SyncGatewayConnections(context.Context, *SyncGatewayConnectionsRequest) (*SyncGatewayConnectionsResponse, error)
 	// DispatchGuildEvent fans an event out to matching sessions on this node.
 	DispatchGuildEvent(context.Context, *DispatchGuildEventRequest) (*DispatchGuildEventResponse, error)
-	// DispatchChannelEvent filters Guild events through server-owned visibility
-	// snapshots. Legacy events without guild_id use channel subscribers.
-	DispatchChannelEvent(context.Context, *DispatchChannelEventRequest) (*DispatchChannelEventResponse, error)
+	// DispatchGuildMessageEvent filters a Guild message event through
+	// server-owned visibility snapshots.
+	DispatchGuildMessageEvent(context.Context, *DispatchGuildMessageEventRequest) (*DispatchGuildMessageEventResponse, error)
 	// DispatchUserEvent fans an event out to sessions for one user on this node.
 	DispatchUserEvent(context.Context, *DispatchUserEventRequest) (*DispatchUserEventResponse, error)
 }
@@ -145,8 +145,8 @@ func (UnimplementedSessionServiceServer) SyncGatewayConnections(context.Context,
 func (UnimplementedSessionServiceServer) DispatchGuildEvent(context.Context, *DispatchGuildEventRequest) (*DispatchGuildEventResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DispatchGuildEvent not implemented")
 }
-func (UnimplementedSessionServiceServer) DispatchChannelEvent(context.Context, *DispatchChannelEventRequest) (*DispatchChannelEventResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DispatchChannelEvent not implemented")
+func (UnimplementedSessionServiceServer) DispatchGuildMessageEvent(context.Context, *DispatchGuildMessageEventRequest) (*DispatchGuildMessageEventResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DispatchGuildMessageEvent not implemented")
 }
 func (UnimplementedSessionServiceServer) DispatchUserEvent(context.Context, *DispatchUserEventRequest) (*DispatchUserEventResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DispatchUserEvent not implemented")
@@ -214,20 +214,20 @@ func _SessionService_DispatchGuildEvent_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SessionService_DispatchChannelEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DispatchChannelEventRequest)
+func _SessionService_DispatchGuildMessageEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DispatchGuildMessageEventRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SessionServiceServer).DispatchChannelEvent(ctx, in)
+		return srv.(SessionServiceServer).DispatchGuildMessageEvent(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SessionService_DispatchChannelEvent_FullMethodName,
+		FullMethod: SessionService_DispatchGuildMessageEvent_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SessionServiceServer).DispatchChannelEvent(ctx, req.(*DispatchChannelEventRequest))
+		return srv.(SessionServiceServer).DispatchGuildMessageEvent(ctx, req.(*DispatchGuildMessageEventRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -266,8 +266,8 @@ var SessionService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SessionService_DispatchGuildEvent_Handler,
 		},
 		{
-			MethodName: "DispatchChannelEvent",
-			Handler:    _SessionService_DispatchChannelEvent_Handler,
+			MethodName: "DispatchGuildMessageEvent",
+			Handler:    _SessionService_DispatchGuildMessageEvent_Handler,
 		},
 		{
 			MethodName: "DispatchUserEvent",

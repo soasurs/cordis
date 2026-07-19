@@ -30,14 +30,14 @@ func TestRedisStorePersistsOwnersAndRoutes(t *testing.T) {
 	require.Equal(t, []string{"node-1", "generation-1", owner[2]}, owner)
 	require.NotEmpty(t, owner[2])
 
-	routes := []Route{{Kind: RouteUser, ID: 1001}, {Kind: RouteChannel, ID: 2001}}
+	routes := []Route{{Kind: RouteUser, ID: 1001}, {Kind: RouteGuild, ID: 2001}}
 	require.NoError(t, store.RefreshRoutes(ctx, "node-1", "generation-1", routes, time.Minute))
-	members, err := rds.ZrangeCtx(ctx, routeKey(RouteChannel, 2001), 0, -1)
+	members, err := rds.ZrangeCtx(ctx, routeKey(RouteGuild, 2001), 0, -1)
 	require.NoError(t, err)
 	require.Equal(t, []string{"node-1\x1fgeneration-1"}, members)
 
 	require.NoError(t, store.DetachRoutes(ctx, "node-1", "generation-1", routes))
-	members, err = rds.ZrangeCtx(ctx, routeKey(RouteChannel, 2001), 0, -1)
+	members, err = rds.ZrangeCtx(ctx, routeKey(RouteGuild, 2001), 0, -1)
 	require.NoError(t, err)
 	require.Empty(t, members)
 }

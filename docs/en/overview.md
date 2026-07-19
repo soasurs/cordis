@@ -37,7 +37,7 @@ flowchart LR
 
 The API is an edge adapter and owns no domain data. User, Authenticator, Guild,
 and Message own their PostgreSQL data. Gateway is a transport proxy. Session is
-stateful and owns logical realtime sessions, subscriptions, and replay buffers.
+stateful and owns logical realtime sessions, visibility snapshots, and replay buffers.
 Dispatcher converts Kafka domain events into calls to the relevant Session
 nodes. etcd stores the leased Session-node directory. Redis stores resume
 ownership, aggregate realtime routes, and Presence state.

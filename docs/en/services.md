@@ -91,8 +91,8 @@ on a best-effort basis; failures are logged. Guild message records carry
 HTTP/WebSocket on `:8081`, exposing `/ws` and `/health`. It sends `HELLO`,
 requires `IDENTIFY` or `RESUME` as the first client message, discovers Session
 nodes through etcd, reads resume ownership from Redis, and proxies the WebSocket
-over a `SessionService.Connect` bidirectional stream. It owns no subscriptions
-and consumes no Kafka events.
+over a `SessionService.Connect` bidirectional stream. It owns no logical routing
+state and consumes no Kafka events.
 
 Before accepting a WebSocket, Gateway applies trusted-proxy-aware source limits
 using an IPv4 `/32` or IPv6 `/64`. Connection capacity is process-local: each
@@ -116,8 +116,8 @@ make delayed checkpoints from replaced connections harmless.
 
 gRPC on `:3006` and the stateful core of realtime delivery. It validates tokens,
 creates or resumes logical sessions, loads Guild visibility, owns local
-user/guild/channel indexes, authorizes channel subscriptions, assigns sequence
-numbers, and keeps up to 2048 replay events in memory.
+user/Guild indexes, assigns sequence numbers, and keeps up to 2048 replay
+events in memory.
 
 IDENTIFY uses the paginated Guild visibility RPC to load immutable, sorted
 channel snapshots with their access revisions. A snapshot set is shared by all
@@ -140,17 +140,12 @@ session ID. A Redis claim permits only one live logical session per authenticato
 session; the claim is renewed while the logical session is retained, including
 the detached resume window.
 
-A logical session may subscribe to at most 500 distinct channels by default.
-Requests that would exceed the configured total fail atomically without adding
-any of the requested channels.
-
 Dispatcher resolves Guild messages through aggregate Guild routes and includes
-the Guild ID in the channel dispatch RPC. Session checks the server-owned
+the Guild and channel IDs in a dedicated Guild-message dispatch RPC. Session checks the server-owned
 visibility snapshot once per local user and forwards the message to all of that
-user's logical sessions, independent of client channel subscriptions. Legacy
-message records without an aggregate Guild route continue through channel
-routes and subscription filtering during the rolling migration. DM message
-records resolve directly through aggregate user routes.
+user's logical sessions. DM message records resolve directly through aggregate
+user routes. Message records without exactly one aggregate Guild/user route are
+rejected.
 
 No-op Presence updates are discarded. Changed updates are limited to five per
 logical session every 20 seconds, then consume a shared per-user quota of ten per
@@ -173,7 +168,7 @@ once and there is no general event-ID deduplication.
 
 ## Presence
 
-gRPC on `:3003`. Redis-backed gateway, legacy channel-route, and user-device
-presence storage. TTL and generation checks filter stale records. Multi-device
-sessions aggregate into user presence, while `INVISIBLE` is exposed as offline.
-Session still uses Presence to register and refresh online state.
+gRPC on `:3003`. Redis-backed user-device presence storage. TTL and generation
+checks filter stale sessions. Multi-device sessions aggregate into user
+presence, while `INVISIBLE` is exposed as offline. Session uses Presence to
+register and refresh online state.

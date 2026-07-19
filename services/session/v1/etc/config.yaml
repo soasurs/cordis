@@ -46,7 +46,6 @@ node:
   routeTTLSeconds: 30
   bindingQueueSize: 4096
   drainSeconds: 30
-  maxSubscribedChannels: 500
   maxVisibilityGuilds: 100
   maxVisibilityChannels: 500
   maxSnapshotReloads: 16

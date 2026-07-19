@@ -15,9 +15,9 @@ service SessionService {
   // DispatchGuildEvent fans an event out to matching sessions on this node.
   rpc DispatchGuildEvent(DispatchGuildEventRequest) returns (DispatchGuildEventResponse);
 
-  // DispatchChannelEvent filters Guild events through server-owned visibility
-  // snapshots. Legacy events without guild_id use channel subscribers.
-  rpc DispatchChannelEvent(DispatchChannelEventRequest) returns (DispatchChannelEventResponse);
+  // DispatchGuildMessageEvent filters a Guild message event through
+  // server-owned visibility snapshots.
+  rpc DispatchGuildMessageEvent(DispatchGuildMessageEventRequest) returns (DispatchGuildMessageEventResponse);
 
   // DispatchUserEvent fans an event out to sessions for one user on this node.
   rpc DispatchUserEvent(DispatchUserEventRequest) returns (DispatchUserEventResponse);
@@ -32,9 +32,9 @@ message ConnectRequest {
     Resume resume = 3;
     Heartbeat heartbeat = 4;
     PresenceUpdate presence = 5;
-    SubscribeChannels subscribe = 6;
     Detach detach = 7;
   }
+  reserved 6;
 }
 
 message Identify {
@@ -57,10 +57,6 @@ message Heartbeat {
 message PresenceUpdate {
   string status = 1;
   string client_state = 2;
-}
-
-message SubscribeChannels {
-  repeated int64 channel_ids = 1;
 }
 
 message Detach {
@@ -107,11 +103,10 @@ message DispatchGuildEventRequest {
   EventEnvelope event = 2;
 }
 
-message DispatchChannelEventRequest {
-  int64 channel_id = 1;
-  EventEnvelope event = 2;
-  // Zero only for legacy channel-routed records produced before Guild routing.
-  int64 guild_id = 3;
+message DispatchGuildMessageEventRequest {
+  int64 guild_id = 1;
+  int64 channel_id = 2;
+  EventEnvelope event = 3;
 }
 
 message DispatchUserEventRequest {
@@ -123,7 +118,7 @@ message DispatchGuildEventResponse {
   int32 delivered = 1;
 }
 
-message DispatchChannelEventResponse {
+message DispatchGuildMessageEventResponse {
   int32 delivered = 1;
 }
 

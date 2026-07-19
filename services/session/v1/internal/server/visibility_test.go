@@ -121,7 +121,7 @@ func TestVisibilityReloadRejectsResultRacingWithNewerInvalidation(t *testing.T) 
 	server := newTestServer()
 	guild := &racingVisibilityGuild{started: make(chan struct{}), release: make(chan struct{})}
 	server.svcCtx.GuildClient = guild
-	session := testLogicalSession(1001, 9001, 0)
+	session := testLogicalSession(1001, 9001)
 	server.addSession(session, map[int64]*visibilitySnapshot{
 		9001: {accessRevision: 7, channelIDs: []int64{7001}},
 	})

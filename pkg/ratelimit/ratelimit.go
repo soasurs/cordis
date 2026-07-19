@@ -146,6 +146,7 @@ func (m *Manager) Take(ctx context.Context, policyName, key string, cost int64) 
 	if err == nil {
 		m.finishPrimaryAttempt(true, time.Now())
 		recordDecision(policyName, decision)
+		recordBucketUsage(policyName, "primary", policy.Limit, decision.Remaining)
 		return decision, nil
 	}
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -174,6 +175,7 @@ func (m *Manager) takeFallback(
 	}
 	decision.Fallback = true
 	recordDecision(policyName, decision)
+	recordBucketUsage(policyName, "fallback", policy.Limit, decision.Remaining)
 	return decision, nil
 }
 

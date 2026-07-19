@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -94,6 +95,10 @@ type Server struct {
 	channels map[int64]map[*logicalSession]struct{}
 	draining atomic.Bool
 
+	visibilityMu    sync.RWMutex
+	visibilityUsers map[int64]*userVisibilityState
+	visibilityLoads singleflight.Group
+
 	routeMu         sync.Mutex
 	publishedRoutes map[store.Route]struct{}
 }
@@ -119,6 +124,7 @@ func New(svcCtx *svc.ServiceContext) *Server {
 		users:           make(map[int64]map[*logicalSession]struct{}),
 		guilds:          make(map[int64]map[*logicalSession]struct{}),
 		channels:        make(map[int64]map[*logicalSession]struct{}),
+		visibilityUsers: make(map[int64]*userVisibilityState),
 		publishedRoutes: make(map[store.Route]struct{}),
 	}
 }
@@ -324,15 +330,19 @@ func (s *Server) identify(
 	if !claimed {
 		return nil, status.Error(codes.ResourceExhausted, "auth session already has a logical session")
 	}
-	if err := s.loadGuilds(ctx, session); err != nil {
+	visibilitySnapshots, err := s.loadOrReuseVisibilitySnapshots(ctx, session.userID)
+	if err != nil {
 		_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 		return nil, err
+	}
+	for guildID := range visibilitySnapshots {
+		session.guilds[guildID] = struct{}{}
 	}
 	b := newBinding(connectionID, 1, s.svcCtx.Cfg.Node.QueueSize())
 	session.binding = b
 	session.bindingEpoch = 1
 
-	s.addSession(session)
+	s.addSession(session, visibilitySnapshots)
 	if err := s.refreshOwner(ctx, session); err != nil {
 		s.removeSession(ctx, session)
 		return nil, err
@@ -696,14 +706,15 @@ func cloneFrame(frame *sessionv1.ConnectResponse) *sessionv1.ConnectResponse {
 	return cloned
 }
 
-func (s *Server) addSession(session *logicalSession) {
+func (s *Server) addSession(session *logicalSession, snapshots map[int64]*visibilitySnapshot) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.sessions[session.id] = session
 	addIndex(s.users, session.userID, session)
 	for guildID := range session.guilds {
 		addIndex(s.guilds, guildID, session)
 	}
+	s.mu.Unlock()
+	s.retainVisibilitySnapshots(session.userID, snapshots)
 }
 
 func (s *Server) addChannelIndexes(session *logicalSession, channelIDs []int64) {
@@ -741,6 +752,10 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	session.mu.Unlock()
 
 	s.mu.Lock()
+	if current := s.sessions[session.id]; current != session {
+		s.mu.Unlock()
+		return
+	}
 	delete(s.sessions, session.id)
 	removeIndex(s.users, session.userID, session)
 	for _, guildID := range guildIDs {
@@ -750,31 +765,11 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 		removeIndex(s.channels, channelID, session)
 	}
 	s.mu.Unlock()
+	s.releaseVisibilitySnapshots(session.userID)
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
 	_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
 	s.removePresence(ctx, session, guildIDs)
 	s.refreshAllRoutes(ctx)
-}
-
-func (s *Server) loadGuilds(ctx context.Context, session *logicalSession) error {
-	var before int64
-	for {
-		req := new(guildv1.ListUserGuildsRequest)
-		req.SetUserId(session.userID)
-		req.SetBefore(before)
-		req.SetLimit(guildPageSize)
-		resp, err := s.svcCtx.GuildClient.ListUserGuilds(ctx, req)
-		if err != nil {
-			return err
-		}
-		for _, guild := range resp.GetGuilds() {
-			session.guilds[guild.GetId()] = struct{}{}
-		}
-		if len(resp.GetGuilds()) < guildPageSize || resp.GetBeforeCursor() == 0 {
-			return nil
-		}
-		before = resp.GetBeforeCursor()
-	}
 }
 
 func (s *Server) authorizeChannel(ctx context.Context, userID, channelID int64) (bool, int64, error) {

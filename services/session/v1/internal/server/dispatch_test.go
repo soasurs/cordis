@@ -18,7 +18,7 @@ func TestChannelOverwriteRevokesDeniedSubscription(t *testing.T) {
 	guild := &authorizingGuild{allowed: false}
 	server := newTestServerWithGuild(guild)
 	session := testLogicalSession(1001, 9001, 7001)
-	server.addSession(session)
+	server.addSession(session, nil)
 	server.addChannelIndexes(session, []int64{7001})
 
 	req := guildEventRequest(9001, realtime.EventGuildChannelOverwriteUpdated, `{"guild_id":"9001","channel_id":"7001"}`)
@@ -34,8 +34,8 @@ func TestMemberRoleUpdateReauthorizesAffectedUser(t *testing.T) {
 	server := newTestServerWithGuild(guild)
 	affected := testLogicalSession(1001, 9001, 7001)
 	unaffected := testLogicalSession(1002, 9001, 7001)
-	server.addSession(affected)
-	server.addSession(unaffected)
+	server.addSession(affected, nil)
+	server.addSession(unaffected, nil)
 	server.addChannelIndexes(affected, []int64{7001})
 	server.addChannelIndexes(unaffected, []int64{7001})
 
@@ -50,8 +50,8 @@ func TestChannelDeletedBroadcastsAndCleansSubscriptions(t *testing.T) {
 	server := newTestServer()
 	subscribed := testLogicalSession(1001, 9001, 7001)
 	guildOnly := testLogicalSession(1002, 9001, 0)
-	server.addSession(subscribed)
-	server.addSession(guildOnly)
+	server.addSession(subscribed, nil)
+	server.addSession(guildOnly, nil)
 	server.addChannelIndexes(subscribed, []int64{7001})
 
 	req := guildEventRequest(9001, realtime.EventGuildChannelDeleted, `{"id":"7001","guild_id":"9001"}`)
@@ -66,7 +66,7 @@ func TestChannelDeletedBroadcastsAndCleansSubscriptions(t *testing.T) {
 func TestChannelRemovalDetachesPublishedRoute(t *testing.T) {
 	server := newTestServer()
 	session := testLogicalSession(1001, 9001, 7001)
-	server.addSession(session)
+	server.addSession(session, nil)
 	server.addChannelIndexes(session, []int64{7001})
 	server.refreshAllRoutes(t.Context())
 

@@ -204,21 +204,32 @@ func (s *Server) subscribeGuildUser(guildID, userID int64) {
 	if guildID <= 0 || userID <= 0 {
 		return
 	}
+	added := false
 	for _, session := range s.userSessions(userID) {
 		session.mu.Lock()
-		session.guilds[guildID] = struct{}{}
+		if _, exists := session.guilds[guildID]; !exists {
+			session.guilds[guildID] = struct{}{}
+			added = true
+		}
 		session.mu.Unlock()
 		s.mu.Lock()
 		addIndex(s.guilds, guildID, session)
 		s.mu.Unlock()
 	}
+	if added {
+		s.invalidateVisibilityGuild(userID, guildID)
+	}
 	s.refreshAllRoutes(context.Background())
 }
 
 func (s *Server) unsubscribeGuildUser(guildID, userID int64) {
+	removed := false
 	for _, session := range s.userSessions(userID) {
 		session.mu.Lock()
-		delete(session.guilds, guildID)
+		if _, exists := session.guilds[guildID]; exists {
+			delete(session.guilds, guildID)
+			removed = true
+		}
 		var channelIDs []int64
 		for channelID, channelGuildID := range session.channelGuilds {
 			if channelGuildID == guildID {
@@ -236,18 +247,26 @@ func (s *Server) unsubscribeGuildUser(guildID, userID int64) {
 		}
 		s.mu.Unlock()
 	}
+	if removed {
+		s.removeVisibilityGuild(userID, guildID)
+	}
 	s.refreshAllRoutes(context.Background())
 }
 
 func (s *Server) unsubscribeGuild(guildID int64) {
+	userIDs := make(map[int64]struct{})
 	for _, session := range s.guildSessions(guildID) {
 		session.mu.Lock()
 		delete(session.guilds, guildID)
+		userIDs[session.userID] = struct{}{}
 		session.mu.Unlock()
 	}
 	s.mu.Lock()
 	delete(s.guilds, guildID)
 	s.mu.Unlock()
+	for userID := range userIDs {
+		s.removeVisibilityGuild(userID, guildID)
+	}
 	s.refreshAllRoutes(context.Background())
 }
 

@@ -387,12 +387,12 @@ type fakeGuild struct {
 	guildv1.GuildServiceClient
 }
 
-func (fakeGuild) ListUserGuilds(
+func (fakeGuild) ListUserGuildChannelVisibilities(
 	context.Context,
-	*guildv1.ListUserGuildsRequest,
+	*guildv1.ListUserGuildChannelVisibilitiesRequest,
 	...grpc.CallOption,
-) (*guildv1.ListUserGuildsResponse, error) {
-	return new(guildv1.ListUserGuildsResponse), nil
+) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
+	return new(guildv1.ListUserGuildChannelVisibilitiesResponse), nil
 }
 
 func (fakeGuild) AuthorizeGuildChannel(
@@ -461,8 +461,8 @@ type notFoundGuild struct {
 	guildv1.GuildServiceClient
 }
 
-func (notFoundGuild) ListUserGuilds(context.Context, *guildv1.ListUserGuildsRequest, ...grpc.CallOption) (*guildv1.ListUserGuildsResponse, error) {
-	return new(guildv1.ListUserGuildsResponse), nil
+func (notFoundGuild) ListUserGuildChannelVisibilities(context.Context, *guildv1.ListUserGuildChannelVisibilitiesRequest, ...grpc.CallOption) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
+	return new(guildv1.ListUserGuildChannelVisibilitiesResponse), nil
 }
 
 func (notFoundGuild) AuthorizeGuildChannel(context.Context, *guildv1.AuthorizeGuildChannelRequest, ...grpc.CallOption) (*guildv1.AuthorizeGuildChannelResponse, error) {

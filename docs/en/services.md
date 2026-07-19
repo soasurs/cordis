@@ -114,9 +114,17 @@ make delayed checkpoints from replaced connections harmless.
 ## Session
 
 gRPC on `:3006` and the stateful core of realtime delivery. It validates tokens,
-creates or resumes logical sessions, loads guild membership, owns local
+creates or resumes logical sessions, loads Guild visibility, owns local
 user/guild/channel indexes, authorizes channel subscriptions, assigns sequence
 numbers, and keeps up to 2048 replay events in memory.
+
+IDENTIFY uses the paginated Guild visibility RPC to load immutable, sorted
+channel snapshots with their access revisions. A snapshot set is shared by all
+of the user's logical Sessions on the node and released after the last local
+Session is removed. Loading is bounded to 100 Guilds and 500 visible channels
+per Guild by default. Missing, malformed, oversized, or invalid snapshots are
+not usable for authorization. Message delivery remains on channel subscriptions
+until revision-bearing invalidation and bounded rebuild are connected.
 
 Session applies Gateway checkpoint batches to advance acknowledged sequences and
 trim replay windows. Client heartbeats do not directly refresh Redis ownership

@@ -55,12 +55,14 @@
 监听 `:3006`，是实时系统的有状态核心。它负责：
 
 - 校验 IDENTIFY/RESUME 的 access token；
-- 创建逻辑 Session，并加载用户的 Guild 集合；
+- 创建逻辑 Session，并分页加载用户的 Guild 可见频道快照；
 - 保存用户、Guild 和频道的本地反向索引；
 - 校验频道订阅权限；
 - 分配递增 sequence，保存最多 2048 条内存回放记录；
 - 应用 Gateway 批量同步的 heartbeat ACK checkpoint、处理 Presence 更新、detach 和 resume；
 - 接收 Dispatcher 的 Guild、频道和用户事件并本地 fanout。
+
+IDENTIFY 通过 Guild visibility RPC 加载带 access revision 的不可变、有序频道快照。同一节点上属于同一用户的逻辑 Session 共享一份快照集合，最后一个本地 Session 移除后释放。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道；缺失、格式错误、超限或已标记失效的快照不能用于授权。消息投递仍暂时沿用频道订阅，等下一阶段接入携带 revision 的失效与有界重建后再切换。
 
 Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Session ID 限速。每个认证 Session 通过 Redis claim 只能持有一个存活的逻辑 Session；逻辑 Session 留存期间会持续续租，包括断线后的 resume 窗口。
 

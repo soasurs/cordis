@@ -51,6 +51,8 @@ type NodeConfig struct {
 	BindingQueueSize      int `json:",default=4096"`
 	DrainSeconds          int `json:",default=30"`
 	MaxSubscribedChannels int `json:",default=500"`
+	MaxVisibilityGuilds   int `json:",default=100"`
+	MaxVisibilityChannels int `json:",default=500"`
 	MaxPresenceUpdates    int `json:",default=5"`
 	PresenceWindowSeconds int `json:",default=20"`
 }
@@ -77,6 +79,22 @@ func (c NodeConfig) SubscribedChannelLimit() int {
 		return 500
 	}
 	return c.MaxSubscribedChannels
+}
+
+// VisibilityGuildLimit bounds the number of Guild snapshots loaded for one user.
+func (c NodeConfig) VisibilityGuildLimit() int {
+	if c.MaxVisibilityGuilds <= 0 {
+		return 100
+	}
+	return c.MaxVisibilityGuilds
+}
+
+// VisibilityChannelLimit bounds the visible channel IDs retained per Guild snapshot.
+func (c NodeConfig) VisibilityChannelLimit() int {
+	if c.MaxVisibilityChannels <= 0 {
+		return 500
+	}
+	return c.MaxVisibilityChannels
 }
 
 type ServiceConfig struct {

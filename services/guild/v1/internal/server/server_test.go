@@ -275,7 +275,7 @@ func (s *fakeStore) CheckResourceQuota(_ context.Context, quota store.ResourceQu
 }
 
 func (s *fakeStore) CreateGuild(_ context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error) {
-	guild := &model.Guild{ID: guildID, OwnerID: ownerID, Name: name, IconURI: iconURI, Revision: 1, CreatedAt: createdAt}
+	guild := &model.Guild{ID: guildID, OwnerID: ownerID, Name: name, IconURI: iconURI, Revision: 1, AccessRevision: 1, CreatedAt: createdAt}
 	s.guilds[guildID] = guild
 	return cloneGuild(guild), nil
 }
@@ -885,7 +885,7 @@ func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuild(_ context.Contex
 }
 
 func testGuild(id, ownerID int64) *model.Guild {
-	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconURI: "icon://old", Revision: 1, CreatedAt: 1}
+	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconURI: "icon://old", Revision: 1, AccessRevision: 1, CreatedAt: 1}
 }
 
 func cloneGuild(guild *model.Guild) *model.Guild {

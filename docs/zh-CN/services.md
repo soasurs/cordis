@@ -30,6 +30,8 @@
 
 持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
 
+`ListUserGuildChannelVisibilities` 按用户的有效 Guild 成员关系分页，并为每个 Guild 返回完整、按数值升序排列的可见频道 ID。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。
+
 ## Message
 
 监听 `:3002`，拥有消息、附件、提及和回复关系。创建、读取、更新和删除操作先调用 Guild 授权。列表使用 `before`、`after` 或 `around` 游标分页。当前没有反应或自定义 emoji RPC。

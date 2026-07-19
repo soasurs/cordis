@@ -31,6 +31,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 
 	store := New(db)
 	t.Run("guild CRUD", func(t *testing.T) { testGuildCRUD(t, store) })
+	t.Run("access revision", func(t *testing.T) { testGuildAccessRevision(t, store) })
 	t.Run("member lifecycle", func(t *testing.T) { testGuildMemberLifecycle(t, store) })
 	t.Run("bans", func(t *testing.T) { testGuildBans(t, store) })
 	t.Run("ownership transfer", func(t *testing.T) { testTransferGuildOwnership(t, store) })
@@ -43,6 +44,76 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("guild delete helpers", func(t *testing.T) { testGuildDeleteHelpers(t, store) })
 	t.Run("invites", func(t *testing.T) { testGuildInvites(t, store) })
 	t.Run("resource quotas", func(t *testing.T) { testResourceQuotas(t, store) })
+}
+
+func testGuildAccessRevision(t *testing.T, store Store) {
+	const guildID, ownerID, memberID, roleID, channelID = int64(19200), int64(29200), int64(29201), int64(19201), int64(19202)
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+	seedGuild(t, store, guildID, ownerID)
+
+	revision := func() int64 {
+		guild, err := store.GetGuild(ctx, guildID)
+		require.NoError(t, err)
+		return guild.AccessRevision
+	}
+	assertAdvanced := func(previous int64) int64 {
+		current := revision()
+		require.Greater(t, current, previous)
+		return current
+	}
+
+	current := revision()
+	_, err := store.UpdateGuildMemberNickname(ctx, guildID, ownerID, "owner")
+	require.NoError(t, err)
+	require.Equal(t, current, revision(), "nickname changes do not affect access")
+
+	_, err = store.CreateGuildMember(ctx, guildID, memberID, now)
+	require.NoError(t, err)
+	current = assertAdvanced(current)
+
+	_, err = store.CreateGuildRole(ctx, roleID, guildID, "reader", 64, 1, now)
+	require.NoError(t, err)
+	current = assertAdvanced(current)
+
+	_, err = store.UpdateGuildRole(ctx, UpdateGuildRoleParams{
+		GuildID: guildID, RoleID: roleID, Name: ptr("renamed"), UpdatedAt: now,
+	})
+	require.NoError(t, err)
+	current = assertAdvanced(current)
+
+	_, err = store.UpdateGuildRole(ctx, UpdateGuildRoleParams{
+		GuildID: guildID, RoleID: roleID, Permissions: ptr(uint64(96)), UpdatedAt: now,
+	})
+	require.NoError(t, err)
+	current = assertAdvanced(current)
+
+	require.NoError(t, store.AddGuildMemberRole(ctx, guildID, memberID, roleID, now))
+	current = assertAdvanced(current)
+
+	_, err = store.CreateGuildChannel(ctx, channelID, guildID, "general", 1, 0, "", 0, now)
+	require.NoError(t, err)
+	current = assertAdvanced(current)
+
+	_, err = store.UpdateGuildChannel(ctx, UpdateGuildChannelParams{
+		ChannelID: channelID, Name: ptr("chat"), UpdatedAt: now,
+	})
+	require.NoError(t, err)
+	require.Equal(t, current, revision(), "channel metadata does not affect access")
+
+	_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
+		ChannelID: channelID, GuildID: guildID, TargetType: 2, TargetID: memberID,
+		Deny: 64, CreatedAt: now,
+	})
+	require.NoError(t, err)
+	current = assertAdvanced(current)
+
+	require.NoError(t, store.DeleteGuildChannelPermissionOverwrite(ctx, channelID, 2, memberID))
+	current = assertAdvanced(current)
+
+	_, err = store.TransferGuildOwnership(ctx, guildID, ownerID, memberID)
+	require.NoError(t, err)
+	assertAdvanced(current)
 }
 
 func testResourceQuotas(t *testing.T, store Store) {

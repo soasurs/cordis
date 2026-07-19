@@ -58,6 +58,11 @@ func TestWebSocketForwardsSessionFrames(t *testing.T) {
 	require.True(t, socketLimiter.lease.ready.Load())
 
 	writeClientText(t, conn, `{"op":1,"d":1}`)
+	early := readEnvelope(t, reader)
+	require.Equal(t, opError, early.Op)
+	require.Contains(t, string(early.D), "before negotiated interval")
+	time.Sleep(gateway.svcCtx.Cfg.Gateway.HeartbeatMinimumInterval())
+	writeClientText(t, conn, `{"op":1,"d":1}`)
 	ack := readEnvelope(t, reader)
 	require.Equal(t, opHeartbeatAck, ack.Op)
 }
@@ -288,6 +293,7 @@ func TestRealWebSocketClientLifecycle(t *testing.T) {
 	require.Equal(t, eventReady, ready.T)
 	require.Equal(t, uint64(1), ready.S)
 
+	time.Sleep(gateway.svcCtx.Cfg.Gateway.HeartbeatMinimumInterval())
 	require.NoError(t, wsjson.Write(ctx, conn, envelope{
 		Op: opHeartbeat,
 		D:  json.RawMessage(`1`),
@@ -480,6 +486,7 @@ func TestWebSocketPresenceUpdate(t *testing.T) {
 	_ = readEnvelope(t, reader)
 
 	writeClientText(t, conn, `{"op":3,"d":{"status":"online","client_state":"desktop"}}`)
+	time.Sleep(gateway.svcCtx.Cfg.Gateway.HeartbeatMinimumInterval())
 	writeClientText(t, conn, `{"op":1,"d":1}`)
 	ack := readEnvelope(t, reader)
 	require.Equal(t, opHeartbeatAck, ack.Op)

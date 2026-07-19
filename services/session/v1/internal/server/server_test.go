@@ -45,8 +45,8 @@ func TestIdentifyRateLimitsValidatedUserAndAuthSession(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Equal(t, []sessionRateCall{
-		{policy: sessionratelimit.PolicyIdentifyUser, key: "1001"},
-		{policy: sessionratelimit.PolicyIdentifyAuthSession, key: "2002"},
+		{policy: sessionratelimit.PolicyIdentifyUser, key: "1001", cost: 1},
+		{policy: sessionratelimit.PolicyIdentifyAuthSession, key: "2002", cost: 1},
 	}, limiter.calls)
 }
 
@@ -129,6 +129,90 @@ func TestSubscribeEnforcesTotalChannelLimitAtomically(t *testing.T) {
 	require.Len(t, session.channels, 2)
 	require.NotContains(t, session.channels, int64(12))
 	session.mu.Unlock()
+}
+
+func TestPresenceDeduplicatesNoOpUpdates(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-presence-noop", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	limiter := &sessionFakeRateLimiter{}
+	presence := &recordingPresence{}
+	server.svcCtx.RateLimiter = limiter
+	server.svcCtx.PresenceClient = presence
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+	update := new(sessionv1.PresenceUpdate)
+	update.SetStatus("online")
+	update.SetClientState("foreground")
+
+	require.NoError(t, server.updatePresence(t.Context(), session, binding, update))
+	require.Empty(t, limiter.calls)
+	require.Empty(t, presence.updates)
+}
+
+func TestPresenceLimitsEachLogicalSession(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-presence-limit", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	limiter := &sessionFakeRateLimiter{}
+	presence := &recordingPresence{}
+	server.svcCtx.RateLimiter = limiter
+	server.svcCtx.PresenceClient = presence
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+	for i := range 6 {
+		update := new(sessionv1.PresenceUpdate)
+		if i%2 == 0 {
+			update.SetStatus("idle")
+		} else {
+			update.SetStatus("online")
+		}
+		update.SetClientState("foreground")
+		err = server.updatePresence(t.Context(), session, binding, update)
+		if i < 5 {
+			require.NoError(t, err)
+		} else {
+			require.Equal(t, codes.ResourceExhausted, status.Code(err))
+		}
+	}
+	require.Len(t, presence.updates, 5)
+	require.Len(t, limiter.calls, 5)
+}
+
+func TestPresenceAppliesCrossDeviceUserQuota(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-presence-user", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	limiter := &sessionFakeRateLimiter{decisions: map[string]coreratelimit.Decision{
+		sessionratelimit.PolicyPresenceUser: {Allowed: false},
+	}}
+	presence := &recordingPresence{}
+	server.svcCtx.RateLimiter = limiter
+	server.svcCtx.PresenceClient = presence
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+	update := new(sessionv1.PresenceUpdate)
+	update.SetStatus("idle")
+	update.SetClientState("foreground")
+
+	err = server.updatePresence(t.Context(), session, binding, update)
+	require.Equal(t, codes.ResourceExhausted, status.Code(err))
+	require.Equal(t, []sessionRateCall{{
+		policy: sessionratelimit.PolicyPresenceUser, key: "1001", cost: 1,
+	}}, limiter.calls)
+	require.Empty(t, presence.updates)
 }
 
 func TestReplayWindowKeepsLatestEvents(t *testing.T) {
@@ -242,14 +326,19 @@ func (s *fakeStore) DetachRoutes(_ context.Context, _, _ string, routes []store.
 type sessionRateCall struct {
 	policy string
 	key    string
+	cost   int64
 }
 
 type sessionFakeRateLimiter struct {
-	calls []sessionRateCall
+	calls     []sessionRateCall
+	decisions map[string]coreratelimit.Decision
 }
 
-func (l *sessionFakeRateLimiter) Take(_ context.Context, policy, key string, _ int64) (coreratelimit.Decision, error) {
-	l.calls = append(l.calls, sessionRateCall{policy: policy, key: key})
+func (l *sessionFakeRateLimiter) Take(_ context.Context, policy, key string, cost int64) (coreratelimit.Decision, error) {
+	l.calls = append(l.calls, sessionRateCall{policy: policy, key: key, cost: cost})
+	if decision, ok := l.decisions[policy]; ok {
+		return decision, nil
+	}
 	return coreratelimit.Decision{Allowed: true}, nil
 }
 
@@ -319,6 +408,20 @@ func (fakeGuild) AuthorizeGuildChannel(
 
 type fakePresence struct {
 	presencev1.PresenceServiceClient
+}
+
+type recordingPresence struct {
+	fakePresence
+	updates []*presencev1.UpdateUserPresenceRequest
+}
+
+func (p *recordingPresence) UpdateUserPresence(
+	_ context.Context,
+	req *presencev1.UpdateUserPresenceRequest,
+	_ ...grpc.CallOption,
+) (*presencev1.UpdateUserPresenceResponse, error) {
+	p.updates = append(p.updates, req)
+	return new(presencev1.UpdateUserPresenceResponse), nil
 }
 
 func (fakePresence) RegisterUserSession(

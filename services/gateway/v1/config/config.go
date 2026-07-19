@@ -43,6 +43,7 @@ type GatewayConfig struct {
 	MaxPendingHandshakesPerIPv6Scope int64  `json:",default=20"`
 	MaxClientEventsPerMinute         int    `json:",default=120"`
 	HeartbeatTimeoutIntervals        int    `json:",default=2"`
+	HeartbeatEarlyTolerancePercent   int    `json:",default=10"`
 	CheckpointIntervalMs             int    `json:",default=5000"`
 	CheckpointBatchSize              int    `json:",default=500"`
 }
@@ -67,6 +68,18 @@ func (c GatewayConfig) HeartbeatTimeout() time.Duration {
 		intervals = 2
 	}
 	return c.HeartbeatInterval() * time.Duration(intervals)
+}
+
+// HeartbeatMinimumInterval returns the earliest accepted interval between
+// client heartbeats, including the configured scheduling tolerance.
+func (c GatewayConfig) HeartbeatMinimumInterval() time.Duration {
+	tolerance := c.HeartbeatEarlyTolerancePercent
+	if tolerance <= 0 {
+		tolerance = 10
+	}
+	tolerance = min(tolerance, 50)
+	interval := c.HeartbeatInterval()
+	return interval - interval*time.Duration(tolerance)/100
 }
 
 func (c GatewayConfig) CheckpointInterval() time.Duration {

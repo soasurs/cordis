@@ -18,6 +18,7 @@ gateway:
   maxPendingHandshakesPerIPv6Scope: 20
   maxClientEventsPerMinute: 120
   heartbeatTimeoutIntervals: 2
+  heartbeatEarlyTolerancePercent: 10
   checkpointIntervalMs: 5000
   checkpointBatchSize: 500
 

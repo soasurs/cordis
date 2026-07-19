@@ -77,7 +77,7 @@ go build ./services/guild/v1/...
 
 - Message mutations commit their database transaction before publishing directly to Kafka; do not introduce a transactional outbox unless explicitly requested.
 - Message has an independent Kafka topic, defaulting to `cordis.message.events.v1`.
-- Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope and are keyed by decimal `channel_id`.
+- Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope. Guild message records carry `guild_id` and are keyed by decimal Guild ID. DM message records remain channel-keyed until the user-route producer migration is delivered.
 - Realtime domain event names use dot-separated hierarchy only. Shared names live in `pkg/realtime`; do not introduce underscore variants such as `message_created`.
 - Kafka publication is best-effort: publication failures are logged but do not turn an already-committed mutation into an RPC failure.
 - `message.created` and `message.updated` payloads include `mention_user_ids`.
@@ -137,6 +137,7 @@ go build ./services/guild/v1/...
 - After token validation, Session limits IDENTIFY by user ID and authenticator Session ID. Redis atomically claims one live logical Session per authenticator Session and renews the claim throughout the detached resume window.
 - Each Session has an independent monotonically increasing sequence and a 2048-entry sliding replay window. Heartbeat `d` is the acknowledged sequence; Gateway coalesces advances and Session applies the resulting checkpoints to remove acknowledged replay entries. Binding epochs reject delayed checkpoints from replaced connections.
 - Session owns `user/guild/channel -> local sessions` indexes and checks Guild `VIEW_CHANNEL` when adding Channel subscriptions or distributing visibility-sensitive Channel metadata events.
+- Dispatcher resolves Guild `message.*` through aggregate Guild routes, then uses the existing channel dispatch RPC so Session still filters by local channel subscriptions. It accepts future user-routed DM message records, while legacy records without aggregate route IDs continue through channel routes during migration.
 - Session nodes register with leases under etcd `/cordis/session/nodes/{node_id}`. Redis owners use `session:owners:{session_id}`; aggregate ZSET routes use `gateway:routes:users:{id}:nodes`, `gateway:routes:guilds:{id}:nodes`, and `gateway:routes:channels:{id}:nodes`. The braces around each Redis ID are literal Cluster hash tags.
 - etcd stores only the low-cardinality live Session-node directory and is configured with multiple endpoints in production. Redis stores resume ownership and aggregate routing metadata and must remain Redis Cluster compatible. Neither stores replay payloads.
 - Dispatcher instances share consumer group `cordis.dispatcher.v1` and consume the guild, message, user, and presence topics. Dispatcher requires a User gRPC endpoint for friend fan-out. Aggregate routes are deduplicated per dispatch attempt, but retrying a record can call a previously successful Session node again; delivery is at least once and has no general event-ID deduplication.

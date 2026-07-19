@@ -74,7 +74,9 @@ per-instance rather than cluster-wide.
 Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a
 write transaction commits, the service publishes directly to `cordis.message.events.v1`
-on a best-effort basis; failures are logged.
+on a best-effort basis; failures are logged. Guild message records carry
+`guild_id` and use the Guild ID as the Kafka key. DM message records remain
+channel-keyed until the subsequent user-route producer migration.
 
 ## Gateway
 
@@ -123,6 +125,13 @@ A logical session may subscribe to at most 500 distinct channels by default.
 Requests that would exceed the configured total fail atomically without adding
 any of the requested channels.
 
+Dispatcher resolves Guild messages through aggregate Guild routes, then invokes
+the existing channel dispatch RPC on candidate nodes. Until server-owned
+visibility snapshots replace client subscriptions, Session therefore forwards
+a Guild message only to local sessions subscribed to its channel. Legacy
+message records without an aggregate route ID continue through channel routes
+during the rolling migration.
+
 No-op Presence updates are discarded. Changed updates are limited to five per
 logical session every 20 seconds, then consume a shared per-user quota of ten per
 20 seconds across devices before Presence is called.
@@ -135,8 +144,8 @@ existing clients to identify again.
 ## Dispatcher
 
 Background Kafka consumer for `cordis.guild.events.v1` and `cordis.message.events.v1`,
-using consumer group `cordis.dispatcher.v1`. It resolves user/guild/channel
-routes in Redis and calls the Session node's dispatch RPC. Offsets are committed
+using consumer group `cordis.dispatcher.v1`. It resolves aggregate user/Guild
+routes in Redis for message delivery and calls the Session node's dispatch RPC. Offsets are committed
 manually. Invalid events are dropped and committed; transient failures retry
 with exponential backoff. Routes are deduplicated within one attempt, but a
 record retry can call an already successful node again. Delivery is at least

@@ -66,13 +66,15 @@ Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Sessio
 
 每个逻辑 Session 默认最多订阅 500 个不同频道。请求导致总数超出配置上限时会整体失败，不会部分添加频道。
 
+Dispatcher 已经通过聚合 Guild route 定位 Guild 消息的候选 Session 节点，然后调用现有频道分发 RPC。在服务端可见性快照替代客户端订阅前，Session 仍只把 Guild 消息转发给本节点已订阅该频道的逻辑 Session。滚动迁移期间，不带聚合 route ID 的旧消息记录继续使用频道路由。
+
 无变化的 Presence 更新会直接丢弃。实际变化每个逻辑 Session 最多 5 次/20 秒，随后还需消耗跨设备共享的每用户 10 次/20 秒配额，才会调用 Presence。
 
 断线 Session 默认保留 120 秒。Resume 必须路由回原 Session 节点；节点进程丢失会同时丢失内存 Session。Session 节点通过 etcd 租约注册；进入 drain 后发布 draining 状态、拒绝新连接，并分批要求现有客户端重新 IDENTIFY。
 
 ## Dispatcher
 
-独立后台服务，使用 consumer group `cordis.dispatcher.v1` 消费 `cordis.guild.events.v1` 和 `cordis.message.events.v1`。它解析统一事件 envelope，根据 Guild、频道或用户路由从 Redis 找到 Session 节点，并调用 `DispatchGuildEvent`、`DispatchChannelEvent` 或 `DispatchUserEvent`。
+独立后台服务，使用 consumer group `cordis.dispatcher.v1` 消费 `cordis.guild.events.v1` 和 `cordis.message.events.v1`。Guild 消息携带 `guild_id` 并按 Guild ID 作为 Kafka key；Dispatcher 从 Redis 解析聚合 Guild route，再调用频道分发 RPC。Dispatcher 已兼容未来带 `user_id` 的 DM 消息，当前 DM 消息仍保持旧版频道路由，等待下一阶段切换生产者。
 
 消费采用手工提交。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误按指数退避重试，成功后提交。单次尝试会合并重复目标节点，但整条记录重试时可能再次调用已经成功的节点，因此投递是至少一次语义，且当前没有通用 event ID 去重。
 

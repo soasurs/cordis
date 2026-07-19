@@ -47,12 +47,13 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if err := validateMentionUserIDs(req.GetMentionUserIds(), s.svcCtx.Cfg.Limits.Mentions()); err != nil {
 		return nil, err
 	}
-	if err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetAuthorId(), permissionSendMessages); err != nil {
+	audience, err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetAuthorId(), permissionSendMessages)
+	if err != nil {
 		return nil, err
 	}
 
 	if req.GetReferencedMessageId() != 0 {
-		if err := s.requireChannelPermission(ctx, req.GetReferencedChannelId(), req.GetAuthorId(), permissionViewChannel); err != nil {
+		if _, err := s.requireChannelPermission(ctx, req.GetReferencedChannelId(), req.GetAuthorId(), permissionViewChannel); err != nil {
 			return nil, err
 		}
 		referencedMessage, err := s.svcCtx.Store.GetMessage(ctx, req.GetReferencedMessageId())
@@ -93,8 +94,8 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newMessageCreatedEvent(created, req.GetMentionUserIds())
-	s.publishEvent(ctx, event, eventErr)
+	events, eventErr := newMessageCreatedEvents(created, req.GetMentionUserIds(), audience)
+	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.CreateMessageResponse)
 	resp.SetMessage(messageToProto(created))
@@ -120,7 +121,8 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	if hasModPermission {
 		requiredPermission |= permissionManageMessages
 	}
-	if err := s.requireChannelPermission(ctx, current.ChannelID, req.GetActorUserId(), requiredPermission); err != nil {
+	audience, err := s.requireChannelPermission(ctx, current.ChannelID, req.GetActorUserId(), requiredPermission)
+	if err != nil {
 		return nil, err
 	}
 
@@ -186,8 +188,8 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newMessageUpdatedEvent(updated, mentionUserIDs)
-	s.publishEvent(ctx, event, eventErr)
+	events, eventErr := newMessageUpdatedEvents(updated, mentionUserIDs, audience)
+	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
 	resp.SetMessage(messageToProto(updated))
@@ -210,7 +212,8 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 	if hasModPermission {
 		requiredPermission |= permissionManageMessages
 	}
-	if err := s.requireChannelPermission(ctx, current.ChannelID, req.GetActorUserId(), requiredPermission); err != nil {
+	audience, err := s.requireChannelPermission(ctx, current.ChannelID, req.GetActorUserId(), requiredPermission)
+	if err != nil {
 		return nil, err
 	}
 
@@ -227,8 +230,8 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newMessageDeletedEvent(deleted)
-	s.publishEvent(ctx, event, eventErr)
+	events, eventErr := newMessageDeletedEvents(deleted, audience)
+	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.DeleteMessageResponse)
 	resp.SetOk(true)
@@ -246,7 +249,7 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	if err := s.requireChannelPermission(ctx, message.ChannelID, req.GetUserId(), permissionViewChannel); err != nil {
+	if _, err := s.requireChannelPermission(ctx, message.ChannelID, req.GetUserId(), permissionViewChannel); err != nil {
 		return nil, err
 	}
 
@@ -262,7 +265,7 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 	if req.GetUserId() <= 0 {
 		return nil, invalidRequest("user id is required")
 	}
-	if err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetUserId(), permissionViewChannel); err != nil {
+	if _, err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetUserId(), permissionViewChannel); err != nil {
 		return nil, err
 	}
 	limit, err := normalizeLimit(req.GetLimit(), defaultMessageLimit, maxMessageLimit)
@@ -346,5 +349,15 @@ func (s *messageServer) publishEvent(ctx context.Context, event messageEvent, bu
 			logx.Field("key", string(event.Key)),
 			logx.Field("error", err),
 		)
+	}
+}
+
+func (s *messageServer) publishEvents(ctx context.Context, events []messageEvent, buildErr error) {
+	if buildErr != nil {
+		s.publishEvent(ctx, messageEvent{}, buildErr)
+		return
+	}
+	for _, event := range events {
+		s.publishEvent(ctx, event, nil)
 	}
 }

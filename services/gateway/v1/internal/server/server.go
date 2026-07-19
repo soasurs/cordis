@@ -403,7 +403,12 @@ func (c *client) handleHeartbeat(ctx context.Context, msg envelope) error {
 		c.heartbeatMu.Unlock()
 		return errors.New("heartbeat sequence is ahead of gateway")
 	}
-	c.lastHeartbeat = time.Now()
+	now := time.Now()
+	if !c.lastHeartbeat.IsZero() && now.Before(c.lastHeartbeat.Add(c.server.svcCtx.Cfg.Gateway.HeartbeatMinimumInterval())) {
+		c.heartbeatMu.Unlock()
+		return errors.New("heartbeat sent before negotiated interval")
+	}
+	c.lastHeartbeat = now
 	changed := false
 	if sequence > c.acknowledgedSequence {
 		c.acknowledgedSequence = sequence

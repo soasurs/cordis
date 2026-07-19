@@ -51,6 +51,24 @@ type NodeConfig struct {
 	BindingQueueSize      int `json:",default=4096"`
 	DrainSeconds          int `json:",default=30"`
 	MaxSubscribedChannels int `json:",default=500"`
+	MaxPresenceUpdates    int `json:",default=5"`
+	PresenceWindowSeconds int `json:",default=20"`
+}
+
+// PresenceUpdateLimit returns the per-logical-session presence update quota.
+func (c NodeConfig) PresenceUpdateLimit() int {
+	if c.MaxPresenceUpdates <= 0 {
+		return 5
+	}
+	return c.MaxPresenceUpdates
+}
+
+// PresenceUpdateWindow returns the per-logical-session presence quota window.
+func (c NodeConfig) PresenceUpdateWindow() time.Duration {
+	if c.PresenceWindowSeconds <= 0 {
+		return 20 * time.Second
+	}
+	return time.Duration(c.PresenceWindowSeconds) * time.Second
 }
 
 // SubscribedChannelLimit returns the distinct channel limit per logical session.

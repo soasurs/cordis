@@ -46,7 +46,7 @@
 
 接受 WebSocket 前，Gateway 会按可信代理解析出的 IPv4 `/32` 或 IPv6 `/64` 来源作用域限速。连接容量完全由进程本地维护：每实例默认最多 50000 条连接和 5000 条 pending handshake，IPv4 与 IPv6 每来源 pending 上限分别为 100 和 20；Session 接受 IDENTIFY 或 RESUME 后立即释放 pending 槽。每条连接默认每分钟最多发送 120 个 Gateway event。`IDENTIFY` 还会按来源作用域限速；`RESUME` 同时按来源作用域和逻辑 Session ID 限速，只有这些离散限流事件使用 Redis。
 
-物理连接活性由 Gateway 本地管理。Gateway 校验 heartbeat sequence 并直接返回 `HEARTBEAT_ACK`，连续两个约定周期未收到 heartbeat 时关闭连接。只有确认 sequence 前进时才记录 dirty checkpoint；默认每 5 秒按目标 Session 节点归并，并以每批最多 500 条同步。Session binding epoch 用来拒绝连接被替换后迟到的 checkpoint。
+物理连接活性由 Gateway 本地管理。Gateway 校验 heartbeat sequence 并直接返回 `HEARTBEAT_ACK`，连续两个约定周期未收到 heartbeat 时关闭连接；比约定周期提前超过 10% 的 heartbeat 会被拒绝，也不会延长活性 deadline。只有确认 sequence 前进时才记录 dirty checkpoint；默认每 5 秒按目标 Session 节点归并，并以每批最多 500 条同步。Session binding epoch 用来拒绝连接被替换后迟到的 checkpoint。
 
 ## Session
 
@@ -65,6 +65,8 @@ Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Sessio
 客户端 heartbeat 不再直接触发 Session 的 Redis owner 或 Presence 续租；逻辑 Session 租约独立于 WebSocket heartbeat 流量维护。
 
 每个逻辑 Session 默认最多订阅 500 个不同频道。请求导致总数超出配置上限时会整体失败，不会部分添加频道。
+
+无变化的 Presence 更新会直接丢弃。实际变化每个逻辑 Session 最多 5 次/20 秒，随后还需消耗跨设备共享的每用户 10 次/20 秒配额，才会调用 Presence。
 
 断线 Session 默认保留 120 秒。Resume 必须路由回原 Session 节点；节点进程丢失会同时丢失内存 Session。Session 节点通过 etcd 租约注册；进入 drain 后发布 draining 状态、拒绝新连接，并分批要求现有客户端重新 IDENTIFY。
 

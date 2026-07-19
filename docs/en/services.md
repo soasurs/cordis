@@ -95,7 +95,9 @@ logical session ID; only these discrete rate-limit events use Redis.
 
 Gateway owns physical connection liveness. It validates heartbeat sequences,
 returns `HEARTBEAT_ACK` locally, and closes a socket after two missed advertised
-intervals. Only an advanced acknowledged sequence becomes dirty state; dirty
+intervals. Heartbeats arriving more than 10% before the advertised interval are
+rejected and do not extend the liveness deadline. Only an advanced acknowledged
+sequence becomes dirty state; dirty
 checkpoints are coalesced, grouped by the owning Session node, and synchronized
 every five seconds in batches of up to 500 by default. Session binding epochs
 make delayed checkpoints from replaced connections harmless.
@@ -120,6 +122,10 @@ the detached resume window.
 A logical session may subscribe to at most 500 distinct channels by default.
 Requests that would exceed the configured total fail atomically without adding
 any of the requested channels.
+
+No-op Presence updates are discarded. Changed updates are limited to five per
+logical session every 20 seconds, then consume a shared per-user quota of ten per
+20 seconds across devices before Presence is called.
 
 Detached sessions live for 120 seconds by default. Resume must reach the
 original node. Session nodes register through etcd leases. Graceful drain

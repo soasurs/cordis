@@ -47,6 +47,8 @@ node:
   bindingQueueSize: 4096
   drainSeconds: 30
   maxSubscribedChannels: 500
+  maxPresenceUpdates: 5
+  presenceWindowSeconds: 20
 
 rateLimit:
   keyPrefix: "cordis:session:rate_limit:"
@@ -59,6 +61,9 @@ rateLimit:
     identify_auth_session:
       limit: 5
       window: 5m
+    presence_user:
+      limit: 10
+      window: 20s
 
 services:
   authenticator:

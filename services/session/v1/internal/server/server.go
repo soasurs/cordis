@@ -75,6 +75,8 @@ type logicalSession struct {
 	binding           *binding
 	bindingEpoch      uint64
 	detachedAt        time.Time
+	presenceWindow    time.Time
+	presenceUpdates   int
 }
 
 type Server struct {
@@ -507,15 +509,62 @@ func acknowledgeLocked(session *logicalSession, sequence uint64) {
 }
 
 func (s *Server) updatePresence(ctx context.Context, session *logicalSession, binding *binding, data *sessionv1.PresenceUpdate) error {
+	statusValue := statusFromString(data.GetStatus())
+	clientState := clientStateFromString(data.GetClientState())
+	now := time.Now()
+
 	session.mu.Lock()
 	if session.binding != binding {
 		session.mu.Unlock()
 		return status.Error(codes.Aborted, "stale session binding")
 	}
-	session.status = statusFromString(data.GetStatus())
-	session.clientState = clientStateFromString(data.GetClientState())
+	if session.status == statusValue && session.clientState == clientState {
+		session.mu.Unlock()
+		return nil
+	}
+	if session.presenceWindow.IsZero() || now.Sub(session.presenceWindow) >= s.svcCtx.Cfg.Node.PresenceUpdateWindow() {
+		session.presenceWindow = now
+		session.presenceUpdates = 0
+	}
+	session.presenceUpdates++
+	if session.presenceUpdates > s.svcCtx.Cfg.Node.PresenceUpdateLimit() {
+		session.mu.Unlock()
+		return status.Error(codes.ResourceExhausted, "presence update rate limit exceeded")
+	}
+	userID := session.userID
 	session.mu.Unlock()
-	return s.updatePresenceRPC(ctx, session)
+
+	if err := s.takeOperationRateLimit(
+		ctx, sessionratelimit.PolicyPresenceUser, strconv.FormatInt(userID, 10), 1,
+		"presence update rate limit exceeded",
+	); err != nil {
+		return err
+	}
+
+	session.mu.Lock()
+	if session.binding != binding {
+		session.mu.Unlock()
+		return status.Error(codes.Aborted, "stale session binding")
+	}
+	if session.status == statusValue && session.clientState == clientState {
+		session.mu.Unlock()
+		return nil
+	}
+	oldStatus, oldClientState := session.status, session.clientState
+	session.status = statusValue
+	session.clientState = clientState
+	session.mu.Unlock()
+
+	if err := s.updatePresenceRPC(ctx, session); err != nil {
+		session.mu.Lock()
+		if session.status == statusValue && session.clientState == clientState {
+			session.status = oldStatus
+			session.clientState = oldClientState
+		}
+		session.mu.Unlock()
+		return err
+	}
+	return nil
 }
 
 func (s *Server) subscribeChannels(ctx context.Context, session *logicalSession, binding *binding, ids []int64) error {
@@ -560,6 +609,25 @@ func (s *Server) subscribeChannels(ctx context.Context, session *logicalSession,
 	session.mu.Lock()
 	s.appendDispatchLocked(session, realtime.GatewayEventSubscribed, payload)
 	session.mu.Unlock()
+	return nil
+}
+
+func (s *Server) takeOperationRateLimit(
+	ctx context.Context,
+	policy, key string,
+	cost int64,
+	message string,
+) error {
+	if cost == 0 || s.svcCtx.RateLimiter == nil {
+		return nil
+	}
+	decision, err := s.svcCtx.RateLimiter.Take(ctx, policy, key, cost)
+	if err != nil {
+		return status.Error(codes.Internal, "rate limiter unavailable")
+	}
+	if !decision.Allowed {
+		return status.Error(codes.ResourceExhausted, message)
+	}
 	return nil
 }
 

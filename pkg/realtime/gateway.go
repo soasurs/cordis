@@ -7,4 +7,5 @@ const (
 	GatewayEventSubscribed   = "SUBSCRIBED"
 	GatewayEventHeartbeatAck = "HEARTBEAT_ACK"
 	GatewayEventError        = "ERROR"
+	GatewayEventReconcile    = "session.reconcile"
 )

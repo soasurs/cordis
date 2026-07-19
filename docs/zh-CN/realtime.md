@@ -22,6 +22,8 @@ Resume sequence 低于 replay floor、超过服务端 sequence，或 Session 已
 
 IDENTIFY 自动建立用户和 Guild 路由。频道需客户端显式订阅，Session 调用 Guild 的 `AuthorizeGuildChannel` 校验 `VIEW_CHANNEL`。频道权限相关 Guild 事件到达后，Session 会重新授权本节点相关会话；无权会话不再收到对应事件。
 
+Guild 消息不依赖这些客户端订阅。Dispatcher 按 Guild 将消息路由到候选 Session 节点；Session 通过带 revision 的用户可见性快照过滤，然后投递给该用户的全部本地逻辑 Session。权限事件会使受影响快照失效；重建失败时保持 fail closed，并为当前失效代发送一次带 sequence 的 `session.reconcile`。滚动升级期间，旧的频道路由记录仍按订阅过滤。
+
 成员被踢出或封禁时，事件先投递给当前 Guild 会话，再撤销其 Guild 和相关频道索引。这样客户端能够收到导致订阅失效的最终状态事件。
 
 ## etcd 节点目录与 Redis 索引

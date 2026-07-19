@@ -35,6 +35,8 @@ type eventEnvelope[T any] struct {
 }
 
 type guildEvent struct {
+	Type    string
+	GuildID int64
 	Key     []byte
 	Payload []byte
 }
@@ -314,6 +316,8 @@ func newGuildEvent[T any](eventType string, guildID int64, data T) (guildEvent, 
 		return guildEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}
 	return guildEvent{
+		Type:    eventType,
+		GuildID: guildID,
 		Key:     strconv.AppendInt(nil, guildID, 10),
 		Payload: payload,
 	}, nil

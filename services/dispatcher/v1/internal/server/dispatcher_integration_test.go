@@ -60,6 +60,7 @@ func testGuildMessageRoute(t *testing.T, env *dispatcherEnv) {
 
 	request := node.waitChannelEvent(t)
 	require.Equal(t, int64(7001), request.GetChannelId())
+	require.Equal(t, guildID, request.GetGuildId())
 	require.Equal(t, realtime.EventMessageCreated, request.GetEvent().GetType())
 	require.JSONEq(t, `{"id":"9001","guild_id":"7000","channel_id":"7001"}`, request.GetEvent().GetJsonPayload())
 }

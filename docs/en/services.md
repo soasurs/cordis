@@ -58,7 +58,8 @@ memberships and returns the complete, ascending set of visible channel IDs for
 each Guild. Every snapshot carries a persistent `access_revision`. PostgreSQL
 triggers advance this monotonic revision whenever membership, role permissions
 or assignments, channels, permission overwrites, ownership, or Guild deletion
-can change access.
+can change access. Published Guild events include the committed revision while
+the Guild still exists.
 
 ## Message
 
@@ -122,9 +123,12 @@ IDENTIFY uses the paginated Guild visibility RPC to load immutable, sorted
 channel snapshots with their access revisions. A snapshot set is shared by all
 of the user's logical Sessions on the node and released after the last local
 Session is removed. Loading is bounded to 100 Guilds and 500 visible channels
-per Guild by default. Missing, malformed, oversized, or invalid snapshots are
-not usable for authorization. Message delivery remains on channel subscriptions
-until revision-bearing invalidation and bounded rebuild are connected.
+per Guild by default. Guild access events invalidate affected snapshots by
+revision. On-demand rebuilds are singleflighted per user and Guild, bounded to
+16 concurrent calls per Session node, and time out after two seconds by
+default. A stale, missing, malformed, oversized, or otherwise invalid snapshot
+fails closed. If rebuilding fails, Session skips the sensitive event and emits
+one sequenced `session.reconcile` hint for that invalid snapshot generation.
 
 Session applies Gateway checkpoint batches to advance acknowledged sequences and
 trim replay windows. Client heartbeats do not directly refresh Redis ownership
@@ -140,13 +144,13 @@ A logical session may subscribe to at most 500 distinct channels by default.
 Requests that would exceed the configured total fail atomically without adding
 any of the requested channels.
 
-Dispatcher resolves Guild messages through aggregate Guild routes, then invokes
-the existing channel dispatch RPC on candidate nodes. Until server-owned
-visibility snapshots replace client subscriptions, Session therefore forwards
-a Guild message only to local sessions subscribed to its channel. Legacy
-message records without an aggregate route ID continue through channel routes
-during the rolling migration. DM message records resolve directly through
-aggregate user routes.
+Dispatcher resolves Guild messages through aggregate Guild routes and includes
+the Guild ID in the channel dispatch RPC. Session checks the server-owned
+visibility snapshot once per local user and forwards the message to all of that
+user's logical sessions, independent of client channel subscriptions. Legacy
+message records without an aggregate Guild route continue through channel
+routes and subscription filtering during the rolling migration. DM message
+records resolve directly through aggregate user routes.
 
 No-op Presence updates are discarded. Changed updates are limited to five per
 logical session every 20 seconds, then consume a shared per-user quota of ten per

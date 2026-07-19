@@ -67,6 +67,27 @@ func TestCreateGuildCommitFailureDoesNotPublish(t *testing.T) {
 	require.Empty(t, publisher.records)
 }
 
+func TestPublishEventAddsCommittedAccessRevision(t *testing.T) {
+	fakeStore := newFakeStore()
+	guild := testGuild(10, 1001)
+	guild.AccessRevision = 37
+	fakeStore.guilds[10] = guild
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher).(*guildServer)
+	event, err := newGuildRoleUpdatedEvent(&model.Role{ID: 20, GuildID: 10, Revision: 2})
+	require.NoError(t, err)
+
+	server.publishEvent(t.Context(), event, nil)
+
+	var envelope struct {
+		Data struct {
+			AccessRevision int64 `json:"access_revision"`
+		} `json:"d"`
+	}
+	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
+	require.Equal(t, int64(37), envelope.Data.AccessRevision)
+}
+
 func TestCreateGuildPublishFailureIsBestEffort(t *testing.T) {
 	publisher := &fakePublisher{err: errors.New("kafka unavailable")}
 	server := newTestGuildServer(t, newFakeStore(), publisher)

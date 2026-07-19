@@ -40,7 +40,8 @@ type SessionServiceClient interface {
 	SyncGatewayConnections(ctx context.Context, in *SyncGatewayConnectionsRequest, opts ...grpc.CallOption) (*SyncGatewayConnectionsResponse, error)
 	// DispatchGuildEvent fans an event out to matching sessions on this node.
 	DispatchGuildEvent(ctx context.Context, in *DispatchGuildEventRequest, opts ...grpc.CallOption) (*DispatchGuildEventResponse, error)
-	// DispatchChannelEvent fans an event out to channel subscribers on this node.
+	// DispatchChannelEvent filters Guild events through server-owned visibility
+	// snapshots. Legacy events without guild_id use channel subscribers.
 	DispatchChannelEvent(ctx context.Context, in *DispatchChannelEventRequest, opts ...grpc.CallOption) (*DispatchChannelEventResponse, error)
 	// DispatchUserEvent fans an event out to sessions for one user on this node.
 	DispatchUserEvent(ctx context.Context, in *DispatchUserEventRequest, opts ...grpc.CallOption) (*DispatchUserEventResponse, error)
@@ -121,7 +122,8 @@ type SessionServiceServer interface {
 	SyncGatewayConnections(context.Context, *SyncGatewayConnectionsRequest) (*SyncGatewayConnectionsResponse, error)
 	// DispatchGuildEvent fans an event out to matching sessions on this node.
 	DispatchGuildEvent(context.Context, *DispatchGuildEventRequest) (*DispatchGuildEventResponse, error)
-	// DispatchChannelEvent fans an event out to channel subscribers on this node.
+	// DispatchChannelEvent filters Guild events through server-owned visibility
+	// snapshots. Legacy events without guild_id use channel subscribers.
 	DispatchChannelEvent(context.Context, *DispatchChannelEventRequest) (*DispatchChannelEventResponse, error)
 	// DispatchUserEvent fans an event out to sessions for one user on this node.
 	DispatchUserEvent(context.Context, *DispatchUserEventRequest) (*DispatchUserEventResponse, error)

@@ -1991,6 +1991,7 @@ type DispatchChannelEventRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
 	xxx_hidden_Event       *EventEnvelope         `protobuf:"bytes,2,opt,name=event"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,3,opt,name=guild_id,json=guildId"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2036,13 +2037,25 @@ func (x *DispatchChannelEventRequest) GetEvent() *EventEnvelope {
 	return nil
 }
 
+func (x *DispatchChannelEventRequest) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
 func (x *DispatchChannelEventRequest) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *DispatchChannelEventRequest) SetEvent(v *EventEnvelope) {
 	x.xxx_hidden_Event = v
+}
+
+func (x *DispatchChannelEventRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *DispatchChannelEventRequest) HasChannelId() bool {
@@ -2059,6 +2072,13 @@ func (x *DispatchChannelEventRequest) HasEvent() bool {
 	return x.xxx_hidden_Event != nil
 }
 
+func (x *DispatchChannelEventRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *DispatchChannelEventRequest) ClearChannelId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChannelId = 0
@@ -2068,11 +2088,18 @@ func (x *DispatchChannelEventRequest) ClearEvent() {
 	x.xxx_hidden_Event = nil
 }
 
+func (x *DispatchChannelEventRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_GuildId = 0
+}
+
 type DispatchChannelEventRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	ChannelId *int64
 	Event     *EventEnvelope
+	// Zero only for legacy channel-routed records produced before Guild routing.
+	GuildId *int64
 }
 
 func (b0 DispatchChannelEventRequest_builder) Build() *DispatchChannelEventRequest {
@@ -2080,10 +2107,14 @@ func (b0 DispatchChannelEventRequest_builder) Build() *DispatchChannelEventReque
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	x.xxx_hidden_Event = b.Event
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
 	return m0
 }
 
@@ -2480,11 +2511,12 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\fjson_payload\x18\x02 \x01(\tR\vjsonPayload\"g\n" +
 	"\x19DispatchGuildEventRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12/\n" +
-	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"m\n" +
+	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"\x88\x01\n" +
 	"\x1bDispatchChannelEventRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12/\n" +
-	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"d\n" +
+	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\x12\x19\n" +
+	"\bguild_id\x18\x03 \x01(\x03R\aguildId\"d\n" +
 	"\x18DispatchUserEventRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12/\n" +
 	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\":\n" +

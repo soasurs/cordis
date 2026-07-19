@@ -3,22 +3,27 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
 )
 
 type eventRouting struct {
-	ID        string `json:"id"`
-	GuildID   string `json:"guild_id"`
-	ChannelID string `json:"channel_id"`
-	UserID    string `json:"user_id"`
-	OwnerID   string `json:"owner_id"`
+	ID             string `json:"id"`
+	GuildID        string `json:"guild_id"`
+	ChannelID      string `json:"channel_id"`
+	UserID         string `json:"user_id"`
+	OwnerID        string `json:"owner_id"`
+	TargetID       string `json:"target_id"`
+	TargetType     int32  `json:"target_type"`
+	AccessRevision int64  `json:"access_revision"`
 }
 
 func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.DispatchGuildEventRequest) (*sessionv1.DispatchGuildEventResponse, error) {
@@ -37,18 +42,28 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 
 	switch eventType {
 	case realtime.EventGuildCreated:
-		s.subscribeGuildUser(req.GetGuildId(), parseID(routing.OwnerID))
+		s.subscribeGuildUser(req.GetGuildId(), parseID(routing.OwnerID), routing.AccessRevision)
 	case realtime.EventGuildMemberJoined:
-		s.subscribeGuildUser(req.GetGuildId(), parseID(routing.UserID))
+		s.subscribeGuildUser(req.GetGuildId(), parseID(routing.UserID), routing.AccessRevision)
+	case realtime.EventGuildMemberRemoved, realtime.EventGuildMemberBanned:
+		// Revoke the snapshot before delivering the terminal membership event so
+		// concurrent message dispatch fails closed during index cleanup.
+		s.invalidateGuildVisibility(req.GetGuildId(), parseID(routing.UserID), routing.AccessRevision)
+	case realtime.EventGuildUpdated, realtime.EventGuildRoleCreated:
+		s.invalidateGuildVisibility(req.GetGuildId(), 0, routing.AccessRevision)
 	case realtime.EventGuildRoleUpdated, realtime.EventGuildRoleDeleted:
+		s.invalidateGuildVisibility(req.GetGuildId(), 0, routing.AccessRevision)
 		s.reauthorizeGuildSubscriptions(ctx, req.GetGuildId(), 0)
 	case realtime.EventGuildMemberRolesUpdated:
+		s.invalidateGuildVisibility(req.GetGuildId(), parseID(routing.UserID), routing.AccessRevision)
 		s.reauthorizeGuildSubscriptions(ctx, req.GetGuildId(), parseID(routing.UserID))
 	case realtime.EventGuildChannelCreated, realtime.EventGuildChannelUpdated,
 		realtime.EventGuildChannelOverwriteUpdated, realtime.EventGuildChannelOverwriteDeleted:
+		s.invalidateChannelEventVisibility(req.GetGuildId(), eventType, routing)
 		delivered := s.dispatchAuthorizedGuildChannel(ctx, req.GetGuildId(), eventType, payload, routing)
 		return dispatchGuildResponse(delivered), nil
 	case realtime.EventGuildChannelDeleted:
+		s.invalidateGuildVisibility(req.GetGuildId(), 0, routing.AccessRevision)
 		channelID := parseID(routing.ChannelID)
 		if channelID == 0 {
 			channelID = parseID(routing.ID)
@@ -68,17 +83,89 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 	return dispatchGuildResponse(delivered), nil
 }
 
-func (s *Server) DispatchChannelEvent(_ context.Context, req *sessionv1.DispatchChannelEventRequest) (*sessionv1.DispatchChannelEventResponse, error) {
+func (s *Server) invalidateChannelEventVisibility(guildID int64, eventType string, routing eventRouting) {
+	if eventType == realtime.EventGuildChannelOverwriteUpdated || eventType == realtime.EventGuildChannelOverwriteDeleted {
+		if routing.TargetType == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER) {
+			s.invalidateGuildVisibility(guildID, parseID(routing.TargetID), routing.AccessRevision)
+			return
+		}
+	}
+	s.invalidateGuildVisibility(guildID, 0, routing.AccessRevision)
+}
+
+func (s *Server) invalidateGuildVisibility(guildID, userID, accessRevision int64) {
+	seen := make(map[int64]struct{})
+	for _, session := range s.guildSessions(guildID) {
+		if userID > 0 && session.userID != userID {
+			continue
+		}
+		if _, exists := seen[session.userID]; exists {
+			continue
+		}
+		seen[session.userID] = struct{}{}
+		s.invalidateVisibilityGuild(session.userID, guildID, accessRevision)
+	}
+}
+
+func (s *Server) DispatchChannelEvent(ctx context.Context, req *sessionv1.DispatchChannelEventRequest) (*sessionv1.DispatchChannelEventResponse, error) {
 	if req.GetChannelId() <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "channel id is required")
+	}
+	if req.GetGuildId() < 0 {
+		return nil, status.Error(codes.InvalidArgument, "guild id cannot be negative")
 	}
 	eventType, payload, err := validateEvent(req.GetEvent())
 	if err != nil {
 		return nil, err
 	}
 	resp := new(sessionv1.DispatchChannelEventResponse)
-	resp.SetDelivered(int32(s.dispatchSessions(s.channelSessions(req.GetChannelId()), eventType, payload)))
+	if req.GetGuildId() > 0 {
+		resp.SetDelivered(int32(s.dispatchVisibleGuildChannel(ctx, req.GetGuildId(), req.GetChannelId(), eventType, payload)))
+	} else {
+		resp.SetDelivered(int32(s.dispatchSessions(s.channelSessions(req.GetChannelId()), eventType, payload)))
+	}
 	return resp, nil
+}
+
+func (s *Server) dispatchVisibleGuildChannel(
+	ctx context.Context,
+	guildID, channelID int64,
+	eventType string,
+	payload []byte,
+) int {
+	byUser := make(map[int64][]*logicalSession)
+	for _, session := range s.guildSessions(guildID) {
+		byUser[session.userID] = append(byUser[session.userID], session)
+	}
+	delivered := 0
+	for userID, sessions := range byUser {
+		snapshot, err := s.ensureVisibilitySnapshot(ctx, userID, guildID)
+		if err != nil {
+			logx.WithContext(ctx).Errorw("reload guild visibility for channel event",
+				logx.Field("guild_id", guildID),
+				logx.Field("channel_id", channelID),
+				logx.Field("user_id", userID),
+				logx.Field("error", err),
+			)
+			s.dispatchVisibilityReconcile(sessions, userID, guildID, channelID)
+			continue
+		}
+		if snapshot.contains(channelID) {
+			delivered += s.dispatchSessions(sessions, eventType, payload)
+		}
+	}
+	return delivered
+}
+
+func (s *Server) dispatchVisibilityReconcile(sessions []*logicalSession, userID, guildID, channelID int64) {
+	if !s.markVisibilityReconcile(userID, guildID) {
+		return
+	}
+	payload, _ := json.Marshal(map[string]string{
+		"guild_id":   strconv.FormatInt(guildID, 10),
+		"channel_id": strconv.FormatInt(channelID, 10),
+	})
+	s.dispatchSessions(sessions, realtime.GatewayEventReconcile, payload)
 }
 
 func (s *Server) DispatchUserEvent(_ context.Context, req *sessionv1.DispatchUserEventRequest) (*sessionv1.DispatchUserEventResponse, error) {
@@ -200,24 +287,23 @@ func (s *Server) dispatchSession(session *logicalSession, eventType string, payl
 	return true
 }
 
-func (s *Server) subscribeGuildUser(guildID, userID int64) {
+func (s *Server) subscribeGuildUser(guildID, userID, accessRevision int64) {
 	if guildID <= 0 || userID <= 0 {
 		return
 	}
-	added := false
-	for _, session := range s.userSessions(userID) {
+	sessions := s.userSessions(userID)
+	for _, session := range sessions {
 		session.mu.Lock()
 		if _, exists := session.guilds[guildID]; !exists {
 			session.guilds[guildID] = struct{}{}
-			added = true
 		}
 		session.mu.Unlock()
 		s.mu.Lock()
 		addIndex(s.guilds, guildID, session)
 		s.mu.Unlock()
 	}
-	if added {
-		s.invalidateVisibilityGuild(userID, guildID)
+	if len(sessions) > 0 {
+		s.invalidateVisibilityGuild(userID, guildID, accessRevision)
 	}
 	s.refreshAllRoutes(context.Background())
 }

@@ -20,6 +20,8 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, 500, cfg.Node.SubscribedChannelLimit())
 	require.Equal(t, 100, cfg.Node.VisibilityGuildLimit())
 	require.Equal(t, 500, cfg.Node.VisibilityChannelLimit())
+	require.Equal(t, int64(16), cfg.Node.SnapshotReloadLimit())
+	require.Equal(t, 2*time.Second, cfg.Node.SnapshotReloadTimeout())
 	require.Equal(t, 5, cfg.Node.PresenceUpdateLimit())
 	require.Equal(t, 20*time.Second, cfg.Node.PresenceUpdateWindow())
 	require.Equal(t, int64(20), cfg.RateLimit.Policies["identify_user"].Limit)

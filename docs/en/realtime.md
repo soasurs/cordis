@@ -33,6 +33,14 @@ authorized by Guild's `VIEW_CHANNEL` check. Channel and permission events cause
 Session to reauthorize affected local sessions. Removal or ban events are sent
 before the user's guild and channel indexes are revoked.
 
+Guild messages do not depend on those client subscriptions. Dispatcher routes
+them to candidate Session nodes by Guild, and Session checks its revisioned
+per-user visibility snapshot before delivering to all of that user's local
+logical sessions. Access events invalidate affected snapshots. Rebuilds fail
+closed; a failed rebuild produces one sequenced `session.reconcile` hint for the
+current invalid snapshot generation. Legacy channel-routed records retain
+subscription filtering during rolling upgrades.
+
 ## etcd directory and Redis keys
 
 - `/cordis/session/nodes/{node_id}`: leased etcd key containing generation,
@@ -46,6 +54,7 @@ Route members contain node ID and generation. Redis TTLs, etcd leases, and
 read-time generation validation remove stale processes.
 
 Domain services publish `{t,d}` envelopes to Kafka. Dispatcher resolves routes
-and invokes Session. Session filters local subscriptions, assigns sequence,
-stores replay, and writes a response to Gateway. Delivery is at least once
-under retry; there is no general event-ID deduplication yet.
+and invokes Session. Session filters Guild messages with visibility snapshots
+and legacy channel records with subscriptions, assigns sequence, stores replay,
+and writes a response to Gateway. Delivery is at least once under retry; there
+is no general event-ID deduplication yet.

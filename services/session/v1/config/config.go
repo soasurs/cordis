@@ -53,6 +53,8 @@ type NodeConfig struct {
 	MaxSubscribedChannels int `json:",default=500"`
 	MaxVisibilityGuilds   int `json:",default=100"`
 	MaxVisibilityChannels int `json:",default=500"`
+	MaxSnapshotReloads    int `json:",default=16"`
+	SnapshotReloadSeconds int `json:",default=2"`
 	MaxPresenceUpdates    int `json:",default=5"`
 	PresenceWindowSeconds int `json:",default=20"`
 }
@@ -95,6 +97,22 @@ func (c NodeConfig) VisibilityChannelLimit() int {
 		return 500
 	}
 	return c.MaxVisibilityChannels
+}
+
+// SnapshotReloadLimit bounds concurrent Guild visibility reloads per Session node.
+func (c NodeConfig) SnapshotReloadLimit() int64 {
+	if c.MaxSnapshotReloads <= 0 {
+		return 16
+	}
+	return int64(c.MaxSnapshotReloads)
+}
+
+// SnapshotReloadTimeout bounds one on-demand Guild visibility reload.
+func (c NodeConfig) SnapshotReloadTimeout() time.Duration {
+	if c.SnapshotReloadSeconds <= 0 {
+		return 2 * time.Second
+	}
+	return time.Duration(c.SnapshotReloadSeconds) * time.Second
 }
 
 type ServiceConfig struct {

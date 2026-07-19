@@ -246,8 +246,7 @@ func (s *Server) dispatchChannel(ctx context.Context, channelID int64, event eve
 }
 
 // dispatchGuildMessage uses the aggregate Guild route to locate candidate
-// Session nodes, then retains channel-level filtering on each node until
-// server-owned visibility snapshots replace client channel subscriptions.
+// Session nodes. Each node filters recipients through its visibility snapshots.
 func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID int64, event eventEnvelope) error {
 	nodes, err := s.resolver.Resolve(ctx, discovery.RouteGuild, guildID)
 	if err != nil {
@@ -256,6 +255,7 @@ func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID in
 	return s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
 		req := new(sessionv1.DispatchChannelEventRequest)
 		req.SetChannelId(channelID)
+		req.SetGuildId(guildID)
 		req.SetEvent(protoEvent(event))
 		_, err := client.DispatchChannelEvent(ctx, req)
 		return err

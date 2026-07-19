@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -95,9 +96,11 @@ type Server struct {
 	channels map[int64]map[*logicalSession]struct{}
 	draining atomic.Bool
 
-	visibilityMu    sync.RWMutex
-	visibilityUsers map[int64]*userVisibilityState
-	visibilityLoads singleflight.Group
+	visibilityMu        sync.RWMutex
+	visibilityUsers     map[int64]*userVisibilityState
+	visibilityLoads     singleflight.Group
+	visibilityReloads   singleflight.Group
+	visibilityReloadSem *semaphore.Weighted
 
 	routeMu         sync.Mutex
 	publishedRoutes map[store.Route]struct{}
@@ -116,16 +119,17 @@ func New(svcCtx *svc.ServiceContext) *Server {
 		rpcAddress = svcCtx.Cfg.ListenOn
 	}
 	return &Server{
-		svcCtx:          svcCtx,
-		nodeID:          nodeID,
-		generation:      randomID("gen"),
-		rpcAddress:      rpcAddress,
-		sessions:        make(map[string]*logicalSession),
-		users:           make(map[int64]map[*logicalSession]struct{}),
-		guilds:          make(map[int64]map[*logicalSession]struct{}),
-		channels:        make(map[int64]map[*logicalSession]struct{}),
-		visibilityUsers: make(map[int64]*userVisibilityState),
-		publishedRoutes: make(map[store.Route]struct{}),
+		svcCtx:              svcCtx,
+		nodeID:              nodeID,
+		generation:          randomID("gen"),
+		rpcAddress:          rpcAddress,
+		sessions:            make(map[string]*logicalSession),
+		users:               make(map[int64]map[*logicalSession]struct{}),
+		guilds:              make(map[int64]map[*logicalSession]struct{}),
+		channels:            make(map[int64]map[*logicalSession]struct{}),
+		visibilityUsers:     make(map[int64]*userVisibilityState),
+		visibilityReloadSem: semaphore.NewWeighted(svcCtx.Cfg.Node.SnapshotReloadLimit()),
+		publishedRoutes:     make(map[store.Route]struct{}),
 	}
 }
 

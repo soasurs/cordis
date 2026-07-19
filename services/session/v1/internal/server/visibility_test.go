@@ -37,7 +37,7 @@ func TestIdentifySharesVisibilitySnapshotsAcrossLocalSessions(t *testing.T) {
 	require.False(t, snapshot.contains(999))
 	server.visibilityMu.RLock()
 	require.Equal(t, 2, server.visibilityUsers[1001].references)
-	require.Same(t, snapshot, server.visibilityUsers[1001].snapshots[30])
+	require.Same(t, snapshot, server.visibilityUsers[1001].snapshots[30].snapshot)
 	server.visibilityMu.RUnlock()
 
 	server.removeSession(t.Context(), first)
@@ -99,12 +99,51 @@ func TestInvalidVisibilitySnapshotFailsClosed(t *testing.T) {
 	})
 	_, ok := server.visibilitySnapshotFor(1001, 30)
 	require.True(t, ok)
+	require.False(t, server.invalidateVisibilityGuild(1001, 30, 6), "older events cannot invalidate a newer snapshot")
+	_, ok = server.visibilitySnapshotFor(1001, 30)
+	require.True(t, ok)
 
-	server.invalidateVisibilityGuild(1001, 30)
+	require.True(t, server.invalidateVisibilityGuild(1001, 30, 8))
 	_, ok = server.visibilitySnapshotFor(1001, 30)
 	require.False(t, ok)
 	_, ok = server.visibilitySnapshotFor(1001, 999)
 	require.False(t, ok)
+
+	server.retainVisibilitySnapshots(1002, map[int64]*visibilitySnapshot{
+		30: {accessRevision: 7, channelIDs: []int64{301}},
+	})
+	require.True(t, server.invalidateVisibilityGuild(1002, 30, 0), "legacy events must invalidate conservatively")
+	_, ok = server.visibilitySnapshotFor(1002, 30)
+	require.False(t, ok)
+}
+
+func TestVisibilityReloadRejectsResultRacingWithNewerInvalidation(t *testing.T) {
+	server := newTestServer()
+	guild := &racingVisibilityGuild{started: make(chan struct{}), release: make(chan struct{})}
+	server.svcCtx.GuildClient = guild
+	session := testLogicalSession(1001, 9001, 0)
+	server.addSession(session, map[int64]*visibilitySnapshot{
+		9001: {accessRevision: 7, channelIDs: []int64{7001}},
+	})
+	server.invalidateVisibilityGuild(1001, 9001, 8)
+
+	type result struct {
+		snapshot *visibilitySnapshot
+		err      error
+	}
+	resultCh := make(chan result, 1)
+	go func() {
+		snapshot, err := server.ensureVisibilitySnapshot(t.Context(), 1001, 9001)
+		resultCh <- result{snapshot: snapshot, err: err}
+	}()
+	<-guild.started
+	server.invalidateVisibilityGuild(1001, 9001, 9)
+	close(guild.release)
+	loaded := <-resultCh
+
+	require.NoError(t, loaded.err)
+	require.Equal(t, int64(9), loaded.snapshot.accessRevision)
+	require.Equal(t, 2, guild.calls)
 }
 
 type visibilityGuild struct {
@@ -112,6 +151,27 @@ type visibilityGuild struct {
 	responses []*guildv1.ListUserGuildChannelVisibilitiesResponse
 	calls     int
 	before    []int64
+}
+
+type racingVisibilityGuild struct {
+	guildv1.GuildServiceClient
+	started chan struct{}
+	release chan struct{}
+	calls   int
+}
+
+func (g *racingVisibilityGuild) ListUserGuildChannelVisibilities(
+	_ context.Context,
+	_ *guildv1.ListUserGuildChannelVisibilitiesRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
+	g.calls++
+	if g.calls == 1 {
+		close(g.started)
+		<-g.release
+		return visibilityResponse(visibility(9001, 8, 7001)), nil
+	}
+	return visibilityResponse(visibility(9001, 9, 7001)), nil
 }
 
 func (g *visibilityGuild) ListUserGuildChannelVisibilities(

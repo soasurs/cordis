@@ -15,7 +15,8 @@ service SessionService {
   // DispatchGuildEvent fans an event out to matching sessions on this node.
   rpc DispatchGuildEvent(DispatchGuildEventRequest) returns (DispatchGuildEventResponse);
 
-  // DispatchChannelEvent fans an event out to channel subscribers on this node.
+  // DispatchChannelEvent filters Guild events through server-owned visibility
+  // snapshots. Legacy events without guild_id use channel subscribers.
   rpc DispatchChannelEvent(DispatchChannelEventRequest) returns (DispatchChannelEventResponse);
 
   // DispatchUserEvent fans an event out to sessions for one user on this node.
@@ -109,6 +110,8 @@ message DispatchGuildEventRequest {
 message DispatchChannelEventRequest {
   int64 channel_id = 1;
   EventEnvelope event = 2;
+  // Zero only for legacy channel-routed records produced before Guild routing.
+  int64 guild_id = 3;
 }
 
 message DispatchUserEventRequest {

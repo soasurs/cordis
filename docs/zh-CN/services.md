@@ -30,7 +30,7 @@
 
 持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
 
-`ListUserGuildChannelVisibilities` 按用户的有效 Guild 成员关系分页，并为每个 Guild 返回完整、按数值升序排列的可见频道 ID。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。
+`ListUserGuildChannelVisibilities` 按用户的有效 Guild 成员关系分页，并为每个 Guild 返回完整、按数值升序排列的可见频道 ID。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
 
 ## Message
 
@@ -62,7 +62,7 @@
 - 应用 Gateway 批量同步的 heartbeat ACK checkpoint、处理 Presence 更新、detach 和 resume；
 - 接收 Dispatcher 的 Guild、频道和用户事件并本地 fanout。
 
-IDENTIFY 通过 Guild visibility RPC 加载带 access revision 的不可变、有序频道快照。同一节点上属于同一用户的逻辑 Session 共享一份快照集合，最后一个本地 Session 移除后释放。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道；缺失、格式错误、超限或已标记失效的快照不能用于授权。消息投递仍暂时沿用频道订阅，等下一阶段接入携带 revision 的失效与有界重建后再切换。
+IDENTIFY 通过 Guild visibility RPC 加载带 access revision 的不可变、有序频道快照。同一节点上属于同一用户的逻辑 Session 共享一份快照集合，最后一个本地 Session 移除后释放。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。Guild access 事件按 revision 使受影响的快照失效；按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`，提示客户端通过 HTTP API 同步状态。
 
 Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Session ID 限速。每个认证 Session 通过 Redis claim 只能持有一个存活的逻辑 Session；逻辑 Session 留存期间会持续续租，包括断线后的 resume 窗口。
 
@@ -70,7 +70,7 @@ Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Sessio
 
 每个逻辑 Session 默认最多订阅 500 个不同频道。请求导致总数超出配置上限时会整体失败，不会部分添加频道。
 
-Dispatcher 已经通过聚合 Guild route 定位 Guild 消息的候选 Session 节点，然后调用现有频道分发 RPC。在服务端可见性快照替代客户端订阅前，Session 仍只把 Guild 消息转发给本节点已订阅该频道的逻辑 Session。DM 消息为每个参与者各发布一条记录，并通过聚合 user route 投递。滚动迁移期间，不带聚合 route ID 的旧消息记录继续使用频道路由。
+Dispatcher 通过聚合 Guild route 定位 Guild 消息的候选 Session 节点，并在频道分发 RPC 中携带 Guild ID。Session 按本地用户检查服务端可见性快照，将消息投递给该用户的所有本地逻辑 Session，不依赖客户端频道订阅。DM 消息为每个参与者各发布一条记录，并通过聚合 user route 投递。滚动迁移期间，不带 Guild 聚合 route 的旧消息记录继续使用频道路由和订阅过滤。
 
 无变化的 Presence 更新会直接丢弃。实际变化每个逻辑 Session 最多 5 次/20 秒，随后还需消耗跨设备共享的每用户 10 次/20 秒配额，才会调用 Presence。
 

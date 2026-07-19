@@ -15,6 +15,17 @@ var decisionsTotal = promauto.NewCounterVec(
 	[]string{"policy", "result"},
 )
 
+var bucketUsageRatio = promauto.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Namespace: "cordis",
+		Subsystem: "rate_limit",
+		Name:      "bucket_usage_ratio",
+		Help:      "Distribution of rate-limit bucket quota usage after decisions.",
+		Buckets:   []float64{0.1, 0.25, 0.5, 0.75, 0.9, 1},
+	},
+	[]string{"policy", "backend"},
+)
+
 func recordDecision(policy string, decision Decision) {
 	result := "allow"
 	if !decision.Allowed {
@@ -24,4 +35,10 @@ func recordDecision(policy string, decision Decision) {
 		result = "fallback_" + result
 	}
 	decisionsTotal.WithLabelValues(policy, result).Inc()
+}
+
+func recordBucketUsage(policy, backend string, limit, remaining int64) {
+	usage := float64(limit-remaining) / float64(limit)
+	usage = min(max(usage, 0), 1)
+	bucketUsageRatio.WithLabelValues(policy, backend).Observe(usage)
 }

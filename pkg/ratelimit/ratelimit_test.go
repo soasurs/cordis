@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
@@ -136,6 +137,65 @@ func TestManagerRejectsInvalidRequests(t *testing.T) {
 	require.Equal(t, time.Minute, decision.RetryAfter)
 	calls, _ := backend.snapshot()
 	require.Zero(t, calls)
+}
+
+func TestManagerRecordsBucketUsage(t *testing.T) {
+	const policyName = "metrics_bucket_usage_test"
+	bucketUsageRatio.Reset()
+
+	primary, err := NewManager(
+		&fakeBackend{decision: Decision{Allowed: true, Limit: 4, Remaining: 3}},
+		map[string]Policy{policyName: {Limit: 4, Window: time.Minute}},
+		Options{},
+	)
+	require.NoError(t, err)
+	_, err = primary.Take(t.Context(), policyName, "primary-client", 1)
+	require.NoError(t, err)
+
+	fallback, err := NewManager(
+		nil,
+		map[string]Policy{policyName: {Limit: 2, Window: time.Minute}},
+		Options{},
+	)
+	require.NoError(t, err)
+	_, err = fallback.Take(t.Context(), policyName, "fallback-client", 1)
+	require.NoError(t, err)
+
+	_, err = primary.Take(t.Context(), policyName, "oversized-client", 5)
+	require.NoError(t, err)
+
+	metricFamilies, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+	metrics := make(map[string]struct {
+		count uint64
+		sum   float64
+	})
+	for _, family := range metricFamilies {
+		if family.GetName() != "cordis_rate_limit_bucket_usage_ratio" {
+			continue
+		}
+		for _, metric := range family.GetMetric() {
+			labels := make(map[string]string, len(metric.GetLabel()))
+			for _, label := range metric.GetLabel() {
+				labels[label.GetName()] = label.GetValue()
+			}
+			if labels["policy"] != policyName {
+				continue
+			}
+			histogram := metric.GetHistogram()
+			metrics[labels["backend"]] = struct {
+				count uint64
+				sum   float64
+			}{count: histogram.GetSampleCount(), sum: histogram.GetSampleSum()}
+		}
+	}
+	require.Equal(t, map[string]struct {
+		count uint64
+		sum   float64
+	}{
+		"primary":  {count: 1, sum: 0.25},
+		"fallback": {count: 1, sum: 0.5},
+	}, metrics)
 }
 
 func TestLocalBackendResetsAndCapsBuckets(t *testing.T) {

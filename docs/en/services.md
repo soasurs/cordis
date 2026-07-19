@@ -75,8 +75,8 @@ Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a
 write transaction commits, the service publishes directly to `cordis.message.events.v1`
 on a best-effort basis; failures are logged. Guild message records carry
-`guild_id` and use the Guild ID as the Kafka key. DM message records remain
-channel-keyed until the subsequent user-route producer migration.
+`guild_id` and use the Guild ID as the Kafka key. DM message records carry
+`user_id` and emit one user-keyed record per participant.
 
 ## Gateway
 
@@ -130,7 +130,8 @@ the existing channel dispatch RPC on candidate nodes. Until server-owned
 visibility snapshots replace client subscriptions, Session therefore forwards
 a Guild message only to local sessions subscribed to its channel. Legacy
 message records without an aggregate route ID continue through channel routes
-during the rolling migration.
+during the rolling migration. DM message records resolve directly through
+aggregate user routes.
 
 No-op Presence updates are discarded. Changed updates are limited to five per
 logical session every 20 seconds, then consume a shared per-user quota of ten per

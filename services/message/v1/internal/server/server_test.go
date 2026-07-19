@@ -77,6 +77,12 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	require.JSONEq(t, `["9007199254740998"]`, string(envelope.Data["mention_user_ids"]))
 }
 
+func TestMessageEventRejectsEmptyDmAudience(t *testing.T) {
+	message := &model.Message{ID: 1, ChannelID: 2, AuthorID: 3}
+	_, err := newMessageCreatedEvents(message, nil, messageAudience{})
+	require.Error(t, err)
+}
+
 func TestCreateMessagePublishFailureIsBestEffort(t *testing.T) {
 	fakeStore := newFakeStore()
 	publisher := &fakePublisher{err: errors.New("kafka unavailable")}

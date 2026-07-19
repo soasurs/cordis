@@ -159,13 +159,7 @@ func TestDmMessagesFlowBetweenParticipants(t *testing.T) {
 	created, err := server.CreateMessage(context.Background(), createReq)
 	require.NoError(t, err)
 	messageID := created.GetMessage().GetId()
-	require.Len(t, publisher.records, 1)
-	require.Equal(t, "500", string(publisher.records[0].key))
-	var envelope eventEnvelope[messagePayload]
-	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
-	require.Equal(t, EventTypeMessageCreated, envelope.Type)
-	require.Empty(t, envelope.Data.UserID)
-	require.Empty(t, envelope.Data.GuildID)
+	requireDmMessageRecords(t, publisher.records, EventTypeMessageCreated)
 
 	// The other participant reads; outsiders see nothing.
 	getReq := new(messagev1.GetMessageRequest)
@@ -185,6 +179,45 @@ func TestDmMessagesFlowBetweenParticipants(t *testing.T) {
 	updateReq.SetContent("edited")
 	_, err = server.UpdateMessage(context.Background(), updateReq)
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+	updateReq.SetActorUserId(1001)
+	_, err = server.UpdateMessage(context.Background(), updateReq)
+	require.NoError(t, err)
+	requireDmMessageRecords(t, publisher.records[2:], EventTypeMessageUpdated)
+
+	deleteReq := new(messagev1.DeleteMessageRequest)
+	deleteReq.SetMessageId(messageID)
+	deleteReq.SetActorUserId(1001)
+	_, err = server.DeleteMessage(context.Background(), deleteReq)
+	require.NoError(t, err)
+	requireDmDeletedRecords(t, publisher.records[4:])
+}
+
+func requireDmMessageRecords(t *testing.T, records []publishedRecord, eventType string) {
+	t.Helper()
+	require.Len(t, records, 2)
+	for i, userID := range []string{"1001", "2002"} {
+		require.Equal(t, userID, string(records[i].key))
+		var envelope eventEnvelope[messagePayload]
+		require.NoError(t, json.Unmarshal(records[i].payload, &envelope))
+		require.Equal(t, eventType, envelope.Type)
+		require.Equal(t, userID, envelope.Data.UserID)
+		require.Equal(t, "1001", envelope.Data.AuthorID)
+		require.Empty(t, envelope.Data.GuildID)
+	}
+}
+
+func requireDmDeletedRecords(t *testing.T, records []publishedRecord) {
+	t.Helper()
+	require.Len(t, records, 2)
+	for i, userID := range []string{"1001", "2002"} {
+		require.Equal(t, userID, string(records[i].key))
+		var envelope eventEnvelope[messageDeletedPayload]
+		require.NoError(t, json.Unmarshal(records[i].payload, &envelope))
+		require.Equal(t, EventTypeMessageDeleted, envelope.Type)
+		require.Equal(t, userID, envelope.Data.UserID)
+		require.Empty(t, envelope.Data.GuildID)
+	}
 }
 
 func TestDmMessagesBlockedByEitherSide(t *testing.T) {

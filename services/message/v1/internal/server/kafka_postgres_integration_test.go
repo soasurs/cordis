@@ -19,6 +19,7 @@ import (
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/config"
 	messagemigrations "github.com/soasurs/cordis/services/message/v1/db/migrations"
+	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 	"github.com/soasurs/cordis/services/message/v1/internal/svc"
 )
@@ -47,10 +48,11 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 
 	node, err := snowflake.New()
 	require.NoError(t, err)
+	messageStore := store.New(db)
 	service := New(svc.NewServiceContextWithDependencies(config.Config{
 		Kafka: config.KafkaConfig{Topic: topic, PublishTimeoutMs: 5000},
 	}, svc.Dependencies{
-		Store:       store.New(db),
+		Store:       messageStore,
 		Snowflake:   node,
 		Kafka:       producer,
 		GuildClient: &fakeGuildClient{},
@@ -77,4 +79,30 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	require.Equal(t, EventTypeMessageCreated, envelope.Type)
 	require.Equal(t, "9001", envelope.Data.GuildID)
 	require.Equal(t, strconv.FormatInt(created.GetMessage().GetId(), 10), envelope.Data.MessageID)
+
+	require.NoError(t, messageStore.CreateDmChannel(t.Context(), &model.DmChannel{
+		ID: 4001, UserLo: 3001, UserHi: 3002, CreatedAt: 1,
+	}))
+	dmReq := new(messagev1.CreateMessageRequest)
+	dmReq.SetChannelId(4001)
+	dmReq.SetAuthorId(3001)
+	dmReq.SetContent("hello dm")
+	_, err = service.CreateMessage(t.Context(), dmReq)
+	require.NoError(t, err)
+
+	var dmRecords []*kgo.Record
+	for len(dmRecords) < 2 && readCtx.Err() == nil {
+		records = consumer.PollRecords(readCtx, 2-len(dmRecords))
+		require.Empty(t, records.Errors())
+		dmRecords = append(dmRecords, records.Records()...)
+	}
+	require.Len(t, dmRecords, 2)
+	for i, userID := range []string{"3001", "3002"} {
+		record := dmRecords[i]
+		require.Equal(t, userID, string(record.Key))
+		var dmEnvelope eventEnvelope[messagePayload]
+		require.NoError(t, json.Unmarshal(record.Value, &dmEnvelope))
+		require.Equal(t, EventTypeMessageCreated, dmEnvelope.Type)
+		require.Equal(t, userID, dmEnvelope.Data.UserID)
+	}
 }

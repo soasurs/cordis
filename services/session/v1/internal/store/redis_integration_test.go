@@ -86,32 +86,51 @@ func TestRedisStoreClaimsOneLogicalSessionPerAuthSession(t *testing.T) {
 
 	store := NewRedisStore(rds)
 	ctx := t.Context()
-	claimed, err := store.ClaimAuthSession(ctx, 1001, "logical-1", time.Minute)
+	claimA := AuthSessionClaim{
+		AuthSessionID: 1001, LogicalSessionID: "logical-1", NodeID: "node-1", Generation: "generation-1",
+	}
+	claimB := AuthSessionClaim{
+		AuthSessionID: 1001, LogicalSessionID: "logical-2", NodeID: "node-2", Generation: "generation-2",
+	}
+	result, err := store.ClaimAuthSession(ctx, claimA, time.Minute)
 	require.NoError(t, err)
-	require.True(t, claimed)
+	require.True(t, result.Claimed)
 
-	claimed, err = store.ClaimAuthSession(ctx, 1001, "logical-2", time.Minute)
+	result, err = store.ClaimAuthSession(ctx, claimB, time.Minute)
 	require.NoError(t, err)
-	require.False(t, claimed)
+	require.False(t, result.Claimed)
+	require.Equal(t, claimA, result.Existing)
 
-	refreshed, err := store.RefreshAuthSession(ctx, 1001, "logical-2", time.Minute)
+	taken, err := store.TakeoverAuthSession(ctx, AuthSessionClaim{
+		AuthSessionID: 1001, LogicalSessionID: "other", NodeID: "node-1", Generation: "generation-1",
+	}, claimB, time.Minute)
+	require.NoError(t, err)
+	require.False(t, taken)
+	taken, err = store.TakeoverAuthSession(ctx, claimA, claimB, time.Minute)
+	require.NoError(t, err)
+	require.True(t, taken)
+
+	refreshed, err := store.RefreshAuthSession(ctx, claimA, time.Minute)
 	require.NoError(t, err)
 	require.False(t, refreshed)
-	refreshed, err = store.RefreshAuthSession(ctx, 1001, "logical-1", time.Minute)
+	refreshed, err = store.RefreshAuthSession(ctx, claimB, time.Minute)
 	require.NoError(t, err)
 	require.True(t, refreshed)
-	lost, err := store.RefreshAuthSessions(ctx, []AuthSessionLease{
-		{AuthSessionID: 1001, LogicalSessionID: "logical-1"},
-		{AuthSessionID: 1002, LogicalSessionID: "logical-missing"},
+	missing := AuthSessionClaim{
+		AuthSessionID: 1002, LogicalSessionID: "logical-missing", NodeID: "node-2", Generation: "generation-2",
+	}
+	lost, err := store.RefreshAuthSessions(ctx, []AuthSessionClaim{
+		claimB,
+		missing,
 	}, time.Minute)
 	require.NoError(t, err)
 	require.Equal(t, []string{"logical-missing"}, lost)
 
-	require.NoError(t, store.DeleteAuthSession(ctx, 1001, "logical-2"))
+	require.NoError(t, store.DeleteAuthSession(ctx, claimA))
 	exists, err := rds.ExistsCtx(ctx, authSessionKey(1001))
 	require.NoError(t, err)
 	require.True(t, exists)
-	require.NoError(t, store.DeleteAuthSession(ctx, 1001, "logical-1"))
+	require.NoError(t, store.DeleteAuthSession(ctx, claimB))
 	exists, err = rds.ExistsCtx(ctx, authSessionKey(1001))
 	require.NoError(t, err)
 	require.False(t, exists)

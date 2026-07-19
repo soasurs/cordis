@@ -319,9 +319,8 @@ func (s *Server) identify(
 		guilds:            make(map[int64]struct{}),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 	}
-	claimed, err := s.svcCtx.Store.ClaimAuthSession(
-		ctx, session.authSessionID, session.id, s.svcCtx.Cfg.Node.NodeTTL(),
-	)
+	claim := s.authSessionClaim(session)
+	claimed, err := s.claimAuthSession(ctx, claim)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "claim auth session")
 	}
@@ -330,7 +329,7 @@ func (s *Server) identify(
 	}
 	visibilitySnapshots, err := s.loadOrReuseVisibilitySnapshots(ctx, session.userID)
 	if err != nil {
-		_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
+		_ = s.svcCtx.Store.DeleteAuthSession(ctx, claim)
 		return nil, err
 	}
 	for guildID := range visibilitySnapshots {
@@ -363,6 +362,30 @@ func (s *Server) identify(
 	s.appendDispatchLocked(session, realtime.GatewayEventReady, ready)
 	session.mu.Unlock()
 	return session, nil
+}
+
+func (s *Server) claimAuthSession(ctx context.Context, claim store.AuthSessionClaim) (bool, error) {
+	result, err := s.svcCtx.Store.ClaimAuthSession(ctx, claim, s.svcCtx.Cfg.Node.NodeTTL())
+	if err != nil || result.Claimed {
+		return result.Claimed, err
+	}
+
+	_, err = s.svcCtx.SessionRegistry.Resolve(ctx, result.Existing.NodeID, result.Existing.Generation)
+	switch {
+	case err == nil, errors.Is(err, sessionregistry.ErrNodeNotReady):
+		return false, nil
+	case errors.Is(err, sessionregistry.ErrNodeNotFound):
+		return s.svcCtx.Store.TakeoverAuthSession(ctx, result.Existing, claim, s.svcCtx.Cfg.Node.NodeTTL())
+	default:
+		return false, err
+	}
+}
+
+func (s *Server) authSessionClaim(session *logicalSession) store.AuthSessionClaim {
+	return store.AuthSessionClaim{
+		AuthSessionID: session.authSessionID, LogicalSessionID: session.id,
+		NodeID: s.nodeID, Generation: s.generation,
+	}
 }
 
 func (s *Server) checkIdentifyRateLimits(ctx context.Context, userID, authSessionID int64) error {
@@ -704,7 +727,7 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	s.mu.Unlock()
 	s.releaseVisibilitySnapshots(session.userID)
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
-	_ = s.svcCtx.Store.DeleteAuthSession(ctx, session.authSessionID, session.id)
+	_ = s.svcCtx.Store.DeleteAuthSession(ctx, s.authSessionClaim(session))
 	s.removePresence(ctx, session, guildIDs)
 	s.refreshAllRoutes(ctx)
 }
@@ -855,11 +878,11 @@ func (s *Server) refreshSessionLeases(ctx context.Context) {
 }
 
 func (s *Server) refreshSessionLeaseBatch(ctx context.Context, sessions []*logicalSession) {
-	leases := make([]store.AuthSessionLease, 0, len(sessions))
+	claims := make([]store.AuthSessionClaim, 0, len(sessions))
 	for _, session := range sessions {
-		leases = append(leases, store.AuthSessionLease{AuthSessionID: session.authSessionID, LogicalSessionID: session.id})
+		claims = append(claims, s.authSessionClaim(session))
 	}
-	lostIDs, err := s.svcCtx.Store.RefreshAuthSessions(ctx, leases, s.svcCtx.Cfg.Node.NodeTTL())
+	lostIDs, err := s.svcCtx.Store.RefreshAuthSessions(ctx, claims, s.svcCtx.Cfg.Node.NodeTTL())
 	if err != nil {
 		if ctx.Err() == nil {
 			logx.WithContext(ctx).Errorw("refresh auth session claims", logx.Field("count", len(sessions)), logx.Field("error", err))

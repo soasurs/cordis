@@ -140,7 +140,10 @@ in a separate loop.
 After token validation, `IDENTIFY` is limited by user ID and authenticator
 session ID. A Redis claim permits only one live logical session per authenticator
 session; the claim is renewed while the logical session is retained, including
-the detached resume window.
+the detached resume window. Claims contain the owning Session node ID and
+generation. A new IDENTIFY may replace an existing claim with Redis CAS only
+after etcd confirms that exact generation no longer exists; draining nodes
+remain protected from takeover.
 
 Dispatcher resolves Guild messages through aggregate Guild routes and includes
 the Guild and channel IDs in a dedicated Guild-message dispatch RPC. Session checks the server-owned

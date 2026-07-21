@@ -159,7 +159,8 @@ func TestDmMessagesFlowBetweenParticipants(t *testing.T) {
 	created, err := server.CreateMessage(context.Background(), createReq)
 	require.NoError(t, err)
 	messageID := created.GetMessage().GetId()
-	requireDmMessageRecords(t, publisher.records, EventTypeMessageCreated)
+	requireDmMessageRecords(t, publisher.records[:2], EventTypeMessageCreated)
+	requireReadStateRecord(t, publisher.records[2], "1001")
 
 	// The other participant reads; outsiders see nothing.
 	getReq := new(messagev1.GetMessageRequest)
@@ -183,14 +184,22 @@ func TestDmMessagesFlowBetweenParticipants(t *testing.T) {
 	updateReq.SetActorUserId(1001)
 	_, err = server.UpdateMessage(context.Background(), updateReq)
 	require.NoError(t, err)
-	requireDmMessageRecords(t, publisher.records[2:], EventTypeMessageUpdated)
+	requireDmMessageRecords(t, publisher.records[3:], EventTypeMessageUpdated)
 
 	deleteReq := new(messagev1.DeleteMessageRequest)
 	deleteReq.SetMessageId(messageID)
 	deleteReq.SetActorUserId(1001)
 	_, err = server.DeleteMessage(context.Background(), deleteReq)
 	require.NoError(t, err)
-	requireDmDeletedRecords(t, publisher.records[4:])
+	requireDmDeletedRecords(t, publisher.records[5:])
+}
+
+func requireReadStateRecord(t *testing.T, record publishedRecord, userID string) {
+	t.Helper()
+	require.Equal(t, userID, string(record.key))
+	var envelope eventEnvelope[messageReadUpdatedPayload]
+	require.NoError(t, json.Unmarshal(record.payload, &envelope))
+	require.Equal(t, EventTypeMessageReadUpdated, envelope.Type)
 }
 
 func requireDmMessageRecords(t *testing.T, records []publishedRecord, eventType string) {

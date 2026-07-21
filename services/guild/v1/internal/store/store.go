@@ -98,7 +98,6 @@ type Store interface {
 	CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error)
 	CreateDefaultRole(ctx context.Context, guildID, createdAt int64) error
 	GetGuildForMember(ctx context.Context, guildID, userID int64) (*model.Guild, error)
-	ListGuildsForMemberByIDs(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Guild, error)
 	ListUserGuilds(ctx context.Context, params ListUserGuildsParams) ([]*model.Guild, error)
 	UpdateGuild(ctx context.Context, params UpdateGuildParams) (*model.Guild, error)
 	DeleteGuild(ctx context.Context, guildID, deletedAt int64) (*model.Guild, error)
@@ -125,6 +124,7 @@ type Store interface {
 	CreateGuildRole(ctx context.Context, roleID, guildID int64, name string, permissions uint64, position int32, createdAt int64) (*model.Role, error)
 	GetGuildRole(ctx context.Context, guildID, roleID int64) (*model.Role, error)
 	ListGuildRoles(ctx context.Context, guildID int64) ([]*model.Role, error)
+	ListGuildRolesByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Role, error)
 	UpdateGuildRole(ctx context.Context, params UpdateGuildRoleParams) (*model.Role, error)
 	UpdateGuildRolePosition(ctx context.Context, guildID, roleID int64, position int32, updatedAt int64) (*model.Role, error)
 	UpdateGuildRolePositions(ctx context.Context, guildID int64, roleIDs []int64, positions []int32, updatedAt int64) ([]*model.Role, error)
@@ -138,7 +138,6 @@ type Store interface {
 	ListGuildMemberRolesByGuilds(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Role, error)
 	CreateGuildChannel(ctx context.Context, channelID, guildID int64, name string, channelType, position int32, topic string, parentID, createdAt int64) (*model.Channel, error)
 	GetGuildChannel(ctx context.Context, channelID int64) (*model.Channel, error)
-	ListGuildChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.Channel, error)
 	ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error)
 	ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error)
 	UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error)

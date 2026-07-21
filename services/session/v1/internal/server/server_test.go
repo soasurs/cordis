@@ -14,6 +14,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
@@ -99,8 +100,160 @@ func TestGatewayPayloadEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	require.Equal(t, `"1001"`, string(ready["user_id"]))
 	require.Equal(t, `"2002"`, string(ready["auth_session_id"]))
 	require.Equal(t, `3003`, string(ready["access_token_expires_at"]))
-	require.JSONEq(t, `[]`, string(ready["guild_ids"]))
+	require.JSONEq(t, `[]`, string(ready["guilds"]))
+	require.JSONEq(t, `[]`, string(ready["dm_channels"]))
+	require.JSONEq(t, `[]`, string(ready["read_states"]))
 
+}
+
+func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
+	server := newTestServer()
+	readyGuild := readyVisibility(9001, 7, 7001)
+	readyGuild.GetGuild().SetOwnerId(1001)
+	role := new(guildv1.GuildRole)
+	role.SetId(9001)
+	role.SetGuildId(9001)
+	role.SetPermissions(42)
+	readyGuild.SetRoles([]*guildv1.GuildRole{role})
+	readyGuild.SetMemberRoleIds([]int64{9002})
+	overwrite := new(guildv1.GuildChannelPermissionOverwrite)
+	overwrite.SetChannelId(7001)
+	overwrite.SetGuildId(9001)
+	overwrite.SetTargetType(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
+	overwrite.SetTargetId(9001)
+	overwrite.SetAllow(1024)
+	readyGuild.SetPermissionOverwrites([]*guildv1.GuildChannelPermissionOverwrite{overwrite})
+	server.svcCtx.GuildClient = &visibilityGuild{response: readyVisibilityResponse(readyGuild)}
+
+	dm := new(messagev1.DmChannel)
+	dm.SetId(8001)
+	dm.SetUserLo(1001)
+	dm.SetUserHi(1002)
+	state := new(messagev1.ChannelReadState)
+	state.SetChannelId(7001)
+	state.SetLastMessageId(7100)
+	state.SetLastReadMessageId(7099)
+	state.SetMentionCount(2)
+	messageReady := new(messagev1.GetUserReadyStateResponse)
+	messageReady.SetDmChannels([]*messagev1.DmChannel{dm})
+	messageReady.SetReadStates([]*messagev1.ChannelReadState{state})
+	messageClient := &fakeMessage{response: messageReady}
+	server.svcCtx.MessageClient = messageClient
+
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-ready", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+	require.Equal(t, []int64{7001}, messageClient.request.GetGuildChannelIds())
+
+	var payload readyPayload
+	require.NoError(t, json.Unmarshal([]byte(session.replay[0].frame.GetJsonPayload()), &payload))
+	require.Equal(t, "9001", payload.Guilds[0].ID)
+	require.Equal(t, "42", payload.Guilds[0].Roles[0].Permissions)
+	require.Equal(t, []string{"9002"}, payload.Guilds[0].MemberRoleIDs)
+	require.Equal(t, "7001", payload.Guilds[0].Channels[0].ID)
+	require.Equal(t, "7001", payload.Guilds[0].PermissionOverwrites[0].ChannelID)
+	require.Equal(t, "1024", payload.Guilds[0].PermissionOverwrites[0].Allow)
+	require.Equal(t, "1002", payload.DmChannels[0].RecipientID)
+	require.Equal(t, "7100", payload.ReadStates[0].LastMessageID)
+	require.Equal(t, "7099", payload.ReadStates[0].LastReadMessageID)
+	require.Equal(t, int32(2), payload.ReadStates[0].MentionCount)
+}
+
+func TestIdentifyQueuesEventsAfterReady(t *testing.T) {
+	server := newTestServer()
+	started := make(chan struct{})
+	release := make(chan struct{})
+	server.svcCtx.MessageClient = &fakeMessage{started: started, release: release}
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+
+	type result struct {
+		session *logicalSession
+		err     error
+	}
+	resultCh := make(chan result, 1)
+	go func() {
+		session, err := server.identify(t.Context(), "conn-buffer", "gateway-a", "gen-a", identify)
+		resultCh <- result{session: session, err: err}
+	}()
+	<-started
+
+	event := new(sessionv1.EventEnvelope)
+	event.SetType(realtime.EventMessageCreated)
+	event.SetJsonPayload(`{"channel_id":"7001"}`)
+	req := new(sessionv1.DispatchUserEventRequest)
+	req.SetUserId(1001)
+	req.SetEvent(event)
+	resp, err := server.DispatchUserEvent(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), resp.GetDelivered())
+	close(release)
+
+	identified := <-resultCh
+	require.NoError(t, identified.err)
+	require.Len(t, identified.session.replay, 2)
+	require.Equal(t, realtime.GatewayEventReady, identified.session.replay[0].frame.GetType())
+	require.Equal(t, realtime.EventMessageCreated, identified.session.replay[1].frame.GetType())
+}
+
+func TestIdentifyFailsWhenPendingDispatchLimitIsExceeded(t *testing.T) {
+	server := newTestServer()
+	server.svcCtx.Cfg.Node.MaxPendingDispatches = 1
+	started := make(chan struct{})
+	release := make(chan struct{})
+	server.svcCtx.MessageClient = &fakeMessage{started: started, release: release}
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+
+	type result struct {
+		session *logicalSession
+		err     error
+	}
+	resultCh := make(chan result, 1)
+	go func() {
+		session, err := server.identify(t.Context(), "conn-overflow", "gateway-a", "gen-a", identify)
+		resultCh <- result{session: session, err: err}
+	}()
+	<-started
+
+	event := new(sessionv1.EventEnvelope)
+	event.SetType(realtime.EventMessageCreated)
+	event.SetJsonPayload(`{"channel_id":"7001"}`)
+	req := new(sessionv1.DispatchUserEventRequest)
+	req.SetUserId(1001)
+	req.SetEvent(event)
+	first, err := server.DispatchUserEvent(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), first.GetDelivered())
+	second, err := server.DispatchUserEvent(t.Context(), req)
+	require.NoError(t, err)
+	require.Zero(t, second.GetDelivered())
+
+	initializing := server.userSessions(1001)
+	require.Len(t, initializing, 1)
+	initializing[0].mu.Lock()
+	require.True(t, initializing[0].pendingDispatchOverflow)
+	require.Empty(t, initializing[0].pendingDispatches)
+	initializing[0].mu.Unlock()
+
+	close(release)
+	identified := <-resultCh
+	require.Nil(t, identified.session)
+	require.Equal(t, codes.ResourceExhausted, status.Code(identified.err))
+	require.Empty(t, server.userSessions(1001))
+}
+
+func TestPendingDispatchByteLimitMarksInitializationOverflow(t *testing.T) {
+	server := newTestServer()
+	server.svcCtx.Cfg.Node.MaxPendingDispatches = 10
+	server.svcCtx.Cfg.Node.MaxPendingDispatchBytes = 3
+	session := testLogicalSession(1001, 9001)
+	session.initializing = true
+
+	require.False(t, server.dispatchSession(session, realtime.EventMessageCreated, []byte("four")))
+	require.True(t, session.pendingDispatchOverflow)
+	require.Empty(t, session.pendingDispatches)
 }
 
 func TestPresenceDeduplicatesNoOpUpdates(t *testing.T) {
@@ -327,6 +480,7 @@ func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 		AuthenticatorClient: fakeAuthenticator{},
 		PresenceClient:      fakePresence{},
 		GuildClient:         fakeGuild{},
+		MessageClient:       new(fakeMessage),
 	}))
 }
 
@@ -423,12 +577,12 @@ type fakeGuild struct {
 	guildv1.GuildServiceClient
 }
 
-func (fakeGuild) ListUserGuildChannelVisibilities(
+func (fakeGuild) GetUserReadyState(
 	context.Context,
-	*guildv1.ListUserGuildChannelVisibilitiesRequest,
+	*guildv1.GetUserReadyStateRequest,
 	...grpc.CallOption,
-) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
-	return new(guildv1.ListUserGuildChannelVisibilitiesResponse), nil
+) (*guildv1.GetUserReadyStateResponse, error) {
+	return new(guildv1.GetUserReadyStateResponse), nil
 }
 
 func (fakeGuild) AuthorizeGuildChannel(
@@ -444,6 +598,34 @@ func (fakeGuild) AuthorizeGuildChannel(
 
 type fakePresence struct {
 	presencev1.PresenceServiceClient
+}
+
+type fakeMessage struct {
+	messagev1.MessageServiceClient
+	request  *messagev1.GetUserReadyStateRequest
+	response *messagev1.GetUserReadyStateResponse
+	started  chan struct{}
+	release  chan struct{}
+}
+
+func (m *fakeMessage) GetUserReadyState(
+	ctx context.Context,
+	req *messagev1.GetUserReadyStateRequest,
+	_ ...grpc.CallOption,
+) (*messagev1.GetUserReadyStateResponse, error) {
+	m.request = req
+	if m.started != nil {
+		close(m.started)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-m.release:
+		}
+	}
+	if m.response == nil {
+		return new(messagev1.GetUserReadyStateResponse), nil
+	}
+	return m.response, nil
 }
 
 type recordingPresence struct {

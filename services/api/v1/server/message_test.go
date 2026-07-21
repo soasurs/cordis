@@ -44,10 +44,9 @@ type fakeMessageClient struct {
 	listDmChannelsResponse  *messagev1.ListDmChannelsResponse
 	listDmChannelsError     error
 
-	ackMessageRequest  *messagev1.AckMessageRequest
-	ackMessageResponse *messagev1.AckMessageResponse
-	ackMessageError    error
-
+	ackMessageRequest     *messagev1.AckMessageRequest
+	ackMessageResponse    *messagev1.AckMessageResponse
+	ackMessageError       error
 	getReadStatesRequest  *messagev1.GetReadStatesRequest
 	getReadStatesResponse *messagev1.GetReadStatesResponse
 	getReadStatesError    error
@@ -468,7 +467,12 @@ func TestListDmChannelsMapsPerspective(t *testing.T) {
 
 func TestAckMessageUsesAuthenticatedUser(t *testing.T) {
 	ackRes := new(messagev1.AckMessageResponse)
-	ackRes.SetOk(true)
+	readState := new(messagev1.ChannelReadState)
+	readState.SetChannelId(2001)
+	readState.SetLastMessageId(3002)
+	readState.SetLastReadMessageId(3001)
+	readState.SetMentionCount(2)
+	ackRes.SetReadState(readState)
 	messageClient := &fakeMessageClient{ackMessageResponse: ackRes}
 	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{
 		verifyResponse: verifyAccessTokenResponse(1001),
@@ -480,21 +484,26 @@ func TestAckMessageUsesAuthenticatedUser(t *testing.T) {
 		MessageId: new(int64(3001)),
 	})
 	require.NoError(t, err)
-	require.True(t, resp.GetOk())
+	require.Equal(t, int64(2001), resp.GetReadState().GetChannelId())
+	require.Equal(t, int64(3002), resp.GetReadState().GetLastMessageId())
+	require.Equal(t, int64(3001), resp.GetReadState().GetLastReadMessageId())
+	require.Equal(t, int32(2), resp.GetReadState().GetMentionCount())
 	require.Equal(t, int64(1001), messageClient.ackMessageRequest.GetUserId())
 	require.Equal(t, int64(2001), messageClient.ackMessageRequest.GetChannelId())
 	require.Equal(t, int64(3001), messageClient.ackMessageRequest.GetMessageId())
 }
 
-func TestGetReadStatesMapsResponse(t *testing.T) {
-	st := new(messagev1.ChannelReadState)
-	st.SetChannelId(2001)
-	st.SetLastReadMessageId(3001)
-	st.SetMentionCount(3)
-	st.SetMissingMessageCount(10)
+func TestGetReadStatesUsesAuthenticatedScopedRequest(t *testing.T) {
+	dm := new(messagev1.DmChannel)
+	dm.SetId(500)
+	dm.SetUserLo(1001)
+	dm.SetUserHi(2002)
+	state := new(messagev1.ChannelReadState)
+	state.SetChannelId(500)
+	state.SetLastMessageId(600)
 	svcResp := new(messagev1.GetReadStatesResponse)
-	svcResp.SetStates([]*messagev1.ChannelReadState{st})
-
+	svcResp.SetDmChannels([]*messagev1.DmChannel{dm})
+	svcResp.SetReadStates([]*messagev1.ChannelReadState{state})
 	messageClient := &fakeMessageClient{getReadStatesResponse: svcResp}
 	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{
 		verifyResponse: verifyAccessTokenResponse(1001),
@@ -502,24 +511,11 @@ func TestGetReadStatesMapsResponse(t *testing.T) {
 	defer closeServer()
 
 	resp, err := client.GetReadStates(context.Background(), &apiv1.GetReadStatesRequest{
-		ChannelIds: []int64{2001, 2002},
+		Scope: apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS.Enum(),
 	})
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), messageClient.getReadStatesRequest.GetUserId())
-	require.Equal(t, []int64{2001, 2002}, messageClient.getReadStatesRequest.GetChannelIds())
-	require.Len(t, resp.GetStates(), 1)
-	require.Equal(t, int64(2001), resp.GetStates()[0].GetChannelId())
-	require.Equal(t, int64(3001), resp.GetStates()[0].GetLastReadMessageId())
-	require.Equal(t, int32(3), resp.GetStates()[0].GetMentionCount())
-	require.Equal(t, int32(10), resp.GetStates()[0].GetMissingMessageCount())
-}
-
-func TestGetReadStatesRequiresAccessToken(t *testing.T) {
-	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{}, &fakeMessageClient{}, "")
-	defer closeServer()
-
-	_, err := client.GetReadStates(context.Background(), &apiv1.GetReadStatesRequest{
-		ChannelIds: []int64{2001},
-	})
-	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	require.Equal(t, messagev1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS, messageClient.getReadStatesRequest.GetScope())
+	require.Equal(t, int64(2002), resp.GetDmChannels()[0].GetRecipientId())
+	require.Equal(t, int64(600), resp.GetReadStates()[0].GetLastMessageId())
 }

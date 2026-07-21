@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strconv"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -45,8 +44,10 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), resp.GetMessage().GetRevision())
 	require.Equal(t, []int64{30, 31}, fakeStore.mentions[resp.GetMessage().GetId()])
+	require.Equal(t, 1, fakeStore.listReadyCalls, "create must reload persisted read state instead of constructing it")
 
-	record := publisher.onlyRecord(t)
+	require.Len(t, publisher.records, 2)
+	record := publisher.records[0]
 	require.Equal(t, "9001", string(record.key))
 	var envelope eventEnvelope[messagePayload]
 	require.NoError(t, json.Unmarshal(record.payload, &envelope))
@@ -54,6 +55,10 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, "9001", envelope.Data.GuildID)
 	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), envelope.Data.MessageID)
 	require.Equal(t, int64(1), envelope.Data.Revision)
+	var readEnvelope eventEnvelope[messageReadUpdatedPayload]
+	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &readEnvelope))
+	require.Equal(t, EventTypeMessageReadUpdated, readEnvelope.Type)
+	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), readEnvelope.Data.LastReadMessageID)
 }
 
 func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
@@ -96,7 +101,7 @@ func TestCreateMessagePublishFailureIsBestEffort(t *testing.T) {
 	resp, err := server.CreateMessage(t.Context(), req)
 	require.NoError(t, err)
 	require.NotNil(t, resp.GetMessage())
-	require.Len(t, publisher.records, 1)
+	require.Len(t, publisher.records, 2)
 }
 
 func TestCreateMessageTransactionFailureDoesNotPublish(t *testing.T) {
@@ -169,6 +174,7 @@ func TestUpdateMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 		ID: 100, ChannelID: 10, AuthorID: 20, Content: "old",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
 	}
+	fakeStore.mentions[100] = []int64{40}
 	publisher := new(fakePublisher)
 	server := newTestMessageServer(t, fakeStore, publisher)
 
@@ -190,6 +196,7 @@ func TestUpdateMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 	require.Equal(t, EventTypeMessageUpdated, envelope.Type)
 	require.Equal(t, int64(2), envelope.Data.Revision)
 	require.Equal(t, []string{"30"}, envelope.Data.MentionUserIDs)
+	require.Equal(t, []string{"40"}, envelope.Data.PreviousMentionUserIDs)
 }
 
 func TestUpdateMessagePermissionDenied(t *testing.T) {
@@ -243,6 +250,11 @@ func TestDeleteMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 		ID: 100, ChannelID: 10, AuthorID: 20, Content: "hello",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 2,
 	}
+	fakeStore.messages[99] = &model.Message{
+		ID: 99, ChannelID: 10, AuthorID: 20, Content: "previous",
+		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
+	}
+	fakeStore.mentions[100] = []int64{30}
 	publisher := new(fakePublisher)
 	server := newTestMessageServer(t, fakeStore, publisher)
 
@@ -260,6 +272,8 @@ func TestDeleteMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 	require.Equal(t, EventTypeMessageDeleted, envelope.Type)
 	require.Equal(t, int64(3), envelope.Data.Revision)
 	require.NotZero(t, envelope.Data.DeletedAt)
+	require.Equal(t, "99", envelope.Data.LastMessageID)
+	require.Equal(t, []string{"30"}, envelope.Data.MentionUserIDs)
 }
 
 func TestGetAndListMessages(t *testing.T) {
@@ -376,78 +390,25 @@ func newTestMessageServerWithGuild(
 
 type fakeGuildClient struct {
 	guildv1.GuildServiceClient
-	mu                     sync.Mutex
-	allowManageMessages    bool
-	denyAll                bool
-	channelType            guildv1.GuildChannelType
-	authorizeRequests      []*guildv1.AuthorizeGuildChannelRequest
-	authorizeBatchRequests []*guildv1.AuthorizeGuildChannelsRequest
+	mu                    sync.Mutex
+	allowManageMessages   bool
+	denyAll               bool
+	channelType           guildv1.GuildChannelType
+	authorizeRequests     []*guildv1.AuthorizeGuildChannelRequest
+	visibleTextChannelIDs []int64
 }
 
-type boundedGuildClient struct {
-	guildv1.GuildServiceClient
-	started     chan struct{}
-	release     chan struct{}
-	inFlight    atomic.Int32
-	maxInFlight atomic.Int32
-}
-
-func (c *boundedGuildClient) AuthorizeGuildChannel(
-	ctx context.Context,
-	_ *guildv1.AuthorizeGuildChannelRequest,
+func (f *fakeGuildClient) GetUserGuildChannelVisibility(
+	_ context.Context,
+	req *guildv1.GetUserGuildChannelVisibilityRequest,
 	_ ...grpc.CallOption,
-) (*guildv1.AuthorizeGuildChannelResponse, error) {
-	inFlight := c.inFlight.Add(1)
-	defer c.inFlight.Add(-1)
-	for {
-		maximum := c.maxInFlight.Load()
-		if inFlight <= maximum || c.maxInFlight.CompareAndSwap(maximum, inFlight) {
-			break
-		}
-	}
-	c.started <- struct{}{}
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-c.release:
-	}
-	resp := new(guildv1.AuthorizeGuildChannelResponse)
-	resp.SetAllowed(true)
-	resp.SetGuildId(9001)
-	resp.SetChannelType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
-	return resp, nil
-}
-
-func (c *boundedGuildClient) AuthorizeGuildChannels(
-	ctx context.Context,
-	req *guildv1.AuthorizeGuildChannelsRequest,
-	_ ...grpc.CallOption,
-) (*guildv1.AuthorizeGuildChannelsResponse, error) {
-	inFlight := c.inFlight.Add(1)
-	defer c.inFlight.Add(-1)
-	for {
-		maximum := c.maxInFlight.Load()
-		if inFlight <= maximum || c.maxInFlight.CompareAndSwap(maximum, inFlight) {
-			break
-		}
-	}
-	c.started <- struct{}{}
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-c.release:
-	}
-	resp := new(guildv1.AuthorizeGuildChannelsResponse)
-	values := make([]*guildv1.GuildChannelAuthorization, 0, len(req.GetChannelIds()))
-	for _, channelID := range req.GetChannelIds() {
-		value := new(guildv1.GuildChannelAuthorization)
-		value.SetChannelId(channelID)
-		value.SetAllowed(true)
-		value.SetGuildId(9001)
-		value.SetChannelType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
-		values = append(values, value)
-	}
-	resp.SetAuthorizations(values)
+) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
+	visibility := new(guildv1.GuildChannelVisibility)
+	visibility.SetGuildId(req.GetGuildId())
+	visibility.SetAccessRevision(1)
+	visibility.SetVisibleTextChannelIds(f.visibleTextChannelIDs)
+	resp := new(guildv1.GetUserGuildChannelVisibilityResponse)
+	resp.SetVisibility(visibility)
 	return resp, nil
 }
 
@@ -464,29 +425,6 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	resp.SetGuildId(9001)
 	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
 	resp.SetChannelType(f.channelType)
-	return resp, nil
-}
-
-func (f *fakeGuildClient) AuthorizeGuildChannels(
-	_ context.Context,
-	req *guildv1.AuthorizeGuildChannelsRequest,
-	_ ...grpc.CallOption,
-) (*guildv1.AuthorizeGuildChannelsResponse, error) {
-	f.mu.Lock()
-	f.authorizeBatchRequests = append(f.authorizeBatchRequests, req)
-	f.mu.Unlock()
-	values := make([]*guildv1.GuildChannelAuthorization, 0, len(req.GetChannelIds()))
-	for _, channelID := range req.GetChannelIds() {
-		value := new(guildv1.GuildChannelAuthorization)
-		value.SetChannelId(channelID)
-		value.SetAllowed(!f.denyAll)
-		value.SetGuildId(9001)
-		value.SetPermissions(permissionViewChannel | permissionSendMessages)
-		value.SetChannelType(f.channelType)
-		values = append(values, value)
-	}
-	resp := new(guildv1.AuthorizeGuildChannelsResponse)
-	resp.SetAuthorizations(values)
 	return resp, nil
 }
 
@@ -511,6 +449,16 @@ type fakePublisher struct {
 	err     error
 }
 
+type fakeReadStatesLimiter struct {
+	weights  []int64
+	releases int
+}
+
+func (l *fakeReadStatesLimiter) Acquire(_ context.Context, weight int64) (func(), error) {
+	l.weights = append(l.weights, weight)
+	return func() { l.releases++ }, nil
+}
+
 func (p *fakePublisher) Publish(_ context.Context, key, payload []byte) error {
 	p.records = append(p.records, publishedRecord{
 		key:     append([]byte(nil), key...),
@@ -526,11 +474,13 @@ func (p *fakePublisher) onlyRecord(t *testing.T) publishedRecord {
 }
 
 type fakeStore struct {
-	messages    map[int64]*model.Message
-	mentions    map[int64][]int64
-	dmChannels  map[int64]*model.DmChannel
-	readStates  map[int64]map[int64]int64 // userID -> channelID -> lastReadID
-	transactErr error
+	messages        map[int64]*model.Message
+	mentions        map[int64][]int64
+	dmChannels      map[int64]*model.DmChannel
+	readStates      map[int64]map[int64]int64 // userID -> channelID -> lastReadID
+	listReadyCalls  int
+	readyBatchSizes []int
+	transactErr     error
 }
 
 func newFakeStore() *fakeStore {
@@ -697,32 +647,37 @@ func (s *fakeStore) ListDmChannels(_ context.Context, params store.ListDmChannel
 	return channels, nil
 }
 
-func (s *fakeStore) ListDmChannelsByIDs(_ context.Context, channelIDs []int64) ([]*model.DmChannel, error) {
-	channels := make([]*model.DmChannel, 0)
-	for _, channelID := range channelIDs {
-		if channel := s.dmChannels[channelID]; channel != nil {
-			value := *channel
-			channels = append(channels, &value)
+func (s *fakeStore) ListAllDmChannels(_ context.Context, userID int64) ([]*model.DmChannel, error) {
+	var channels []*model.DmChannel
+	for _, channel := range s.dmChannels {
+		if channel.UserLo != userID && channel.UserHi != userID {
+			continue
 		}
+		value := *channel
+		channels = append(channels, &value)
 	}
+	sort.Slice(channels, func(i, j int) bool { return channels[i].ID > channels[j].ID })
 	return channels, nil
 }
 
-func (s *fakeStore) AckMessage(_ context.Context, userID, channelID, messageID int64) error {
+func (s *fakeStore) AckMessage(_ context.Context, userID, channelID, messageID int64) (bool, error) {
 	message, ok := s.messages[messageID]
 	if !ok || message.ChannelID != channelID {
-		return sql.ErrNoRows
+		return false, sql.ErrNoRows
 	}
 	if s.readStates[userID] == nil {
 		s.readStates[userID] = make(map[int64]int64)
 	}
 	if current, ok := s.readStates[userID][channelID]; !ok || messageID > current {
 		s.readStates[userID][channelID] = messageID
+		return true, nil
 	}
-	return nil
+	return false, nil
 }
 
-func (s *fakeStore) ListChannelReadStates(_ context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
+func (s *fakeStore) ListReadyChannelReadStates(_ context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
+	s.listReadyCalls++
+	s.readyBatchSizes = append(s.readyBatchSizes, len(channelIDs))
 	var states []*model.ChannelReadState
 	byChannel := s.readStates[userID]
 	for _, channelID := range channelIDs {
@@ -732,63 +687,47 @@ func (s *fakeStore) ListChannelReadStates(_ context.Context, userID int64, chann
 				lastReadID = v
 			}
 		}
-		states = append(states, &model.ChannelReadState{
+		state := &model.ChannelReadState{
 			UserID:            userID,
 			ChannelID:         channelID,
 			LastReadMessageID: lastReadID,
-		})
-	}
-	return states, nil
-}
-
-func (s *fakeStore) ListChannelReadStatesWithCounts(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
-	states, err := s.ListChannelReadStates(ctx, userID, channelIDs)
-	if err != nil {
-		return nil, err
-	}
-	for _, state := range states {
-		state.MessageCount, err = s.CountMissingMessages(ctx, state.ChannelID, state.LastReadMessageID, userID)
-		if err != nil {
-			return nil, err
 		}
-		state.MentionCount, err = s.CountUnreadMentions(ctx, userID, state.ChannelID, state.LastReadMessageID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return states, nil
-}
-
-func (s *fakeStore) CountMissingMessages(_ context.Context, channelID, lastReadMessageID, userID int64) (int32, error) {
-	var count int32
-	for _, m := range s.messages {
-		if m.ChannelID == channelID && m.ID > lastReadMessageID && m.DeletedAt == 0 && m.AuthorID != userID {
-			count++
-		}
-	}
-	return count, nil
-}
-
-func (s *fakeStore) CountUnreadMentions(_ context.Context, userID, channelID, lastReadMessageID int64) (int32, error) {
-	var count int32
-	for _, m := range s.messages {
-		if m.ChannelID == channelID && m.ID > lastReadMessageID && m.DeletedAt == 0 {
-			for _, mentionedID := range s.mentions[m.ID] {
+		for _, message := range s.messages {
+			if message.ChannelID != channelID || message.DeletedAt != 0 {
+				continue
+			}
+			state.LastMessageID = max(state.LastMessageID, message.ID)
+			if message.ID <= lastReadID {
+				continue
+			}
+			for _, mentionedID := range s.mentions[message.ID] {
 				if mentionedID == userID {
-					count++
+					state.MentionCount++
 					break
 				}
 			}
 		}
+		states = append(states, state)
 	}
-	return count, nil
+	return states, nil
+}
+
+func (s *fakeStore) GetLastMessageID(_ context.Context, channelID int64) (int64, error) {
+	var lastMessageID int64
+	for _, message := range s.messages {
+		if message.ChannelID == channelID && message.DeletedAt == 0 {
+			lastMessageID = max(lastMessageID, message.ID)
+		}
+	}
+	return lastMessageID, nil
 }
 
 func TestAckMessageSuccess(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.messages[50] = &model.Message{ID: 50, ChannelID: 10, AuthorID: 2}
 	fakeGuild := &fakeGuildClient{}
-	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), fakeGuild)
+	publisher := new(fakePublisher)
+	server := newTestMessageServerWithGuild(t, fakeStore, publisher, fakeGuild)
 
 	req := new(messagev1.AckMessageRequest)
 	req.SetUserId(1)
@@ -797,9 +736,22 @@ func TestAckMessageSuccess(t *testing.T) {
 
 	resp, err := server.AckMessage(t.Context(), req)
 	require.NoError(t, err)
-	require.True(t, resp.GetOk())
+	require.Equal(t, int64(10), resp.GetReadState().GetChannelId())
+	require.Equal(t, int64(50), resp.GetReadState().GetLastMessageId())
+	require.Equal(t, int64(50), resp.GetReadState().GetLastReadMessageId())
 
 	require.Equal(t, int64(50), fakeStore.readStates[1][10])
+	record := publisher.onlyRecord(t)
+	require.Equal(t, "1", string(record.key))
+	var envelope eventEnvelope[messageReadUpdatedPayload]
+	require.NoError(t, json.Unmarshal(record.payload, &envelope))
+	require.Equal(t, EventTypeMessageReadUpdated, envelope.Type)
+	require.Equal(t, "50", envelope.Data.LastReadMessageID)
+
+	resp, err = server.AckMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(50), resp.GetReadState().GetLastReadMessageId())
+	require.Len(t, publisher.records, 1, "a no-op ack must not publish another event")
 }
 
 func TestAckMessageHidesMissingOrMismatchedMessage(t *testing.T) {
@@ -837,117 +789,88 @@ func TestAckMessagePermissionDenied(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
-func TestGetReadStatesAuthorizesAndDeduplicatesChannels(t *testing.T) {
+func TestGetUserReadyStateIncludesGuildChannelsAndAllDMs(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.readStates[1] = map[int64]int64{10: 50}
 	fakeStore.messages[51] = &model.Message{ID: 51, ChannelID: 10, AuthorID: 2}
 	fakeStore.messages[52] = &model.Message{ID: 52, ChannelID: 20, AuthorID: 2}
 	fakeStore.mentions[52] = []int64{1}
-	fakeGuild := new(fakeGuildClient)
-	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), fakeGuild)
-	limiter := new(recordingReadStatesLimiter)
-	server.(*messageServer).svcCtx.ReadStatesLimiter = limiter
+	fakeStore.dmChannels[20] = &model.DmChannel{ID: 20, UserLo: 1, UserHi: 2}
+	fakeStore.dmChannels[30] = &model.DmChannel{ID: 30, UserLo: 2, UserHi: 3}
+	server := newTestMessageServer(t, fakeStore, new(fakePublisher))
 
-	req := new(messagev1.GetReadStatesRequest)
+	req := new(messagev1.GetUserReadyStateRequest)
 	req.SetUserId(1)
-	req.SetChannelIds([]int64{10, 10, 20})
-	resp, err := server.GetReadStates(t.Context(), req)
+	req.SetGuildChannelIds([]int64{10, 10})
+	resp, err := server.GetUserReadyState(t.Context(), req)
 	require.NoError(t, err)
-	require.Len(t, resp.GetStates(), 2)
-	require.Equal(t, int64(10), resp.GetStates()[0].GetChannelId())
-	require.Equal(t, int32(1), resp.GetStates()[0].GetMissingMessageCount())
-	require.Equal(t, int64(20), resp.GetStates()[1].GetChannelId())
-	require.Equal(t, int32(1), resp.GetStates()[1].GetMissingMessageCount())
-	require.Equal(t, int32(1), resp.GetStates()[1].GetMentionCount())
-	require.Len(t, fakeGuild.authorizeBatchRequests, 1)
-	require.Equal(t, permissionViewChannel, fakeGuild.authorizeBatchRequests[0].GetPermission())
-	require.Equal(t, []int64{10, 20}, fakeGuild.authorizeBatchRequests[0].GetChannelIds())
-	require.Equal(t, []int64{2}, limiter.weights)
-	require.Equal(t, 1, limiter.releases)
+	require.Len(t, resp.GetDmChannels(), 1)
+	require.Equal(t, int64(20), resp.GetDmChannels()[0].GetId())
+	require.Len(t, resp.GetReadStates(), 2)
+	require.Equal(t, int64(51), resp.GetReadStates()[0].GetLastMessageId())
+	require.Equal(t, int64(50), resp.GetReadStates()[0].GetLastReadMessageId())
+	require.Equal(t, int64(52), resp.GetReadStates()[1].GetLastMessageId())
+	require.Equal(t, int32(1), resp.GetReadStates()[1].GetMentionCount())
 }
 
-func TestGetReadStatesRejectsUnauthorizedChannel(t *testing.T) {
-	fakeGuild := &fakeGuildClient{denyAll: true}
-	server := newTestMessageServerWithGuild(t, newFakeStore(), new(fakePublisher), fakeGuild)
-
-	req := new(messagev1.GetReadStatesRequest)
-	req.SetUserId(1)
-	req.SetChannelIds([]int64{10})
-	_, err := server.GetReadStates(t.Context(), req)
-	require.Equal(t, codes.PermissionDenied, status.Code(err))
-}
-
-func TestGetReadStatesBatchesAuthorization(t *testing.T) {
-	client := &boundedGuildClient{
-		started: make(chan struct{}, maxReadStateChannels),
-		release: make(chan struct{}),
-	}
-	server := newTestMessageServerWithGuild(t, newFakeStore(), new(fakePublisher), client)
-	req := new(messagev1.GetReadStatesRequest)
-	req.SetUserId(1)
-	channelIDs := make([]int64, maxReadStateChannels)
-	for i := range channelIDs {
-		channelIDs[i] = int64(i + 1)
-	}
-	req.SetChannelIds(channelIDs)
-
-	done := make(chan error, 1)
-	go func() {
-		_, err := server.GetReadStates(t.Context(), req)
-		done <- err
-	}()
-	<-client.started
-	select {
-	case <-client.started:
-		t.Fatal("authorization used more than one batch")
-	default:
-	}
-	require.Equal(t, int32(1), client.maxInFlight.Load())
-
-	close(client.release)
-	require.NoError(t, <-done)
-	require.Equal(t, int32(1), client.maxInFlight.Load())
-}
-
-func TestGetReadStatesMapsLimiterCancellation(t *testing.T) {
-	server := newTestMessageServer(t, newFakeStore(), new(fakePublisher))
-	server.(*messageServer).svcCtx.ReadStatesLimiter = &recordingReadStatesLimiter{err: context.Canceled}
-
-	req := new(messagev1.GetReadStatesRequest)
-	req.SetUserId(1)
-	req.SetChannelIds([]int64{10})
-	_, err := server.GetReadStates(t.Context(), req)
-	require.Equal(t, codes.Canceled, status.Code(err))
-}
-
-func TestGetReadStatesRejectsInvalidBatch(t *testing.T) {
+func TestGetUserReadyStateRejectsInvalidRequest(t *testing.T) {
 	server := newTestMessageServer(t, newFakeStore(), new(fakePublisher))
 
-	req := new(messagev1.GetReadStatesRequest)
-	req.SetUserId(1)
-	req.SetChannelIds(make([]int64, maxReadStateChannels+1))
-	_, err := server.GetReadStates(t.Context(), req)
+	req := new(messagev1.GetUserReadyStateRequest)
+	_, err := server.GetUserReadyState(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
-	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest))
 
-	req.SetChannelIds([]int64{0})
-	_, err = server.GetReadStates(t.Context(), req)
+	req.SetUserId(1)
+	req.SetGuildChannelIds([]int64{0})
+	_, err = server.GetUserReadyState(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageInvalidRequest))
 }
 
-type recordingReadStatesLimiter struct {
-	weights  []int64
-	releases int
-	err      error
+func TestGetUserReadyStateBatchesReadStateQueriesAtLimiterCapacity(t *testing.T) {
+	fakeStore := newFakeStore()
+	limiter := new(fakeReadStatesLimiter)
+	server := New(&svc.ServiceContext{
+		Cfg:               config.Config{ReadStates: config.ReadStatesConfig{MaxConcurrentChannels: 2}},
+		Store:             fakeStore,
+		ReadStatesLimiter: limiter,
+	})
+
+	req := new(messagev1.GetUserReadyStateRequest)
+	req.SetUserId(1)
+	req.SetGuildChannelIds([]int64{10, 11, 12, 13, 14})
+	resp, err := server.GetUserReadyState(t.Context(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.GetReadStates(), 5)
+	require.Equal(t, []int{2, 2, 1}, fakeStore.readyBatchSizes)
+	require.Equal(t, []int64{2, 2, 1}, limiter.weights)
+	require.Equal(t, 3, limiter.releases)
 }
 
-func (l *recordingReadStatesLimiter) Acquire(_ context.Context, weight int64) (func(), error) {
-	l.weights = append(l.weights, weight)
-	if l.err != nil {
-		return nil, l.err
-	}
-	return func() { l.releases++ }, nil
+func TestGetReadStatesUsesGuildAndDmScopes(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.messages[51] = &model.Message{ID: 51, ChannelID: 10, AuthorID: 2}
+	fakeStore.messages[52] = &model.Message{ID: 52, ChannelID: 20, AuthorID: 2}
+	fakeStore.dmChannels[20] = &model.DmChannel{ID: 20, UserLo: 1, UserHi: 2}
+	guild := &fakeGuildClient{visibleTextChannelIDs: []int64{10}}
+	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), guild)
+
+	guildReq := new(messagev1.GetReadStatesRequest)
+	guildReq.SetUserId(1)
+	guildReq.SetScope(messagev1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_GUILD)
+	guildReq.SetGuildId(9001)
+	guildResp, err := server.GetReadStates(t.Context(), guildReq)
+	require.NoError(t, err)
+	require.Empty(t, guildResp.GetDmChannels())
+	require.Equal(t, int64(10), guildResp.GetReadStates()[0].GetChannelId())
+
+	dmReq := new(messagev1.GetReadStatesRequest)
+	dmReq.SetUserId(1)
+	dmReq.SetScope(messagev1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS)
+	dmResp, err := server.GetReadStates(t.Context(), dmReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(20), dmResp.GetDmChannels()[0].GetId())
+	require.Equal(t, int64(20), dmResp.GetReadStates()[0].GetChannelId())
 }
 
 func cloneMessage(message *model.Message) *model.Message {

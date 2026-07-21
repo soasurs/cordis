@@ -36,9 +36,8 @@ service GuildService {
   rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
   rpc GetGuild(GetGuildRequest) returns (GetGuildResponse);
   rpc ListUserGuilds(ListUserGuildsRequest) returns (ListUserGuildsResponse);
-  // ListUserGuildChannelVisibilities returns paginated, server-authoritative
-  // visible channel snapshots for the user's active Guild memberships.
-  rpc ListUserGuildChannelVisibilities(ListUserGuildChannelVisibilitiesRequest) returns (ListUserGuildChannelVisibilitiesResponse);
+  // GetUserReadyState returns the complete Guild bootstrap for one user.
+  rpc GetUserReadyState(GetUserReadyStateRequest) returns (GetUserReadyStateResponse);
   // GetUserGuildChannelVisibility returns a single Guild visibility snapshot
   // for an on-demand snapshot reload by Session nodes.
   rpc GetUserGuildChannelVisibility(GetUserGuildChannelVisibilityRequest) returns (GetUserGuildChannelVisibilityResponse);
@@ -79,7 +78,6 @@ service GuildService {
   rpc DeleteGuildChannelPermissionOverwrite(DeleteGuildChannelPermissionOverwriteRequest) returns (DeleteGuildChannelPermissionOverwriteResponse);
   rpc ListGuildChannelPermissionOverwrites(ListGuildChannelPermissionOverwritesRequest) returns (ListGuildChannelPermissionOverwritesResponse);
   rpc AuthorizeGuildChannel(AuthorizeGuildChannelRequest) returns (AuthorizeGuildChannelResponse);
-  rpc AuthorizeGuildChannels(AuthorizeGuildChannelsRequest) returns (AuthorizeGuildChannelsResponse);
 }
 
 message Guild {
@@ -183,19 +181,29 @@ message GuildChannelVisibility {
   int64 access_revision = 2;
   // Visible channel IDs sorted in ascending numeric order.
   repeated int64 visible_channel_ids = 3;
+  // Visible text channel IDs used for scoped read-state reconciliation.
+  repeated int64 visible_text_channel_ids = 4;
 }
 
-message ListUserGuildChannelVisibilitiesRequest {
+message ReadyGuild {
+  Guild guild = 1;
+  int64 access_revision = 2;
+  repeated GuildRole roles = 3;
+  // Explicit role assignments for the current user. The default role is
+  // implicit and is not repeated here.
+  repeated int64 member_role_ids = 4;
+  // Only channels currently visible to the user are returned.
+  repeated GuildChannel channels = 5;
+  // Permission overwrites for the returned visible channels.
+  repeated GuildChannelPermissionOverwrite permission_overwrites = 6;
+}
+
+message GetUserReadyStateRequest {
   int64 user_id = 1;
-  // Return Guilds with IDs smaller than this cursor.
-  int64 before_guild_id = 2;
-  int32 limit = 3;
 }
 
-message ListUserGuildChannelVisibilitiesResponse {
-  repeated GuildChannelVisibility visibilities = 1;
-  // Smallest Guild ID in this page, or zero when this page is empty.
-  int64 before_guild_id = 2;
+message GetUserReadyStateResponse {
+  repeated ReadyGuild guilds = 1;
 }
 
 
@@ -633,22 +641,4 @@ message AuthorizeGuildChannelResponse {
   int64 guild_id = 2;
   uint64 permissions = 3;
   GuildChannelType channel_type = 4;
-}
-
-message AuthorizeGuildChannelsRequest {
-  int64 user_id = 1;
-  repeated int64 channel_ids = 2;
-  uint64 permission = 3;
-}
-
-message GuildChannelAuthorization {
-  int64 channel_id = 1;
-  int64 guild_id = 2;
-  uint64 permissions = 3;
-  bool allowed = 4;
-  GuildChannelType channel_type = 5;
-}
-
-message AuthorizeGuildChannelsResponse {
-  repeated GuildChannelAuthorization authorizations = 1;
 }

@@ -240,9 +240,6 @@ func testGuildCRUD(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Len(t, list, 1)
 	require.Equal(t, int64(guildID), list[0].ID)
-	byIDs, err := store.ListGuildsForMemberByIDs(ctx, []int64{guildID, guildID2, 99999}, ownerID)
-	require.NoError(t, err)
-	require.Equal(t, []int64{guildID, guildID2}, idsOf(byIDs, func(g *model.Guild) int64 { return g.ID }))
 
 	dg, err := store.DeleteGuild(ctx, guildID, now)
 	require.NoError(t, err)
@@ -402,6 +399,9 @@ func testGuildRolesCRUD(t *testing.T, store Store) {
 	roles, err = store.ListGuildRoles(ctx, guildID)
 	require.NoError(t, err)
 	require.Equal(t, []int64{10502, 10501, guildID}, idsOf(roles, func(r *model.Role) int64 { return r.ID }))
+	roles, err = store.ListGuildRolesByGuilds(ctx, []int64{guildID})
+	require.NoError(t, err)
+	require.Equal(t, []int64{10502, 10501, guildID}, idsOf(roles, func(r *model.Role) int64 { return r.ID }))
 
 	updated, err := store.UpdateGuildRole(ctx, UpdateGuildRoleParams{
 		GuildID: guildID, RoleID: 10501, Name: ptr("Moderator"),
@@ -516,9 +516,6 @@ func testGuildChannels(t *testing.T, store Store) {
 	channels, err := store.ListGuildChannels(ctx, guildID)
 	require.NoError(t, err)
 	require.Equal(t, []int64{10701, 10702, 10703}, idsOf(channels, func(c *model.Channel) int64 { return c.ID }))
-	channels, err = store.ListGuildChannelsByIDs(ctx, []int64{10703, 10701})
-	require.NoError(t, err)
-	require.Equal(t, []int64{10701, 10703}, idsOf(channels, func(c *model.Channel) int64 { return c.ID }))
 	channels, err = store.ListGuildChannelsByGuilds(ctx, []int64{guildID})
 	require.NoError(t, err)
 	require.Len(t, channels, 3)

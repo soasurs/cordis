@@ -177,7 +177,8 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, 
 	}
 
 	switch event.Type {
-	case realtime.EventMessageCreated, realtime.EventMessageUpdated, realtime.EventMessageDeleted:
+	case realtime.EventMessageCreated, realtime.EventMessageUpdated, realtime.EventMessageDeleted,
+		realtime.EventMessageReadUpdated:
 		channelID := int64(routing.ChannelID)
 		if channelID <= 0 {
 			return true, errors.New("message event channel id is invalid")

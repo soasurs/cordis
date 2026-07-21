@@ -81,6 +81,7 @@ type MessageServiceClient interface {
 	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(context.Context, *v1.AckMessageRequest) (*v1.AckMessageResponse, error)
+	// GetReadStates reconciles read state for one Guild or all DMs.
 	GetReadStates(context.Context, *v1.GetReadStatesRequest) (*v1.GetReadStatesResponse, error)
 }
 
@@ -265,6 +266,7 @@ type MessageServiceHandler interface {
 	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(context.Context, *v1.AckMessageRequest) (*v1.AckMessageResponse, error)
+	// GetReadStates reconciles read state for one Guild or all DMs.
 	GetReadStates(context.Context, *v1.GetReadStatesRequest) (*v1.GetReadStatesResponse, error)
 }
 

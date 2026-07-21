@@ -208,13 +208,6 @@ const getDmChannelQuery = `
 	LIMIT 1
 `
 
-const listDmChannelsByIDsQuery = `
-    SELECT id, user_lo, user_hi, created_at
-    FROM dm_channels
-    WHERE id = ANY($1)
-    ORDER BY id ASC
-`
-
 const getDmChannelByPairQuery = `
 	SELECT id, user_lo, user_hi, created_at
 	FROM dm_channels
@@ -231,23 +224,34 @@ const listDmChannelsQuery = `
 	LIMIT $3
 `
 
-const upsertChannelReadStateStatement = `
-	INSERT INTO channel_read_states (user_id, channel_id, last_read_message_id, mention_count, updated_at)
-	SELECT $1, m.channel_id, m.id, 0, $4
-	FROM messages AS m
-	WHERE m.id = $3 AND m.channel_id = $2
-	ON CONFLICT (user_id, channel_id) DO UPDATE SET
-		last_read_message_id = GREATEST(channel_read_states.last_read_message_id, EXCLUDED.last_read_message_id),
-		updated_at = EXCLUDED.updated_at
+const listAllDmChannelsQuery = `
+	SELECT id, user_lo, user_hi, created_at
+	FROM dm_channels
+	WHERE user_lo = $1 OR user_hi = $1
+	ORDER BY id DESC
 `
 
-const listChannelReadStatesQuery = `
-	SELECT user_id, channel_id, last_read_message_id, mention_count, updated_at
-	FROM channel_read_states
-	WHERE user_id = $1 AND channel_id = ANY($2)
+const ackMessageQuery = `
+	WITH target AS (
+		SELECT channel_id, id
+		FROM messages
+		WHERE id = $3 AND channel_id = $2
+	), advanced AS (
+		INSERT INTO channel_read_states (user_id, channel_id, last_read_message_id, updated_at)
+		SELECT $1, target.channel_id, target.id, $4
+		FROM target
+		ON CONFLICT (user_id, channel_id) DO UPDATE SET
+			last_read_message_id = EXCLUDED.last_read_message_id,
+			updated_at = EXCLUDED.updated_at
+		WHERE channel_read_states.last_read_message_id < EXCLUDED.last_read_message_id
+		RETURNING 1
+	)
+	SELECT
+		EXISTS (SELECT 1 FROM target) AS target_exists,
+		EXISTS (SELECT 1 FROM advanced) AS advanced
 `
 
-const listChannelReadStatesWithCountsQuery = `
+const listReadyChannelReadStatesQuery = `
 	WITH requested AS (
 		SELECT channel_id, ordinal
 		FROM unnest($2::bigint[]) WITH ORDINALITY AS requested(channel_id, ordinal)
@@ -263,15 +267,17 @@ const listChannelReadStatesWithCountsQuery = `
 			ON states.user_id = $1
 			AND states.channel_id = requested.channel_id
 	),
-	message_counts AS (
-		SELECT messages.channel_id, count(*)::int AS missing_message_count
-		FROM messages
-		JOIN watermarks
-			ON watermarks.channel_id = messages.channel_id
-			AND messages.id > watermarks.last_read_message_id
-		WHERE messages.deleted_at = 0
-			AND messages.author_id <> $1
-		GROUP BY messages.channel_id
+	latest_messages AS (
+		SELECT watermarks.channel_id, latest.id AS last_message_id
+		FROM watermarks
+		LEFT JOIN LATERAL (
+			SELECT messages.id
+			FROM messages
+			WHERE messages.channel_id = watermarks.channel_id
+				AND messages.deleted_at = 0
+			ORDER BY messages.id DESC
+			LIMIT 1
+		) AS latest ON TRUE
 	),
 	mention_counts AS (
 		SELECT messages.channel_id, count(*)::int AS mention_count
@@ -287,31 +293,21 @@ const listChannelReadStatesWithCountsQuery = `
 	SELECT
 		$1 AS user_id,
 		watermarks.channel_id,
+		COALESCE(latest_messages.last_message_id, 0) AS last_message_id,
 		watermarks.last_read_message_id,
 		COALESCE(mention_counts.mention_count, 0) AS mention_count,
-		COALESCE(message_counts.missing_message_count, 0) AS message_count,
 		watermarks.updated_at
 	FROM watermarks
-	LEFT JOIN message_counts ON message_counts.channel_id = watermarks.channel_id
+	LEFT JOIN latest_messages ON latest_messages.channel_id = watermarks.channel_id
 	LEFT JOIN mention_counts ON mention_counts.channel_id = watermarks.channel_id
 	ORDER BY watermarks.ordinal
 `
 
-const countMissingMessagesQuery = `
-	SELECT count(*)
+const getLastMessageIDQuery = `
+	SELECT id
 	FROM messages
 	WHERE channel_id = $1
-	AND id > $2
-	AND deleted_at = 0
-	AND author_id <> $3
-`
-
-const countUnreadMentionsQuery = `
-	SELECT count(*)
-	FROM message_mentions mm
-	JOIN messages m ON m.id = mm.message_id
-	WHERE mm.user_id = $1
-	AND m.channel_id = $2
-	AND m.id > $3
-	AND m.deleted_at = 0
+		AND deleted_at = 0
+	ORDER BY id DESC
+	LIMIT 1
 `

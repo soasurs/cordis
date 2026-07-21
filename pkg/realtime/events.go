@@ -19,9 +19,10 @@ const (
 	EventGuildChannelOverwriteUpdated = "guild.channel.overwrite.updated"
 	EventGuildChannelOverwriteDeleted = "guild.channel.overwrite.deleted"
 
-	EventMessageCreated = "message.created"
-	EventMessageUpdated = "message.updated"
-	EventMessageDeleted = "message.deleted"
+	EventMessageCreated     = "message.created"
+	EventMessageUpdated     = "message.updated"
+	EventMessageDeleted     = "message.deleted"
+	EventMessageReadUpdated = "message.read.updated"
 
 	EventRelationshipUpdated = "relationship.updated"
 	EventRelationshipRemoved = "relationship.removed"

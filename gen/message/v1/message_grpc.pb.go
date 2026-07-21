@@ -19,15 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MessageService_CreateMessage_FullMethodName   = "/message.v1.MessageService/CreateMessage"
-	MessageService_UpdateMessage_FullMethodName   = "/message.v1.MessageService/UpdateMessage"
-	MessageService_DeleteMessage_FullMethodName   = "/message.v1.MessageService/DeleteMessage"
-	MessageService_GetMessage_FullMethodName      = "/message.v1.MessageService/GetMessage"
-	MessageService_ListMessages_FullMethodName    = "/message.v1.MessageService/ListMessages"
-	MessageService_CreateDmChannel_FullMethodName = "/message.v1.MessageService/CreateDmChannel"
-	MessageService_ListDmChannels_FullMethodName  = "/message.v1.MessageService/ListDmChannels"
-	MessageService_AckMessage_FullMethodName      = "/message.v1.MessageService/AckMessage"
-	MessageService_GetReadStates_FullMethodName   = "/message.v1.MessageService/GetReadStates"
+	MessageService_CreateMessage_FullMethodName     = "/message.v1.MessageService/CreateMessage"
+	MessageService_UpdateMessage_FullMethodName     = "/message.v1.MessageService/UpdateMessage"
+	MessageService_DeleteMessage_FullMethodName     = "/message.v1.MessageService/DeleteMessage"
+	MessageService_GetMessage_FullMethodName        = "/message.v1.MessageService/GetMessage"
+	MessageService_ListMessages_FullMethodName      = "/message.v1.MessageService/ListMessages"
+	MessageService_CreateDmChannel_FullMethodName   = "/message.v1.MessageService/CreateDmChannel"
+	MessageService_ListDmChannels_FullMethodName    = "/message.v1.MessageService/ListDmChannels"
+	MessageService_AckMessage_FullMethodName        = "/message.v1.MessageService/AckMessage"
+	MessageService_GetUserReadyState_FullMethodName = "/message.v1.MessageService/GetUserReadyState"
+	MessageService_GetReadStates_FullMethodName     = "/message.v1.MessageService/GetReadStates"
 )
 
 // MessageServiceClient is the client API for MessageService service.
@@ -52,6 +53,9 @@ type MessageServiceClient interface {
 	ListDmChannels(ctx context.Context, in *ListDmChannelsRequest, opts ...grpc.CallOption) (*ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(ctx context.Context, in *AckMessageRequest, opts ...grpc.CallOption) (*AckMessageResponse, error)
+	// GetUserReadyState returns all DM channels and read states needed by READY.
+	GetUserReadyState(ctx context.Context, in *GetUserReadyStateRequest, opts ...grpc.CallOption) (*GetUserReadyStateResponse, error)
+	// GetReadStates reconciles either one Guild or all DMs.
 	GetReadStates(ctx context.Context, in *GetReadStatesRequest, opts ...grpc.CallOption) (*GetReadStatesResponse, error)
 }
 
@@ -143,6 +147,16 @@ func (c *messageServiceClient) AckMessage(ctx context.Context, in *AckMessageReq
 	return out, nil
 }
 
+func (c *messageServiceClient) GetUserReadyState(ctx context.Context, in *GetUserReadyStateRequest, opts ...grpc.CallOption) (*GetUserReadyStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserReadyStateResponse)
+	err := c.cc.Invoke(ctx, MessageService_GetUserReadyState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *messageServiceClient) GetReadStates(ctx context.Context, in *GetReadStatesRequest, opts ...grpc.CallOption) (*GetReadStatesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetReadStatesResponse)
@@ -175,6 +189,9 @@ type MessageServiceServer interface {
 	ListDmChannels(context.Context, *ListDmChannelsRequest) (*ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(context.Context, *AckMessageRequest) (*AckMessageResponse, error)
+	// GetUserReadyState returns all DM channels and read states needed by READY.
+	GetUserReadyState(context.Context, *GetUserReadyStateRequest) (*GetUserReadyStateResponse, error)
+	// GetReadStates reconciles either one Guild or all DMs.
 	GetReadStates(context.Context, *GetReadStatesRequest) (*GetReadStatesResponse, error)
 }
 
@@ -208,6 +225,9 @@ func (UnimplementedMessageServiceServer) ListDmChannels(context.Context, *ListDm
 }
 func (UnimplementedMessageServiceServer) AckMessage(context.Context, *AckMessageRequest) (*AckMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AckMessage not implemented")
+}
+func (UnimplementedMessageServiceServer) GetUserReadyState(context.Context, *GetUserReadyStateRequest) (*GetUserReadyStateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserReadyState not implemented")
 }
 func (UnimplementedMessageServiceServer) GetReadStates(context.Context, *GetReadStatesRequest) (*GetReadStatesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReadStates not implemented")
@@ -376,6 +396,24 @@ func _MessageService_AckMessage_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MessageService_GetUserReadyState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserReadyStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MessageServiceServer).GetUserReadyState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MessageService_GetUserReadyState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MessageServiceServer).GetUserReadyState(ctx, req.(*GetUserReadyStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MessageService_GetReadStates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetReadStatesRequest)
 	if err := dec(in); err != nil {
@@ -432,6 +470,10 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AckMessage",
 			Handler:    _MessageService_AckMessage_Handler,
+		},
+		{
+			MethodName: "GetUserReadyState",
+			Handler:    _MessageService_GetUserReadyState_Handler,
 		},
 		{
 			MethodName: "GetReadStates",

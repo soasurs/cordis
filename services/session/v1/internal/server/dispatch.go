@@ -215,6 +215,27 @@ func (s *Server) dispatchSessions(sessions []*logicalSession, eventType string, 
 func (s *Server) dispatchSession(session *logicalSession, eventType string, payload []byte) bool {
 	session.mu.Lock()
 	defer session.mu.Unlock()
+	if session.initializing {
+		if session.pendingDispatchOverflow {
+			return false
+		}
+		countLimit := s.svcCtx.Cfg.Node.PendingDispatchLimit()
+		byteLimit := s.svcCtx.Cfg.Node.PendingDispatchByteLimit()
+		eventBytes := int64(len(eventType)) + int64(len(payload))
+		if len(session.pendingDispatches) >= countLimit ||
+			eventBytes > byteLimit-session.pendingDispatchBytes {
+			session.pendingDispatchOverflow = true
+			session.pendingDispatches = nil
+			session.pendingDispatchBytes = 0
+			return false
+		}
+		session.pendingDispatches = append(session.pendingDispatches, pendingDispatch{
+			eventType: eventType,
+			payload:   append([]byte(nil), payload...),
+		})
+		session.pendingDispatchBytes += eventBytes
+		return true
+	}
 	s.appendDispatchLocked(session, eventType, payload)
 	return true
 }

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 
@@ -37,7 +36,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("transact rollback", func(t *testing.T) { testTransactRollback(t, store) })
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("dm channels", func(t *testing.T) { testDmChannels(t, store) })
-	t.Run("read states", func(t *testing.T) { testReadStates(t, store, db) })
+	t.Run("read states", func(t *testing.T) { testReadStates(t, store) })
 }
 
 func testCreateAndGetMessage(t *testing.T, store Store) {
@@ -348,9 +347,9 @@ func testDmChannels(t *testing.T, store Store) {
 		require.NoError(t, err)
 		require.Len(t, channels, 3)
 		require.Equal(t, []int64{9103, 9102, 9101}, dmChannelIDs(channels))
-		channels, err = store.ListDmChannelsByIDs(ctx, []int64{9101, 9103, 9999})
+		channels, err = store.ListAllDmChannels(ctx, 9201)
 		require.NoError(t, err)
-		require.Equal(t, []int64{9101, 9103}, dmChannelIDs(channels))
+		require.Equal(t, []int64{9103, 9102, 9101}, dmChannelIDs(channels))
 	})
 
 	t.Run("list from hi perspective", func(t *testing.T) {
@@ -399,17 +398,7 @@ func requireCheckViolation(t *testing.T, err error) {
 	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
 }
 
-func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS channel_read_states (
-		user_id BIGINT NOT NULL CHECK (user_id > 0),
-		channel_id BIGINT NOT NULL CHECK (channel_id > 0),
-		last_read_message_id BIGINT NOT NULL DEFAULT 0 CHECK (last_read_message_id >= 0),
-		mention_count INT NOT NULL DEFAULT 0 CHECK (mention_count >= 0),
-		updated_at BIGINT NOT NULL DEFAULT 0 CHECK (updated_at >= 0),
-		PRIMARY KEY (user_id, channel_id)
-	)`)
-	require.NoError(t, err)
-
+func testReadStates(t *testing.T, store Store) {
 	const (
 		userID    = int64(9501)
 		channelID = int64(9601)
@@ -424,16 +413,21 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 			})
 			require.NoError(t, err)
 		}
-		require.NoError(t, store.AckMessage(ctx, userID, channelID, 50))
+		advanced, err := store.AckMessage(ctx, userID, channelID, 50)
+		require.NoError(t, err)
+		require.True(t, advanced)
 
-		states, err := store.ListChannelReadStates(ctx, userID, []int64{channelID})
+		states, err := store.ListReadyChannelReadStates(ctx, userID, []int64{channelID})
 		require.NoError(t, err)
 		require.Len(t, states, 1)
+		require.Equal(t, int64(50), states[0].LastMessageID)
 		require.Equal(t, int64(50), states[0].LastReadMessageID)
 
-		require.NoError(t, store.AckMessage(ctx, userID, channelID, 30))
+		advanced, err = store.AckMessage(ctx, userID, channelID, 30)
+		require.NoError(t, err)
+		require.False(t, advanced)
 
-		states, err = store.ListChannelReadStates(ctx, userID, []int64{channelID})
+		states, err = store.ListReadyChannelReadStates(ctx, userID, []int64{channelID})
 		require.NoError(t, err)
 		require.Len(t, states, 1)
 		require.Equal(t, int64(50), states[0].LastReadMessageID)
@@ -441,14 +435,16 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 
 	t.Run("ack validates channel and permits deleted message", func(t *testing.T) {
 		ctx := t.Context()
-		require.ErrorIs(t, store.AckMessage(ctx, userID, channelID, 9999), sql.ErrNoRows)
+		_, err := store.AckMessage(ctx, userID, channelID, 9999)
+		require.ErrorIs(t, err, sql.ErrNoRows)
 
-		_, err := store.CreateMessage(ctx, CreateMessageParams{
+		_, err = store.CreateMessage(ctx, CreateMessageParams{
 			MessageID: 60, ChannelID: channelID + 1, AuthorID: userID,
 			Content: "other channel", Type: 1,
 		})
 		require.NoError(t, err)
-		require.ErrorIs(t, store.AckMessage(ctx, userID, channelID, 60), sql.ErrNoRows)
+		_, err = store.AckMessage(ctx, userID, channelID, 60)
+		require.ErrorIs(t, err, sql.ErrNoRows)
 
 		_, err = store.CreateMessage(ctx, CreateMessageParams{
 			MessageID: 70, ChannelID: channelID, AuthorID: userID,
@@ -457,78 +453,12 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 		require.NoError(t, err)
 		_, err = store.DeleteMessage(ctx, 70, userID, false)
 		require.NoError(t, err)
-		require.NoError(t, store.AckMessage(ctx, userID, channelID, 70))
+		advanced, err := store.AckMessage(ctx, userID, channelID, 70)
+		require.NoError(t, err)
+		require.True(t, advanced)
 	})
 
-	t.Run("count missing", func(t *testing.T) {
-		ctx := t.Context()
-
-		_, err := store.CreateMessage(ctx, CreateMessageParams{
-			MessageID: 9701, ChannelID: channelID, AuthorID: userID,
-			Content: "own", Type: 1,
-		})
-		require.NoError(t, err)
-
-		_, err = store.CreateMessage(ctx, CreateMessageParams{
-			MessageID: 9702, ChannelID: channelID, AuthorID: 9502,
-			Content: "other", Type: 1,
-		})
-		require.NoError(t, err)
-
-		_, err = store.CreateMessage(ctx, CreateMessageParams{
-			MessageID: 9703, ChannelID: channelID, AuthorID: 9502,
-			Content: "deleted", Type: 1,
-		})
-		require.NoError(t, err)
-		_, err = store.DeleteMessage(ctx, 9703, 9502, false)
-		require.NoError(t, err)
-
-		missing, err := store.CountMissingMessages(ctx, channelID, 0, userID)
-		require.NoError(t, err)
-		require.Equal(t, int32(1), missing)
-	})
-
-	t.Run("count unread mentions", func(t *testing.T) {
-		ctx := t.Context()
-
-		_, err := store.CreateMessage(ctx, CreateMessageParams{
-			MessageID: 9801, ChannelID: channelID, AuthorID: 9502,
-			Content: "mention", Type: 1,
-		})
-		require.NoError(t, err)
-		require.NoError(t, store.ReplaceMessageMentions(ctx, 9801, []int64{userID}))
-
-		_, err = store.CreateMessage(ctx, CreateMessageParams{
-			MessageID: 9802, ChannelID: channelID, AuthorID: 9502,
-			Content: "mention2", Type: 1,
-		})
-		require.NoError(t, err)
-		require.NoError(t, store.ReplaceMessageMentions(ctx, 9802, []int64{userID}))
-
-		count, err := store.CountUnreadMentions(ctx, userID, channelID, 0)
-		require.NoError(t, err)
-		require.Equal(t, int32(2), count)
-
-		require.NoError(t, store.AckMessage(ctx, userID, channelID, 9802))
-
-		count, err = store.CountUnreadMentions(ctx, userID, channelID, 9802)
-		require.NoError(t, err)
-		require.Equal(t, int32(0), count)
-	})
-
-	t.Run("no read state defaults to zero", func(t *testing.T) {
-		ctx := t.Context()
-
-		missing, err := store.CountMissingMessages(ctx, 9699, 0, 9599)
-		require.NoError(t, err)
-		require.Equal(t, int32(0), missing)
-
-		mentions, err := store.CountUnreadMentions(ctx, 9599, 9699, 0)
-		require.NoError(t, err)
-		require.Equal(t, int32(0), mentions)
-	})
-
-	t.Run("batch read states with counts", func(t *testing.T) {
+	t.Run("batch ready state", func(t *testing.T) {
 		ctx := t.Context()
 		const (
 			batchUserID = int64(9511)
@@ -549,7 +479,9 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 			Content: "read", Type: 1,
 		})
 		require.NoError(t, err)
-		require.NoError(t, store.AckMessage(ctx, batchUserID, channel2ID, 9902))
+		advanced, err := store.AckMessage(ctx, batchUserID, channel2ID, 9902)
+		require.NoError(t, err)
+		require.True(t, advanced)
 
 		_, err = store.CreateMessage(ctx, CreateMessageParams{
 			MessageID: 9903, ChannelID: channel2ID, AuthorID: 9512,
@@ -558,25 +490,44 @@ func testReadStates(t *testing.T, store Store, db *sqlx.DB) {
 		require.NoError(t, err)
 		require.NoError(t, store.ReplaceMessageMentions(ctx, 9903, []int64{batchUserID}))
 
-		states, err := store.ListChannelReadStatesWithCounts(
+		states, err := store.ListReadyChannelReadStates(
 			ctx, batchUserID, []int64{channel2ID, channel1ID, channel3ID},
 		)
 		require.NoError(t, err)
 		require.Len(t, states, 3)
 
 		require.Equal(t, channel2ID, states[0].ChannelID)
+		require.Equal(t, int64(9903), states[0].LastMessageID)
 		require.Equal(t, int64(9902), states[0].LastReadMessageID)
-		require.Equal(t, int32(1), states[0].MessageCount)
 		require.Equal(t, int32(1), states[0].MentionCount)
 
 		require.Equal(t, channel1ID, states[1].ChannelID)
+		require.Equal(t, int64(9901), states[1].LastMessageID)
 		require.Zero(t, states[1].LastReadMessageID)
-		require.Equal(t, int32(1), states[1].MessageCount)
 		require.Equal(t, int32(1), states[1].MentionCount)
 
 		require.Equal(t, channel3ID, states[2].ChannelID)
+		require.Zero(t, states[2].LastMessageID)
 		require.Zero(t, states[2].LastReadMessageID)
-		require.Zero(t, states[2].MessageCount)
 		require.Zero(t, states[2].MentionCount)
+	})
+
+	t.Run("last message excludes deleted rows", func(t *testing.T) {
+		ctx := t.Context()
+		const channelID = int64(9621)
+		for _, messageID := range []int64{9911, 9912} {
+			_, err := store.CreateMessage(ctx, CreateMessageParams{
+				MessageID: messageID, ChannelID: channelID, AuthorID: userID, Content: "head", Type: 1,
+			})
+			require.NoError(t, err)
+		}
+		lastMessageID, err := store.GetLastMessageID(ctx, channelID)
+		require.NoError(t, err)
+		require.Equal(t, int64(9912), lastMessageID)
+		_, err = store.DeleteMessage(ctx, 9912, userID, false)
+		require.NoError(t, err)
+		lastMessageID, err = store.GetLastMessageID(ctx, channelID)
+		require.NoError(t, err)
+		require.Equal(t, int64(9911), lastMessageID)
 	})
 }

@@ -22,18 +22,16 @@ service MessageService {
   rpc ListDmChannels(ListDmChannelsRequest) returns (ListDmChannelsResponse);
   // AckMessage moves the last-read position forward for one channel.
   rpc AckMessage(AckMessageRequest) returns (AckMessageResponse);
+  // GetReadStates reconciles read state for one Guild or all DMs.
   rpc GetReadStates(GetReadStatesRequest) returns (GetReadStatesResponse);
 }
 
-// ChannelReadState is one user's read position and mention count in a
-// channel.
+// ChannelReadState is one user's read position relative to a channel head.
 message ChannelReadState {
   int64 channel_id = 1;
-  // Only messages with a larger ID than this are unread.
-  int64 last_read_message_id = 2;
-  int32 mention_count = 3;
-  // Messages posted after the last-read position (author-excluded).
-  int32 missing_message_count = 4;
+  int64 last_message_id = 2;
+  int64 last_read_message_id = 3;
+  int32 mention_count = 4;
 }
 
 // DmChannel is a private 1:1 conversation from the caller's perspective.
@@ -209,16 +207,22 @@ message AckMessageRequest {
 }
 
 message AckMessageResponse {
-  bool ok = 1;
+  ChannelReadState read_state = 1;
+}
+
+enum ReadStateScopeType {
+  READ_STATE_SCOPE_TYPE_UNSPECIFIED = 0;
+  READ_STATE_SCOPE_TYPE_GUILD = 1;
+  READ_STATE_SCOPE_TYPE_ALL_DMS = 2;
 }
 
 message GetReadStatesRequest {
-  // Channels to query. At most 100 entries are accepted; IDs must be
-  // positive. Duplicate IDs are coalesced while preserving first-seen order.
-  // Invalid input returns INVALID_ARGUMENT.
-  repeated int64 channel_ids = 1;
+  ReadStateScopeType scope = 1;
+  // Required only for READ_STATE_SCOPE_TYPE_GUILD.
+  int64 guild_id = 2;
 }
 
 message GetReadStatesResponse {
-  repeated ChannelReadState states = 1;
+  repeated DmChannel dm_channels = 1;
+  repeated ChannelReadState read_states = 2;
 }

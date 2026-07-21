@@ -8,6 +8,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
@@ -23,6 +24,7 @@ type ServiceContext struct {
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
+	MessageClient       messagev1.MessageServiceClient
 	RateLimiter         coreratelimit.Limiter
 }
 
@@ -32,6 +34,7 @@ type Dependencies struct {
 	AuthenticatorClient authenticatorv1.AuthenticatorServiceClient
 	PresenceClient      presencev1.PresenceServiceClient
 	GuildClient         guildv1.GuildServiceClient
+	MessageClient       messagev1.MessageServiceClient
 	RateLimiter         coreratelimit.Limiter
 }
 
@@ -55,6 +58,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, err
 	}
 	guild, err := zrpc.NewClient(cfg.Services.Guild)
+	if err != nil {
+		_ = registry.Close()
+		return Dependencies{}, err
+	}
+	message, err := zrpc.NewClient(cfg.Services.Message)
 	if err != nil {
 		_ = registry.Close()
 		return Dependencies{}, err
@@ -84,6 +92,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(auth.Conn()),
 		PresenceClient:      presencev1.NewPresenceServiceClient(presence.Conn()),
 		GuildClient:         guildv1.NewGuildServiceClient(guild.Conn()),
+		MessageClient:       messagev1.NewMessageServiceClient(message.Conn()),
 		RateLimiter:         limiter,
 	}, nil
 }
@@ -112,6 +121,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.GuildClient == nil {
 		panic("guild client is required")
 	}
+	if deps.MessageClient == nil {
+		panic("message client is required")
+	}
 	if len(cfg.RateLimit.Policies) > 0 && deps.RateLimiter == nil {
 		panic("session rate limiter is required")
 	}
@@ -122,6 +134,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		AuthenticatorClient: deps.AuthenticatorClient,
 		PresenceClient:      deps.PresenceClient,
 		GuildClient:         deps.GuildClient,
+		MessageClient:       deps.MessageClient,
 		RateLimiter:         deps.RateLimiter,
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strconv"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,68 +33,49 @@ type visibilityEntry struct {
 	reconcileSent    bool
 }
 
-func (s *Server) loadOrReuseVisibilitySnapshots(ctx context.Context, userID int64) (map[int64]*visibilitySnapshot, error) {
-	result := s.visibilityLoads.DoChan(strconv.FormatInt(userID, 10), func() (any, error) {
-		if snapshots, ok := s.cachedVisibilitySnapshots(userID); ok {
-			return snapshots, nil
-		}
-		return s.loadVisibilitySnapshots(ctx, userID)
-	})
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case loaded := <-result:
-		if loaded.Err != nil {
-			return nil, loaded.Err
-		}
-		return loaded.Val.(map[int64]*visibilitySnapshot), nil
+func (s *Server) loadReadyGuilds(
+	ctx context.Context,
+	userID int64,
+) ([]*guildv1.ReadyGuild, map[int64]*visibilitySnapshot, error) {
+	req := new(guildv1.GetUserReadyStateRequest)
+	req.SetUserId(userID)
+	resp, err := s.svcCtx.GuildClient.GetUserReadyState(ctx, req)
+	if err != nil {
+		return nil, nil, err
 	}
-}
-
-func (s *Server) loadVisibilitySnapshots(ctx context.Context, userID int64) (map[int64]*visibilitySnapshot, error) {
-	snapshots := make(map[int64]*visibilitySnapshot)
-	var before, previousGuildID int64
-	for {
-		req := new(guildv1.ListUserGuildChannelVisibilitiesRequest)
-		req.SetUserId(userID)
-		req.SetBeforeGuildId(before)
-		req.SetLimit(guildPageSize)
-		resp, err := s.svcCtx.GuildClient.ListUserGuildChannelVisibilities(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-		visibilities := resp.GetVisibilities()
-		if len(visibilities) > guildPageSize {
-			return nil, status.Error(codes.Internal, "guild visibility page exceeds requested limit")
-		}
-		if len(snapshots)+len(visibilities) > s.svcCtx.Cfg.Node.VisibilityGuildLimit() {
-			return nil, status.Error(codes.ResourceExhausted, "guild visibility limit exceeded")
-		}
-		for _, visibility := range visibilities {
-			guildID := visibility.GetGuildId()
-			if guildID <= 0 || visibility.GetAccessRevision() <= 0 ||
-				(previousGuildID > 0 && guildID >= previousGuildID) {
-				return nil, status.Error(codes.Internal, "guild visibility page is invalid")
-			}
-			channelIDs := visibility.GetVisibleChannelIds()
-			if len(channelIDs) > s.svcCtx.Cfg.Node.VisibilityChannelLimit() || !strictlyIncreasingPositive(channelIDs) {
-				return nil, status.Error(codes.Internal, "guild visibility channel ids are invalid")
-			}
-			snapshots[guildID] = &visibilitySnapshot{
-				accessRevision: visibility.GetAccessRevision(),
-				channelIDs:     slices.Clone(channelIDs),
-			}
-			previousGuildID = guildID
-		}
-		if len(visibilities) == 0 || len(visibilities) < guildPageSize {
-			return snapshots, nil
-		}
-		cursor := resp.GetBeforeGuildId()
-		if cursor <= 0 || cursor != previousGuildID || (before > 0 && cursor >= before) {
-			return nil, status.Error(codes.Internal, "guild visibility cursor is invalid")
-		}
-		before = cursor
+	readyGuilds := resp.GetGuilds()
+	if len(readyGuilds) > s.svcCtx.Cfg.Node.VisibilityGuildLimit() {
+		return nil, nil, status.Error(codes.ResourceExhausted, "guild visibility limit exceeded")
 	}
+	snapshots := make(map[int64]*visibilitySnapshot, len(readyGuilds))
+	for _, ready := range readyGuilds {
+		guildID := ready.GetGuild().GetId()
+		if guildID <= 0 || ready.GetAccessRevision() <= 0 {
+			return nil, nil, status.Error(codes.Internal, "guild ready state is invalid")
+		}
+		channelIDs := make([]int64, 0, len(ready.GetChannels()))
+		for _, channel := range ready.GetChannels() {
+			if channel.GetId() <= 0 || channel.GetGuildId() != guildID {
+				return nil, nil, status.Error(codes.Internal, "guild ready channel is invalid")
+			}
+			channelIDs = append(channelIDs, channel.GetId())
+		}
+		if len(channelIDs) > s.svcCtx.Cfg.Node.VisibilityChannelLimit() {
+			return nil, nil, status.Error(codes.ResourceExhausted, "guild visibility channel limit exceeded")
+		}
+		slices.Sort(channelIDs)
+		if !strictlyIncreasingPositive(channelIDs) {
+			return nil, nil, status.Error(codes.Internal, "guild ready channel ids are invalid")
+		}
+		if _, exists := snapshots[guildID]; exists {
+			return nil, nil, status.Error(codes.Internal, "guild ready state contains duplicate guild")
+		}
+		snapshots[guildID] = &visibilitySnapshot{
+			accessRevision: ready.GetAccessRevision(),
+			channelIDs:     channelIDs,
+		}
+	}
+	return readyGuilds, snapshots, nil
 }
 
 // loadSingleVisibilitySnapshot loads channel visibility for one Guild through
@@ -129,23 +109,6 @@ func strictlyIncreasingPositive(ids []int64) bool {
 		}
 	}
 	return true
-}
-
-func (s *Server) cachedVisibilitySnapshots(userID int64) (map[int64]*visibilitySnapshot, bool) {
-	s.visibilityMu.RLock()
-	defer s.visibilityMu.RUnlock()
-	state := s.visibilityUsers[userID]
-	if state == nil || state.references == 0 {
-		return nil, false
-	}
-	snapshots := make(map[int64]*visibilitySnapshot, len(state.snapshots))
-	for guildID, entry := range state.snapshots {
-		if entry == nil || entry.snapshot == nil {
-			return nil, false
-		}
-		snapshots[guildID] = entry.snapshot
-	}
-	return snapshots, true
 }
 
 func (s *Server) retainVisibilitySnapshots(userID int64, snapshots map[int64]*visibilitySnapshot) {

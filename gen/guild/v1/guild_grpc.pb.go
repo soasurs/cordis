@@ -22,7 +22,7 @@ const (
 	GuildService_CreateGuild_FullMethodName                           = "/guild.v1.GuildService/CreateGuild"
 	GuildService_GetGuild_FullMethodName                              = "/guild.v1.GuildService/GetGuild"
 	GuildService_ListUserGuilds_FullMethodName                        = "/guild.v1.GuildService/ListUserGuilds"
-	GuildService_ListUserGuildChannelVisibilities_FullMethodName      = "/guild.v1.GuildService/ListUserGuildChannelVisibilities"
+	GuildService_GetUserReadyState_FullMethodName                     = "/guild.v1.GuildService/GetUserReadyState"
 	GuildService_GetUserGuildChannelVisibility_FullMethodName         = "/guild.v1.GuildService/GetUserGuildChannelVisibility"
 	GuildService_UpdateGuild_FullMethodName                           = "/guild.v1.GuildService/UpdateGuild"
 	GuildService_DeleteGuild_FullMethodName                           = "/guild.v1.GuildService/DeleteGuild"
@@ -61,7 +61,6 @@ const (
 	GuildService_DeleteGuildChannelPermissionOverwrite_FullMethodName = "/guild.v1.GuildService/DeleteGuildChannelPermissionOverwrite"
 	GuildService_ListGuildChannelPermissionOverwrites_FullMethodName  = "/guild.v1.GuildService/ListGuildChannelPermissionOverwrites"
 	GuildService_AuthorizeGuildChannel_FullMethodName                 = "/guild.v1.GuildService/AuthorizeGuildChannel"
-	GuildService_AuthorizeGuildChannels_FullMethodName                = "/guild.v1.GuildService/AuthorizeGuildChannels"
 )
 
 // GuildServiceClient is the client API for GuildService service.
@@ -73,9 +72,8 @@ type GuildServiceClient interface {
 	CreateGuild(ctx context.Context, in *CreateGuildRequest, opts ...grpc.CallOption) (*CreateGuildResponse, error)
 	GetGuild(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*GetGuildResponse, error)
 	ListUserGuilds(ctx context.Context, in *ListUserGuildsRequest, opts ...grpc.CallOption) (*ListUserGuildsResponse, error)
-	// ListUserGuildChannelVisibilities returns paginated, server-authoritative
-	// visible channel snapshots for the user's active Guild memberships.
-	ListUserGuildChannelVisibilities(ctx context.Context, in *ListUserGuildChannelVisibilitiesRequest, opts ...grpc.CallOption) (*ListUserGuildChannelVisibilitiesResponse, error)
+	// GetUserReadyState returns the complete Guild bootstrap for one user.
+	GetUserReadyState(ctx context.Context, in *GetUserReadyStateRequest, opts ...grpc.CallOption) (*GetUserReadyStateResponse, error)
 	// GetUserGuildChannelVisibility returns a single Guild visibility snapshot
 	// for an on-demand snapshot reload by Session nodes.
 	GetUserGuildChannelVisibility(ctx context.Context, in *GetUserGuildChannelVisibilityRequest, opts ...grpc.CallOption) (*GetUserGuildChannelVisibilityResponse, error)
@@ -116,7 +114,6 @@ type GuildServiceClient interface {
 	DeleteGuildChannelPermissionOverwrite(ctx context.Context, in *DeleteGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*DeleteGuildChannelPermissionOverwriteResponse, error)
 	ListGuildChannelPermissionOverwrites(ctx context.Context, in *ListGuildChannelPermissionOverwritesRequest, opts ...grpc.CallOption) (*ListGuildChannelPermissionOverwritesResponse, error)
 	AuthorizeGuildChannel(ctx context.Context, in *AuthorizeGuildChannelRequest, opts ...grpc.CallOption) (*AuthorizeGuildChannelResponse, error)
-	AuthorizeGuildChannels(ctx context.Context, in *AuthorizeGuildChannelsRequest, opts ...grpc.CallOption) (*AuthorizeGuildChannelsResponse, error)
 }
 
 type guildServiceClient struct {
@@ -157,10 +154,10 @@ func (c *guildServiceClient) ListUserGuilds(ctx context.Context, in *ListUserGui
 	return out, nil
 }
 
-func (c *guildServiceClient) ListUserGuildChannelVisibilities(ctx context.Context, in *ListUserGuildChannelVisibilitiesRequest, opts ...grpc.CallOption) (*ListUserGuildChannelVisibilitiesResponse, error) {
+func (c *guildServiceClient) GetUserReadyState(ctx context.Context, in *GetUserReadyStateRequest, opts ...grpc.CallOption) (*GetUserReadyStateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListUserGuildChannelVisibilitiesResponse)
-	err := c.cc.Invoke(ctx, GuildService_ListUserGuildChannelVisibilities_FullMethodName, in, out, cOpts...)
+	out := new(GetUserReadyStateResponse)
+	err := c.cc.Invoke(ctx, GuildService_GetUserReadyState_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -547,16 +544,6 @@ func (c *guildServiceClient) AuthorizeGuildChannel(ctx context.Context, in *Auth
 	return out, nil
 }
 
-func (c *guildServiceClient) AuthorizeGuildChannels(ctx context.Context, in *AuthorizeGuildChannelsRequest, opts ...grpc.CallOption) (*AuthorizeGuildChannelsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AuthorizeGuildChannelsResponse)
-	err := c.cc.Invoke(ctx, GuildService_AuthorizeGuildChannels_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // GuildServiceServer is the server API for GuildService service.
 // All implementations should embed UnimplementedGuildServiceServer
 // for forward compatibility.
@@ -566,9 +553,8 @@ type GuildServiceServer interface {
 	CreateGuild(context.Context, *CreateGuildRequest) (*CreateGuildResponse, error)
 	GetGuild(context.Context, *GetGuildRequest) (*GetGuildResponse, error)
 	ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error)
-	// ListUserGuildChannelVisibilities returns paginated, server-authoritative
-	// visible channel snapshots for the user's active Guild memberships.
-	ListUserGuildChannelVisibilities(context.Context, *ListUserGuildChannelVisibilitiesRequest) (*ListUserGuildChannelVisibilitiesResponse, error)
+	// GetUserReadyState returns the complete Guild bootstrap for one user.
+	GetUserReadyState(context.Context, *GetUserReadyStateRequest) (*GetUserReadyStateResponse, error)
 	// GetUserGuildChannelVisibility returns a single Guild visibility snapshot
 	// for an on-demand snapshot reload by Session nodes.
 	GetUserGuildChannelVisibility(context.Context, *GetUserGuildChannelVisibilityRequest) (*GetUserGuildChannelVisibilityResponse, error)
@@ -609,7 +595,6 @@ type GuildServiceServer interface {
 	DeleteGuildChannelPermissionOverwrite(context.Context, *DeleteGuildChannelPermissionOverwriteRequest) (*DeleteGuildChannelPermissionOverwriteResponse, error)
 	ListGuildChannelPermissionOverwrites(context.Context, *ListGuildChannelPermissionOverwritesRequest) (*ListGuildChannelPermissionOverwritesResponse, error)
 	AuthorizeGuildChannel(context.Context, *AuthorizeGuildChannelRequest) (*AuthorizeGuildChannelResponse, error)
-	AuthorizeGuildChannels(context.Context, *AuthorizeGuildChannelsRequest) (*AuthorizeGuildChannelsResponse, error)
 }
 
 // UnimplementedGuildServiceServer should be embedded to have
@@ -628,8 +613,8 @@ func (UnimplementedGuildServiceServer) GetGuild(context.Context, *GetGuildReques
 func (UnimplementedGuildServiceServer) ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUserGuilds not implemented")
 }
-func (UnimplementedGuildServiceServer) ListUserGuildChannelVisibilities(context.Context, *ListUserGuildChannelVisibilitiesRequest) (*ListUserGuildChannelVisibilitiesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListUserGuildChannelVisibilities not implemented")
+func (UnimplementedGuildServiceServer) GetUserReadyState(context.Context, *GetUserReadyStateRequest) (*GetUserReadyStateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserReadyState not implemented")
 }
 func (UnimplementedGuildServiceServer) GetUserGuildChannelVisibility(context.Context, *GetUserGuildChannelVisibilityRequest) (*GetUserGuildChannelVisibilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserGuildChannelVisibility not implemented")
@@ -745,9 +730,6 @@ func (UnimplementedGuildServiceServer) ListGuildChannelPermissionOverwrites(cont
 func (UnimplementedGuildServiceServer) AuthorizeGuildChannel(context.Context, *AuthorizeGuildChannelRequest) (*AuthorizeGuildChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeGuildChannel not implemented")
 }
-func (UnimplementedGuildServiceServer) AuthorizeGuildChannels(context.Context, *AuthorizeGuildChannelsRequest) (*AuthorizeGuildChannelsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeGuildChannels not implemented")
-}
 func (UnimplementedGuildServiceServer) testEmbeddedByValue() {}
 
 // UnsafeGuildServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -822,20 +804,20 @@ func _GuildService_ListUserGuilds_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GuildService_ListUserGuildChannelVisibilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListUserGuildChannelVisibilitiesRequest)
+func _GuildService_GetUserReadyState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserReadyStateRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GuildServiceServer).ListUserGuildChannelVisibilities(ctx, in)
+		return srv.(GuildServiceServer).GetUserReadyState(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: GuildService_ListUserGuildChannelVisibilities_FullMethodName,
+		FullMethod: GuildService_GetUserReadyState_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GuildServiceServer).ListUserGuildChannelVisibilities(ctx, req.(*ListUserGuildChannelVisibilitiesRequest))
+		return srv.(GuildServiceServer).GetUserReadyState(ctx, req.(*GetUserReadyStateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1524,24 +1506,6 @@ func _GuildService_AuthorizeGuildChannel_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GuildService_AuthorizeGuildChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AuthorizeGuildChannelsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(GuildServiceServer).AuthorizeGuildChannels(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: GuildService_AuthorizeGuildChannels_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GuildServiceServer).AuthorizeGuildChannels(ctx, req.(*AuthorizeGuildChannelsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // GuildService_ServiceDesc is the grpc.ServiceDesc for GuildService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1562,8 +1526,8 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _GuildService_ListUserGuilds_Handler,
 		},
 		{
-			MethodName: "ListUserGuildChannelVisibilities",
-			Handler:    _GuildService_ListUserGuildChannelVisibilities_Handler,
+			MethodName: "GetUserReadyState",
+			Handler:    _GuildService_GetUserReadyState_Handler,
 		},
 		{
 			MethodName: "GetUserGuildChannelVisibility",
@@ -1716,10 +1680,6 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AuthorizeGuildChannel",
 			Handler:    _GuildService_AuthorizeGuildChannel_Handler,
-		},
-		{
-			MethodName: "AuthorizeGuildChannels",
-			Handler:    _GuildService_AuthorizeGuildChannels_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

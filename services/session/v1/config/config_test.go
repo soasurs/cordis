@@ -17,6 +17,8 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "0.0.0.0:3006", cfg.ListenOn)
 	require.Equal(t, "session-local", cfg.Node.ID)
 	require.Equal(t, 2048, cfg.Node.MaxReplayEvents)
+	require.Equal(t, 1024, cfg.Node.PendingDispatchLimit())
+	require.Equal(t, int64(16<<20), cfg.Node.PendingDispatchByteLimit())
 	require.Equal(t, 100, cfg.Node.VisibilityGuildLimit())
 	require.Equal(t, 500, cfg.Node.VisibilityChannelLimit())
 	require.Equal(t, int64(16), cfg.Node.SnapshotReloadLimit())
@@ -31,4 +33,5 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, []string{"127.0.0.1:2379"}, cfg.SessionRegistry.Hosts)
 	require.Equal(t, "/cordis/session/nodes", cfg.SessionRegistry.Prefix)
 	require.Equal(t, []string{"127.0.0.1:3001"}, cfg.Services.Authenticator.Endpoints)
+	require.Equal(t, []string{"127.0.0.1:3002"}, cfg.Services.Message.Endpoints)
 }

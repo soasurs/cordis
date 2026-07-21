@@ -149,9 +149,9 @@ func TestGuildMessageRejectsNonMessageEvent(t *testing.T) {
 
 func TestGuildMessageReloadsInvalidVisibilitySnapshot(t *testing.T) {
 	server := newTestServer()
-	server.svcCtx.GuildClient = &visibilityGuild{responses: []*guildv1.ListUserGuildChannelVisibilitiesResponse{
-		visibilityResponse(visibility(9001, 8, 7001)),
-	}}
+	server.svcCtx.GuildClient = &visibilityGuild{response: readyVisibilityResponse(
+		readyVisibility(9001, 8, 7001),
+	)}
 	session := testLogicalSession(1001, 9001)
 	server.addSession(session, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7002}}})
 	require.True(t, server.invalidateVisibilityGuild(1001, 9001, 8))
@@ -232,11 +232,11 @@ type failingVisibilityGuild struct {
 	guildv1.GuildServiceClient
 }
 
-func (failingVisibilityGuild) ListUserGuildChannelVisibilities(
+func (failingVisibilityGuild) GetUserReadyState(
 	context.Context,
-	*guildv1.ListUserGuildChannelVisibilitiesRequest,
+	*guildv1.GetUserReadyStateRequest,
 	...grpc.CallOption,
-) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
+) (*guildv1.GetUserReadyStateResponse, error) {
 	return nil, status.Error(codes.Unavailable, "guild unavailable")
 }
 

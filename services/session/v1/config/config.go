@@ -40,22 +40,24 @@ type RateLimitPolicy struct {
 }
 
 type NodeConfig struct {
-	ID                    string
-	AdvertiseAddress      string
-	HeartbeatSeconds      int `json:",default=15"`
-	NodeTTLSeconds        int `json:",default=30"`
-	SessionResumeSeconds  int `json:",default=120"`
-	MaxReplayEvents       int `json:",default=2048"`
-	RouteRefreshSeconds   int `json:",default=15"`
-	RouteTTLSeconds       int `json:",default=30"`
-	BindingQueueSize      int `json:",default=4096"`
-	DrainSeconds          int `json:",default=30"`
-	MaxVisibilityGuilds   int `json:",default=100"`
-	MaxVisibilityChannels int `json:",default=500"`
-	MaxSnapshotReloads    int `json:",default=16"`
-	SnapshotReloadSeconds int `json:",default=2"`
-	MaxPresenceUpdates    int `json:",default=5"`
-	PresenceWindowSeconds int `json:",default=20"`
+	ID                      string
+	AdvertiseAddress        string
+	HeartbeatSeconds        int   `json:",default=15"`
+	NodeTTLSeconds          int   `json:",default=30"`
+	SessionResumeSeconds    int   `json:",default=120"`
+	MaxReplayEvents         int   `json:",default=2048"`
+	MaxPendingDispatches    int   `json:",default=1024"`
+	MaxPendingDispatchBytes int64 `json:",default=16777216"`
+	RouteRefreshSeconds     int   `json:",default=15"`
+	RouteTTLSeconds         int   `json:",default=30"`
+	BindingQueueSize        int   `json:",default=4096"`
+	DrainSeconds            int   `json:",default=30"`
+	MaxVisibilityGuilds     int   `json:",default=100"`
+	MaxVisibilityChannels   int   `json:",default=500"`
+	MaxSnapshotReloads      int   `json:",default=16"`
+	SnapshotReloadSeconds   int   `json:",default=2"`
+	MaxPresenceUpdates      int   `json:",default=5"`
+	PresenceWindowSeconds   int   `json:",default=20"`
 }
 
 // PresenceUpdateLimit returns the per-logical-session presence update quota.
@@ -110,6 +112,7 @@ type ServiceConfig struct {
 	Authenticator zrpc.RpcClientConf
 	Presence      zrpc.RpcClientConf
 	Guild         zrpc.RpcClientConf
+	Message       zrpc.RpcClientConf
 }
 
 func (c Config) RPCConfig() zrpc.RpcServerConf {
@@ -159,6 +162,24 @@ func (c NodeConfig) ReplayLimit() int {
 		return 2048
 	}
 	return c.MaxReplayEvents
+}
+
+// PendingDispatchLimit bounds events buffered while READY is assembled. It
+// leaves one replay and binding slot for READY itself.
+func (c NodeConfig) PendingDispatchLimit() int {
+	limit := c.MaxPendingDispatches
+	if limit <= 0 {
+		limit = 1024
+	}
+	return min(limit, max(0, c.ReplayLimit()-1), max(0, c.QueueSize()-1))
+}
+
+// PendingDispatchByteLimit bounds buffered event type and payload bytes during READY.
+func (c NodeConfig) PendingDispatchByteLimit() int64 {
+	if c.MaxPendingDispatchBytes <= 0 {
+		return 16 << 20
+	}
+	return c.MaxPendingDispatchBytes
 }
 
 func (c NodeConfig) RouteRefreshInterval() time.Duration {

@@ -80,21 +80,6 @@ const getGuildForMemberQuery = `
     LIMIT 1
 `
 
-const listGuildsForMemberByIDsQuery = `
-    SELECT ` + guildColumns + `
-    FROM guilds
-    WHERE id = ANY($1)
-      AND deleted_at = 0
-      AND EXISTS (
-          SELECT 1
-          FROM guild_members
-          WHERE guild_id = guilds.id
-            AND user_id = $2
-            AND deleted_at = 0
-      )
-    ORDER BY id ASC
-`
-
 const listUserGuildsQuery = `
     SELECT ` + guildColumns + `
     FROM guilds
@@ -319,6 +304,14 @@ const listGuildRolesQuery = `
     ORDER BY position DESC, id ASC
 `
 
+const listGuildRolesByGuildsQuery = `
+    SELECT ` + roleColumns + `
+    FROM roles
+    WHERE guild_id = ANY($1)
+      AND deleted_at = 0
+    ORDER BY guild_id ASC, position DESC, id ASC
+`
+
 const updateGuildRoleQuery = `
     UPDATE roles
     SET name = CASE WHEN $3 THEN $4 ELSE name END,
@@ -445,14 +438,6 @@ const getGuildChannelQuery = `
     WHERE id = $1
       AND deleted_at = 0
     LIMIT 1
-`
-
-const listGuildChannelsByIDsQuery = `
-    SELECT ` + channelColumns + `
-    FROM guild_channels
-    WHERE id = ANY($1)
-      AND deleted_at = 0
-    ORDER BY id ASC
 `
 
 const listGuildChannelsQuery = `
@@ -583,7 +568,7 @@ const listGuildChannelPermissionOverwritesByChannelsQuery = `
     SELECT ` + channelOverwriteColumns + `
     FROM guild_channel_permission_overwrites
     WHERE channel_id = ANY($1)
-    ORDER BY channel_id ASC, target_type ASC, target_id ASC
+    ORDER BY guild_id ASC, channel_id ASC, target_type ASC, target_id ASC
 `
 
 const listGuildChannelPermissionOverwritesByGuildQuery = `

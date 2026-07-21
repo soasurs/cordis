@@ -13,11 +13,12 @@ import (
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 )
 
-func TestIdentifySharesVisibilitySnapshotsAcrossLocalSessions(t *testing.T) {
+func TestIdentifyRetainsVisibilitySnapshotsAcrossLocalSessions(t *testing.T) {
 	server := newTestServer()
-	guild := &visibilityGuild{responses: []*guildv1.ListUserGuildChannelVisibilitiesResponse{
-		visibilityResponse(visibility(30, 7, 301, 302), visibility(20, 4, 201)),
-	}}
+	guild := &visibilityGuild{response: readyVisibilityResponse(
+		readyVisibility(30, 7, 301, 302),
+		readyVisibility(20, 4, 201),
+	)}
 	server.svcCtx.GuildClient = guild
 	identify := new(sessionv1.Identify)
 	identify.SetToken("token")
@@ -26,7 +27,7 @@ func TestIdentifySharesVisibilitySnapshotsAcrossLocalSessions(t *testing.T) {
 	require.NoError(t, err)
 	second, err := server.identify(t.Context(), "conn-b", "gateway-a", "gen-a", identify)
 	require.NoError(t, err)
-	require.Equal(t, 1, guild.calls, "the second local session reuses the user snapshot")
+	require.Equal(t, 2, guild.calls)
 	require.Equal(t, map[int64]struct{}{20: {}, 30: {}}, first.guilds)
 	require.Equal(t, first.guilds, second.guilds)
 
@@ -51,43 +52,23 @@ func TestIdentifySharesVisibilitySnapshotsAcrossLocalSessions(t *testing.T) {
 	server.visibilityMu.RUnlock()
 }
 
-func TestLoadVisibilitySnapshotsPaginatesWithinBounds(t *testing.T) {
-	server := newTestServer()
-	server.svcCtx.Cfg.Node.MaxVisibilityGuilds = 101
-	firstPage := make([]*guildv1.GuildChannelVisibility, 0, guildPageSize)
-	for guildID := int64(200); guildID >= 101; guildID-- {
-		firstPage = append(firstPage, visibility(guildID, guildID, guildID*10))
-	}
-	first := visibilityResponse(firstPage...)
-	first.SetBeforeGuildId(101)
-	server.svcCtx.GuildClient = &visibilityGuild{responses: []*guildv1.ListUserGuildChannelVisibilitiesResponse{
-		first,
-		visibilityResponse(visibility(100, 100, 1000)),
-	}}
-
-	snapshots, err := server.loadVisibilitySnapshots(t.Context(), 1001)
-	require.NoError(t, err)
-	require.Len(t, snapshots, 101)
-	require.Equal(t, []int64{0, 101}, server.svcCtx.GuildClient.(*visibilityGuild).before)
-}
-
-func TestLoadVisibilitySnapshotsRejectsUnsafeResponses(t *testing.T) {
+func TestLoadReadyGuildsRejectsUnsafeResponses(t *testing.T) {
 	t.Run("too many guilds", func(t *testing.T) {
 		server := newTestServer()
 		server.svcCtx.Cfg.Node.MaxVisibilityGuilds = 1
-		server.svcCtx.GuildClient = &visibilityGuild{responses: []*guildv1.ListUserGuildChannelVisibilitiesResponse{
-			visibilityResponse(visibility(30, 1), visibility(20, 1)),
-		}}
-		_, err := server.loadVisibilitySnapshots(t.Context(), 1001)
+		server.svcCtx.GuildClient = &visibilityGuild{response: readyVisibilityResponse(
+			readyVisibility(30, 1), readyVisibility(20, 1),
+		)}
+		_, _, err := server.loadReadyGuilds(t.Context(), 1001)
 		require.Equal(t, codes.ResourceExhausted, status.Code(err))
 	})
 
-	t.Run("unsorted channels", func(t *testing.T) {
+	t.Run("duplicate channels", func(t *testing.T) {
 		server := newTestServer()
-		server.svcCtx.GuildClient = &visibilityGuild{responses: []*guildv1.ListUserGuildChannelVisibilitiesResponse{
-			visibilityResponse(visibility(30, 1, 302, 301)),
-		}}
-		_, err := server.loadVisibilitySnapshots(t.Context(), 1001)
+		server.svcCtx.GuildClient = &visibilityGuild{response: readyVisibilityResponse(
+			readyVisibility(30, 1, 301, 301),
+		)}
+		_, _, err := server.loadReadyGuilds(t.Context(), 1001)
 		require.Equal(t, codes.Internal, status.Code(err))
 	})
 }
@@ -148,9 +129,8 @@ func TestVisibilityReloadRejectsResultRacingWithNewerInvalidation(t *testing.T) 
 
 type visibilityGuild struct {
 	guildv1.GuildServiceClient
-	responses []*guildv1.ListUserGuildChannelVisibilitiesResponse
-	calls     int
-	before    []int64
+	response *guildv1.GetUserReadyStateResponse
+	calls    int
 }
 
 type racingVisibilityGuild struct {
@@ -160,70 +140,80 @@ type racingVisibilityGuild struct {
 	calls   int
 }
 
-func (g *racingVisibilityGuild) ListUserGuildChannelVisibilities(
+func (g *visibilityGuild) GetUserReadyState(
 	_ context.Context,
-	_ *guildv1.ListUserGuildChannelVisibilitiesRequest,
+	_ *guildv1.GetUserReadyStateRequest,
 	_ ...grpc.CallOption,
-) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
+) (*guildv1.GetUserReadyStateResponse, error) {
 	g.calls++
-	if g.calls == 1 {
-		close(g.started)
-		<-g.release
-		return visibilityResponse(visibility(9001, 8, 7001)), nil
+	return g.response, nil
+}
+
+func (g *visibilityGuild) GetUserGuildChannelVisibility(
+	_ context.Context,
+	req *guildv1.GetUserGuildChannelVisibilityRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
+	for _, ready := range g.response.GetGuilds() {
+		if ready.GetGuild().GetId() == req.GetGuildId() {
+			resp := new(guildv1.GetUserGuildChannelVisibilityResponse)
+			resp.SetVisibility(visibilityFromReady(ready))
+			return resp, nil
+		}
 	}
-	return visibilityResponse(visibility(9001, 9, 7001)), nil
+	return nil, status.Error(codes.NotFound, "guild not found")
 }
 
 func (g *racingVisibilityGuild) GetUserGuildChannelVisibility(
 	_ context.Context,
-	req *guildv1.GetUserGuildChannelVisibilityRequest,
+	_ *guildv1.GetUserGuildChannelVisibilityRequest,
 	_ ...grpc.CallOption,
 ) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
 	g.calls++
-	r := new(guildv1.GetUserGuildChannelVisibilityResponse)
+	revision := int64(9)
 	if g.calls == 1 {
 		close(g.started)
 		<-g.release
-		r.SetVisibility(visibility(9001, 8, 7001))
-		return r, nil
+		revision = 8
 	}
-	r.SetVisibility(visibility(9001, 9, 7001))
-	return r, nil
-}
-
-func (g *visibilityGuild) ListUserGuildChannelVisibilities(
-	_ context.Context,
-	req *guildv1.ListUserGuildChannelVisibilitiesRequest,
-	_ ...grpc.CallOption,
-) (*guildv1.ListUserGuildChannelVisibilitiesResponse, error) {
-	g.before = append(g.before, req.GetBeforeGuildId())
-	if g.calls >= len(g.responses) {
-		return new(guildv1.ListUserGuildChannelVisibilitiesResponse), nil
-	}
-	resp := g.responses[g.calls]
-	g.calls++
+	resp := new(guildv1.GetUserGuildChannelVisibilityResponse)
+	resp.SetVisibility(visibility(9001, revision, 7001))
 	return resp, nil
 }
 
-func (g *visibilityGuild) GetUserGuildChannelVisibility(
-	ctx context.Context,
-	req *guildv1.GetUserGuildChannelVisibilityRequest,
-	_ ...grpc.CallOption,
-) (*guildv1.GetUserGuildChannelVisibilityResponse, error) {
-	listReq := new(guildv1.ListUserGuildChannelVisibilitiesRequest)
-	listReq.SetUserId(req.GetUserId())
-	resp, err := g.ListUserGuildChannelVisibilities(ctx, listReq)
-	if err != nil {
-		return nil, err
+func readyVisibility(guildID, revision int64, channelIDs ...int64) *guildv1.ReadyGuild {
+	guild := new(guildv1.Guild)
+	guild.SetId(guildID)
+	guild.SetOwnerId(1)
+	guild.SetName("guild")
+	guild.SetRevision(1)
+	channels := make([]*guildv1.GuildChannel, 0, len(channelIDs))
+	for _, channelID := range channelIDs {
+		channel := new(guildv1.GuildChannel)
+		channel.SetId(channelID)
+		channel.SetGuildId(guildID)
+		channel.SetType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+		channels = append(channels, channel)
 	}
-	for _, v := range resp.GetVisibilities() {
-		if v.GetGuildId() == req.GetGuildId() {
-			r := new(guildv1.GetUserGuildChannelVisibilityResponse)
-			r.SetVisibility(v)
-			return r, nil
-		}
+	ready := new(guildv1.ReadyGuild)
+	ready.SetGuild(guild)
+	ready.SetAccessRevision(revision)
+	ready.SetChannels(channels)
+	return ready
+}
+
+func readyVisibilityResponse(items ...*guildv1.ReadyGuild) *guildv1.GetUserReadyStateResponse {
+	resp := new(guildv1.GetUserReadyStateResponse)
+	resp.SetGuilds(items)
+	return resp
+}
+
+func visibilityFromReady(ready *guildv1.ReadyGuild) *guildv1.GuildChannelVisibility {
+	channelIDs := make([]int64, 0, len(ready.GetChannels()))
+	for _, channel := range ready.GetChannels() {
+		channelIDs = append(channelIDs, channel.GetId())
 	}
-	return nil, status.Error(codes.NotFound, "guild not found")
+	return visibility(ready.GetGuild().GetId(), ready.GetAccessRevision(), channelIDs...)
 }
 
 func visibility(guildID, revision int64, channelIDs ...int64) *guildv1.GuildChannelVisibility {
@@ -232,13 +222,4 @@ func visibility(guildID, revision int64, channelIDs ...int64) *guildv1.GuildChan
 	item.SetAccessRevision(revision)
 	item.SetVisibleChannelIds(channelIDs)
 	return item
-}
-
-func visibilityResponse(items ...*guildv1.GuildChannelVisibility) *guildv1.ListUserGuildChannelVisibilitiesResponse {
-	resp := new(guildv1.ListUserGuildChannelVisibilitiesResponse)
-	resp.SetVisibilities(items)
-	if len(items) > 0 {
-		resp.SetBeforeGuildId(items[len(items)-1].GetGuildId())
-	}
-	return resp
 }

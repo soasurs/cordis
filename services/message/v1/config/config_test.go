@@ -27,7 +27,7 @@ func TestLoadConfig(t *testing.T) {
 		t.Fatalf("unexpected Kafka topic: %q", cfg.Kafka.Topic)
 	}
 	if cfg.ReadStates.MaxConcurrentChannels != 800 {
-		t.Fatalf("unexpected read states max concurrent channels: %d", cfg.ReadStates.MaxConcurrentChannels)
+		t.Fatalf("unexpected read state concurrency: %+v", cfg.ReadStates)
 	}
 	if cfg.Limits.Attachments() != 10 || cfg.Limits.Mentions() != 100 {
 		t.Fatalf("unexpected resource limits: %+v", cfg.Limits)

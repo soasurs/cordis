@@ -286,7 +286,7 @@ func (s *messageServer) AckMessage(ctx context.Context, req *apiv1.AckMessageReq
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.AckMessageResponse{Ok: new(svcResp.GetOk())}, nil
+	return &apiv1.AckMessageResponse{ReadState: apiChannelReadState(svcResp.GetReadState())}, nil
 }
 
 func (s *messageServer) GetReadStates(ctx context.Context, req *apiv1.GetReadStatesRequest) (*apiv1.GetReadStatesResponse, error) {
@@ -302,19 +302,31 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *apiv1.GetReadSta
 
 	svcReq := new(messagev1.GetReadStatesRequest)
 	svcReq.SetUserId(auth.GetUserId())
-	svcReq.SetChannelIds(req.GetChannelIds())
+	svcReq.SetScope(messagev1.ReadStateScopeType(req.GetScope()))
+	svcReq.SetGuildId(req.GetGuildId())
 	svcResp, err := s.svcCtx.MessageClient.GetReadStates(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	states := make([]*apiv1.ChannelReadState, 0, len(svcResp.GetStates()))
-	for _, st := range svcResp.GetStates() {
-		states = append(states, &apiv1.ChannelReadState{
-			ChannelId:           new(st.GetChannelId()),
-			LastReadMessageId:   new(st.GetLastReadMessageId()),
-			MentionCount:        new(st.GetMentionCount()),
-			MissingMessageCount: new(st.GetMissingMessageCount()),
-		})
+	dmChannels := make([]*apiv1.DmChannel, 0, len(svcResp.GetDmChannels()))
+	for _, channel := range svcResp.GetDmChannels() {
+		dmChannels = append(dmChannels, dmChannelToAPI(channel, auth.GetUserId()))
 	}
-	return &apiv1.GetReadStatesResponse{States: states}, nil
+	readStates := make([]*apiv1.ChannelReadState, 0, len(svcResp.GetReadStates()))
+	for _, state := range svcResp.GetReadStates() {
+		readStates = append(readStates, apiChannelReadState(state))
+	}
+	return &apiv1.GetReadStatesResponse{DmChannels: dmChannels, ReadStates: readStates}, nil
+}
+
+func apiChannelReadState(state *messagev1.ChannelReadState) *apiv1.ChannelReadState {
+	if state == nil {
+		return nil
+	}
+	return &apiv1.ChannelReadState{
+		ChannelId:         new(state.GetChannelId()),
+		LastMessageId:     new(state.GetLastMessageId()),
+		LastReadMessageId: new(state.GetLastReadMessageId()),
+		MentionCount:      new(state.GetMentionCount()),
+	}
 }

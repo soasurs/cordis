@@ -42,6 +42,8 @@ node:
   nodeTTLSeconds: 30
   sessionResumeSeconds: 120
   maxReplayEvents: 2048
+  maxPendingDispatches: 1024
+  maxPendingDispatchBytes: 16777216
   routeRefreshSeconds: 15
   routeTTLSeconds: 30
   bindingQueueSize: 4096
@@ -90,6 +92,15 @@ services:
   guild:
     endpoints:
       - 127.0.0.1:3005
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true
+  message:
+    endpoints:
+      - 127.0.0.1:3002
     middlewares:
       trace: true
       duration: false

@@ -7,12 +7,14 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/trace"
 
+	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
 
 type Config struct {
 	Name            string
 	ListenOn        string
+	ProbeServer     probe.HTTPConfig
 	Log             logx.LogConf
 	Telemetry       trace.Config  `json:",optional"`
 	Gateway         GatewayConfig `json:",optional"`

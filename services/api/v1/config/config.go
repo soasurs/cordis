@@ -7,6 +7,7 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 
+	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/observability"
 )
@@ -14,6 +15,7 @@ import (
 type Config struct {
 	Name          string
 	ListenOn      string
+	ProbeServer   probe.HTTPConfig
 	Log           logx.LogConf
 	Observability observability.Config
 	RateLimit     RateLimitConfig

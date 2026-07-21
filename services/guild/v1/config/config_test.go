@@ -12,6 +12,7 @@ func TestLoadConfig(t *testing.T) {
 	var cfg Config
 	require.NoError(t, conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv()))
 	require.Equal(t, "guild.v1", cfg.Name)
+	require.False(t, cfg.Health)
 	require.Equal(t, "cordis.guild.events.v1", cfg.Kafka.Topic)
 	require.Empty(t, cfg.Kafka.Seeds)
 	require.NotEmpty(t, cfg.Database.DataSource)

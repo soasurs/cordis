@@ -12,6 +12,7 @@ func TestLoadConfig(t *testing.T) {
 	var cfg Config
 	require.NoError(t, conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv()))
 	require.Equal(t, "dispatcher.v1", cfg.Name)
+	require.Equal(t, "0.0.0.0:6069", cfg.ProbeServer.ListenOn)
 	require.Equal(t, "error", cfg.Log.Level)
 	require.Equal(t, 1.0, cfg.Telemetry.Sampler)
 	require.Equal(t, "cordis.guild.events.v1", cfg.Kafka.GuildTopic)

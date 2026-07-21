@@ -4,10 +4,12 @@ import (
 	"flag"
 
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/proc"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
+	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/services/presence/v1/config"
 	"github.com/soasurs/cordis/services/presence/v1/internal/server"
 	"github.com/soasurs/cordis/services/presence/v1/internal/svc"
@@ -23,14 +25,28 @@ func main() {
 		panic(err)
 	}
 
-	svcCtx := svc.NewServiceContext(*cfg)
+	deps, err := svc.NewDependencies(*cfg)
+	if err != nil {
+		panic(err)
+	}
+	if deps.Kafka != nil {
+		defer deps.Kafka.Close()
+	}
+	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	server := server.New(svcCtx)
-	s, err := zrpc.NewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
+	probeState := probe.New()
+	probeState.SetLiveness(true)
+	proc.AddWrapUpListener(func() {
+		probeState.SetReadiness(false)
+	})
+	s, err := zrpc.NewServer(cfg.RPCConfig(), func(grpcServer *grpc.Server) {
 		presencev1.RegisterPresenceServiceServer(grpcServer, server)
+		probeState.RegisterGRPC(grpcServer)
 	})
 	if err != nil {
 		panic(err)
 	}
 
+	probeState.SetReadiness(true)
 	s.Start()
 }

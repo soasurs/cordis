@@ -1,6 +1,7 @@
 name: mailer.v1
 listenOn: 0.0.0.0:3007
 timeout: 0
+health: false
 
 log:
   level: error

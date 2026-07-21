@@ -1,5 +1,8 @@
 name: dispatcher.v1
 
+probeServer:
+  listenOn: 0.0.0.0:6069
+
 log:
   level: error
   stat: false

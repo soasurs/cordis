@@ -14,6 +14,7 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv()))
 	require.Equal(t, "gateway.v1", cfg.Name)
 	require.Equal(t, "0.0.0.0:8081", cfg.ListenOn)
+	require.Equal(t, "0.0.0.0:6065", cfg.ProbeServer.ListenOn)
 	require.Equal(t, "info", cfg.Log.Level)
 	require.Equal(t, 1.0, cfg.Telemetry.Sampler)
 	require.Equal(t, "otlpgrpc", cfg.Telemetry.Batcher)

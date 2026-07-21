@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -14,6 +15,7 @@ import (
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/observability"
+	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/dispatcher/v1/config"
 	"github.com/soasurs/cordis/services/dispatcher/v1/internal/discovery"
@@ -47,8 +49,31 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	defer userRPCClient.Conn().Close()
 	dispatcher := server.New(*cfg, discovery.NewRedisResolver(rds, registry), userv1.NewUserServiceClient(userRPCClient.Conn()))
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	probeState := probe.New()
+	probeServer, err := probe.StartHTTP(cfg.ProbeServer, probeState)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := probeServer.Shutdown(shutdownCtx); err != nil {
+			logx.Errorw("shutdown dispatcher probe server", logx.Field("error", err))
+		}
+	}()
+	probeState.SetLiveness(true)
+
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	dispatcher.Run(ctx)
+	runCtx, cancelRun := context.WithCancel(context.Background())
+	defer cancelRun()
+	go func() {
+		<-signalCtx.Done()
+		probeState.SetReadiness(false)
+		cancelRun()
+	}()
+	probeState.SetReadiness(true)
+	dispatcher.Run(runCtx)
 }

@@ -119,6 +119,8 @@ func gatewayWebSocketCloseReason(ctx context.Context, err error, established boo
 		return "handshake_timeout"
 	}
 	switch websocket.CloseStatus(err) {
+	case websocket.StatusServiceRestart:
+		return "server_shutdown"
 	case websocket.StatusNormalClosure, websocket.StatusGoingAway, websocket.StatusNoStatusRcvd:
 		return "peer_closed"
 	default:

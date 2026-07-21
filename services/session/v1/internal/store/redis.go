@@ -9,7 +9,12 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 )
 
-const routeMemberSeparator = "\x1f"
+const (
+	routeMemberSeparator = "\x1f"
+	// go-zero records every pipeline command name in redis.cmds. Fifty owners
+	// cap that attribute at 100 entries (one HSET and one EXPIRE per owner).
+	ownerPipelineBatchSize = 50
+)
 
 type RedisStore struct {
 	rds *redis.Redis
@@ -29,6 +34,16 @@ func (s *RedisStore) SetOwners(ctx context.Context, owners []Owner, ttl time.Dur
 		return nil
 	}
 	now := s.now()
+	for start := 0; start < len(owners); start += ownerPipelineBatchSize {
+		end := min(start+ownerPipelineBatchSize, len(owners))
+		if err := s.setOwnerBatch(ctx, owners[start:end], ttl, now); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *RedisStore) setOwnerBatch(ctx context.Context, owners []Owner, ttl time.Duration, now time.Time) error {
 	return s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
 		for _, owner := range owners {
 			owner.ExpiresAt = now.Add(ttl).UnixMilli()

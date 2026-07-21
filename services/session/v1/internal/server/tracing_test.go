@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -12,14 +13,167 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
+	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/observability"
 	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/services/session/v1/internal/store"
 )
+
+func TestRefreshSessionLeasesCreatesBoundedParentSpan(t *testing.T) {
+	tests := []struct {
+		name             string
+		ownerErr         error
+		presenceErr      error
+		wantResult       string
+		wantOwnerType    string
+		wantPresenceType string
+		wantStatus       string
+	}{
+		{
+			name:             "success",
+			wantResult:       "success",
+			wantOwnerType:    "none",
+			wantPresenceType: "none",
+			wantStatus:       "Unset",
+		},
+		{
+			name:             "redacted failures",
+			ownerErr:         status.Error(codes.Unavailable, "sensitive-owner-key"),
+			presenceErr:      status.Error(codes.DeadlineExceeded, "sensitive-rpc-address"),
+			wantResult:       "partial_failure",
+			wantOwnerType:    "unavailable",
+			wantPresenceType: "timeout",
+			wantStatus:       "Error",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			exporter := tracetest.NewInMemoryExporter()
+			provider := sdktrace.NewTracerProvider(
+				sdktrace.WithSampler(sdktrace.AlwaysSample()),
+				sdktrace.WithSyncer(exporter),
+			)
+			t.Cleanup(func() { require.NoError(t, provider.Shutdown(context.Background())) })
+			tracer := provider.Tracer("lease-test")
+			leaseStore := &tracedLeaseStore{fakeStore: new(fakeStore), tracer: tracer, err: tt.ownerErr}
+			presence := &tracedLeasePresence{tracer: tracer, err: tt.presenceErr}
+			server := newTestServer()
+			server.tracer = provider.Tracer(observability.SessionInstrumentationName)
+			server.svcCtx.Store = leaseStore
+			server.svcCtx.PresenceClient = presence
+			session := &logicalSession{
+				id:                "sensitive-session-id",
+				userID:            1001,
+				gatewayID:         "sensitive-gateway-id",
+				gatewayGeneration: "sensitive-generation",
+				deviceType:        "sensitive-device",
+				guilds:            make(map[int64]struct{}),
+			}
+			server.sessions[session.id] = session
+
+			server.refreshSessionLeasesWithSpread(t.Context(), 0)
+
+			spans := exporter.GetSpans()
+			require.Len(t, spans, 3)
+			cycle := leaseSpanByName(t, spans, "session.lease.refresh")
+			redisSpan := leaseSpanByName(t, spans, "redis")
+			presenceSpan := leaseSpanByName(t, spans, "presence.refresh")
+			for _, child := range []tracetest.SpanStub{redisSpan, presenceSpan} {
+				require.Equal(t, cycle.SpanContext.TraceID(), child.SpanContext.TraceID())
+				require.Equal(t, cycle.SpanContext.SpanID(), child.Parent.SpanID())
+			}
+			attrs := leaseSpanAttributes(cycle)
+			require.Equal(t, int64(1), attrs["cordis.session.lease.session_count"])
+			require.Equal(t, int64(1), attrs["cordis.session.lease.batch_count"])
+			require.Equal(t, int64(500), attrs["cordis.session.lease.batch_size"])
+			require.Equal(t, int64(1), attrs["cordis.session.lease.completed_batch_count"])
+			require.Equal(t, int64(30_000), attrs["cordis.session.lease.interval_ms"])
+			require.Equal(t, int64(0), attrs["cordis.session.lease.spread_ms"])
+			require.Equal(t, tt.wantResult, attrs["cordis.session.lease.result"])
+			require.Equal(t, tt.wantOwnerType, attrs["cordis.session.lease.owner_error_type"])
+			require.Equal(t, tt.wantPresenceType, attrs["cordis.session.lease.presence_error_type"])
+			require.Equal(t, tt.wantStatus, cycle.Status.Code.String())
+			if tt.ownerErr == nil {
+				require.Equal(t, int64(0), attrs["cordis.session.lease.owner_failure_count"])
+			} else {
+				require.Equal(t, int64(1), attrs["cordis.session.lease.owner_failure_count"])
+			}
+			if tt.presenceErr == nil {
+				require.Equal(t, int64(0), attrs["cordis.session.lease.presence_failure_count"])
+			} else {
+				require.Equal(t, int64(1), attrs["cordis.session.lease.presence_failure_count"])
+			}
+			telemetry := strings.ToLower(fmt.Sprint(cycle.Attributes, cycle.Events, cycle.Status))
+			for _, sensitive := range []string{
+				"sensitive-session-id", "sensitive-gateway-id", "sensitive-generation",
+				"sensitive-device", "sensitive-owner-key", "sensitive-rpc-address",
+			} {
+				require.NotContains(t, telemetry, sensitive)
+			}
+		})
+	}
+}
+
+type tracedLeaseStore struct {
+	*fakeStore
+	tracer trace.Tracer
+	err    error
+}
+
+func (s *tracedLeaseStore) SetOwners(ctx context.Context, owners []store.Owner, ttl time.Duration) error {
+	_, span := s.tracer.Start(ctx, "redis")
+	defer span.End()
+	if s.err != nil {
+		return s.err
+	}
+	return s.fakeStore.SetOwners(ctx, owners, ttl)
+}
+
+type tracedLeasePresence struct {
+	fakePresence
+	tracer trace.Tracer
+	err    error
+}
+
+func (p *tracedLeasePresence) RefreshUserSessions(
+	ctx context.Context,
+	_ *presencev1.RefreshUserSessionsRequest,
+	_ ...grpc.CallOption,
+) (*presencev1.RefreshUserSessionsResponse, error) {
+	_, span := p.tracer.Start(ctx, "presence.refresh")
+	defer span.End()
+	if p.err != nil {
+		return nil, p.err
+	}
+	return new(presencev1.RefreshUserSessionsResponse), nil
+}
+
+func leaseSpanByName(t *testing.T, spans tracetest.SpanStubs, name string) tracetest.SpanStub {
+	t.Helper()
+	for _, span := range spans {
+		if span.Name == name {
+			return span
+		}
+	}
+	require.FailNow(t, "span not found", "name: %s", name)
+	return tracetest.SpanStub{}
+}
+
+func leaseSpanAttributes(span tracetest.SpanStub) map[string]any {
+	attrs := make(map[string]any, len(span.Attributes))
+	for _, attr := range span.Attributes {
+		attrs[string(attr.Key)] = attr.Value.AsInterface()
+	}
+	return attrs
+}
 
 func TestFilteredConnectPropagatesAndEndsHandshakeSpan(t *testing.T) {
 	exporter := tracetest.NewInMemoryExporter()

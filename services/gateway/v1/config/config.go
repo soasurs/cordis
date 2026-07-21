@@ -5,6 +5,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+	"github.com/zeromicro/go-zero/core/trace"
 
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
@@ -13,6 +14,7 @@ type Config struct {
 	Name            string
 	ListenOn        string
 	Log             logx.LogConf
+	Telemetry       trace.Config  `json:",optional"`
 	Gateway         GatewayConfig `json:",optional"`
 	RateLimit       RateLimitConfig
 	Redis           redis.RedisConf

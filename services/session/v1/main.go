@@ -10,9 +10,11 @@ import (
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/zrpc"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	"github.com/soasurs/cordis/pkg/observability"
 	"github.com/soasurs/cordis/services/session/v1/config"
 	"github.com/soasurs/cordis/services/session/v1/internal/server"
 	"github.com/soasurs/cordis/services/session/v1/internal/svc"
@@ -35,11 +37,19 @@ func main() {
 	defer stop()
 	sessionServer.StartBackground(ctx)
 
-	s, err := zrpc.NewServer(cfg.RPCConfig(), func(grpcServer *grpc.Server) {
+	rpcConfig := cfg.RPCConfig()
+	traceRPC := rpcConfig.Middlewares.Trace
+	rpcConfig.Middlewares.Trace = false
+	s, err := zrpc.NewServer(rpcConfig, func(grpcServer *grpc.Server) {
 		sessionv1.RegisterSessionServiceServer(grpcServer, sessionServer)
 	})
 	if err != nil {
 		panic(err)
+	}
+	if traceRPC {
+		s.AddOptions(grpc.StatsHandler(otelgrpc.NewServerHandler(otelgrpc.WithFilter(
+			observability.ExcludeGRPCMethods(sessionv1.SessionService_Connect_FullMethodName),
+		))))
 	}
 	go func() {
 		<-ctx.Done()

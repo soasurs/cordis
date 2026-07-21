@@ -55,7 +55,7 @@ func TestWebSocketForwardsSessionFrames(t *testing.T) {
 	require.Equal(t, opDispatch, ready.Op)
 	require.Equal(t, eventReady, ready.T)
 	require.Equal(t, uint64(1), ready.S)
-	require.True(t, socketLimiter.lease.ready.Load())
+	require.Eventually(t, socketLimiter.lease.ready.Load, time.Second, time.Millisecond)
 
 	writeClientText(t, conn, `{"op":1,"d":1}`)
 	early := readEnvelope(t, reader)

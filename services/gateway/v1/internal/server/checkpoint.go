@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	"github.com/soasurs/cordis/pkg/observability"
 )
 
 type connectionCheckpoint struct {
@@ -169,7 +171,13 @@ func (s *grpcCheckpointSender) client(address string) (sessionv1.SessionServiceC
 	if client := s.clients[address]; client != nil {
 		return client, nil
 	}
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(
+		address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler(otelgrpc.WithFilter(
+			observability.ExcludeGRPCMethods(sessionv1.SessionService_Connect_FullMethodName),
+		))),
+	)
 	if err != nil {
 		return nil, err
 	}

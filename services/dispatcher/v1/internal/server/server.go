@@ -11,12 +11,19 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/core/logx"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	cordiskafka "github.com/soasurs/cordis/pkg/kafka"
+	"github.com/soasurs/cordis/pkg/observability"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/dispatcher/v1/config"
 	"github.com/soasurs/cordis/services/dispatcher/v1/internal/discovery"
@@ -70,6 +77,7 @@ type Server struct {
 	consumer   *kgo.Client
 	resolver   discovery.Resolver
 	userClient userv1.UserServiceClient
+	tracer     trace.Tracer
 
 	mu      sync.Mutex
 	clients map[string]sessionv1.SessionServiceClient
@@ -98,6 +106,7 @@ func New(cfg config.Config, resolver discovery.Resolver, userClient userv1.UserS
 		cfg: cfg, consumer: consumer, resolver: resolver, userClient: userClient,
 		clients: make(map[string]sessionv1.SessionServiceClient),
 		conns:   make(map[string]*grpc.ClientConn),
+		tracer:  otel.Tracer(observability.DispatcherInstrumentationName),
 	}
 }
 
@@ -163,13 +172,58 @@ func (s *Server) retryRecord(ctx context.Context, record *kgo.Record) {
 	}
 }
 
-func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (bool, error) {
+func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (permanent bool, err error) {
+	topic := ""
+	partition := int32(0)
+	if record != nil {
+		topic = record.Topic
+		partition = record.Partition
+	}
+	tracer := s.tracer
+	if tracer == nil {
+		tracer = otel.Tracer(observability.DispatcherInstrumentationName)
+	}
+	ctx, span := tracer.Start(
+		cordiskafka.ExtractTraceContext(ctx, record),
+		"process "+topic,
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(
+			attribute.String("messaging.system", "kafka"),
+			attribute.String("messaging.destination.name", topic),
+			attribute.String("messaging.consumer.group.name", defaultString(s.cfg.Kafka.ConsumerGroup, "cordis.dispatcher.v1")),
+			attribute.Int64("messaging.destination.partition.id", int64(partition)),
+			attribute.String("messaging.operation.name", "process"),
+			attribute.String("messaging.operation.type", "process"),
+		),
+	)
+	defer func() {
+		result := "success"
+		if err != nil {
+			result = "retryable_failure"
+			errorType := "dispatch"
+			if permanent {
+				result = "permanent_failure"
+				errorType = "invalid_event"
+			}
+			span.SetAttributes(attribute.String("error.type", errorType))
+			span.SetStatus(codes.Error, result)
+		}
+		span.SetAttributes(attribute.String("cordis.messaging.result", result))
+		span.End()
+	}()
+
+	if record == nil {
+		return true, errors.New("record is nil")
+	}
 	var event eventEnvelope
 	if err := json.Unmarshal(record.Value, &event); err != nil {
 		return true, err
 	}
 	if strings.TrimSpace(event.Type) == "" || !json.Valid(event.Data) {
 		return true, errors.New("invalid event envelope")
+	}
+	if isCanonicalEventType(event.Type) {
+		span.SetAttributes(attribute.String("cordis.event.type", event.Type))
 	}
 	var routing eventRouting
 	if err := json.Unmarshal(event.Data, &routing); err != nil {
@@ -414,7 +468,11 @@ func (s *Server) client(address string) (sessionv1.SessionServiceClient, error) 
 	if client := s.clients[address]; client != nil {
 		return client, nil
 	}
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(
+		address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -422,6 +480,39 @@ func (s *Server) client(address string) (sessionv1.SessionServiceClient, error) 
 	s.conns[address] = conn
 	s.clients[address] = client
 	return client, nil
+}
+
+func isCanonicalEventType(eventType string) bool {
+	switch eventType {
+	case realtime.EventGuildCreated,
+		realtime.EventGuildUpdated,
+		realtime.EventGuildDeleted,
+		realtime.EventGuildMemberJoined,
+		realtime.EventGuildMemberUpdated,
+		realtime.EventGuildMemberRemoved,
+		realtime.EventGuildMemberBanned,
+		realtime.EventGuildMemberUnbanned,
+		realtime.EventGuildRoleCreated,
+		realtime.EventGuildRoleUpdated,
+		realtime.EventGuildRoleDeleted,
+		realtime.EventGuildMemberRolesUpdated,
+		realtime.EventGuildChannelCreated,
+		realtime.EventGuildChannelUpdated,
+		realtime.EventGuildChannelDeleted,
+		realtime.EventGuildChannelOverwriteUpdated,
+		realtime.EventGuildChannelOverwriteDeleted,
+		realtime.EventMessageCreated,
+		realtime.EventMessageUpdated,
+		realtime.EventMessageDeleted,
+		realtime.EventMessageReadUpdated,
+		realtime.EventRelationshipUpdated,
+		realtime.EventRelationshipRemoved,
+		realtime.EventDmChannelCreated,
+		realtime.EventPresenceUpdated:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Server) close() {

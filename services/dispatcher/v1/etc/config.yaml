@@ -4,6 +4,12 @@ log:
   level: error
   stat: false
 
+telemetry:
+  endpoint: "${CORDIS_OTEL_ENDPOINT}"
+  # Local development captures all spans; production should use a lower ratio.
+  sampler: 1.0
+  batcher: otlpgrpc
+
 kafka:
   seeds:
     - 127.0.0.1:9092

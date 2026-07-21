@@ -78,7 +78,7 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 		switch envelope.Type {
 		case EventTypeMessageCreated:
 			foundCreated = true
-			require.Equal(t, "9001", string(record.Key))
+			require.Equal(t, "2001", string(record.Key))
 			require.Equal(t, "9001", envelope.Data.GuildID)
 			require.Equal(t, strconv.FormatInt(created.GetMessage().GetId(), 10), envelope.Data.MessageID)
 		case EventTypeMessageReadUpdated:
@@ -111,7 +111,8 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 		var dmEnvelope eventEnvelope[messagePayload]
 		require.NoError(t, json.Unmarshal(record.Value, &dmEnvelope))
 		if dmEnvelope.Type == EventTypeMessageCreated {
-			createdRecipients[string(record.Key)] = true
+			require.Equal(t, "4001", string(record.Key))
+			createdRecipients[dmEnvelope.Data.UserID] = true
 			continue
 		}
 		require.Equal(t, EventTypeMessageReadUpdated, dmEnvelope.Type)

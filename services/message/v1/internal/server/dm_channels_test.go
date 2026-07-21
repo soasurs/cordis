@@ -206,9 +206,9 @@ func requireDmMessageRecords(t *testing.T, records []publishedRecord, eventType 
 	t.Helper()
 	require.Len(t, records, 2)
 	for i, userID := range []string{"1001", "2002"} {
-		require.Equal(t, userID, string(records[i].key))
 		var envelope eventEnvelope[messagePayload]
 		require.NoError(t, json.Unmarshal(records[i].payload, &envelope))
+		require.Equal(t, envelope.Data.ChannelID, string(records[i].key))
 		require.Equal(t, eventType, envelope.Type)
 		require.Equal(t, userID, envelope.Data.UserID)
 		require.Equal(t, "1001", envelope.Data.AuthorID)
@@ -220,9 +220,9 @@ func requireDmDeletedRecords(t *testing.T, records []publishedRecord) {
 	t.Helper()
 	require.Len(t, records, 2)
 	for i, userID := range []string{"1001", "2002"} {
-		require.Equal(t, userID, string(records[i].key))
 		var envelope eventEnvelope[messageDeletedPayload]
 		require.NoError(t, json.Unmarshal(records[i].payload, &envelope))
+		require.Equal(t, envelope.Data.ChannelID, string(records[i].key))
 		require.Equal(t, EventTypeMessageDeleted, envelope.Type)
 		require.Equal(t, userID, envelope.Data.UserID)
 		require.Empty(t, envelope.Data.GuildID)

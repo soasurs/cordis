@@ -77,17 +77,17 @@ type messageReadUpdatedPayload struct {
 }
 
 func newMessageCreatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
-	return newMessageEvents(EventTypeMessageCreated, audience, messagePayloadFromModel(message, mentionUserIDs))
+	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs))
 }
 
 func newMessageUpdatedEvents(message *model.Message, mentionUserIDs, previousMentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
 	payload := messagePayloadFromModel(message, mentionUserIDs)
 	payload.PreviousMentionUserIDs = idStrings(previousMentionUserIDs)
-	return newMessageEvents(EventTypeMessageUpdated, audience, payload)
+	return newMessageEvents(EventTypeMessageUpdated, message.ChannelID, audience, payload)
 }
 
 func newMessageDeletedEvents(message *model.Message, lastMessageID int64, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
-	return newMessageDeletedRoutingEvents(EventTypeMessageDeleted, audience, messageDeletedPayload{
+	return newMessageDeletedRoutingEvents(EventTypeMessageDeleted, message.ChannelID, audience, messageDeletedPayload{
 		MessageID:      strconv.FormatInt(message.ID, 10),
 		ChannelID:      strconv.FormatInt(message.ChannelID, 10),
 		Revision:       message.Revision,
@@ -107,10 +107,10 @@ func newMessageReadUpdatedEvent(state *model.ChannelReadState) (messageEvent, er
 	})
 }
 
-func newMessageEvents(eventType string, audience messageAudience, data messagePayload) ([]messageEvent, error) {
+func newMessageEvents(eventType string, channelID int64, audience messageAudience, data messagePayload) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
-		event, err := newEvent(eventType, audience.guildID, data)
+		event, err := newEvent(eventType, channelID, data)
 		return singleEvent(event, err)
 	}
 	if err := validateDmAudience(audience.userIDs); err != nil {
@@ -119,7 +119,7 @@ func newMessageEvents(eventType string, audience messageAudience, data messagePa
 	events := make([]messageEvent, 0, len(audience.userIDs))
 	for _, userID := range audience.userIDs {
 		data.UserID = strconv.FormatInt(userID, 10)
-		event, err := newUserRoutedEvent(eventType, userID, data)
+		event, err := newEvent(eventType, channelID, data)
 		if err != nil {
 			return nil, err
 		}
@@ -128,10 +128,10 @@ func newMessageEvents(eventType string, audience messageAudience, data messagePa
 	return events, nil
 }
 
-func newMessageDeletedRoutingEvents(eventType string, audience messageAudience, data messageDeletedPayload) ([]messageEvent, error) {
+func newMessageDeletedRoutingEvents(eventType string, channelID int64, audience messageAudience, data messageDeletedPayload) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
-		event, err := newEvent(eventType, audience.guildID, data)
+		event, err := newEvent(eventType, channelID, data)
 		return singleEvent(event, err)
 	}
 	if err := validateDmAudience(audience.userIDs); err != nil {
@@ -140,7 +140,7 @@ func newMessageDeletedRoutingEvents(eventType string, audience messageAudience, 
 	events := make([]messageEvent, 0, len(audience.userIDs))
 	for _, userID := range audience.userIDs {
 		data.UserID = strconv.FormatInt(userID, 10)
-		event, err := newUserRoutedEvent(eventType, userID, data)
+		event, err := newEvent(eventType, channelID, data)
 		if err != nil {
 			return nil, err
 		}

@@ -57,6 +57,21 @@ func (s *SQLStore) ListGuildRoles(ctx context.Context, guildID int64) ([]*model.
 	return roles, nil
 }
 
+func (s *SQLStore) ListGuildRolesByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Role, error) {
+	if len(guildIDs) == 0 {
+		return nil, nil
+	}
+	var rows []*roleRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildRolesByGuildsQuery, pq.Array(guildIDs)); err != nil {
+		return nil, err
+	}
+	roles := make([]*model.Role, 0, len(rows))
+	for _, row := range rows {
+		roles = append(roles, roleFromRow(row))
+	}
+	return roles, nil
+}
+
 func (s *SQLStore) UpdateGuildRole(ctx context.Context, params UpdateGuildRoleParams) (*model.Role, error) {
 	var name string
 	if params.Name != nil {

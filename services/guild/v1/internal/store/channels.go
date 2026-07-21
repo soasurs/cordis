@@ -59,21 +59,6 @@ func (s *SQLStore) GetGuildChannel(ctx context.Context, channelID int64) (*model
 	return channelFromRow(row), nil
 }
 
-func (s *SQLStore) ListGuildChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.Channel, error) {
-	if len(channelIDs) == 0 {
-		return nil, nil
-	}
-	var rows []*channelRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsByIDsQuery, pq.Array(channelIDs)); err != nil {
-		return nil, err
-	}
-	channels := make([]*model.Channel, 0, len(rows))
-	for _, row := range rows {
-		channels = append(channels, channelFromRow(row))
-	}
-	return channels, nil
-}
-
 func (s *SQLStore) ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error) {
 	var rows []*channelRow
 	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsQuery, guildID); err != nil {

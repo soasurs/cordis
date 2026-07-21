@@ -212,7 +212,9 @@ func TestMessageEndpointsApplyBusinessPoliciesAndReadStateConcurrency(t *testing
 	}, limiter.snapshot())
 
 	limiter.reset()
-	_, err = client.GetReadStates(t.Context(), &apiv1.GetReadStatesRequest{ChannelIds: []int64{2001}})
+	_, err = client.GetReadStates(t.Context(), &apiv1.GetReadStatesRequest{
+		Scope: apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS.Enum(),
+	})
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -230,7 +232,6 @@ func TestMessageBusinessLimitersRejectBeforeMessageRPC(t *testing.T) {
 		t,
 		messageClient,
 		limiter,
-		new(recordingKeyedConcurrencyLimiter),
 	)
 	defer closeServer()
 
@@ -249,7 +250,9 @@ func TestGetReadStatesConcurrencyCancellationStopsBeforeMessageRPC(t *testing.T)
 	)
 	defer closeServer()
 
-	_, err := client.GetReadStates(t.Context(), &apiv1.GetReadStatesRequest{ChannelIds: []int64{2001}})
+	_, err := client.GetReadStates(t.Context(), &apiv1.GetReadStatesRequest{
+		Scope: apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS.Enum(),
+	})
 	require.Equal(t, connect.CodeCanceled, connect.CodeOf(err))
 	require.Nil(t, messageClient.getReadStatesRequest)
 }
@@ -434,9 +437,13 @@ func newRateLimitedMessageClient(
 	t *testing.T,
 	internalClient *fakeMessageClient,
 	limiter coreratelimit.Limiter,
-	concurrencyLimiter svc.KeyedConcurrencyLimiter,
+	concurrencyLimiters ...svc.KeyedConcurrencyLimiter,
 ) (apiv1connect.MessageServiceClient, func()) {
 	t.Helper()
+	var concurrencyLimiter svc.KeyedConcurrencyLimiter
+	if len(concurrencyLimiters) > 0 {
+		concurrencyLimiter = concurrencyLimiters[0]
+	}
 	resolver, err := apiratelimit.NewClientIPResolver(nil)
 	require.NoError(t, err)
 	path, handler := apiv1connect.NewMessageServiceHandler(

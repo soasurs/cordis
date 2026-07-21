@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	mathrand "math/rand/v2"
@@ -23,6 +22,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
@@ -36,7 +36,6 @@ const (
 	opDispatch     = 0
 	opHeartbeatAck = 11
 	opInvalid      = 9
-	guildPageSize  = 100
 	leaseJitter    = 0.2
 	leaseBatchSize = 500
 )
@@ -44,6 +43,11 @@ const (
 type replayEntry struct {
 	sequence uint64
 	frame    *sessionv1.ConnectResponse
+}
+
+type pendingDispatch struct {
+	eventType string
+	payload   []byte
 }
 
 type binding struct {
@@ -61,24 +65,28 @@ func (b *binding) close() {
 type logicalSession struct {
 	mu sync.Mutex
 
-	id                string
-	userID            int64
-	authSessionID     int64
-	gatewayID         string
-	gatewayGeneration string
-	deviceType        string
-	status            presencev1.PresenceStatus
-	clientState       presencev1.ClientState
-	sequence          uint64
-	ackedSequence     uint64
-	replay            []replayEntry
-	replayFloor       uint64
-	guilds            map[int64]struct{}
-	binding           *binding
-	bindingEpoch      uint64
-	detachedAt        time.Time
-	presenceWindow    time.Time
-	presenceUpdates   int
+	id                      string
+	userID                  int64
+	authSessionID           int64
+	gatewayID               string
+	gatewayGeneration       string
+	deviceType              string
+	status                  presencev1.PresenceStatus
+	clientState             presencev1.ClientState
+	sequence                uint64
+	ackedSequence           uint64
+	replay                  []replayEntry
+	replayFloor             uint64
+	guilds                  map[int64]struct{}
+	binding                 *binding
+	bindingEpoch            uint64
+	detachedAt              time.Time
+	presenceWindow          time.Time
+	presenceUpdates         int
+	initializing            bool
+	pendingDispatches       []pendingDispatch
+	pendingDispatchBytes    int64
+	pendingDispatchOverflow bool
 }
 
 type Server struct {
@@ -97,7 +105,6 @@ type Server struct {
 
 	visibilityMu        sync.RWMutex
 	visibilityUsers     map[int64]*userVisibilityState
-	visibilityLoads     singleflight.Group
 	visibilityReloads   singleflight.Group
 	visibilityReloadSem *semaphore.Weighted
 
@@ -321,8 +328,9 @@ func (s *Server) identify(
 		clientState:       clientStateFromString(data.GetClientState()),
 		guilds:            make(map[int64]struct{}),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
+		initializing:      true,
 	}
-	visibilitySnapshots, err := s.loadOrReuseVisibilitySnapshots(ctx, session.userID)
+	readyGuilds, visibilitySnapshots, err := s.loadReadyGuilds(ctx, session.userID)
 	if err != nil {
 		return nil, err
 	}
@@ -344,16 +352,32 @@ func (s *Server) identify(
 	}
 	s.refreshAllRoutes(ctx)
 
-	ready, _ := json.Marshal(map[string]any{
-		"user_id":                 strconv.FormatInt(session.userID, 10),
-		"auth_session_id":         strconv.FormatInt(session.authSessionID, 10),
-		"session_id":              session.id,
-		"session_node_id":         s.nodeID,
-		"access_token_expires_at": auth.GetExpiresAt(),
-		"guild_ids":               stringifyIDs(presenceGuildIDs(session)),
-	})
+	messageReq := new(messagev1.GetUserReadyStateRequest)
+	messageReq.SetUserId(session.userID)
+	messageReq.SetGuildChannelIds(readyGuildTextChannelIDs(readyGuilds))
+	messageReady, err := s.svcCtx.MessageClient.GetUserReadyState(ctx, messageReq)
+	if err != nil {
+		s.removeSession(ctx, session)
+		return nil, err
+	}
+	ready, err := marshalReady(session, auth.GetExpiresAt(), readyGuilds, messageReady, s.nodeID)
+	if err != nil {
+		s.removeSession(ctx, session)
+		return nil, status.Error(codes.Internal, "marshal ready payload")
+	}
 	session.mu.Lock()
+	if session.pendingDispatchOverflow {
+		session.mu.Unlock()
+		s.removeSession(ctx, session)
+		return nil, status.Error(codes.ResourceExhausted, "ready event buffer overflow")
+	}
 	s.appendDispatchLocked(session, realtime.GatewayEventReady, ready)
+	for _, pending := range session.pendingDispatches {
+		s.appendDispatchLocked(session, pending.eventType, pending.payload)
+	}
+	session.pendingDispatches = nil
+	session.pendingDispatchBytes = 0
+	session.initializing = false
 	session.mu.Unlock()
 	return session, nil
 }

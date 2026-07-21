@@ -37,6 +37,17 @@ func TestDispatchRecordRoutesDmMessageByRecipient(t *testing.T) {
 	require.Equal(t, int64(1001), resolver.id)
 }
 
+func TestDispatchRecordRoutesReadUpdateByUser(t *testing.T) {
+	resolver := &fakeResolver{}
+	server := &Server{resolver: resolver}
+	value := []byte(`{"t":"` + realtime.EventMessageReadUpdated + `","d":{"user_id":"1001","channel_id":"7001","last_read_message_id":"8001"}}`)
+	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
+	require.NoError(t, err)
+	require.False(t, permanent)
+	require.Equal(t, discovery.RouteUser, resolver.kind)
+	require.Equal(t, int64(1001), resolver.id)
+}
+
 func TestDispatchRecordRejectsMessageWithoutAggregateRoute(t *testing.T) {
 	server := &Server{resolver: &fakeResolver{}}
 	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"}}`)
@@ -66,6 +77,7 @@ func TestDispatchRecordRejectsUnderscoreEventName(t *testing.T) {
 
 func TestEventConstantsUseDotSeparator(t *testing.T) {
 	require.Equal(t, "message.created", realtime.EventMessageCreated)
+	require.Equal(t, "message.read.updated", realtime.EventMessageReadUpdated)
 }
 
 func TestDispatchPresenceSchedulesUserAlongsideGuilds(t *testing.T) {

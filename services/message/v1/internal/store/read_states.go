@@ -11,44 +11,37 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
+type ackMessageRow struct {
+	TargetExists bool `db:"target_exists"`
+	Advanced     bool `db:"advanced"`
+}
+
 type channelReadStateRow struct {
 	UserID            int64 `db:"user_id"`
 	ChannelID         int64 `db:"channel_id"`
+	LastMessageID     int64 `db:"last_message_id"`
 	LastReadMessageID int64 `db:"last_read_message_id"`
 	MentionCount      int32 `db:"mention_count"`
 	UpdatedAt         int64 `db:"updated_at"`
 }
 
-type channelReadStateWithCountsRow struct {
-	UserID            int64 `db:"user_id"`
-	ChannelID         int64 `db:"channel_id"`
-	LastReadMessageID int64 `db:"last_read_message_id"`
-	MentionCount      int32 `db:"mention_count"`
-	MessageCount      int32 `db:"message_count"`
-	UpdatedAt         int64 `db:"updated_at"`
+func (s *SQLStore) AckMessage(ctx context.Context, userID, channelID, messageID int64) (bool, error) {
+	row := new(ackMessageRow)
+	if err := sqlx.GetContext(ctx, s.q, row, ackMessageQuery, userID, channelID, messageID, time.Now().UnixMilli()); err != nil {
+		return false, err
+	}
+	if !row.TargetExists {
+		return false, sql.ErrNoRows
+	}
+	return row.Advanced, nil
 }
 
-func (s *SQLStore) AckMessage(ctx context.Context, userID, channelID, messageID int64) error {
-	result, err := s.q.ExecContext(ctx, upsertChannelReadStateStatement, userID, channelID, messageID, time.Now().UnixMilli())
-	if err != nil {
-		return err
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
-}
-
-func (s *SQLStore) ListChannelReadStates(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
+func (s *SQLStore) ListReadyChannelReadStates(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
 	if len(channelIDs) == 0 {
 		return nil, nil
 	}
 	var rows []*channelReadStateRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listChannelReadStatesQuery, userID, pq.Array(channelIDs)); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listReadyChannelReadStatesQuery, userID, pq.Array(channelIDs)); err != nil {
 		return nil, err
 	}
 	states := make([]*model.ChannelReadState, 0, len(rows))
@@ -56,52 +49,22 @@ func (s *SQLStore) ListChannelReadStates(ctx context.Context, userID int64, chan
 		states = append(states, &model.ChannelReadState{
 			UserID:            row.UserID,
 			ChannelID:         row.ChannelID,
-			LastReadMessageID: row.LastReadMessageID,
-			UpdatedAt:         row.UpdatedAt,
-		})
-	}
-	return states, nil
-}
-
-func (s *SQLStore) ListChannelReadStatesWithCounts(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error) {
-	if len(channelIDs) == 0 {
-		return nil, nil
-	}
-	var rows []*channelReadStateWithCountsRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listChannelReadStatesWithCountsQuery, userID, pq.Array(channelIDs)); err != nil {
-		return nil, err
-	}
-	states := make([]*model.ChannelReadState, 0, len(rows))
-	for _, row := range rows {
-		states = append(states, &model.ChannelReadState{
-			UserID:            row.UserID,
-			ChannelID:         row.ChannelID,
+			LastMessageID:     row.LastMessageID,
 			LastReadMessageID: row.LastReadMessageID,
 			MentionCount:      row.MentionCount,
-			MessageCount:      row.MessageCount,
 			UpdatedAt:         row.UpdatedAt,
 		})
 	}
 	return states, nil
 }
 
-func (s *SQLStore) CountMissingMessages(ctx context.Context, channelID, lastReadMessageID, userID int64) (int32, error) {
-	var count int32
-	if err := sqlx.GetContext(ctx, s.q, &count, countMissingMessagesQuery, channelID, lastReadMessageID, userID); err != nil {
+func (s *SQLStore) GetLastMessageID(ctx context.Context, channelID int64) (int64, error) {
+	var messageID int64
+	if err := sqlx.GetContext(ctx, s.q, &messageID, getLastMessageIDQuery, channelID); err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
 		return 0, err
 	}
-	return count, nil
-}
-
-func (s *SQLStore) CountUnreadMentions(ctx context.Context, userID, channelID, lastReadMessageID int64) (int32, error) {
-	// When the user has no read state, lastReadMessageID is zero and every
-	// mention row matches. The Postgres planner walks the new index on
-	// (user_id, message_id) in descending order, fetching the matching
-	// message row from the primary key; the scan stops when m.id drops
-	// below the watermark.
-	var count int32
-	if err := sqlx.GetContext(ctx, s.q, &count, countUnreadMentionsQuery, userID, channelID, lastReadMessageID); err != nil {
-		return 0, err
-	}
-	return count, nil
+	return messageID, nil
 }

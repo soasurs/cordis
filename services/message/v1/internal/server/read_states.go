@@ -10,10 +10,8 @@ import (
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
-)
-
-const (
-	maxReadStateChannels = 100
+	"github.com/soasurs/cordis/services/message/v1/internal/model"
+	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
 
 func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessageRequest) (*messagev1.AckMessageResponse, error) {
@@ -31,12 +29,71 @@ func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessag
 		return nil, err
 	}
 
-	if err := s.svcCtx.Store.AckMessage(ctx, req.GetUserId(), req.GetChannelId(), req.GetMessageId()); err != nil {
+	var advanced bool
+	var state *model.ChannelReadState
+	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		var err error
+		advanced, err = txStore.AckMessage(ctx, req.GetUserId(), req.GetChannelId(), req.GetMessageId())
+		if err != nil {
+			return err
+		}
+		states, err := txStore.ListReadyChannelReadStates(ctx, req.GetUserId(), []int64{req.GetChannelId()})
+		if err != nil {
+			return err
+		}
+		if len(states) != 1 {
+			return notFound()
+		}
+		state = states[0]
+		return nil
+	})
+	if err != nil {
 		return nil, mapStoreError(err)
+	}
+	if advanced {
+		s.publishReadStateUpdated(ctx, state)
 	}
 
 	resp := new(messagev1.AckMessageResponse)
-	resp.SetOk(true)
+	resp.SetReadState(channelReadStateToProto(state))
+	return resp, nil
+}
+
+func (s *messageServer) GetUserReadyState(ctx context.Context, req *messagev1.GetUserReadyStateRequest) (*messagev1.GetUserReadyStateResponse, error) {
+	if req.GetUserId() <= 0 {
+		return nil, invalidRequest("user id is required")
+	}
+	channelIDs, seen, err := normalizeReadyChannelIDs(req.GetGuildChannelIds())
+	if err != nil {
+		return nil, err
+	}
+	dmChannels, err := s.svcCtx.Store.ListAllDmChannels(ctx, req.GetUserId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	for _, channel := range dmChannels {
+		if _, ok := seen[channel.ID]; ok {
+			continue
+		}
+		seen[channel.ID] = struct{}{}
+		channelIDs = append(channelIDs, channel.ID)
+	}
+	states, err := s.listReadyChannelReadStates(ctx, req.GetUserId(), channelIDs)
+	if err != nil {
+		return nil, err
+	}
+	pbStates := make([]*messagev1.ChannelReadState, 0, len(states))
+	for _, st := range states {
+		pbStates = append(pbStates, channelReadStateToProto(st))
+	}
+
+	resp := new(messagev1.GetUserReadyStateResponse)
+	values := make([]*messagev1.DmChannel, 0, len(dmChannels))
+	for _, channel := range dmChannels {
+		values = append(values, dmChannelToProto(channel))
+	}
+	resp.SetDmChannels(values)
+	resp.SetReadStates(pbStates)
 	return resp, nil
 }
 
@@ -44,92 +101,91 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *messagev1.GetRea
 	if req.GetUserId() <= 0 {
 		return nil, invalidRequest("user id is required")
 	}
-	channelIDs, err := normalizeReadStateChannelIDs(req.GetChannelIds())
+	var channelIDs []int64
+	var dmChannels []*model.DmChannel
+	switch req.GetScope() {
+	case messagev1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_GUILD:
+		if req.GetGuildId() <= 0 {
+			return nil, invalidRequest("guild id is required")
+		}
+		visibilityReq := new(guildv1.GetUserGuildChannelVisibilityRequest)
+		visibilityReq.SetUserId(req.GetUserId())
+		visibilityReq.SetGuildId(req.GetGuildId())
+		visibilityResp, err := s.svcCtx.GuildClient.GetUserGuildChannelVisibility(ctx, visibilityReq)
+		if err != nil {
+			return nil, err
+		}
+		visibility := visibilityResp.GetVisibility()
+		if visibility == nil || visibility.GetGuildId() != req.GetGuildId() || visibility.GetAccessRevision() <= 0 {
+			return nil, status.Error(codes.Internal, "guild visibility response is invalid")
+		}
+		channelIDs = visibility.GetVisibleTextChannelIds()
+	case messagev1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS:
+		if req.GetGuildId() != 0 {
+			return nil, invalidRequest("guild id is not valid for dm scope")
+		}
+		var err error
+		dmChannels, err = s.svcCtx.Store.ListAllDmChannels(ctx, req.GetUserId())
+		if err != nil {
+			return nil, mapStoreError(err)
+		}
+		channelIDs = make([]int64, 0, len(dmChannels))
+		for _, channel := range dmChannels {
+			channelIDs = append(channelIDs, channel.ID)
+		}
+	default:
+		return nil, invalidRequest("read state scope is required")
+	}
+	states, err := s.listReadyChannelReadStates(ctx, req.GetUserId(), channelIDs)
 	if err != nil {
 		return nil, err
 	}
-	release, err := s.acquireReadStatesCapacity(ctx, int64(max(1, len(channelIDs))))
-	if err != nil {
-		return nil, err
-	}
-	defer release()
-
-	if err := s.authorizeReadStateChannels(ctx, req.GetUserId(), channelIDs); err != nil {
-		return nil, err
-	}
-
-	states, err := s.svcCtx.Store.ListChannelReadStatesWithCounts(ctx, req.GetUserId(), channelIDs)
-	if err != nil {
-		return nil, mapStoreError(err)
-	}
-	pbStates := make([]*messagev1.ChannelReadState, 0, len(states))
-	for _, st := range states {
-		pb := new(messagev1.ChannelReadState)
-		pb.SetChannelId(st.ChannelID)
-		pb.SetLastReadMessageId(st.LastReadMessageID)
-		pb.SetMentionCount(st.MentionCount)
-		pb.SetMissingMessageCount(st.MessageCount)
-		pbStates = append(pbStates, pb)
-	}
-
 	resp := new(messagev1.GetReadStatesResponse)
-	resp.SetStates(pbStates)
+	resp.SetDmChannels(dmChannelsToProto(dmChannels))
+	resp.SetReadStates(channelReadStatesToProto(states))
 	return resp, nil
 }
 
-func (s *messageServer) authorizeReadStateChannels(ctx context.Context, userID int64, channelIDs []int64) error {
-	dmChannels, err := s.svcCtx.Store.ListDmChannelsByIDs(ctx, channelIDs)
-	if err != nil {
-		return mapStoreError(err)
+func (s *messageServer) listReadyChannelReadStates(
+	ctx context.Context,
+	userID int64,
+	channelIDs []int64,
+) ([]*model.ChannelReadState, error) {
+	if len(channelIDs) == 0 {
+		return nil, nil
 	}
-	dmByID := make(map[int64]struct{}, len(dmChannels))
-	for _, channel := range dmChannels {
-		if err := s.authorizeDmMessage(ctx, channel, userID, permissionViewChannel); err != nil {
-			return err
+	if s.svcCtx.ReadStatesLimiter == nil {
+		states, err := s.svcCtx.Store.ListReadyChannelReadStates(ctx, userID, channelIDs)
+		if err != nil {
+			return nil, mapStoreError(err)
 		}
-		dmByID[channel.ID] = struct{}{}
+		return states, nil
 	}
-	guildChannelIDs := make([]int64, 0, len(channelIDs)-len(dmChannels))
-	for _, channelID := range channelIDs {
-		if _, ok := dmByID[channelID]; !ok {
-			guildChannelIDs = append(guildChannelIDs, channelID)
+
+	capacity := s.svcCtx.Cfg.ReadStates.MaxConcurrentChannels
+	if capacity <= 0 {
+		return nil, status.Error(codes.Internal, "read states concurrency capacity is invalid")
+	}
+	states := make([]*model.ChannelReadState, 0, len(channelIDs))
+	for len(channelIDs) > 0 {
+		batchSize := len(channelIDs)
+		if int64(batchSize) > capacity {
+			batchSize = int(capacity)
 		}
-	}
-	if len(guildChannelIDs) == 0 {
-		return nil
-	}
-	req := new(guildv1.AuthorizeGuildChannelsRequest)
-	req.SetUserId(userID)
-	req.SetChannelIds(guildChannelIDs)
-	req.SetPermission(permissionViewChannel)
-	resp, err := s.svcCtx.GuildClient.AuthorizeGuildChannels(ctx, req)
-	if err != nil {
-		return err
-	}
-	if len(resp.GetAuthorizations()) != len(guildChannelIDs) {
-		return errors.New("guild channel authorization returned incomplete batch")
-	}
-	expected := make(map[int64]struct{}, len(guildChannelIDs))
-	for _, channelID := range guildChannelIDs {
-		expected[channelID] = struct{}{}
-	}
-	for _, authorization := range resp.GetAuthorizations() {
-		if _, ok := expected[authorization.GetChannelId()]; !ok {
-			return errors.New("guild channel authorization returned unexpected channel")
+		batch := channelIDs[:batchSize]
+		release, err := s.acquireReadStatesCapacity(ctx, int64(batchSize))
+		if err != nil {
+			return nil, err
 		}
-		delete(expected, authorization.GetChannelId())
-		if !authorization.GetAllowed() {
-			return permissionDenied()
+		batchStates, queryErr := s.svcCtx.Store.ListReadyChannelReadStates(ctx, userID, batch)
+		release()
+		if queryErr != nil {
+			return nil, mapStoreError(queryErr)
 		}
-		if authorization.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY ||
-			authorization.GetChannelType() == guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE {
-			return invalidRequest("messages are only supported in text channels")
-		}
+		states = append(states, batchStates...)
+		channelIDs = channelIDs[batchSize:]
 	}
-	if len(expected) != 0 {
-		return errors.New("guild channel authorization returned incomplete batch")
-	}
-	return nil
+	return states, nil
 }
 
 func (s *messageServer) acquireReadStatesCapacity(ctx context.Context, weight int64) (func(), error) {
@@ -147,15 +203,12 @@ func (s *messageServer) acquireReadStatesCapacity(ctx context.Context, weight in
 	return nil, status.Error(codes.Internal, "read states concurrency limiter unavailable")
 }
 
-func normalizeReadStateChannelIDs(channelIDs []int64) ([]int64, error) {
-	if len(channelIDs) > maxReadStateChannels {
-		return nil, invalidRequest("too many channel ids")
-	}
+func normalizeReadyChannelIDs(channelIDs []int64) ([]int64, map[int64]struct{}, error) {
 	unique := make([]int64, 0, len(channelIDs))
 	seen := make(map[int64]struct{}, len(channelIDs))
 	for _, channelID := range channelIDs {
 		if channelID <= 0 {
-			return nil, invalidRequest("channel id is required")
+			return nil, nil, invalidRequest("channel id is required")
 		}
 		if _, ok := seen[channelID]; ok {
 			continue
@@ -163,5 +216,35 @@ func normalizeReadStateChannelIDs(channelIDs []int64) ([]int64, error) {
 		seen[channelID] = struct{}{}
 		unique = append(unique, channelID)
 	}
-	return unique, nil
+	return unique, seen, nil
+}
+
+func channelReadStateToProto(state *model.ChannelReadState) *messagev1.ChannelReadState {
+	pb := new(messagev1.ChannelReadState)
+	pb.SetChannelId(state.ChannelID)
+	pb.SetLastMessageId(state.LastMessageID)
+	pb.SetLastReadMessageId(state.LastReadMessageID)
+	pb.SetMentionCount(state.MentionCount)
+	return pb
+}
+
+func channelReadStatesToProto(states []*model.ChannelReadState) []*messagev1.ChannelReadState {
+	values := make([]*messagev1.ChannelReadState, 0, len(states))
+	for _, state := range states {
+		values = append(values, channelReadStateToProto(state))
+	}
+	return values
+}
+
+func dmChannelsToProto(channels []*model.DmChannel) []*messagev1.DmChannel {
+	values := make([]*messagev1.DmChannel, 0, len(channels))
+	for _, channel := range channels {
+		values = append(values, dmChannelToProto(channel))
+	}
+	return values
+}
+
+func (s *messageServer) publishReadStateUpdated(ctx context.Context, state *model.ChannelReadState) {
+	event, err := newMessageReadUpdatedEvent(state)
+	s.publishEvent(ctx, event, err)
 }

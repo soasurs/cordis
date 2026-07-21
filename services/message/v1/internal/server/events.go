@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	EventTypeMessageCreated   = realtime.EventMessageCreated
-	EventTypeMessageUpdated   = realtime.EventMessageUpdated
-	EventTypeMessageDeleted   = realtime.EventMessageDeleted
-	EventTypeDmChannelCreated = realtime.EventDmChannelCreated
+	EventTypeMessageCreated     = realtime.EventMessageCreated
+	EventTypeMessageUpdated     = realtime.EventMessageUpdated
+	EventTypeMessageDeleted     = realtime.EventMessageDeleted
+	EventTypeMessageReadUpdated = realtime.EventMessageReadUpdated
+	EventTypeDmChannelCreated   = realtime.EventDmChannelCreated
 )
 
 type eventEnvelope[T any] struct {
@@ -28,22 +29,23 @@ type messageEvent struct {
 }
 
 type messagePayload struct {
-	MessageID           string           `json:"id"`
-	GuildID             string           `json:"guild_id,omitempty"`
-	ChannelID           string           `json:"channel_id"`
-	UserID              string           `json:"user_id,omitempty"`
-	AuthorID            string           `json:"author_id"`
-	Content             string           `json:"content"`
-	Type                int32            `json:"type"`
-	Flags               int32            `json:"flags"`
-	ReferencedMessageID string           `json:"referenced_message_id,omitempty"`
-	ReferencedChannelID string           `json:"referenced_channel_id,omitempty"`
-	Attachments         []attachmentJSON `json:"attachments"`
-	MentionUserIDs      []string         `json:"mention_user_ids"`
-	EditedAt            int64            `json:"edited_at"`
-	CreatedAt           int64            `json:"created_at"`
-	UpdatedAt           int64            `json:"updated_at"`
-	Revision            int64            `json:"revision"`
+	MessageID              string           `json:"id"`
+	GuildID                string           `json:"guild_id,omitempty"`
+	ChannelID              string           `json:"channel_id"`
+	UserID                 string           `json:"user_id,omitempty"`
+	AuthorID               string           `json:"author_id"`
+	Content                string           `json:"content"`
+	Type                   int32            `json:"type"`
+	Flags                  int32            `json:"flags"`
+	ReferencedMessageID    string           `json:"referenced_message_id,omitempty"`
+	ReferencedChannelID    string           `json:"referenced_channel_id,omitempty"`
+	Attachments            []attachmentJSON `json:"attachments"`
+	MentionUserIDs         []string         `json:"mention_user_ids"`
+	PreviousMentionUserIDs []string         `json:"previous_mention_user_ids,omitempty"`
+	EditedAt               int64            `json:"edited_at"`
+	CreatedAt              int64            `json:"created_at"`
+	UpdatedAt              int64            `json:"updated_at"`
+	Revision               int64            `json:"revision"`
 }
 
 type attachmentJSON struct {
@@ -56,28 +58,52 @@ type attachmentJSON struct {
 }
 
 type messageDeletedPayload struct {
-	MessageID string `json:"id"`
-	GuildID   string `json:"guild_id,omitempty"`
-	ChannelID string `json:"channel_id"`
-	UserID    string `json:"user_id,omitempty"`
-	Revision  int64  `json:"revision"`
-	DeletedAt int64  `json:"deleted_at"`
+	MessageID      string   `json:"id"`
+	GuildID        string   `json:"guild_id,omitempty"`
+	ChannelID      string   `json:"channel_id"`
+	UserID         string   `json:"user_id,omitempty"`
+	Revision       int64    `json:"revision"`
+	DeletedAt      int64    `json:"deleted_at"`
+	LastMessageID  string   `json:"last_message_id"`
+	MentionUserIDs []string `json:"mention_user_ids"`
+}
+
+type messageReadUpdatedPayload struct {
+	UserID            string `json:"user_id"`
+	ChannelID         string `json:"channel_id"`
+	LastMessageID     string `json:"last_message_id"`
+	LastReadMessageID string `json:"last_read_message_id"`
+	MentionCount      int32  `json:"mention_count"`
 }
 
 func newMessageCreatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
 	return newMessageEvents(EventTypeMessageCreated, audience, messagePayloadFromModel(message, mentionUserIDs))
 }
 
-func newMessageUpdatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
-	return newMessageEvents(EventTypeMessageUpdated, audience, messagePayloadFromModel(message, mentionUserIDs))
+func newMessageUpdatedEvents(message *model.Message, mentionUserIDs, previousMentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
+	payload := messagePayloadFromModel(message, mentionUserIDs)
+	payload.PreviousMentionUserIDs = idStrings(previousMentionUserIDs)
+	return newMessageEvents(EventTypeMessageUpdated, audience, payload)
 }
 
-func newMessageDeletedEvents(message *model.Message, audience messageAudience) ([]messageEvent, error) {
+func newMessageDeletedEvents(message *model.Message, lastMessageID int64, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
 	return newMessageDeletedRoutingEvents(EventTypeMessageDeleted, audience, messageDeletedPayload{
-		MessageID: strconv.FormatInt(message.ID, 10),
-		ChannelID: strconv.FormatInt(message.ChannelID, 10),
-		Revision:  message.Revision,
-		DeletedAt: message.DeletedAt,
+		MessageID:      strconv.FormatInt(message.ID, 10),
+		ChannelID:      strconv.FormatInt(message.ChannelID, 10),
+		Revision:       message.Revision,
+		DeletedAt:      message.DeletedAt,
+		LastMessageID:  strconv.FormatInt(lastMessageID, 10),
+		MentionUserIDs: idStrings(mentionUserIDs),
+	})
+}
+
+func newMessageReadUpdatedEvent(state *model.ChannelReadState) (messageEvent, error) {
+	return newUserRoutedEvent(EventTypeMessageReadUpdated, state.UserID, messageReadUpdatedPayload{
+		UserID:            strconv.FormatInt(state.UserID, 10),
+		ChannelID:         strconv.FormatInt(state.ChannelID, 10),
+		LastMessageID:     strconv.FormatInt(state.LastMessageID, 10),
+		LastReadMessageID: strconv.FormatInt(state.LastReadMessageID, 10),
+		MentionCount:      state.MentionCount,
 	})
 }
 

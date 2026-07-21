@@ -11,8 +11,8 @@ fallback during Redis failures. IP-based buckets use an IPv4 `/32` or IPv6
 `/64`; IPv4 policies have looser CGNAT-aware thresholds. Every request first consumes a source-IP guard;
 successful authentication then consumes the general user quota. Message
 creation, relationship writes, Guild resource creation, and invite joins also
-consume business-specific buckets. `GetReadStates` concurrency is bounded per
-user within each API process, and waiting follows the request context.
+consume business-specific buckets. Authenticated `GetReadStates` reconciliation
+also uses a process-local keyed limiter to bound concurrent requests per user.
 
 ## User
 
@@ -53,9 +53,9 @@ are 10 owned and 100 joined guilds per user, 250 roles and 500 channels per
 guild, 100 active invites per guild, and 100 permission overwrites per channel.
 Quota checks and writes are serialized in the same PostgreSQL transaction.
 
-`ListUserGuildChannelVisibilities` pages through a user's active Guild
-memberships and returns the complete, ascending set of visible channel IDs for
-each Guild. Every snapshot carries a persistent `access_revision`. PostgreSQL
+Internal `GetUserReadyState` returns the user's complete READY Guild bootstrap
+in one call: Guild metadata, all roles, the member's explicit role IDs, and
+visible channels together with their permission overwrites. Every snapshot carries a persistent `access_revision`. PostgreSQL
 triggers advance this monotonic revision whenever membership, role permissions
 or assignments, channels, permission overwrites, ownership, or Guild deletion
 can change access. Published Guild events include the committed revision while
@@ -71,13 +71,22 @@ are not currently implemented.
 Create and update requests allow at most 10 attachments and 100 unique mentioned
 user IDs by default. Both limits are configured by the Message service.
 
-`GetReadStates` batches channel read-state, unread-message, and unread-mention
-calculation. It resolves DM channels in one store query and authorizes the
-remaining Guild channels through one batch RPC. A service-level weighted
-semaphore charges the deduplicated channel count and bounds aggregate work on
-each Message instance. API also applies a process-local keyed semaphore per
-user and the general authenticated-user quota. These concurrency capacities are
-per-instance rather than cluster-wide.
+The internal READY RPC loads all DMs and computes read states for the visible
+Guild text channels supplied by Session. Each state contains `channel_id`,
+`last_message_id`, `last_read_message_id`, and the unread mention count. A
+channel is unread when `last_message_id > last_read_message_id`; no unread
+message count is computed. `AckMessage` advances the watermark monotonically
+and publishes user-routed `message.read.updated` events for the user's other
+devices.
+
+The authenticated HTTP `GetReadStates` endpoint is retained for reconciliation.
+It accepts a server-defined scope rather than channel IDs: one Guild, or all
+DMs. The Guild scope derives visible text channels from Guild authorization;
+the DM scope also returns the complete DM channel set so missed creation events
+can be repaired. API requests are bounded per user and Message bounds aggregate
+query work with a process-local weighted limiter. Large server-derived scopes
+are split into capacity-sized database batches; each batch acquires its exact
+channel count rather than clamping one oversized query to the limiter capacity.
 
 Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a
@@ -119,17 +128,22 @@ creates or resumes logical sessions, loads Guild visibility, owns local
 user/Guild indexes, assigns sequence numbers, and keeps up to 2048 replay
 events in memory.
 
-IDENTIFY uses the paginated Guild visibility RPC, whose store reads are batched
-per page, to load immutable, sorted
-channel snapshots with their access revisions. A snapshot set is shared by all
-of the user's logical Sessions on the node and released after the last local
-Session is removed. Loading is bounded to 100 Guilds and 500 visible channels
-per Guild by default. Guild access events invalidate affected snapshots by
-revision. On-demand rebuilds are singleflighted per user and Guild, bounded to
-16 concurrent calls per Session node, and time out after two seconds by
-default. A stale, missing, malformed, oversized, or otherwise invalid snapshot
-fails closed. If rebuilding fails, Session skips the sensitive event and emits
-one sequenced `session.reconcile` hint for that invalid snapshot generation.
+IDENTIFY loads one complete Guild READY response and one Message READY response:
+Guild metadata, roles, member role IDs, visible channels and permission overwrites, all DMs, and four-field
+read states. Realtime events received while these responses are assembled are
+buffered and sequenced after READY. Visibility snapshots are shared by the
+user's logical Sessions on the node and released after the last local Session is
+removed. Loading is bounded to 100 Guilds and 500 visible channels per Guild by
+default. Guild access events invalidate affected snapshots by revision.
+Events buffered while READY is assembled are bounded by count and total event
+bytes, with the effective count also capped below the replay and binding queue
+capacities. Overflow discards the pending buffer and fails IDENTIFY so the next
+connection rebuilds an authoritative snapshot.
+On-demand rebuilds are singleflighted per user and Guild, bounded to 16
+concurrent calls per Session node, and time out after two seconds by default. A
+stale, missing, malformed, oversized, or otherwise invalid snapshot fails
+closed. If rebuilding fails, Session skips the sensitive event and emits one
+sequenced `session.reconcile` hint for that invalid snapshot generation.
 
 Session applies Gateway checkpoint batches to advance acknowledged sequences and
 trim replay windows. Client heartbeats do not directly refresh Redis ownership

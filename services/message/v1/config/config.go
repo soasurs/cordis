@@ -40,7 +40,7 @@ func (c ResourceLimitsConfig) Mentions() int {
 	return c.MentionsPerMessage
 }
 
-// ReadStatesConfig controls aggregate GetReadStates concurrency.
+// ReadStatesConfig controls read-state query batch size and aggregate concurrency.
 type ReadStatesConfig struct {
 	MaxConcurrentChannels int64 `json:",default=800"`
 }

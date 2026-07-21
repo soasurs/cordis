@@ -67,6 +67,8 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 
 	messageID := s.svcCtx.Snowflake.Generate().Int64()
 	var created *model.Message
+	var authorReadState *model.ChannelReadState
+	var authorReadAdvanced bool
 
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.CreateMessage(ctx, store.CreateMessageParams{
@@ -88,6 +90,21 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		if err := txStore.ReplaceMessageMentions(ctx, messageID, req.GetMentionUserIds()); err != nil {
 			return err
 		}
+		authorReadAdvanced, err = txStore.AckMessage(ctx, req.GetAuthorId(), req.GetChannelId(), messageID)
+		if err != nil {
+			return err
+		}
+		if !authorReadAdvanced {
+			return nil
+		}
+		states, err := txStore.ListReadyChannelReadStates(ctx, req.GetAuthorId(), []int64{req.GetChannelId()})
+		if err != nil {
+			return err
+		}
+		if len(states) != 1 {
+			return notFound()
+		}
+		authorReadState = states[0]
 		return nil
 	})
 	if err != nil {
@@ -96,6 +113,9 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 
 	events, eventErr := newMessageCreatedEvents(created, req.GetMentionUserIds(), audience)
 	s.publishEvents(ctx, events, eventErr)
+	if authorReadAdvanced {
+		s.publishReadStateUpdated(ctx, authorReadState)
+	}
 
 	resp := new(messagev1.CreateMessageResponse)
 	resp.SetMessage(messageToProto(created))
@@ -160,6 +180,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 
 	var updated *model.Message
 	var mentionUserIDs []int64
+	var previousMentionUserIDs []int64
 
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.UpdateMessage(ctx, params)
@@ -169,6 +190,10 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		updated = message
 
 		if req.HasMentions() {
+			previousMentionUserIDs, err = txStore.ListMentionUserIDs(ctx, req.GetMessageId())
+			if err != nil {
+				return err
+			}
 			if err := txStore.ReplaceMessageMentions(ctx, req.GetMessageId(), req.GetMentions().GetUserIds()); err != nil {
 				return err
 			}
@@ -188,7 +213,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		return nil, mapStoreError(err)
 	}
 
-	events, eventErr := newMessageUpdatedEvents(updated, mentionUserIDs, audience)
+	events, eventErr := newMessageUpdatedEvents(updated, mentionUserIDs, previousMentionUserIDs, audience)
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
@@ -218,19 +243,26 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 	}
 
 	var deleted *model.Message
+	var mentionUserIDs []int64
+	var lastMessageID int64
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		var err error
+		mentionUserIDs, err = txStore.ListMentionUserIDs(ctx, req.GetMessageId())
+		if err != nil {
+			return err
+		}
 		message, err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), hasModPermission)
 		if err != nil {
 			return err
 		}
 		deleted = message
-		return nil
+		lastMessageID, err = txStore.GetLastMessageID(ctx, message.ChannelID)
+		return err
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-
-	events, eventErr := newMessageDeletedEvents(deleted, audience)
+	events, eventErr := newMessageDeletedEvents(deleted, lastMessageID, mentionUserIDs, audience)
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.DeleteMessageResponse)

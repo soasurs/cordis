@@ -4,7 +4,7 @@
 
 公开 Connect-RPC HTTP 服务，监听 `:8080`。它代理 Authenticator、User、Guild 和 Message RPC，将内部 protobuf 转换为公开模型，并通过 `pkg/apierror` 将带 `google.rpc.ErrorInfo` 的内部错误转换为稳定的公开错误。API 本身不访问业务数据库。
 
-公开请求使用 Redis-backed 命名限流 policy，并在 Redis 故障时使用有界本地 fallback。IP 桶按 IPv4 `/32` 或 IPv6 `/64` 归一化，IPv4 阈值会为 CGNAT 放宽。所有请求先消费来源 IP guard；认证成功后再消费用户通用配额，消息创建、关系写入、Guild 资源创建和邀请加入还会消费对应业务桶。`GetReadStates` 在 API 实例内按用户限制并发；等待受请求 context 控制。
+公开请求使用 Redis-backed 命名限流 policy，并在 Redis 故障时使用有界本地 fallback。IP 桶按 IPv4 `/32` 或 IPv6 `/64` 归一化，IPv4 阈值会为 CGNAT 放宽。所有请求先消费来源 IP guard；认证成功后再消费用户通用配额，消息创建、关系写入、Guild 资源创建和邀请加入还会消费对应业务桶。认证后的 `GetReadStates` reconcile 还使用进程内 keyed limiter，限制同一用户的并发请求数。
 
 ## User
 
@@ -30,7 +30,7 @@
 
 持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
 
-`ListUserGuildChannelVisibilities` 按用户的有效 Guild 成员关系分页，并为每个 Guild 返回完整、按数值升序排列的可见频道 ID。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
+内部 `GetUserReadyState` 在一次调用中按用户的有效 Guild 成员关系返回完整 READY 数据，包括 Guild、全部角色、当前成员的显式角色 ID、可见频道以及这些频道的 permission overwrites。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
 
 ## Message
 
@@ -38,7 +38,9 @@
 
 消息创建和更新默认最多携带 10 个附件和 100 个不重复的被提及用户 ID；两项上限均由 Message 服务配置。
 
-`GetReadStates` 会批量计算频道已读状态、未读消息数和未读提及数。DM 频道通过一次 Store 查询解析，其余 Guild 频道通过一次批量 RPC 鉴权；服务级 weighted semaphore 按去重后的频道数计权，限制单个 Message 实例上的总工作量。API 还使用进程内 keyed semaphore 限制每用户并发，并继续应用 authenticated-user 通用配额。这些并发容量都是单实例限制，不是全集群共享上限。
+内部 READY RPC 一次加载用户的全部 DM，并针对 Session 提供的可见 Guild 文本频道计算 read state。每项包含 `channel_id`、`last_message_id`、`last_read_message_id` 和未读提及数；客户端用 `last_message_id > last_read_message_id` 判断是否未读，不再计算具体未读消息数。`AckMessage` 只有在 watermark 实际前进时才发布 user-routed `message.read.updated`，CreateMessage 也会在写事务内从数据库读回作者的最终 read state。
+
+保留认证后的 HTTP `GetReadStates` 作为 reconcile 路径，但不再接收 `channel_id` 列表。客户端只能按一个 `guild_id` 或全部 DM 两种 scope 同步；Guild scope 由服务端授权结果产生可见文本频道，DM scope 同时返回完整 DM 列表，以修复漏掉的创建事件。API 按用户限制并发，Message 端再用进程内容量限制聚合查询负载。服务端产生的超大 scope 会按 capacity 拆成多个数据库批次，每批获取与频道数完全一致的 weight，不会把一条超大查询 clamp 成 capacity 后直接执行。
 
 允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `cordis.message.events.v1` 发布事件；发布失败只记录日志。
 
@@ -55,13 +57,13 @@
 监听 `:3006`，是实时系统的有状态核心。它负责：
 
 - 校验 IDENTIFY/RESUME 的 access token；
-- 创建逻辑 Session，并分页加载用户的 Guild 可见频道快照；
+- 创建逻辑 Session，并加载用户完整的 READY Guild 与 read-state 快照；
 - 保存用户和 Guild 的本地反向索引；
 - 分配递增 sequence，保存最多 2048 条内存回放记录；
 - 应用 Gateway 批量同步的 heartbeat ACK checkpoint、处理 Presence 更新、detach 和 resume；
 - 接收 Dispatcher 的 Guild、频道和用户事件并本地 fanout。
 
-IDENTIFY 通过 Guild visibility RPC 加载带 access revision 的不可变、有序频道快照，Store 查询按分页批量执行。同一节点上属于同一用户的逻辑 Session 共享一份快照集合，最后一个本地 Session 移除后释放。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。Guild access 事件按 revision 使受影响的快照失效；按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`，提示客户端通过 HTTP API 同步状态。
+IDENTIFY 分别向 Guild 和 Message 拉取完整 READY：Guild、角色、成员角色、可见频道及其 permission overwrites、全部 DM 和四字段 read state。READY 组装期间收到的实时事件先缓冲，READY 以 sequence 1 发出后再按接收顺序入队。pending dispatch 同时受事件条数和事件数据总字节数限制，有效条数还会低于 replay 与 binding queue 容量；溢出时清空 pending buffer 并让本次 IDENTIFY 失败，使客户端重连后重新获取权威快照。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。同一节点上属于同一用户的逻辑 Session 共享授权快照，最后一个本地 Session 移除后释放。Guild access 事件按 revision 使受影响的快照失效；按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`。
 
 Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Session ID 限速。同一个认证 Session 可以为多个浏览器页面或设备创建并存的逻辑 Session；每个逻辑 Session 拥有独立的 Session ID、回放窗口、Presence 租约和 transport binding。
 

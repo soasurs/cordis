@@ -2,7 +2,6 @@ package svc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	sn "github.com/bwmarrin/snowflake"
@@ -19,8 +18,6 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/config"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
-
-const maxReadStateChannelsPerRequest = 100
 
 // ConcurrencyLimiter acquires weighted process-local capacity.
 type ConcurrencyLimiter interface {
@@ -54,13 +51,7 @@ type Dependencies struct {
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
-	if cfg.ReadStates.MaxConcurrentChannels < maxReadStateChannelsPerRequest {
-		return Dependencies{}, errors.New("read states max concurrent channels must be at least 100")
-	}
-	readStatesLimiter, err := concurrencylimit.New(
-		"message_get_read_states",
-		cfg.ReadStates.MaxConcurrentChannels,
-	)
+	readStatesLimiter, err := concurrencylimit.New("message_read_states", cfg.ReadStates.MaxConcurrentChannels)
 	if err != nil {
 		return Dependencies{}, fmt.Errorf("create read states concurrency limiter: %w", err)
 	}
@@ -128,7 +119,6 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if cfg.ReadStates.MaxConcurrentChannels > 0 && deps.ReadStatesLimiter == nil {
 		panic("read states concurrency limiter is required")
 	}
-
 	publisher := deps.Publisher
 	if publisher == nil && deps.Kafka != nil {
 		publisher = &kafkaPublisher{

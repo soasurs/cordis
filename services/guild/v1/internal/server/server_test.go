@@ -344,19 +344,6 @@ func (s *fakeStore) GetGuildForMember(_ context.Context, guildID, userID int64) 
 	return cloneGuild(guild), nil
 }
 
-func (s *fakeStore) ListGuildsForMemberByIDs(ctx context.Context, guildIDs []int64, userID int64) ([]*model.Guild, error) {
-	var guilds []*model.Guild
-	for _, guildID := range guildIDs {
-		guild, err := s.GetGuildForMember(ctx, guildID, userID)
-		if err == nil {
-			guilds = append(guilds, guild)
-		} else if !errors.Is(err, sql.ErrNoRows) {
-			return nil, err
-		}
-	}
-	return guilds, nil
-}
-
 func (s *fakeStore) ListUserGuilds(_ context.Context, params store.ListUserGuildsParams) ([]*model.Guild, error) {
 	var guilds []*model.Guild
 	for id, guild := range s.guilds {
@@ -647,6 +634,18 @@ func (s *fakeStore) ListGuildRoles(_ context.Context, guildID int64) ([]*model.R
 	return roles, nil
 }
 
+func (s *fakeStore) ListGuildRolesByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Role, error) {
+	var roles []*model.Role
+	for _, guildID := range guildIDs {
+		values, err := s.ListGuildRoles(ctx, guildID)
+		if err != nil {
+			return nil, err
+		}
+		roles = append(roles, values...)
+	}
+	return roles, nil
+}
+
 func (s *fakeStore) UpdateGuildRole(_ context.Context, params store.UpdateGuildRoleParams) (*model.Role, error) {
 	role := s.roles[params.GuildID][params.RoleID]
 	if role == nil || role.DeletedAt != 0 {
@@ -779,19 +778,6 @@ func (s *fakeStore) GetGuildChannel(_ context.Context, channelID int64) (*model.
 		return nil, sql.ErrNoRows
 	}
 	return cloneChannel(channel), nil
-}
-
-func (s *fakeStore) ListGuildChannelsByIDs(ctx context.Context, channelIDs []int64) ([]*model.Channel, error) {
-	var channels []*model.Channel
-	for _, channelID := range channelIDs {
-		channel, err := s.GetGuildChannel(ctx, channelID)
-		if err == nil {
-			channels = append(channels, channel)
-		} else if !errors.Is(err, sql.ErrNoRows) {
-			return nil, err
-		}
-	}
-	return channels, nil
 }
 
 func (s *fakeStore) ListGuildChannels(_ context.Context, guildID int64) ([]*model.Channel, error) {

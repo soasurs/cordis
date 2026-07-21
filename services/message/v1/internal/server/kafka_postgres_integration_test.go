@@ -68,17 +68,26 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 
 	readCtx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
-	records := consumer.PollRecords(readCtx, 1)
+	records := consumer.PollRecords(readCtx, 2)
 	require.Empty(t, records.Errors())
-	require.Len(t, records.Records(), 1)
-	record := records.Records()[0]
-	require.Equal(t, "9001", string(record.Key))
-
-	var envelope eventEnvelope[messagePayload]
-	require.NoError(t, json.Unmarshal(record.Value, &envelope))
-	require.Equal(t, EventTypeMessageCreated, envelope.Type)
-	require.Equal(t, "9001", envelope.Data.GuildID)
-	require.Equal(t, strconv.FormatInt(created.GetMessage().GetId(), 10), envelope.Data.MessageID)
+	require.Len(t, records.Records(), 2)
+	var foundCreated, foundRead bool
+	for _, record := range records.Records() {
+		var envelope eventEnvelope[messagePayload]
+		require.NoError(t, json.Unmarshal(record.Value, &envelope))
+		switch envelope.Type {
+		case EventTypeMessageCreated:
+			foundCreated = true
+			require.Equal(t, "9001", string(record.Key))
+			require.Equal(t, "9001", envelope.Data.GuildID)
+			require.Equal(t, strconv.FormatInt(created.GetMessage().GetId(), 10), envelope.Data.MessageID)
+		case EventTypeMessageReadUpdated:
+			foundRead = true
+			require.Equal(t, "3001", string(record.Key))
+		}
+	}
+	require.True(t, foundCreated)
+	require.True(t, foundRead)
 
 	require.NoError(t, messageStore.CreateDmChannel(t.Context(), &model.DmChannel{
 		ID: 4001, UserLo: 3001, UserHi: 3002, CreatedAt: 1,
@@ -91,18 +100,22 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	require.NoError(t, err)
 
 	var dmRecords []*kgo.Record
-	for len(dmRecords) < 2 && readCtx.Err() == nil {
-		records = consumer.PollRecords(readCtx, 2-len(dmRecords))
+	for len(dmRecords) < 3 && readCtx.Err() == nil {
+		records = consumer.PollRecords(readCtx, 3-len(dmRecords))
 		require.Empty(t, records.Errors())
 		dmRecords = append(dmRecords, records.Records()...)
 	}
-	require.Len(t, dmRecords, 2)
-	for i, userID := range []string{"3001", "3002"} {
-		record := dmRecords[i]
-		require.Equal(t, userID, string(record.Key))
+	require.Len(t, dmRecords, 3)
+	createdRecipients := make(map[string]bool)
+	for _, record := range dmRecords {
 		var dmEnvelope eventEnvelope[messagePayload]
 		require.NoError(t, json.Unmarshal(record.Value, &dmEnvelope))
-		require.Equal(t, EventTypeMessageCreated, dmEnvelope.Type)
-		require.Equal(t, userID, dmEnvelope.Data.UserID)
+		if dmEnvelope.Type == EventTypeMessageCreated {
+			createdRecipients[string(record.Key)] = true
+			continue
+		}
+		require.Equal(t, EventTypeMessageReadUpdated, dmEnvelope.Type)
+		require.Equal(t, "3001", string(record.Key))
 	}
+	require.Equal(t, map[string]bool{"3001": true, "3002": true}, createdRecipients)
 }

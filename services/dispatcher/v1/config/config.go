@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+	"github.com/zeromicro/go-zero/core/trace"
 	"github.com/zeromicro/go-zero/zrpc"
 
 	"github.com/soasurs/cordis/pkg/sessionregistry"
@@ -11,6 +12,7 @@ import (
 type Config struct {
 	Name            string
 	Log             logx.LogConf
+	Telemetry       trace.Config `json:",optional"`
 	Kafka           KafkaConfig
 	Redis           redis.RedisConf
 	SessionRegistry sessionregistry.Config

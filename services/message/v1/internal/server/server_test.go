@@ -48,7 +48,7 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 
 	require.Len(t, publisher.records, 2)
 	record := publisher.records[0]
-	require.Equal(t, "9001", string(record.key))
+	require.Equal(t, "10", string(record.key))
 	var envelope eventEnvelope[messagePayload]
 	require.NoError(t, json.Unmarshal(record.payload, &envelope))
 	require.Equal(t, EventTypeMessageCreated, envelope.Type)
@@ -57,6 +57,7 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, int64(1), envelope.Data.Revision)
 	var readEnvelope eventEnvelope[messageReadUpdatedPayload]
 	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &readEnvelope))
+	require.Equal(t, "20", string(publisher.records[1].key))
 	require.Equal(t, EventTypeMessageReadUpdated, readEnvelope.Type)
 	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), readEnvelope.Data.LastReadMessageID)
 }
@@ -70,6 +71,7 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	events, err := newMessageCreatedEvents(message, []int64{9007199254740998}, messageAudience{guildID: 9007199254740999})
 	require.NoError(t, err)
 	require.Len(t, events, 1)
+	require.Equal(t, "9007199254740994", string(events[0].Key))
 
 	var envelope eventEnvelope[map[string]json.RawMessage]
 	require.NoError(t, json.Unmarshal(events[0].Payload, &envelope))

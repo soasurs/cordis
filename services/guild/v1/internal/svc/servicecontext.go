@@ -89,7 +89,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	}
 	publisher := deps.Publisher
 	if publisher == nil && deps.Kafka != nil {
-		publisher = &kafkaPublisher{client: deps.Kafka, topic: cfg.Kafka.Topic}
+		publisher = kafka.NewPublisher(deps.Kafka, cfg.Kafka.Topic)
 	}
 	return &ServiceContext{
 		Cfg:        cfg,
@@ -98,17 +98,4 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		Publisher:  publisher,
 		UserClient: deps.UserClient,
 	}
-}
-
-type kafkaPublisher struct {
-	client *kgo.Client
-	topic  string
-}
-
-func (p *kafkaPublisher) Publish(ctx context.Context, key, payload []byte) error {
-	return p.client.ProduceSync(ctx, &kgo.Record{
-		Topic: p.topic,
-		Key:   key,
-		Value: payload,
-	}).FirstErr()
 }

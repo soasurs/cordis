@@ -77,7 +77,7 @@ go build ./services/guild/v1/...
 
 - Message mutations commit their database transaction before publishing directly to Kafka; do not introduce a transactional outbox unless explicitly requested.
 - Message has an independent Kafka topic, defaulting to `cordis.message.events.v1`.
-- Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope. Guild message records carry `guild_id` and are keyed by decimal Guild ID. DM message records carry `user_id` and emit one record per participant keyed by the decimal recipient user ID.
+- Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope. Guild message records carry `guild_id`; DM message records carry `user_id` and emit one record per participant. `message.created`, `message.updated`, and `message.deleted` records are keyed by decimal `channel_id`; user-scoped `message.read.updated` records are keyed by decimal `user_id`.
 - Realtime domain event names use dot-separated hierarchy only. Shared names live in `pkg/realtime`; do not introduce underscore variants such as `message_created`.
 - Kafka publication is best-effort: publication failures are logged but do not turn an already-committed mutation into an RPC failure.
 - `message.created` and `message.updated` payloads include `mention_user_ids`.
@@ -123,7 +123,7 @@ go build ./services/guild/v1/...
 - DM channels live in `dm_channels` (`user_lo < user_hi`, one channel per pair). Channel authorization checks the local table first; a hit applies DM semantics and a miss falls through to the Guild path.
 - `channel_read_states` stores `(user_id, channel_id, last_read_message_id)` per channel; `AckMessage` moves the cursor forward only when the requested message is newer. READY and scoped reconciliation read states contain `channel_id`, the current `last_message_id`, `last_read_message_id`, and the real-time unread @-mention count. A channel is unread when `last_message_id > last_read_message_id`; no unread-message count is computed or stored. Message creation reads the author's resulting state back inside the write transaction. Only an actual watermark advance publishes a user-routed `message.read.updated` event, allowing the user's other devices to converge without no-op events.
 - Opening a DM requires an active friendship (`CreateDmChannel` is idempotent per pair and races resolve through insert-if-absent). Sending in a DM requires that neither side blocks the other, checked through one snapshot `CheckRelationships(include_reverse)` call; reading history stays available while blocked. DMs have no moderators: non-authors can never edit or delete.
-- `dm.channel.created` and DM `message.*` are published to the Message topic as one user-routed record per participant keyed by the decimal recipient user ID. Dispatcher routes those records and `relationship.*` by the payload `user_id`.
+- `dm.channel.created` and DM `message.*` are published to the Message topic as one user-routed record per participant. `dm.channel.created` is keyed by decimal recipient `user_id`, while DM `message.*` uses decimal `channel_id`; Dispatcher routes both record types and `relationship.*` by the payload `user_id`.
 - Permission-changing Guild events immediately invalidate the affected Session visibility snapshots.
 
 ## Gateway, Session, Dispatcher, And Presence

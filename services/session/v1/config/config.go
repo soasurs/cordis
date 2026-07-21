@@ -120,7 +120,11 @@ func (c Config) RPCConfig() zrpc.RpcServerConf {
 		ServiceConf: service.ServiceConf{
 			Name: c.Name, Log: c.Log, DevServer: c.DevServer, Telemetry: c.Telemetry,
 		},
-		ListenOn: c.ListenOn, Timeout: c.Timeout, Middlewares: c.Middlewares,
+		ListenOn: c.ListenOn,
+		Timeout:  c.Timeout,
+		// pkg/probe registers grpc.health.v1.Health on the business server.
+		Health:      false,
+		Middlewares: c.Middlewares,
 	}
 }
 
@@ -208,4 +212,10 @@ func (c NodeConfig) DrainWindow() time.Duration {
 		return 30 * time.Second
 	}
 	return time.Duration(c.DrainSeconds) * time.Second
+}
+
+// ShutdownTimeout allows the drain window plus time for gRPC streams and
+// process resources to close before go-zero forces the process to exit.
+func (c NodeConfig) ShutdownTimeout() time.Duration {
+	return c.DrainWindow() + 10*time.Second
 }

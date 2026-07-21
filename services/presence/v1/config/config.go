@@ -3,17 +3,40 @@ package config
 import (
 	"time"
 
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/core/stores/redis"
+	"github.com/zeromicro/go-zero/core/trace"
 	"github.com/zeromicro/go-zero/zrpc"
 
 	"github.com/soasurs/cordis/pkg/kafka"
 )
 
 type Config struct {
-	zrpc.RpcServerConf
-	Redis    redis.RedisConf
-	Presence PresenceConfig `json:",optional"`
-	Kafka    KafkaConfig    `json:",optional"`
+	Name        string
+	ListenOn    string
+	Timeout     int64 `json:",default=0"`
+	Log         logx.LogConf
+	DevServer   service.DevServerConfig `json:",optional"`
+	Telemetry   trace.Config            `json:",optional"`
+	Middlewares zrpc.ServerMiddlewaresConf
+	Redis       redis.RedisConf
+	Presence    PresenceConfig `json:",optional"`
+	Kafka       KafkaConfig    `json:",optional"`
+}
+
+// RPCConfig builds the zrpc server configuration with the built-in health
+// service disabled because pkg/probe owns grpc.health.v1.Health.
+func (c Config) RPCConfig() zrpc.RpcServerConf {
+	return zrpc.RpcServerConf{
+		ServiceConf: service.ServiceConf{
+			Name: c.Name, Log: c.Log, DevServer: c.DevServer, Telemetry: c.Telemetry,
+		},
+		ListenOn:    c.ListenOn,
+		Timeout:     c.Timeout,
+		Health:      false,
+		Middlewares: c.Middlewares,
+	}
 }
 
 // KafkaConfig configures the optional presence transition event stream.

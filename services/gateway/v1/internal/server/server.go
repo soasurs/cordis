@@ -58,11 +58,18 @@ type Server struct {
 	checkpoints     *checkpointManager
 	checkpointClose io.Closer
 	tracer          trace.Tracer
+
+	connectionsMu sync.Mutex
+	connections   map[*client]struct{}
+	connectionsWG sync.WaitGroup
+	draining      bool
+	drainDone     chan struct{}
 }
 
 type client struct {
 	server               *Server
 	ws                   *websocket.Conn
+	cancel               context.CancelFunc
 	connectionID         string
 	stream               sessionStream
 	streamConn           io.Closer
@@ -88,7 +95,9 @@ func newServer(svcCtx *svc.ServiceContext, sender checkpointSender) *Server {
 	gatewayID, generation := randomID("gw"), randomID("gen")
 	server := &Server{
 		svcCtx: svcCtx, gatewayID: gatewayID, generation: generation,
-		tracer: otel.Tracer(observability.GatewayInstrumentationName),
+		tracer:      otel.Tracer(observability.GatewayInstrumentationName),
+		connections: make(map[*client]struct{}),
+		drainDone:   make(chan struct{}),
 	}
 	server.checkpoints = newCheckpointManager(
 		sender, gatewayID, generation,
@@ -111,16 +120,71 @@ func (s *Server) Close() error {
 	return nil
 }
 
+// Drain rejects new WebSocket upgrades, asks active clients to reconnect, and
+// waits for their handlers to release Session streams.
+func (s *Server) Drain(ctx context.Context) error {
+	s.connectionsMu.Lock()
+	if s.drainDone == nil {
+		s.drainDone = make(chan struct{})
+	}
+	if s.draining {
+		done := s.drainDone
+		s.connectionsMu.Unlock()
+		select {
+		case <-done:
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	s.draining = true
+	connections := make([]*client, 0, len(s.connections))
+	for connection := range s.connections {
+		connections = append(connections, connection)
+	}
+	done := s.drainDone
+	s.connectionsMu.Unlock()
+
+	for _, connection := range connections {
+		go func() {
+			_ = connection.ws.Close(websocket.StatusServiceRestart, "gateway draining")
+		}()
+	}
+	go func() {
+		s.connectionsWG.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		for _, connection := range connections {
+			if connection.cancel != nil {
+				connection.cancel()
+			}
+			_ = connection.ws.CloseNow()
+		}
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+		}
+		return ctx.Err()
+	}
+}
+
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
-	})
 	mux.HandleFunc(s.svcCtx.Cfg.Gateway.WebSocketRoute(), s.handleWebSocket)
 	return mux
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	if !s.beginConnection() {
+		http.Error(w, "gateway is draining", http.StatusServiceUnavailable)
+		return
+	}
+	defer s.connectionsWG.Done()
 	clientAddr, err := s.svcCtx.ClientIPResolver.Resolve(r.RemoteAddr, r.Header)
 	if err != nil {
 		http.Error(w, "invalid client address", http.StatusBadRequest)
@@ -166,11 +230,46 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	c := &client{
 		server:       s,
 		ws:           ws,
+		cancel:       cancel,
 		connectionID: randomID("conn"),
 		sourceScope:  sourceScope,
 		socketLease:  lease,
 	}
+	if !s.trackConnection(c) {
+		_ = ws.Close(websocket.StatusServiceRestart, "gateway draining")
+		return
+	}
+	defer s.untrackConnection(c)
 	c.run(ctx)
+}
+
+func (s *Server) beginConnection() bool {
+	s.connectionsMu.Lock()
+	defer s.connectionsMu.Unlock()
+	if s.draining {
+		return false
+	}
+	s.connectionsWG.Add(1)
+	return true
+}
+
+func (s *Server) trackConnection(connection *client) bool {
+	s.connectionsMu.Lock()
+	defer s.connectionsMu.Unlock()
+	if s.draining {
+		return false
+	}
+	if s.connections == nil {
+		s.connections = make(map[*client]struct{})
+	}
+	s.connections[connection] = struct{}{}
+	return true
+}
+
+func (s *Server) untrackConnection(connection *client) {
+	s.connectionsMu.Lock()
+	delete(s.connections, connection)
+	s.connectionsMu.Unlock()
 }
 
 func (s *Server) takeHTTPRateLimit(w http.ResponseWriter, r *http.Request, policy, key string) bool {

@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc"
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
 	"github.com/soasurs/cordis/services/authenticator/v1/server"
 	"github.com/soasurs/cordis/services/authenticator/v1/svc"
@@ -23,26 +24,31 @@ func main() {
 	if err := conf.LoadConfig(*configPath, cfg, conf.UseEnv()); err != nil {
 		panic(err)
 	}
+	cfg.Health = false
 
 	deps, err := svc.NewDependencies(*cfg)
 	if err != nil {
 		panic(err)
 	}
+	if deps.DB != nil {
+		defer deps.DB.Close()
+	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
-
-	proc.AddShutdownListener(func() {
-		if deps.DB != nil {
-			deps.DB.Close()
-		}
+	probeState := probe.New()
+	probeState.SetLiveness(true)
+	proc.AddWrapUpListener(func() {
+		probeState.SetReadiness(false)
 	})
 
 	server := server.New(svcCtx)
 	s, err := zrpc.NewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
 		authenticatorv1.RegisterAuthenticatorServiceServer(grpcServer, server)
+		probeState.RegisterGRPC(grpcServer)
 	})
 	if err != nil {
 		panic(err)
 	}
 
+	probeState.SetReadiness(true)
 	s.Start()
 }

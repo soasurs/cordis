@@ -20,4 +20,7 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.Middlewares.Stat {
 		t.Fatal("server stat middleware should be disabled")
 	}
+	if cfg.Health {
+		t.Fatal("built-in gRPC health service should be disabled")
+	}
 }

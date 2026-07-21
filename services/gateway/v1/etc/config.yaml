@@ -1,6 +1,9 @@
 name: gateway.v1
 listenOn: 0.0.0.0:8081
 
+probeServer:
+  listenOn: 0.0.0.0:6065
+
 log:
   mode: console
   encoding: json

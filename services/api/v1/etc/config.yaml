@@ -1,15 +1,14 @@
 name: api.v1
 listenOn: 0.0.0.0:8080
 
+probeServer:
+  listenOn: 0.0.0.0:6060
+
 log:
   level: error
   stat: false
 
 observability:
-  metrics:
-    enabled: true
-    listenOn: 0.0.0.0:6060
-    path: /metrics
   tracing:
     endpoint: "${CORDIS_OTEL_ENDPOINT}"
     sampler: 1.0

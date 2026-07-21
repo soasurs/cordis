@@ -19,8 +19,7 @@ func TestLoadConfig(t *testing.T) {
 
 	require.Equal(t, "error", cfg.Log.Level)
 	require.False(t, cfg.Log.Stat)
-	require.True(t, cfg.Observability.Metrics.Enabled)
-	require.NotEmpty(t, cfg.Observability.Metrics.ListenOn)
+	require.Equal(t, "0.0.0.0:6060", cfg.ProbeServer.ListenOn)
 	require.Equal(t, "127.0.0.1:6379", cfg.RateLimit.Redis.Host)
 	require.True(t, cfg.RateLimit.Redis.NonBlock)
 	ipv4 := func(policy string) string { return apiratelimit.PolicyForFamily(policy, clientip.FamilyIPv4) }

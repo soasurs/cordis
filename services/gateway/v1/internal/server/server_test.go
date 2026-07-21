@@ -22,10 +22,65 @@ import (
 	"google.golang.org/grpc"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	"github.com/soasurs/cordis/pkg/clientip"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/discovery"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
 )
+
+func TestPublicHandlerDoesNotExposeOperationalEndpoints(t *testing.T) {
+	gateway := &Server{svcCtx: &svc.ServiceContext{Cfg: config.Config{
+		Gateway: config.GatewayConfig{WebSocketPath: "/ws"},
+	}}}
+	for _, path := range []string{"/health", "/healthz", "/livez", "/readyz", "/metrics"} {
+		request := httptest.NewRequest(http.MethodGet, path, nil)
+		response := httptest.NewRecorder()
+		gateway.Handler().ServeHTTP(response, request)
+		require.Equal(t, http.StatusNotFound, response.Code, path)
+	}
+}
+
+func TestDrainClosesActiveWebSocketsAndRejectsUpgrades(t *testing.T) {
+	clientIPResolver, err := clientip.New(nil)
+	require.NoError(t, err)
+	gateway := &Server{
+		svcCtx: &svc.ServiceContext{
+			Cfg: config.Config{Gateway: config.GatewayConfig{
+				WebSocketPath:          "/ws",
+				IdentifyTimeoutSeconds: 30,
+			}},
+			ClientIPResolver: clientIPResolver,
+		},
+		gatewayID:   "gateway-test",
+		connections: make(map[*client]struct{}),
+		drainDone:   make(chan struct{}),
+	}
+	httpServer := httptest.NewServer(gateway.Handler())
+	defer httpServer.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(httpServer.URL, "http") + "/ws"
+	conn, _, err := websocket.Dial(t.Context(), wsURL, nil)
+	require.NoError(t, err)
+	defer conn.CloseNow()
+	var hello envelope
+	require.NoError(t, wsjson.Read(t.Context(), conn, &hello))
+
+	drainCtx, cancel := context.WithTimeout(t.Context(), time.Second)
+	defer cancel()
+	drainErr := make(chan error, 1)
+	go func() {
+		drainErr <- gateway.Drain(drainCtx)
+	}()
+	var message envelope
+	err = wsjson.Read(t.Context(), conn, &message)
+	require.Equal(t, websocket.StatusServiceRestart, websocket.CloseStatus(err))
+	require.NoError(t, <-drainErr)
+
+	response, err := http.Get(httpServer.URL + "/ws")
+	require.NoError(t, err)
+	defer response.Body.Close()
+	require.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
+}
 
 func TestWebSocketForwardsSessionFrames(t *testing.T) {
 	sessionAddress := startFakeSessionServer(t)

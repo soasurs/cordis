@@ -1,6 +1,13 @@
 Name: presence.rpc
 ListenOn: 0.0.0.0:3003
 
+DevServer:
+  Enabled: true
+  Host: 0.0.0.0
+  Port: 6064
+  EnableMetrics: true
+  EnablePprof: false
+
 Redis:
   Host: 127.0.0.1:6379
   Type: node

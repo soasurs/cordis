@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/services/guild/v1/config"
 	"github.com/soasurs/cordis/services/guild/v1/internal/server"
 	"github.com/soasurs/cordis/services/guild/v1/internal/svc"
@@ -24,6 +25,7 @@ func main() {
 	if err := conf.LoadConfig(*configPath, cfg, conf.UseEnv()); err != nil {
 		panic(err)
 	}
+	cfg.Health = false
 	cfg.Log.ServiceName = cfg.Name
 	logx.MustSetup(cfg.Log)
 
@@ -31,25 +33,29 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if deps.DB != nil {
+		defer deps.DB.Close()
+	}
+	if deps.Kafka != nil {
+		defer deps.Kafka.Close()
+	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
+	probeState := probe.New()
+	probeState.SetLiveness(true)
+	proc.AddWrapUpListener(func() {
+		probeState.SetReadiness(false)
+	})
 
 	zrpcSrv, err := zrpc.NewServer(cfg.RpcServerConf, func(grpcServer *grpc.Server) {
 		guildv1.RegisterGuildServiceServer(grpcServer, srv)
+		probeState.RegisterGRPC(grpcServer)
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	proc.AddShutdownListener(func() {
-		if deps.Kafka != nil {
-			deps.Kafka.Close()
-		}
-		if deps.DB != nil {
-			deps.DB.Close()
-		}
-	})
-
 	logx.Infow("starting guild service", logx.Field("listen_on", cfg.ListenOn))
+	probeState.SetReadiness(true)
 	zrpcSrv.Start()
 }

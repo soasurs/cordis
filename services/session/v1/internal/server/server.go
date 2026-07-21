@@ -15,16 +15,22 @@ import (
 	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	"github.com/soasurs/cordis/pkg/observability"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 	"github.com/soasurs/cordis/services/session/v1/internal/store"
@@ -110,6 +116,7 @@ type Server struct {
 
 	routeMu         sync.Mutex
 	publishedRoutes map[store.Route]struct{}
+	tracer          trace.Tracer
 }
 
 func New(svcCtx *svc.ServiceContext) *Server {
@@ -185,11 +192,58 @@ func (s *Server) Drain(ctx context.Context) {
 	}
 }
 
-func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
+func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) (returnErr error) {
+	closeReason := "handshake_failed"
+	sessionGatewayStreamsActive.Inc()
+	defer func() {
+		sessionGatewayStreamsActive.Dec()
+		sessionGatewayStreamClosesTotal.WithLabelValues(closeReason).Inc()
+	}()
 	first, err := stream.Recv()
 	if err != nil {
+		closeReason = sessionStreamCloseReason(err)
 		return err
 	}
+	observeSessionGatewayFrame("gateway_in", proto.Size(first))
+	operation, expectedEvent := "", ""
+	switch {
+	case first.GetIdentify() != nil:
+		operation, expectedEvent = "identify", realtime.GatewayEventReady
+	case first.GetResume() != nil:
+		operation, expectedEvent = "resume", realtime.GatewayEventResumed
+	}
+	handshakeCtx := stream.Context()
+	var handshakeSpan trace.Span
+	handshakeOpen := false
+	handshakeStarted := time.Time{}
+	if operation != "" {
+		tracer := s.tracer
+		if tracer == nil {
+			tracer = otel.Tracer(observability.SessionInstrumentationName)
+		}
+		handshakeCtx, handshakeSpan = tracer.Start(
+			stream.Context(),
+			"session."+operation,
+			trace.WithAttributes(attribute.String("cordis.session.operation", operation)),
+		)
+		handshakeStarted = time.Now()
+		handshakeOpen = true
+	}
+	finishHandshake := func(err error) {
+		if !handshakeOpen {
+			return
+		}
+		result := sessionHandshakeResult(err)
+		observeSessionHandshake(handshakeStarted, operation, err)
+		handshakeSpan.SetAttributes(attribute.String("cordis.session.result", result))
+		if err != nil {
+			handshakeSpan.SetStatus(otelcodes.Error, result)
+		}
+		handshakeSpan.End()
+		handshakeOpen = false
+	}
+	defer func() { finishHandshake(returnErr) }()
+
 	if strings.TrimSpace(first.GetConnectionId()) == "" {
 		return status.Error(codes.InvalidArgument, "connection id is required")
 	}
@@ -204,7 +258,7 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 	switch {
 	case first.GetIdentify() != nil:
 		session, err = s.identify(
-			stream.Context(),
+			handshakeCtx,
 			first.GetConnectionId(),
 			first.GetGatewayId(),
 			first.GetGatewayGeneration(),
@@ -212,7 +266,7 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 		)
 	case first.GetResume() != nil:
 		session, err = s.resume(
-			stream.Context(),
+			handshakeCtx,
 			first.GetConnectionId(),
 			first.GetGatewayId(),
 			first.GetGatewayGeneration(),
@@ -231,10 +285,12 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 	if current == nil {
 		return status.Error(codes.FailedPrecondition, "session binding is missing")
 	}
+	closeReason = "binding_closed"
 
+	runtimeCtx := trace.ContextWithSpanContext(stream.Context(), trace.SpanContext{})
 	recv := make(chan error, 1)
 	go func() {
-		recv <- s.receiveFrames(stream, session, current)
+		recv <- s.receiveFrames(runtimeCtx, stream, session, current)
 	}()
 
 	for {
@@ -242,16 +298,22 @@ func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) error {
 		case frame := <-current.send:
 			frame.SetSessionId(session.id)
 			frame.SetBindingEpoch(current.epoch)
-			if err := stream.Send(frame); err != nil {
+			if err := sendSessionGatewayFrame(stream, frame); err != nil {
+				closeReason = "send_failure"
 				s.detach(session, current, true)
 				return err
 			}
+			if frame.GetType() == expectedEvent {
+				finishHandshake(nil)
+			}
 		case err := <-recv:
+			closeReason = sessionStreamCloseReason(err)
 			s.detach(session, current, true)
 			return err
 		case <-current.done:
 			return nil
 		case <-stream.Context().Done():
+			closeReason = "canceled"
 			s.detach(session, current, true)
 			return stream.Context().Err()
 		}
@@ -472,22 +534,28 @@ func (s *Server) resume(
 	return session, nil
 }
 
-func (s *Server) receiveFrames(stream sessionv1.SessionService_ConnectServer, session *logicalSession, binding *binding) error {
+func (s *Server) receiveFrames(
+	ctx context.Context,
+	stream sessionv1.SessionService_ConnectServer,
+	session *logicalSession,
+	binding *binding,
+) error {
 	for {
 		frame, err := stream.Recv()
 		if err != nil {
 			return err
 		}
+		observeSessionGatewayFrame("gateway_in", proto.Size(frame))
 		if frame.GetConnectionId() != binding.id {
 			return status.Error(codes.PermissionDenied, "connection id mismatch")
 		}
 		switch {
 		case frame.GetHeartbeat() != nil:
-			if err := s.heartbeat(stream.Context(), session, binding, frame.GetHeartbeat().GetSequence()); err != nil {
+			if err := s.heartbeat(ctx, session, binding, frame.GetHeartbeat().GetSequence()); err != nil {
 				return err
 			}
 		case frame.GetPresence() != nil:
-			if err := s.updatePresence(stream.Context(), session, binding, frame.GetPresence()); err != nil {
+			if err := s.updatePresence(ctx, session, binding, frame.GetPresence()); err != nil {
 				return err
 			}
 		case frame.GetDetach() != nil:
@@ -496,6 +564,32 @@ func (s *Server) receiveFrames(stream sessionv1.SessionService_ConnectServer, se
 		default:
 			return status.Error(codes.InvalidArgument, "unsupported session frame")
 		}
+	}
+}
+
+func sessionHandshakeResult(err error) string {
+	if err == nil {
+		return "success"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	if errors.Is(err, context.Canceled) {
+		return "canceled"
+	}
+	switch status.Code(err) {
+	case codes.InvalidArgument, codes.FailedPrecondition, codes.NotFound, codes.Unauthenticated, codes.PermissionDenied:
+		return "rejected"
+	case codes.DeadlineExceeded:
+		return "timeout"
+	case codes.Canceled:
+		return "canceled"
+	case codes.ResourceExhausted:
+		return "rate_limited"
+	case codes.Unavailable:
+		return "unavailable"
+	default:
+		return "internal"
 	}
 }
 
@@ -653,8 +747,17 @@ func enqueue(binding *binding, frame *sessionv1.ConnectResponse) error {
 	case <-binding.done:
 		return errors.New("session binding closed")
 	default:
+		sessionBindingQueueOverflowsTotal.Inc()
 		return errors.New("session binding queue full")
 	}
+}
+
+func sendSessionGatewayFrame(stream sessionv1.SessionService_ConnectServer, frame *sessionv1.ConnectResponse) error {
+	if err := stream.Send(frame); err != nil {
+		return err
+	}
+	observeSessionGatewayFrame("gateway_out", proto.Size(frame))
+	return nil
 }
 
 func newBinding(id string, epoch uint64, queueSize int) *binding {

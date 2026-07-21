@@ -7,6 +7,11 @@ log:
   level: info
   stat: false
 
+telemetry:
+  endpoint: "${CORDIS_OTEL_ENDPOINT}"
+  sampler: 1.0
+  batcher: otlpgrpc
+
 gateway:
   websocketPath: /ws
   heartbeatIntervalMs: 45000

@@ -12,6 +12,10 @@ const (
 	KafkaInstrumentationName = "github.com/soasurs/cordis/pkg/kafka"
 	// DispatcherInstrumentationName identifies Dispatcher instrumentation.
 	DispatcherInstrumentationName = "github.com/soasurs/cordis/services/dispatcher/v1"
+	// GatewayInstrumentationName identifies Gateway instrumentation.
+	GatewayInstrumentationName = "github.com/soasurs/cordis/services/gateway/v1"
+	// SessionInstrumentationName identifies Session instrumentation.
+	SessionInstrumentationName = "github.com/soasurs/cordis/services/session/v1"
 )
 
 // RPCPropagator returns the process-wide W3C propagator used by RPC transports.

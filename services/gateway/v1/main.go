@@ -13,6 +13,7 @@ import (
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 
+	"github.com/soasurs/cordis/pkg/observability"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/server"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
@@ -30,6 +31,8 @@ func main() {
 	cfg.Log.ServiceName = cfg.Name
 	logx.MustSetup(cfg.Log)
 	defer logx.Close()
+	observability.StartTracing(cfg.Name, cfg.Telemetry)
+	defer observability.StopTracing()
 
 	svcCtx := svc.NewServiceContext(*cfg)
 	defer svcCtx.Close()

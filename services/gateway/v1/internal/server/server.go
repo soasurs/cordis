@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -14,15 +15,22 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/coder/websocket/wsjson"
 	"github.com/zeromicro/go-zero/core/logx"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/clientip"
+	"github.com/soasurs/cordis/pkg/observability"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/pkg/socketlimit"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
@@ -49,6 +57,7 @@ type Server struct {
 	generation      string
 	checkpoints     *checkpointManager
 	checkpointClose io.Closer
+	tracer          trace.Tracer
 }
 
 type client struct {
@@ -77,7 +86,10 @@ func New(svcCtx *svc.ServiceContext) *Server {
 
 func newServer(svcCtx *svc.ServiceContext, sender checkpointSender) *Server {
 	gatewayID, generation := randomID("gw"), randomID("gen")
-	server := &Server{svcCtx: svcCtx, gatewayID: gatewayID, generation: generation}
+	server := &Server{
+		svcCtx: svcCtx, gatewayID: gatewayID, generation: generation,
+		tracer: otel.Tracer(observability.GatewayInstrumentationName),
+	}
 	server.checkpoints = newCheckpointManager(
 		sender, gatewayID, generation,
 		svcCtx.Cfg.Gateway.CheckpointInterval(), svcCtx.Cfg.Gateway.CheckpointLimit(),
@@ -148,7 +160,8 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	ws.SetReadLimit(s.svcCtx.Cfg.Gateway.MessageLimit())
 
-	ctx, cancel := context.WithCancel(context.Background())
+	requestCtx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+	ctx, cancel := context.WithCancel(requestCtx)
 	defer cancel()
 	c := &client{
 		server:       s,
@@ -180,58 +193,42 @@ func (s *Server) takeHTTPRateLimit(w http.ResponseWriter, r *http.Request, polic
 }
 
 func (c *client) run(ctx context.Context) {
-	defer c.close()
+	closeReason := "internal"
+	defer func() {
+		gatewayStreamClosesTotal.WithLabelValues(closeReason).Inc()
+		c.close()
+	}()
 	if err := c.write(ctx, makeEnvelope(opHello, eventHello, helloData{
 		HeartbeatIntervalMs: c.server.svcCtx.Cfg.Gateway.HeartbeatInterval().Milliseconds(),
 		GatewayID:           c.server.gatewayID,
 	})); err != nil {
+		closeReason = "websocket_write_failure"
 		return
 	}
 
 	readCtx, cancel := context.WithTimeout(ctx, c.server.svcCtx.Cfg.Gateway.IdentifyTimeout())
 	var first envelope
-	err := wsjson.Read(readCtx, c.ws, &first)
+	err := c.read(readCtx, &first)
 	cancel()
 	if err != nil {
+		closeReason = gatewayWebSocketCloseReason(ctx, err, false)
 		return
 	}
 	if first.Op != opIdentify && first.Op != opResume {
 		_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
 			Code: "handshake_required", Message: "first websocket message must be IDENTIFY or RESUME",
 		}))
+		closeReason = "protocol_error"
 		return
 	}
-	if err := c.checkHandshakeRateLimit(ctx, first); err != nil {
+	if err := c.bind(ctx, first); err != nil {
 		c.writeConnectError(ctx, first.Op, err)
+		closeReason = "handshake_failed"
 		return
 	}
-
-	stream, conn, address, err := c.connect(ctx, first)
-	if err != nil {
-		c.writeConnectError(ctx, first.Op, err)
-		return
-	}
-	c.stream = stream
-	c.streamConn = conn
-	c.sessionAddress = address
-	initial, err := c.stream.Recv()
-	if err != nil {
-		c.writeConnectError(ctx, first.Op, err)
-		return
-	}
-	if c.socketLease != nil {
-		c.socketLease.MarkReady()
-	}
-	if err := c.writeSessionFrame(ctx, initial); err != nil {
-		return
-	}
-	if c.sessionID == "" || c.bindingEpoch == 0 {
-		c.writeConnectError(ctx, first.Op, errors.New("session binding metadata is missing"))
-		return
-	}
-	c.heartbeatMu.Lock()
-	c.lastHeartbeat = time.Now()
-	c.heartbeatMu.Unlock()
+	gatewaySessionStreamsActive.Inc()
+	defer gatewaySessionStreamsActive.Dec()
+	closeReason = "peer_closed"
 
 	recvErr := make(chan error, 1)
 	go func() {
@@ -245,9 +242,15 @@ func (c *client) run(ctx context.Context) {
 		var msg envelope
 		deadline := c.heartbeatDeadline()
 		readCtx, cancel := context.WithDeadline(ctx, deadline)
-		err := wsjson.Read(readCtx, c.ws, &msg)
+		err := c.read(readCtx, &msg)
 		cancel()
 		if err != nil {
+			select {
+			case <-recvErr:
+				closeReason = "session_closed"
+			default:
+				closeReason = gatewayWebSocketCloseReason(ctx, err, true)
+			}
 			_ = c.sendDetach(true)
 			return
 		}
@@ -256,6 +259,7 @@ func (c *client) run(ctx context.Context) {
 				Code: "rate_limited", Message: "gateway event rate limit exceeded",
 			}))
 			_ = c.sendDetach(true)
+			closeReason = "rate_limited"
 			return
 		}
 		if msg.Op == opHeartbeat {
@@ -273,7 +277,8 @@ func (c *client) run(ctx context.Context) {
 			}))
 			continue
 		}
-		if err := c.stream.Send(frame); err != nil {
+		if err := c.sendSessionFrame(frame); err != nil {
+			closeReason = "session_closed"
 			return
 		}
 		select {
@@ -281,10 +286,103 @@ func (c *client) run(ctx context.Context) {
 			if err != nil {
 				logx.WithContext(ctx).Errorw("receive session stream", logx.Field("error", err))
 			}
+			closeReason = "session_closed"
 			return
 		default:
 		}
 	}
+}
+
+func (c *client) bind(ctx context.Context, first envelope) (err error) {
+	started := time.Now()
+	operation := "identify"
+	expectedEvent := eventReady
+	if first.Op == opResume {
+		operation = "resume"
+		expectedEvent = eventResumed
+	}
+	handshakeCtx, cancel := context.WithTimeout(ctx, c.server.svcCtx.Cfg.Gateway.IdentifyTimeout())
+	defer cancel()
+	tracer := c.server.tracer
+	if tracer == nil {
+		tracer = otel.Tracer(observability.GatewayInstrumentationName)
+	}
+	handshakeCtx, span := tracer.Start(handshakeCtx, "gateway.session.bind",
+		trace.WithAttributes(attribute.String("cordis.session.operation", operation)))
+	defer func() {
+		result := handshakeResult(err)
+		observeGatewayHandshake(started, operation, err)
+		span.SetAttributes(attribute.String("cordis.session.result", result))
+		if err != nil {
+			span.SetStatus(otelcodes.Error, result)
+		}
+		span.End()
+	}()
+
+	if err := c.checkHandshakeRateLimit(handshakeCtx, first); err != nil {
+		return err
+	}
+	streamCtx, cancelStream := context.WithCancel(trace.ContextWithSpan(ctx, span))
+	stopHandshakeCancel := context.AfterFunc(handshakeCtx, cancelStream)
+	defer func() {
+		stopHandshakeCancel()
+		if err != nil {
+			cancelStream()
+		}
+	}()
+	stream, conn, address, err := c.connect(handshakeCtx, streamCtx, first)
+	if err != nil {
+		if handshakeErr := handshakeCtx.Err(); handshakeErr != nil {
+			return handshakeErr
+		}
+		return err
+	}
+	c.stream = stream
+	c.streamConn = conn
+	c.sessionAddress = address
+	for {
+		received := make(chan struct {
+			frame *sessionv1.ConnectResponse
+			err   error
+		}, 1)
+		go func() {
+			frame, recvErr := c.receiveSessionFrame()
+			received <- struct {
+				frame *sessionv1.ConnectResponse
+				err   error
+			}{frame: frame, err: recvErr}
+		}()
+		var initial *sessionv1.ConnectResponse
+		select {
+		case result := <-received:
+			if result.err != nil {
+				return result.err
+			}
+			initial = result.frame
+		case <-handshakeCtx.Done():
+			_ = conn.Close()
+			return handshakeCtx.Err()
+		}
+		initialResponse := initial.GetType() == expectedEvent
+		if initialResponse {
+			if initial.GetSessionId() == "" || initial.GetBindingEpoch() == 0 {
+				return errors.New("session binding metadata is missing")
+			}
+		}
+		if err := c.writeSessionFrame(handshakeCtx, initial); err != nil {
+			return err
+		}
+		if initialResponse {
+			if c.socketLease != nil {
+				c.socketLease.MarkReady()
+			}
+			break
+		}
+	}
+	c.heartbeatMu.Lock()
+	c.lastHeartbeat = time.Now()
+	c.heartbeatMu.Unlock()
+	return nil
 }
 
 func (c *client) allowClientEvent(now time.Time) bool {
@@ -335,7 +433,11 @@ func (c *client) checkHandshakeRateLimit(ctx context.Context, first envelope) er
 	return nil
 }
 
-func (c *client) connect(ctx context.Context, first envelope) (sessionStream, io.Closer, string, error) {
+func (c *client) connect(
+	resolveCtx context.Context,
+	streamCtx context.Context,
+	first envelope,
+) (sessionStream, io.Closer, string, error) {
 	var (
 		address string
 	)
@@ -348,24 +450,30 @@ func (c *client) connect(ctx context.Context, first envelope) (sessionStream, io
 			return nil, nil, "", errors.New("session id is required")
 		}
 		var err error
-		address, err = c.server.svcCtx.Resolver.ResolveSession(ctx, data.SessionID)
+		address, err = c.server.svcCtx.Resolver.ResolveSession(resolveCtx, data.SessionID)
 		if err != nil {
 			return nil, nil, "", err
 		}
 	} else {
 		var err error
-		address, err = c.server.svcCtx.Resolver.ResolveNode(ctx)
+		address, err = c.server.svcCtx.Resolver.ResolveNode(resolveCtx)
 		if err != nil {
 			return nil, nil, "", err
 		}
 	}
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(
+		address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler(otelgrpc.WithFilter(
+			observability.ExcludeGRPCMethods(sessionv1.SessionService_Connect_FullMethodName),
+		))),
+	)
 	if err != nil {
 		return nil, nil, "", err
 	}
 	client := sessionv1.NewSessionServiceClient(conn)
 
-	stream, err := client.Connect(ctx)
+	stream, err := client.Connect(streamCtx)
 	if err != nil {
 		_ = conn.Close()
 		return nil, nil, "", err
@@ -380,7 +488,34 @@ func (c *client) connect(ctx context.Context, first envelope) (sessionStream, io
 		_ = conn.Close()
 		return nil, nil, "", err
 	}
+	observeGatewayFrame("session_out", proto.Size(frame))
 	return stream, conn, address, nil
+}
+
+func handshakeResult(err error) string {
+	if err == nil {
+		return "success"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	if errors.Is(err, context.Canceled) {
+		return "canceled"
+	}
+	switch status.Code(err) {
+	case codes.InvalidArgument, codes.FailedPrecondition, codes.NotFound, codes.Unauthenticated, codes.PermissionDenied:
+		return "rejected"
+	case codes.DeadlineExceeded:
+		return "timeout"
+	case codes.Canceled:
+		return "canceled"
+	case codes.ResourceExhausted:
+		return "rate_limited"
+	case codes.Unavailable:
+		return "unavailable"
+	default:
+		return "internal"
+	}
 }
 
 func (c *client) heartbeatDeadline() time.Time {
@@ -427,7 +562,7 @@ func (c *client) handleHeartbeat(ctx context.Context, msg envelope) error {
 
 func (c *client) receiveSessionFrames(ctx context.Context) error {
 	for {
-		frame, err := c.stream.Recv()
+		frame, err := c.receiveSessionFrame()
 		if err != nil {
 			return err
 		}
@@ -503,7 +638,7 @@ func (c *client) sendDetach(resumable bool) error {
 	detach := new(sessionv1.Detach)
 	detach.SetResumable(resumable)
 	frame.SetDetach(detach)
-	return c.stream.Send(frame)
+	return c.sendSessionFrame(frame)
 }
 
 func (c *client) writeConnectError(ctx context.Context, opcode int, err error) {
@@ -529,7 +664,53 @@ func (c *client) writeConnectError(ctx context.Context, opcode int, err error) {
 func (c *client) write(ctx context.Context, msg envelope) error {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
-	return wsjson.Write(ctx, c.ws, msg)
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal websocket message: %w", err)
+	}
+	payload = append(payload, '\n')
+	started := time.Now()
+	err = c.ws.Write(ctx, websocket.MessageText, payload)
+	result := "success"
+	if err != nil {
+		result = "failure"
+		gatewayWebSocketWriteFailuresTotal.WithLabelValues(gatewayWebSocketFailureReason(err)).Inc()
+	} else {
+		observeGatewayFrame("websocket_out", len(payload))
+	}
+	gatewayWebSocketWriteDuration.WithLabelValues(result).Observe(time.Since(started).Seconds())
+	return err
+}
+
+func (c *client) read(ctx context.Context, msg *envelope) error {
+	_, payload, err := c.ws.Read(ctx)
+	if err != nil {
+		return err
+	}
+	observeGatewayFrame("websocket_in", len(payload))
+	if err := json.Unmarshal(payload, msg); err != nil {
+		_ = c.ws.Close(websocket.StatusInvalidFramePayloadData, "failed to unmarshal JSON")
+		return fmt.Errorf("unmarshal websocket message: %w", err)
+	}
+	return nil
+}
+
+func (c *client) sendSessionFrame(frame *sessionv1.ConnectRequest) error {
+	if err := c.stream.Send(frame); err != nil {
+		return err
+	}
+	observeGatewayFrame("session_out", proto.Size(frame))
+	return nil
+}
+
+func (c *client) receiveSessionFrame() (*sessionv1.ConnectResponse, error) {
+	frame, err := c.stream.Recv()
+	if err != nil {
+		gatewaySessionReceiveFailuresTotal.WithLabelValues(gatewaySessionFailureReason(err)).Inc()
+		return nil, err
+	}
+	observeGatewayFrame("session_in", proto.Size(frame))
+	return frame, nil
 }
 
 func (c *client) writeSessionFrame(ctx context.Context, frame *sessionv1.ConnectResponse) error {
@@ -548,6 +729,11 @@ func (c *client) writeSessionFrame(ctx context.Context, frame *sessionv1.Connect
 	}); err != nil {
 		return err
 	}
+	c.recordBindingMetadata(frame)
+	return nil
+}
+
+func (c *client) recordBindingMetadata(frame *sessionv1.ConnectResponse) {
 	c.heartbeatMu.Lock()
 	if frame.GetSequence() > c.highestSequence {
 		c.highestSequence = frame.GetSequence()
@@ -559,7 +745,6 @@ func (c *client) writeSessionFrame(ctx context.Context, frame *sessionv1.Connect
 		c.bindingEpoch = frame.GetBindingEpoch()
 	}
 	c.heartbeatMu.Unlock()
-	return nil
 }
 
 func (c *client) close() {

@@ -27,7 +27,9 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *apiv1.CreateG
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CreateGuildChannelResponse{Channel: guildChannelToAPI(svcResp.GetChannel())}, nil
+	resp := new(apiv1.CreateGuildChannelResponse)
+	resp.SetChannel(guildChannelToAPI(svcResp.GetChannel()))
+	return resp, nil
 }
 
 func (s *guildServer) GetGuildChannel(ctx context.Context, req *apiv1.GetGuildChannelRequest) (*apiv1.GetGuildChannelResponse, error) {
@@ -42,7 +44,9 @@ func (s *guildServer) GetGuildChannel(ctx context.Context, req *apiv1.GetGuildCh
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetGuildChannelResponse{Channel: guildChannelToAPI(svcResp.GetChannel())}, nil
+	resp := new(apiv1.GetGuildChannelResponse)
+	resp.SetChannel(guildChannelToAPI(svcResp.GetChannel()))
+	return resp, nil
 }
 
 func (s *guildServer) ListGuildChannels(ctx context.Context, req *apiv1.ListGuildChannelsRequest) (*apiv1.ListGuildChannelsResponse, error) {
@@ -57,7 +61,9 @@ func (s *guildServer) ListGuildChannels(ctx context.Context, req *apiv1.ListGuil
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildChannelsResponse{Channels: guildChannelsToAPI(svcResp.GetChannels())}, nil
+	resp := new(apiv1.ListGuildChannelsResponse)
+	resp.SetChannels(guildChannelsToAPI(svcResp.GetChannels()))
+	return resp, nil
 }
 
 func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *apiv1.UpdateGuildChannelRequest) (*apiv1.UpdateGuildChannelResponse, error) {
@@ -68,20 +74,22 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *apiv1.UpdateG
 	svcReq := new(guildv1.UpdateGuildChannelRequest)
 	svcReq.SetChannelId(req.GetChannelId())
 	svcReq.SetActorUserId(auth.GetUserId())
-	if req.Name != nil {
+	if req.HasName() {
 		svcReq.SetName(req.GetName())
 	}
-	if req.Topic != nil {
+	if req.HasTopic() {
 		svcReq.SetTopic(req.GetTopic())
 	}
-	if req.ParentId != nil {
+	if req.HasParentId() {
 		svcReq.SetParentId(req.GetParentId())
 	}
 	svcResp, err := s.svcCtx.GuildClient.UpdateGuildChannel(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateGuildChannelResponse{Channel: guildChannelToAPI(svcResp.GetChannel())}, nil
+	resp := new(apiv1.UpdateGuildChannelResponse)
+	resp.SetChannel(guildChannelToAPI(svcResp.GetChannel()))
+	return resp, nil
 }
 
 func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *apiv1.DeleteGuildChannelRequest) (*apiv1.DeleteGuildChannelResponse, error) {
@@ -96,7 +104,9 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *apiv1.DeleteG
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DeleteGuildChannelResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.DeleteGuildChannelResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *apiv1.ReorderGuildChannelsRequest) (*apiv1.ReorderGuildChannelsResponse, error) {
@@ -119,7 +129,9 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *apiv1.Reord
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ReorderGuildChannelsResponse{Channels: guildChannelsToAPI(svcResp.GetChannels())}, nil
+	resp := new(apiv1.ReorderGuildChannelsResponse)
+	resp.SetChannels(guildChannelsToAPI(svcResp.GetChannels()))
+	return resp, nil
 }
 
 func (s *guildServer) UpsertGuildChannelPermissionOverwrite(ctx context.Context, req *apiv1.UpsertGuildChannelPermissionOverwriteRequest) (*apiv1.UpsertGuildChannelPermissionOverwriteResponse, error) {
@@ -138,9 +150,9 @@ func (s *guildServer) UpsertGuildChannelPermissionOverwrite(ctx context.Context,
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpsertGuildChannelPermissionOverwriteResponse{
-		Overwrite: guildChannelOverwriteToAPI(svcResp.GetOverwrite()),
-	}, nil
+	resp := new(apiv1.UpsertGuildChannelPermissionOverwriteResponse)
+	resp.SetOverwrite(guildChannelOverwriteToAPI(svcResp.GetOverwrite()))
+	return resp, nil
 }
 
 func (s *guildServer) DeleteGuildChannelPermissionOverwrite(ctx context.Context, req *apiv1.DeleteGuildChannelPermissionOverwriteRequest) (*apiv1.DeleteGuildChannelPermissionOverwriteResponse, error) {
@@ -157,7 +169,9 @@ func (s *guildServer) DeleteGuildChannelPermissionOverwrite(ctx context.Context,
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DeleteGuildChannelPermissionOverwriteResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.DeleteGuildChannelPermissionOverwriteResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) ListGuildChannelPermissionOverwrites(ctx context.Context, req *apiv1.ListGuildChannelPermissionOverwritesRequest) (*apiv1.ListGuildChannelPermissionOverwritesResponse, error) {
@@ -172,22 +186,27 @@ func (s *guildServer) ListGuildChannelPermissionOverwrites(ctx context.Context, 
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildChannelPermissionOverwritesResponse{
-		Overwrites: guildChannelOverwritesToAPI(svcResp.GetOverwrites()),
-	}, nil
+	resp := new(apiv1.ListGuildChannelPermissionOverwritesResponse)
+	resp.SetOverwrites(guildChannelOverwritesToAPI(svcResp.GetOverwrites()))
+	return resp, nil
 }
 
 func guildChannelToAPI(channel *guildv1.GuildChannel) *apiv1.GuildChannel {
 	if channel == nil {
 		return nil
 	}
-	return &apiv1.GuildChannel{
-		Id: new(channel.GetId()), GuildId: new(channel.GetGuildId()), Name: new(channel.GetName()),
-		Type: new(apiv1.GuildChannelType(channel.GetType())), Position: new(channel.GetPosition()),
-		Topic: new(channel.GetTopic()), Revision: new(channel.GetRevision()),
-		CreatedAt: new(channel.GetCreatedAt()), UpdatedAt: new(channel.GetUpdatedAt()),
-		ParentId: new(channel.GetParentId()),
-	}
+	resp := new(apiv1.GuildChannel)
+	resp.SetId(channel.GetId())
+	resp.SetGuildId(channel.GetGuildId())
+	resp.SetName(channel.GetName())
+	resp.SetType(apiv1.GuildChannelType(channel.GetType()))
+	resp.SetPosition(channel.GetPosition())
+	resp.SetTopic(channel.GetTopic())
+	resp.SetRevision(channel.GetRevision())
+	resp.SetCreatedAt(channel.GetCreatedAt())
+	resp.SetUpdatedAt(channel.GetUpdatedAt())
+	resp.SetParentId(channel.GetParentId())
+	return resp
 }
 
 func guildChannelsToAPI(channels []*guildv1.GuildChannel) []*apiv1.GuildChannel {
@@ -202,12 +221,17 @@ func guildChannelOverwriteToAPI(overwrite *guildv1.GuildChannelPermissionOverwri
 	if overwrite == nil {
 		return nil
 	}
-	return &apiv1.GuildChannelPermissionOverwrite{
-		ChannelId: new(overwrite.GetChannelId()), GuildId: new(overwrite.GetGuildId()),
-		TargetType: new(apiv1.GuildPermissionOverwriteType(overwrite.GetTargetType())),
-		TargetId:   new(overwrite.GetTargetId()), Allow: new(overwrite.GetAllow()), Deny: new(overwrite.GetDeny()),
-		Revision: new(overwrite.GetRevision()), CreatedAt: new(overwrite.GetCreatedAt()), UpdatedAt: new(overwrite.GetUpdatedAt()),
-	}
+	resp := new(apiv1.GuildChannelPermissionOverwrite)
+	resp.SetChannelId(overwrite.GetChannelId())
+	resp.SetGuildId(overwrite.GetGuildId())
+	resp.SetTargetType(apiv1.GuildPermissionOverwriteType(overwrite.GetTargetType()))
+	resp.SetTargetId(overwrite.GetTargetId())
+	resp.SetAllow(overwrite.GetAllow())
+	resp.SetDeny(overwrite.GetDeny())
+	resp.SetRevision(overwrite.GetRevision())
+	resp.SetCreatedAt(overwrite.GetCreatedAt())
+	resp.SetUpdatedAt(overwrite.GetUpdatedAt())
+	return resp
 }
 
 func guildChannelOverwritesToAPI(overwrites []*guildv1.GuildChannelPermissionOverwrite) []*apiv1.GuildChannelPermissionOverwrite {

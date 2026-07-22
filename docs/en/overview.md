@@ -49,8 +49,8 @@ delivery is not required for a successful business RPC.
 
 Repository layout:
 
-- `proto/api`: public open Go API and Connect-Go generation;
-- `proto/<service>`: internal edition 2023 opaque APIs;
+- `proto/api`: public edition 2023 opaque Go API and Connect-Go generation;
+- `proto/<service>`: internal edition 2023 opaque Go API generation;
 - `services/<service>/v1`: service entrypoints and implementation;
 - `pkg`: shared infrastructure and stable event/error definitions;
 - `gen`: generated code, never edited manually.

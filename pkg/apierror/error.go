@@ -291,10 +291,10 @@ func PublicInfo(err error) (*apiv1.PublicErrorInfo, bool) {
 
 func newConnectError(mapping mapping) error {
 	connectErr := connect.NewError(mapping.connectCode, errors.New(mapping.message))
-	detail, err := connect.NewErrorDetail(&apiv1.PublicErrorInfo{
-		Code:    new(mapping.publicCode),
-		Message: new(mapping.message),
-	})
+	publicInfo := new(apiv1.PublicErrorInfo)
+	publicInfo.SetCode(mapping.publicCode)
+	publicInfo.SetMessage(mapping.message)
+	detail, err := connect.NewErrorDetail(publicInfo)
 	if err == nil {
 		connectErr.AddDetail(detail)
 	}

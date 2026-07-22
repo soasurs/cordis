@@ -92,12 +92,12 @@ func TestAPIIntegration(t *testing.T) {
 	email := "test@integration.example"
 
 	t.Run("register", func(t *testing.T) {
-		resp, err := authClient.Register(ctx, &apiv1.RegisterRequest{
-			Name:     new("Integration Tester"),
-			Username: new("integration_tester"),
-			Email:    new(email),
-			Password: new("integration-password-1"),
-		})
+		req := new(apiv1.RegisterRequest)
+		req.SetName("Integration Tester")
+		req.SetUsername("integration_tester")
+		req.SetEmail(email)
+		req.SetPassword("integration-password-1")
+		resp, err := authClient.Register(ctx, req)
 		require.NoError(t, err)
 		require.True(t, resp.GetResult().GetOk())
 		require.Positive(t, resp.GetResult().GetUserId())
@@ -107,25 +107,25 @@ func TestAPIIntegration(t *testing.T) {
 	t.Run("password reset request reaches mailer", func(t *testing.T) {
 		// End-to-end wiring check for authenticator -> mailer: the noop
 		// provider drops the mail, so success only proves the gRPC path.
-		resp, err := authClient.RequestPasswordReset(ctx, &apiv1.RequestPasswordResetRequest{
-			Email: new(email),
-		})
+		req := new(apiv1.RequestPasswordResetRequest)
+		req.SetEmail(email)
+		resp, err := authClient.RequestPasswordReset(ctx, req)
 		require.NoError(t, err)
 		require.True(t, resp.GetOk())
 
 		// Unknown addresses are indistinguishable from known ones.
-		resp, err = authClient.RequestPasswordReset(ctx, &apiv1.RequestPasswordResetRequest{
-			Email: new("unknown@integration.example"),
-		})
+		req2 := new(apiv1.RequestPasswordResetRequest)
+		req2.SetEmail("unknown@integration.example")
+		resp, err = authClient.RequestPasswordReset(ctx, req2)
 		require.NoError(t, err)
 		require.True(t, resp.GetOk())
 	})
 
 	t.Run("login", func(t *testing.T) {
-		resp, err := authClient.Login(ctx, &apiv1.LoginRequest{
-			Email:    new(email),
-			Password: new("integration-password-1"),
-		})
+		req := new(apiv1.LoginRequest)
+		req.SetEmail(email)
+		req.SetPassword("integration-password-1")
+		resp, err := authClient.Login(ctx, req)
 		require.NoError(t, err)
 		result := resp.GetResult()
 		require.True(t, result.GetOk())
@@ -133,10 +133,10 @@ func TestAPIIntegration(t *testing.T) {
 	})
 
 	accessToken := func() string {
-		resp, err := authClient.Login(ctx, &apiv1.LoginRequest{
-			Email:    new(email),
-			Password: new("integration-password-1"),
-		})
+		req := new(apiv1.LoginRequest)
+		req.SetEmail(email)
+		req.SetPassword("integration-password-1")
+		resp, err := authClient.Login(ctx, req)
 		require.NoError(t, err)
 		return resp.GetResult().GetAccessToken()
 	}()
@@ -155,116 +155,122 @@ func TestAPIIntegration(t *testing.T) {
 	)
 
 	t.Run("get current user", func(t *testing.T) {
-		resp, err := userClientWithToken.GetCurrentUser(ctx, &apiv1.GetCurrentUserRequest{})
+		resp, err := userClientWithToken.GetCurrentUser(ctx, new(apiv1.GetCurrentUserRequest))
 		require.NoError(t, err)
 		require.Equal(t, email, resp.GetUser().GetEmail())
 		require.Equal(t, "Integration Tester", resp.GetProfile().GetName())
 	})
 
 	guildID := func() int64 {
-		resp, err := guildClientWithToken.CreateGuild(ctx, &apiv1.CreateGuildRequest{
-			Name: new("Main Guild"),
-		})
+		req := new(apiv1.CreateGuildRequest)
+		req.SetName("Main Guild")
+		resp, err := guildClientWithToken.CreateGuild(ctx, req)
 		require.NoError(t, err)
 		return resp.GetGuild().GetId()
 	}()
 
 	t.Run("get guild", func(t *testing.T) {
-		resp, err := guildClientWithToken.GetGuild(ctx, &apiv1.GetGuildRequest{GuildId: new(guildID)})
+		req := new(apiv1.GetGuildRequest)
+		req.SetGuildId(guildID)
+		resp, err := guildClientWithToken.GetGuild(ctx, req)
 		require.NoError(t, err)
 		require.Equal(t, "Main Guild", resp.GetGuild().GetName())
 	})
 
 	t.Run("list guilds", func(t *testing.T) {
-		resp, err := guildClientWithToken.ListGuilds(ctx, &apiv1.ListGuildsRequest{Limit: new(int32(10))})
+		req := new(apiv1.ListGuildsRequest)
+		req.SetLimit(10)
+		resp, err := guildClientWithToken.ListGuilds(ctx, req)
 		require.NoError(t, err)
 		require.NotEmpty(t, resp.GetGuilds())
 	})
 
 	channelID := func() int64 {
-		resp, err := guildClientWithToken.CreateGuildChannel(ctx, &apiv1.CreateGuildChannelRequest{
-			GuildId: new(guildID),
-			Name:    new("general"),
-			Type:    new(apiv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT),
-		})
+		req := new(apiv1.CreateGuildChannelRequest)
+		req.SetGuildId(guildID)
+		req.SetName("general")
+		req.SetType(apiv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+		resp, err := guildClientWithToken.CreateGuildChannel(ctx, req)
 		require.NoError(t, err)
 		return resp.GetChannel().GetId()
 	}()
 
 	t.Run("create message", func(t *testing.T) {
-		resp, err := messageClientWithToken.CreateMessage(ctx, &apiv1.CreateMessageRequest{
-			ChannelId: new(channelID),
-			Content:   new("hello world"),
-		})
+		req := new(apiv1.CreateMessageRequest)
+		req.SetChannelId(channelID)
+		req.SetContent("hello world")
+		resp, err := messageClientWithToken.CreateMessage(ctx, req)
 		require.NoError(t, err)
 		require.Equal(t, "hello world", resp.GetMessage().GetContent())
 	})
 
 	msgID := func() int64 {
-		resp, err := messageClientWithToken.CreateMessage(ctx, &apiv1.CreateMessageRequest{
-			ChannelId: new(channelID),
-			Content:   new("persistent message"),
-		})
+		req := new(apiv1.CreateMessageRequest)
+		req.SetChannelId(channelID)
+		req.SetContent("persistent message")
+		resp, err := messageClientWithToken.CreateMessage(ctx, req)
 		require.NoError(t, err)
 		return resp.GetMessage().GetId()
 	}()
 
 	t.Run("get message", func(t *testing.T) {
-		resp, err := messageClientWithToken.GetMessage(ctx, &apiv1.GetMessageRequest{MessageId: new(msgID)})
+		req := new(apiv1.GetMessageRequest)
+		req.SetMessageId(msgID)
+		resp, err := messageClientWithToken.GetMessage(ctx, req)
 		require.NoError(t, err)
 		require.Equal(t, msgID, resp.GetMessage().GetId())
 		require.Equal(t, "persistent message", resp.GetMessage().GetContent())
 	})
 
 	t.Run("list messages", func(t *testing.T) {
-		resp, err := messageClientWithToken.ListMessages(ctx, &apiv1.ListMessagesRequest{
-			ChannelId: new(channelID),
-			Limit:     new(int32(25)),
-		})
+		req := new(apiv1.ListMessagesRequest)
+		req.SetChannelId(channelID)
+		req.SetLimit(25)
+		resp, err := messageClientWithToken.ListMessages(ctx, req)
 		require.NoError(t, err)
 		require.NotEmpty(t, resp.GetMessages())
 	})
 
 	t.Run("update message", func(t *testing.T) {
-		resp, err := messageClientWithToken.UpdateMessage(ctx, &apiv1.UpdateMessageRequest{
-			MessageId: new(msgID),
-			Content:   new("updated message"),
-		})
+		req := new(apiv1.UpdateMessageRequest)
+		req.SetMessageId(msgID)
+		req.SetContent("updated message")
+		resp, err := messageClientWithToken.UpdateMessage(ctx, req)
 		require.NoError(t, err)
 		require.Equal(t, "updated message", resp.GetMessage().GetContent())
 	})
 
 	t.Run("delete message", func(t *testing.T) {
-		resp, err := messageClientWithToken.DeleteMessage(ctx, &apiv1.DeleteMessageRequest{
-			MessageId: new(msgID),
-		})
+		req := new(apiv1.DeleteMessageRequest)
+		req.SetMessageId(msgID)
+		resp, err := messageClientWithToken.DeleteMessage(ctx, req)
 		require.NoError(t, err)
 		require.True(t, resp.GetOk())
 	})
 
 	t.Run("get current user requires token", func(t *testing.T) {
-		_, err := userClient.GetCurrentUser(ctx, &apiv1.GetCurrentUserRequest{})
+		_, err := userClient.GetCurrentUser(ctx, new(apiv1.GetCurrentUserRequest))
 		require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	})
 
 	t.Run("non-member cannot access guild", func(t *testing.T) {
-		memberResp, err := authClient.Login(ctx, &apiv1.LoginRequest{
-			Email:    new("stranger@example.com"),
-			Password: new("stranger-password"),
-		})
+		loginReq := new(apiv1.LoginRequest)
+		loginReq.SetEmail("stranger@example.com")
+		loginReq.SetPassword("stranger-password")
+		memberResp, err := authClient.Login(ctx, loginReq)
 		if err != nil || !memberResp.GetResult().GetOk() {
-			regResp, regErr := authClient.Register(ctx, &apiv1.RegisterRequest{
-				Name:     new("Stranger"),
-				Username: new("stranger"),
-				Email:    new("stranger@example.com"),
-				Password: new("stranger-password"),
-			})
+			regReq := new(apiv1.RegisterRequest)
+			regReq.SetName("Stranger")
+			regReq.SetUsername("stranger")
+			regReq.SetEmail("stranger@example.com")
+			regReq.SetPassword("stranger-password")
+			regResp, regErr := authClient.Register(ctx, regReq)
 			require.NoError(t, regErr)
 			require.True(t, regResp.GetResult().GetOk())
-			memberResp, err = authClient.Login(ctx, &apiv1.LoginRequest{
-				Email:    new("stranger@example.com"),
-				Password: new("stranger-password"),
-			})
+			loginReq2 := new(apiv1.LoginRequest)
+			loginReq2.SetEmail("stranger@example.com")
+			loginReq2.SetPassword("stranger-password")
+			memberResp, err = authClient.Login(ctx, loginReq2)
 			require.NoError(t, err)
 		}
 		strangerToken := memberResp.GetResult().GetAccessToken()
@@ -272,46 +278,48 @@ func TestAPIIntegration(t *testing.T) {
 			&http.Client{Transport: bearerRoundTripper{base: http.DefaultTransport, accessToken: strangerToken}},
 			httpSrv.URL,
 		)
-		_, err = strangerClient.GetGuild(ctx, &apiv1.GetGuildRequest{GuildId: new(guildID)})
+		getReq := new(apiv1.GetGuildRequest)
+		getReq.SetGuildId(guildID)
+		_, err = strangerClient.GetGuild(ctx, getReq)
 		require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 	})
 
 	t.Run("register duplicate email", func(t *testing.T) {
-		_, err := authClient.Register(ctx, &apiv1.RegisterRequest{
-			Name:     new("Tester 2"),
-			Username: new("tester_two"),
-			Email:    new(email),
-			Password: new("another-password"),
-		})
+		req := new(apiv1.RegisterRequest)
+		req.SetName("Tester 2")
+		req.SetUsername("tester_two")
+		req.SetEmail(email)
+		req.SetPassword("another-password")
+		_, err := authClient.Register(ctx, req)
 		require.Equal(t, connect.CodeAlreadyExists, connect.CodeOf(err))
 	})
 
 	t.Run("login wrong password", func(t *testing.T) {
-		_, err := authClient.Login(ctx, &apiv1.LoginRequest{
-			Email:    new(email),
-			Password: new("wrong-password"),
-		})
+		req := new(apiv1.LoginRequest)
+		req.SetEmail(email)
+		req.SetPassword("wrong-password")
+		_, err := authClient.Login(ctx, req)
 		require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	})
 
 	t.Run("friendship lifecycle", func(t *testing.T) {
-		strangerResp, err := authClient.Login(ctx, &apiv1.LoginRequest{
-			Email:    new("stranger@example.com"),
-			Password: new("stranger-password"),
-		})
+		loginReq := new(apiv1.LoginRequest)
+		loginReq.SetEmail("stranger@example.com")
+		loginReq.SetPassword("stranger-password")
+		strangerResp, err := authClient.Login(ctx, loginReq)
 		if err != nil || !strangerResp.GetResult().GetOk() {
-			regResp, regErr := authClient.Register(ctx, &apiv1.RegisterRequest{
-				Name:     new("Stranger"),
-				Username: new("stranger"),
-				Email:    new("stranger@example.com"),
-				Password: new("stranger-password"),
-			})
+			regReq := new(apiv1.RegisterRequest)
+			regReq.SetName("Stranger")
+			regReq.SetUsername("stranger")
+			regReq.SetEmail("stranger@example.com")
+			regReq.SetPassword("stranger-password")
+			regResp, regErr := authClient.Register(ctx, regReq)
 			require.NoError(t, regErr)
 			require.True(t, regResp.GetResult().GetOk())
-			strangerResp, err = authClient.Login(ctx, &apiv1.LoginRequest{
-				Email:    new("stranger@example.com"),
-				Password: new("stranger-password"),
-			})
+			loginReq2 := new(apiv1.LoginRequest)
+			loginReq2.SetEmail("stranger@example.com")
+			loginReq2.SetPassword("stranger-password")
+			strangerResp, err = authClient.Login(ctx, loginReq2)
 			require.NoError(t, err)
 		}
 		strangerUserClient := apiv1connect.NewUserServiceClient(
@@ -320,121 +328,151 @@ func TestAPIIntegration(t *testing.T) {
 		)
 
 		// The unique handle resolves to the target across real services.
-		lookupResp, err := userClientWithToken.LookupUser(ctx, &apiv1.LookupUserRequest{Username: new("STRANGER")})
+		lookupReq := new(apiv1.LookupUserRequest)
+		lookupReq.SetUsername("STRANGER")
+		lookupResp, err := userClientWithToken.LookupUser(ctx, lookupReq)
 		require.NoError(t, err)
 		strangerID := lookupResp.GetProfile().GetUserId()
 		require.Positive(t, strangerID)
 		require.Equal(t, "stranger", lookupResp.GetProfile().GetUsername())
 
-		meResp, err := userClientWithToken.GetCurrentUser(ctx, &apiv1.GetCurrentUserRequest{})
+		meResp, err := userClientWithToken.GetCurrentUser(ctx, new(apiv1.GetCurrentUserRequest))
 		require.NoError(t, err)
 		testerID := meResp.GetUser().GetUserId()
 
-		sendResp, err := userClientWithToken.SendFriendRequest(ctx, &apiv1.SendFriendRequestRequest{TargetId: new(strangerID)})
+		sendReq := new(apiv1.SendFriendRequestRequest)
+		sendReq.SetTargetId(strangerID)
+		sendResp, err := userClientWithToken.SendFriendRequest(ctx, sendReq)
 		require.NoError(t, err)
 		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_OUTGOING, sendResp.GetRelationship().GetType())
 
-		listResp, err := strangerUserClient.ListRelationships(ctx, &apiv1.ListRelationshipsRequest{})
+		listResp, err := strangerUserClient.ListRelationships(ctx, new(apiv1.ListRelationshipsRequest))
 		require.NoError(t, err)
 		require.Len(t, listResp.GetRelationships(), 1)
 		require.Equal(t, testerID, listResp.GetRelationships()[0].GetTargetId())
 		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_INCOMING, listResp.GetRelationships()[0].GetType())
 
-		acceptResp, err := strangerUserClient.AcceptFriendRequest(ctx, &apiv1.AcceptFriendRequestRequest{TargetId: new(testerID)})
+		acceptReq := new(apiv1.AcceptFriendRequestRequest)
+		acceptReq.SetTargetId(testerID)
+		acceptResp, err := strangerUserClient.AcceptFriendRequest(ctx, acceptReq)
 		require.NoError(t, err)
 		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND, acceptResp.GetRelationship().GetType())
 
-		listResp, err = userClientWithToken.ListRelationships(ctx, &apiv1.ListRelationshipsRequest{
-			Type: new(apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND),
-		})
+		listReq := new(apiv1.ListRelationshipsRequest)
+		listReq.SetType(apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)
+		listResp, err = userClientWithToken.ListRelationships(ctx, listReq)
 		require.NoError(t, err)
 		require.Len(t, listResp.GetRelationships(), 1)
 		require.Equal(t, strangerID, listResp.GetRelationships()[0].GetTargetId())
 
 		// Blocking strips the friendship and further requests are refused.
-		blockResp, err := userClientWithToken.BlockUser(ctx, &apiv1.BlockUserRequest{TargetId: new(strangerID)})
+		blockReq := new(apiv1.BlockUserRequest)
+		blockReq.SetTargetId(strangerID)
+		blockResp, err := userClientWithToken.BlockUser(ctx, blockReq)
 		require.NoError(t, err)
 		require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_BLOCKED, blockResp.GetRelationship().GetType())
 
-		listResp, err = strangerUserClient.ListRelationships(ctx, &apiv1.ListRelationshipsRequest{})
+		listResp, err = strangerUserClient.ListRelationships(ctx, new(apiv1.ListRelationshipsRequest))
 		require.NoError(t, err)
 		require.Empty(t, listResp.GetRelationships())
 
-		_, err = strangerUserClient.SendFriendRequest(ctx, &apiv1.SendFriendRequestRequest{TargetId: new(testerID)})
+		sendReq2 := new(apiv1.SendFriendRequestRequest)
+		sendReq2.SetTargetId(testerID)
+		_, err = strangerUserClient.SendFriendRequest(ctx, sendReq2)
 		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 
-		unblockResp, err := userClientWithToken.UnblockUser(ctx, &apiv1.UnblockUserRequest{TargetId: new(strangerID)})
+		unblockReq := new(apiv1.UnblockUserRequest)
+		unblockReq.SetTargetId(strangerID)
+		unblockResp, err := userClientWithToken.UnblockUser(ctx, unblockReq)
 		require.NoError(t, err)
 		require.True(t, unblockResp.GetOk())
 	})
 
 	t.Run("direct message lifecycle", func(t *testing.T) {
-		strangerResp, err := authClient.Login(ctx, &apiv1.LoginRequest{
-			Email:    new("stranger@example.com"),
-			Password: new("stranger-password"),
-		})
+		loginReq := new(apiv1.LoginRequest)
+		loginReq.SetEmail("stranger@example.com")
+		loginReq.SetPassword("stranger-password")
+		strangerResp, err := authClient.Login(ctx, loginReq)
 		require.NoError(t, err)
 		strangerTransport := &http.Client{Transport: bearerRoundTripper{base: http.DefaultTransport, accessToken: strangerResp.GetResult().GetAccessToken()}}
 		strangerUserClient := apiv1connect.NewUserServiceClient(strangerTransport, httpSrv.URL)
 		strangerMessageClient := apiv1connect.NewMessageServiceClient(strangerTransport, httpSrv.URL)
 
-		lookupResp, err := userClientWithToken.LookupUser(ctx, &apiv1.LookupUserRequest{Username: new("stranger")})
+		lookupReq := new(apiv1.LookupUserRequest)
+		lookupReq.SetUsername("stranger")
+		lookupResp, err := userClientWithToken.LookupUser(ctx, lookupReq)
 		require.NoError(t, err)
 		strangerID := lookupResp.GetProfile().GetUserId()
-		meResp, err := userClientWithToken.GetCurrentUser(ctx, &apiv1.GetCurrentUserRequest{})
+		meResp, err := userClientWithToken.GetCurrentUser(ctx, new(apiv1.GetCurrentUserRequest))
 		require.NoError(t, err)
 		testerID := meResp.GetUser().GetUserId()
 
 		// DMs require friendship: the earlier block stripped it.
-		_, err = messageClientWithToken.CreateDmChannel(ctx, &apiv1.CreateDmChannelRequest{TargetId: new(strangerID)})
+		dmReq := new(apiv1.CreateDmChannelRequest)
+		dmReq.SetTargetId(strangerID)
+		_, err = messageClientWithToken.CreateDmChannel(ctx, dmReq)
 		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 
-		_, err = userClientWithToken.SendFriendRequest(ctx, &apiv1.SendFriendRequestRequest{TargetId: new(strangerID)})
+		sendReq := new(apiv1.SendFriendRequestRequest)
+		sendReq.SetTargetId(strangerID)
+		_, err = userClientWithToken.SendFriendRequest(ctx, sendReq)
 		require.NoError(t, err)
-		_, err = strangerUserClient.AcceptFriendRequest(ctx, &apiv1.AcceptFriendRequestRequest{TargetId: new(testerID)})
+		acceptReq := new(apiv1.AcceptFriendRequestRequest)
+		acceptReq.SetTargetId(testerID)
+		_, err = strangerUserClient.AcceptFriendRequest(ctx, acceptReq)
 		require.NoError(t, err)
 
-		channelResp, err := messageClientWithToken.CreateDmChannel(ctx, &apiv1.CreateDmChannelRequest{TargetId: new(strangerID)})
+		channelReq := new(apiv1.CreateDmChannelRequest)
+		channelReq.SetTargetId(strangerID)
+		channelResp, err := messageClientWithToken.CreateDmChannel(ctx, channelReq)
 		require.NoError(t, err)
 		dmChannelID := channelResp.GetChannel().GetId()
 		require.Equal(t, strangerID, channelResp.GetChannel().GetRecipientId())
 
 		// Idempotent reopen from the other side lands on the same channel.
-		reopenResp, err := strangerMessageClient.CreateDmChannel(ctx, &apiv1.CreateDmChannelRequest{TargetId: new(testerID)})
+		reopenReq := new(apiv1.CreateDmChannelRequest)
+		reopenReq.SetTargetId(testerID)
+		reopenResp, err := strangerMessageClient.CreateDmChannel(ctx, reopenReq)
 		require.NoError(t, err)
 		require.Equal(t, dmChannelID, reopenResp.GetChannel().GetId())
 		require.Equal(t, testerID, reopenResp.GetChannel().GetRecipientId())
 
-		sendResp, err := messageClientWithToken.CreateMessage(ctx, &apiv1.CreateMessageRequest{
-			ChannelId: new(dmChannelID),
-			Content:   new("hello dm"),
-		})
+		sendMsgReq := new(apiv1.CreateMessageRequest)
+		sendMsgReq.SetChannelId(dmChannelID)
+		sendMsgReq.SetContent("hello dm")
+		sendResp, err := messageClientWithToken.CreateMessage(ctx, sendMsgReq)
 		require.NoError(t, err)
 		require.Equal(t, "hello dm", sendResp.GetMessage().GetContent())
 
-		listMessagesResp, err := strangerMessageClient.ListMessages(ctx, &apiv1.ListMessagesRequest{ChannelId: new(dmChannelID)})
+		listMsgReq := new(apiv1.ListMessagesRequest)
+		listMsgReq.SetChannelId(dmChannelID)
+		listMessagesResp, err := strangerMessageClient.ListMessages(ctx, listMsgReq)
 		require.NoError(t, err)
 		require.Len(t, listMessagesResp.GetMessages(), 1)
 
-		listChannelsResp, err := strangerMessageClient.ListDmChannels(ctx, &apiv1.ListDmChannelsRequest{})
+		listChannelsResp, err := strangerMessageClient.ListDmChannels(ctx, new(apiv1.ListDmChannelsRequest))
 		require.NoError(t, err)
 		require.Len(t, listChannelsResp.GetChannels(), 1)
 		require.Equal(t, testerID, listChannelsResp.GetChannels()[0].GetRecipientId())
 
 		// A block freezes writing in both directions but keeps history readable.
-		_, err = strangerUserClient.BlockUser(ctx, &apiv1.BlockUserRequest{TargetId: new(testerID)})
+		blockReq := new(apiv1.BlockUserRequest)
+		blockReq.SetTargetId(testerID)
+		_, err = strangerUserClient.BlockUser(ctx, blockReq)
 		require.NoError(t, err)
-		_, err = messageClientWithToken.CreateMessage(ctx, &apiv1.CreateMessageRequest{
-			ChannelId: new(dmChannelID),
-			Content:   new("blocked?"),
-		})
+		msgReq1 := new(apiv1.CreateMessageRequest)
+		msgReq1.SetChannelId(dmChannelID)
+		msgReq1.SetContent("blocked?")
+		_, err = messageClientWithToken.CreateMessage(ctx, msgReq1)
 		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
-		_, err = strangerMessageClient.CreateMessage(ctx, &apiv1.CreateMessageRequest{
-			ChannelId: new(dmChannelID),
-			Content:   new("me neither"),
-		})
+		msgReq2 := new(apiv1.CreateMessageRequest)
+		msgReq2.SetChannelId(dmChannelID)
+		msgReq2.SetContent("me neither")
+		_, err = strangerMessageClient.CreateMessage(ctx, msgReq2)
 		require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
-		listMessagesResp, err = messageClientWithToken.ListMessages(ctx, &apiv1.ListMessagesRequest{ChannelId: new(dmChannelID)})
+		listMsgReq2 := new(apiv1.ListMessagesRequest)
+		listMsgReq2.SetChannelId(dmChannelID)
+		listMessagesResp, err = messageClientWithToken.ListMessages(ctx, listMsgReq2)
 		require.NoError(t, err)
 		require.Len(t, listMessagesResp.GetMessages(), 1)
 	})

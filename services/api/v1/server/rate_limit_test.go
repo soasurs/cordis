@@ -92,9 +92,12 @@ func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 	client, closeServer := newRateLimitedAuthenticatorClient(t, internalClient, limiter)
 	defer closeServer()
 
-	_, err := client.Register(t.Context(), &apiv1.RegisterRequest{
-		Name: new("User"), Username: new("user"), Email: new(" User@Example.COM "), Password: new("password"),
-	})
+	registerReq := new(apiv1.RegisterRequest)
+	registerReq.SetName("User")
+	registerReq.SetUsername("user")
+	registerReq.SetEmail(" User@Example.COM ")
+	registerReq.SetPassword("password")
+	_, err := client.Register(t.Context(), registerReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -104,9 +107,10 @@ func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 	require.Equal(t, "127.0.0.1", internalClient.registerRequest.GetIp())
 
 	limiter.reset()
-	_, err = client.Login(t.Context(), &apiv1.LoginRequest{
-		Email: new("user@example.com"), Password: new("password"),
-	})
+	loginReq := new(apiv1.LoginRequest)
+	loginReq.SetEmail("user@example.com")
+	loginReq.SetPassword("password")
+	_, err = client.Login(t.Context(), loginReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -115,9 +119,9 @@ func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 	}, limiter.snapshot())
 
 	limiter.reset()
-	_, err = client.RequestPasswordReset(t.Context(), &apiv1.RequestPasswordResetRequest{
-		Email: new("user@example.com"),
-	})
+	passwordResetReq := new(apiv1.RequestPasswordResetRequest)
+	passwordResetReq.SetEmail("user@example.com")
+	_, err = client.RequestPasswordReset(t.Context(), passwordResetReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -125,9 +129,10 @@ func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 	}, limiter.snapshot())
 
 	limiter.reset()
-	_, err = client.ConfirmPasswordReset(t.Context(), &apiv1.ConfirmPasswordResetRequest{
-		Token: new("token"), NewPassword: new("password"),
-	})
+	confirmResetReq := new(apiv1.ConfirmPasswordResetRequest)
+	confirmResetReq.SetToken("token")
+	confirmResetReq.SetNewPassword("password")
+	_, err = client.ConfirmPasswordReset(t.Context(), confirmResetReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -135,7 +140,7 @@ func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 	}, limiter.snapshot())
 
 	limiter.reset()
-	_, err = client.RequestEmailVerification(t.Context(), &apiv1.RequestEmailVerificationRequest{})
+	_, err = client.RequestEmailVerification(t.Context(), new(apiv1.RequestEmailVerificationRequest))
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -150,9 +155,12 @@ func TestRegisterRateLimitRejectsBeforeAuthenticatorRPC(t *testing.T) {
 	client, closeServer := newRateLimitedAuthenticatorClient(t, internalClient, limiter)
 	defer closeServer()
 
-	_, err := client.Register(t.Context(), &apiv1.RegisterRequest{
-		Name: new("User"), Username: new("user"), Email: new("user@example.com"), Password: new("password"),
-	})
+	registerReq := new(apiv1.RegisterRequest)
+	registerReq.SetName("User")
+	registerReq.SetUsername("user")
+	registerReq.SetEmail("user@example.com")
+	registerReq.SetPassword("password")
+	_, err := client.Register(t.Context(), registerReq)
 	require.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
 	require.Nil(t, internalClient.registerRequest)
 }
@@ -170,7 +178,9 @@ func TestAnonymousUserEndpointsApplyIPPolicies(t *testing.T) {
 	client, closeServer := newRateLimitedUserClient(t, internalClient, limiter)
 	defer closeServer()
 
-	_, err := client.GetUserProfile(t.Context(), &apiv1.GetUserProfileRequest{UserId: new(int64(1001))})
+	getProfileReq := new(apiv1.GetUserProfileRequest)
+	getProfileReq.SetUserId(1001)
+	_, err := client.GetUserProfile(t.Context(), getProfileReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -178,9 +188,9 @@ func TestAnonymousUserEndpointsApplyIPPolicies(t *testing.T) {
 	}, limiter.snapshot())
 
 	limiter.reset()
-	_, err = client.CheckEmailAvailability(t.Context(), &apiv1.CheckEmailAvailabilityRequest{
-		Email: new("user@example.com"),
-	})
+	checkEmailReq := new(apiv1.CheckEmailAvailabilityRequest)
+	checkEmailReq.SetEmail("user@example.com")
+	_, err = client.CheckEmailAvailability(t.Context(), checkEmailReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -200,9 +210,10 @@ func TestMessageEndpointsApplyBusinessPoliciesAndReadStateConcurrency(t *testing
 	client, closeServer := newRateLimitedMessageClient(t, messageClient, limiter, concurrencyLimiter)
 	defer closeServer()
 
-	_, err := client.CreateMessage(t.Context(), &apiv1.CreateMessageRequest{
-		ChannelId: new(int64(2001)), Content: new("hello"),
-	})
+	createMsgReq := new(apiv1.CreateMessageRequest)
+	createMsgReq.SetChannelId(2001)
+	createMsgReq.SetContent("hello")
+	_, err := client.CreateMessage(t.Context(), createMsgReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -212,9 +223,9 @@ func TestMessageEndpointsApplyBusinessPoliciesAndReadStateConcurrency(t *testing
 	}, limiter.snapshot())
 
 	limiter.reset()
-	_, err = client.GetReadStates(t.Context(), &apiv1.GetReadStatesRequest{
-		Scope: apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS.Enum(),
-	})
+	getReadStatesReq := new(apiv1.GetReadStatesRequest)
+	getReadStatesReq.SetScope(apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS)
+	_, err = client.GetReadStates(t.Context(), getReadStatesReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -235,7 +246,9 @@ func TestMessageBusinessLimitersRejectBeforeMessageRPC(t *testing.T) {
 	)
 	defer closeServer()
 
-	_, err := client.CreateMessage(t.Context(), &apiv1.CreateMessageRequest{ChannelId: new(int64(2001))})
+	createMsgReq := new(apiv1.CreateMessageRequest)
+	createMsgReq.SetChannelId(2001)
+	_, err := client.CreateMessage(t.Context(), createMsgReq)
 	require.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
 	require.Nil(t, messageClient.createRequest)
 }
@@ -250,9 +263,9 @@ func TestGetReadStatesConcurrencyCancellationStopsBeforeMessageRPC(t *testing.T)
 	)
 	defer closeServer()
 
-	_, err := client.GetReadStates(t.Context(), &apiv1.GetReadStatesRequest{
-		Scope: apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS.Enum(),
-	})
+	getReadStatesReq := new(apiv1.GetReadStatesRequest)
+	getReadStatesReq.SetScope(apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS)
+	_, err := client.GetReadStates(t.Context(), getReadStatesReq)
 	require.Equal(t, connect.CodeCanceled, connect.CodeOf(err))
 	require.Nil(t, messageClient.getReadStatesRequest)
 }
@@ -273,7 +286,9 @@ func TestRelationshipEndpointsApplyBusinessPolicies(t *testing.T) {
 	client, closeServer := newRateLimitedAuthenticatedUserClient(t, userClient, limiter)
 	defer closeServer()
 
-	_, err := client.SendFriendRequest(t.Context(), &apiv1.SendFriendRequestRequest{TargetId: new(int64(1002))})
+	sendFriendReq := new(apiv1.SendFriendRequestRequest)
+	sendFriendReq.SetTargetId(1002)
+	_, err := client.SendFriendRequest(t.Context(), sendFriendReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -285,11 +300,15 @@ func TestRelationshipEndpointsApplyBusinessPolicies(t *testing.T) {
 
 	for _, mutate := range []func() error{
 		func() error {
-			_, err := client.BlockUser(t.Context(), &apiv1.BlockUserRequest{TargetId: new(int64(1002))})
+			blockReq := new(apiv1.BlockUserRequest)
+			blockReq.SetTargetId(1002)
+			_, err := client.BlockUser(t.Context(), blockReq)
 			return err
 		},
 		func() error {
-			_, err := client.UnblockUser(t.Context(), &apiv1.UnblockUserRequest{TargetId: new(int64(1002))})
+			unblockReq := new(apiv1.UnblockUserRequest)
+			unblockReq.SetTargetId(1002)
+			_, err := client.UnblockUser(t.Context(), unblockReq)
 			return err
 		},
 	} {
@@ -331,7 +350,9 @@ func TestGuildEndpointsApplyBusinessPolicies(t *testing.T) {
 	client, closeServer := newRateLimitedGuildClient(t, guildClient, limiter)
 	defer closeServer()
 
-	_, err := client.CreateGuild(t.Context(), &apiv1.CreateGuildRequest{Name: new("guild")})
+	createGuildReq := new(apiv1.CreateGuildRequest)
+	createGuildReq.SetName("guild")
+	_, err := client.CreateGuild(t.Context(), createGuildReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
@@ -341,15 +362,23 @@ func TestGuildEndpointsApplyBusinessPolicies(t *testing.T) {
 
 	resourceRequests := []func() error{
 		func() error {
-			_, err := client.CreateGuildRole(t.Context(), &apiv1.CreateGuildRoleRequest{GuildId: new(int64(2001)), Name: new("role")})
+			createRoleReq := new(apiv1.CreateGuildRoleRequest)
+			createRoleReq.SetGuildId(2001)
+			createRoleReq.SetName("role")
+			_, err := client.CreateGuildRole(t.Context(), createRoleReq)
 			return err
 		},
 		func() error {
-			_, err := client.CreateGuildChannel(t.Context(), &apiv1.CreateGuildChannelRequest{GuildId: new(int64(2001)), Name: new("channel")})
+			createChannelReq := new(apiv1.CreateGuildChannelRequest)
+			createChannelReq.SetGuildId(2001)
+			createChannelReq.SetName("channel")
+			_, err := client.CreateGuildChannel(t.Context(), createChannelReq)
 			return err
 		},
 		func() error {
-			_, err := client.CreateGuildInvite(t.Context(), &apiv1.CreateGuildInviteRequest{GuildId: new(int64(2001))})
+			createInviteReq := new(apiv1.CreateGuildInviteRequest)
+			createInviteReq.SetGuildId(2001)
+			_, err := client.CreateGuildInvite(t.Context(), createInviteReq)
 			return err
 		},
 	}
@@ -365,7 +394,9 @@ func TestGuildEndpointsApplyBusinessPolicies(t *testing.T) {
 	}
 
 	limiter.reset()
-	_, err = client.JoinGuildByInvite(t.Context(), &apiv1.JoinGuildByInviteRequest{Code: new("invite")})
+	joinInviteReq := new(apiv1.JoinGuildByInviteRequest)
+	joinInviteReq.SetCode("invite")
+	_, err = client.JoinGuildByInvite(t.Context(), joinInviteReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},

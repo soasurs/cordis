@@ -199,11 +199,11 @@ func TestRegisterOverConnectHTTP(t *testing.T) {
 	}
 	client := apiv1connect.NewAuthenticatorServiceClient(httpClient, httpServer.URL)
 
-	resp, err := client.Register(context.Background(), &apiv1.RegisterRequest{
-		Name:     new("display name"),
-		Email:    new("user@example.com"),
-		Password: new("password"),
-	})
+	req := new(apiv1.RegisterRequest)
+	req.SetName("display name")
+	req.SetEmail("user@example.com")
+	req.SetPassword("password")
+	resp, err := client.Register(context.Background(), req)
 	require.NoError(t, err)
 
 	require.Equal(t, "display name", internalClient.registerRequest.GetName())
@@ -228,10 +228,10 @@ func TestLoginMapsRequestAndResponse(t *testing.T) {
 		AuthenticatorClient: internalClient,
 	})
 
-	resp, err := server.Login(context.Background(), &apiv1.LoginRequest{
-		Email:    new("user@example.com"),
-		Password: new("password"),
-	})
+	req := new(apiv1.LoginRequest)
+	req.SetEmail("user@example.com")
+	req.SetPassword("password")
+	resp, err := server.Login(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "user@example.com", internalClient.loginRequest.GetEmail())
 	require.Equal(t, "password", internalClient.loginRequest.GetPassword())
@@ -246,10 +246,10 @@ func TestLoginMapsTwoFactorChallengeWithoutAuthenticationResult(t *testing.T) {
 	internalResp.SetTwoFactorChallenge(challenge)
 	server := NewAuthenticator(&svc.ServiceContext{AuthenticatorClient: &fakeAuthenticatorClient{loginResponse: internalResp}})
 
-	resp, err := server.Login(context.Background(), &apiv1.LoginRequest{
-		Email:    new("user@example.com"),
-		Password: new("password"),
-	})
+	loginReq := new(apiv1.LoginRequest)
+	loginReq.SetEmail("user@example.com")
+	loginReq.SetPassword("password")
+	resp, err := server.Login(context.Background(), loginReq)
 	require.NoError(t, err)
 	require.Nil(t, resp.GetResult())
 	require.Equal(t, "challenge-token", resp.GetTwoFactorChallenge().GetToken())
@@ -264,9 +264,9 @@ func TestRefreshMapsRequestAndResponse(t *testing.T) {
 		AuthenticatorClient: internalClient,
 	})
 
-	resp, err := server.Refresh(context.Background(), &apiv1.RefreshRequest{
-		RefreshToken: new("refresh-token"),
-	})
+	refreshReq := new(apiv1.RefreshRequest)
+	refreshReq.SetRefreshToken("refresh-token")
+	resp, err := server.Refresh(context.Background(), refreshReq)
 	require.NoError(t, err)
 	require.Equal(t, "refresh-token", internalClient.refreshRequest.GetRefreshToken())
 	assertAPIAuthenticationResult(t, resp.GetResult())
@@ -283,9 +283,9 @@ func TestLogoutMapsRequestAndResponse(t *testing.T) {
 		AuthenticatorClient: internalClient,
 	})
 
-	resp, err := server.Logout(context.Background(), &apiv1.LogoutRequest{
-		RefreshToken: new("refresh-token"),
-	})
+	logoutReq := new(apiv1.LogoutRequest)
+	logoutReq.SetRefreshToken("refresh-token")
+	resp, err := server.Logout(context.Background(), logoutReq)
 	require.NoError(t, err)
 	require.Equal(t, "refresh-token", internalClient.logoutRequest.GetRefreshToken())
 	require.True(t, resp.GetOk())
@@ -307,7 +307,7 @@ func TestListSessionsMarksCurrentSession(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.ListSessions(context.Background(), &apiv1.ListSessionsRequest{})
+	resp, err := client.ListSessions(context.Background(), new(apiv1.ListSessionsRequest))
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), internalClient.listSessionsRequest.GetUserId())
 	require.Len(t, resp.GetSessions(), 1)
@@ -324,9 +324,9 @@ func TestRevokeSessionUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.RevokeSession(context.Background(), &apiv1.RevokeSessionRequest{
-		SessionId: new(int64(2002)),
-	})
+	revokeReq := new(apiv1.RevokeSessionRequest)
+	revokeReq.SetSessionId(int64(2002))
+	resp, err := client.RevokeSession(context.Background(), revokeReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), internalClient.revokeUserSessionRequest.GetUserId())
 	require.Equal(t, int64(2002), internalClient.revokeUserSessionRequest.GetSessionId())
@@ -341,10 +341,10 @@ func TestLoginFailure(t *testing.T) {
 		AuthenticatorClient: internalClient,
 	})
 
-	_, err := server.Login(context.Background(), &apiv1.LoginRequest{
-		Email:    new("user@example.com"),
-		Password: new("wrong-password"),
-	})
+	loginReq := new(apiv1.LoginRequest)
+	loginReq.SetEmail("user@example.com")
+	loginReq.SetPassword("wrong-password")
+	_, err := server.Login(context.Background(), loginReq)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
 	publicInfo := publicErrorInfo(t, err)
@@ -388,10 +388,10 @@ func TestErrorMappings(t *testing.T) {
 				AuthenticatorClient: internalClient,
 			})
 
-			_, err := server.Login(context.Background(), &apiv1.LoginRequest{
-				Email:    new("user@example.com"),
-				Password: new("password"),
-			})
+			loginReq := new(apiv1.LoginRequest)
+			loginReq.SetEmail("user@example.com")
+			loginReq.SetPassword("password")
+			_, err := server.Login(context.Background(), loginReq)
 			require.Equal(t, tt.connectCode, connect.CodeOf(err))
 
 			publicInfo := publicErrorInfo(t, err)
@@ -485,10 +485,10 @@ func TestCompleteTwoFactorLoginMapsRequestAndResponse(t *testing.T) {
 	}
 	server := NewAuthenticator(&svc.ServiceContext{AuthenticatorClient: internalClient})
 
-	resp, err := server.CompleteTwoFactorLogin(context.Background(), &apiv1.CompleteTwoFactorLoginRequest{
-		ChallengeToken: new("challenge-token"),
-		Code:           new("123456"),
-	})
+	req := new(apiv1.CompleteTwoFactorLoginRequest)
+	req.SetChallengeToken("challenge-token")
+	req.SetCode("123456")
+	resp, err := server.CompleteTwoFactorLogin(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "challenge-token", internalClient.completeTwoFactorLoginRequest.GetChallengeToken())
 	require.Equal(t, "123456", internalClient.completeTwoFactorLoginRequest.GetCode())
@@ -506,7 +506,7 @@ func TestGetTwoFactorStatus(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.GetTwoFactorStatus(context.Background(), &apiv1.GetTwoFactorStatusRequest{})
+	resp, err := client.GetTwoFactorStatus(context.Background(), new(apiv1.GetTwoFactorStatusRequest))
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), internalClient.twoFactorStatusRequest.GetUserId())
 	require.True(t, resp.GetEnabled())
@@ -526,9 +526,9 @@ func TestBeginTwoFactorEnrollment(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.BeginTwoFactorEnrollment(context.Background(), &apiv1.BeginTwoFactorEnrollmentRequest{
-		Password: new("password"),
-	})
+	req := new(apiv1.BeginTwoFactorEnrollmentRequest)
+	req.SetPassword("password")
+	resp, err := client.BeginTwoFactorEnrollment(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), internalClient.beginEnrollmentRequest.GetUserId())
 	require.Equal(t, "password", internalClient.beginEnrollmentRequest.GetPassword())
@@ -548,10 +548,10 @@ func TestConfirmTwoFactorEnrollment(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.ConfirmTwoFactorEnrollment(context.Background(), &apiv1.ConfirmTwoFactorEnrollmentRequest{
-		EnrollmentToken: new("enroll-token"),
-		Code:            new("123456"),
-	})
+	req := new(apiv1.ConfirmTwoFactorEnrollmentRequest)
+	req.SetEnrollmentToken("enroll-token")
+	req.SetCode("123456")
+	resp, err := client.ConfirmTwoFactorEnrollment(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), internalClient.confirmEnrollmentRequest.GetUserId())
 	require.Equal(t, int64(2001), internalClient.confirmEnrollmentRequest.GetCurrentSessionId())
@@ -570,10 +570,10 @@ func TestDisableTwoFactorWithCode(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.DisableTwoFactor(context.Background(), &apiv1.DisableTwoFactorRequest{
-		Password:     new("password"),
-		Verification: &apiv1.DisableTwoFactorRequest_Code{Code: "123456"},
-	})
+	req := new(apiv1.DisableTwoFactorRequest)
+	req.SetPassword("password")
+	req.SetCode("123456")
+	resp, err := client.DisableTwoFactor(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), internalClient.disableTwoFactorRequest.GetUserId())
 	require.Equal(t, int64(2001), internalClient.disableTwoFactorRequest.GetCurrentSessionId())
@@ -593,10 +593,10 @@ func TestDisableTwoFactorWithRecoveryCode(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.DisableTwoFactor(context.Background(), &apiv1.DisableTwoFactorRequest{
-		Password:     new("password"),
-		Verification: &apiv1.DisableTwoFactorRequest_RecoveryCode{RecoveryCode: "recovery-code"},
-	})
+	req := new(apiv1.DisableTwoFactorRequest)
+	req.SetPassword("password")
+	req.SetRecoveryCode("recovery-code")
+	resp, err := client.DisableTwoFactor(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "recovery-code", internalClient.disableTwoFactorRequest.GetRecoveryCode())
 	require.True(t, resp.GetOk())
@@ -612,10 +612,10 @@ func TestRegenerateTwoFactorRecoveryCodes(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.RegenerateTwoFactorRecoveryCodes(context.Background(), &apiv1.RegenerateTwoFactorRecoveryCodesRequest{
-		Password: new("password"),
-		Code:     new("123456"),
-	})
+	req := new(apiv1.RegenerateTwoFactorRecoveryCodesRequest)
+	req.SetPassword("password")
+	req.SetCode("123456")
+	resp, err := client.RegenerateTwoFactorRecoveryCodes(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), internalClient.regenRecoveryCodesRequest.GetUserId())
 	require.Equal(t, int64(2001), internalClient.regenRecoveryCodesRequest.GetCurrentSessionId())

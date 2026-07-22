@@ -40,10 +40,10 @@ func (s *userServer) GetCurrentUser(ctx context.Context, _ *apiv1.GetCurrentUser
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.GetCurrentUserResponse{
-		User:    userToAPI(userResp.GetUser()),
-		Profile: userProfileToAPI(profileResp.GetProfile()),
-	}, nil
+	resp := new(apiv1.GetCurrentUserResponse)
+	resp.SetUser(userToAPI(userResp.GetUser()))
+	resp.SetProfile(userProfileToAPI(profileResp.GetProfile()))
+	return resp, nil
 }
 
 func (s *userServer) GetUserProfile(ctx context.Context, req *apiv1.GetUserProfileRequest) (*apiv1.GetUserProfileResponse, error) {
@@ -56,9 +56,9 @@ func (s *userServer) GetUserProfile(ctx context.Context, req *apiv1.GetUserProfi
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetUserProfileResponse{
-		Profile: userProfileToAPI(svcResp.GetProfile()),
-	}, nil
+	resp := new(apiv1.GetUserProfileResponse)
+	resp.SetProfile(userProfileToAPI(svcResp.GetProfile()))
+	return resp, nil
 }
 
 func (s *userServer) CheckEmailAvailability(ctx context.Context, req *apiv1.CheckEmailAvailabilityRequest) (*apiv1.CheckEmailAvailabilityResponse, error) {
@@ -71,9 +71,9 @@ func (s *userServer) CheckEmailAvailability(ctx context.Context, req *apiv1.Chec
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CheckEmailAvailabilityResponse{
-		Available: new(svcResp.GetAvailable()),
-	}, nil
+	resp := new(apiv1.CheckEmailAvailabilityResponse)
+	resp.SetAvailable(svcResp.GetAvailable())
+	return resp, nil
 }
 
 func (s *userServer) UpdateEmail(ctx context.Context, req *apiv1.UpdateEmailRequest) (*apiv1.UpdateEmailResponse, error) {
@@ -89,9 +89,9 @@ func (s *userServer) UpdateEmail(ctx context.Context, req *apiv1.UpdateEmailRequ
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateEmailResponse{
-		User: userToAPI(svcResp.GetUser()),
-	}, nil
+	resp := new(apiv1.UpdateEmailResponse)
+	resp.SetUser(userToAPI(svcResp.GetUser()))
+	return resp, nil
 }
 
 func (s *userServer) UpdateUserProfile(ctx context.Context, req *apiv1.UpdateUserProfileRequest) (*apiv1.UpdateUserProfileResponse, error) {
@@ -108,9 +108,9 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *apiv1.UpdateUse
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateUserProfileResponse{
-		Profile: userProfileToAPI(svcResp.GetProfile()),
-	}, nil
+	resp := new(apiv1.UpdateUserProfileResponse)
+	resp.SetProfile(userProfileToAPI(svcResp.GetProfile()))
+	return resp, nil
 }
 
 func (s *userServer) ChangePassword(ctx context.Context, req *apiv1.ChangePasswordRequest) (*apiv1.ChangePasswordResponse, error) {
@@ -130,9 +130,9 @@ func (s *userServer) ChangePassword(ctx context.Context, req *apiv1.ChangePasswo
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ChangePasswordResponse{
-		Ok: new(svcResp.GetOk()),
-	}, nil
+	resp := new(apiv1.ChangePasswordResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *userServer) UpdateUsername(ctx context.Context, req *apiv1.UpdateUsernameRequest) (*apiv1.UpdateUsernameResponse, error) {
@@ -148,32 +148,34 @@ func (s *userServer) UpdateUsername(ctx context.Context, req *apiv1.UpdateUserna
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateUsernameResponse{Profile: userProfileToAPI(svcResp.GetProfile())}, nil
+	resp := new(apiv1.UpdateUsernameResponse)
+	resp.SetProfile(userProfileToAPI(svcResp.GetProfile()))
+	return resp, nil
 }
 
 func userToAPI(user *userv1.User) *apiv1.User {
 	if user == nil {
 		return nil
 	}
-	return &apiv1.User{
-		UserId:          new(user.GetUserId()),
-		Email:           new(user.GetEmail()),
-		CreatedAt:       new(user.GetCreatedAt()),
-		UpdatedAt:       new(user.GetUpdatedAt()),
-		EmailVerifiedAt: new(user.GetEmailVerifiedAt()),
-	}
+	resp := new(apiv1.User)
+	resp.SetUserId(user.GetUserId())
+	resp.SetEmail(user.GetEmail())
+	resp.SetCreatedAt(user.GetCreatedAt())
+	resp.SetUpdatedAt(user.GetUpdatedAt())
+	resp.SetEmailVerifiedAt(user.GetEmailVerifiedAt())
+	return resp
 }
 
 func userProfileToAPI(profile *userv1.UserProfile) *apiv1.UserProfile {
 	if profile == nil {
 		return nil
 	}
-	return &apiv1.UserProfile{
-		UserId:    new(profile.GetUserId()),
-		Username:  new(profile.GetUsername()),
-		Name:      new(profile.GetName()),
-		AvatarUri: new(profile.GetAvatarUri()),
-		CreatedAt: new(profile.GetCreatedAt()),
-		UpdatedAt: new(profile.GetUpdatedAt()),
-	}
+	resp := new(apiv1.UserProfile)
+	resp.SetUserId(profile.GetUserId())
+	resp.SetUsername(profile.GetUsername())
+	resp.SetName(profile.GetName())
+	resp.SetAvatarUri(profile.GetAvatarUri())
+	resp.SetCreatedAt(profile.GetCreatedAt())
+	resp.SetUpdatedAt(profile.GetUpdatedAt())
+	return resp
 }

@@ -78,9 +78,11 @@ func TestCreateGuildInviteUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.CreateGuildInvite(context.Background(), &apiv1.CreateGuildInviteRequest{
-		GuildId: new(int64(3001)), MaxUses: new(int32(5)), ExpiresInMs: new(int64(60_000)),
-	})
+	createInviteReq := new(apiv1.CreateGuildInviteRequest)
+	createInviteReq.SetGuildId(3001)
+	createInviteReq.SetMaxUses(5)
+	createInviteReq.SetExpiresInMs(60_000)
+	resp, err := client.CreateGuildInvite(context.Background(), createInviteReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.createInviteReq.GetActorUserId())
 	require.Equal(t, int64(3001), guildClient.createInviteReq.GetGuildId())
@@ -108,9 +110,9 @@ func TestGetGuildInviteMapsPreview(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.GetGuildInvite(context.Background(), &apiv1.GetGuildInviteRequest{
-		Code: new("invite-code"),
-	})
+	getInviteReq := new(apiv1.GetGuildInviteRequest)
+	getInviteReq.SetCode("invite-code")
+	resp, err := client.GetGuildInvite(context.Background(), getInviteReq)
 	require.NoError(t, err)
 	require.Equal(t, "invite-code", guildClient.getInviteReq.GetCode())
 	require.Equal(t, "Cordis", resp.GetPreview().GetGuildName())
@@ -126,7 +128,9 @@ func TestGetGuildInviteMapsNotFound(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	_, err := client.GetGuildInvite(context.Background(), &apiv1.GetGuildInviteRequest{Code: new("missing")})
+	missingReq := new(apiv1.GetGuildInviteRequest)
+	missingReq.SetCode("missing")
+	_, err := client.GetGuildInvite(context.Background(), missingReq)
 	require.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
@@ -142,9 +146,11 @@ func TestListGuildInvitesMapsRequestAndResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuildInvites(context.Background(), &apiv1.ListGuildInvitesRequest{
-		GuildId: new(int64(3001)), BeforeId: new(int64(6000)), Limit: new(int32(20)),
-	})
+	listInvitesReq := new(apiv1.ListGuildInvitesRequest)
+	listInvitesReq.SetGuildId(3001)
+	listInvitesReq.SetBeforeId(6000)
+	listInvitesReq.SetLimit(20)
+	resp, err := client.ListGuildInvites(context.Background(), listInvitesReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listInvitesReq.GetActorUserId())
 	require.Equal(t, int64(6000), guildClient.listInvitesReq.GetBeforeId())
@@ -164,9 +170,9 @@ func TestDeleteGuildInviteUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.DeleteGuildInvite(context.Background(), &apiv1.DeleteGuildInviteRequest{
-		Code: new("invite-code"),
-	})
+	deleteInviteReq := new(apiv1.DeleteGuildInviteRequest)
+	deleteInviteReq.SetCode("invite-code")
+	resp, err := client.DeleteGuildInvite(context.Background(), deleteInviteReq)
 	require.NoError(t, err)
 	require.Equal(t, "invite-code", guildClient.deleteInviteReq.GetCode())
 	require.Equal(t, int64(1001), guildClient.deleteInviteReq.GetActorUserId())
@@ -185,9 +191,9 @@ func TestJoinGuildByInviteUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.JoinGuildByInvite(context.Background(), &apiv1.JoinGuildByInviteRequest{
-		Code: new("invite-code"),
-	})
+	joinInviteReq := new(apiv1.JoinGuildByInviteRequest)
+	joinInviteReq.SetCode("invite-code")
+	resp, err := client.JoinGuildByInvite(context.Background(), joinInviteReq)
 	require.NoError(t, err)
 	require.Equal(t, "invite-code", guildClient.joinInviteReq.GetCode())
 	require.Equal(t, int64(1001), guildClient.joinInviteReq.GetUserId())

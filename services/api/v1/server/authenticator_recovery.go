@@ -21,9 +21,9 @@ func (s *authenticatorServer) RequestPasswordReset(ctx context.Context, req *api
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.RequestPasswordResetResponse{
-		Ok: new(svcResp.GetOk()),
-	}, nil
+	resp := new(apiv1.RequestPasswordResetResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *apiv1.ConfirmPasswordResetRequest) (*apiv1.ConfirmPasswordResetResponse, error) {
@@ -39,9 +39,9 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *api
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.ConfirmPasswordResetResponse{
-		Ok: new(svcResp.GetOk()),
-	}, nil
+	resp := new(apiv1.ConfirmPasswordResetResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, _ *apiv1.RequestEmailVerificationRequest) (*apiv1.RequestEmailVerificationResponse, error) {
@@ -61,9 +61,9 @@ func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, _ *a
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.RequestEmailVerificationResponse{
-		Ok: new(svcResp.GetOk()),
-	}, nil
+	resp := new(apiv1.RequestEmailVerificationResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *authenticatorServer) ConfirmEmailVerification(ctx context.Context, req *apiv1.ConfirmEmailVerificationRequest) (*apiv1.ConfirmEmailVerificationResponse, error) {
@@ -75,7 +75,7 @@ func (s *authenticatorServer) ConfirmEmailVerification(ctx context.Context, req 
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.ConfirmEmailVerificationResponse{
-		Ok: new(svcResp.GetOk()),
-	}, nil
+	resp := new(apiv1.ConfirmEmailVerificationResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }

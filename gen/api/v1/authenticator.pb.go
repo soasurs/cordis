@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -24,17 +23,19 @@ const (
 // AuthenticationResult contains the tokens and expiration times for an authenticated session.
 // All expiration timestamps are Unix time in milliseconds.
 type AuthenticationResult struct {
-	state                 protoimpl.MessageState `protogen:"open.v1"`
-	Ok                    *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	UserId                *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	SessionId             *int64                 `protobuf:"varint,3,opt,name=session_id,json=sessionId" json:"session_id,omitempty"`
-	AccessToken           *string                `protobuf:"bytes,4,opt,name=access_token,json=accessToken" json:"access_token,omitempty"`
-	AccessTokenExpiresAt  *int64                 `protobuf:"varint,5,opt,name=access_token_expires_at,json=accessTokenExpiresAt" json:"access_token_expires_at,omitempty"`
-	RefreshToken          *string                `protobuf:"bytes,6,opt,name=refresh_token,json=refreshToken" json:"refresh_token,omitempty"`
-	RefreshTokenExpiresAt *int64                 `protobuf:"varint,7,opt,name=refresh_token_expires_at,json=refreshTokenExpiresAt" json:"refresh_token_expires_at,omitempty"`
-	SessionExpiresAt      *int64                 `protobuf:"varint,8,opt,name=session_expires_at,json=sessionExpiresAt" json:"session_expires_at,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok                    bool                   `protobuf:"varint,1,opt,name=ok"`
+	xxx_hidden_UserId                int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId             int64                  `protobuf:"varint,3,opt,name=session_id,json=sessionId"`
+	xxx_hidden_AccessToken           *string                `protobuf:"bytes,4,opt,name=access_token,json=accessToken"`
+	xxx_hidden_AccessTokenExpiresAt  int64                  `protobuf:"varint,5,opt,name=access_token_expires_at,json=accessTokenExpiresAt"`
+	xxx_hidden_RefreshToken          *string                `protobuf:"bytes,6,opt,name=refresh_token,json=refreshToken"`
+	xxx_hidden_RefreshTokenExpiresAt int64                  `protobuf:"varint,7,opt,name=refresh_token_expires_at,json=refreshTokenExpiresAt"`
+	xxx_hidden_SessionExpiresAt      int64                  `protobuf:"varint,8,opt,name=session_expires_at,json=sessionExpiresAt"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *AuthenticationResult) Reset() {
@@ -62,76 +63,266 @@ func (x *AuthenticationResult) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AuthenticationResult.ProtoReflect.Descriptor instead.
-func (*AuthenticationResult) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *AuthenticationResult) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
 func (x *AuthenticationResult) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *AuthenticationResult) GetSessionId() int64 {
-	if x != nil && x.SessionId != nil {
-		return *x.SessionId
+	if x != nil {
+		return x.xxx_hidden_SessionId
 	}
 	return 0
 }
 
 func (x *AuthenticationResult) GetAccessToken() string {
-	if x != nil && x.AccessToken != nil {
-		return *x.AccessToken
+	if x != nil {
+		if x.xxx_hidden_AccessToken != nil {
+			return *x.xxx_hidden_AccessToken
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *AuthenticationResult) GetAccessTokenExpiresAt() int64 {
-	if x != nil && x.AccessTokenExpiresAt != nil {
-		return *x.AccessTokenExpiresAt
+	if x != nil {
+		return x.xxx_hidden_AccessTokenExpiresAt
 	}
 	return 0
 }
 
 func (x *AuthenticationResult) GetRefreshToken() string {
-	if x != nil && x.RefreshToken != nil {
-		return *x.RefreshToken
+	if x != nil {
+		if x.xxx_hidden_RefreshToken != nil {
+			return *x.xxx_hidden_RefreshToken
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *AuthenticationResult) GetRefreshTokenExpiresAt() int64 {
-	if x != nil && x.RefreshTokenExpiresAt != nil {
-		return *x.RefreshTokenExpiresAt
+	if x != nil {
+		return x.xxx_hidden_RefreshTokenExpiresAt
 	}
 	return 0
 }
 
 func (x *AuthenticationResult) GetSessionExpiresAt() int64 {
-	if x != nil && x.SessionExpiresAt != nil {
-		return *x.SessionExpiresAt
+	if x != nil {
+		return x.xxx_hidden_SessionExpiresAt
 	}
 	return 0
 }
 
+func (x *AuthenticationResult) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+}
+
+func (x *AuthenticationResult) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+}
+
+func (x *AuthenticationResult) SetSessionId(v int64) {
+	x.xxx_hidden_SessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
+}
+
+func (x *AuthenticationResult) SetAccessToken(v string) {
+	x.xxx_hidden_AccessToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+}
+
+func (x *AuthenticationResult) SetAccessTokenExpiresAt(v int64) {
+	x.xxx_hidden_AccessTokenExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
+}
+
+func (x *AuthenticationResult) SetRefreshToken(v string) {
+	x.xxx_hidden_RefreshToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+}
+
+func (x *AuthenticationResult) SetRefreshTokenExpiresAt(v int64) {
+	x.xxx_hidden_RefreshTokenExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *AuthenticationResult) SetSessionExpiresAt(v int64) {
+	x.xxx_hidden_SessionExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+}
+
+func (x *AuthenticationResult) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AuthenticationResult) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AuthenticationResult) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AuthenticationResult) HasAccessToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *AuthenticationResult) HasAccessTokenExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *AuthenticationResult) HasRefreshToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *AuthenticationResult) HasRefreshTokenExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *AuthenticationResult) HasSessionExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *AuthenticationResult) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+func (x *AuthenticationResult) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *AuthenticationResult) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_SessionId = 0
+}
+
+func (x *AuthenticationResult) ClearAccessToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_AccessToken = nil
+}
+
+func (x *AuthenticationResult) ClearAccessTokenExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_AccessTokenExpiresAt = 0
+}
+
+func (x *AuthenticationResult) ClearRefreshToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_RefreshToken = nil
+}
+
+func (x *AuthenticationResult) ClearRefreshTokenExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_RefreshTokenExpiresAt = 0
+}
+
+func (x *AuthenticationResult) ClearSessionExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_SessionExpiresAt = 0
+}
+
+type AuthenticationResult_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok                    *bool
+	UserId                *int64
+	SessionId             *int64
+	AccessToken           *string
+	AccessTokenExpiresAt  *int64
+	RefreshToken          *string
+	RefreshTokenExpiresAt *int64
+	SessionExpiresAt      *int64
+}
+
+func (b0 AuthenticationResult_builder) Build() *AuthenticationResult {
+	m0 := &AuthenticationResult{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
+		x.xxx_hidden_SessionId = *b.SessionId
+	}
+	if b.AccessToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		x.xxx_hidden_AccessToken = b.AccessToken
+	}
+	if b.AccessTokenExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
+		x.xxx_hidden_AccessTokenExpiresAt = *b.AccessTokenExpiresAt
+	}
+	if b.RefreshToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		x.xxx_hidden_RefreshToken = b.RefreshToken
+	}
+	if b.RefreshTokenExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_RefreshTokenExpiresAt = *b.RefreshTokenExpiresAt
+	}
+	if b.SessionExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_SessionExpiresAt = *b.SessionExpiresAt
+	}
+	return m0
+}
+
 type RegisterRequest struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Name     *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Email    *string                `protobuf:"bytes,2,opt,name=email" json:"email,omitempty"`
-	Password *string                `protobuf:"bytes,3,opt,name=password" json:"password,omitempty"`
-	// Globally unique handle; lowercase letters, digits, and underscores.
-	Username      *string `protobuf:"bytes,4,opt,name=username" json:"username,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Email       *string                `protobuf:"bytes,2,opt,name=email"`
+	xxx_hidden_Password    *string                `protobuf:"bytes,3,opt,name=password"`
+	xxx_hidden_Username    *string                `protobuf:"bytes,4,opt,name=username"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RegisterRequest) Reset() {
@@ -159,44 +350,152 @@ func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
-func (*RegisterRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *RegisterRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *RegisterRequest) GetEmail() string {
-	if x != nil && x.Email != nil {
-		return *x.Email
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *RegisterRequest) GetPassword() string {
-	if x != nil && x.Password != nil {
-		return *x.Password
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *RegisterRequest) GetUsername() string {
-	if x != nil && x.Username != nil {
-		return *x.Username
+	if x != nil {
+		if x.xxx_hidden_Username != nil {
+			return *x.xxx_hidden_Username
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *RegisterRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *RegisterRequest) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *RegisterRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *RegisterRequest) SetUsername(v string) {
+	x.xxx_hidden_Username = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *RegisterRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RegisterRequest) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RegisterRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *RegisterRequest) HasUsername() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *RegisterRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *RegisterRequest) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Email = nil
+}
+
+func (x *RegisterRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Password = nil
+}
+
+func (x *RegisterRequest) ClearUsername() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Username = nil
+}
+
+type RegisterRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name     *string
+	Email    *string
+	Password *string
+	// Globally unique handle; lowercase letters, digits, and underscores.
+	Username *string
+}
+
+func (b0 RegisterRequest_builder) Build() *RegisterRequest {
+	m0 := &RegisterRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_Email = b.Email
+	}
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Password = b.Password
+	}
+	if b.Username != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Username = b.Username
+	}
+	return m0
+}
+
 type RegisterResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Result        *AuthenticationResult  `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RegisterResponse) Reset() {
@@ -224,24 +523,50 @@ func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
-func (*RegisterResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *RegisterResponse) GetResult() *AuthenticationResult {
 	if x != nil {
-		return x.Result
+		return x.xxx_hidden_Result
 	}
 	return nil
 }
 
+func (x *RegisterResponse) SetResult(v *AuthenticationResult) {
+	x.xxx_hidden_Result = v
+}
+
+func (x *RegisterResponse) HasResult() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Result != nil
+}
+
+func (x *RegisterResponse) ClearResult() {
+	x.xxx_hidden_Result = nil
+}
+
+type RegisterResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Result *AuthenticationResult
+}
+
+func (b0 RegisterResponse_builder) Build() *RegisterResponse {
+	m0 := &RegisterResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Result = b.Result
+	return m0
+}
+
 type LoginRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         *string                `protobuf:"bytes,1,opt,name=email" json:"email,omitempty"`
-	Password      *string                `protobuf:"bytes,2,opt,name=password" json:"password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
+	xxx_hidden_Password    *string                `protobuf:"bytes,2,opt,name=password"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *LoginRequest) Reset() {
@@ -269,34 +594,87 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
-func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *LoginRequest) GetEmail() string {
-	if x != nil && x.Email != nil {
-		return *x.Email
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *LoginRequest) GetPassword() string {
-	if x != nil && x.Password != nil {
-		return *x.Password
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *LoginRequest) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *LoginRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *LoginRequest) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *LoginRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *LoginRequest) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Email = nil
+}
+
+func (x *LoginRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Password = nil
+}
+
+type LoginRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Email    *string
+	Password *string
+}
+
+func (b0 LoginRequest_builder) Build() *LoginRequest {
+	m0 := &LoginRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Email = b.Email
+	}
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Password = b.Password
+	}
+	return m0
+}
+
 type LoginResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Outcome:
-	//
-	//	*LoginResponse_Result
-	//	*LoginResponse_TwoFactorChallenge
-	Outcome       isLoginResponse_Outcome `protobuf_oneof:"outcome"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Outcome isLoginResponse_Outcome `protobuf_oneof:"outcome"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LoginResponse) Reset() {
@@ -324,21 +702,9 @@ func (x *LoginResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
-func (*LoginResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *LoginResponse) GetOutcome() isLoginResponse_Outcome {
-	if x != nil {
-		return x.Outcome
-	}
-	return nil
-}
-
 func (x *LoginResponse) GetResult() *AuthenticationResult {
 	if x != nil {
-		if x, ok := x.Outcome.(*LoginResponse_Result); ok {
+		if x, ok := x.xxx_hidden_Outcome.(*loginResponse_Result); ok {
 			return x.Result
 		}
 	}
@@ -347,35 +713,142 @@ func (x *LoginResponse) GetResult() *AuthenticationResult {
 
 func (x *LoginResponse) GetTwoFactorChallenge() *TwoFactorLoginChallenge {
 	if x != nil {
-		if x, ok := x.Outcome.(*LoginResponse_TwoFactorChallenge); ok {
+		if x, ok := x.xxx_hidden_Outcome.(*loginResponse_TwoFactorChallenge); ok {
 			return x.TwoFactorChallenge
 		}
 	}
 	return nil
 }
 
+func (x *LoginResponse) SetResult(v *AuthenticationResult) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &loginResponse_Result{v}
+}
+
+func (x *LoginResponse) SetTwoFactorChallenge(v *TwoFactorLoginChallenge) {
+	if v == nil {
+		x.xxx_hidden_Outcome = nil
+		return
+	}
+	x.xxx_hidden_Outcome = &loginResponse_TwoFactorChallenge{v}
+}
+
+func (x *LoginResponse) HasOutcome() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Outcome != nil
+}
+
+func (x *LoginResponse) HasResult() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*loginResponse_Result)
+	return ok
+}
+
+func (x *LoginResponse) HasTwoFactorChallenge() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Outcome.(*loginResponse_TwoFactorChallenge)
+	return ok
+}
+
+func (x *LoginResponse) ClearOutcome() {
+	x.xxx_hidden_Outcome = nil
+}
+
+func (x *LoginResponse) ClearResult() {
+	if _, ok := x.xxx_hidden_Outcome.(*loginResponse_Result); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+func (x *LoginResponse) ClearTwoFactorChallenge() {
+	if _, ok := x.xxx_hidden_Outcome.(*loginResponse_TwoFactorChallenge); ok {
+		x.xxx_hidden_Outcome = nil
+	}
+}
+
+const LoginResponse_Outcome_not_set_case case_LoginResponse_Outcome = 0
+const LoginResponse_Result_case case_LoginResponse_Outcome = 1
+const LoginResponse_TwoFactorChallenge_case case_LoginResponse_Outcome = 2
+
+func (x *LoginResponse) WhichOutcome() case_LoginResponse_Outcome {
+	if x == nil {
+		return LoginResponse_Outcome_not_set_case
+	}
+	switch x.xxx_hidden_Outcome.(type) {
+	case *loginResponse_Result:
+		return LoginResponse_Result_case
+	case *loginResponse_TwoFactorChallenge:
+		return LoginResponse_TwoFactorChallenge_case
+	default:
+		return LoginResponse_Outcome_not_set_case
+	}
+}
+
+type LoginResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Outcome:
+	Result             *AuthenticationResult
+	TwoFactorChallenge *TwoFactorLoginChallenge
+	// -- end of xxx_hidden_Outcome
+}
+
+func (b0 LoginResponse_builder) Build() *LoginResponse {
+	m0 := &LoginResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Result != nil {
+		x.xxx_hidden_Outcome = &loginResponse_Result{b.Result}
+	}
+	if b.TwoFactorChallenge != nil {
+		x.xxx_hidden_Outcome = &loginResponse_TwoFactorChallenge{b.TwoFactorChallenge}
+	}
+	return m0
+}
+
+type case_LoginResponse_Outcome protoreflect.FieldNumber
+
+func (x case_LoginResponse_Outcome) String() string {
+	md := file_api_v1_authenticator_proto_msgTypes[4].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isLoginResponse_Outcome interface {
 	isLoginResponse_Outcome()
 }
 
-type LoginResponse_Result struct {
+type loginResponse_Result struct {
 	Result *AuthenticationResult `protobuf:"bytes,1,opt,name=result,oneof"`
 }
 
-type LoginResponse_TwoFactorChallenge struct {
+type loginResponse_TwoFactorChallenge struct {
 	TwoFactorChallenge *TwoFactorLoginChallenge `protobuf:"bytes,2,opt,name=two_factor_challenge,json=twoFactorChallenge,oneof"`
 }
 
-func (*LoginResponse_Result) isLoginResponse_Outcome() {}
+func (*loginResponse_Result) isLoginResponse_Outcome() {}
 
-func (*LoginResponse_TwoFactorChallenge) isLoginResponse_Outcome() {}
+func (*loginResponse_TwoFactorChallenge) isLoginResponse_Outcome() {}
 
 type TwoFactorLoginChallenge struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         *string                `protobuf:"bytes,1,opt,name=token" json:"token,omitempty"`
-	ExpiresAt     *int64                 `protobuf:"varint,2,opt,name=expires_at,json=expiresAt" json:"expires_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
+	xxx_hidden_ExpiresAt   int64                  `protobuf:"varint,2,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *TwoFactorLoginChallenge) Reset() {
@@ -403,31 +876,87 @@ func (x *TwoFactorLoginChallenge) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TwoFactorLoginChallenge.ProtoReflect.Descriptor instead.
-func (*TwoFactorLoginChallenge) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *TwoFactorLoginChallenge) GetToken() string {
-	if x != nil && x.Token != nil {
-		return *x.Token
+	if x != nil {
+		if x.xxx_hidden_Token != nil {
+			return *x.xxx_hidden_Token
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *TwoFactorLoginChallenge) GetExpiresAt() int64 {
-	if x != nil && x.ExpiresAt != nil {
-		return *x.ExpiresAt
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
 	}
 	return 0
 }
 
+func (x *TwoFactorLoginChallenge) SetToken(v string) {
+	x.xxx_hidden_Token = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *TwoFactorLoginChallenge) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *TwoFactorLoginChallenge) HasToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *TwoFactorLoginChallenge) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *TwoFactorLoginChallenge) ClearToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Token = nil
+}
+
+func (x *TwoFactorLoginChallenge) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type TwoFactorLoginChallenge_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Token     *string
+	ExpiresAt *int64
+}
+
+func (b0 TwoFactorLoginChallenge_builder) Build() *TwoFactorLoginChallenge {
+	m0 := &TwoFactorLoginChallenge{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Token != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Token = b.Token
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
 type CompleteTwoFactorLoginRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	ChallengeToken *string                `protobuf:"bytes,1,opt,name=challenge_token,json=challengeToken" json:"challenge_token,omitempty"`
-	Code           *string                `protobuf:"bytes,2,opt,name=code" json:"code,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChallengeToken *string                `protobuf:"bytes,1,opt,name=challenge_token,json=challengeToken"`
+	xxx_hidden_Code           *string                `protobuf:"bytes,2,opt,name=code"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CompleteTwoFactorLoginRequest) Reset() {
@@ -455,30 +984,87 @@ func (x *CompleteTwoFactorLoginRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompleteTwoFactorLoginRequest.ProtoReflect.Descriptor instead.
-func (*CompleteTwoFactorLoginRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *CompleteTwoFactorLoginRequest) GetChallengeToken() string {
-	if x != nil && x.ChallengeToken != nil {
-		return *x.ChallengeToken
+	if x != nil {
+		if x.xxx_hidden_ChallengeToken != nil {
+			return *x.xxx_hidden_ChallengeToken
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *CompleteTwoFactorLoginRequest) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *CompleteTwoFactorLoginRequest) SetChallengeToken(v string) {
+	x.xxx_hidden_ChallengeToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *CompleteTwoFactorLoginRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *CompleteTwoFactorLoginRequest) HasChallengeToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CompleteTwoFactorLoginRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CompleteTwoFactorLoginRequest) ClearChallengeToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChallengeToken = nil
+}
+
+func (x *CompleteTwoFactorLoginRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Code = nil
+}
+
+type CompleteTwoFactorLoginRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChallengeToken *string
+	Code           *string
+}
+
+func (b0 CompleteTwoFactorLoginRequest_builder) Build() *CompleteTwoFactorLoginRequest {
+	m0 := &CompleteTwoFactorLoginRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChallengeToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_ChallengeToken = b.ChallengeToken
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
 type CompleteTwoFactorLoginResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Result        *AuthenticationResult  `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CompleteTwoFactorLoginResponse) Reset() {
@@ -506,23 +1092,49 @@ func (x *CompleteTwoFactorLoginResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CompleteTwoFactorLoginResponse.ProtoReflect.Descriptor instead.
-func (*CompleteTwoFactorLoginResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *CompleteTwoFactorLoginResponse) GetResult() *AuthenticationResult {
 	if x != nil {
-		return x.Result
+		return x.xxx_hidden_Result
 	}
 	return nil
 }
 
+func (x *CompleteTwoFactorLoginResponse) SetResult(v *AuthenticationResult) {
+	x.xxx_hidden_Result = v
+}
+
+func (x *CompleteTwoFactorLoginResponse) HasResult() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Result != nil
+}
+
+func (x *CompleteTwoFactorLoginResponse) ClearResult() {
+	x.xxx_hidden_Result = nil
+}
+
+type CompleteTwoFactorLoginResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Result *AuthenticationResult
+}
+
+func (b0 CompleteTwoFactorLoginResponse_builder) Build() *CompleteTwoFactorLoginResponse {
+	m0 := &CompleteTwoFactorLoginResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Result = b.Result
+	return m0
+}
+
 type RefreshRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RefreshToken  *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken" json:"refresh_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RefreshToken *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *RefreshRequest) Reset() {
@@ -550,23 +1162,55 @@ func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RefreshRequest.ProtoReflect.Descriptor instead.
-func (*RefreshRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *RefreshRequest) GetRefreshToken() string {
-	if x != nil && x.RefreshToken != nil {
-		return *x.RefreshToken
+	if x != nil {
+		if x.xxx_hidden_RefreshToken != nil {
+			return *x.xxx_hidden_RefreshToken
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *RefreshRequest) SetRefreshToken(v string) {
+	x.xxx_hidden_RefreshToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RefreshRequest) HasRefreshToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RefreshRequest) ClearRefreshToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_RefreshToken = nil
+}
+
+type RefreshRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RefreshToken *string
+}
+
+func (b0 RefreshRequest_builder) Build() *RefreshRequest {
+	m0 := &RefreshRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.RefreshToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_RefreshToken = b.RefreshToken
+	}
+	return m0
+}
+
 type RefreshResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Result        *AuthenticationResult  `protobuf:"bytes,1,opt,name=result" json:"result,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RefreshResponse) Reset() {
@@ -594,23 +1238,49 @@ func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RefreshResponse.ProtoReflect.Descriptor instead.
-func (*RefreshResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *RefreshResponse) GetResult() *AuthenticationResult {
 	if x != nil {
-		return x.Result
+		return x.xxx_hidden_Result
 	}
 	return nil
 }
 
+func (x *RefreshResponse) SetResult(v *AuthenticationResult) {
+	x.xxx_hidden_Result = v
+}
+
+func (x *RefreshResponse) HasResult() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Result != nil
+}
+
+func (x *RefreshResponse) ClearResult() {
+	x.xxx_hidden_Result = nil
+}
+
+type RefreshResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Result *AuthenticationResult
+}
+
+func (b0 RefreshResponse_builder) Build() *RefreshResponse {
+	m0 := &RefreshResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Result = b.Result
+	return m0
+}
+
 type LogoutRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RefreshToken  *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken" json:"refresh_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RefreshToken *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *LogoutRequest) Reset() {
@@ -638,23 +1308,57 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
-func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *LogoutRequest) GetRefreshToken() string {
-	if x != nil && x.RefreshToken != nil {
-		return *x.RefreshToken
+	if x != nil {
+		if x.xxx_hidden_RefreshToken != nil {
+			return *x.xxx_hidden_RefreshToken
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *LogoutRequest) SetRefreshToken(v string) {
+	x.xxx_hidden_RefreshToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *LogoutRequest) HasRefreshToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *LogoutRequest) ClearRefreshToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_RefreshToken = nil
+}
+
+type LogoutRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RefreshToken *string
+}
+
+func (b0 LogoutRequest_builder) Build() *LogoutRequest {
+	m0 := &LogoutRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.RefreshToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_RefreshToken = b.RefreshToken
+	}
+	return m0
+}
+
 type LogoutResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *LogoutResponse) Reset() {
@@ -682,31 +1386,62 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
-func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{11}
-}
-
 func (x *LogoutResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
+}
+
+func (x *LogoutResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *LogoutResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *LogoutResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type LogoutResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 LogoutResponse_builder) Build() *LogoutResponse {
+	m0 := &LogoutResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
 }
 
 // Session contains client-visible metadata for an active authenticated session.
 // All timestamps are Unix time in milliseconds.
 type Session struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     *int64                 `protobuf:"varint,1,opt,name=session_id,json=sessionId" json:"session_id,omitempty"`
-	UserAgent     *string                `protobuf:"bytes,2,opt,name=user_agent,json=userAgent" json:"user_agent,omitempty"`
-	Ip            *string                `protobuf:"bytes,3,opt,name=ip" json:"ip,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,4,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,5,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	ExpiresAt     *int64                 `protobuf:"varint,6,opt,name=expires_at,json=expiresAt" json:"expires_at,omitempty"`
-	Current       *bool                  `protobuf:"varint,7,opt,name=current" json:"current,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SessionId   int64                  `protobuf:"varint,1,opt,name=session_id,json=sessionId"`
+	xxx_hidden_UserAgent   *string                `protobuf:"bytes,2,opt,name=user_agent,json=userAgent"`
+	xxx_hidden_Ip          *string                `protobuf:"bytes,3,opt,name=ip"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,5,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_ExpiresAt   int64                  `protobuf:"varint,6,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_Current     bool                   `protobuf:"varint,7,opt,name=current"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Session) Reset() {
@@ -734,62 +1469,229 @@ func (x *Session) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Session.ProtoReflect.Descriptor instead.
-func (*Session) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{12}
-}
-
 func (x *Session) GetSessionId() int64 {
-	if x != nil && x.SessionId != nil {
-		return *x.SessionId
+	if x != nil {
+		return x.xxx_hidden_SessionId
 	}
 	return 0
 }
 
 func (x *Session) GetUserAgent() string {
-	if x != nil && x.UserAgent != nil {
-		return *x.UserAgent
+	if x != nil {
+		if x.xxx_hidden_UserAgent != nil {
+			return *x.xxx_hidden_UserAgent
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Session) GetIp() string {
-	if x != nil && x.Ip != nil {
-		return *x.Ip
+	if x != nil {
+		if x.xxx_hidden_Ip != nil {
+			return *x.xxx_hidden_Ip
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Session) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *Session) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
 func (x *Session) GetExpiresAt() int64 {
-	if x != nil && x.ExpiresAt != nil {
-		return *x.ExpiresAt
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
 	}
 	return 0
 }
 
 func (x *Session) GetCurrent() bool {
-	if x != nil && x.Current != nil {
-		return *x.Current
+	if x != nil {
+		return x.xxx_hidden_Current
 	}
 	return false
 }
 
+func (x *Session) SetSessionId(v int64) {
+	x.xxx_hidden_SessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+}
+
+func (x *Session) SetUserAgent(v string) {
+	x.xxx_hidden_UserAgent = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+}
+
+func (x *Session) SetIp(v string) {
+	x.xxx_hidden_Ip = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+}
+
+func (x *Session) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+}
+
+func (x *Session) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+}
+
+func (x *Session) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *Session) SetCurrent(v bool) {
+	x.xxx_hidden_Current = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
+func (x *Session) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *Session) HasUserAgent() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *Session) HasIp() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *Session) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *Session) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *Session) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *Session) HasCurrent() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *Session) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_SessionId = 0
+}
+
+func (x *Session) ClearUserAgent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserAgent = nil
+}
+
+func (x *Session) ClearIp() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Ip = nil
+}
+
+func (x *Session) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *Session) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+func (x *Session) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+func (x *Session) ClearCurrent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Current = false
+}
+
+type Session_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SessionId *int64
+	UserAgent *string
+	Ip        *string
+	CreatedAt *int64
+	UpdatedAt *int64
+	ExpiresAt *int64
+	Current   *bool
+}
+
+func (b0 Session_builder) Build() *Session {
+	m0 := &Session{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		x.xxx_hidden_SessionId = *b.SessionId
+	}
+	if b.UserAgent != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		x.xxx_hidden_UserAgent = b.UserAgent
+	}
+	if b.Ip != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		x.xxx_hidden_Ip = b.Ip
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	if b.Current != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_Current = *b.Current
+	}
+	return m0
+}
+
 type ListSessionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -819,16 +1721,23 @@ func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListSessionsRequest.ProtoReflect.Descriptor instead.
-func (*ListSessionsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{13}
+type ListSessionsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 ListSessionsRequest_builder) Build() *ListSessionsRequest {
+	m0 := &ListSessionsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
 }
 
 type ListSessionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Sessions      []*Session             `protobuf:"bytes,1,rep,name=sessions" json:"sessions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Sessions *[]*Session            `protobuf:"bytes,1,rep,name=sessions"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ListSessionsResponse) Reset() {
@@ -856,23 +1765,40 @@ func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListSessionsResponse.ProtoReflect.Descriptor instead.
-func (*ListSessionsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{14}
-}
-
 func (x *ListSessionsResponse) GetSessions() []*Session {
 	if x != nil {
-		return x.Sessions
+		if x.xxx_hidden_Sessions != nil {
+			return *x.xxx_hidden_Sessions
+		}
 	}
 	return nil
 }
 
+func (x *ListSessionsResponse) SetSessions(v []*Session) {
+	x.xxx_hidden_Sessions = &v
+}
+
+type ListSessionsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Sessions []*Session
+}
+
+func (b0 ListSessionsResponse_builder) Build() *ListSessionsResponse {
+	m0 := &ListSessionsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Sessions = &b.Sessions
+	return m0
+}
+
 type RevokeSessionRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     *int64                 `protobuf:"varint,1,opt,name=session_id,json=sessionId" json:"session_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SessionId   int64                  `protobuf:"varint,1,opt,name=session_id,json=sessionId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RevokeSessionRequest) Reset() {
@@ -900,23 +1826,54 @@ func (x *RevokeSessionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RevokeSessionRequest.ProtoReflect.Descriptor instead.
-func (*RevokeSessionRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{15}
-}
-
 func (x *RevokeSessionRequest) GetSessionId() int64 {
-	if x != nil && x.SessionId != nil {
-		return *x.SessionId
+	if x != nil {
+		return x.xxx_hidden_SessionId
 	}
 	return 0
 }
 
+func (x *RevokeSessionRequest) SetSessionId(v int64) {
+	x.xxx_hidden_SessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RevokeSessionRequest) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RevokeSessionRequest) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_SessionId = 0
+}
+
+type RevokeSessionRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	SessionId *int64
+}
+
+func (b0 RevokeSessionRequest_builder) Build() *RevokeSessionRequest {
+	m0 := &RevokeSessionRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_SessionId = *b.SessionId
+	}
+	return m0
+}
+
 type RevokeSessionResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RevokeSessionResponse) Reset() {
@@ -944,20 +1901,49 @@ func (x *RevokeSessionResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RevokeSessionResponse.ProtoReflect.Descriptor instead.
-func (*RevokeSessionResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{16}
-}
-
 func (x *RevokeSessionResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *RevokeSessionResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RevokeSessionResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RevokeSessionResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type RevokeSessionResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 RevokeSessionResponse_builder) Build() *RevokeSessionResponse {
+	m0 := &RevokeSessionResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type GetTwoFactorStatusRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -987,17 +1973,26 @@ func (x *GetTwoFactorStatusRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetTwoFactorStatusRequest.ProtoReflect.Descriptor instead.
-func (*GetTwoFactorStatusRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{17}
+type GetTwoFactorStatusRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 GetTwoFactorStatusRequest_builder) Build() *GetTwoFactorStatusRequest {
+	m0 := &GetTwoFactorStatusRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
 }
 
 type GetTwoFactorStatusResponse struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Enabled                *bool                  `protobuf:"varint,1,opt,name=enabled" json:"enabled,omitempty"`
-	RecoveryCodesRemaining *int32                 `protobuf:"varint,2,opt,name=recovery_codes_remaining,json=recoveryCodesRemaining" json:"recovery_codes_remaining,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Enabled                bool                   `protobuf:"varint,1,opt,name=enabled"`
+	xxx_hidden_RecoveryCodesRemaining int32                  `protobuf:"varint,2,opt,name=recovery_codes_remaining,json=recoveryCodesRemaining"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *GetTwoFactorStatusResponse) Reset() {
@@ -1025,30 +2020,83 @@ func (x *GetTwoFactorStatusResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetTwoFactorStatusResponse.ProtoReflect.Descriptor instead.
-func (*GetTwoFactorStatusResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{18}
-}
-
 func (x *GetTwoFactorStatusResponse) GetEnabled() bool {
-	if x != nil && x.Enabled != nil {
-		return *x.Enabled
+	if x != nil {
+		return x.xxx_hidden_Enabled
 	}
 	return false
 }
 
 func (x *GetTwoFactorStatusResponse) GetRecoveryCodesRemaining() int32 {
-	if x != nil && x.RecoveryCodesRemaining != nil {
-		return *x.RecoveryCodesRemaining
+	if x != nil {
+		return x.xxx_hidden_RecoveryCodesRemaining
 	}
 	return 0
 }
 
+func (x *GetTwoFactorStatusResponse) SetEnabled(v bool) {
+	x.xxx_hidden_Enabled = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetTwoFactorStatusResponse) SetRecoveryCodesRemaining(v int32) {
+	x.xxx_hidden_RecoveryCodesRemaining = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GetTwoFactorStatusResponse) HasEnabled() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetTwoFactorStatusResponse) HasRecoveryCodesRemaining() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetTwoFactorStatusResponse) ClearEnabled() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Enabled = false
+}
+
+func (x *GetTwoFactorStatusResponse) ClearRecoveryCodesRemaining() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_RecoveryCodesRemaining = 0
+}
+
+type GetTwoFactorStatusResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Enabled                *bool
+	RecoveryCodesRemaining *int32
+}
+
+func (b0 GetTwoFactorStatusResponse_builder) Build() *GetTwoFactorStatusResponse {
+	m0 := &GetTwoFactorStatusResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Enabled != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Enabled = *b.Enabled
+	}
+	if b.RecoveryCodesRemaining != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_RecoveryCodesRemaining = *b.RecoveryCodesRemaining
+	}
+	return m0
+}
+
 type BeginTwoFactorEnrollmentRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Password      *string                `protobuf:"bytes,1,opt,name=password" json:"password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Password    *string                `protobuf:"bytes,1,opt,name=password"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *BeginTwoFactorEnrollmentRequest) Reset() {
@@ -1076,26 +2124,60 @@ func (x *BeginTwoFactorEnrollmentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BeginTwoFactorEnrollmentRequest.ProtoReflect.Descriptor instead.
-func (*BeginTwoFactorEnrollmentRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{19}
-}
-
 func (x *BeginTwoFactorEnrollmentRequest) GetPassword() string {
-	if x != nil && x.Password != nil {
-		return *x.Password
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *BeginTwoFactorEnrollmentRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *BeginTwoFactorEnrollmentRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Password = nil
+}
+
+type BeginTwoFactorEnrollmentRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Password *string
+}
+
+func (b0 BeginTwoFactorEnrollmentRequest_builder) Build() *BeginTwoFactorEnrollmentRequest {
+	m0 := &BeginTwoFactorEnrollmentRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Password = b.Password
+	}
+	return m0
+}
+
 type BeginTwoFactorEnrollmentResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	EnrollmentToken *string                `protobuf:"bytes,1,opt,name=enrollment_token,json=enrollmentToken" json:"enrollment_token,omitempty"`
-	OtpauthUri      *string                `protobuf:"bytes,2,opt,name=otpauth_uri,json=otpauthUri" json:"otpauth_uri,omitempty"`
-	ManualEntryKey  *string                `protobuf:"bytes,3,opt,name=manual_entry_key,json=manualEntryKey" json:"manual_entry_key,omitempty"`
-	ExpiresAt       *int64                 `protobuf:"varint,4,opt,name=expires_at,json=expiresAt" json:"expires_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_EnrollmentToken *string                `protobuf:"bytes,1,opt,name=enrollment_token,json=enrollmentToken"`
+	xxx_hidden_OtpauthUri      *string                `protobuf:"bytes,2,opt,name=otpauth_uri,json=otpauthUri"`
+	xxx_hidden_ManualEntryKey  *string                `protobuf:"bytes,3,opt,name=manual_entry_key,json=manualEntryKey"`
+	xxx_hidden_ExpiresAt       int64                  `protobuf:"varint,4,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *BeginTwoFactorEnrollmentResponse) Reset() {
@@ -1123,45 +2205,151 @@ func (x *BeginTwoFactorEnrollmentResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BeginTwoFactorEnrollmentResponse.ProtoReflect.Descriptor instead.
-func (*BeginTwoFactorEnrollmentResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{20}
-}
-
 func (x *BeginTwoFactorEnrollmentResponse) GetEnrollmentToken() string {
-	if x != nil && x.EnrollmentToken != nil {
-		return *x.EnrollmentToken
+	if x != nil {
+		if x.xxx_hidden_EnrollmentToken != nil {
+			return *x.xxx_hidden_EnrollmentToken
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *BeginTwoFactorEnrollmentResponse) GetOtpauthUri() string {
-	if x != nil && x.OtpauthUri != nil {
-		return *x.OtpauthUri
+	if x != nil {
+		if x.xxx_hidden_OtpauthUri != nil {
+			return *x.xxx_hidden_OtpauthUri
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *BeginTwoFactorEnrollmentResponse) GetManualEntryKey() string {
-	if x != nil && x.ManualEntryKey != nil {
-		return *x.ManualEntryKey
+	if x != nil {
+		if x.xxx_hidden_ManualEntryKey != nil {
+			return *x.xxx_hidden_ManualEntryKey
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *BeginTwoFactorEnrollmentResponse) GetExpiresAt() int64 {
-	if x != nil && x.ExpiresAt != nil {
-		return *x.ExpiresAt
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
 	}
 	return 0
 }
 
+func (x *BeginTwoFactorEnrollmentResponse) SetEnrollmentToken(v string) {
+	x.xxx_hidden_EnrollmentToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) SetOtpauthUri(v string) {
+	x.xxx_hidden_OtpauthUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) SetManualEntryKey(v string) {
+	x.xxx_hidden_ManualEntryKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasEnrollmentToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasOtpauthUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasManualEntryKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearEnrollmentToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_EnrollmentToken = nil
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearOtpauthUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_OtpauthUri = nil
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearManualEntryKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ManualEntryKey = nil
+}
+
+func (x *BeginTwoFactorEnrollmentResponse) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type BeginTwoFactorEnrollmentResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	EnrollmentToken *string
+	OtpauthUri      *string
+	ManualEntryKey  *string
+	ExpiresAt       *int64
+}
+
+func (b0 BeginTwoFactorEnrollmentResponse_builder) Build() *BeginTwoFactorEnrollmentResponse {
+	m0 := &BeginTwoFactorEnrollmentResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.EnrollmentToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_EnrollmentToken = b.EnrollmentToken
+	}
+	if b.OtpauthUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_OtpauthUri = b.OtpauthUri
+	}
+	if b.ManualEntryKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_ManualEntryKey = b.ManualEntryKey
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
 type ConfirmTwoFactorEnrollmentRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	EnrollmentToken *string                `protobuf:"bytes,1,opt,name=enrollment_token,json=enrollmentToken" json:"enrollment_token,omitempty"`
-	Code            *string                `protobuf:"bytes,2,opt,name=code" json:"code,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_EnrollmentToken *string                `protobuf:"bytes,1,opt,name=enrollment_token,json=enrollmentToken"`
+	xxx_hidden_Code            *string                `protobuf:"bytes,2,opt,name=code"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *ConfirmTwoFactorEnrollmentRequest) Reset() {
@@ -1189,30 +2377,87 @@ func (x *ConfirmTwoFactorEnrollmentRequest) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfirmTwoFactorEnrollmentRequest.ProtoReflect.Descriptor instead.
-func (*ConfirmTwoFactorEnrollmentRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{21}
-}
-
 func (x *ConfirmTwoFactorEnrollmentRequest) GetEnrollmentToken() string {
-	if x != nil && x.EnrollmentToken != nil {
-		return *x.EnrollmentToken
+	if x != nil {
+		if x.xxx_hidden_EnrollmentToken != nil {
+			return *x.xxx_hidden_EnrollmentToken
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *ConfirmTwoFactorEnrollmentRequest) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *ConfirmTwoFactorEnrollmentRequest) SetEnrollmentToken(v string) {
+	x.xxx_hidden_EnrollmentToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) HasEnrollmentToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) ClearEnrollmentToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_EnrollmentToken = nil
+}
+
+func (x *ConfirmTwoFactorEnrollmentRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Code = nil
+}
+
+type ConfirmTwoFactorEnrollmentRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	EnrollmentToken *string
+	Code            *string
+}
+
+func (b0 ConfirmTwoFactorEnrollmentRequest_builder) Build() *ConfirmTwoFactorEnrollmentRequest {
+	m0 := &ConfirmTwoFactorEnrollmentRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.EnrollmentToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_EnrollmentToken = b.EnrollmentToken
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
 type ConfirmTwoFactorEnrollmentResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes" json:"recovery_codes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ConfirmTwoFactorEnrollmentResponse) Reset() {
@@ -1240,28 +2485,39 @@ func (x *ConfirmTwoFactorEnrollmentResponse) ProtoReflect() protoreflect.Message
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfirmTwoFactorEnrollmentResponse.ProtoReflect.Descriptor instead.
-func (*ConfirmTwoFactorEnrollmentResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{22}
-}
-
 func (x *ConfirmTwoFactorEnrollmentResponse) GetRecoveryCodes() []string {
 	if x != nil {
-		return x.RecoveryCodes
+		return x.xxx_hidden_RecoveryCodes
 	}
 	return nil
 }
 
+func (x *ConfirmTwoFactorEnrollmentResponse) SetRecoveryCodes(v []string) {
+	x.xxx_hidden_RecoveryCodes = v
+}
+
+type ConfirmTwoFactorEnrollmentResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RecoveryCodes []string
+}
+
+func (b0 ConfirmTwoFactorEnrollmentResponse_builder) Build() *ConfirmTwoFactorEnrollmentResponse {
+	m0 := &ConfirmTwoFactorEnrollmentResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RecoveryCodes = b.RecoveryCodes
+	return m0
+}
+
 type DisableTwoFactorRequest struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Password *string                `protobuf:"bytes,1,opt,name=password" json:"password,omitempty"`
-	// Types that are valid to be assigned to Verification:
-	//
-	//	*DisableTwoFactorRequest_Code
-	//	*DisableTwoFactorRequest_RecoveryCode
-	Verification  isDisableTwoFactorRequest_Verification `protobuf_oneof:"verification"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState                 `protogen:"opaque.v1"`
+	xxx_hidden_Password     *string                                `protobuf:"bytes,1,opt,name=password"`
+	xxx_hidden_Verification isDisableTwoFactorRequest_Verification `protobuf_oneof:"verification"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *DisableTwoFactorRequest) Reset() {
@@ -1289,28 +2545,19 @@ func (x *DisableTwoFactorRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DisableTwoFactorRequest.ProtoReflect.Descriptor instead.
-func (*DisableTwoFactorRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{23}
-}
-
 func (x *DisableTwoFactorRequest) GetPassword() string {
-	if x != nil && x.Password != nil {
-		return *x.Password
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
 	}
 	return ""
 }
 
-func (x *DisableTwoFactorRequest) GetVerification() isDisableTwoFactorRequest_Verification {
-	if x != nil {
-		return x.Verification
-	}
-	return nil
-}
-
 func (x *DisableTwoFactorRequest) GetCode() string {
 	if x != nil {
-		if x, ok := x.Verification.(*DisableTwoFactorRequest_Code); ok {
+		if x, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_Code); ok {
 			return x.Code
 		}
 	}
@@ -1319,34 +2566,155 @@ func (x *DisableTwoFactorRequest) GetCode() string {
 
 func (x *DisableTwoFactorRequest) GetRecoveryCode() string {
 	if x != nil {
-		if x, ok := x.Verification.(*DisableTwoFactorRequest_RecoveryCode); ok {
+		if x, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_RecoveryCode); ok {
 			return x.RecoveryCode
 		}
 	}
 	return ""
 }
 
+func (x *DisableTwoFactorRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DisableTwoFactorRequest) SetCode(v string) {
+	x.xxx_hidden_Verification = &disableTwoFactorRequest_Code{v}
+}
+
+func (x *DisableTwoFactorRequest) SetRecoveryCode(v string) {
+	x.xxx_hidden_Verification = &disableTwoFactorRequest_RecoveryCode{v}
+}
+
+func (x *DisableTwoFactorRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DisableTwoFactorRequest) HasVerification() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Verification != nil
+}
+
+func (x *DisableTwoFactorRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_Code)
+	return ok
+}
+
+func (x *DisableTwoFactorRequest) HasRecoveryCode() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_RecoveryCode)
+	return ok
+}
+
+func (x *DisableTwoFactorRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Password = nil
+}
+
+func (x *DisableTwoFactorRequest) ClearVerification() {
+	x.xxx_hidden_Verification = nil
+}
+
+func (x *DisableTwoFactorRequest) ClearCode() {
+	if _, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_Code); ok {
+		x.xxx_hidden_Verification = nil
+	}
+}
+
+func (x *DisableTwoFactorRequest) ClearRecoveryCode() {
+	if _, ok := x.xxx_hidden_Verification.(*disableTwoFactorRequest_RecoveryCode); ok {
+		x.xxx_hidden_Verification = nil
+	}
+}
+
+const DisableTwoFactorRequest_Verification_not_set_case case_DisableTwoFactorRequest_Verification = 0
+const DisableTwoFactorRequest_Code_case case_DisableTwoFactorRequest_Verification = 2
+const DisableTwoFactorRequest_RecoveryCode_case case_DisableTwoFactorRequest_Verification = 3
+
+func (x *DisableTwoFactorRequest) WhichVerification() case_DisableTwoFactorRequest_Verification {
+	if x == nil {
+		return DisableTwoFactorRequest_Verification_not_set_case
+	}
+	switch x.xxx_hidden_Verification.(type) {
+	case *disableTwoFactorRequest_Code:
+		return DisableTwoFactorRequest_Code_case
+	case *disableTwoFactorRequest_RecoveryCode:
+		return DisableTwoFactorRequest_RecoveryCode_case
+	default:
+		return DisableTwoFactorRequest_Verification_not_set_case
+	}
+}
+
+type DisableTwoFactorRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Password *string
+	// Fields of oneof xxx_hidden_Verification:
+	Code         *string
+	RecoveryCode *string
+	// -- end of xxx_hidden_Verification
+}
+
+func (b0 DisableTwoFactorRequest_builder) Build() *DisableTwoFactorRequest {
+	m0 := &DisableTwoFactorRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Password = b.Password
+	}
+	if b.Code != nil {
+		x.xxx_hidden_Verification = &disableTwoFactorRequest_Code{*b.Code}
+	}
+	if b.RecoveryCode != nil {
+		x.xxx_hidden_Verification = &disableTwoFactorRequest_RecoveryCode{*b.RecoveryCode}
+	}
+	return m0
+}
+
+type case_DisableTwoFactorRequest_Verification protoreflect.FieldNumber
+
+func (x case_DisableTwoFactorRequest_Verification) String() string {
+	md := file_api_v1_authenticator_proto_msgTypes[23].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
 type isDisableTwoFactorRequest_Verification interface {
 	isDisableTwoFactorRequest_Verification()
 }
 
-type DisableTwoFactorRequest_Code struct {
+type disableTwoFactorRequest_Code struct {
 	Code string `protobuf:"bytes,2,opt,name=code,oneof"`
 }
 
-type DisableTwoFactorRequest_RecoveryCode struct {
+type disableTwoFactorRequest_RecoveryCode struct {
 	RecoveryCode string `protobuf:"bytes,3,opt,name=recovery_code,json=recoveryCode,oneof"`
 }
 
-func (*DisableTwoFactorRequest_Code) isDisableTwoFactorRequest_Verification() {}
+func (*disableTwoFactorRequest_Code) isDisableTwoFactorRequest_Verification() {}
 
-func (*DisableTwoFactorRequest_RecoveryCode) isDisableTwoFactorRequest_Verification() {}
+func (*disableTwoFactorRequest_RecoveryCode) isDisableTwoFactorRequest_Verification() {}
 
 type DisableTwoFactorResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DisableTwoFactorResponse) Reset() {
@@ -1374,24 +2742,55 @@ func (x *DisableTwoFactorResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DisableTwoFactorResponse.ProtoReflect.Descriptor instead.
-func (*DisableTwoFactorResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{24}
-}
-
 func (x *DisableTwoFactorResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DisableTwoFactorResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DisableTwoFactorResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DisableTwoFactorResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DisableTwoFactorResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DisableTwoFactorResponse_builder) Build() *DisableTwoFactorResponse {
+	m0 := &DisableTwoFactorResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type RegenerateTwoFactorRecoveryCodesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Password      *string                `protobuf:"bytes,1,opt,name=password" json:"password,omitempty"`
-	Code          *string                `protobuf:"bytes,2,opt,name=code" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Password    *string                `protobuf:"bytes,1,opt,name=password"`
+	xxx_hidden_Code        *string                `protobuf:"bytes,2,opt,name=code"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RegenerateTwoFactorRecoveryCodesRequest) Reset() {
@@ -1419,30 +2818,87 @@ func (x *RegenerateTwoFactorRecoveryCodesRequest) ProtoReflect() protoreflect.Me
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegenerateTwoFactorRecoveryCodesRequest.ProtoReflect.Descriptor instead.
-func (*RegenerateTwoFactorRecoveryCodesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{25}
-}
-
 func (x *RegenerateTwoFactorRecoveryCodesRequest) GetPassword() string {
-	if x != nil && x.Password != nil {
-		return *x.Password
+	if x != nil {
+		if x.xxx_hidden_Password != nil {
+			return *x.xxx_hidden_Password
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *RegenerateTwoFactorRecoveryCodesRequest) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *RegenerateTwoFactorRecoveryCodesRequest) SetPassword(v string) {
+	x.xxx_hidden_Password = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) HasPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) ClearPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Password = nil
+}
+
+func (x *RegenerateTwoFactorRecoveryCodesRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Code = nil
+}
+
+type RegenerateTwoFactorRecoveryCodesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Password *string
+	Code     *string
+}
+
+func (b0 RegenerateTwoFactorRecoveryCodesRequest_builder) Build() *RegenerateTwoFactorRecoveryCodesRequest {
+	m0 := &RegenerateTwoFactorRecoveryCodesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Password != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Password = b.Password
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
 type RegenerateTwoFactorRecoveryCodesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes" json:"recovery_codes,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *RegenerateTwoFactorRecoveryCodesResponse) Reset() {
@@ -1470,23 +2926,38 @@ func (x *RegenerateTwoFactorRecoveryCodesResponse) ProtoReflect() protoreflect.M
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RegenerateTwoFactorRecoveryCodesResponse.ProtoReflect.Descriptor instead.
-func (*RegenerateTwoFactorRecoveryCodesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{26}
-}
-
 func (x *RegenerateTwoFactorRecoveryCodesResponse) GetRecoveryCodes() []string {
 	if x != nil {
-		return x.RecoveryCodes
+		return x.xxx_hidden_RecoveryCodes
 	}
 	return nil
 }
 
+func (x *RegenerateTwoFactorRecoveryCodesResponse) SetRecoveryCodes(v []string) {
+	x.xxx_hidden_RecoveryCodes = v
+}
+
+type RegenerateTwoFactorRecoveryCodesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RecoveryCodes []string
+}
+
+func (b0 RegenerateTwoFactorRecoveryCodesResponse_builder) Build() *RegenerateTwoFactorRecoveryCodesResponse {
+	m0 := &RegenerateTwoFactorRecoveryCodesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RecoveryCodes = b.RecoveryCodes
+	return m0
+}
+
 type RequestPasswordResetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         *string                `protobuf:"bytes,1,opt,name=email" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RequestPasswordResetRequest) Reset() {
@@ -1514,23 +2985,57 @@ func (x *RequestPasswordResetRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RequestPasswordResetRequest.ProtoReflect.Descriptor instead.
-func (*RequestPasswordResetRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{27}
-}
-
 func (x *RequestPasswordResetRequest) GetEmail() string {
-	if x != nil && x.Email != nil {
-		return *x.Email
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *RequestPasswordResetRequest) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RequestPasswordResetRequest) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RequestPasswordResetRequest) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Email = nil
+}
+
+type RequestPasswordResetRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Email *string
+}
+
+func (b0 RequestPasswordResetRequest_builder) Build() *RequestPasswordResetRequest {
+	m0 := &RequestPasswordResetRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Email = b.Email
+	}
+	return m0
+}
+
 type RequestPasswordResetResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RequestPasswordResetResponse) Reset() {
@@ -1558,24 +3063,55 @@ func (x *RequestPasswordResetResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RequestPasswordResetResponse.ProtoReflect.Descriptor instead.
-func (*RequestPasswordResetResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{28}
-}
-
 func (x *RequestPasswordResetResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *RequestPasswordResetResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RequestPasswordResetResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RequestPasswordResetResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type RequestPasswordResetResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 RequestPasswordResetResponse_builder) Build() *RequestPasswordResetResponse {
+	m0 := &RequestPasswordResetResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type ConfirmPasswordResetRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         *string                `protobuf:"bytes,1,opt,name=token" json:"token,omitempty"`
-	NewPassword   *string                `protobuf:"bytes,2,opt,name=new_password,json=newPassword" json:"new_password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
+	xxx_hidden_NewPassword *string                `protobuf:"bytes,2,opt,name=new_password,json=newPassword"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ConfirmPasswordResetRequest) Reset() {
@@ -1603,30 +3139,89 @@ func (x *ConfirmPasswordResetRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfirmPasswordResetRequest.ProtoReflect.Descriptor instead.
-func (*ConfirmPasswordResetRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{29}
-}
-
 func (x *ConfirmPasswordResetRequest) GetToken() string {
-	if x != nil && x.Token != nil {
-		return *x.Token
+	if x != nil {
+		if x.xxx_hidden_Token != nil {
+			return *x.xxx_hidden_Token
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *ConfirmPasswordResetRequest) GetNewPassword() string {
-	if x != nil && x.NewPassword != nil {
-		return *x.NewPassword
+	if x != nil {
+		if x.xxx_hidden_NewPassword != nil {
+			return *x.xxx_hidden_NewPassword
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *ConfirmPasswordResetRequest) SetToken(v string) {
+	x.xxx_hidden_Token = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ConfirmPasswordResetRequest) SetNewPassword(v string) {
+	x.xxx_hidden_NewPassword = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ConfirmPasswordResetRequest) HasToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ConfirmPasswordResetRequest) HasNewPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ConfirmPasswordResetRequest) ClearToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Token = nil
+}
+
+func (x *ConfirmPasswordResetRequest) ClearNewPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_NewPassword = nil
+}
+
+type ConfirmPasswordResetRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Token       *string
+	NewPassword *string
+}
+
+func (b0 ConfirmPasswordResetRequest_builder) Build() *ConfirmPasswordResetRequest {
+	m0 := &ConfirmPasswordResetRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Token != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Token = b.Token
+	}
+	if b.NewPassword != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_NewPassword = b.NewPassword
+	}
+	return m0
+}
+
 type ConfirmPasswordResetResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ConfirmPasswordResetResponse) Reset() {
@@ -1654,20 +3249,49 @@ func (x *ConfirmPasswordResetResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfirmPasswordResetResponse.ProtoReflect.Descriptor instead.
-func (*ConfirmPasswordResetResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{30}
-}
-
 func (x *ConfirmPasswordResetResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *ConfirmPasswordResetResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ConfirmPasswordResetResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ConfirmPasswordResetResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type ConfirmPasswordResetResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 ConfirmPasswordResetResponse_builder) Build() *ConfirmPasswordResetResponse {
+	m0 := &ConfirmPasswordResetResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type RequestEmailVerificationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1697,16 +3321,25 @@ func (x *RequestEmailVerificationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RequestEmailVerificationRequest.ProtoReflect.Descriptor instead.
-func (*RequestEmailVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{31}
+type RequestEmailVerificationRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 RequestEmailVerificationRequest_builder) Build() *RequestEmailVerificationRequest {
+	m0 := &RequestEmailVerificationRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
 }
 
 type RequestEmailVerificationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RequestEmailVerificationResponse) Reset() {
@@ -1734,23 +3367,54 @@ func (x *RequestEmailVerificationResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RequestEmailVerificationResponse.ProtoReflect.Descriptor instead.
-func (*RequestEmailVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{32}
-}
-
 func (x *RequestEmailVerificationResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *RequestEmailVerificationResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RequestEmailVerificationResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RequestEmailVerificationResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type RequestEmailVerificationResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 RequestEmailVerificationResponse_builder) Build() *RequestEmailVerificationResponse {
+	m0 := &RequestEmailVerificationResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type ConfirmEmailVerificationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         *string                `protobuf:"bytes,1,opt,name=token" json:"token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ConfirmEmailVerificationRequest) Reset() {
@@ -1778,23 +3442,57 @@ func (x *ConfirmEmailVerificationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfirmEmailVerificationRequest.ProtoReflect.Descriptor instead.
-func (*ConfirmEmailVerificationRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{33}
-}
-
 func (x *ConfirmEmailVerificationRequest) GetToken() string {
-	if x != nil && x.Token != nil {
-		return *x.Token
+	if x != nil {
+		if x.xxx_hidden_Token != nil {
+			return *x.xxx_hidden_Token
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *ConfirmEmailVerificationRequest) SetToken(v string) {
+	x.xxx_hidden_Token = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ConfirmEmailVerificationRequest) HasToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ConfirmEmailVerificationRequest) ClearToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Token = nil
+}
+
+type ConfirmEmailVerificationRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Token *string
+}
+
+func (b0 ConfirmEmailVerificationRequest_builder) Build() *ConfirmEmailVerificationRequest {
+	m0 := &ConfirmEmailVerificationRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Token != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Token = b.Token
+	}
+	return m0
+}
+
 type ConfirmEmailVerificationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ConfirmEmailVerificationResponse) Reset() {
@@ -1822,16 +3520,45 @@ func (x *ConfirmEmailVerificationResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ConfirmEmailVerificationResponse.ProtoReflect.Descriptor instead.
-func (*ConfirmEmailVerificationResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_authenticator_proto_rawDescGZIP(), []int{34}
-}
-
 func (x *ConfirmEmailVerificationResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
+}
+
+func (x *ConfirmEmailVerificationResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ConfirmEmailVerificationResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ConfirmEmailVerificationResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type ConfirmEmailVerificationResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 ConfirmEmailVerificationResponse_builder) Build() *ConfirmEmailVerificationResponse {
+	m0 := &ConfirmEmailVerificationResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
 }
 
 var File_api_v1_authenticator_proto protoreflect.FileDescriptor
@@ -1967,18 +3694,6 @@ const file_api_v1_authenticator_proto_rawDesc = "" +
 	"\n" +
 	"com.api.v1B\x12AuthenticatorProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
-var (
-	file_api_v1_authenticator_proto_rawDescOnce sync.Once
-	file_api_v1_authenticator_proto_rawDescData []byte
-)
-
-func file_api_v1_authenticator_proto_rawDescGZIP() []byte {
-	file_api_v1_authenticator_proto_rawDescOnce.Do(func() {
-		file_api_v1_authenticator_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_v1_authenticator_proto_rawDesc), len(file_api_v1_authenticator_proto_rawDesc)))
-	})
-	return file_api_v1_authenticator_proto_rawDescData
-}
-
 var file_api_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_api_v1_authenticator_proto_goTypes = []any{
 	(*AuthenticationResult)(nil),                     // 0: api.v1.AuthenticationResult
@@ -2069,12 +3784,12 @@ func file_api_v1_authenticator_proto_init() {
 		return
 	}
 	file_api_v1_authenticator_proto_msgTypes[4].OneofWrappers = []any{
-		(*LoginResponse_Result)(nil),
-		(*LoginResponse_TwoFactorChallenge)(nil),
+		(*loginResponse_Result)(nil),
+		(*loginResponse_TwoFactorChallenge)(nil),
 	}
 	file_api_v1_authenticator_proto_msgTypes[23].OneofWrappers = []any{
-		(*DisableTwoFactorRequest_Code)(nil),
-		(*DisableTwoFactorRequest_RecoveryCode)(nil),
+		(*disableTwoFactorRequest_Code)(nil),
+		(*disableTwoFactorRequest_RecoveryCode)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

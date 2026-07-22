@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -22,11 +21,13 @@ const (
 )
 
 type PublicErrorInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          *string                `protobuf:"bytes,1,opt,name=code" json:"code,omitempty"`
-	Message       *string                `protobuf:"bytes,2,opt,name=message" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
+	xxx_hidden_Message     *string                `protobuf:"bytes,2,opt,name=message"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *PublicErrorInfo) Reset() {
@@ -54,23 +55,80 @@ func (x *PublicErrorInfo) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use PublicErrorInfo.ProtoReflect.Descriptor instead.
-func (*PublicErrorInfo) Descriptor() ([]byte, []int) {
-	return file_api_v1_error_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *PublicErrorInfo) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *PublicErrorInfo) GetMessage() string {
-	if x != nil && x.Message != nil {
-		return *x.Message
+	if x != nil {
+		if x.xxx_hidden_Message != nil {
+			return *x.xxx_hidden_Message
+		}
+		return ""
 	}
 	return ""
+}
+
+func (x *PublicErrorInfo) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *PublicErrorInfo) SetMessage(v string) {
+	x.xxx_hidden_Message = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *PublicErrorInfo) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *PublicErrorInfo) HasMessage() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *PublicErrorInfo) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Code = nil
+}
+
+func (x *PublicErrorInfo) ClearMessage() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Message = nil
+}
+
+type PublicErrorInfo_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Code    *string
+	Message *string
+}
+
+func (b0 PublicErrorInfo_builder) Build() *PublicErrorInfo {
+	m0 := &PublicErrorInfo{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Code = b.Code
+	}
+	if b.Message != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Message = b.Message
+	}
+	return m0
 }
 
 var File_api_v1_error_proto protoreflect.FileDescriptor
@@ -84,18 +142,6 @@ const file_api_v1_error_proto_rawDesc = "" +
 	"\n" +
 	"com.api.v1B\n" +
 	"ErrorProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
-
-var (
-	file_api_v1_error_proto_rawDescOnce sync.Once
-	file_api_v1_error_proto_rawDescData []byte
-)
-
-func file_api_v1_error_proto_rawDescGZIP() []byte {
-	file_api_v1_error_proto_rawDescOnce.Do(func() {
-		file_api_v1_error_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_v1_error_proto_rawDesc), len(file_api_v1_error_proto_rawDesc)))
-	})
-	return file_api_v1_error_proto_rawDescData
-}
 
 var file_api_v1_error_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_api_v1_error_proto_goTypes = []any{

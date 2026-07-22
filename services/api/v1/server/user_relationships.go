@@ -20,7 +20,9 @@ func (s *userServer) LookupUser(ctx context.Context, req *apiv1.LookupUserReques
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.LookupUserResponse{Profile: userProfileToAPI(svcResp.GetProfile())}, nil
+	resp := new(apiv1.LookupUserResponse)
+	resp.SetProfile(userProfileToAPI(svcResp.GetProfile()))
+	return resp, nil
 }
 
 func (s *userServer) SendFriendRequest(ctx context.Context, req *apiv1.SendFriendRequestRequest) (*apiv1.SendFriendRequestResponse, error) {
@@ -45,7 +47,9 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *apiv1.SendFrien
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.SendFriendRequestResponse{Relationship: relationshipToAPI(svcResp.GetRelationship())}, nil
+	resp := new(apiv1.SendFriendRequestResponse)
+	resp.SetRelationship(relationshipToAPI(svcResp.GetRelationship()))
+	return resp, nil
 }
 
 func (s *userServer) AcceptFriendRequest(ctx context.Context, req *apiv1.AcceptFriendRequestRequest) (*apiv1.AcceptFriendRequestResponse, error) {
@@ -64,7 +68,9 @@ func (s *userServer) AcceptFriendRequest(ctx context.Context, req *apiv1.AcceptF
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.AcceptFriendRequestResponse{Relationship: relationshipToAPI(svcResp.GetRelationship())}, nil
+	resp := new(apiv1.AcceptFriendRequestResponse)
+	resp.SetRelationship(relationshipToAPI(svcResp.GetRelationship()))
+	return resp, nil
 }
 
 func (s *userServer) DeclineFriendRequest(ctx context.Context, req *apiv1.DeclineFriendRequestRequest) (*apiv1.DeclineFriendRequestResponse, error) {
@@ -83,7 +89,9 @@ func (s *userServer) DeclineFriendRequest(ctx context.Context, req *apiv1.Declin
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DeclineFriendRequestResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.DeclineFriendRequestResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *userServer) RemoveFriend(ctx context.Context, req *apiv1.RemoveFriendRequest) (*apiv1.RemoveFriendResponse, error) {
@@ -102,7 +110,9 @@ func (s *userServer) RemoveFriend(ctx context.Context, req *apiv1.RemoveFriendRe
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.RemoveFriendResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.RemoveFriendResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *userServer) BlockUser(ctx context.Context, req *apiv1.BlockUserRequest) (*apiv1.BlockUserResponse, error) {
@@ -124,7 +134,9 @@ func (s *userServer) BlockUser(ctx context.Context, req *apiv1.BlockUserRequest)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.BlockUserResponse{Relationship: relationshipToAPI(svcResp.GetRelationship())}, nil
+	resp := new(apiv1.BlockUserResponse)
+	resp.SetRelationship(relationshipToAPI(svcResp.GetRelationship()))
+	return resp, nil
 }
 
 func (s *userServer) UnblockUser(ctx context.Context, req *apiv1.UnblockUserRequest) (*apiv1.UnblockUserResponse, error) {
@@ -146,7 +158,9 @@ func (s *userServer) UnblockUser(ctx context.Context, req *apiv1.UnblockUserRequ
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UnblockUserResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.UnblockUserResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *userServer) ListRelationships(ctx context.Context, req *apiv1.ListRelationshipsRequest) (*apiv1.ListRelationshipsResponse, error) {
@@ -164,22 +178,22 @@ func (s *userServer) ListRelationships(ctx context.Context, req *apiv1.ListRelat
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListRelationshipsResponse{
-		Relationships:  relationshipsToAPI(svcResp.GetRelationships()),
-		BeforeTargetId: new(svcResp.GetBeforeTargetId()),
-	}, nil
+	resp := new(apiv1.ListRelationshipsResponse)
+	resp.SetRelationships(relationshipsToAPI(svcResp.GetRelationships()))
+	resp.SetBeforeTargetId(svcResp.GetBeforeTargetId())
+	return resp, nil
 }
 
 func relationshipToAPI(relationship *userv1.Relationship) *apiv1.Relationship {
 	if relationship == nil {
 		return nil
 	}
-	return &apiv1.Relationship{
-		TargetId:  new(relationship.GetTargetId()),
-		Type:      new(apiv1.RelationshipType(relationship.GetType())),
-		CreatedAt: new(relationship.GetCreatedAt()),
-		UpdatedAt: new(relationship.GetUpdatedAt()),
-	}
+	resp := new(apiv1.Relationship)
+	resp.SetTargetId(relationship.GetTargetId())
+	resp.SetType(apiv1.RelationshipType(relationship.GetType()))
+	resp.SetCreatedAt(relationship.GetCreatedAt())
+	resp.SetUpdatedAt(relationship.GetUpdatedAt())
+	return resp
 }
 
 func relationshipsToAPI(relationships []*userv1.Relationship) []*apiv1.Relationship {

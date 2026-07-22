@@ -122,7 +122,8 @@ func TestGetCurrentUserOverConnectHTTP(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.GetCurrentUser(context.Background(), &apiv1.GetCurrentUserRequest{})
+	req := new(apiv1.GetCurrentUserRequest)
+	resp, err := client.GetCurrentUser(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "access-token", authenticatorClient.verifyRequest.GetAccessToken())
 	require.Equal(t, int64(1001), userClient.getUserRequest.GetUserId())
@@ -157,7 +158,8 @@ func TestGetCurrentUserAppliesAuthenticatedQuotaAfterTokenVerification(t *testin
 		httpServer.URL,
 	)
 
-	_, err = client.GetCurrentUser(t.Context(), &apiv1.GetCurrentUserRequest{})
+	req := new(apiv1.GetCurrentUserRequest)
+	_, err = client.GetCurrentUser(t.Context(), req)
 	require.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
 	connectErr := new(connect.Error)
 	require.ErrorAs(t, err, &connectErr)
@@ -170,7 +172,8 @@ func TestGetCurrentUserRequiresAccessToken(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, &fakeAuthenticatorClient{}, &fakeUserClient{}, "")
 	defer closeServer()
 
-	_, err := client.GetCurrentUser(context.Background(), &apiv1.GetCurrentUserRequest{})
+	req := new(apiv1.GetCurrentUserRequest)
+	_, err := client.GetCurrentUser(context.Background(), req)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	require.Equal(t, apierror.CodeInvalidAccessToken, publicErrorInfo(t, err).GetCode())
 }
@@ -185,9 +188,9 @@ func TestGetUserProfileIsPublic(t *testing.T) {
 		UserClient:          userClient,
 	})
 
-	resp, err := server.GetUserProfile(context.Background(), &apiv1.GetUserProfileRequest{
-		UserId: new(int64(1001)),
-	})
+	req := new(apiv1.GetUserProfileRequest)
+	req.SetUserId(1001)
+	resp, err := server.GetUserProfile(context.Background(), req)
 	require.NoError(t, err)
 	require.Nil(t, authenticatorClient.verifyRequest)
 	require.Equal(t, int64(1001), userClient.getUserProfileRequest.GetUserId())
@@ -202,9 +205,9 @@ func TestCheckEmailAvailability(t *testing.T) {
 	}
 	server := NewUser(&svc.ServiceContext{UserClient: userClient})
 
-	resp, err := server.CheckEmailAvailability(context.Background(), &apiv1.CheckEmailAvailabilityRequest{
-		Email: new("user@example.com"),
-	})
+	req := new(apiv1.CheckEmailAvailabilityRequest)
+	req.SetEmail("user@example.com")
+	resp, err := server.CheckEmailAvailability(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "user@example.com", userClient.checkEmailAvailabilityRequest.GetEmail())
 	require.True(t, resp.GetAvailable())
@@ -222,9 +225,9 @@ func TestUpdateEmailUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.UpdateEmail(context.Background(), &apiv1.UpdateEmailRequest{
-		Email: new("new@example.com"),
-	})
+	req := new(apiv1.UpdateEmailRequest)
+	req.SetEmail("new@example.com")
+	resp, err := client.UpdateEmail(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), userClient.updateEmailRequest.GetUserId())
 	require.Equal(t, "new@example.com", userClient.updateEmailRequest.GetEmail())
@@ -243,10 +246,10 @@ func TestUpdateUserProfileUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.UpdateUserProfile(context.Background(), &apiv1.UpdateUserProfileRequest{
-		Name:      new("new name"),
-		AvatarUri: new("avatar://2"),
-	})
+	req := new(apiv1.UpdateUserProfileRequest)
+	req.SetName("new name")
+	req.SetAvatarUri("avatar://2")
+	resp, err := client.UpdateUserProfile(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), userClient.updateUserProfileRequest.GetUserId())
 	require.Equal(t, "new name", userClient.updateUserProfileRequest.GetName())
@@ -264,10 +267,10 @@ func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, &fakeUserClient{}, "access-token")
 	defer closeServer()
 
-	resp, err := client.ChangePassword(context.Background(), &apiv1.ChangePasswordRequest{
-		OldPassword: new("old-password"),
-		NewPassword: new("new-password"),
-	})
+	req := new(apiv1.ChangePasswordRequest)
+	req.SetOldPassword("old-password")
+	req.SetNewPassword("new-password")
+	resp, err := client.ChangePassword(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), authenticatorClient.changePasswordRequest.GetUserId())
 	require.Equal(t, int64(2001), authenticatorClient.changePasswordRequest.GetCurrentSessionId())
@@ -302,7 +305,9 @@ func TestUserErrorMappings(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			userClient := &fakeUserClient{getUserProfileError: tt.err}
 			server := NewUser(&svc.ServiceContext{UserClient: userClient})
-			_, err := server.GetUserProfile(context.Background(), &apiv1.GetUserProfileRequest{UserId: new(int64(1001))})
+			req := new(apiv1.GetUserProfileRequest)
+			req.SetUserId(1001)
+			_, err := server.GetUserProfile(context.Background(), req)
 			require.Equal(t, tt.connectCode, connect.CodeOf(err))
 			require.Equal(t, tt.publicCode, publicErrorInfo(t, err).GetCode())
 		})

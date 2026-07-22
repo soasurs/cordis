@@ -58,9 +58,9 @@ func TestRequestPasswordResetForwardsEmail(t *testing.T) {
 	}
 	server := NewAuthenticator(&svc.ServiceContext{AuthenticatorClient: internalClient})
 
-	resp, err := server.RequestPasswordReset(context.Background(), &apiv1.RequestPasswordResetRequest{
-		Email: new("user@example.com"),
-	})
+	req := new(apiv1.RequestPasswordResetRequest)
+	req.SetEmail("user@example.com")
+	resp, err := server.RequestPasswordReset(context.Background(), req)
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.Equal(t, "user@example.com", internalClient.requestPasswordResetRequest.GetEmail())
@@ -72,9 +72,10 @@ func TestConfirmPasswordResetForwardsTokenAndMapsError(t *testing.T) {
 	}
 	server := NewAuthenticator(&svc.ServiceContext{AuthenticatorClient: internalClient})
 
-	resp, err := server.ConfirmPasswordReset(context.Background(), &apiv1.ConfirmPasswordResetRequest{
-		Token: new("raw-token"), NewPassword: new("new-password"),
-	})
+	req := new(apiv1.ConfirmPasswordResetRequest)
+	req.SetToken("raw-token")
+	req.SetNewPassword("new-password")
+	resp, err := server.ConfirmPasswordReset(context.Background(), req)
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.Equal(t, "raw-token", internalClient.confirmPasswordResetRequest.GetToken())
@@ -86,9 +87,10 @@ func TestConfirmPasswordResetForwardsTokenAndMapsError(t *testing.T) {
 		rpcerror.AuthenticatorInvalidPasswordResetToken,
 		"invalid or expired password reset token",
 	)
-	_, err = server.ConfirmPasswordReset(context.Background(), &apiv1.ConfirmPasswordResetRequest{
-		Token: new("bad-token"), NewPassword: new("new-password"),
-	})
+	req2 := new(apiv1.ConfirmPasswordResetRequest)
+	req2.SetToken("bad-token")
+	req2.SetNewPassword("new-password")
+	_, err = server.ConfirmPasswordReset(context.Background(), req2)
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
@@ -100,7 +102,7 @@ func TestRequestEmailVerificationUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.RequestEmailVerification(context.Background(), &apiv1.RequestEmailVerificationRequest{})
+	resp, err := client.RequestEmailVerification(context.Background(), new(apiv1.RequestEmailVerificationRequest))
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.Equal(t, int64(1001), internalClient.requestEmailVerificationRequest.GetUserId())
@@ -111,7 +113,7 @@ func TestRequestEmailVerificationRequiresAccessToken(t *testing.T) {
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "")
 	defer closeServer()
 
-	_, err := client.RequestEmailVerification(context.Background(), &apiv1.RequestEmailVerificationRequest{})
+	_, err := client.RequestEmailVerification(context.Background(), new(apiv1.RequestEmailVerificationRequest))
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 	require.Nil(t, internalClient.requestEmailVerificationRequest)
 }
@@ -122,9 +124,9 @@ func TestConfirmEmailVerificationForwardsToken(t *testing.T) {
 	}
 	server := NewAuthenticator(&svc.ServiceContext{AuthenticatorClient: internalClient})
 
-	resp, err := server.ConfirmEmailVerification(context.Background(), &apiv1.ConfirmEmailVerificationRequest{
-		Token: new("raw-verify-token"),
-	})
+	req := new(apiv1.ConfirmEmailVerificationRequest)
+	req.SetToken("raw-verify-token")
+	resp, err := server.ConfirmEmailVerification(context.Background(), req)
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.Equal(t, "raw-verify-token", internalClient.confirmEmailVerificationRequest.GetToken())

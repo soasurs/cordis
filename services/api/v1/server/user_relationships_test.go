@@ -73,9 +73,9 @@ func TestLookupUserForwardsUsername(t *testing.T) {
 		client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 		defer closeServer()
 
-		resp, err := client.LookupUser(context.Background(), &apiv1.LookupUserRequest{
-			Username: new("testuser"),
-		})
+		req := new(apiv1.LookupUserRequest)
+		req.SetUsername("testuser")
+		resp, err := client.LookupUser(context.Background(), req)
 		require.NoError(t, err)
 		require.Equal(t, "testuser", userClient.getUserProfileByUsernameRequest.GetUsername())
 		require.Equal(t, "testuser", resp.GetProfile().GetUsername())
@@ -88,9 +88,9 @@ func TestLookupUserForwardsUsername(t *testing.T) {
 		client, closeServer := newUserHTTPClient(t, &fakeAuthenticatorClient{}, userClient, "")
 		defer closeServer()
 
-		_, err := client.LookupUser(context.Background(), &apiv1.LookupUserRequest{
-			Username: new("testuser"),
-		})
+		req := new(apiv1.LookupUserRequest)
+		req.SetUsername("testuser")
+		_, err := client.LookupUser(context.Background(), req)
 		require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 		require.Equal(t, apierror.CodeInvalidAccessToken, publicErrorInfo(t, err).GetCode())
 		require.Nil(t, userClient.getUserProfileByUsernameRequest)
@@ -110,9 +110,9 @@ func TestSendFriendRequestUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.SendFriendRequest(context.Background(), &apiv1.SendFriendRequestRequest{
-		TargetId: new(int64(1002)),
-	})
+	req := new(apiv1.SendFriendRequestRequest)
+	req.SetTargetId(1002)
+	resp, err := client.SendFriendRequest(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), userClient.sendFriendRequestRequest.GetUserId())
 	require.Equal(t, int64(1002), userClient.sendFriendRequestRequest.GetTargetId())
@@ -135,9 +135,9 @@ func TestRelationshipMutationsUseAuthenticatedUser(t *testing.T) {
 		client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 		defer closeServer()
 
-		resp, err := client.AcceptFriendRequest(context.Background(), &apiv1.AcceptFriendRequestRequest{
-			TargetId: new(int64(1002)),
-		})
+		req := new(apiv1.AcceptFriendRequestRequest)
+		req.SetTargetId(1002)
+		resp, err := client.AcceptFriendRequest(context.Background(), req)
 		require.NoError(t, err)
 		require.Equal(t, int64(1001), userClient.acceptFriendRequestRequest.GetUserId())
 		require.Equal(t, int64(1002), userClient.acceptFriendRequestRequest.GetTargetId())
@@ -153,9 +153,9 @@ func TestRelationshipMutationsUseAuthenticatedUser(t *testing.T) {
 		client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 		defer closeServer()
 
-		resp, err := client.DeclineFriendRequest(context.Background(), &apiv1.DeclineFriendRequestRequest{
-			TargetId: new(int64(1002)),
-		})
+		req := new(apiv1.DeclineFriendRequestRequest)
+		req.SetTargetId(1002)
+		resp, err := client.DeclineFriendRequest(context.Background(), req)
 		require.NoError(t, err)
 		require.Equal(t, int64(1001), userClient.declineFriendRequestRequest.GetUserId())
 		require.Equal(t, int64(1002), userClient.declineFriendRequestRequest.GetTargetId())
@@ -171,9 +171,9 @@ func TestRelationshipMutationsUseAuthenticatedUser(t *testing.T) {
 		client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 		defer closeServer()
 
-		resp, err := client.RemoveFriend(context.Background(), &apiv1.RemoveFriendRequest{
-			TargetId: new(int64(1002)),
-		})
+		req := new(apiv1.RemoveFriendRequest)
+		req.SetTargetId(1002)
+		resp, err := client.RemoveFriend(context.Background(), req)
 		require.NoError(t, err)
 		require.Equal(t, int64(1001), userClient.removeFriendRequest.GetUserId())
 		require.Equal(t, int64(1002), userClient.removeFriendRequest.GetTargetId())
@@ -189,9 +189,9 @@ func TestRelationshipMutationsUseAuthenticatedUser(t *testing.T) {
 		client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 		defer closeServer()
 
-		resp, err := client.BlockUser(context.Background(), &apiv1.BlockUserRequest{
-			TargetId: new(int64(1002)),
-		})
+		req := new(apiv1.BlockUserRequest)
+		req.SetTargetId(1002)
+		resp, err := client.BlockUser(context.Background(), req)
 		require.NoError(t, err)
 		require.Equal(t, int64(1001), userClient.blockUserRequest.GetUserId())
 		require.Equal(t, int64(1002), userClient.blockUserRequest.GetTargetId())
@@ -207,9 +207,9 @@ func TestRelationshipMutationsUseAuthenticatedUser(t *testing.T) {
 		client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 		defer closeServer()
 
-		resp, err := client.UnblockUser(context.Background(), &apiv1.UnblockUserRequest{
-			TargetId: new(int64(1002)),
-		})
+		req := new(apiv1.UnblockUserRequest)
+		req.SetTargetId(1002)
+		resp, err := client.UnblockUser(context.Background(), req)
 		require.NoError(t, err)
 		require.Equal(t, int64(1001), userClient.unblockUserRequest.GetUserId())
 		require.Equal(t, int64(1002), userClient.unblockUserRequest.GetTargetId())
@@ -231,11 +231,11 @@ func TestListRelationshipsMapsRequestAndResponse(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.ListRelationships(context.Background(), &apiv1.ListRelationshipsRequest{
-		Type:           new(apiv1.RelationshipType(apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)),
-		BeforeTargetId: new(int64(9999)),
-		Limit:          new(int32(50)),
-	})
+	req := new(apiv1.ListRelationshipsRequest)
+	req.SetType(apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)
+	req.SetBeforeTargetId(9999)
+	req.SetLimit(50)
+	resp, err := client.ListRelationships(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), userClient.listRelationshipsRequest.GetUserId())
 	require.Equal(t, userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND, userClient.listRelationshipsRequest.GetType())
@@ -262,7 +262,9 @@ func TestRelationshipErrorMappings(t *testing.T) {
 				sendFriendRequestError: rpcerror.New(codes.NotFound, rpcerror.UserDomain, rpcerror.UserRelationshipNotFound, "relationship not found"),
 			},
 			call: func(c apiv1connect.UserServiceClient) error {
-				_, err := c.SendFriendRequest(context.Background(), &apiv1.SendFriendRequestRequest{TargetId: new(int64(1002))})
+				req := new(apiv1.SendFriendRequestRequest)
+				req.SetTargetId(1002)
+				_, err := c.SendFriendRequest(context.Background(), req)
 				return err
 			},
 			connectCode: connect.CodeNotFound,
@@ -273,7 +275,9 @@ func TestRelationshipErrorMappings(t *testing.T) {
 				sendFriendRequestError: rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserRelationshipAlreadyExists, "relationship already exists"),
 			},
 			call: func(c apiv1connect.UserServiceClient) error {
-				_, err := c.SendFriendRequest(context.Background(), &apiv1.SendFriendRequestRequest{TargetId: new(int64(1002))})
+				req := new(apiv1.SendFriendRequestRequest)
+				req.SetTargetId(1002)
+				_, err := c.SendFriendRequest(context.Background(), req)
 				return err
 			},
 			connectCode: connect.CodeAlreadyExists,
@@ -284,7 +288,9 @@ func TestRelationshipErrorMappings(t *testing.T) {
 				sendFriendRequestError: rpcerror.New(codes.PermissionDenied, rpcerror.UserDomain, rpcerror.UserRelationshipBlocked, "blocked"),
 			},
 			call: func(c apiv1connect.UserServiceClient) error {
-				_, err := c.SendFriendRequest(context.Background(), &apiv1.SendFriendRequestRequest{TargetId: new(int64(1002))})
+				req := new(apiv1.SendFriendRequestRequest)
+				req.SetTargetId(1002)
+				_, err := c.SendFriendRequest(context.Background(), req)
 				return err
 			},
 			connectCode: connect.CodePermissionDenied,
@@ -295,7 +301,9 @@ func TestRelationshipErrorMappings(t *testing.T) {
 				getUserProfileByUsernameError: rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserUsernameTaken, "username taken"),
 			},
 			call: func(c apiv1connect.UserServiceClient) error {
-				_, err := c.LookupUser(context.Background(), &apiv1.LookupUserRequest{Username: new("taken")})
+				req := new(apiv1.LookupUserRequest)
+				req.SetUsername("taken")
+				_, err := c.LookupUser(context.Background(), req)
 				return err
 			},
 			connectCode: connect.CodeAlreadyExists,
@@ -306,7 +314,9 @@ func TestRelationshipErrorMappings(t *testing.T) {
 				sendFriendRequestError: status.Error(codes.InvalidArgument, "bad input"),
 			},
 			call: func(c apiv1connect.UserServiceClient) error {
-				_, err := c.SendFriendRequest(context.Background(), &apiv1.SendFriendRequestRequest{TargetId: new(int64(1002))})
+				req := new(apiv1.SendFriendRequestRequest)
+				req.SetTargetId(1002)
+				_, err := c.SendFriendRequest(context.Background(), req)
 				return err
 			},
 			connectCode: connect.CodeInvalidArgument,
@@ -364,9 +374,9 @@ func TestUpdateUsernameUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.UpdateUsername(context.Background(), &apiv1.UpdateUsernameRequest{
-		Username: new("Fresh_Name"),
-	})
+	req := new(apiv1.UpdateUsernameRequest)
+	req.SetUsername("Fresh_Name")
+	resp, err := client.UpdateUsername(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), userClient.updateUsernameRequest.GetUserId())
 	require.Equal(t, "Fresh_Name", userClient.updateUsernameRequest.GetUsername())

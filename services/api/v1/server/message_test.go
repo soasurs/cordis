@@ -88,25 +88,25 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.CreateMessage(context.Background(), &apiv1.CreateMessageRequest{
-		ChannelId:           new(int64(2001)),
-		Content:             new("hello"),
-		Type:                new(apiv1.MessageType_MESSAGE_TYPE_REPLY),
-		Flags:               new(int32(apiv1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS)),
-		ReferencedMessageId: new(int64(3000)),
-		ReferencedChannelId: new(int64(2001)),
-		Attachments: []*apiv1.Attachment{
-			{
-				Key:         new("attachments/a.png"),
-				Filename:    new("a.png"),
-				Size:        new(int64(10)),
-				ContentType: new("image/png"),
-				Width:       new(int32(100)),
-				Height:      new(int32(200)),
-			},
-		},
-		MentionUserIds: []int64{1002},
-	})
+	attachment := new(apiv1.Attachment)
+	attachment.SetKey("attachments/a.png")
+	attachment.SetFilename("a.png")
+	attachment.SetSize(10)
+	attachment.SetContentType("image/png")
+	attachment.SetWidth(100)
+	attachment.SetHeight(200)
+
+	req := new(apiv1.CreateMessageRequest)
+	req.SetChannelId(2001)
+	req.SetContent("hello")
+	req.SetType(apiv1.MessageType_MESSAGE_TYPE_REPLY)
+	req.SetFlags(int32(apiv1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS))
+	req.SetReferencedMessageId(3000)
+	req.SetReferencedChannelId(2001)
+	req.SetAttachments([]*apiv1.Attachment{attachment})
+	req.SetMentionUserIds([]int64{1002})
+
+	resp, err := client.CreateMessage(context.Background(), req)
 	require.NoError(t, err)
 
 	require.Equal(t, int64(1001), messageClient.createRequest.GetAuthorId())
@@ -131,12 +131,12 @@ func TestUpdateMessagePreservesFieldPresence(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.UpdateMessage(context.Background(), &apiv1.UpdateMessageRequest{
-		MessageId:   new(int64(4001)),
-		Content:     new(""),
-		Attachments: &apiv1.AttachmentList{},
-		Mentions:    &apiv1.MentionList{},
-	})
+	req := new(apiv1.UpdateMessageRequest)
+	req.SetMessageId(4001)
+	req.SetContent("")
+	req.SetAttachments(new(apiv1.AttachmentList))
+	req.SetMentions(new(apiv1.MentionList))
+	resp, err := client.UpdateMessage(context.Background(), req)
 	require.NoError(t, err)
 
 	require.Equal(t, int64(1001), messageClient.updateRequest.GetActorUserId())
@@ -160,9 +160,9 @@ func TestDeleteMessageUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.DeleteMessage(context.Background(), &apiv1.DeleteMessageRequest{
-		MessageId: new(int64(4001)),
-	})
+	req := new(apiv1.DeleteMessageRequest)
+	req.SetMessageId(4001)
+	resp, err := client.DeleteMessage(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(4001), messageClient.deleteRequest.GetMessageId())
 	require.Equal(t, int64(1001), messageClient.deleteRequest.GetActorUserId())
@@ -173,9 +173,9 @@ func TestGetMessageRequiresAccessToken(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{}, &fakeMessageClient{}, "")
 	defer closeServer()
 
-	_, err := client.GetMessage(context.Background(), &apiv1.GetMessageRequest{
-		MessageId: new(int64(4001)),
-	})
+	req := new(apiv1.GetMessageRequest)
+	req.SetMessageId(4001)
+	_, err := client.GetMessage(context.Background(), req)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
 
@@ -185,7 +185,9 @@ func TestGetMessageUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	_, err := client.GetMessage(context.Background(), &apiv1.GetMessageRequest{MessageId: new(int64(4001))})
+	req := new(apiv1.GetMessageRequest)
+	req.SetMessageId(4001)
+	_, err := client.GetMessage(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), messageClient.getRequest.GetUserId())
 }
@@ -205,10 +207,10 @@ func TestUpdateMessageMapsPermissionDenied(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	_, err := client.UpdateMessage(context.Background(), &apiv1.UpdateMessageRequest{
-		MessageId: new(int64(4001)),
-		Content:   new("updated"),
-	})
+	req := new(apiv1.UpdateMessageRequest)
+	req.SetMessageId(4001)
+	req.SetContent("updated")
+	_, err := client.UpdateMessage(context.Background(), req)
 	require.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 	require.Equal(t, apierror.CodePermissionDenied, publicErrorInfo(t, err).GetCode())
 }
@@ -225,11 +227,11 @@ func TestListMessagesMapsCursorAndResponse(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.ListMessages(context.Background(), &apiv1.ListMessagesRequest{
-		ChannelId: new(int64(2001)),
-		Cursor:    &apiv1.ListMessagesRequest_Around{Around: 4001},
-		Limit:     new(int32(25)),
-	})
+	req := new(apiv1.ListMessagesRequest)
+	req.SetChannelId(2001)
+	req.SetAround(4001)
+	req.SetLimit(25)
+	resp, err := client.ListMessages(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(2001), messageClient.listRequest.GetChannelId())
 	require.Equal(t, int64(1001), messageClient.listRequest.GetUserId())
@@ -252,11 +254,11 @@ func TestListMessagesBeforeCursor(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.ListMessages(context.Background(), &apiv1.ListMessagesRequest{
-		ChannelId: new(int64(2001)),
-		Cursor:    &apiv1.ListMessagesRequest_Before{Before: 4001},
-		Limit:     new(int32(10)),
-	})
+	req := new(apiv1.ListMessagesRequest)
+	req.SetChannelId(2001)
+	req.SetBefore(4001)
+	req.SetLimit(10)
+	resp, err := client.ListMessages(context.Background(), req)
 	require.NoError(t, err)
 	require.True(t, messageClient.listRequest.HasBefore())
 	require.Equal(t, int64(4001), messageClient.listRequest.GetBefore())
@@ -274,10 +276,10 @@ func TestListMessagesAfterCursor(t *testing.T) {
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.ListMessages(context.Background(), &apiv1.ListMessagesRequest{
-		ChannelId: new(int64(2001)),
-		Cursor:    &apiv1.ListMessagesRequest_After{After: 4001},
-	})
+	req := new(apiv1.ListMessagesRequest)
+	req.SetChannelId(2001)
+	req.SetAfter(4001)
+	resp, err := client.ListMessages(context.Background(), req)
 	require.NoError(t, err)
 	require.True(t, messageClient.listRequest.HasAfter())
 	require.Equal(t, int64(4001), messageClient.listRequest.GetAfter())
@@ -309,7 +311,9 @@ func TestMessageErrorMappings(t *testing.T) {
 			messageClient := &fakeMessageClient{getError: tt.err}
 			client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 			defer closeServer()
-			_, err := client.GetMessage(context.Background(), &apiv1.GetMessageRequest{MessageId: new(int64(4001))})
+			req := new(apiv1.GetMessageRequest)
+			req.SetMessageId(4001)
+			_, err := client.GetMessage(context.Background(), req)
 			require.Equal(t, tt.connectCode, connect.CodeOf(err))
 			require.Equal(t, tt.publicCode, publicErrorInfo(t, err).GetCode())
 		})
@@ -436,9 +440,9 @@ func TestCreateDmChannelUsesAuthenticatedUser(t *testing.T) {
 	}, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.CreateDmChannel(context.Background(), &apiv1.CreateDmChannelRequest{
-		TargetId: new(int64(2002)),
-	})
+	req := new(apiv1.CreateDmChannelRequest)
+	req.SetTargetId(2002)
+	resp, err := client.CreateDmChannel(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), messageClient.createDmChannelRequest.GetUserId())
 	require.Equal(t, int64(2002), messageClient.createDmChannelRequest.GetTargetId())
@@ -462,9 +466,10 @@ func TestListDmChannelsMapsPerspective(t *testing.T) {
 	}, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.ListDmChannels(context.Background(), &apiv1.ListDmChannelsRequest{
-		BeforeId: new(int64(600)), Limit: new(int32(10)),
-	})
+	req := new(apiv1.ListDmChannelsRequest)
+	req.SetBeforeId(600)
+	req.SetLimit(10)
+	resp, err := client.ListDmChannels(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), messageClient.listDmChannelsRequest.GetUserId())
 	require.Equal(t, int64(600), messageClient.listDmChannelsRequest.GetBeforeId())
@@ -488,10 +493,10 @@ func TestAckMessageUsesAuthenticatedUser(t *testing.T) {
 	}, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.AckMessage(context.Background(), &apiv1.AckMessageRequest{
-		ChannelId: new(int64(2001)),
-		MessageId: new(int64(3001)),
-	})
+	req := new(apiv1.AckMessageRequest)
+	req.SetChannelId(2001)
+	req.SetMessageId(3001)
+	resp, err := client.AckMessage(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(2001), resp.GetReadState().GetChannelId())
 	require.Equal(t, int64(3002), resp.GetReadState().GetLastMessageId())
@@ -519,9 +524,9 @@ func TestGetReadStatesUsesAuthenticatedScopedRequest(t *testing.T) {
 	}, messageClient, "access-token")
 	defer closeServer()
 
-	resp, err := client.GetReadStates(context.Background(), &apiv1.GetReadStatesRequest{
-		Scope: apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS.Enum(),
-	})
+	req := new(apiv1.GetReadStatesRequest)
+	req.SetScope(apiv1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS)
+	resp, err := client.GetReadStates(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), messageClient.getReadStatesRequest.GetUserId())
 	require.Equal(t, messagev1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS, messageClient.getReadStatesRequest.GetScope())

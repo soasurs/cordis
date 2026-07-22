@@ -2,7 +2,7 @@
 
 ## Protobuf 与代码生成
 
-公开协议位于 `proto/api`，生成开放 Go API 和 Connect-Go。内部协议位于各服务目录，使用 edition 2023 和 opaque Go API，因此代码通过 getter、setter 和 builder 访问字段，不能依赖生成 struct 字段。
+公开协议位于 `proto/api`，生成 opaque Go API 和 Connect-Go；内部协议位于各服务目录，同样使用 edition 2023 和 opaque Go API。所有生成的 protobuf 消息都应通过 getter、setter 和 builder 访问，不能依赖生成 struct 字段。
 
 修改 `.proto` 后运行：
 

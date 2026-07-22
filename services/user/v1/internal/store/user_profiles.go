@@ -84,17 +84,26 @@ func (s *SQLStore) ListUserProfiles(ctx context.Context, userIDs []int64) ([]*mo
 	return profiles, nil
 }
 
-func (s *SQLStore) UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
+func (s *SQLStore) UpdateUserProfile(ctx context.Context, params UpdateUserProfileParams) (*model.UserProfile, error) {
+	var name, avatarURI string
+	if params.Name != nil {
+		name = *params.Name
+	}
+	if params.AvatarURI != nil {
+		avatarURI = *params.AvatarURI
+	}
 	row := new(userProfileRow)
 	err := sqlx.GetContext(
 		ctx,
 		s.q,
 		row,
 		UpdateUserProfileQuery,
+		params.Name != nil,
 		name,
+		params.AvatarURI != nil,
 		avatarURI,
 		time.Now().UnixMilli(),
-		userID,
+		params.UserID,
 		0,
 	)
 	if err != nil {

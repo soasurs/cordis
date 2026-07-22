@@ -1090,7 +1090,6 @@ func (b0 UpdateEmailResponse_builder) Build() *UpdateEmailResponse {
 	return m0
 }
 
-// UpdateUserProfile uses replacement semantics for all public profile fields.
 type UpdateUserProfileRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
@@ -1183,7 +1182,9 @@ func (x *UpdateUserProfileRequest) ClearAvatarUri() {
 type UpdateUserProfileRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Name      *string
+	// Optional replacement field. When absent, the current name is preserved.
+	Name *string
+	// Optional replacement field. An explicit empty string clears the avatar.
 	AvatarUri *string
 }
 

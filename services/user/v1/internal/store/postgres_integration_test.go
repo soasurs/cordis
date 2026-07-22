@@ -98,12 +98,20 @@ func testUserProfiles(t *testing.T, store Store) {
 	require.Equal(t, userID, profiles[0].UserID)
 	require.Equal(t, userID+1, profiles[1].UserID)
 
-	updated, err := store.UpdateUserProfile(ctx, userID, "Alice Cooper", "avatar://b")
+	name := "Alice Cooper"
+	updated, err := store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: userID, Name: &name})
+	require.NoError(t, err)
+	require.Equal(t, "Alice Cooper", updated.Name)
+	require.Equal(t, "avatar://a", updated.AvatarURI)
+	require.True(t, updated.UpdatedAt > 0)
+
+	avatarURI := "avatar://b"
+	updated, err = store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: userID, AvatarURI: &avatarURI})
 	require.NoError(t, err)
 	require.Equal(t, "Alice Cooper", updated.Name)
 	require.Equal(t, "avatar://b", updated.AvatarURI)
-	require.True(t, updated.UpdatedAt > 0)
-	_, err = store.UpdateUserProfile(ctx, 9999, "Nobody", "")
+
+	_, err = store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: 9999, Name: &name})
 	require.ErrorIs(t, err, sql.ErrNoRows)
 }
 

@@ -102,8 +102,12 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *apiv1.UpdateUse
 
 	svcReq := new(userv1.UpdateUserProfileRequest)
 	svcReq.SetUserId(auth.GetUserId())
-	svcReq.SetName(req.GetName())
-	svcReq.SetAvatarUri(req.GetAvatarUri())
+	if req.HasName() {
+		svcReq.SetName(req.GetName())
+	}
+	if req.HasAvatarUri() {
+		svcReq.SetAvatarUri(req.GetAvatarUri())
+	}
 	svcResp, err := s.svcCtx.UserClient.UpdateUserProfile(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

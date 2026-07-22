@@ -16,6 +16,12 @@ type ListRelationshipsParams struct {
 	Limit          int
 }
 
+type UpdateUserProfileParams struct {
+	UserID    int64
+	Name      *string
+	AvatarURI *string
+}
+
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
 	CreateUser(ctx context.Context, userID int64, email string) (*model.User, error)
@@ -28,7 +34,7 @@ type Store interface {
 	GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error)
 	ListUserProfiles(ctx context.Context, userIDs []int64) ([]*model.UserProfile, error)
 	GetUserProfileByUsername(ctx context.Context, username string) (*model.UserProfile, error)
-	UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)
+	UpdateUserProfile(ctx context.Context, params UpdateUserProfileParams) (*model.UserProfile, error)
 	UpdateUsername(ctx context.Context, userID int64, username string) (*model.UserProfile, error)
 	LockRelationshipPair(ctx context.Context, userID, targetID int64) error
 	UpsertRelationship(ctx context.Context, relationship *model.Relationship) error

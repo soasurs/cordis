@@ -160,12 +160,19 @@ func TestUpdateUserProfile(t *testing.T) {
 	req := new(userv1.UpdateUserProfileRequest)
 	req.SetUserId(1001)
 	req.SetName(" new name ")
-	req.SetAvatarUri("avatar://2")
 
 	resp, err := server.UpdateUserProfile(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "new name", resp.GetProfile().GetName())
-	require.Equal(t, "avatar://2", resp.GetProfile().GetAvatarUri())
+	require.Equal(t, "avatar://1", resp.GetProfile().GetAvatarUri())
+
+	req = new(userv1.UpdateUserProfileRequest)
+	req.SetUserId(1001)
+	req.SetAvatarUri("")
+	resp, err = server.UpdateUserProfile(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, "new name", resp.GetProfile().GetName())
+	require.Empty(t, resp.GetProfile().GetAvatarUri())
 }
 
 func TestUpdateUserProfileValidation(t *testing.T) {
@@ -408,12 +415,16 @@ func (s *fakeStore) GetUserProfileByUsername(_ context.Context, username string)
 	return s.profile, nil
 }
 
-func (s *fakeStore) UpdateUserProfile(_ context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {
-	if s.profile == nil || s.profile.UserID != userID {
+func (s *fakeStore) UpdateUserProfile(_ context.Context, params store.UpdateUserProfileParams) (*model.UserProfile, error) {
+	if s.profile == nil || s.profile.UserID != params.UserID {
 		return nil, sql.ErrNoRows
 	}
-	s.profile.Name = name
-	s.profile.AvatarURI = avatarURI
+	if params.Name != nil {
+		s.profile.Name = *params.Name
+	}
+	if params.AvatarURI != nil {
+		s.profile.AvatarURI = *params.AvatarURI
+	}
 	return s.profile, nil
 }
 

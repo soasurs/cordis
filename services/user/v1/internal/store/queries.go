@@ -116,13 +116,13 @@ const (
 	UPDATE
 		user_profiles
 	SET
-		name = $1,
-		avatar_uri = $2,
-		updated_at = $3
+		name = CASE WHEN $1 THEN $2 ELSE name END,
+		avatar_uri = CASE WHEN $3 THEN $4 ELSE avatar_uri END,
+		updated_at = $5
 	WHERE
-		user_id = $4
+		user_id = $6
 	AND
-		deleted_at = $5
+		deleted_at = $7
 	RETURNING
 		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
 	`

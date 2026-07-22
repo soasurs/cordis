@@ -11,6 +11,12 @@ make generate
 make lint
 ```
 
+## 资源更新语义
+
+资源的 `Update` RPC 默认采用部分更新：只修改请求中明确出现的字段，未出现的字段保持存储值不变。显式提供的默认值仍表示一次更新，例如显式传入空 `avatar_uri` 会清除头像；没有提供任何可变字段的请求会被拒绝。
+
+公开与内部 protobuf API 都使用 edition 2023 的标量字段 presence。API 适配层只有在入站请求的 `HasFoo` 为 true 时才向内部请求调用对应 setter；服务与 Store 使用指针或等价的 presence-aware 参数把该信息一直传到 SQL，只更新被选中的列。调用方不得先读取资源、拼出完整的新状态，再把无关字段一并写回。集合字段一旦出现，默认替换完整集合，除非 API 已定义专门的增删操作。
+
 ## WebSocket envelope
 
 WebSocket 消息采用 `op`、可选 `s`、可选 `t` 和 `d`。主要 opcode：

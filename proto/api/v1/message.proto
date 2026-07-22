@@ -68,28 +68,25 @@ enum MessageFlag {
 message Message {
   int64 id = 1;
   int64 channel_id = 2;
-  reserved 3;
-  reserved author_id;
+  // Public profile of the user who sent this message.
+  UserProfile author = 3;
   string content = 4;
   MessageType type = 5;
   // Bitmask of MessageFlag values.
   int32 flags = 6;
 
   // Set when this message references another message.
-  int64 referenced_message_id = 10;
-  int64 referenced_channel_id = 11;
+  int64 referenced_message_id = 7;
+  int64 referenced_channel_id = 8;
 
-  repeated Attachment attachments = 20;
+  repeated Attachment attachments = 9;
 
   // Non-zero after the message has been edited.
-  int64 edited_at = 30;
-  int64 created_at = 31;
-  int64 updated_at = 32;
+  int64 edited_at = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
   // Monotonically increasing version used to discard stale events.
-  int64 revision = 33;
-
-  // Public profile of the user who sent this message.
-  UserProfile author = 40;
+  int64 revision = 13;
 }
 
 // Attachment describes a file uploaded before the message is created.
@@ -123,12 +120,12 @@ message CreateMessageRequest {
   int32 flags = 4;
 
   // Both reference fields must be set for a reply.
-  int64 referenced_message_id = 10;
-  int64 referenced_channel_id = 11;
+  int64 referenced_message_id = 5;
+  int64 referenced_channel_id = 6;
 
-  repeated Attachment attachments = 20;
+  repeated Attachment attachments = 7;
   // User IDs parsed from mentions in content.
-  repeated int64 mention_user_ids = 30;
+  repeated int64 mention_user_ids = 8;
 }
 
 message CreateMessageResponse {
@@ -142,9 +139,9 @@ message UpdateMessageRequest {
   // When present, replaces all client-settable flags.
   int32 flags = 3;
   // When present, replaces the complete attachment list.
-  AttachmentList attachments = 20;
+  AttachmentList attachments = 4;
   // When present, replaces the complete mention list.
-  MentionList mentions = 30;
+  MentionList mentions = 5;
 }
 
 message UpdateMessageResponse {

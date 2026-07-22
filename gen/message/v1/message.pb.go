@@ -337,17 +337,17 @@ type Message struct {
 	state                          protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Id                  int64                  `protobuf:"varint,1,opt,name=id"`
 	xxx_hidden_ChannelId           int64                  `protobuf:"varint,2,opt,name=channel_id,json=channelId"`
+	xxx_hidden_Author              *v1.UserProfile        `protobuf:"bytes,3,opt,name=author"`
 	xxx_hidden_Content             *string                `protobuf:"bytes,4,opt,name=content"`
 	xxx_hidden_Type                MessageType            `protobuf:"varint,5,opt,name=type,enum=message.v1.MessageType"`
 	xxx_hidden_Flags               int32                  `protobuf:"varint,6,opt,name=flags"`
-	xxx_hidden_ReferencedMessageId int64                  `protobuf:"varint,10,opt,name=referenced_message_id,json=referencedMessageId"`
-	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,11,opt,name=referenced_channel_id,json=referencedChannelId"`
-	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,20,rep,name=attachments"`
-	xxx_hidden_EditedAt            int64                  `protobuf:"varint,30,opt,name=edited_at,json=editedAt"`
-	xxx_hidden_CreatedAt           int64                  `protobuf:"varint,31,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt           int64                  `protobuf:"varint,32,opt,name=updated_at,json=updatedAt"`
-	xxx_hidden_Revision            int64                  `protobuf:"varint,33,opt,name=revision"`
-	xxx_hidden_Author              *v1.UserProfile        `protobuf:"bytes,40,opt,name=author"`
+	xxx_hidden_ReferencedMessageId int64                  `protobuf:"varint,7,opt,name=referenced_message_id,json=referencedMessageId"`
+	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,8,opt,name=referenced_channel_id,json=referencedChannelId"`
+	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,9,rep,name=attachments"`
+	xxx_hidden_EditedAt            int64                  `protobuf:"varint,10,opt,name=edited_at,json=editedAt"`
+	xxx_hidden_CreatedAt           int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt           int64                  `protobuf:"varint,12,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Revision            int64                  `protobuf:"varint,13,opt,name=revision"`
 	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
 	XXX_presence                   [1]uint32
 	unknownFields                  protoimpl.UnknownFields
@@ -393,6 +393,13 @@ func (x *Message) GetChannelId() int64 {
 	return 0
 }
 
+func (x *Message) GetAuthor() *v1.UserProfile {
+	if x != nil {
+		return x.xxx_hidden_Author
+	}
+	return nil
+}
+
 func (x *Message) GetContent() string {
 	if x != nil {
 		if x.xxx_hidden_Content != nil {
@@ -405,7 +412,7 @@ func (x *Message) GetContent() string {
 
 func (x *Message) GetType() MessageType {
 	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
 			return x.xxx_hidden_Type
 		}
 	}
@@ -470,13 +477,6 @@ func (x *Message) GetRevision() int64 {
 	return 0
 }
 
-func (x *Message) GetAuthor() *v1.UserProfile {
-	if x != nil {
-		return x.xxx_hidden_Author
-	}
-	return nil
-}
-
 func (x *Message) SetId(v int64) {
 	x.xxx_hidden_Id = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
@@ -487,29 +487,33 @@ func (x *Message) SetChannelId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
 }
 
+func (x *Message) SetAuthor(v *v1.UserProfile) {
+	x.xxx_hidden_Author = v
+}
+
 func (x *Message) SetContent(v string) {
 	x.xxx_hidden_Content = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
 }
 
 func (x *Message) SetType(v MessageType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
 }
 
 func (x *Message) SetFlags(v int32) {
 	x.xxx_hidden_Flags = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
 }
 
 func (x *Message) SetReferencedMessageId(v int64) {
 	x.xxx_hidden_ReferencedMessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
 }
 
 func (x *Message) SetReferencedChannelId(v int64) {
 	x.xxx_hidden_ReferencedChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 13)
 }
 
 func (x *Message) SetAttachments(v []*Attachment) {
@@ -518,26 +522,22 @@ func (x *Message) SetAttachments(v []*Attachment) {
 
 func (x *Message) SetEditedAt(v int64) {
 	x.xxx_hidden_EditedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
 }
 
 func (x *Message) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
 }
 
 func (x *Message) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
 }
 
 func (x *Message) SetRevision(v int64) {
 	x.xxx_hidden_Revision = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
-}
-
-func (x *Message) SetAuthor(v *v1.UserProfile) {
-	x.xxx_hidden_Author = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 13)
 }
 
 func (x *Message) HasId() bool {
@@ -554,74 +554,74 @@ func (x *Message) HasChannelId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *Message) HasContent() bool {
+func (x *Message) HasAuthor() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+	return x.xxx_hidden_Author != nil
 }
 
-func (x *Message) HasType() bool {
+func (x *Message) HasContent() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *Message) HasFlags() bool {
+func (x *Message) HasType() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
-func (x *Message) HasReferencedMessageId() bool {
+func (x *Message) HasFlags() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
-func (x *Message) HasReferencedChannelId() bool {
+func (x *Message) HasReferencedMessageId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *Message) HasEditedAt() bool {
+func (x *Message) HasReferencedChannelId() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
-func (x *Message) HasCreatedAt() bool {
+func (x *Message) HasEditedAt() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
-func (x *Message) HasUpdatedAt() bool {
+func (x *Message) HasCreatedAt() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
 }
 
-func (x *Message) HasRevision() bool {
+func (x *Message) HasUpdatedAt() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
 }
 
-func (x *Message) HasAuthor() bool {
+func (x *Message) HasRevision() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Author != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
 }
 
 func (x *Message) ClearId() {
@@ -634,53 +634,53 @@ func (x *Message) ClearChannelId() {
 	x.xxx_hidden_ChannelId = 0
 }
 
+func (x *Message) ClearAuthor() {
+	x.xxx_hidden_Author = nil
+}
+
 func (x *Message) ClearContent() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_Content = nil
 }
 
 func (x *Message) ClearType() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
 	x.xxx_hidden_Type = MessageType_MESSAGE_TYPE_UNSPECIFIED
 }
 
 func (x *Message) ClearFlags() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
 	x.xxx_hidden_Flags = 0
 }
 
 func (x *Message) ClearReferencedMessageId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
 	x.xxx_hidden_ReferencedMessageId = 0
 }
 
 func (x *Message) ClearReferencedChannelId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
 	x.xxx_hidden_ReferencedChannelId = 0
 }
 
 func (x *Message) ClearEditedAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
 	x.xxx_hidden_EditedAt = 0
 }
 
 func (x *Message) ClearCreatedAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
 	x.xxx_hidden_CreatedAt = 0
 }
 
 func (x *Message) ClearUpdatedAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
 	x.xxx_hidden_UpdatedAt = 0
 }
 
 func (x *Message) ClearRevision() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
 	x.xxx_hidden_Revision = 0
-}
-
-func (x *Message) ClearAuthor() {
-	x.xxx_hidden_Author = nil
 }
 
 type Message_builder struct {
@@ -689,6 +689,8 @@ type Message_builder struct {
 	Id *int64
 	// Opaque reference to the channel or thread this message belongs to.
 	ChannelId *int64
+	// Public profile of the user who sent this message.
+	Author *v1.UserProfile
 	// Message body text. May be empty for attachment-only messages.
 	Content *string
 	Type    *MessageType
@@ -709,8 +711,6 @@ type Message_builder struct {
 	// Monotonically increasing state version. Starts at 1 and increments on
 	// every update and deletion.
 	Revision *int64
-	// Public profile of the user who sent this message.
-	Author *v1.UserProfile
 }
 
 func (b0 Message_builder) Build() *Message {
@@ -725,44 +725,44 @@ func (b0 Message_builder) Build() *Message {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
+	x.xxx_hidden_Author = b.Author
 	if b.Content != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
 		x.xxx_hidden_Content = b.Content
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.Flags != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
 		x.xxx_hidden_Flags = *b.Flags
 	}
 	if b.ReferencedMessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
 		x.xxx_hidden_ReferencedMessageId = *b.ReferencedMessageId
 	}
 	if b.ReferencedChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 13)
 		x.xxx_hidden_ReferencedChannelId = *b.ReferencedChannelId
 	}
 	x.xxx_hidden_Attachments = &b.Attachments
 	if b.EditedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
 		x.xxx_hidden_EditedAt = *b.EditedAt
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
 	if b.Revision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 13)
 		x.xxx_hidden_Revision = *b.Revision
 	}
-	x.xxx_hidden_Author = b.Author
 	return m0
 }
 
@@ -1138,10 +1138,10 @@ type CreateMessageRequest struct {
 	xxx_hidden_Content             *string                `protobuf:"bytes,3,opt,name=content"`
 	xxx_hidden_Type                MessageType            `protobuf:"varint,4,opt,name=type,enum=message.v1.MessageType"`
 	xxx_hidden_Flags               int32                  `protobuf:"varint,5,opt,name=flags"`
-	xxx_hidden_ReferencedMessageId int64                  `protobuf:"varint,10,opt,name=referenced_message_id,json=referencedMessageId"`
-	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,11,opt,name=referenced_channel_id,json=referencedChannelId"`
-	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,20,rep,name=attachments"`
-	xxx_hidden_MentionUserIds      []int64                `protobuf:"varint,30,rep,packed,name=mention_user_ids,json=mentionUserIds"`
+	xxx_hidden_ReferencedMessageId int64                  `protobuf:"varint,6,opt,name=referenced_message_id,json=referencedMessageId"`
+	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,7,opt,name=referenced_channel_id,json=referencedChannelId"`
+	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,8,rep,name=attachments"`
+	xxx_hidden_MentionUserIds      []int64                `protobuf:"varint,9,rep,packed,name=mention_user_ids,json=mentionUserIds"`
 	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
 	XXX_presence                   [1]uint32
 	unknownFields                  protoimpl.UnknownFields
@@ -1499,8 +1499,8 @@ type UpdateMessageRequest struct {
 	xxx_hidden_Content     *string                `protobuf:"bytes,2,opt,name=content"`
 	xxx_hidden_ActorUserId int64                  `protobuf:"varint,3,opt,name=actor_user_id,json=actorUserId"`
 	xxx_hidden_Flags       int32                  `protobuf:"varint,4,opt,name=flags"`
-	xxx_hidden_Attachments *AttachmentList        `protobuf:"bytes,20,opt,name=attachments"`
-	xxx_hidden_Mentions    *MentionList           `protobuf:"bytes,30,opt,name=mentions"`
+	xxx_hidden_Attachments *AttachmentList        `protobuf:"bytes,5,opt,name=attachments"`
+	xxx_hidden_Mentions    *MentionList           `protobuf:"bytes,6,opt,name=mentions"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2446,8 +2446,8 @@ func (*listMessagesRequest_Around) isListMessagesRequest_Cursor() {}
 type ListMessagesResponse struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Messages     *[]*Message            `protobuf:"bytes,1,rep,name=messages"`
-	xxx_hidden_BeforeCursor int64                  `protobuf:"varint,3,opt,name=before_cursor,json=beforeCursor"`
-	xxx_hidden_AfterCursor  int64                  `protobuf:"varint,4,opt,name=after_cursor,json=afterCursor"`
+	xxx_hidden_BeforeCursor int64                  `protobuf:"varint,2,opt,name=before_cursor,json=beforeCursor"`
+	xxx_hidden_AfterCursor  int64                  `protobuf:"varint,3,opt,name=after_cursor,json=afterCursor"`
 	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
 	XXX_presence            [1]uint32
 	unknownFields           protoimpl.UnknownFields
@@ -3729,25 +3729,25 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\auser_lo\x18\x02 \x01(\x03R\x06userLo\x12\x17\n" +
 	"\auser_hi\x18\x03 \x01(\x03R\x06userHi\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xed\x03\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xdc\x03\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
-	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12\x18\n" +
+	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12,\n" +
+	"\x06author\x18\x03 \x01(\v2\x14.user.v1.UserProfileR\x06author\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12+\n" +
 	"\x04type\x18\x05 \x01(\x0e2\x17.message.v1.MessageTypeR\x04type\x12\x14\n" +
 	"\x05flags\x18\x06 \x01(\x05R\x05flags\x122\n" +
-	"\x15referenced_message_id\x18\n" +
-	" \x01(\x03R\x13referencedMessageId\x122\n" +
-	"\x15referenced_channel_id\x18\v \x01(\x03R\x13referencedChannelId\x128\n" +
-	"\vattachments\x18\x14 \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12\x1b\n" +
-	"\tedited_at\x18\x1e \x01(\x03R\beditedAt\x12\x1d\n" +
+	"\x15referenced_message_id\x18\a \x01(\x03R\x13referencedMessageId\x122\n" +
+	"\x15referenced_channel_id\x18\b \x01(\x03R\x13referencedChannelId\x128\n" +
+	"\vattachments\x18\t \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12\x1b\n" +
+	"\tedited_at\x18\n" +
+	" \x01(\x03R\beditedAt\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x1f \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18  \x01(\x03R\tupdatedAt\x12\x1a\n" +
-	"\brevision\x18! \x01(\x03R\brevision\x12,\n" +
-	"\x06author\x18( \x01(\v2\x14.user.v1.UserProfileR\x06authorJ\x04\b\x03\x10\x04R\tauthor_id\"\x9f\x01\n" +
+	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1a\n" +
+	"\brevision\x18\r \x01(\x03R\brevision\"\x9f\x01\n" +
 	"\n" +
 	"Attachment\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1a\n" +
@@ -3767,35 +3767,34 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12+\n" +
 	"\x04type\x18\x04 \x01(\x0e2\x17.message.v1.MessageTypeR\x04type\x12\x14\n" +
 	"\x05flags\x18\x05 \x01(\x05R\x05flags\x122\n" +
-	"\x15referenced_message_id\x18\n" +
-	" \x01(\x03R\x13referencedMessageId\x122\n" +
-	"\x15referenced_channel_id\x18\v \x01(\x03R\x13referencedChannelId\x128\n" +
-	"\vattachments\x18\x14 \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12(\n" +
-	"\x10mention_user_ids\x18\x1e \x03(\x03R\x0ementionUserIds\"F\n" +
+	"\x15referenced_message_id\x18\x06 \x01(\x03R\x13referencedMessageId\x122\n" +
+	"\x15referenced_channel_id\x18\a \x01(\x03R\x13referencedChannelId\x128\n" +
+	"\vattachments\x18\b \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12(\n" +
+	"\x10mention_user_ids\x18\t \x03(\x03R\x0ementionUserIds\"F\n" +
 	"\x15CreateMessageResponse\x12-\n" +
-	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"\x82\x02\n" +
+	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"\xfc\x01\n" +
 	"\x14UpdateMessageRequest\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\"\n" +
 	"\ractor_user_id\x18\x03 \x01(\x03R\vactorUserId\x12\x14\n" +
 	"\x05flags\x18\x04 \x01(\x05R\x05flags\x12<\n" +
-	"\vattachments\x18\x14 \x01(\v2\x1a.message.v1.AttachmentListR\vattachments\x123\n" +
-	"\bmentions\x18\x1e \x01(\v2\x17.message.v1.MentionListR\bmentionsJ\x04\b\x05\x10\x06\"F\n" +
+	"\vattachments\x18\x05 \x01(\v2\x1a.message.v1.AttachmentListR\vattachments\x123\n" +
+	"\bmentions\x18\x06 \x01(\v2\x17.message.v1.MentionListR\bmentions\"F\n" +
 	"\x15UpdateMessageResponse\x12-\n" +
-	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"_\n" +
+	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"Y\n" +
 	"\x14DeleteMessageRequest\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\"\n" +
-	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserIdJ\x04\b\x03\x10\x04\"'\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"'\n" +
 	"\x15DeleteMessageResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"K\n" +
 	"\x11GetMessageRequest\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x03R\x06userId\"I\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\"C\n" +
 	"\x12GetMessageResponse\x12-\n" +
-	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessageJ\x04\b\x02\x10\x03\"\xb9\x01\n" +
+	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\"\xb9\x01\n" +
 	"\x13ListMessagesRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x18\n" +
@@ -3804,11 +3803,11 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x06around\x18\x04 \x01(\x03H\x00R\x06around\x12\x14\n" +
 	"\x05limit\x18\x05 \x01(\x05R\x05limit\x12\x17\n" +
 	"\auser_id\x18\x06 \x01(\x03R\x06userIdB\b\n" +
-	"\x06cursor\"\x95\x01\n" +
+	"\x06cursor\"\x8f\x01\n" +
 	"\x14ListMessagesResponse\x12/\n" +
 	"\bmessages\x18\x01 \x03(\v2\x13.message.v1.MessageR\bmessages\x12#\n" +
-	"\rbefore_cursor\x18\x03 \x01(\x03R\fbeforeCursor\x12!\n" +
-	"\fafter_cursor\x18\x04 \x01(\x03R\vafterCursorJ\x04\b\x02\x10\x03\"N\n" +
+	"\rbefore_cursor\x18\x02 \x01(\x03R\fbeforeCursor\x12!\n" +
+	"\fafter_cursor\x18\x03 \x01(\x03R\vafterCursor\"N\n" +
 	"\x16CreateDmChannelRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
 	"\ttarget_id\x18\x02 \x01(\x03R\btargetId\"J\n" +
@@ -3918,9 +3917,9 @@ var file_message_v1_message_proto_goTypes = []any{
 	(*v1.UserProfile)(nil),            // 29: user.v1.UserProfile
 }
 var file_message_v1_message_proto_depIdxs = []int32{
-	0,  // 0: message.v1.Message.type:type_name -> message.v1.MessageType
-	5,  // 1: message.v1.Message.attachments:type_name -> message.v1.Attachment
-	29, // 2: message.v1.Message.author:type_name -> user.v1.UserProfile
+	29, // 0: message.v1.Message.author:type_name -> user.v1.UserProfile
+	0,  // 1: message.v1.Message.type:type_name -> message.v1.MessageType
+	5,  // 2: message.v1.Message.attachments:type_name -> message.v1.Attachment
 	5,  // 3: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
 	0,  // 4: message.v1.CreateMessageRequest.type:type_name -> message.v1.MessageType
 	5,  // 5: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment

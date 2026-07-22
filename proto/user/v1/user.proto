@@ -81,9 +81,7 @@ message UserProfile {
 message CreateUserRequest {
   string name = 1;
   string email = 2;
-  reserved 3;
-  reserved password;
-  string username = 4;
+  string username = 3;
 }
 
 message CreateUserResponse {

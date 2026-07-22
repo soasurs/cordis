@@ -314,22 +314,22 @@ type Message struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Id        *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 	ChannelId *int64                 `protobuf:"varint,2,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	Content   *string                `protobuf:"bytes,4,opt,name=content" json:"content,omitempty"`
-	Type      *MessageType           `protobuf:"varint,5,opt,name=type,enum=api.v1.MessageType" json:"type,omitempty"`
+	// Public profile of the user who sent this message.
+	Author  *UserProfile `protobuf:"bytes,3,opt,name=author" json:"author,omitempty"`
+	Content *string      `protobuf:"bytes,4,opt,name=content" json:"content,omitempty"`
+	Type    *MessageType `protobuf:"varint,5,opt,name=type,enum=api.v1.MessageType" json:"type,omitempty"`
 	// Bitmask of MessageFlag values.
 	Flags *int32 `protobuf:"varint,6,opt,name=flags" json:"flags,omitempty"`
 	// Set when this message references another message.
-	ReferencedMessageId *int64        `protobuf:"varint,10,opt,name=referenced_message_id,json=referencedMessageId" json:"referenced_message_id,omitempty"`
-	ReferencedChannelId *int64        `protobuf:"varint,11,opt,name=referenced_channel_id,json=referencedChannelId" json:"referenced_channel_id,omitempty"`
-	Attachments         []*Attachment `protobuf:"bytes,20,rep,name=attachments" json:"attachments,omitempty"`
+	ReferencedMessageId *int64        `protobuf:"varint,7,opt,name=referenced_message_id,json=referencedMessageId" json:"referenced_message_id,omitempty"`
+	ReferencedChannelId *int64        `protobuf:"varint,8,opt,name=referenced_channel_id,json=referencedChannelId" json:"referenced_channel_id,omitempty"`
+	Attachments         []*Attachment `protobuf:"bytes,9,rep,name=attachments" json:"attachments,omitempty"`
 	// Non-zero after the message has been edited.
-	EditedAt  *int64 `protobuf:"varint,30,opt,name=edited_at,json=editedAt" json:"edited_at,omitempty"`
-	CreatedAt *int64 `protobuf:"varint,31,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt *int64 `protobuf:"varint,32,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	EditedAt  *int64 `protobuf:"varint,10,opt,name=edited_at,json=editedAt" json:"edited_at,omitempty"`
+	CreatedAt *int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	UpdatedAt *int64 `protobuf:"varint,12,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
 	// Monotonically increasing version used to discard stale events.
-	Revision *int64 `protobuf:"varint,33,opt,name=revision" json:"revision,omitempty"`
-	// Public profile of the user who sent this message.
-	Author        *UserProfile `protobuf:"bytes,40,opt,name=author" json:"author,omitempty"`
+	Revision      *int64 `protobuf:"varint,13,opt,name=revision" json:"revision,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -376,6 +376,13 @@ func (x *Message) GetChannelId() int64 {
 		return *x.ChannelId
 	}
 	return 0
+}
+
+func (x *Message) GetAuthor() *UserProfile {
+	if x != nil {
+		return x.Author
+	}
+	return nil
 }
 
 func (x *Message) GetContent() string {
@@ -446,13 +453,6 @@ func (x *Message) GetRevision() int64 {
 		return *x.Revision
 	}
 	return 0
-}
-
-func (x *Message) GetAuthor() *UserProfile {
-	if x != nil {
-		return x.Author
-	}
-	return nil
 }
 
 // Attachment describes a file uploaded before the message is created.
@@ -641,11 +641,11 @@ type CreateMessageRequest struct {
 	// Initial client-settable MessageFlag values.
 	Flags *int32 `protobuf:"varint,4,opt,name=flags" json:"flags,omitempty"`
 	// Both reference fields must be set for a reply.
-	ReferencedMessageId *int64        `protobuf:"varint,10,opt,name=referenced_message_id,json=referencedMessageId" json:"referenced_message_id,omitempty"`
-	ReferencedChannelId *int64        `protobuf:"varint,11,opt,name=referenced_channel_id,json=referencedChannelId" json:"referenced_channel_id,omitempty"`
-	Attachments         []*Attachment `protobuf:"bytes,20,rep,name=attachments" json:"attachments,omitempty"`
+	ReferencedMessageId *int64        `protobuf:"varint,5,opt,name=referenced_message_id,json=referencedMessageId" json:"referenced_message_id,omitempty"`
+	ReferencedChannelId *int64        `protobuf:"varint,6,opt,name=referenced_channel_id,json=referencedChannelId" json:"referenced_channel_id,omitempty"`
+	Attachments         []*Attachment `protobuf:"bytes,7,rep,name=attachments" json:"attachments,omitempty"`
 	// User IDs parsed from mentions in content.
-	MentionUserIds []int64 `protobuf:"varint,30,rep,packed,name=mention_user_ids,json=mentionUserIds" json:"mention_user_ids,omitempty"`
+	MentionUserIds []int64 `protobuf:"varint,8,rep,packed,name=mention_user_ids,json=mentionUserIds" json:"mention_user_ids,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -788,9 +788,9 @@ type UpdateMessageRequest struct {
 	// When present, replaces all client-settable flags.
 	Flags *int32 `protobuf:"varint,3,opt,name=flags" json:"flags,omitempty"`
 	// When present, replaces the complete attachment list.
-	Attachments *AttachmentList `protobuf:"bytes,20,opt,name=attachments" json:"attachments,omitempty"`
+	Attachments *AttachmentList `protobuf:"bytes,4,opt,name=attachments" json:"attachments,omitempty"`
 	// When present, replaces the complete mention list.
-	Mentions      *MentionList `protobuf:"bytes,30,opt,name=mentions" json:"mentions,omitempty"`
+	Mentions      *MentionList `protobuf:"bytes,5,opt,name=mentions" json:"mentions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1669,25 +1669,25 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
 	"\frecipient_id\x18\x02 \x01(\x03R\vrecipientId\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\x03R\tcreatedAt\"\xe4\x03\n" +
+	"created_at\x18\x03 \x01(\x03R\tcreatedAt\"\xd3\x03\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
-	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12\x18\n" +
+	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12+\n" +
+	"\x06author\x18\x03 \x01(\v2\x13.api.v1.UserProfileR\x06author\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12'\n" +
 	"\x04type\x18\x05 \x01(\x0e2\x13.api.v1.MessageTypeR\x04type\x12\x14\n" +
 	"\x05flags\x18\x06 \x01(\x05R\x05flags\x122\n" +
-	"\x15referenced_message_id\x18\n" +
-	" \x01(\x03R\x13referencedMessageId\x122\n" +
-	"\x15referenced_channel_id\x18\v \x01(\x03R\x13referencedChannelId\x124\n" +
-	"\vattachments\x18\x14 \x03(\v2\x12.api.v1.AttachmentR\vattachments\x12\x1b\n" +
-	"\tedited_at\x18\x1e \x01(\x03R\beditedAt\x12\x1d\n" +
+	"\x15referenced_message_id\x18\a \x01(\x03R\x13referencedMessageId\x122\n" +
+	"\x15referenced_channel_id\x18\b \x01(\x03R\x13referencedChannelId\x124\n" +
+	"\vattachments\x18\t \x03(\v2\x12.api.v1.AttachmentR\vattachments\x12\x1b\n" +
+	"\tedited_at\x18\n" +
+	" \x01(\x03R\beditedAt\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x1f \x01(\x03R\tcreatedAt\x12\x1d\n" +
+	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18  \x01(\x03R\tupdatedAt\x12\x1a\n" +
-	"\brevision\x18! \x01(\x03R\brevision\x12+\n" +
-	"\x06author\x18( \x01(\v2\x13.api.v1.UserProfileR\x06authorJ\x04\b\x03\x10\x04R\tauthor_id\"\x9f\x01\n" +
+	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1a\n" +
+	"\brevision\x18\r \x01(\x03R\brevision\"\x9f\x01\n" +
 	"\n" +
 	"Attachment\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1a\n" +
@@ -1706,11 +1706,10 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12'\n" +
 	"\x04type\x18\x03 \x01(\x0e2\x13.api.v1.MessageTypeR\x04type\x12\x14\n" +
 	"\x05flags\x18\x04 \x01(\x05R\x05flags\x122\n" +
-	"\x15referenced_message_id\x18\n" +
-	" \x01(\x03R\x13referencedMessageId\x122\n" +
-	"\x15referenced_channel_id\x18\v \x01(\x03R\x13referencedChannelId\x124\n" +
-	"\vattachments\x18\x14 \x03(\v2\x12.api.v1.AttachmentR\vattachments\x12(\n" +
-	"\x10mention_user_ids\x18\x1e \x03(\x03R\x0ementionUserIds\"B\n" +
+	"\x15referenced_message_id\x18\x05 \x01(\x03R\x13referencedMessageId\x122\n" +
+	"\x15referenced_channel_id\x18\x06 \x01(\x03R\x13referencedChannelId\x124\n" +
+	"\vattachments\x18\a \x03(\v2\x12.api.v1.AttachmentR\vattachments\x12(\n" +
+	"\x10mention_user_ids\x18\b \x03(\x03R\x0ementionUserIds\"B\n" +
 	"\x15CreateMessageResponse\x12)\n" +
 	"\amessage\x18\x01 \x01(\v2\x0f.api.v1.MessageR\amessage\"\xd0\x01\n" +
 	"\x14UpdateMessageRequest\x12\x1d\n" +
@@ -1718,8 +1717,8 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x14\n" +
 	"\x05flags\x18\x03 \x01(\x05R\x05flags\x128\n" +
-	"\vattachments\x18\x14 \x01(\v2\x16.api.v1.AttachmentListR\vattachments\x12/\n" +
-	"\bmentions\x18\x1e \x01(\v2\x13.api.v1.MentionListR\bmentions\"B\n" +
+	"\vattachments\x18\x04 \x01(\v2\x16.api.v1.AttachmentListR\vattachments\x12/\n" +
+	"\bmentions\x18\x05 \x01(\v2\x13.api.v1.MentionListR\bmentions\"B\n" +
 	"\x15UpdateMessageResponse\x12)\n" +
 	"\amessage\x18\x01 \x01(\v2\x0f.api.v1.MessageR\amessage\"5\n" +
 	"\x14DeleteMessageRequest\x12\x1d\n" +
@@ -1843,9 +1842,9 @@ var file_api_v1_message_proto_goTypes = []any{
 	(*UserProfile)(nil),             // 27: api.v1.UserProfile
 }
 var file_api_v1_message_proto_depIdxs = []int32{
-	0,  // 0: api.v1.Message.type:type_name -> api.v1.MessageType
-	6,  // 1: api.v1.Message.attachments:type_name -> api.v1.Attachment
-	27, // 2: api.v1.Message.author:type_name -> api.v1.UserProfile
+	27, // 0: api.v1.Message.author:type_name -> api.v1.UserProfile
+	0,  // 1: api.v1.Message.type:type_name -> api.v1.MessageType
+	6,  // 2: api.v1.Message.attachments:type_name -> api.v1.Attachment
 	6,  // 3: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
 	0,  // 4: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
 	6,  // 5: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment

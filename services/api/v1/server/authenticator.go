@@ -31,9 +31,9 @@ func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterR
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.RegisterResponse{
-		Result: toAPIAuthenticationResult(svcResp.GetResult()),
-	}, nil
+	resp := new(apiv1.RegisterResponse)
+	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+	return resp, nil
 }
 
 func (s *authenticatorServer) Login(ctx context.Context, req *apiv1.LoginRequest) (*apiv1.LoginResponse, error) {
@@ -53,14 +53,13 @@ func (s *authenticatorServer) Login(ctx context.Context, req *apiv1.LoginRequest
 		return nil, apierror.FromRPC(err)
 	}
 
+	resp := new(apiv1.LoginResponse)
 	if svcResp.GetResult() != nil {
-		return &apiv1.LoginResponse{
-			Outcome: &apiv1.LoginResponse_Result{Result: toAPIAuthenticationResult(svcResp.GetResult())},
-		}, nil
+		resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+	} else {
+		resp.SetTwoFactorChallenge(toAPITwoFactorLoginChallenge(svcResp.GetTwoFactorChallenge()))
 	}
-	return &apiv1.LoginResponse{
-		Outcome: &apiv1.LoginResponse_TwoFactorChallenge{TwoFactorChallenge: toAPITwoFactorLoginChallenge(svcResp.GetTwoFactorChallenge())},
-	}, nil
+	return resp, nil
 }
 
 func (s *authenticatorServer) CompleteTwoFactorLogin(ctx context.Context, req *apiv1.CompleteTwoFactorLoginRequest) (*apiv1.CompleteTwoFactorLoginResponse, error) {
@@ -72,7 +71,9 @@ func (s *authenticatorServer) CompleteTwoFactorLogin(ctx context.Context, req *a
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CompleteTwoFactorLoginResponse{Result: toAPIAuthenticationResult(svcResp.GetResult())}, nil
+	resp := new(apiv1.CompleteTwoFactorLoginResponse)
+	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+	return resp, nil
 }
 
 func (s *authenticatorServer) Refresh(ctx context.Context, req *apiv1.RefreshRequest) (*apiv1.RefreshResponse, error) {
@@ -84,9 +85,9 @@ func (s *authenticatorServer) Refresh(ctx context.Context, req *apiv1.RefreshReq
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.RefreshResponse{
-		Result: toAPIAuthenticationResult(svcResp.GetResult()),
-	}, nil
+	resp := new(apiv1.RefreshResponse)
+	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+	return resp, nil
 }
 
 func (s *authenticatorServer) Logout(ctx context.Context, req *apiv1.LogoutRequest) (*apiv1.LogoutResponse, error) {
@@ -98,9 +99,9 @@ func (s *authenticatorServer) Logout(ctx context.Context, req *apiv1.LogoutReque
 		return nil, apierror.FromRPC(err)
 	}
 
-	return &apiv1.LogoutResponse{
-		Ok: new(svcResp.GetOk()),
-	}, nil
+	resp := new(apiv1.LogoutResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *authenticatorServer) ListSessions(ctx context.Context, _ *apiv1.ListSessionsRequest) (*apiv1.ListSessionsResponse, error) {
@@ -118,17 +119,19 @@ func (s *authenticatorServer) ListSessions(ctx context.Context, _ *apiv1.ListSes
 
 	sessions := make([]*apiv1.Session, 0, len(svcResp.GetSessions()))
 	for _, session := range svcResp.GetSessions() {
-		sessions = append(sessions, &apiv1.Session{
-			SessionId: new(session.GetSessionId()),
-			UserAgent: new(session.GetUserAgent()),
-			Ip:        new(session.GetIp()),
-			CreatedAt: new(session.GetCreatedAt()),
-			UpdatedAt: new(session.GetUpdatedAt()),
-			ExpiresAt: new(session.GetExpiresAt()),
-			Current:   new(session.GetSessionId() == auth.GetSessionId()),
-		})
+		s := new(apiv1.Session)
+		s.SetSessionId(session.GetSessionId())
+		s.SetUserAgent(session.GetUserAgent())
+		s.SetIp(session.GetIp())
+		s.SetCreatedAt(session.GetCreatedAt())
+		s.SetUpdatedAt(session.GetUpdatedAt())
+		s.SetExpiresAt(session.GetExpiresAt())
+		s.SetCurrent(session.GetSessionId() == auth.GetSessionId())
+		sessions = append(sessions, s)
 	}
-	return &apiv1.ListSessionsResponse{Sessions: sessions}, nil
+	resp := new(apiv1.ListSessionsResponse)
+	resp.SetSessions(sessions)
+	return resp, nil
 }
 
 func (s *authenticatorServer) RevokeSession(ctx context.Context, req *apiv1.RevokeSessionRequest) (*apiv1.RevokeSessionResponse, error) {
@@ -144,7 +147,9 @@ func (s *authenticatorServer) RevokeSession(ctx context.Context, req *apiv1.Revo
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.RevokeSessionResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.RevokeSessionResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *authenticatorServer) GetTwoFactorStatus(ctx context.Context, _ *apiv1.GetTwoFactorStatusRequest) (*apiv1.GetTwoFactorStatusResponse, error) {
@@ -158,7 +163,10 @@ func (s *authenticatorServer) GetTwoFactorStatus(ctx context.Context, _ *apiv1.G
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetTwoFactorStatusResponse{Enabled: new(svcResp.GetEnabled()), RecoveryCodesRemaining: new(svcResp.GetRecoveryCodesRemaining())}, nil
+	resp := new(apiv1.GetTwoFactorStatusResponse)
+	resp.SetEnabled(svcResp.GetEnabled())
+	resp.SetRecoveryCodesRemaining(svcResp.GetRecoveryCodesRemaining())
+	return resp, nil
 }
 
 func (s *authenticatorServer) BeginTwoFactorEnrollment(ctx context.Context, req *apiv1.BeginTwoFactorEnrollmentRequest) (*apiv1.BeginTwoFactorEnrollmentResponse, error) {
@@ -173,12 +181,12 @@ func (s *authenticatorServer) BeginTwoFactorEnrollment(ctx context.Context, req 
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.BeginTwoFactorEnrollmentResponse{
-		EnrollmentToken: new(svcResp.GetEnrollmentToken()),
-		OtpauthUri:      new(svcResp.GetOtpauthUri()),
-		ManualEntryKey:  new(svcResp.GetManualEntryKey()),
-		ExpiresAt:       new(svcResp.GetExpiresAt()),
-	}, nil
+	resp := new(apiv1.BeginTwoFactorEnrollmentResponse)
+	resp.SetEnrollmentToken(svcResp.GetEnrollmentToken())
+	resp.SetOtpauthUri(svcResp.GetOtpauthUri())
+	resp.SetManualEntryKey(svcResp.GetManualEntryKey())
+	resp.SetExpiresAt(svcResp.GetExpiresAt())
+	return resp, nil
 }
 
 func (s *authenticatorServer) ConfirmTwoFactorEnrollment(ctx context.Context, req *apiv1.ConfirmTwoFactorEnrollmentRequest) (*apiv1.ConfirmTwoFactorEnrollmentResponse, error) {
@@ -195,7 +203,9 @@ func (s *authenticatorServer) ConfirmTwoFactorEnrollment(ctx context.Context, re
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ConfirmTwoFactorEnrollmentResponse{RecoveryCodes: svcResp.GetRecoveryCodes()}, nil
+	resp := new(apiv1.ConfirmTwoFactorEnrollmentResponse)
+	resp.SetRecoveryCodes(svcResp.GetRecoveryCodes())
+	return resp, nil
 }
 
 func (s *authenticatorServer) DisableTwoFactor(ctx context.Context, req *apiv1.DisableTwoFactorRequest) (*apiv1.DisableTwoFactorResponse, error) {
@@ -207,17 +217,19 @@ func (s *authenticatorServer) DisableTwoFactor(ctx context.Context, req *apiv1.D
 	svcReq.SetUserId(auth.GetUserId())
 	svcReq.SetCurrentSessionId(auth.GetSessionId())
 	svcReq.SetPassword(req.GetPassword())
-	switch verification := req.GetVerification().(type) {
-	case *apiv1.DisableTwoFactorRequest_Code:
-		svcReq.SetCode(verification.Code)
-	case *apiv1.DisableTwoFactorRequest_RecoveryCode:
-		svcReq.SetRecoveryCode(verification.RecoveryCode)
+	if req.HasCode() {
+		svcReq.SetCode(req.GetCode())
+	}
+	if req.HasRecoveryCode() {
+		svcReq.SetRecoveryCode(req.GetRecoveryCode())
 	}
 	svcResp, err := s.svcCtx.AuthenticatorClient.DisableTwoFactor(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DisableTwoFactorResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.DisableTwoFactorResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *authenticatorServer) RegenerateTwoFactorRecoveryCodes(ctx context.Context, req *apiv1.RegenerateTwoFactorRecoveryCodesRequest) (*apiv1.RegenerateTwoFactorRecoveryCodesResponse, error) {
@@ -234,7 +246,9 @@ func (s *authenticatorServer) RegenerateTwoFactorRecoveryCodes(ctx context.Conte
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.RegenerateTwoFactorRecoveryCodesResponse{RecoveryCodes: svcResp.GetRecoveryCodes()}, nil
+	resp := new(apiv1.RegenerateTwoFactorRecoveryCodesResponse)
+	resp.SetRecoveryCodes(svcResp.GetRecoveryCodes())
+	return resp, nil
 }
 
 func setClientMetadata(ctx context.Context, setUserAgent, setIP func(string)) {
@@ -260,27 +274,29 @@ func clientIP(address string) string {
 }
 
 func toAPIAuthenticationResult(result *authenticatorv1.AuthenticationResult) *apiv1.AuthenticationResult {
+	resp := new(apiv1.AuthenticationResult)
 	if result == nil {
-		return &apiv1.AuthenticationResult{
-			Ok: new(false),
-		}
+		resp.SetOk(false)
+		return resp
 	}
 
-	return &apiv1.AuthenticationResult{
-		Ok:                    new(result.GetOk()),
-		UserId:                new(result.GetUserId()),
-		SessionId:             new(result.GetSessionId()),
-		AccessToken:           new(result.GetAccessToken()),
-		AccessTokenExpiresAt:  new(result.GetAccessTokenExpiresAt()),
-		RefreshToken:          new(result.GetRefreshToken()),
-		RefreshTokenExpiresAt: new(result.GetRefreshTokenExpiresAt()),
-		SessionExpiresAt:      new(result.GetSessionExpiresAt()),
-	}
+	resp.SetOk(result.GetOk())
+	resp.SetUserId(result.GetUserId())
+	resp.SetSessionId(result.GetSessionId())
+	resp.SetAccessToken(result.GetAccessToken())
+	resp.SetAccessTokenExpiresAt(result.GetAccessTokenExpiresAt())
+	resp.SetRefreshToken(result.GetRefreshToken())
+	resp.SetRefreshTokenExpiresAt(result.GetRefreshTokenExpiresAt())
+	resp.SetSessionExpiresAt(result.GetSessionExpiresAt())
+	return resp
 }
 
 func toAPITwoFactorLoginChallenge(challenge *authenticatorv1.TwoFactorLoginChallenge) *apiv1.TwoFactorLoginChallenge {
 	if challenge == nil {
 		return nil
 	}
-	return &apiv1.TwoFactorLoginChallenge{Token: new(challenge.GetToken()), ExpiresAt: new(challenge.GetExpiresAt())}
+	resp := new(apiv1.TwoFactorLoginChallenge)
+	resp.SetToken(challenge.GetToken())
+	resp.SetExpiresAt(challenge.GetExpiresAt())
+	return resp
 }

@@ -46,9 +46,9 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *apiv1.CreateMess
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CreateMessageResponse{
-		Message: messageToAPI(svcResp.GetMessage()),
-	}, nil
+	resp := new(apiv1.CreateMessageResponse)
+	resp.SetMessage(messageToAPI(svcResp.GetMessage()))
+	return resp, nil
 }
 
 func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMessageRequest) (*apiv1.UpdateMessageResponse, error) {
@@ -60,18 +60,18 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMess
 	svcReq := new(messagev1.UpdateMessageRequest)
 	svcReq.SetMessageId(req.GetMessageId())
 	svcReq.SetActorUserId(auth.GetUserId())
-	if req.Content != nil {
+	if req.HasContent() {
 		svcReq.SetContent(req.GetContent())
 	}
-	if req.Flags != nil {
+	if req.HasFlags() {
 		svcReq.SetFlags(req.GetFlags())
 	}
-	if req.Attachments != nil {
+	if req.HasAttachments() {
 		attachments := new(messagev1.AttachmentList)
 		attachments.SetAttachments(attachmentsToMessageService(req.GetAttachments().GetAttachments()))
 		svcReq.SetAttachments(attachments)
 	}
-	if req.Mentions != nil {
+	if req.HasMentions() {
 		mentions := new(messagev1.MentionList)
 		mentions.SetUserIds(req.GetMentions().GetUserIds())
 		svcReq.SetMentions(mentions)
@@ -81,9 +81,9 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMess
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateMessageResponse{
-		Message: messageToAPI(svcResp.GetMessage()),
-	}, nil
+	resp := new(apiv1.UpdateMessageResponse)
+	resp.SetMessage(messageToAPI(svcResp.GetMessage()))
+	return resp, nil
 }
 
 func (s *messageServer) DeleteMessage(ctx context.Context, req *apiv1.DeleteMessageRequest) (*apiv1.DeleteMessageResponse, error) {
@@ -99,9 +99,9 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *apiv1.DeleteMess
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DeleteMessageResponse{
-		Ok: new(svcResp.GetOk()),
-	}, nil
+	resp := new(apiv1.DeleteMessageResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *messageServer) GetMessage(ctx context.Context, req *apiv1.GetMessageRequest) (*apiv1.GetMessageResponse, error) {
@@ -117,9 +117,9 @@ func (s *messageServer) GetMessage(ctx context.Context, req *apiv1.GetMessageReq
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetMessageResponse{
-		Message: messageToAPI(svcResp.GetMessage()),
-	}, nil
+	resp := new(apiv1.GetMessageResponse)
+	resp.SetMessage(messageToAPI(svcResp.GetMessage()))
+	return resp, nil
 }
 
 func (s *messageServer) ListMessages(ctx context.Context, req *apiv1.ListMessagesRequest) (*apiv1.ListMessagesResponse, error) {
@@ -132,13 +132,14 @@ func (s *messageServer) ListMessages(ctx context.Context, req *apiv1.ListMessage
 	svcReq.SetChannelId(req.GetChannelId())
 	svcReq.SetUserId(auth.GetUserId())
 	svcReq.SetLimit(req.GetLimit())
-	switch cursor := req.GetCursor().(type) {
-	case *apiv1.ListMessagesRequest_Before:
-		svcReq.SetBefore(cursor.Before)
-	case *apiv1.ListMessagesRequest_After:
-		svcReq.SetAfter(cursor.After)
-	case *apiv1.ListMessagesRequest_Around:
-		svcReq.SetAround(cursor.Around)
+	if req.HasBefore() {
+		svcReq.SetBefore(req.GetBefore())
+	}
+	if req.HasAfter() {
+		svcReq.SetAfter(req.GetAfter())
+	}
+	if req.HasAround() {
+		svcReq.SetAround(req.GetAround())
 	}
 
 	svcResp, err := s.svcCtx.MessageClient.ListMessages(ctx, svcReq)
@@ -149,32 +150,32 @@ func (s *messageServer) ListMessages(ctx context.Context, req *apiv1.ListMessage
 	for _, message := range svcResp.GetMessages() {
 		messages = append(messages, messageToAPI(message))
 	}
-	return &apiv1.ListMessagesResponse{
-		Messages:     messages,
-		BeforeCursor: new(svcResp.GetBeforeCursor()),
-		AfterCursor:  new(svcResp.GetAfterCursor()),
-	}, nil
+	resp := new(apiv1.ListMessagesResponse)
+	resp.SetMessages(messages)
+	resp.SetBeforeCursor(svcResp.GetBeforeCursor())
+	resp.SetAfterCursor(svcResp.GetAfterCursor())
+	return resp, nil
 }
 
 func messageToAPI(message *messagev1.Message) *apiv1.Message {
 	if message == nil {
 		return nil
 	}
-	return &apiv1.Message{
-		Id:                  new(message.GetId()),
-		ChannelId:           new(message.GetChannelId()),
-		Content:             new(message.GetContent()),
-		Type:                new(apiv1.MessageType(message.GetType())),
-		Flags:               new(message.GetFlags()),
-		ReferencedMessageId: new(message.GetReferencedMessageId()),
-		ReferencedChannelId: new(message.GetReferencedChannelId()),
-		Attachments:         attachmentsToAPI(message.GetAttachments()),
-		EditedAt:            new(message.GetEditedAt()),
-		CreatedAt:           new(message.GetCreatedAt()),
-		UpdatedAt:           new(message.GetUpdatedAt()),
-		Revision:            new(message.GetRevision()),
-		Author:              userProfileToAPI(message.GetAuthor()),
-	}
+	resp := new(apiv1.Message)
+	resp.SetId(message.GetId())
+	resp.SetChannelId(message.GetChannelId())
+	resp.SetAuthorId(message.GetAuthorId())
+	resp.SetContent(message.GetContent())
+	resp.SetType(apiv1.MessageType(message.GetType()))
+	resp.SetFlags(message.GetFlags())
+	resp.SetReferencedMessageId(message.GetReferencedMessageId())
+	resp.SetReferencedChannelId(message.GetReferencedChannelId())
+	resp.SetAttachments(attachmentsToAPI(message.GetAttachments()))
+	resp.SetEditedAt(message.GetEditedAt())
+	resp.SetCreatedAt(message.GetCreatedAt())
+	resp.SetUpdatedAt(message.GetUpdatedAt())
+	resp.SetRevision(message.GetRevision())
+	return resp
 }
 
 func attachmentsToMessageService(attachments []*apiv1.Attachment) []*messagev1.Attachment {
@@ -201,14 +202,14 @@ func attachmentsToAPI(attachments []*messagev1.Attachment) []*apiv1.Attachment {
 		if attachment == nil {
 			continue
 		}
-		values = append(values, &apiv1.Attachment{
-			Key:         new(attachment.GetKey()),
-			Filename:    new(attachment.GetFilename()),
-			Size:        new(attachment.GetSize()),
-			ContentType: new(attachment.GetContentType()),
-			Width:       new(attachment.GetWidth()),
-			Height:      new(attachment.GetHeight()),
-		})
+		value := new(apiv1.Attachment)
+		value.SetKey(attachment.GetKey())
+		value.SetFilename(attachment.GetFilename())
+		value.SetSize(attachment.GetSize())
+		value.SetContentType(attachment.GetContentType())
+		value.SetWidth(attachment.GetWidth())
+		value.SetHeight(attachment.GetHeight())
+		values = append(values, value)
 	}
 	return values
 }
@@ -226,9 +227,9 @@ func (s *messageServer) CreateDmChannel(ctx context.Context, req *apiv1.CreateDm
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CreateDmChannelResponse{
-		Channel: dmChannelToAPI(svcResp.GetChannel(), auth.GetUserId()),
-	}, nil
+	resp := new(apiv1.CreateDmChannelResponse)
+	resp.SetChannel(dmChannelToAPI(svcResp.GetChannel(), auth.GetUserId()))
+	return resp, nil
 }
 
 func (s *messageServer) ListDmChannels(ctx context.Context, req *apiv1.ListDmChannelsRequest) (*apiv1.ListDmChannelsResponse, error) {
@@ -250,10 +251,10 @@ func (s *messageServer) ListDmChannels(ctx context.Context, req *apiv1.ListDmCha
 	for _, channel := range svcResp.GetChannels() {
 		channels = append(channels, dmChannelToAPI(channel, auth.GetUserId()))
 	}
-	return &apiv1.ListDmChannelsResponse{
-		Channels: channels,
-		BeforeId: new(svcResp.GetBeforeId()),
-	}, nil
+	resp := new(apiv1.ListDmChannelsResponse)
+	resp.SetChannels(channels)
+	resp.SetBeforeId(svcResp.GetBeforeId())
+	return resp, nil
 }
 
 // dmChannelToAPI converts the stored pair into the caller's perspective.
@@ -265,11 +266,11 @@ func dmChannelToAPI(channel *messagev1.DmChannel, viewerID int64) *apiv1.DmChann
 	if viewerID == channel.GetUserLo() {
 		recipientID = channel.GetUserHi()
 	}
-	return &apiv1.DmChannel{
-		Id:          new(channel.GetId()),
-		RecipientId: new(recipientID),
-		CreatedAt:   new(channel.GetCreatedAt()),
-	}
+	resp := new(apiv1.DmChannel)
+	resp.SetId(channel.GetId())
+	resp.SetRecipientId(recipientID)
+	resp.SetCreatedAt(channel.GetCreatedAt())
+	return resp
 }
 
 func (s *messageServer) AckMessage(ctx context.Context, req *apiv1.AckMessageRequest) (*apiv1.AckMessageResponse, error) {
@@ -286,7 +287,9 @@ func (s *messageServer) AckMessage(ctx context.Context, req *apiv1.AckMessageReq
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.AckMessageResponse{ReadState: apiChannelReadState(svcResp.GetReadState())}, nil
+	resp := new(apiv1.AckMessageResponse)
+	resp.SetReadState(apiChannelReadState(svcResp.GetReadState()))
+	return resp, nil
 }
 
 func (s *messageServer) GetReadStates(ctx context.Context, req *apiv1.GetReadStatesRequest) (*apiv1.GetReadStatesResponse, error) {
@@ -316,17 +319,20 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *apiv1.GetReadSta
 	for _, state := range svcResp.GetReadStates() {
 		readStates = append(readStates, apiChannelReadState(state))
 	}
-	return &apiv1.GetReadStatesResponse{DmChannels: dmChannels, ReadStates: readStates}, nil
+	resp := new(apiv1.GetReadStatesResponse)
+	resp.SetDmChannels(dmChannels)
+	resp.SetReadStates(readStates)
+	return resp, nil
 }
 
 func apiChannelReadState(state *messagev1.ChannelReadState) *apiv1.ChannelReadState {
 	if state == nil {
 		return nil
 	}
-	return &apiv1.ChannelReadState{
-		ChannelId:         new(state.GetChannelId()),
-		LastMessageId:     new(state.GetLastMessageId()),
-		LastReadMessageId: new(state.GetLastReadMessageId()),
-		MentionCount:      new(state.GetMentionCount()),
-	}
+	resp := new(apiv1.ChannelReadState)
+	resp.SetChannelId(state.GetChannelId())
+	resp.SetLastMessageId(state.GetLastMessageId())
+	resp.SetLastReadMessageId(state.GetLastReadMessageId())
+	resp.SetMentionCount(state.GetMentionCount())
+	return resp
 }

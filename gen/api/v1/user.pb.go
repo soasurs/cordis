@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -74,23 +73,19 @@ func (x RelationshipType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use RelationshipType.Descriptor instead.
-func (RelationshipType) EnumDescriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{0}
-}
-
 // User contains private account fields and is only returned to the account owner.
 // All timestamps are Unix time in milliseconds.
 type User struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	UserId    *int64                 `protobuf:"varint,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	Email     *string                `protobuf:"bytes,2,opt,name=email" json:"email,omitempty"`
-	CreatedAt *int64                 `protobuf:"varint,3,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt *int64                 `protobuf:"varint,4,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	// Zero when the current email has not been verified.
-	EmailVerifiedAt *int64 `protobuf:"varint,5,opt,name=email_verified_at,json=emailVerifiedAt" json:"email_verified_at,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId          int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Email           *string                `protobuf:"bytes,2,opt,name=email"`
+	xxx_hidden_CreatedAt       int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt       int64                  `protobuf:"varint,4,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_EmailVerifiedAt int64                  `protobuf:"varint,5,opt,name=email_verified_at,json=emailVerifiedAt"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *User) Reset() {
@@ -118,59 +113,181 @@ func (x *User) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use User.ProtoReflect.Descriptor instead.
-func (*User) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *User) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *User) GetEmail() string {
-	if x != nil && x.Email != nil {
-		return *x.Email
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *User) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *User) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
 func (x *User) GetEmailVerifiedAt() int64 {
-	if x != nil && x.EmailVerifiedAt != nil {
-		return *x.EmailVerifiedAt
+	if x != nil {
+		return x.xxx_hidden_EmailVerifiedAt
 	}
 	return 0
+}
+
+func (x *User) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *User) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *User) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *User) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *User) SetEmailVerifiedAt(v int64) {
+	x.xxx_hidden_EmailVerifiedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *User) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *User) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *User) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *User) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *User) HasEmailVerifiedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *User) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *User) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Email = nil
+}
+
+func (x *User) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *User) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+func (x *User) ClearEmailVerifiedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_EmailVerifiedAt = 0
+}
+
+type User_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId    *int64
+	Email     *string
+	CreatedAt *int64
+	UpdatedAt *int64
+	// Zero when the current email has not been verified.
+	EmailVerifiedAt *int64
+}
+
+func (b0 User_builder) Build() *User {
+	m0 := &User{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_Email = b.Email
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	if b.EmailVerifiedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_EmailVerifiedAt = *b.EmailVerifiedAt
+	}
+	return m0
 }
 
 // UserProfile contains fields safe to expose to other users.
 // All timestamps are Unix time in milliseconds.
 type UserProfile struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	UserId    *int64                 `protobuf:"varint,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	Name      *string                `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	AvatarUri *string                `protobuf:"bytes,3,opt,name=avatar_uri,json=avatarUri" json:"avatar_uri,omitempty"`
-	CreatedAt *int64                 `protobuf:"varint,4,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt *int64                 `protobuf:"varint,5,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	// Globally unique lowercase handle.
-	Username      *string `protobuf:"bytes,6,opt,name=username" json:"username,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_AvatarUri   *string                `protobuf:"bytes,3,opt,name=avatar_uri,json=avatarUri"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,5,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Username    *string                `protobuf:"bytes,6,opt,name=username"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UserProfile) Reset() {
@@ -198,56 +315,205 @@ func (x *UserProfile) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UserProfile.ProtoReflect.Descriptor instead.
-func (*UserProfile) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *UserProfile) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *UserProfile) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UserProfile) GetAvatarUri() string {
-	if x != nil && x.AvatarUri != nil {
-		return *x.AvatarUri
+	if x != nil {
+		if x.xxx_hidden_AvatarUri != nil {
+			return *x.xxx_hidden_AvatarUri
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UserProfile) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *UserProfile) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
 func (x *UserProfile) GetUsername() string {
-	if x != nil && x.Username != nil {
-		return *x.Username
+	if x != nil {
+		if x.xxx_hidden_Username != nil {
+			return *x.xxx_hidden_Username
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *UserProfile) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+}
+
+func (x *UserProfile) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+}
+
+func (x *UserProfile) SetAvatarUri(v string) {
+	x.xxx_hidden_AvatarUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+}
+
+func (x *UserProfile) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+}
+
+func (x *UserProfile) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *UserProfile) SetUsername(v string) {
+	x.xxx_hidden_Username = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+}
+
+func (x *UserProfile) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UserProfile) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UserProfile) HasAvatarUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UserProfile) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *UserProfile) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *UserProfile) HasUsername() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *UserProfile) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *UserProfile) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *UserProfile) ClearAvatarUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_AvatarUri = nil
+}
+
+func (x *UserProfile) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *UserProfile) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+func (x *UserProfile) ClearUsername() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Username = nil
+}
+
+type UserProfile_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId    *int64
+	Name      *string
+	AvatarUri *string
+	CreatedAt *int64
+	UpdatedAt *int64
+	// Globally unique lowercase handle.
+	Username *string
+}
+
+func (b0 UserProfile_builder) Build() *UserProfile {
+	m0 := &UserProfile{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.AvatarUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		x.xxx_hidden_AvatarUri = b.AvatarUri
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	if b.Username != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_Username = b.Username
+	}
+	return m0
+}
+
 // The current user is derived from the Authorization bearer token.
 type GetCurrentUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -277,17 +543,24 @@ func (x *GetCurrentUserRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetCurrentUserRequest.ProtoReflect.Descriptor instead.
-func (*GetCurrentUserRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{2}
+type GetCurrentUserRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 GetCurrentUserRequest_builder) Build() *GetCurrentUserRequest {
+	m0 := &GetCurrentUserRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
 }
 
 type GetCurrentUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user" json:"user,omitempty"`
-	Profile       *UserProfile           `protobuf:"bytes,2,opt,name=profile" json:"profile,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_User    *User                  `protobuf:"bytes,1,opt,name=user"`
+	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,2,opt,name=profile"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetCurrentUserResponse) Reset() {
@@ -315,30 +588,73 @@ func (x *GetCurrentUserResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetCurrentUserResponse.ProtoReflect.Descriptor instead.
-func (*GetCurrentUserResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *GetCurrentUserResponse) GetUser() *User {
 	if x != nil {
-		return x.User
+		return x.xxx_hidden_User
 	}
 	return nil
 }
 
 func (x *GetCurrentUserResponse) GetProfile() *UserProfile {
 	if x != nil {
-		return x.Profile
+		return x.xxx_hidden_Profile
 	}
 	return nil
 }
 
+func (x *GetCurrentUserResponse) SetUser(v *User) {
+	x.xxx_hidden_User = v
+}
+
+func (x *GetCurrentUserResponse) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
+}
+
+func (x *GetCurrentUserResponse) HasUser() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_User != nil
+}
+
+func (x *GetCurrentUserResponse) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
+func (x *GetCurrentUserResponse) ClearUser() {
+	x.xxx_hidden_User = nil
+}
+
+func (x *GetCurrentUserResponse) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
+type GetCurrentUserResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	User    *User
+	Profile *UserProfile
+}
+
+func (b0 GetCurrentUserResponse_builder) Build() *GetCurrentUserResponse {
+	m0 := &GetCurrentUserResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_User = b.User
+	x.xxx_hidden_Profile = b.Profile
+	return m0
+}
+
 type GetUserProfileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        *int64                 `protobuf:"varint,1,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetUserProfileRequest) Reset() {
@@ -366,23 +682,52 @@ func (x *GetUserProfileRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetUserProfileRequest.ProtoReflect.Descriptor instead.
-func (*GetUserProfileRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *GetUserProfileRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
+func (x *GetUserProfileRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetUserProfileRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetUserProfileRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+type GetUserProfileRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId *int64
+}
+
+func (b0 GetUserProfileRequest_builder) Build() *GetUserProfileRequest {
+	m0 := &GetUserProfileRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
 type GetUserProfileResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Profile       *UserProfile           `protobuf:"bytes,1,opt,name=profile" json:"profile,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetUserProfileResponse) Reset() {
@@ -410,23 +755,49 @@ func (x *GetUserProfileResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetUserProfileResponse.ProtoReflect.Descriptor instead.
-func (*GetUserProfileResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *GetUserProfileResponse) GetProfile() *UserProfile {
 	if x != nil {
-		return x.Profile
+		return x.xxx_hidden_Profile
 	}
 	return nil
 }
 
+func (x *GetUserProfileResponse) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
+}
+
+func (x *GetUserProfileResponse) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
+func (x *GetUserProfileResponse) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
+type GetUserProfileResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Profile *UserProfile
+}
+
+func (b0 GetUserProfileResponse_builder) Build() *GetUserProfileResponse {
+	m0 := &GetUserProfileResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Profile = b.Profile
+	return m0
+}
+
 type CheckEmailAvailabilityRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         *string                `protobuf:"bytes,1,opt,name=email" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CheckEmailAvailabilityRequest) Reset() {
@@ -454,23 +825,57 @@ func (x *CheckEmailAvailabilityRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CheckEmailAvailabilityRequest.ProtoReflect.Descriptor instead.
-func (*CheckEmailAvailabilityRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *CheckEmailAvailabilityRequest) GetEmail() string {
-	if x != nil && x.Email != nil {
-		return *x.Email
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *CheckEmailAvailabilityRequest) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *CheckEmailAvailabilityRequest) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CheckEmailAvailabilityRequest) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Email = nil
+}
+
+type CheckEmailAvailabilityRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Email *string
+}
+
+func (b0 CheckEmailAvailabilityRequest_builder) Build() *CheckEmailAvailabilityRequest {
+	m0 := &CheckEmailAvailabilityRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Email = b.Email
+	}
+	return m0
+}
+
 type CheckEmailAvailabilityResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Available     *bool                  `protobuf:"varint,1,opt,name=available" json:"available,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Available   bool                   `protobuf:"varint,1,opt,name=available"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CheckEmailAvailabilityResponse) Reset() {
@@ -498,23 +903,54 @@ func (x *CheckEmailAvailabilityResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CheckEmailAvailabilityResponse.ProtoReflect.Descriptor instead.
-func (*CheckEmailAvailabilityResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *CheckEmailAvailabilityResponse) GetAvailable() bool {
-	if x != nil && x.Available != nil {
-		return *x.Available
+	if x != nil {
+		return x.xxx_hidden_Available
 	}
 	return false
 }
 
+func (x *CheckEmailAvailabilityResponse) SetAvailable(v bool) {
+	x.xxx_hidden_Available = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *CheckEmailAvailabilityResponse) HasAvailable() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CheckEmailAvailabilityResponse) ClearAvailable() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Available = false
+}
+
+type CheckEmailAvailabilityResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Available *bool
+}
+
+func (b0 CheckEmailAvailabilityResponse_builder) Build() *CheckEmailAvailabilityResponse {
+	m0 := &CheckEmailAvailabilityResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Available != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Available = *b.Available
+	}
+	return m0
+}
+
 type UpdateEmailRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Email         *string                `protobuf:"bytes,1,opt,name=email" json:"email,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateEmailRequest) Reset() {
@@ -542,23 +978,55 @@ func (x *UpdateEmailRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateEmailRequest.ProtoReflect.Descriptor instead.
-func (*UpdateEmailRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *UpdateEmailRequest) GetEmail() string {
-	if x != nil && x.Email != nil {
-		return *x.Email
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *UpdateEmailRequest) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *UpdateEmailRequest) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateEmailRequest) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Email = nil
+}
+
+type UpdateEmailRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Email *string
+}
+
+func (b0 UpdateEmailRequest_builder) Build() *UpdateEmailRequest {
+	m0 := &UpdateEmailRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Email = b.Email
+	}
+	return m0
+}
+
 type UpdateEmailResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	User          *User                  `protobuf:"bytes,1,opt,name=user" json:"user,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_User *User                  `protobuf:"bytes,1,opt,name=user"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateEmailResponse) Reset() {
@@ -586,25 +1054,51 @@ func (x *UpdateEmailResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateEmailResponse.ProtoReflect.Descriptor instead.
-func (*UpdateEmailResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *UpdateEmailResponse) GetUser() *User {
 	if x != nil {
-		return x.User
+		return x.xxx_hidden_User
 	}
 	return nil
 }
 
+func (x *UpdateEmailResponse) SetUser(v *User) {
+	x.xxx_hidden_User = v
+}
+
+func (x *UpdateEmailResponse) HasUser() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_User != nil
+}
+
+func (x *UpdateEmailResponse) ClearUser() {
+	x.xxx_hidden_User = nil
+}
+
+type UpdateEmailResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	User *User
+}
+
+func (b0 UpdateEmailResponse_builder) Build() *UpdateEmailResponse {
+	m0 := &UpdateEmailResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_User = b.User
+	return m0
+}
+
 // UpdateUserProfile uses replacement semantics for all public profile fields.
 type UpdateUserProfileRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	AvatarUri     *string                `protobuf:"bytes,2,opt,name=avatar_uri,json=avatarUri" json:"avatar_uri,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_AvatarUri   *string                `protobuf:"bytes,2,opt,name=avatar_uri,json=avatarUri"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateUserProfileRequest) Reset() {
@@ -632,30 +1126,87 @@ func (x *UpdateUserProfileRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateUserProfileRequest.ProtoReflect.Descriptor instead.
-func (*UpdateUserProfileRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *UpdateUserProfileRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UpdateUserProfileRequest) GetAvatarUri() string {
-	if x != nil && x.AvatarUri != nil {
-		return *x.AvatarUri
+	if x != nil {
+		if x.xxx_hidden_AvatarUri != nil {
+			return *x.xxx_hidden_AvatarUri
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *UpdateUserProfileRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *UpdateUserProfileRequest) SetAvatarUri(v string) {
+	x.xxx_hidden_AvatarUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *UpdateUserProfileRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateUserProfileRequest) HasAvatarUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateUserProfileRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *UpdateUserProfileRequest) ClearAvatarUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_AvatarUri = nil
+}
+
+type UpdateUserProfileRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name      *string
+	AvatarUri *string
+}
+
+func (b0 UpdateUserProfileRequest_builder) Build() *UpdateUserProfileRequest {
+	m0 := &UpdateUserProfileRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.AvatarUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_AvatarUri = b.AvatarUri
+	}
+	return m0
+}
+
 type UpdateUserProfileResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Profile       *UserProfile           `protobuf:"bytes,1,opt,name=profile" json:"profile,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UpdateUserProfileResponse) Reset() {
@@ -683,24 +1234,50 @@ func (x *UpdateUserProfileResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateUserProfileResponse.ProtoReflect.Descriptor instead.
-func (*UpdateUserProfileResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{11}
-}
-
 func (x *UpdateUserProfileResponse) GetProfile() *UserProfile {
 	if x != nil {
-		return x.Profile
+		return x.xxx_hidden_Profile
 	}
 	return nil
 }
 
+func (x *UpdateUserProfileResponse) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
+}
+
+func (x *UpdateUserProfileResponse) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
+func (x *UpdateUserProfileResponse) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
+type UpdateUserProfileResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Profile *UserProfile
+}
+
+func (b0 UpdateUserProfileResponse_builder) Build() *UpdateUserProfileResponse {
+	m0 := &UpdateUserProfileResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Profile = b.Profile
+	return m0
+}
+
 type ChangePasswordRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OldPassword   *string                `protobuf:"bytes,1,opt,name=old_password,json=oldPassword" json:"old_password,omitempty"`
-	NewPassword   *string                `protobuf:"bytes,2,opt,name=new_password,json=newPassword" json:"new_password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_OldPassword *string                `protobuf:"bytes,1,opt,name=old_password,json=oldPassword"`
+	xxx_hidden_NewPassword *string                `protobuf:"bytes,2,opt,name=new_password,json=newPassword"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ChangePasswordRequest) Reset() {
@@ -728,30 +1305,89 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
-func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{12}
-}
-
 func (x *ChangePasswordRequest) GetOldPassword() string {
-	if x != nil && x.OldPassword != nil {
-		return *x.OldPassword
+	if x != nil {
+		if x.xxx_hidden_OldPassword != nil {
+			return *x.xxx_hidden_OldPassword
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *ChangePasswordRequest) GetNewPassword() string {
-	if x != nil && x.NewPassword != nil {
-		return *x.NewPassword
+	if x != nil {
+		if x.xxx_hidden_NewPassword != nil {
+			return *x.xxx_hidden_NewPassword
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *ChangePasswordRequest) SetOldPassword(v string) {
+	x.xxx_hidden_OldPassword = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ChangePasswordRequest) SetNewPassword(v string) {
+	x.xxx_hidden_NewPassword = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ChangePasswordRequest) HasOldPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ChangePasswordRequest) HasNewPassword() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ChangePasswordRequest) ClearOldPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_OldPassword = nil
+}
+
+func (x *ChangePasswordRequest) ClearNewPassword() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_NewPassword = nil
+}
+
+type ChangePasswordRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	OldPassword *string
+	NewPassword *string
+}
+
+func (b0 ChangePasswordRequest_builder) Build() *ChangePasswordRequest {
+	m0 := &ChangePasswordRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.OldPassword != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_OldPassword = b.OldPassword
+	}
+	if b.NewPassword != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_NewPassword = b.NewPassword
+	}
+	return m0
+}
+
 type ChangePasswordResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ChangePasswordResponse) Reset() {
@@ -779,28 +1415,59 @@ func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ChangePasswordResponse.ProtoReflect.Descriptor instead.
-func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{13}
-}
-
 func (x *ChangePasswordResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
+}
+
+func (x *ChangePasswordResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ChangePasswordResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ChangePasswordResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type ChangePasswordResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 ChangePasswordResponse_builder) Build() *ChangePasswordResponse {
+	m0 := &ChangePasswordResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
 }
 
 // Relationship is the caller's view of their link to another user.
 // All timestamps are Unix time in milliseconds.
 type Relationship struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	Type          *RelationshipType      `protobuf:"varint,2,opt,name=type,enum=api.v1.RelationshipType" json:"type,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,3,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,4,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	xxx_hidden_Type        RelationshipType       `protobuf:"varint,2,opt,name=type,enum=api.v1.RelationshipType"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,4,opt,name=updated_at,json=updatedAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Relationship) Reset() {
@@ -828,44 +1495,143 @@ func (x *Relationship) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Relationship.ProtoReflect.Descriptor instead.
-func (*Relationship) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{14}
-}
-
 func (x *Relationship) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
 func (x *Relationship) GetType() RelationshipType {
-	if x != nil && x.Type != nil {
-		return *x.Type
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
+			return x.xxx_hidden_Type
+		}
 	}
 	return RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
 }
 
 func (x *Relationship) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *Relationship) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
+func (x *Relationship) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *Relationship) SetType(v RelationshipType) {
+	x.xxx_hidden_Type = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *Relationship) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *Relationship) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *Relationship) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *Relationship) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *Relationship) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *Relationship) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *Relationship) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+func (x *Relationship) ClearType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Type = RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
+}
+
+func (x *Relationship) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *Relationship) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+type Relationship_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId  *int64
+	Type      *RelationshipType
+	CreatedAt *int64
+	UpdatedAt *int64
+}
+
+func (b0 Relationship_builder) Build() *Relationship {
+	m0 := &Relationship{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	if b.Type != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_Type = *b.Type
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	return m0
+}
+
 type LookupUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      *string                `protobuf:"bytes,1,opt,name=username" json:"username,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Username    *string                `protobuf:"bytes,1,opt,name=username"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *LookupUserRequest) Reset() {
@@ -893,23 +1659,55 @@ func (x *LookupUserRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupUserRequest.ProtoReflect.Descriptor instead.
-func (*LookupUserRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{15}
-}
-
 func (x *LookupUserRequest) GetUsername() string {
-	if x != nil && x.Username != nil {
-		return *x.Username
+	if x != nil {
+		if x.xxx_hidden_Username != nil {
+			return *x.xxx_hidden_Username
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *LookupUserRequest) SetUsername(v string) {
+	x.xxx_hidden_Username = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *LookupUserRequest) HasUsername() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *LookupUserRequest) ClearUsername() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Username = nil
+}
+
+type LookupUserRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Username *string
+}
+
+func (b0 LookupUserRequest_builder) Build() *LookupUserRequest {
+	m0 := &LookupUserRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Username != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Username = b.Username
+	}
+	return m0
+}
+
 type LookupUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Profile       *UserProfile           `protobuf:"bytes,1,opt,name=profile" json:"profile,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *LookupUserResponse) Reset() {
@@ -937,23 +1735,49 @@ func (x *LookupUserResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LookupUserResponse.ProtoReflect.Descriptor instead.
-func (*LookupUserResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{16}
-}
-
 func (x *LookupUserResponse) GetProfile() *UserProfile {
 	if x != nil {
-		return x.Profile
+		return x.xxx_hidden_Profile
 	}
 	return nil
 }
 
+func (x *LookupUserResponse) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
+}
+
+func (x *LookupUserResponse) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
+func (x *LookupUserResponse) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
+type LookupUserResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Profile *UserProfile
+}
+
+func (b0 LookupUserResponse_builder) Build() *LookupUserResponse {
+	m0 := &LookupUserResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Profile = b.Profile
+	return m0
+}
+
 type SendFriendRequestRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *SendFriendRequestRequest) Reset() {
@@ -981,25 +1805,52 @@ func (x *SendFriendRequestRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SendFriendRequestRequest.ProtoReflect.Descriptor instead.
-func (*SendFriendRequestRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{17}
-}
-
 func (x *SendFriendRequestRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *SendFriendRequestRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *SendFriendRequestRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *SendFriendRequestRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+type SendFriendRequestRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId *int64
+}
+
+func (b0 SendFriendRequestRequest_builder) Build() *SendFriendRequestRequest {
+	m0 := &SendFriendRequestRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type SendFriendRequestResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Outgoing after a fresh request, or friend when the target had already
-	// sent a request the other way.
-	Relationship  *Relationship `protobuf:"bytes,1,opt,name=relationship" json:"relationship,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Relationship *Relationship          `protobuf:"bytes,1,opt,name=relationship"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *SendFriendRequestResponse) Reset() {
@@ -1027,23 +1878,51 @@ func (x *SendFriendRequestResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SendFriendRequestResponse.ProtoReflect.Descriptor instead.
-func (*SendFriendRequestResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{18}
-}
-
 func (x *SendFriendRequestResponse) GetRelationship() *Relationship {
 	if x != nil {
-		return x.Relationship
+		return x.xxx_hidden_Relationship
 	}
 	return nil
 }
 
+func (x *SendFriendRequestResponse) SetRelationship(v *Relationship) {
+	x.xxx_hidden_Relationship = v
+}
+
+func (x *SendFriendRequestResponse) HasRelationship() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Relationship != nil
+}
+
+func (x *SendFriendRequestResponse) ClearRelationship() {
+	x.xxx_hidden_Relationship = nil
+}
+
+type SendFriendRequestResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Outgoing after a fresh request, or friend when the target had already
+	// sent a request the other way.
+	Relationship *Relationship
+}
+
+func (b0 SendFriendRequestResponse_builder) Build() *SendFriendRequestResponse {
+	m0 := &SendFriendRequestResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Relationship = b.Relationship
+	return m0
+}
+
 type AcceptFriendRequestRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *AcceptFriendRequestRequest) Reset() {
@@ -1071,23 +1950,52 @@ func (x *AcceptFriendRequestRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AcceptFriendRequestRequest.ProtoReflect.Descriptor instead.
-func (*AcceptFriendRequestRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{19}
-}
-
 func (x *AcceptFriendRequestRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *AcceptFriendRequestRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *AcceptFriendRequestRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AcceptFriendRequestRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+type AcceptFriendRequestRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId *int64
+}
+
+func (b0 AcceptFriendRequestRequest_builder) Build() *AcceptFriendRequestRequest {
+	m0 := &AcceptFriendRequestRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type AcceptFriendRequestResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Relationship  *Relationship          `protobuf:"bytes,1,opt,name=relationship" json:"relationship,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Relationship *Relationship          `protobuf:"bytes,1,opt,name=relationship"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *AcceptFriendRequestResponse) Reset() {
@@ -1115,23 +2023,49 @@ func (x *AcceptFriendRequestResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AcceptFriendRequestResponse.ProtoReflect.Descriptor instead.
-func (*AcceptFriendRequestResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{20}
-}
-
 func (x *AcceptFriendRequestResponse) GetRelationship() *Relationship {
 	if x != nil {
-		return x.Relationship
+		return x.xxx_hidden_Relationship
 	}
 	return nil
 }
 
+func (x *AcceptFriendRequestResponse) SetRelationship(v *Relationship) {
+	x.xxx_hidden_Relationship = v
+}
+
+func (x *AcceptFriendRequestResponse) HasRelationship() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Relationship != nil
+}
+
+func (x *AcceptFriendRequestResponse) ClearRelationship() {
+	x.xxx_hidden_Relationship = nil
+}
+
+type AcceptFriendRequestResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Relationship *Relationship
+}
+
+func (b0 AcceptFriendRequestResponse_builder) Build() *AcceptFriendRequestResponse {
+	m0 := &AcceptFriendRequestResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Relationship = b.Relationship
+	return m0
+}
+
 type DeclineFriendRequestRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeclineFriendRequestRequest) Reset() {
@@ -1159,23 +2093,54 @@ func (x *DeclineFriendRequestRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeclineFriendRequestRequest.ProtoReflect.Descriptor instead.
-func (*DeclineFriendRequestRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{21}
-}
-
 func (x *DeclineFriendRequestRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *DeclineFriendRequestRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeclineFriendRequestRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeclineFriendRequestRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+type DeclineFriendRequestRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId *int64
+}
+
+func (b0 DeclineFriendRequestRequest_builder) Build() *DeclineFriendRequestRequest {
+	m0 := &DeclineFriendRequestRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type DeclineFriendRequestResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeclineFriendRequestResponse) Reset() {
@@ -1203,23 +2168,54 @@ func (x *DeclineFriendRequestResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeclineFriendRequestResponse.ProtoReflect.Descriptor instead.
-func (*DeclineFriendRequestResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{22}
-}
-
 func (x *DeclineFriendRequestResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DeclineFriendRequestResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeclineFriendRequestResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeclineFriendRequestResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DeclineFriendRequestResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DeclineFriendRequestResponse_builder) Build() *DeclineFriendRequestResponse {
+	m0 := &DeclineFriendRequestResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type RemoveFriendRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RemoveFriendRequest) Reset() {
@@ -1247,23 +2243,54 @@ func (x *RemoveFriendRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveFriendRequest.ProtoReflect.Descriptor instead.
-func (*RemoveFriendRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{23}
-}
-
 func (x *RemoveFriendRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *RemoveFriendRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RemoveFriendRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RemoveFriendRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+type RemoveFriendRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId *int64
+}
+
+func (b0 RemoveFriendRequest_builder) Build() *RemoveFriendRequest {
+	m0 := &RemoveFriendRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type RemoveFriendResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RemoveFriendResponse) Reset() {
@@ -1291,23 +2318,54 @@ func (x *RemoveFriendResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveFriendResponse.ProtoReflect.Descriptor instead.
-func (*RemoveFriendResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{24}
-}
-
 func (x *RemoveFriendResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *RemoveFriendResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RemoveFriendResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RemoveFriendResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type RemoveFriendResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 RemoveFriendResponse_builder) Build() *RemoveFriendResponse {
+	m0 := &RemoveFriendResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type BlockUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *BlockUserRequest) Reset() {
@@ -1335,23 +2393,52 @@ func (x *BlockUserRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BlockUserRequest.ProtoReflect.Descriptor instead.
-func (*BlockUserRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{25}
-}
-
 func (x *BlockUserRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *BlockUserRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *BlockUserRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *BlockUserRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+type BlockUserRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId *int64
+}
+
+func (b0 BlockUserRequest_builder) Build() *BlockUserRequest {
+	m0 := &BlockUserRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type BlockUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Relationship  *Relationship          `protobuf:"bytes,1,opt,name=relationship" json:"relationship,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Relationship *Relationship          `protobuf:"bytes,1,opt,name=relationship"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *BlockUserResponse) Reset() {
@@ -1379,23 +2466,49 @@ func (x *BlockUserResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BlockUserResponse.ProtoReflect.Descriptor instead.
-func (*BlockUserResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{26}
-}
-
 func (x *BlockUserResponse) GetRelationship() *Relationship {
 	if x != nil {
-		return x.Relationship
+		return x.xxx_hidden_Relationship
 	}
 	return nil
 }
 
+func (x *BlockUserResponse) SetRelationship(v *Relationship) {
+	x.xxx_hidden_Relationship = v
+}
+
+func (x *BlockUserResponse) HasRelationship() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Relationship != nil
+}
+
+func (x *BlockUserResponse) ClearRelationship() {
+	x.xxx_hidden_Relationship = nil
+}
+
+type BlockUserResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Relationship *Relationship
+}
+
+func (b0 BlockUserResponse_builder) Build() *BlockUserResponse {
+	m0 := &BlockUserResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Relationship = b.Relationship
+	return m0
+}
+
 type UnblockUserRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UnblockUserRequest) Reset() {
@@ -1423,23 +2536,54 @@ func (x *UnblockUserRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UnblockUserRequest.ProtoReflect.Descriptor instead.
-func (*UnblockUserRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{27}
-}
-
 func (x *UnblockUserRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *UnblockUserRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *UnblockUserRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UnblockUserRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+type UnblockUserRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId *int64
+}
+
+func (b0 UnblockUserRequest_builder) Build() *UnblockUserRequest {
+	m0 := &UnblockUserRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type UnblockUserResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UnblockUserResponse) Reset() {
@@ -1467,27 +2611,56 @@ func (x *UnblockUserResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UnblockUserResponse.ProtoReflect.Descriptor instead.
-func (*UnblockUserResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{28}
-}
-
 func (x *UnblockUserResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *UnblockUserResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *UnblockUserResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UnblockUserResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type UnblockUserResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 UnblockUserResponse_builder) Build() *UnblockUserResponse {
+	m0 := &UnblockUserResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type ListRelationshipsRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Optional filter; unspecified returns every type.
-	Type *RelationshipType `protobuf:"varint,1,opt,name=type,enum=api.v1.RelationshipType" json:"type,omitempty"`
-	// Return relationships with target IDs smaller than this cursor.
-	BeforeTargetId *int64 `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId" json:"before_target_id,omitempty"`
-	Limit          *int32 `protobuf:"varint,3,opt,name=limit" json:"limit,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Type           RelationshipType       `protobuf:"varint,1,opt,name=type,enum=api.v1.RelationshipType"`
+	xxx_hidden_BeforeTargetId int64                  `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId"`
+	xxx_hidden_Limit          int32                  `protobuf:"varint,3,opt,name=limit"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListRelationshipsRequest) Reset() {
@@ -1515,38 +2688,117 @@ func (x *ListRelationshipsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListRelationshipsRequest.ProtoReflect.Descriptor instead.
-func (*ListRelationshipsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{29}
-}
-
 func (x *ListRelationshipsRequest) GetType() RelationshipType {
-	if x != nil && x.Type != nil {
-		return *x.Type
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 0) {
+			return x.xxx_hidden_Type
+		}
 	}
 	return RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
 }
 
 func (x *ListRelationshipsRequest) GetBeforeTargetId() int64 {
-	if x != nil && x.BeforeTargetId != nil {
-		return *x.BeforeTargetId
+	if x != nil {
+		return x.xxx_hidden_BeforeTargetId
 	}
 	return 0
 }
 
 func (x *ListRelationshipsRequest) GetLimit() int32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+	if x != nil {
+		return x.xxx_hidden_Limit
 	}
 	return 0
 }
 
+func (x *ListRelationshipsRequest) SetType(v RelationshipType) {
+	x.xxx_hidden_Type = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *ListRelationshipsRequest) SetBeforeTargetId(v int64) {
+	x.xxx_hidden_BeforeTargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListRelationshipsRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListRelationshipsRequest) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListRelationshipsRequest) HasBeforeTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListRelationshipsRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListRelationshipsRequest) ClearType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Type = RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
+}
+
+func (x *ListRelationshipsRequest) ClearBeforeTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeTargetId = 0
+}
+
+func (x *ListRelationshipsRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListRelationshipsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Optional filter; unspecified returns every type.
+	Type *RelationshipType
+	// Return relationships with target IDs smaller than this cursor.
+	BeforeTargetId *int64
+	Limit          *int32
+}
+
+func (b0 ListRelationshipsRequest_builder) Build() *ListRelationshipsRequest {
+	m0 := &ListRelationshipsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Type != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_Type = *b.Type
+	}
+	if b.BeforeTargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_BeforeTargetId = *b.BeforeTargetId
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
 type ListRelationshipsResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Relationships  []*Relationship        `protobuf:"bytes,1,rep,name=relationships" json:"relationships,omitempty"`
-	BeforeTargetId *int64                 `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId" json:"before_target_id,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Relationships  *[]*Relationship       `protobuf:"bytes,1,rep,name=relationships"`
+	xxx_hidden_BeforeTargetId int64                  `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ListRelationshipsResponse) Reset() {
@@ -1574,30 +2826,69 @@ func (x *ListRelationshipsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListRelationshipsResponse.ProtoReflect.Descriptor instead.
-func (*ListRelationshipsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{30}
-}
-
 func (x *ListRelationshipsResponse) GetRelationships() []*Relationship {
 	if x != nil {
-		return x.Relationships
+		if x.xxx_hidden_Relationships != nil {
+			return *x.xxx_hidden_Relationships
+		}
 	}
 	return nil
 }
 
 func (x *ListRelationshipsResponse) GetBeforeTargetId() int64 {
-	if x != nil && x.BeforeTargetId != nil {
-		return *x.BeforeTargetId
+	if x != nil {
+		return x.xxx_hidden_BeforeTargetId
 	}
 	return 0
 }
 
+func (x *ListRelationshipsResponse) SetRelationships(v []*Relationship) {
+	x.xxx_hidden_Relationships = &v
+}
+
+func (x *ListRelationshipsResponse) SetBeforeTargetId(v int64) {
+	x.xxx_hidden_BeforeTargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListRelationshipsResponse) HasBeforeTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListRelationshipsResponse) ClearBeforeTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeTargetId = 0
+}
+
+type ListRelationshipsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Relationships  []*Relationship
+	BeforeTargetId *int64
+}
+
+func (b0 ListRelationshipsResponse_builder) Build() *ListRelationshipsResponse {
+	m0 := &ListRelationshipsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Relationships = &b.Relationships
+	if b.BeforeTargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_BeforeTargetId = *b.BeforeTargetId
+	}
+	return m0
+}
+
 type UpdateUsernameRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      *string                `protobuf:"bytes,1,opt,name=username" json:"username,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Username    *string                `protobuf:"bytes,1,opt,name=username"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateUsernameRequest) Reset() {
@@ -1625,23 +2916,55 @@ func (x *UpdateUsernameRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateUsernameRequest.ProtoReflect.Descriptor instead.
-func (*UpdateUsernameRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{31}
-}
-
 func (x *UpdateUsernameRequest) GetUsername() string {
-	if x != nil && x.Username != nil {
-		return *x.Username
+	if x != nil {
+		if x.xxx_hidden_Username != nil {
+			return *x.xxx_hidden_Username
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *UpdateUsernameRequest) SetUsername(v string) {
+	x.xxx_hidden_Username = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *UpdateUsernameRequest) HasUsername() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateUsernameRequest) ClearUsername() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Username = nil
+}
+
+type UpdateUsernameRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Username *string
+}
+
+func (b0 UpdateUsernameRequest_builder) Build() *UpdateUsernameRequest {
+	m0 := &UpdateUsernameRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Username != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Username = b.Username
+	}
+	return m0
+}
+
 type UpdateUsernameResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Profile       *UserProfile           `protobuf:"bytes,1,opt,name=profile" json:"profile,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UpdateUsernameResponse) Reset() {
@@ -1669,16 +2992,40 @@ func (x *UpdateUsernameResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateUsernameResponse.ProtoReflect.Descriptor instead.
-func (*UpdateUsernameResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_user_proto_rawDescGZIP(), []int{32}
-}
-
 func (x *UpdateUsernameResponse) GetProfile() *UserProfile {
 	if x != nil {
-		return x.Profile
+		return x.xxx_hidden_Profile
 	}
 	return nil
+}
+
+func (x *UpdateUsernameResponse) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
+}
+
+func (x *UpdateUsernameResponse) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
+func (x *UpdateUsernameResponse) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
+type UpdateUsernameResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Profile *UserProfile
+}
+
+func (b0 UpdateUsernameResponse_builder) Build() *UpdateUsernameResponse {
+	m0 := &UpdateUsernameResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Profile = b.Profile
+	return m0
 }
 
 var File_api_v1_user_proto protoreflect.FileDescriptor
@@ -1802,18 +3149,6 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"\x11ListRelationships\x12 .api.v1.ListRelationshipsRequest\x1a!.api.v1.ListRelationshipsResponseB|\n" +
 	"\n" +
 	"com.api.v1B\tUserProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
-
-var (
-	file_api_v1_user_proto_rawDescOnce sync.Once
-	file_api_v1_user_proto_rawDescData []byte
-)
-
-func file_api_v1_user_proto_rawDescGZIP() []byte {
-	file_api_v1_user_proto_rawDescOnce.Do(func() {
-		file_api_v1_user_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_v1_user_proto_rawDesc), len(file_api_v1_user_proto_rawDesc)))
-	})
-	return file_api_v1_user_proto_rawDescData
-}
 
 var file_api_v1_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_api_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 33)

@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -93,11 +92,6 @@ func (x GuildPermission) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use GuildPermission.Descriptor instead.
-func (GuildPermission) EnumDescriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{0}
-}
-
 type GuildChannelType int32
 
 const (
@@ -145,11 +139,6 @@ func (x GuildChannelType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use GuildChannelType.Descriptor instead.
-func (GuildChannelType) EnumDescriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{1}
-}
-
 type GuildPermissionOverwriteType int32
 
 const (
@@ -194,24 +183,21 @@ func (x GuildPermissionOverwriteType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use GuildPermissionOverwriteType.Descriptor instead.
-func (GuildPermissionOverwriteType) EnumDescriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{2}
-}
-
 // Guild is a community the authenticated user belongs to.
 // All timestamps are Unix time in milliseconds.
 type Guild struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	OwnerId       *int64                 `protobuf:"varint,2,opt,name=owner_id,json=ownerId" json:"owner_id,omitempty"`
-	Name          *string                `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	IconUri       *string                `protobuf:"bytes,4,opt,name=icon_uri,json=iconUri" json:"icon_uri,omitempty"`
-	Revision      *int64                 `protobuf:"varint,5,opt,name=revision" json:"revision,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,6,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,7,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_OwnerId     int64                  `protobuf:"varint,2,opt,name=owner_id,json=ownerId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_IconUri     *string                `protobuf:"bytes,4,opt,name=icon_uri,json=iconUri"`
+	xxx_hidden_Revision    int64                  `protobuf:"varint,5,opt,name=revision"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,7,opt,name=updated_at,json=updatedAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Guild) Reset() {
@@ -239,72 +225,241 @@ func (x *Guild) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Guild.ProtoReflect.Descriptor instead.
-func (*Guild) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *Guild) GetId() int64 {
-	if x != nil && x.Id != nil {
-		return *x.Id
+	if x != nil {
+		return x.xxx_hidden_Id
 	}
 	return 0
 }
 
 func (x *Guild) GetOwnerId() int64 {
-	if x != nil && x.OwnerId != nil {
-		return *x.OwnerId
+	if x != nil {
+		return x.xxx_hidden_OwnerId
 	}
 	return 0
 }
 
 func (x *Guild) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Guild) GetIconUri() string {
-	if x != nil && x.IconUri != nil {
-		return *x.IconUri
+	if x != nil {
+		if x.xxx_hidden_IconUri != nil {
+			return *x.xxx_hidden_IconUri
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Guild) GetRevision() int64 {
-	if x != nil && x.Revision != nil {
-		return *x.Revision
+	if x != nil {
+		return x.xxx_hidden_Revision
 	}
 	return 0
 }
 
 func (x *Guild) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *Guild) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
+}
+
+func (x *Guild) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+}
+
+func (x *Guild) SetOwnerId(v int64) {
+	x.xxx_hidden_OwnerId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+}
+
+func (x *Guild) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+}
+
+func (x *Guild) SetIconUri(v string) {
+	x.xxx_hidden_IconUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+}
+
+func (x *Guild) SetRevision(v int64) {
+	x.xxx_hidden_Revision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+}
+
+func (x *Guild) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *Guild) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
+func (x *Guild) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *Guild) HasOwnerId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *Guild) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *Guild) HasIconUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *Guild) HasRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *Guild) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *Guild) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *Guild) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = 0
+}
+
+func (x *Guild) ClearOwnerId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_OwnerId = 0
+}
+
+func (x *Guild) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *Guild) ClearIconUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_IconUri = nil
+}
+
+func (x *Guild) ClearRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Revision = 0
+}
+
+func (x *Guild) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *Guild) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+type Guild_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id        *int64
+	OwnerId   *int64
+	Name      *string
+	IconUri   *string
+	Revision  *int64
+	CreatedAt *int64
+	UpdatedAt *int64
+}
+
+func (b0 Guild_builder) Build() *Guild {
+	m0 := &Guild{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		x.xxx_hidden_Id = *b.Id
+	}
+	if b.OwnerId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		x.xxx_hidden_OwnerId = *b.OwnerId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.IconUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		x.xxx_hidden_IconUri = b.IconUri
+	}
+	if b.Revision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		x.xxx_hidden_Revision = *b.Revision
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	return m0
 }
 
 // GuildMember is a user's membership in one guild.
 // All timestamps are Unix time in milliseconds.
 type GuildMember struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	Nickname      *string                `protobuf:"bytes,3,opt,name=nickname" json:"nickname,omitempty"`
-	Revision      *int64                 `protobuf:"varint,4,opt,name=revision" json:"revision,omitempty"`
-	JoinedAt      *int64                 `protobuf:"varint,5,opt,name=joined_at,json=joinedAt" json:"joined_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,6,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_Nickname    *string                `protobuf:"bytes,3,opt,name=nickname"`
+	xxx_hidden_Revision    int64                  `protobuf:"varint,4,opt,name=revision"`
+	xxx_hidden_JoinedAt    int64                  `protobuf:"varint,5,opt,name=joined_at,json=joinedAt"`
+	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,6,opt,name=updated_at,json=updatedAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GuildMember) Reset() {
@@ -332,62 +487,206 @@ func (x *GuildMember) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildMember.ProtoReflect.Descriptor instead.
-func (*GuildMember) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *GuildMember) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GuildMember) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *GuildMember) GetNickname() string {
-	if x != nil && x.Nickname != nil {
-		return *x.Nickname
+	if x != nil {
+		if x.xxx_hidden_Nickname != nil {
+			return *x.xxx_hidden_Nickname
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildMember) GetRevision() int64 {
-	if x != nil && x.Revision != nil {
-		return *x.Revision
+	if x != nil {
+		return x.xxx_hidden_Revision
 	}
 	return 0
 }
 
 func (x *GuildMember) GetJoinedAt() int64 {
-	if x != nil && x.JoinedAt != nil {
-		return *x.JoinedAt
+	if x != nil {
+		return x.xxx_hidden_JoinedAt
 	}
 	return 0
 }
 
 func (x *GuildMember) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
+func (x *GuildMember) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+}
+
+func (x *GuildMember) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+}
+
+func (x *GuildMember) SetNickname(v string) {
+	x.xxx_hidden_Nickname = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+}
+
+func (x *GuildMember) SetRevision(v int64) {
+	x.xxx_hidden_Revision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+}
+
+func (x *GuildMember) SetJoinedAt(v int64) {
+	x.xxx_hidden_JoinedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *GuildMember) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+}
+
+func (x *GuildMember) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildMember) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildMember) HasNickname() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildMember) HasRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildMember) HasJoinedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildMember) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *GuildMember) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildMember) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *GuildMember) ClearNickname() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Nickname = nil
+}
+
+func (x *GuildMember) ClearRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Revision = 0
+}
+
+func (x *GuildMember) ClearJoinedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_JoinedAt = 0
+}
+
+func (x *GuildMember) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+type GuildMember_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId   *int64
+	UserId    *int64
+	Nickname  *string
+	Revision  *int64
+	JoinedAt  *int64
+	UpdatedAt *int64
+}
+
+func (b0 GuildMember_builder) Build() *GuildMember {
+	m0 := &GuildMember{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Nickname != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		x.xxx_hidden_Nickname = b.Nickname
+	}
+	if b.Revision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		x.xxx_hidden_Revision = *b.Revision
+	}
+	if b.JoinedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		x.xxx_hidden_JoinedAt = *b.JoinedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	return m0
+}
+
 type GuildBan struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	ActorUserId   *int64                 `protobuf:"varint,3,opt,name=actor_user_id,json=actorUserId" json:"actor_user_id,omitempty"`
-	Reason        *string                `protobuf:"bytes,4,opt,name=reason" json:"reason,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,5,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,3,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Reason      *string                `protobuf:"bytes,4,opt,name=reason"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,5,opt,name=created_at,json=createdAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GuildBan) Reset() {
@@ -415,61 +714,183 @@ func (x *GuildBan) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildBan.ProtoReflect.Descriptor instead.
-func (*GuildBan) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *GuildBan) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GuildBan) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *GuildBan) GetActorUserId() int64 {
-	if x != nil && x.ActorUserId != nil {
-		return *x.ActorUserId
+	if x != nil {
+		return x.xxx_hidden_ActorUserId
 	}
 	return 0
 }
 
 func (x *GuildBan) GetReason() string {
-	if x != nil && x.Reason != nil {
-		return *x.Reason
+	if x != nil {
+		if x.xxx_hidden_Reason != nil {
+			return *x.xxx_hidden_Reason
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildBan) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
+}
+
+func (x *GuildBan) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *GuildBan) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *GuildBan) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *GuildBan) SetReason(v string) {
+	x.xxx_hidden_Reason = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *GuildBan) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *GuildBan) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildBan) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildBan) HasActorUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildBan) HasReason() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildBan) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildBan) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildBan) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *GuildBan) ClearActorUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ActorUserId = 0
+}
+
+func (x *GuildBan) ClearReason() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Reason = nil
+}
+
+func (x *GuildBan) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+type GuildBan_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId     *int64
+	UserId      *int64
+	ActorUserId *int64
+	Reason      *string
+	CreatedAt   *int64
+}
+
+func (b0 GuildBan_builder) Build() *GuildBan {
+	m0 := &GuildBan{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.ActorUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
+	}
+	if b.Reason != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_Reason = b.Reason
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	return m0
 }
 
 // GuildRole grants guild-level permissions to assigned members.
 // All timestamps are Unix time in milliseconds.
 type GuildRole struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	GuildId       *int64                 `protobuf:"varint,2,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	Name          *string                `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Permissions   *uint64                `protobuf:"varint,4,opt,name=permissions" json:"permissions,omitempty"`
-	Position      *int32                 `protobuf:"varint,5,opt,name=position" json:"position,omitempty"`
-	IsDefault     *bool                  `protobuf:"varint,6,opt,name=is_default,json=isDefault" json:"is_default,omitempty"`
-	Revision      *int64                 `protobuf:"varint,7,opt,name=revision" json:"revision,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,8,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,9,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Permissions uint64                 `protobuf:"varint,4,opt,name=permissions"`
+	xxx_hidden_Position    int32                  `protobuf:"varint,5,opt,name=position"`
+	xxx_hidden_IsDefault   bool                   `protobuf:"varint,6,opt,name=is_default,json=isDefault"`
+	xxx_hidden_Revision    int64                  `protobuf:"varint,7,opt,name=revision"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,8,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,9,opt,name=updated_at,json=updatedAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GuildRole) Reset() {
@@ -497,88 +918,298 @@ func (x *GuildRole) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildRole.ProtoReflect.Descriptor instead.
-func (*GuildRole) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *GuildRole) GetId() int64 {
-	if x != nil && x.Id != nil {
-		return *x.Id
+	if x != nil {
+		return x.xxx_hidden_Id
 	}
 	return 0
 }
 
 func (x *GuildRole) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GuildRole) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildRole) GetPermissions() uint64 {
-	if x != nil && x.Permissions != nil {
-		return *x.Permissions
+	if x != nil {
+		return x.xxx_hidden_Permissions
 	}
 	return 0
 }
 
 func (x *GuildRole) GetPosition() int32 {
-	if x != nil && x.Position != nil {
-		return *x.Position
+	if x != nil {
+		return x.xxx_hidden_Position
 	}
 	return 0
 }
 
 func (x *GuildRole) GetIsDefault() bool {
-	if x != nil && x.IsDefault != nil {
-		return *x.IsDefault
+	if x != nil {
+		return x.xxx_hidden_IsDefault
 	}
 	return false
 }
 
 func (x *GuildRole) GetRevision() int64 {
-	if x != nil && x.Revision != nil {
-		return *x.Revision
+	if x != nil {
+		return x.xxx_hidden_Revision
 	}
 	return 0
 }
 
 func (x *GuildRole) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *GuildRole) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
+func (x *GuildRole) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+}
+
+func (x *GuildRole) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+}
+
+func (x *GuildRole) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+}
+
+func (x *GuildRole) SetPermissions(v uint64) {
+	x.xxx_hidden_Permissions = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+}
+
+func (x *GuildRole) SetPosition(v int32) {
+	x.xxx_hidden_Position = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
+}
+
+func (x *GuildRole) SetIsDefault(v bool) {
+	x.xxx_hidden_IsDefault = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+}
+
+func (x *GuildRole) SetRevision(v int64) {
+	x.xxx_hidden_Revision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+}
+
+func (x *GuildRole) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *GuildRole) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
+}
+
+func (x *GuildRole) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildRole) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildRole) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildRole) HasPermissions() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildRole) HasPosition() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildRole) HasIsDefault() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *GuildRole) HasRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *GuildRole) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *GuildRole) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
+func (x *GuildRole) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = 0
+}
+
+func (x *GuildRole) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildRole) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *GuildRole) ClearPermissions() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Permissions = 0
+}
+
+func (x *GuildRole) ClearPosition() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Position = 0
+}
+
+func (x *GuildRole) ClearIsDefault() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_IsDefault = false
+}
+
+func (x *GuildRole) ClearRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Revision = 0
+}
+
+func (x *GuildRole) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *GuildRole) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+type GuildRole_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id          *int64
+	GuildId     *int64
+	Name        *string
+	Permissions *uint64
+	Position    *int32
+	IsDefault   *bool
+	Revision    *int64
+	CreatedAt   *int64
+	UpdatedAt   *int64
+}
+
+func (b0 GuildRole_builder) Build() *GuildRole {
+	m0 := &GuildRole{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		x.xxx_hidden_Id = *b.Id
+	}
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Permissions != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		x.xxx_hidden_Permissions = *b.Permissions
+	}
+	if b.Position != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
+		x.xxx_hidden_Position = *b.Position
+	}
+	if b.IsDefault != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
+		x.xxx_hidden_IsDefault = *b.IsDefault
+	}
+	if b.Revision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		x.xxx_hidden_Revision = *b.Revision
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	return m0
+}
+
 type GuildChannel struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	GuildId       *int64                 `protobuf:"varint,2,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	Name          *string                `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Type          *GuildChannelType      `protobuf:"varint,4,opt,name=type,enum=api.v1.GuildChannelType" json:"type,omitempty"`
-	Position      *int32                 `protobuf:"varint,5,opt,name=position" json:"position,omitempty"`
-	Topic         *string                `protobuf:"bytes,6,opt,name=topic" json:"topic,omitempty"`
-	Revision      *int64                 `protobuf:"varint,7,opt,name=revision" json:"revision,omitempty"`
-	CreatedAt     *int64                 `protobuf:"varint,8,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                 `protobuf:"varint,9,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	ParentId      *int64                 `protobuf:"varint,10,opt,name=parent_id,json=parentId" json:"parent_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Type        GuildChannelType       `protobuf:"varint,4,opt,name=type,enum=api.v1.GuildChannelType"`
+	xxx_hidden_Position    int32                  `protobuf:"varint,5,opt,name=position"`
+	xxx_hidden_Topic       *string                `protobuf:"bytes,6,opt,name=topic"`
+	xxx_hidden_Revision    int64                  `protobuf:"varint,7,opt,name=revision"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,8,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,9,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_ParentId    int64                  `protobuf:"varint,10,opt,name=parent_id,json=parentId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GuildChannel) Reset() {
@@ -606,94 +1237,331 @@ func (x *GuildChannel) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildChannel.ProtoReflect.Descriptor instead.
-func (*GuildChannel) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *GuildChannel) GetId() int64 {
-	if x != nil && x.Id != nil {
-		return *x.Id
+	if x != nil {
+		return x.xxx_hidden_Id
 	}
 	return 0
 }
 
 func (x *GuildChannel) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GuildChannel) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildChannel) GetType() GuildChannelType {
-	if x != nil && x.Type != nil {
-		return *x.Type
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
+			return x.xxx_hidden_Type
+		}
 	}
 	return GuildChannelType_GUILD_CHANNEL_TYPE_UNSPECIFIED
 }
 
 func (x *GuildChannel) GetPosition() int32 {
-	if x != nil && x.Position != nil {
-		return *x.Position
+	if x != nil {
+		return x.xxx_hidden_Position
 	}
 	return 0
 }
 
 func (x *GuildChannel) GetTopic() string {
-	if x != nil && x.Topic != nil {
-		return *x.Topic
+	if x != nil {
+		if x.xxx_hidden_Topic != nil {
+			return *x.xxx_hidden_Topic
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildChannel) GetRevision() int64 {
-	if x != nil && x.Revision != nil {
-		return *x.Revision
+	if x != nil {
+		return x.xxx_hidden_Revision
 	}
 	return 0
 }
 
 func (x *GuildChannel) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *GuildChannel) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
 func (x *GuildChannel) GetParentId() int64 {
-	if x != nil && x.ParentId != nil {
-		return *x.ParentId
+	if x != nil {
+		return x.xxx_hidden_ParentId
 	}
 	return 0
 }
 
+func (x *GuildChannel) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+}
+
+func (x *GuildChannel) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
+}
+
+func (x *GuildChannel) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
+}
+
+func (x *GuildChannel) SetType(v GuildChannelType) {
+	x.xxx_hidden_Type = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+}
+
+func (x *GuildChannel) SetPosition(v int32) {
+	x.xxx_hidden_Position = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
+}
+
+func (x *GuildChannel) SetTopic(v string) {
+	x.xxx_hidden_Topic = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
+}
+
+func (x *GuildChannel) SetRevision(v int64) {
+	x.xxx_hidden_Revision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
+}
+
+func (x *GuildChannel) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 10)
+}
+
+func (x *GuildChannel) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 10)
+}
+
+func (x *GuildChannel) SetParentId(v int64) {
+	x.xxx_hidden_ParentId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
+}
+
+func (x *GuildChannel) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildChannel) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildChannel) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildChannel) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildChannel) HasPosition() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildChannel) HasTopic() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *GuildChannel) HasRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *GuildChannel) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *GuildChannel) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
+func (x *GuildChannel) HasParentId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
+func (x *GuildChannel) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = 0
+}
+
+func (x *GuildChannel) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildChannel) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *GuildChannel) ClearType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Type = GuildChannelType_GUILD_CHANNEL_TYPE_UNSPECIFIED
+}
+
+func (x *GuildChannel) ClearPosition() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Position = 0
+}
+
+func (x *GuildChannel) ClearTopic() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Topic = nil
+}
+
+func (x *GuildChannel) ClearRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Revision = 0
+}
+
+func (x *GuildChannel) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *GuildChannel) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+func (x *GuildChannel) ClearParentId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_ParentId = 0
+}
+
+type GuildChannel_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id        *int64
+	GuildId   *int64
+	Name      *string
+	Type      *GuildChannelType
+	Position  *int32
+	Topic     *string
+	Revision  *int64
+	CreatedAt *int64
+	UpdatedAt *int64
+	ParentId  *int64
+}
+
+func (b0 GuildChannel_builder) Build() *GuildChannel {
+	m0 := &GuildChannel{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		x.xxx_hidden_Id = *b.Id
+	}
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Type != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		x.xxx_hidden_Type = *b.Type
+	}
+	if b.Position != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
+		x.xxx_hidden_Position = *b.Position
+	}
+	if b.Topic != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
+		x.xxx_hidden_Topic = b.Topic
+	}
+	if b.Revision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
+		x.xxx_hidden_Revision = *b.Revision
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 10)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 10)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	if b.ParentId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		x.xxx_hidden_ParentId = *b.ParentId
+	}
+	return m0
+}
+
 type GuildChannelPermissionOverwrite struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	ChannelId     *int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	GuildId       *int64                        `protobuf:"varint,2,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	TargetType    *GuildPermissionOverwriteType `protobuf:"varint,3,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType" json:"target_type,omitempty"`
-	TargetId      *int64                        `protobuf:"varint,4,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	Allow         *uint64                       `protobuf:"varint,5,opt,name=allow" json:"allow,omitempty"`
-	Deny          *uint64                       `protobuf:"varint,6,opt,name=deny" json:"deny,omitempty"`
-	Revision      *int64                        `protobuf:"varint,7,opt,name=revision" json:"revision,omitempty"`
-	CreatedAt     *int64                        `protobuf:"varint,8,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *int64                        `protobuf:"varint,9,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_GuildId     int64                        `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
+	xxx_hidden_TargetType  GuildPermissionOverwriteType `protobuf:"varint,3,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType"`
+	xxx_hidden_TargetId    int64                        `protobuf:"varint,4,opt,name=target_id,json=targetId"`
+	xxx_hidden_Allow       uint64                       `protobuf:"varint,5,opt,name=allow"`
+	xxx_hidden_Deny        uint64                       `protobuf:"varint,6,opt,name=deny"`
+	xxx_hidden_Revision    int64                        `protobuf:"varint,7,opt,name=revision"`
+	xxx_hidden_CreatedAt   int64                        `protobuf:"varint,8,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt   int64                        `protobuf:"varint,9,opt,name=updated_at,json=updatedAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GuildChannelPermissionOverwrite) Reset() {
@@ -721,80 +1589,289 @@ func (x *GuildChannelPermissionOverwrite) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildChannelPermissionOverwrite.ProtoReflect.Descriptor instead.
-func (*GuildChannelPermissionOverwrite) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *GuildChannelPermissionOverwrite) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *GuildChannelPermissionOverwrite) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GuildChannelPermissionOverwrite) GetTargetType() GuildPermissionOverwriteType {
-	if x != nil && x.TargetType != nil {
-		return *x.TargetType
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+			return x.xxx_hidden_TargetType
+		}
 	}
 	return GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
 func (x *GuildChannelPermissionOverwrite) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
 func (x *GuildChannelPermissionOverwrite) GetAllow() uint64 {
-	if x != nil && x.Allow != nil {
-		return *x.Allow
+	if x != nil {
+		return x.xxx_hidden_Allow
 	}
 	return 0
 }
 
 func (x *GuildChannelPermissionOverwrite) GetDeny() uint64 {
-	if x != nil && x.Deny != nil {
-		return *x.Deny
+	if x != nil {
+		return x.xxx_hidden_Deny
 	}
 	return 0
 }
 
 func (x *GuildChannelPermissionOverwrite) GetRevision() int64 {
-	if x != nil && x.Revision != nil {
-		return *x.Revision
+	if x != nil {
+		return x.xxx_hidden_Revision
 	}
 	return 0
 }
 
 func (x *GuildChannelPermissionOverwrite) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *GuildChannelPermissionOverwrite) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
+func (x *GuildChannelPermissionOverwrite) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetTargetType(v GuildPermissionOverwriteType) {
+	x.xxx_hidden_TargetType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetAllow(v uint64) {
+	x.xxx_hidden_Allow = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetDeny(v uint64) {
+	x.xxx_hidden_Deny = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetRevision(v int64) {
+	x.xxx_hidden_Revision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasTargetType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasAllow() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasDeny() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *GuildChannelPermissionOverwrite) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearTargetType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_TargetType = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_TargetId = 0
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearAllow() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Allow = 0
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearDeny() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Deny = 0
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Revision = 0
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *GuildChannelPermissionOverwrite) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+type GuildChannelPermissionOverwrite_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId  *int64
+	GuildId    *int64
+	TargetType *GuildPermissionOverwriteType
+	TargetId   *int64
+	Allow      *uint64
+	Deny       *uint64
+	Revision   *int64
+	CreatedAt  *int64
+	UpdatedAt  *int64
+}
+
+func (b0 GuildChannelPermissionOverwrite_builder) Build() *GuildChannelPermissionOverwrite {
+	m0 := &GuildChannelPermissionOverwrite{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.TargetType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		x.xxx_hidden_TargetType = *b.TargetType
+	}
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	if b.Allow != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
+		x.xxx_hidden_Allow = *b.Allow
+	}
+	if b.Deny != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
+		x.xxx_hidden_Deny = *b.Deny
+	}
+	if b.Revision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		x.xxx_hidden_Revision = *b.Revision
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	return m0
+}
+
 type CreateGuildRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	IconUri       *string                `protobuf:"bytes,2,opt,name=icon_uri,json=iconUri" json:"icon_uri,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_IconUri     *string                `protobuf:"bytes,2,opt,name=icon_uri,json=iconUri"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateGuildRequest) Reset() {
@@ -822,30 +1899,87 @@ func (x *CreateGuildRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildRequest.ProtoReflect.Descriptor instead.
-func (*CreateGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *CreateGuildRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *CreateGuildRequest) GetIconUri() string {
-	if x != nil && x.IconUri != nil {
-		return *x.IconUri
+	if x != nil {
+		if x.xxx_hidden_IconUri != nil {
+			return *x.xxx_hidden_IconUri
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *CreateGuildRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *CreateGuildRequest) SetIconUri(v string) {
+	x.xxx_hidden_IconUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *CreateGuildRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGuildRequest) HasIconUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGuildRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *CreateGuildRequest) ClearIconUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_IconUri = nil
+}
+
+type CreateGuildRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Name    *string
+	IconUri *string
+}
+
+func (b0 CreateGuildRequest_builder) Build() *CreateGuildRequest {
+	m0 := &CreateGuildRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.IconUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_IconUri = b.IconUri
+	}
+	return m0
+}
+
 type CreateGuildResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Guild         *Guild                 `protobuf:"bytes,1,opt,name=guild" json:"guild,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *CreateGuildResponse) Reset() {
@@ -873,23 +2007,49 @@ func (x *CreateGuildResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildResponse.ProtoReflect.Descriptor instead.
-func (*CreateGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *CreateGuildResponse) GetGuild() *Guild {
 	if x != nil {
-		return x.Guild
+		return x.xxx_hidden_Guild
 	}
 	return nil
 }
 
+func (x *CreateGuildResponse) SetGuild(v *Guild) {
+	x.xxx_hidden_Guild = v
+}
+
+func (x *CreateGuildResponse) HasGuild() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Guild != nil
+}
+
+func (x *CreateGuildResponse) ClearGuild() {
+	x.xxx_hidden_Guild = nil
+}
+
+type CreateGuildResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Guild *Guild
+}
+
+func (b0 CreateGuildResponse_builder) Build() *CreateGuildResponse {
+	m0 := &CreateGuildResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Guild = b.Guild
+	return m0
+}
+
 type GetGuildRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGuildRequest) Reset() {
@@ -917,23 +2077,52 @@ func (x *GetGuildRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildRequest.ProtoReflect.Descriptor instead.
-func (*GetGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *GetGuildRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
+func (x *GetGuildRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetGuildRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetGuildRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type GetGuildRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+}
+
+func (b0 GetGuildRequest_builder) Build() *GetGuildRequest {
+	m0 := &GetGuildRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	return m0
+}
+
 type GetGuildResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Guild         *Guild                 `protobuf:"bytes,1,opt,name=guild" json:"guild,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetGuildResponse) Reset() {
@@ -961,24 +2150,50 @@ func (x *GetGuildResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildResponse.ProtoReflect.Descriptor instead.
-func (*GetGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *GetGuildResponse) GetGuild() *Guild {
 	if x != nil {
-		return x.Guild
+		return x.xxx_hidden_Guild
 	}
 	return nil
 }
 
+func (x *GetGuildResponse) SetGuild(v *Guild) {
+	x.xxx_hidden_Guild = v
+}
+
+func (x *GetGuildResponse) HasGuild() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Guild != nil
+}
+
+func (x *GetGuildResponse) ClearGuild() {
+	x.xxx_hidden_Guild = nil
+}
+
+type GetGuildResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Guild *Guild
+}
+
+func (b0 GetGuildResponse_builder) Build() *GetGuildResponse {
+	m0 := &GetGuildResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Guild = b.Guild
+	return m0
+}
+
 type ListGuildsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Before        *int64                 `protobuf:"varint,1,opt,name=before" json:"before,omitempty"`
-	Limit         *int32                 `protobuf:"varint,2,opt,name=limit" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Before      int64                  `protobuf:"varint,1,opt,name=before"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,2,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildsRequest) Reset() {
@@ -1006,31 +2221,84 @@ func (x *ListGuildsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildsRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *ListGuildsRequest) GetBefore() int64 {
-	if x != nil && x.Before != nil {
-		return *x.Before
+	if x != nil {
+		return x.xxx_hidden_Before
 	}
 	return 0
 }
 
 func (x *ListGuildsRequest) GetLimit() int32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+	if x != nil {
+		return x.xxx_hidden_Limit
 	}
 	return 0
 }
 
+func (x *ListGuildsRequest) SetBefore(v int64) {
+	x.xxx_hidden_Before = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ListGuildsRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildsRequest) HasBefore() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildsRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildsRequest) ClearBefore() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Before = 0
+}
+
+func (x *ListGuildsRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListGuildsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Before *int64
+	Limit  *int32
+}
+
+func (b0 ListGuildsRequest_builder) Build() *ListGuildsRequest {
+	m0 := &ListGuildsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Before != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Before = *b.Before
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
 type ListGuildsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Guilds        []*Guild               `protobuf:"bytes,1,rep,name=guilds" json:"guilds,omitempty"`
-	BeforeCursor  *int64                 `protobuf:"varint,2,opt,name=before_cursor,json=beforeCursor" json:"before_cursor,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guilds       *[]*Guild              `protobuf:"bytes,1,rep,name=guilds"`
+	xxx_hidden_BeforeCursor int64                  `protobuf:"varint,2,opt,name=before_cursor,json=beforeCursor"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ListGuildsResponse) Reset() {
@@ -1058,33 +2326,71 @@ func (x *ListGuildsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildsResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{11}
-}
-
 func (x *ListGuildsResponse) GetGuilds() []*Guild {
 	if x != nil {
-		return x.Guilds
+		if x.xxx_hidden_Guilds != nil {
+			return *x.xxx_hidden_Guilds
+		}
 	}
 	return nil
 }
 
 func (x *ListGuildsResponse) GetBeforeCursor() int64 {
-	if x != nil && x.BeforeCursor != nil {
-		return *x.BeforeCursor
+	if x != nil {
+		return x.xxx_hidden_BeforeCursor
 	}
 	return 0
 }
 
+func (x *ListGuildsResponse) SetGuilds(v []*Guild) {
+	x.xxx_hidden_Guilds = &v
+}
+
+func (x *ListGuildsResponse) SetBeforeCursor(v int64) {
+	x.xxx_hidden_BeforeCursor = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildsResponse) HasBeforeCursor() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildsResponse) ClearBeforeCursor() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeCursor = 0
+}
+
+type ListGuildsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Guilds       []*Guild
+	BeforeCursor *int64
+}
+
+func (b0 ListGuildsResponse_builder) Build() *ListGuildsResponse {
+	m0 := &ListGuildsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Guilds = &b.Guilds
+	if b.BeforeCursor != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_BeforeCursor = *b.BeforeCursor
+	}
+	return m0
+}
+
 type UpdateGuildRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	GuildId *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	// Optional replacement fields. An explicit empty icon_uri clears the icon.
-	Name          *string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	IconUri       *string `protobuf:"bytes,3,opt,name=icon_uri,json=iconUri" json:"icon_uri,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_IconUri     *string                `protobuf:"bytes,3,opt,name=icon_uri,json=iconUri"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateGuildRequest) Reset() {
@@ -1112,37 +2418,117 @@ func (x *UpdateGuildRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGuildRequest.ProtoReflect.Descriptor instead.
-func (*UpdateGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{12}
-}
-
 func (x *UpdateGuildRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *UpdateGuildRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UpdateGuildRequest) GetIconUri() string {
-	if x != nil && x.IconUri != nil {
-		return *x.IconUri
+	if x != nil {
+		if x.xxx_hidden_IconUri != nil {
+			return *x.xxx_hidden_IconUri
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *UpdateGuildRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *UpdateGuildRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *UpdateGuildRequest) SetIconUri(v string) {
+	x.xxx_hidden_IconUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *UpdateGuildRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateGuildRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateGuildRequest) HasIconUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpdateGuildRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *UpdateGuildRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *UpdateGuildRequest) ClearIconUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_IconUri = nil
+}
+
+type UpdateGuildRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	// Optional replacement fields. An explicit empty icon_uri clears the icon.
+	Name    *string
+	IconUri *string
+}
+
+func (b0 UpdateGuildRequest_builder) Build() *UpdateGuildRequest {
+	m0 := &UpdateGuildRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.IconUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_IconUri = b.IconUri
+	}
+	return m0
+}
+
 type UpdateGuildResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Guild         *Guild                 `protobuf:"bytes,1,opt,name=guild" json:"guild,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *UpdateGuildResponse) Reset() {
@@ -1170,23 +2556,49 @@ func (x *UpdateGuildResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGuildResponse.ProtoReflect.Descriptor instead.
-func (*UpdateGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{13}
-}
-
 func (x *UpdateGuildResponse) GetGuild() *Guild {
 	if x != nil {
-		return x.Guild
+		return x.xxx_hidden_Guild
 	}
 	return nil
 }
 
+func (x *UpdateGuildResponse) SetGuild(v *Guild) {
+	x.xxx_hidden_Guild = v
+}
+
+func (x *UpdateGuildResponse) HasGuild() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Guild != nil
+}
+
+func (x *UpdateGuildResponse) ClearGuild() {
+	x.xxx_hidden_Guild = nil
+}
+
+type UpdateGuildResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Guild *Guild
+}
+
+func (b0 UpdateGuildResponse_builder) Build() *UpdateGuildResponse {
+	m0 := &UpdateGuildResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Guild = b.Guild
+	return m0
+}
+
 type DeleteGuildRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildRequest) Reset() {
@@ -1214,23 +2626,54 @@ func (x *DeleteGuildRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildRequest.ProtoReflect.Descriptor instead.
-func (*DeleteGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{14}
-}
-
 func (x *DeleteGuildRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
+func (x *DeleteGuildRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type DeleteGuildRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+}
+
+func (b0 DeleteGuildRequest_builder) Build() *DeleteGuildRequest {
+	m0 := &DeleteGuildRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	return m0
+}
+
 type DeleteGuildResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildResponse) Reset() {
@@ -1258,24 +2701,55 @@ func (x *DeleteGuildResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildResponse.ProtoReflect.Descriptor instead.
-func (*DeleteGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{15}
-}
-
 func (x *DeleteGuildResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DeleteGuildResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DeleteGuildResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DeleteGuildResponse_builder) Build() *DeleteGuildResponse {
+	m0 := &DeleteGuildResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type AddGuildMemberRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *AddGuildMemberRequest) Reset() {
@@ -1303,30 +2777,81 @@ func (x *AddGuildMemberRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddGuildMemberRequest.ProtoReflect.Descriptor instead.
-func (*AddGuildMemberRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{16}
-}
-
 func (x *AddGuildMemberRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *AddGuildMemberRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
+func (x *AddGuildMemberRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *AddGuildMemberRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *AddGuildMemberRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AddGuildMemberRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AddGuildMemberRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *AddGuildMemberRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+type AddGuildMemberRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+}
+
+func (b0 AddGuildMemberRequest_builder) Build() *AddGuildMemberRequest {
+	m0 := &AddGuildMemberRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
 type AddGuildMemberResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Member        *GuildMember           `protobuf:"bytes,1,opt,name=member" json:"member,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Member *GuildMember           `protobuf:"bytes,1,opt,name=member"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AddGuildMemberResponse) Reset() {
@@ -1354,24 +2879,50 @@ func (x *AddGuildMemberResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddGuildMemberResponse.ProtoReflect.Descriptor instead.
-func (*AddGuildMemberResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{17}
-}
-
 func (x *AddGuildMemberResponse) GetMember() *GuildMember {
 	if x != nil {
-		return x.Member
+		return x.xxx_hidden_Member
 	}
 	return nil
 }
 
+func (x *AddGuildMemberResponse) SetMember(v *GuildMember) {
+	x.xxx_hidden_Member = v
+}
+
+func (x *AddGuildMemberResponse) HasMember() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Member != nil
+}
+
+func (x *AddGuildMemberResponse) ClearMember() {
+	x.xxx_hidden_Member = nil
+}
+
+type AddGuildMemberResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Member *GuildMember
+}
+
+func (b0 AddGuildMemberResponse_builder) Build() *AddGuildMemberResponse {
+	m0 := &AddGuildMemberResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Member = b.Member
+	return m0
+}
+
 type GetGuildMemberRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGuildMemberRequest) Reset() {
@@ -1399,30 +2950,81 @@ func (x *GetGuildMemberRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildMemberRequest.ProtoReflect.Descriptor instead.
-func (*GetGuildMemberRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{18}
-}
-
 func (x *GetGuildMemberRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GetGuildMemberRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
+func (x *GetGuildMemberRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetGuildMemberRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GetGuildMemberRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetGuildMemberRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetGuildMemberRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GetGuildMemberRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+type GetGuildMemberRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+}
+
+func (b0 GetGuildMemberRequest_builder) Build() *GetGuildMemberRequest {
+	m0 := &GetGuildMemberRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
 type GetGuildMemberResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Member        *GuildMember           `protobuf:"bytes,1,opt,name=member" json:"member,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Member *GuildMember           `protobuf:"bytes,1,opt,name=member"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetGuildMemberResponse) Reset() {
@@ -1450,25 +3052,51 @@ func (x *GetGuildMemberResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildMemberResponse.ProtoReflect.Descriptor instead.
-func (*GetGuildMemberResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{19}
-}
-
 func (x *GetGuildMemberResponse) GetMember() *GuildMember {
 	if x != nil {
-		return x.Member
+		return x.xxx_hidden_Member
 	}
 	return nil
 }
 
+func (x *GetGuildMemberResponse) SetMember(v *GuildMember) {
+	x.xxx_hidden_Member = v
+}
+
+func (x *GetGuildMemberResponse) HasMember() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Member != nil
+}
+
+func (x *GetGuildMemberResponse) ClearMember() {
+	x.xxx_hidden_Member = nil
+}
+
+type GetGuildMemberResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Member *GuildMember
+}
+
+func (b0 GetGuildMemberResponse_builder) Build() *GetGuildMemberResponse {
+	m0 := &GetGuildMemberResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Member = b.Member
+	return m0
+}
+
 type ListGuildMembersRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	BeforeUserId  *int64                 `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId" json:"before_user_id,omitempty"`
-	Limit         *int32                 `protobuf:"varint,3,opt,name=limit" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId      int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId"`
+	xxx_hidden_Limit        int32                  `protobuf:"varint,3,opt,name=limit"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ListGuildMembersRequest) Reset() {
@@ -1496,38 +3124,113 @@ func (x *ListGuildMembersRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildMembersRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildMembersRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{20}
-}
-
 func (x *ListGuildMembersRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *ListGuildMembersRequest) GetBeforeUserId() int64 {
-	if x != nil && x.BeforeUserId != nil {
-		return *x.BeforeUserId
+	if x != nil {
+		return x.xxx_hidden_BeforeUserId
 	}
 	return 0
 }
 
 func (x *ListGuildMembersRequest) GetLimit() int32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+	if x != nil {
+		return x.xxx_hidden_Limit
 	}
 	return 0
 }
 
+func (x *ListGuildMembersRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *ListGuildMembersRequest) SetBeforeUserId(v int64) {
+	x.xxx_hidden_BeforeUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListGuildMembersRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListGuildMembersRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildMembersRequest) HasBeforeUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildMembersRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListGuildMembersRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *ListGuildMembersRequest) ClearBeforeUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeUserId = 0
+}
+
+func (x *ListGuildMembersRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListGuildMembersRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId      *int64
+	BeforeUserId *int64
+	Limit        *int32
+}
+
+func (b0 ListGuildMembersRequest_builder) Build() *ListGuildMembersRequest {
+	m0 := &ListGuildMembersRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.BeforeUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
 type ListGuildMembersResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Members       []*GuildMember         `protobuf:"bytes,1,rep,name=members" json:"members,omitempty"`
-	BeforeUserId  *int64                 `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId" json:"before_user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Members      *[]*GuildMember        `protobuf:"bytes,1,rep,name=members"`
+	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ListGuildMembersResponse) Reset() {
@@ -1555,32 +3258,70 @@ func (x *ListGuildMembersResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildMembersResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildMembersResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{21}
-}
-
 func (x *ListGuildMembersResponse) GetMembers() []*GuildMember {
 	if x != nil {
-		return x.Members
+		if x.xxx_hidden_Members != nil {
+			return *x.xxx_hidden_Members
+		}
 	}
 	return nil
 }
 
 func (x *ListGuildMembersResponse) GetBeforeUserId() int64 {
-	if x != nil && x.BeforeUserId != nil {
-		return *x.BeforeUserId
+	if x != nil {
+		return x.xxx_hidden_BeforeUserId
 	}
 	return 0
 }
 
+func (x *ListGuildMembersResponse) SetMembers(v []*GuildMember) {
+	x.xxx_hidden_Members = &v
+}
+
+func (x *ListGuildMembersResponse) SetBeforeUserId(v int64) {
+	x.xxx_hidden_BeforeUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildMembersResponse) HasBeforeUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildMembersResponse) ClearBeforeUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeUserId = 0
+}
+
+type ListGuildMembersResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Members      []*GuildMember
+	BeforeUserId *int64
+}
+
+func (b0 ListGuildMembersResponse_builder) Build() *ListGuildMembersResponse {
+	m0 := &ListGuildMembersResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Members = &b.Members
+	if b.BeforeUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+	}
+	return m0
+}
+
 type UpdateCurrentGuildMemberRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	GuildId *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	// Replaces the caller's guild nickname. An empty value clears it.
-	Nickname      *string `protobuf:"bytes,2,opt,name=nickname" json:"nickname,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Nickname    *string                `protobuf:"bytes,2,opt,name=nickname"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateCurrentGuildMemberRequest) Reset() {
@@ -1608,30 +3349,85 @@ func (x *UpdateCurrentGuildMemberRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateCurrentGuildMemberRequest.ProtoReflect.Descriptor instead.
-func (*UpdateCurrentGuildMemberRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{22}
-}
-
 func (x *UpdateCurrentGuildMemberRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *UpdateCurrentGuildMemberRequest) GetNickname() string {
-	if x != nil && x.Nickname != nil {
-		return *x.Nickname
+	if x != nil {
+		if x.xxx_hidden_Nickname != nil {
+			return *x.xxx_hidden_Nickname
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *UpdateCurrentGuildMemberRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *UpdateCurrentGuildMemberRequest) SetNickname(v string) {
+	x.xxx_hidden_Nickname = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *UpdateCurrentGuildMemberRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateCurrentGuildMemberRequest) HasNickname() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateCurrentGuildMemberRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *UpdateCurrentGuildMemberRequest) ClearNickname() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Nickname = nil
+}
+
+type UpdateCurrentGuildMemberRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	// Replaces the caller's guild nickname. An empty value clears it.
+	Nickname *string
+}
+
+func (b0 UpdateCurrentGuildMemberRequest_builder) Build() *UpdateCurrentGuildMemberRequest {
+	m0 := &UpdateCurrentGuildMemberRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.Nickname != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Nickname = b.Nickname
+	}
+	return m0
+}
+
 type UpdateCurrentGuildMemberResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Member        *GuildMember           `protobuf:"bytes,1,opt,name=member" json:"member,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Member *GuildMember           `protobuf:"bytes,1,opt,name=member"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdateCurrentGuildMemberResponse) Reset() {
@@ -1659,24 +3455,50 @@ func (x *UpdateCurrentGuildMemberResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateCurrentGuildMemberResponse.ProtoReflect.Descriptor instead.
-func (*UpdateCurrentGuildMemberResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{23}
-}
-
 func (x *UpdateCurrentGuildMemberResponse) GetMember() *GuildMember {
 	if x != nil {
-		return x.Member
+		return x.xxx_hidden_Member
 	}
 	return nil
 }
 
+func (x *UpdateCurrentGuildMemberResponse) SetMember(v *GuildMember) {
+	x.xxx_hidden_Member = v
+}
+
+func (x *UpdateCurrentGuildMemberResponse) HasMember() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Member != nil
+}
+
+func (x *UpdateCurrentGuildMemberResponse) ClearMember() {
+	x.xxx_hidden_Member = nil
+}
+
+type UpdateCurrentGuildMemberResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Member *GuildMember
+}
+
+func (b0 UpdateCurrentGuildMemberResponse_builder) Build() *UpdateCurrentGuildMemberResponse {
+	m0 := &UpdateCurrentGuildMemberResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Member = b.Member
+	return m0
+}
+
 type KickGuildMemberRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *KickGuildMemberRequest) Reset() {
@@ -1704,30 +3526,83 @@ func (x *KickGuildMemberRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use KickGuildMemberRequest.ProtoReflect.Descriptor instead.
-func (*KickGuildMemberRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{24}
-}
-
 func (x *KickGuildMemberRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *KickGuildMemberRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
+func (x *KickGuildMemberRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *KickGuildMemberRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *KickGuildMemberRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *KickGuildMemberRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *KickGuildMemberRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *KickGuildMemberRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+type KickGuildMemberRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+}
+
+func (b0 KickGuildMemberRequest_builder) Build() *KickGuildMemberRequest {
+	m0 := &KickGuildMemberRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
 type KickGuildMemberResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *KickGuildMemberResponse) Reset() {
@@ -1755,25 +3630,56 @@ func (x *KickGuildMemberResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use KickGuildMemberResponse.ProtoReflect.Descriptor instead.
-func (*KickGuildMemberResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{25}
-}
-
 func (x *KickGuildMemberResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *KickGuildMemberResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *KickGuildMemberResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *KickGuildMemberResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type KickGuildMemberResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 KickGuildMemberResponse_builder) Build() *KickGuildMemberResponse {
+	m0 := &KickGuildMemberResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type BanGuildMemberRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	Reason        *string                `protobuf:"bytes,3,opt,name=reason" json:"reason,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_Reason      *string                `protobuf:"bytes,3,opt,name=reason"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *BanGuildMemberRequest) Reset() {
@@ -1801,37 +3707,113 @@ func (x *BanGuildMemberRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BanGuildMemberRequest.ProtoReflect.Descriptor instead.
-func (*BanGuildMemberRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{26}
-}
-
 func (x *BanGuildMemberRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *BanGuildMemberRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *BanGuildMemberRequest) GetReason() string {
-	if x != nil && x.Reason != nil {
-		return *x.Reason
+	if x != nil {
+		if x.xxx_hidden_Reason != nil {
+			return *x.xxx_hidden_Reason
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *BanGuildMemberRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *BanGuildMemberRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *BanGuildMemberRequest) SetReason(v string) {
+	x.xxx_hidden_Reason = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *BanGuildMemberRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *BanGuildMemberRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *BanGuildMemberRequest) HasReason() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *BanGuildMemberRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *BanGuildMemberRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *BanGuildMemberRequest) ClearReason() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Reason = nil
+}
+
+type BanGuildMemberRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+	Reason  *string
+}
+
+func (b0 BanGuildMemberRequest_builder) Build() *BanGuildMemberRequest {
+	m0 := &BanGuildMemberRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.Reason != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Reason = b.Reason
+	}
+	return m0
+}
+
 type BanGuildMemberResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ban           *GuildBan              `protobuf:"bytes,1,opt,name=ban" json:"ban,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ban *GuildBan              `protobuf:"bytes,1,opt,name=ban"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *BanGuildMemberResponse) Reset() {
@@ -1859,24 +3841,50 @@ func (x *BanGuildMemberResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BanGuildMemberResponse.ProtoReflect.Descriptor instead.
-func (*BanGuildMemberResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{27}
-}
-
 func (x *BanGuildMemberResponse) GetBan() *GuildBan {
 	if x != nil {
-		return x.Ban
+		return x.xxx_hidden_Ban
 	}
 	return nil
 }
 
+func (x *BanGuildMemberResponse) SetBan(v *GuildBan) {
+	x.xxx_hidden_Ban = v
+}
+
+func (x *BanGuildMemberResponse) HasBan() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Ban != nil
+}
+
+func (x *BanGuildMemberResponse) ClearBan() {
+	x.xxx_hidden_Ban = nil
+}
+
+type BanGuildMemberResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ban *GuildBan
+}
+
+func (b0 BanGuildMemberResponse_builder) Build() *BanGuildMemberResponse {
+	m0 := &BanGuildMemberResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Ban = b.Ban
+	return m0
+}
+
 type UnbanGuildMemberRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UnbanGuildMemberRequest) Reset() {
@@ -1904,30 +3912,83 @@ func (x *UnbanGuildMemberRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UnbanGuildMemberRequest.ProtoReflect.Descriptor instead.
-func (*UnbanGuildMemberRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{28}
-}
-
 func (x *UnbanGuildMemberRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *UnbanGuildMemberRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
+func (x *UnbanGuildMemberRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *UnbanGuildMemberRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *UnbanGuildMemberRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UnbanGuildMemberRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UnbanGuildMemberRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *UnbanGuildMemberRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+type UnbanGuildMemberRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+}
+
+func (b0 UnbanGuildMemberRequest_builder) Build() *UnbanGuildMemberRequest {
+	m0 := &UnbanGuildMemberRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
 type UnbanGuildMemberResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UnbanGuildMemberResponse) Reset() {
@@ -1955,25 +4016,56 @@ func (x *UnbanGuildMemberResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UnbanGuildMemberResponse.ProtoReflect.Descriptor instead.
-func (*UnbanGuildMemberResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{29}
-}
-
 func (x *UnbanGuildMemberResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *UnbanGuildMemberResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *UnbanGuildMemberResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UnbanGuildMemberResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type UnbanGuildMemberResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 UnbanGuildMemberResponse_builder) Build() *UnbanGuildMemberResponse {
+	m0 := &UnbanGuildMemberResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type ListGuildBansRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	BeforeUserId  *int64                 `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId" json:"before_user_id,omitempty"`
-	Limit         *int32                 `protobuf:"varint,3,opt,name=limit" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId      int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId"`
+	xxx_hidden_Limit        int32                  `protobuf:"varint,3,opt,name=limit"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ListGuildBansRequest) Reset() {
@@ -2001,38 +4093,113 @@ func (x *ListGuildBansRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildBansRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildBansRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{30}
-}
-
 func (x *ListGuildBansRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *ListGuildBansRequest) GetBeforeUserId() int64 {
-	if x != nil && x.BeforeUserId != nil {
-		return *x.BeforeUserId
+	if x != nil {
+		return x.xxx_hidden_BeforeUserId
 	}
 	return 0
 }
 
 func (x *ListGuildBansRequest) GetLimit() int32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+	if x != nil {
+		return x.xxx_hidden_Limit
 	}
 	return 0
 }
 
+func (x *ListGuildBansRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *ListGuildBansRequest) SetBeforeUserId(v int64) {
+	x.xxx_hidden_BeforeUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListGuildBansRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListGuildBansRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildBansRequest) HasBeforeUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildBansRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListGuildBansRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *ListGuildBansRequest) ClearBeforeUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeUserId = 0
+}
+
+func (x *ListGuildBansRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListGuildBansRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId      *int64
+	BeforeUserId *int64
+	Limit        *int32
+}
+
+func (b0 ListGuildBansRequest_builder) Build() *ListGuildBansRequest {
+	m0 := &ListGuildBansRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.BeforeUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
 type ListGuildBansResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Bans          []*GuildBan            `protobuf:"bytes,1,rep,name=bans" json:"bans,omitempty"`
-	BeforeUserId  *int64                 `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId" json:"before_user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Bans         *[]*GuildBan           `protobuf:"bytes,1,rep,name=bans"`
+	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ListGuildBansResponse) Reset() {
@@ -2060,30 +4227,69 @@ func (x *ListGuildBansResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildBansResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildBansResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{31}
-}
-
 func (x *ListGuildBansResponse) GetBans() []*GuildBan {
 	if x != nil {
-		return x.Bans
+		if x.xxx_hidden_Bans != nil {
+			return *x.xxx_hidden_Bans
+		}
 	}
 	return nil
 }
 
 func (x *ListGuildBansResponse) GetBeforeUserId() int64 {
-	if x != nil && x.BeforeUserId != nil {
-		return *x.BeforeUserId
+	if x != nil {
+		return x.xxx_hidden_BeforeUserId
 	}
 	return 0
 }
 
+func (x *ListGuildBansResponse) SetBans(v []*GuildBan) {
+	x.xxx_hidden_Bans = &v
+}
+
+func (x *ListGuildBansResponse) SetBeforeUserId(v int64) {
+	x.xxx_hidden_BeforeUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildBansResponse) HasBeforeUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildBansResponse) ClearBeforeUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeUserId = 0
+}
+
+type ListGuildBansResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Bans         []*GuildBan
+	BeforeUserId *int64
+}
+
+func (b0 ListGuildBansResponse_builder) Build() *ListGuildBansResponse {
+	m0 := &ListGuildBansResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Bans = &b.Bans
+	if b.BeforeUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+	}
+	return m0
+}
+
 type LeaveGuildRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *LeaveGuildRequest) Reset() {
@@ -2111,23 +4317,54 @@ func (x *LeaveGuildRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LeaveGuildRequest.ProtoReflect.Descriptor instead.
-func (*LeaveGuildRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{32}
-}
-
 func (x *LeaveGuildRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
+func (x *LeaveGuildRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *LeaveGuildRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *LeaveGuildRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type LeaveGuildRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+}
+
+func (b0 LeaveGuildRequest_builder) Build() *LeaveGuildRequest {
+	m0 := &LeaveGuildRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	return m0
+}
+
 type LeaveGuildResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *LeaveGuildResponse) Reset() {
@@ -2155,24 +4392,55 @@ func (x *LeaveGuildResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LeaveGuildResponse.ProtoReflect.Descriptor instead.
-func (*LeaveGuildResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{33}
-}
-
 func (x *LeaveGuildResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *LeaveGuildResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *LeaveGuildResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *LeaveGuildResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type LeaveGuildResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 LeaveGuildResponse_builder) Build() *LeaveGuildResponse {
+	m0 := &LeaveGuildResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type TransferGuildOwnershipRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	NewOwnerId    *int64                 `protobuf:"varint,2,opt,name=new_owner_id,json=newOwnerId" json:"new_owner_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_NewOwnerId  int64                  `protobuf:"varint,2,opt,name=new_owner_id,json=newOwnerId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *TransferGuildOwnershipRequest) Reset() {
@@ -2200,30 +4468,81 @@ func (x *TransferGuildOwnershipRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TransferGuildOwnershipRequest.ProtoReflect.Descriptor instead.
-func (*TransferGuildOwnershipRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{34}
-}
-
 func (x *TransferGuildOwnershipRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *TransferGuildOwnershipRequest) GetNewOwnerId() int64 {
-	if x != nil && x.NewOwnerId != nil {
-		return *x.NewOwnerId
+	if x != nil {
+		return x.xxx_hidden_NewOwnerId
 	}
 	return 0
 }
 
+func (x *TransferGuildOwnershipRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *TransferGuildOwnershipRequest) SetNewOwnerId(v int64) {
+	x.xxx_hidden_NewOwnerId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *TransferGuildOwnershipRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *TransferGuildOwnershipRequest) HasNewOwnerId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *TransferGuildOwnershipRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *TransferGuildOwnershipRequest) ClearNewOwnerId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_NewOwnerId = 0
+}
+
+type TransferGuildOwnershipRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId    *int64
+	NewOwnerId *int64
+}
+
+func (b0 TransferGuildOwnershipRequest_builder) Build() *TransferGuildOwnershipRequest {
+	m0 := &TransferGuildOwnershipRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.NewOwnerId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_NewOwnerId = *b.NewOwnerId
+	}
+	return m0
+}
+
 type TransferGuildOwnershipResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Guild         *Guild                 `protobuf:"bytes,1,opt,name=guild" json:"guild,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *TransferGuildOwnershipResponse) Reset() {
@@ -2251,34 +4570,58 @@ func (x *TransferGuildOwnershipResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TransferGuildOwnershipResponse.ProtoReflect.Descriptor instead.
-func (*TransferGuildOwnershipResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{35}
-}
-
 func (x *TransferGuildOwnershipResponse) GetGuild() *Guild {
 	if x != nil {
-		return x.Guild
+		return x.xxx_hidden_Guild
 	}
 	return nil
+}
+
+func (x *TransferGuildOwnershipResponse) SetGuild(v *Guild) {
+	x.xxx_hidden_Guild = v
+}
+
+func (x *TransferGuildOwnershipResponse) HasGuild() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Guild != nil
+}
+
+func (x *TransferGuildOwnershipResponse) ClearGuild() {
+	x.xxx_hidden_Guild = nil
+}
+
+type TransferGuildOwnershipResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Guild *Guild
+}
+
+func (b0 TransferGuildOwnershipResponse_builder) Build() *TransferGuildOwnershipResponse {
+	m0 := &TransferGuildOwnershipResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Guild = b.Guild
+	return m0
 }
 
 // GuildInvite is a shareable code that lets users join a guild.
 // All timestamps are Unix time in milliseconds.
 type GuildInvite struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	Code          *string                `protobuf:"bytes,2,opt,name=code" json:"code,omitempty"`
-	GuildId       *int64                 `protobuf:"varint,3,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	CreatorUserId *int64                 `protobuf:"varint,4,opt,name=creator_user_id,json=creatorUserId" json:"creator_user_id,omitempty"`
-	// Zero means unlimited uses.
-	MaxUses *int32 `protobuf:"varint,5,opt,name=max_uses,json=maxUses" json:"max_uses,omitempty"`
-	Uses    *int32 `protobuf:"varint,6,opt,name=uses" json:"uses,omitempty"`
-	// Zero means the invite never expires.
-	ExpiresAt     *int64 `protobuf:"varint,7,opt,name=expires_at,json=expiresAt" json:"expires_at,omitempty"`
-	CreatedAt     *int64 `protobuf:"varint,8,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id            int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_Code          *string                `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_GuildId       int64                  `protobuf:"varint,3,opt,name=guild_id,json=guildId"`
+	xxx_hidden_CreatorUserId int64                  `protobuf:"varint,4,opt,name=creator_user_id,json=creatorUserId"`
+	xxx_hidden_MaxUses       int32                  `protobuf:"varint,5,opt,name=max_uses,json=maxUses"`
+	xxx_hidden_Uses          int32                  `protobuf:"varint,6,opt,name=uses"`
+	xxx_hidden_ExpiresAt     int64                  `protobuf:"varint,7,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_CreatedAt     int64                  `protobuf:"varint,8,opt,name=created_at,json=createdAt"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *GuildInvite) Reset() {
@@ -2306,78 +4649,268 @@ func (x *GuildInvite) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildInvite.ProtoReflect.Descriptor instead.
-func (*GuildInvite) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{36}
-}
-
 func (x *GuildInvite) GetId() int64 {
-	if x != nil && x.Id != nil {
-		return *x.Id
+	if x != nil {
+		return x.xxx_hidden_Id
 	}
 	return 0
 }
 
 func (x *GuildInvite) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildInvite) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GuildInvite) GetCreatorUserId() int64 {
-	if x != nil && x.CreatorUserId != nil {
-		return *x.CreatorUserId
+	if x != nil {
+		return x.xxx_hidden_CreatorUserId
 	}
 	return 0
 }
 
 func (x *GuildInvite) GetMaxUses() int32 {
-	if x != nil && x.MaxUses != nil {
-		return *x.MaxUses
+	if x != nil {
+		return x.xxx_hidden_MaxUses
 	}
 	return 0
 }
 
 func (x *GuildInvite) GetUses() int32 {
-	if x != nil && x.Uses != nil {
-		return *x.Uses
+	if x != nil {
+		return x.xxx_hidden_Uses
 	}
 	return 0
 }
 
 func (x *GuildInvite) GetExpiresAt() int64 {
-	if x != nil && x.ExpiresAt != nil {
-		return *x.ExpiresAt
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
 	}
 	return 0
 }
 
 func (x *GuildInvite) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
+func (x *GuildInvite) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+}
+
+func (x *GuildInvite) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+}
+
+func (x *GuildInvite) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
+}
+
+func (x *GuildInvite) SetCreatorUserId(v int64) {
+	x.xxx_hidden_CreatorUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+}
+
+func (x *GuildInvite) SetMaxUses(v int32) {
+	x.xxx_hidden_MaxUses = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
+}
+
+func (x *GuildInvite) SetUses(v int32) {
+	x.xxx_hidden_Uses = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+}
+
+func (x *GuildInvite) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *GuildInvite) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+}
+
+func (x *GuildInvite) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildInvite) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildInvite) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildInvite) HasCreatorUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildInvite) HasMaxUses() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildInvite) HasUses() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *GuildInvite) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *GuildInvite) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *GuildInvite) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = 0
+}
+
+func (x *GuildInvite) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Code = nil
+}
+
+func (x *GuildInvite) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildInvite) ClearCreatorUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_CreatorUserId = 0
+}
+
+func (x *GuildInvite) ClearMaxUses() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_MaxUses = 0
+}
+
+func (x *GuildInvite) ClearUses() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Uses = 0
+}
+
+func (x *GuildInvite) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+func (x *GuildInvite) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+type GuildInvite_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id            *int64
+	Code          *string
+	GuildId       *int64
+	CreatorUserId *int64
+	// Zero means unlimited uses.
+	MaxUses *int32
+	Uses    *int32
+	// Zero means the invite never expires.
+	ExpiresAt *int64
+	CreatedAt *int64
+}
+
+func (b0 GuildInvite_builder) Build() *GuildInvite {
+	m0 := &GuildInvite{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		x.xxx_hidden_Id = *b.Id
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		x.xxx_hidden_Code = b.Code
+	}
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.CreatorUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		x.xxx_hidden_CreatorUserId = *b.CreatorUserId
+	}
+	if b.MaxUses != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
+		x.xxx_hidden_MaxUses = *b.MaxUses
+	}
+	if b.Uses != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		x.xxx_hidden_Uses = *b.Uses
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	return m0
+}
+
 // GuildInvitePreview is the guild summary shown to a user before joining.
 type GuildInvitePreview struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          *string                `protobuf:"bytes,1,opt,name=code" json:"code,omitempty"`
-	GuildId       *int64                 `protobuf:"varint,2,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	GuildName     *string                `protobuf:"bytes,3,opt,name=guild_name,json=guildName" json:"guild_name,omitempty"`
-	GuildIconUri  *string                `protobuf:"bytes,4,opt,name=guild_icon_uri,json=guildIconUri" json:"guild_icon_uri,omitempty"`
-	MemberCount   *int64                 `protobuf:"varint,5,opt,name=member_count,json=memberCount" json:"member_count,omitempty"`
-	ExpiresAt     *int64                 `protobuf:"varint,6,opt,name=expires_at,json=expiresAt" json:"expires_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Code         *string                `protobuf:"bytes,1,opt,name=code"`
+	xxx_hidden_GuildId      int64                  `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
+	xxx_hidden_GuildName    *string                `protobuf:"bytes,3,opt,name=guild_name,json=guildName"`
+	xxx_hidden_GuildIconUri *string                `protobuf:"bytes,4,opt,name=guild_icon_uri,json=guildIconUri"`
+	xxx_hidden_MemberCount  int64                  `protobuf:"varint,5,opt,name=member_count,json=memberCount"`
+	xxx_hidden_ExpiresAt    int64                  `protobuf:"varint,6,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *GuildInvitePreview) Reset() {
@@ -2405,62 +4938,210 @@ func (x *GuildInvitePreview) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildInvitePreview.ProtoReflect.Descriptor instead.
-func (*GuildInvitePreview) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{37}
-}
-
 func (x *GuildInvitePreview) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildInvitePreview) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GuildInvitePreview) GetGuildName() string {
-	if x != nil && x.GuildName != nil {
-		return *x.GuildName
+	if x != nil {
+		if x.xxx_hidden_GuildName != nil {
+			return *x.xxx_hidden_GuildName
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildInvitePreview) GetGuildIconUri() string {
-	if x != nil && x.GuildIconUri != nil {
-		return *x.GuildIconUri
+	if x != nil {
+		if x.xxx_hidden_GuildIconUri != nil {
+			return *x.xxx_hidden_GuildIconUri
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *GuildInvitePreview) GetMemberCount() int64 {
-	if x != nil && x.MemberCount != nil {
-		return *x.MemberCount
+	if x != nil {
+		return x.xxx_hidden_MemberCount
 	}
 	return 0
 }
 
 func (x *GuildInvitePreview) GetExpiresAt() int64 {
-	if x != nil && x.ExpiresAt != nil {
-		return *x.ExpiresAt
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
 	}
 	return 0
 }
 
+func (x *GuildInvitePreview) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+}
+
+func (x *GuildInvitePreview) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+}
+
+func (x *GuildInvitePreview) SetGuildName(v string) {
+	x.xxx_hidden_GuildName = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+}
+
+func (x *GuildInvitePreview) SetGuildIconUri(v string) {
+	x.xxx_hidden_GuildIconUri = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+}
+
+func (x *GuildInvitePreview) SetMemberCount(v int64) {
+	x.xxx_hidden_MemberCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *GuildInvitePreview) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+}
+
+func (x *GuildInvitePreview) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildInvitePreview) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildInvitePreview) HasGuildName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GuildInvitePreview) HasGuildIconUri() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GuildInvitePreview) HasMemberCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *GuildInvitePreview) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *GuildInvitePreview) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Code = nil
+}
+
+func (x *GuildInvitePreview) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GuildInvitePreview) ClearGuildName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_GuildName = nil
+}
+
+func (x *GuildInvitePreview) ClearGuildIconUri() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_GuildIconUri = nil
+}
+
+func (x *GuildInvitePreview) ClearMemberCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_MemberCount = 0
+}
+
+func (x *GuildInvitePreview) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type GuildInvitePreview_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Code         *string
+	GuildId      *int64
+	GuildName    *string
+	GuildIconUri *string
+	MemberCount  *int64
+	ExpiresAt    *int64
+}
+
+func (b0 GuildInvitePreview_builder) Build() *GuildInvitePreview {
+	m0 := &GuildInvitePreview{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		x.xxx_hidden_Code = b.Code
+	}
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.GuildName != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		x.xxx_hidden_GuildName = b.GuildName
+	}
+	if b.GuildIconUri != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		x.xxx_hidden_GuildIconUri = b.GuildIconUri
+	}
+	if b.MemberCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		x.xxx_hidden_MemberCount = *b.MemberCount
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
 type CreateGuildInviteRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	GuildId *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	// Zero means unlimited uses.
-	MaxUses *int32 `protobuf:"varint,2,opt,name=max_uses,json=maxUses" json:"max_uses,omitempty"`
-	// Relative lifetime in milliseconds. Zero means the invite never expires.
-	ExpiresInMs   *int64 `protobuf:"varint,3,opt,name=expires_in_ms,json=expiresInMs" json:"expires_in_ms,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_MaxUses     int32                  `protobuf:"varint,2,opt,name=max_uses,json=maxUses"`
+	xxx_hidden_ExpiresInMs int64                  `protobuf:"varint,3,opt,name=expires_in_ms,json=expiresInMs"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateGuildInviteRequest) Reset() {
@@ -2488,37 +5169,112 @@ func (x *CreateGuildInviteRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildInviteRequest.ProtoReflect.Descriptor instead.
-func (*CreateGuildInviteRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{38}
-}
-
 func (x *CreateGuildInviteRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *CreateGuildInviteRequest) GetMaxUses() int32 {
-	if x != nil && x.MaxUses != nil {
-		return *x.MaxUses
+	if x != nil {
+		return x.xxx_hidden_MaxUses
 	}
 	return 0
 }
 
 func (x *CreateGuildInviteRequest) GetExpiresInMs() int64 {
-	if x != nil && x.ExpiresInMs != nil {
-		return *x.ExpiresInMs
+	if x != nil {
+		return x.xxx_hidden_ExpiresInMs
 	}
 	return 0
 }
 
+func (x *CreateGuildInviteRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CreateGuildInviteRequest) SetMaxUses(v int32) {
+	x.xxx_hidden_MaxUses = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateGuildInviteRequest) SetExpiresInMs(v int64) {
+	x.xxx_hidden_ExpiresInMs = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *CreateGuildInviteRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGuildInviteRequest) HasMaxUses() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGuildInviteRequest) HasExpiresInMs() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateGuildInviteRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *CreateGuildInviteRequest) ClearMaxUses() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_MaxUses = 0
+}
+
+func (x *CreateGuildInviteRequest) ClearExpiresInMs() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ExpiresInMs = 0
+}
+
+type CreateGuildInviteRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	// Zero means unlimited uses.
+	MaxUses *int32
+	// Relative lifetime in milliseconds. Zero means the invite never expires.
+	ExpiresInMs *int64
+}
+
+func (b0 CreateGuildInviteRequest_builder) Build() *CreateGuildInviteRequest {
+	m0 := &CreateGuildInviteRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.MaxUses != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_MaxUses = *b.MaxUses
+	}
+	if b.ExpiresInMs != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ExpiresInMs = *b.ExpiresInMs
+	}
+	return m0
+}
+
 type CreateGuildInviteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Invite        *GuildInvite           `protobuf:"bytes,1,opt,name=invite" json:"invite,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Invite *GuildInvite           `protobuf:"bytes,1,opt,name=invite"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CreateGuildInviteResponse) Reset() {
@@ -2546,23 +5302,49 @@ func (x *CreateGuildInviteResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildInviteResponse.ProtoReflect.Descriptor instead.
-func (*CreateGuildInviteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{39}
-}
-
 func (x *CreateGuildInviteResponse) GetInvite() *GuildInvite {
 	if x != nil {
-		return x.Invite
+		return x.xxx_hidden_Invite
 	}
 	return nil
 }
 
+func (x *CreateGuildInviteResponse) SetInvite(v *GuildInvite) {
+	x.xxx_hidden_Invite = v
+}
+
+func (x *CreateGuildInviteResponse) HasInvite() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Invite != nil
+}
+
+func (x *CreateGuildInviteResponse) ClearInvite() {
+	x.xxx_hidden_Invite = nil
+}
+
+type CreateGuildInviteResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Invite *GuildInvite
+}
+
+func (b0 CreateGuildInviteResponse_builder) Build() *CreateGuildInviteResponse {
+	m0 := &CreateGuildInviteResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Invite = b.Invite
+	return m0
+}
+
 type GetGuildInviteRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          *string                `protobuf:"bytes,1,opt,name=code" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGuildInviteRequest) Reset() {
@@ -2590,23 +5372,55 @@ func (x *GetGuildInviteRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildInviteRequest.ProtoReflect.Descriptor instead.
-func (*GetGuildInviteRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{40}
-}
-
 func (x *GetGuildInviteRequest) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *GetGuildInviteRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetGuildInviteRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetGuildInviteRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Code = nil
+}
+
+type GetGuildInviteRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Code *string
+}
+
+func (b0 GetGuildInviteRequest_builder) Build() *GetGuildInviteRequest {
+	m0 := &GetGuildInviteRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
 type GetGuildInviteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Preview       *GuildInvitePreview    `protobuf:"bytes,1,opt,name=preview" json:"preview,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Preview *GuildInvitePreview    `protobuf:"bytes,1,opt,name=preview"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetGuildInviteResponse) Reset() {
@@ -2634,26 +5448,51 @@ func (x *GetGuildInviteResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildInviteResponse.ProtoReflect.Descriptor instead.
-func (*GetGuildInviteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{41}
-}
-
 func (x *GetGuildInviteResponse) GetPreview() *GuildInvitePreview {
 	if x != nil {
-		return x.Preview
+		return x.xxx_hidden_Preview
 	}
 	return nil
 }
 
+func (x *GetGuildInviteResponse) SetPreview(v *GuildInvitePreview) {
+	x.xxx_hidden_Preview = v
+}
+
+func (x *GetGuildInviteResponse) HasPreview() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Preview != nil
+}
+
+func (x *GetGuildInviteResponse) ClearPreview() {
+	x.xxx_hidden_Preview = nil
+}
+
+type GetGuildInviteResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Preview *GuildInvitePreview
+}
+
+func (b0 GetGuildInviteResponse_builder) Build() *GetGuildInviteResponse {
+	m0 := &GetGuildInviteResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Preview = b.Preview
+	return m0
+}
+
 type ListGuildInvitesRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	GuildId *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	// Return invites with IDs smaller than this cursor.
-	BeforeId      *int64 `protobuf:"varint,2,opt,name=before_id,json=beforeId" json:"before_id,omitempty"`
-	Limit         *int32 `protobuf:"varint,3,opt,name=limit" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,3,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildInvitesRequest) Reset() {
@@ -2681,38 +5520,114 @@ func (x *ListGuildInvitesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildInvitesRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildInvitesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{42}
-}
-
 func (x *ListGuildInvitesRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *ListGuildInvitesRequest) GetBeforeId() int64 {
-	if x != nil && x.BeforeId != nil {
-		return *x.BeforeId
+	if x != nil {
+		return x.xxx_hidden_BeforeId
 	}
 	return 0
 }
 
 func (x *ListGuildInvitesRequest) GetLimit() int32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+	if x != nil {
+		return x.xxx_hidden_Limit
 	}
 	return 0
 }
 
+func (x *ListGuildInvitesRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *ListGuildInvitesRequest) SetBeforeId(v int64) {
+	x.xxx_hidden_BeforeId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListGuildInvitesRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListGuildInvitesRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildInvitesRequest) HasBeforeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildInvitesRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListGuildInvitesRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *ListGuildInvitesRequest) ClearBeforeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeId = 0
+}
+
+func (x *ListGuildInvitesRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListGuildInvitesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	// Return invites with IDs smaller than this cursor.
+	BeforeId *int64
+	Limit    *int32
+}
+
+func (b0 ListGuildInvitesRequest_builder) Build() *ListGuildInvitesRequest {
+	m0 := &ListGuildInvitesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.BeforeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_BeforeId = *b.BeforeId
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
 type ListGuildInvitesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Invites       []*GuildInvite         `protobuf:"bytes,1,rep,name=invites" json:"invites,omitempty"`
-	BeforeId      *int64                 `protobuf:"varint,2,opt,name=before_id,json=beforeId" json:"before_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Invites     *[]*GuildInvite        `protobuf:"bytes,1,rep,name=invites"`
+	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildInvitesResponse) Reset() {
@@ -2740,30 +5655,69 @@ func (x *ListGuildInvitesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildInvitesResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildInvitesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{43}
-}
-
 func (x *ListGuildInvitesResponse) GetInvites() []*GuildInvite {
 	if x != nil {
-		return x.Invites
+		if x.xxx_hidden_Invites != nil {
+			return *x.xxx_hidden_Invites
+		}
 	}
 	return nil
 }
 
 func (x *ListGuildInvitesResponse) GetBeforeId() int64 {
-	if x != nil && x.BeforeId != nil {
-		return *x.BeforeId
+	if x != nil {
+		return x.xxx_hidden_BeforeId
 	}
 	return 0
 }
 
+func (x *ListGuildInvitesResponse) SetInvites(v []*GuildInvite) {
+	x.xxx_hidden_Invites = &v
+}
+
+func (x *ListGuildInvitesResponse) SetBeforeId(v int64) {
+	x.xxx_hidden_BeforeId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildInvitesResponse) HasBeforeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildInvitesResponse) ClearBeforeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeId = 0
+}
+
+type ListGuildInvitesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Invites  []*GuildInvite
+	BeforeId *int64
+}
+
+func (b0 ListGuildInvitesResponse_builder) Build() *ListGuildInvitesResponse {
+	m0 := &ListGuildInvitesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Invites = &b.Invites
+	if b.BeforeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_BeforeId = *b.BeforeId
+	}
+	return m0
+}
+
 type DeleteGuildInviteRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          *string                `protobuf:"bytes,1,opt,name=code" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildInviteRequest) Reset() {
@@ -2791,23 +5745,57 @@ func (x *DeleteGuildInviteRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildInviteRequest.ProtoReflect.Descriptor instead.
-func (*DeleteGuildInviteRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{44}
-}
-
 func (x *DeleteGuildInviteRequest) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *DeleteGuildInviteRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildInviteRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildInviteRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Code = nil
+}
+
+type DeleteGuildInviteRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Code *string
+}
+
+func (b0 DeleteGuildInviteRequest_builder) Build() *DeleteGuildInviteRequest {
+	m0 := &DeleteGuildInviteRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
 type DeleteGuildInviteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildInviteResponse) Reset() {
@@ -2835,23 +5823,54 @@ func (x *DeleteGuildInviteResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildInviteResponse.ProtoReflect.Descriptor instead.
-func (*DeleteGuildInviteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{45}
-}
-
 func (x *DeleteGuildInviteResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DeleteGuildInviteResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildInviteResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildInviteResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DeleteGuildInviteResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DeleteGuildInviteResponse_builder) Build() *DeleteGuildInviteResponse {
+	m0 := &DeleteGuildInviteResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type JoinGuildByInviteRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          *string                `protobuf:"bytes,1,opt,name=code" json:"code,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *JoinGuildByInviteRequest) Reset() {
@@ -2879,24 +5898,56 @@ func (x *JoinGuildByInviteRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use JoinGuildByInviteRequest.ProtoReflect.Descriptor instead.
-func (*JoinGuildByInviteRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{46}
-}
-
 func (x *JoinGuildByInviteRequest) GetCode() string {
-	if x != nil && x.Code != nil {
-		return *x.Code
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
 	}
 	return ""
 }
 
+func (x *JoinGuildByInviteRequest) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *JoinGuildByInviteRequest) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *JoinGuildByInviteRequest) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Code = nil
+}
+
+type JoinGuildByInviteRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Code *string
+}
+
+func (b0 JoinGuildByInviteRequest_builder) Build() *JoinGuildByInviteRequest {
+	m0 := &JoinGuildByInviteRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
 type JoinGuildByInviteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Guild         *Guild                 `protobuf:"bytes,1,opt,name=guild" json:"guild,omitempty"`
-	Member        *GuildMember           `protobuf:"bytes,2,opt,name=member" json:"member,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guild  *Guild                 `protobuf:"bytes,1,opt,name=guild"`
+	xxx_hidden_Member *GuildMember           `protobuf:"bytes,2,opt,name=member"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *JoinGuildByInviteResponse) Reset() {
@@ -2924,32 +5975,75 @@ func (x *JoinGuildByInviteResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use JoinGuildByInviteResponse.ProtoReflect.Descriptor instead.
-func (*JoinGuildByInviteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{47}
-}
-
 func (x *JoinGuildByInviteResponse) GetGuild() *Guild {
 	if x != nil {
-		return x.Guild
+		return x.xxx_hidden_Guild
 	}
 	return nil
 }
 
 func (x *JoinGuildByInviteResponse) GetMember() *GuildMember {
 	if x != nil {
-		return x.Member
+		return x.xxx_hidden_Member
 	}
 	return nil
 }
 
+func (x *JoinGuildByInviteResponse) SetGuild(v *Guild) {
+	x.xxx_hidden_Guild = v
+}
+
+func (x *JoinGuildByInviteResponse) SetMember(v *GuildMember) {
+	x.xxx_hidden_Member = v
+}
+
+func (x *JoinGuildByInviteResponse) HasGuild() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Guild != nil
+}
+
+func (x *JoinGuildByInviteResponse) HasMember() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Member != nil
+}
+
+func (x *JoinGuildByInviteResponse) ClearGuild() {
+	x.xxx_hidden_Guild = nil
+}
+
+func (x *JoinGuildByInviteResponse) ClearMember() {
+	x.xxx_hidden_Member = nil
+}
+
+type JoinGuildByInviteResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Guild  *Guild
+	Member *GuildMember
+}
+
+func (b0 JoinGuildByInviteResponse_builder) Build() *JoinGuildByInviteResponse {
+	m0 := &JoinGuildByInviteResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Guild = b.Guild
+	x.xxx_hidden_Member = b.Member
+	return m0
+}
+
 type CreateGuildRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Permissions   *uint64                `protobuf:"varint,3,opt,name=permissions" json:"permissions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_Permissions uint64                 `protobuf:"varint,3,opt,name=permissions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateGuildRoleRequest) Reset() {
@@ -2977,37 +6071,113 @@ func (x *CreateGuildRoleRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildRoleRequest.ProtoReflect.Descriptor instead.
-func (*CreateGuildRoleRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{48}
-}
-
 func (x *CreateGuildRoleRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *CreateGuildRoleRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *CreateGuildRoleRequest) GetPermissions() uint64 {
-	if x != nil && x.Permissions != nil {
-		return *x.Permissions
+	if x != nil {
+		return x.xxx_hidden_Permissions
 	}
 	return 0
 }
 
+func (x *CreateGuildRoleRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CreateGuildRoleRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateGuildRoleRequest) SetPermissions(v uint64) {
+	x.xxx_hidden_Permissions = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *CreateGuildRoleRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGuildRoleRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGuildRoleRequest) HasPermissions() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateGuildRoleRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *CreateGuildRoleRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *CreateGuildRoleRequest) ClearPermissions() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Permissions = 0
+}
+
+type CreateGuildRoleRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId     *int64
+	Name        *string
+	Permissions *uint64
+}
+
+func (b0 CreateGuildRoleRequest_builder) Build() *CreateGuildRoleRequest {
+	m0 := &CreateGuildRoleRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Permissions != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Permissions = *b.Permissions
+	}
+	return m0
+}
+
 type CreateGuildRoleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          *GuildRole             `protobuf:"bytes,1,opt,name=role" json:"role,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Role *GuildRole             `protobuf:"bytes,1,opt,name=role"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CreateGuildRoleResponse) Reset() {
@@ -3035,24 +6205,50 @@ func (x *CreateGuildRoleResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildRoleResponse.ProtoReflect.Descriptor instead.
-func (*CreateGuildRoleResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{49}
-}
-
 func (x *CreateGuildRoleResponse) GetRole() *GuildRole {
 	if x != nil {
-		return x.Role
+		return x.xxx_hidden_Role
 	}
 	return nil
 }
 
+func (x *CreateGuildRoleResponse) SetRole(v *GuildRole) {
+	x.xxx_hidden_Role = v
+}
+
+func (x *CreateGuildRoleResponse) HasRole() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Role != nil
+}
+
+func (x *CreateGuildRoleResponse) ClearRole() {
+	x.xxx_hidden_Role = nil
+}
+
+type CreateGuildRoleResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Role *GuildRole
+}
+
+func (b0 CreateGuildRoleResponse_builder) Build() *CreateGuildRoleResponse {
+	m0 := &CreateGuildRoleResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Role = b.Role
+	return m0
+}
+
 type GetGuildRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	RoleId        *int64                 `protobuf:"varint,2,opt,name=role_id,json=roleId" json:"role_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_RoleId      int64                  `protobuf:"varint,2,opt,name=role_id,json=roleId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGuildRoleRequest) Reset() {
@@ -3080,30 +6276,81 @@ func (x *GetGuildRoleRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildRoleRequest.ProtoReflect.Descriptor instead.
-func (*GetGuildRoleRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{50}
-}
-
 func (x *GetGuildRoleRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GetGuildRoleRequest) GetRoleId() int64 {
-	if x != nil && x.RoleId != nil {
-		return *x.RoleId
+	if x != nil {
+		return x.xxx_hidden_RoleId
 	}
 	return 0
 }
 
+func (x *GetGuildRoleRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetGuildRoleRequest) SetRoleId(v int64) {
+	x.xxx_hidden_RoleId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GetGuildRoleRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetGuildRoleRequest) HasRoleId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetGuildRoleRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GetGuildRoleRequest) ClearRoleId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_RoleId = 0
+}
+
+type GetGuildRoleRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	RoleId  *int64
+}
+
+func (b0 GetGuildRoleRequest_builder) Build() *GetGuildRoleRequest {
+	m0 := &GetGuildRoleRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.RoleId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_RoleId = *b.RoleId
+	}
+	return m0
+}
+
 type GetGuildRoleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          *GuildRole             `protobuf:"bytes,1,opt,name=role" json:"role,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Role *GuildRole             `protobuf:"bytes,1,opt,name=role"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetGuildRoleResponse) Reset() {
@@ -3131,23 +6378,49 @@ func (x *GetGuildRoleResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildRoleResponse.ProtoReflect.Descriptor instead.
-func (*GetGuildRoleResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{51}
-}
-
 func (x *GetGuildRoleResponse) GetRole() *GuildRole {
 	if x != nil {
-		return x.Role
+		return x.xxx_hidden_Role
 	}
 	return nil
 }
 
+func (x *GetGuildRoleResponse) SetRole(v *GuildRole) {
+	x.xxx_hidden_Role = v
+}
+
+func (x *GetGuildRoleResponse) HasRole() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Role != nil
+}
+
+func (x *GetGuildRoleResponse) ClearRole() {
+	x.xxx_hidden_Role = nil
+}
+
+type GetGuildRoleResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Role *GuildRole
+}
+
+func (b0 GetGuildRoleResponse_builder) Build() *GetGuildRoleResponse {
+	m0 := &GetGuildRoleResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Role = b.Role
+	return m0
+}
+
 type ListGuildRolesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildRolesRequest) Reset() {
@@ -3175,23 +6448,52 @@ func (x *ListGuildRolesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildRolesRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildRolesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{52}
-}
-
 func (x *ListGuildRolesRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
+func (x *ListGuildRolesRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ListGuildRolesRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildRolesRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type ListGuildRolesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+}
+
+func (b0 ListGuildRolesRequest_builder) Build() *ListGuildRolesRequest {
+	m0 := &ListGuildRolesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	return m0
+}
+
 type ListGuildRolesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Roles         []*GuildRole           `protobuf:"bytes,1,rep,name=roles" json:"roles,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ListGuildRolesResponse) Reset() {
@@ -3219,27 +6521,43 @@ func (x *ListGuildRolesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildRolesResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildRolesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{53}
-}
-
 func (x *ListGuildRolesResponse) GetRoles() []*GuildRole {
 	if x != nil {
-		return x.Roles
+		if x.xxx_hidden_Roles != nil {
+			return *x.xxx_hidden_Roles
+		}
 	}
 	return nil
 }
 
+func (x *ListGuildRolesResponse) SetRoles(v []*GuildRole) {
+	x.xxx_hidden_Roles = &v
+}
+
+type ListGuildRolesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Roles []*GuildRole
+}
+
+func (b0 ListGuildRolesResponse_builder) Build() *ListGuildRolesResponse {
+	m0 := &ListGuildRolesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Roles = &b.Roles
+	return m0
+}
+
 type UpdateGuildRoleRequest struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	GuildId *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	RoleId  *int64                 `protobuf:"varint,2,opt,name=role_id,json=roleId" json:"role_id,omitempty"`
-	// Optional replacement fields.
-	Name          *string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Permissions   *uint64 `protobuf:"varint,4,opt,name=permissions" json:"permissions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_RoleId      int64                  `protobuf:"varint,2,opt,name=role_id,json=roleId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Permissions uint64                 `protobuf:"varint,4,opt,name=permissions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateGuildRoleRequest) Reset() {
@@ -3267,44 +6585,143 @@ func (x *UpdateGuildRoleRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGuildRoleRequest.ProtoReflect.Descriptor instead.
-func (*UpdateGuildRoleRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{54}
-}
-
 func (x *UpdateGuildRoleRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *UpdateGuildRoleRequest) GetRoleId() int64 {
-	if x != nil && x.RoleId != nil {
-		return *x.RoleId
+	if x != nil {
+		return x.xxx_hidden_RoleId
 	}
 	return 0
 }
 
 func (x *UpdateGuildRoleRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UpdateGuildRoleRequest) GetPermissions() uint64 {
-	if x != nil && x.Permissions != nil {
-		return *x.Permissions
+	if x != nil {
+		return x.xxx_hidden_Permissions
 	}
 	return 0
 }
 
+func (x *UpdateGuildRoleRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *UpdateGuildRoleRequest) SetRoleId(v int64) {
+	x.xxx_hidden_RoleId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *UpdateGuildRoleRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *UpdateGuildRoleRequest) SetPermissions(v uint64) {
+	x.xxx_hidden_Permissions = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *UpdateGuildRoleRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateGuildRoleRequest) HasRoleId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateGuildRoleRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpdateGuildRoleRequest) HasPermissions() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *UpdateGuildRoleRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *UpdateGuildRoleRequest) ClearRoleId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_RoleId = 0
+}
+
+func (x *UpdateGuildRoleRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *UpdateGuildRoleRequest) ClearPermissions() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Permissions = 0
+}
+
+type UpdateGuildRoleRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	RoleId  *int64
+	// Optional replacement fields.
+	Name        *string
+	Permissions *uint64
+}
+
+func (b0 UpdateGuildRoleRequest_builder) Build() *UpdateGuildRoleRequest {
+	m0 := &UpdateGuildRoleRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.RoleId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_RoleId = *b.RoleId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Permissions != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Permissions = *b.Permissions
+	}
+	return m0
+}
+
 type UpdateGuildRoleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          *GuildRole             `protobuf:"bytes,1,opt,name=role" json:"role,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Role *GuildRole             `protobuf:"bytes,1,opt,name=role"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateGuildRoleResponse) Reset() {
@@ -3332,24 +6749,50 @@ func (x *UpdateGuildRoleResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGuildRoleResponse.ProtoReflect.Descriptor instead.
-func (*UpdateGuildRoleResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{55}
-}
-
 func (x *UpdateGuildRoleResponse) GetRole() *GuildRole {
 	if x != nil {
-		return x.Role
+		return x.xxx_hidden_Role
 	}
 	return nil
 }
 
+func (x *UpdateGuildRoleResponse) SetRole(v *GuildRole) {
+	x.xxx_hidden_Role = v
+}
+
+func (x *UpdateGuildRoleResponse) HasRole() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Role != nil
+}
+
+func (x *UpdateGuildRoleResponse) ClearRole() {
+	x.xxx_hidden_Role = nil
+}
+
+type UpdateGuildRoleResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Role *GuildRole
+}
+
+func (b0 UpdateGuildRoleResponse_builder) Build() *UpdateGuildRoleResponse {
+	m0 := &UpdateGuildRoleResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Role = b.Role
+	return m0
+}
+
 type DeleteGuildRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	RoleId        *int64                 `protobuf:"varint,2,opt,name=role_id,json=roleId" json:"role_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_RoleId      int64                  `protobuf:"varint,2,opt,name=role_id,json=roleId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildRoleRequest) Reset() {
@@ -3377,30 +6820,83 @@ func (x *DeleteGuildRoleRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildRoleRequest.ProtoReflect.Descriptor instead.
-func (*DeleteGuildRoleRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{56}
-}
-
 func (x *DeleteGuildRoleRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *DeleteGuildRoleRequest) GetRoleId() int64 {
-	if x != nil && x.RoleId != nil {
-		return *x.RoleId
+	if x != nil {
+		return x.xxx_hidden_RoleId
 	}
 	return 0
 }
 
+func (x *DeleteGuildRoleRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DeleteGuildRoleRequest) SetRoleId(v int64) {
+	x.xxx_hidden_RoleId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *DeleteGuildRoleRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildRoleRequest) HasRoleId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeleteGuildRoleRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *DeleteGuildRoleRequest) ClearRoleId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_RoleId = 0
+}
+
+type DeleteGuildRoleRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	RoleId  *int64
+}
+
+func (b0 DeleteGuildRoleRequest_builder) Build() *DeleteGuildRoleRequest {
+	m0 := &DeleteGuildRoleRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.RoleId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_RoleId = *b.RoleId
+	}
+	return m0
+}
+
 type DeleteGuildRoleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildRoleResponse) Reset() {
@@ -3428,24 +6924,55 @@ func (x *DeleteGuildRoleResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildRoleResponse.ProtoReflect.Descriptor instead.
-func (*DeleteGuildRoleResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{57}
-}
-
 func (x *DeleteGuildRoleResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DeleteGuildRoleResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildRoleResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildRoleResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DeleteGuildRoleResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DeleteGuildRoleResponse_builder) Build() *DeleteGuildRoleResponse {
+	m0 := &DeleteGuildRoleResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type GuildRolePosition struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoleId        *int64                 `protobuf:"varint,1,opt,name=role_id,json=roleId" json:"role_id,omitempty"`
-	Position      *int32                 `protobuf:"varint,2,opt,name=position" json:"position,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RoleId      int64                  `protobuf:"varint,1,opt,name=role_id,json=roleId"`
+	xxx_hidden_Position    int32                  `protobuf:"varint,2,opt,name=position"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GuildRolePosition) Reset() {
@@ -3473,31 +7000,84 @@ func (x *GuildRolePosition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildRolePosition.ProtoReflect.Descriptor instead.
-func (*GuildRolePosition) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{58}
-}
-
 func (x *GuildRolePosition) GetRoleId() int64 {
-	if x != nil && x.RoleId != nil {
-		return *x.RoleId
+	if x != nil {
+		return x.xxx_hidden_RoleId
 	}
 	return 0
 }
 
 func (x *GuildRolePosition) GetPosition() int32 {
-	if x != nil && x.Position != nil {
-		return *x.Position
+	if x != nil {
+		return x.xxx_hidden_Position
 	}
 	return 0
 }
 
+func (x *GuildRolePosition) SetRoleId(v int64) {
+	x.xxx_hidden_RoleId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GuildRolePosition) SetPosition(v int32) {
+	x.xxx_hidden_Position = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GuildRolePosition) HasRoleId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildRolePosition) HasPosition() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildRolePosition) ClearRoleId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_RoleId = 0
+}
+
+func (x *GuildRolePosition) ClearPosition() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Position = 0
+}
+
+type GuildRolePosition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	RoleId   *int64
+	Position *int32
+}
+
+func (b0 GuildRolePosition_builder) Build() *GuildRolePosition {
+	m0 := &GuildRolePosition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.RoleId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_RoleId = *b.RoleId
+	}
+	if b.Position != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Position = *b.Position
+	}
+	return m0
+}
+
 type ReorderGuildRolesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	Positions     []*GuildRolePosition   `protobuf:"bytes,2,rep,name=positions" json:"positions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Positions   *[]*GuildRolePosition  `protobuf:"bytes,2,rep,name=positions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ReorderGuildRolesRequest) Reset() {
@@ -3525,30 +7105,67 @@ func (x *ReorderGuildRolesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReorderGuildRolesRequest.ProtoReflect.Descriptor instead.
-func (*ReorderGuildRolesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{59}
-}
-
 func (x *ReorderGuildRolesRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *ReorderGuildRolesRequest) GetPositions() []*GuildRolePosition {
 	if x != nil {
-		return x.Positions
+		if x.xxx_hidden_Positions != nil {
+			return *x.xxx_hidden_Positions
+		}
 	}
 	return nil
 }
 
+func (x *ReorderGuildRolesRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ReorderGuildRolesRequest) SetPositions(v []*GuildRolePosition) {
+	x.xxx_hidden_Positions = &v
+}
+
+func (x *ReorderGuildRolesRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ReorderGuildRolesRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type ReorderGuildRolesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId   *int64
+	Positions []*GuildRolePosition
+}
+
+func (b0 ReorderGuildRolesRequest_builder) Build() *ReorderGuildRolesRequest {
+	m0 := &ReorderGuildRolesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	x.xxx_hidden_Positions = &b.Positions
+	return m0
+}
+
 type ReorderGuildRolesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Roles         []*GuildRole           `protobuf:"bytes,1,rep,name=roles" json:"roles,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ReorderGuildRolesResponse) Reset() {
@@ -3576,25 +7193,42 @@ func (x *ReorderGuildRolesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReorderGuildRolesResponse.ProtoReflect.Descriptor instead.
-func (*ReorderGuildRolesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{60}
-}
-
 func (x *ReorderGuildRolesResponse) GetRoles() []*GuildRole {
 	if x != nil {
-		return x.Roles
+		if x.xxx_hidden_Roles != nil {
+			return *x.xxx_hidden_Roles
+		}
 	}
 	return nil
 }
 
+func (x *ReorderGuildRolesResponse) SetRoles(v []*GuildRole) {
+	x.xxx_hidden_Roles = &v
+}
+
+type ReorderGuildRolesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Roles []*GuildRole
+}
+
+func (b0 ReorderGuildRolesResponse_builder) Build() *ReorderGuildRolesResponse {
+	m0 := &ReorderGuildRolesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Roles = &b.Roles
+	return m0
+}
+
 type AddGuildMemberRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	RoleId        *int64                 `protobuf:"varint,3,opt,name=role_id,json=roleId" json:"role_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_RoleId      int64                  `protobuf:"varint,3,opt,name=role_id,json=roleId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *AddGuildMemberRoleRequest) Reset() {
@@ -3622,37 +7256,112 @@ func (x *AddGuildMemberRoleRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddGuildMemberRoleRequest.ProtoReflect.Descriptor instead.
-func (*AddGuildMemberRoleRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{61}
-}
-
 func (x *AddGuildMemberRoleRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *AddGuildMemberRoleRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *AddGuildMemberRoleRequest) GetRoleId() int64 {
-	if x != nil && x.RoleId != nil {
-		return *x.RoleId
+	if x != nil {
+		return x.xxx_hidden_RoleId
 	}
 	return 0
 }
 
+func (x *AddGuildMemberRoleRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *AddGuildMemberRoleRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *AddGuildMemberRoleRequest) SetRoleId(v int64) {
+	x.xxx_hidden_RoleId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *AddGuildMemberRoleRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AddGuildMemberRoleRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AddGuildMemberRoleRequest) HasRoleId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AddGuildMemberRoleRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *AddGuildMemberRoleRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *AddGuildMemberRoleRequest) ClearRoleId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_RoleId = 0
+}
+
+type AddGuildMemberRoleRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+	RoleId  *int64
+}
+
+func (b0 AddGuildMemberRoleRequest_builder) Build() *AddGuildMemberRoleRequest {
+	m0 := &AddGuildMemberRoleRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.RoleId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_RoleId = *b.RoleId
+	}
+	return m0
+}
+
 type AddGuildMemberRoleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *AddGuildMemberRoleResponse) Reset() {
@@ -3680,25 +7389,56 @@ func (x *AddGuildMemberRoleResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddGuildMemberRoleResponse.ProtoReflect.Descriptor instead.
-func (*AddGuildMemberRoleResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{62}
-}
-
 func (x *AddGuildMemberRoleResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *AddGuildMemberRoleResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *AddGuildMemberRoleResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AddGuildMemberRoleResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type AddGuildMemberRoleResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 AddGuildMemberRoleResponse_builder) Build() *AddGuildMemberRoleResponse {
+	m0 := &AddGuildMemberRoleResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type RemoveGuildMemberRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	RoleId        *int64                 `protobuf:"varint,3,opt,name=role_id,json=roleId" json:"role_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_RoleId      int64                  `protobuf:"varint,3,opt,name=role_id,json=roleId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RemoveGuildMemberRoleRequest) Reset() {
@@ -3726,37 +7466,112 @@ func (x *RemoveGuildMemberRoleRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveGuildMemberRoleRequest.ProtoReflect.Descriptor instead.
-func (*RemoveGuildMemberRoleRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{63}
-}
-
 func (x *RemoveGuildMemberRoleRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *RemoveGuildMemberRoleRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
 func (x *RemoveGuildMemberRoleRequest) GetRoleId() int64 {
-	if x != nil && x.RoleId != nil {
-		return *x.RoleId
+	if x != nil {
+		return x.xxx_hidden_RoleId
 	}
 	return 0
 }
 
+func (x *RemoveGuildMemberRoleRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *RemoveGuildMemberRoleRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *RemoveGuildMemberRoleRequest) SetRoleId(v int64) {
+	x.xxx_hidden_RoleId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *RemoveGuildMemberRoleRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RemoveGuildMemberRoleRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RemoveGuildMemberRoleRequest) HasRoleId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *RemoveGuildMemberRoleRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *RemoveGuildMemberRoleRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RemoveGuildMemberRoleRequest) ClearRoleId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_RoleId = 0
+}
+
+type RemoveGuildMemberRoleRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+	RoleId  *int64
+}
+
+func (b0 RemoveGuildMemberRoleRequest_builder) Build() *RemoveGuildMemberRoleRequest {
+	m0 := &RemoveGuildMemberRoleRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.RoleId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_RoleId = *b.RoleId
+	}
+	return m0
+}
+
 type RemoveGuildMemberRoleResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RemoveGuildMemberRoleResponse) Reset() {
@@ -3784,24 +7599,55 @@ func (x *RemoveGuildMemberRoleResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use RemoveGuildMemberRoleResponse.ProtoReflect.Descriptor instead.
-func (*RemoveGuildMemberRoleResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{64}
-}
-
 func (x *RemoveGuildMemberRoleResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *RemoveGuildMemberRoleResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RemoveGuildMemberRoleResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RemoveGuildMemberRoleResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type RemoveGuildMemberRoleResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 RemoveGuildMemberRoleResponse_builder) Build() *RemoveGuildMemberRoleResponse {
+	m0 := &RemoveGuildMemberRoleResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type ListGuildMemberRolesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildMemberRolesRequest) Reset() {
@@ -3829,30 +7675,81 @@ func (x *ListGuildMemberRolesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildMemberRolesRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildMemberRolesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{65}
-}
-
 func (x *ListGuildMemberRolesRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *ListGuildMemberRolesRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
+func (x *ListGuildMemberRolesRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ListGuildMemberRolesRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildMemberRolesRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildMemberRolesRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildMemberRolesRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *ListGuildMemberRolesRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+type ListGuildMemberRolesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+}
+
+func (b0 ListGuildMemberRolesRequest_builder) Build() *ListGuildMemberRolesRequest {
+	m0 := &ListGuildMemberRolesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
 type ListGuildMemberRolesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Roles         []*GuildRole           `protobuf:"bytes,1,rep,name=roles" json:"roles,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ListGuildMemberRolesResponse) Reset() {
@@ -3880,24 +7777,41 @@ func (x *ListGuildMemberRolesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildMemberRolesResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildMemberRolesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{66}
-}
-
 func (x *ListGuildMemberRolesResponse) GetRoles() []*GuildRole {
 	if x != nil {
-		return x.Roles
+		if x.xxx_hidden_Roles != nil {
+			return *x.xxx_hidden_Roles
+		}
 	}
 	return nil
 }
 
+func (x *ListGuildMemberRolesResponse) SetRoles(v []*GuildRole) {
+	x.xxx_hidden_Roles = &v
+}
+
+type ListGuildMemberRolesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Roles []*GuildRole
+}
+
+func (b0 ListGuildMemberRolesResponse_builder) Build() *ListGuildMemberRolesResponse {
+	m0 := &ListGuildMemberRolesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Roles = &b.Roles
+	return m0
+}
+
 type GetGuildMemberPermissionsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	UserId        *int64                 `protobuf:"varint,2,opt,name=user_id,json=userId" json:"user_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGuildMemberPermissionsRequest) Reset() {
@@ -3925,30 +7839,83 @@ func (x *GetGuildMemberPermissionsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildMemberPermissionsRequest.ProtoReflect.Descriptor instead.
-func (*GetGuildMemberPermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{67}
-}
-
 func (x *GetGuildMemberPermissionsRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *GetGuildMemberPermissionsRequest) GetUserId() int64 {
-	if x != nil && x.UserId != nil {
-		return *x.UserId
+	if x != nil {
+		return x.xxx_hidden_UserId
 	}
 	return 0
 }
 
+func (x *GetGuildMemberPermissionsRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetGuildMemberPermissionsRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GetGuildMemberPermissionsRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetGuildMemberPermissionsRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetGuildMemberPermissionsRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *GetGuildMemberPermissionsRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+type GetGuildMemberPermissionsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	UserId  *int64
+}
+
+func (b0 GetGuildMemberPermissionsRequest_builder) Build() *GetGuildMemberPermissionsRequest {
+	m0 := &GetGuildMemberPermissionsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	return m0
+}
+
 type GetGuildMemberPermissionsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Permissions   *uint64                `protobuf:"varint,1,opt,name=permissions" json:"permissions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Permissions uint64                 `protobuf:"varint,1,opt,name=permissions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGuildMemberPermissionsResponse) Reset() {
@@ -3976,27 +7943,58 @@ func (x *GetGuildMemberPermissionsResponse) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildMemberPermissionsResponse.ProtoReflect.Descriptor instead.
-func (*GetGuildMemberPermissionsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{68}
-}
-
 func (x *GetGuildMemberPermissionsResponse) GetPermissions() uint64 {
-	if x != nil && x.Permissions != nil {
-		return *x.Permissions
+	if x != nil {
+		return x.xxx_hidden_Permissions
 	}
 	return 0
 }
 
+func (x *GetGuildMemberPermissionsResponse) SetPermissions(v uint64) {
+	x.xxx_hidden_Permissions = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetGuildMemberPermissionsResponse) HasPermissions() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetGuildMemberPermissionsResponse) ClearPermissions() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Permissions = 0
+}
+
+type GetGuildMemberPermissionsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Permissions *uint64
+}
+
+func (b0 GetGuildMemberPermissionsResponse_builder) Build() *GetGuildMemberPermissionsResponse {
+	m0 := &GetGuildMemberPermissionsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Permissions != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Permissions = *b.Permissions
+	}
+	return m0
+}
+
 type CreateGuildChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Type          *GuildChannelType      `protobuf:"varint,3,opt,name=type,enum=api.v1.GuildChannelType" json:"type,omitempty"`
-	Topic         *string                `protobuf:"bytes,4,opt,name=topic" json:"topic,omitempty"`
-	ParentId      *int64                 `protobuf:"varint,5,opt,name=parent_id,json=parentId" json:"parent_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_Type        GuildChannelType       `protobuf:"varint,3,opt,name=type,enum=api.v1.GuildChannelType"`
+	xxx_hidden_Topic       *string                `protobuf:"bytes,4,opt,name=topic"`
+	xxx_hidden_ParentId    int64                  `protobuf:"varint,5,opt,name=parent_id,json=parentId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateGuildChannelRequest) Reset() {
@@ -4024,51 +8022,176 @@ func (x *CreateGuildChannelRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildChannelRequest.ProtoReflect.Descriptor instead.
-func (*CreateGuildChannelRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{69}
-}
-
 func (x *CreateGuildChannelRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *CreateGuildChannelRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *CreateGuildChannelRequest) GetType() GuildChannelType {
-	if x != nil && x.Type != nil {
-		return *x.Type
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+			return x.xxx_hidden_Type
+		}
 	}
 	return GuildChannelType_GUILD_CHANNEL_TYPE_UNSPECIFIED
 }
 
 func (x *CreateGuildChannelRequest) GetTopic() string {
-	if x != nil && x.Topic != nil {
-		return *x.Topic
+	if x != nil {
+		if x.xxx_hidden_Topic != nil {
+			return *x.xxx_hidden_Topic
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *CreateGuildChannelRequest) GetParentId() int64 {
-	if x != nil && x.ParentId != nil {
-		return *x.ParentId
+	if x != nil {
+		return x.xxx_hidden_ParentId
 	}
 	return 0
 }
 
+func (x *CreateGuildChannelRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *CreateGuildChannelRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *CreateGuildChannelRequest) SetType(v GuildChannelType) {
+	x.xxx_hidden_Type = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *CreateGuildChannelRequest) SetTopic(v string) {
+	x.xxx_hidden_Topic = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *CreateGuildChannelRequest) SetParentId(v int64) {
+	x.xxx_hidden_ParentId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *CreateGuildChannelRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGuildChannelRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGuildChannelRequest) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateGuildChannelRequest) HasTopic() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *CreateGuildChannelRequest) HasParentId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *CreateGuildChannelRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *CreateGuildChannelRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *CreateGuildChannelRequest) ClearType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Type = GuildChannelType_GUILD_CHANNEL_TYPE_UNSPECIFIED
+}
+
+func (x *CreateGuildChannelRequest) ClearTopic() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Topic = nil
+}
+
+func (x *CreateGuildChannelRequest) ClearParentId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_ParentId = 0
+}
+
+type CreateGuildChannelRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId  *int64
+	Name     *string
+	Type     *GuildChannelType
+	Topic    *string
+	ParentId *int64
+}
+
+func (b0 CreateGuildChannelRequest_builder) Build() *CreateGuildChannelRequest {
+	m0 := &CreateGuildChannelRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Type != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_Type = *b.Type
+	}
+	if b.Topic != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_Topic = b.Topic
+	}
+	if b.ParentId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_ParentId = *b.ParentId
+	}
+	return m0
+}
+
 type CreateGuildChannelResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       *GuildChannel          `protobuf:"bytes,1,opt,name=channel" json:"channel,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channel *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CreateGuildChannelResponse) Reset() {
@@ -4096,23 +8219,49 @@ func (x *CreateGuildChannelResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateGuildChannelResponse.ProtoReflect.Descriptor instead.
-func (*CreateGuildChannelResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{70}
-}
-
 func (x *CreateGuildChannelResponse) GetChannel() *GuildChannel {
 	if x != nil {
-		return x.Channel
+		return x.xxx_hidden_Channel
 	}
 	return nil
 }
 
+func (x *CreateGuildChannelResponse) SetChannel(v *GuildChannel) {
+	x.xxx_hidden_Channel = v
+}
+
+func (x *CreateGuildChannelResponse) HasChannel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Channel != nil
+}
+
+func (x *CreateGuildChannelResponse) ClearChannel() {
+	x.xxx_hidden_Channel = nil
+}
+
+type CreateGuildChannelResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channel *GuildChannel
+}
+
+func (b0 CreateGuildChannelResponse_builder) Build() *CreateGuildChannelResponse {
+	m0 := &CreateGuildChannelResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channel = b.Channel
+	return m0
+}
+
 type GetGuildChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId     *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGuildChannelRequest) Reset() {
@@ -4140,23 +8289,52 @@ func (x *GetGuildChannelRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildChannelRequest.ProtoReflect.Descriptor instead.
-func (*GetGuildChannelRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{71}
-}
-
 func (x *GetGuildChannelRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
+func (x *GetGuildChannelRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetGuildChannelRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetGuildChannelRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+type GetGuildChannelRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+}
+
+func (b0 GetGuildChannelRequest_builder) Build() *GetGuildChannelRequest {
+	m0 := &GetGuildChannelRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	return m0
+}
+
 type GetGuildChannelResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       *GuildChannel          `protobuf:"bytes,1,opt,name=channel" json:"channel,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channel *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetGuildChannelResponse) Reset() {
@@ -4184,23 +8362,49 @@ func (x *GetGuildChannelResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetGuildChannelResponse.ProtoReflect.Descriptor instead.
-func (*GetGuildChannelResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{72}
-}
-
 func (x *GetGuildChannelResponse) GetChannel() *GuildChannel {
 	if x != nil {
-		return x.Channel
+		return x.xxx_hidden_Channel
 	}
 	return nil
 }
 
+func (x *GetGuildChannelResponse) SetChannel(v *GuildChannel) {
+	x.xxx_hidden_Channel = v
+}
+
+func (x *GetGuildChannelResponse) HasChannel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Channel != nil
+}
+
+func (x *GetGuildChannelResponse) ClearChannel() {
+	x.xxx_hidden_Channel = nil
+}
+
+type GetGuildChannelResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channel *GuildChannel
+}
+
+func (b0 GetGuildChannelResponse_builder) Build() *GetGuildChannelResponse {
+	m0 := &GetGuildChannelResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channel = b.Channel
+	return m0
+}
+
 type ListGuildChannelsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GuildId       *int64                 `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildChannelsRequest) Reset() {
@@ -4228,23 +8432,52 @@ func (x *ListGuildChannelsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildChannelsRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{73}
-}
-
 func (x *ListGuildChannelsRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
+func (x *ListGuildChannelsRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ListGuildChannelsRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildChannelsRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type ListGuildChannelsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+}
+
+func (b0 ListGuildChannelsRequest_builder) Build() *ListGuildChannelsRequest {
+	m0 := &ListGuildChannelsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	return m0
+}
+
 type ListGuildChannelsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channels      []*GuildChannel        `protobuf:"bytes,1,rep,name=channels" json:"channels,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channels *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ListGuildChannelsResponse) Reset() {
@@ -4272,26 +8505,43 @@ func (x *ListGuildChannelsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildChannelsResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{74}
-}
-
 func (x *ListGuildChannelsResponse) GetChannels() []*GuildChannel {
 	if x != nil {
-		return x.Channels
+		if x.xxx_hidden_Channels != nil {
+			return *x.xxx_hidden_Channels
+		}
 	}
 	return nil
 }
 
+func (x *ListGuildChannelsResponse) SetChannels(v []*GuildChannel) {
+	x.xxx_hidden_Channels = &v
+}
+
+type ListGuildChannelsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channels []*GuildChannel
+}
+
+func (b0 ListGuildChannelsResponse_builder) Build() *ListGuildChannelsResponse {
+	m0 := &ListGuildChannelsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channels = &b.Channels
+	return m0
+}
+
 type UpdateGuildChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId     *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	Name          *string                `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Topic         *string                `protobuf:"bytes,3,opt,name=topic" json:"topic,omitempty"`
-	ParentId      *int64                 `protobuf:"varint,4,opt,name=parent_id,json=parentId" json:"parent_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_Topic       *string                `protobuf:"bytes,3,opt,name=topic"`
+	xxx_hidden_ParentId    int64                  `protobuf:"varint,4,opt,name=parent_id,json=parentId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateGuildChannelRequest) Reset() {
@@ -4319,44 +8569,145 @@ func (x *UpdateGuildChannelRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGuildChannelRequest.ProtoReflect.Descriptor instead.
-func (*UpdateGuildChannelRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{75}
-}
-
 func (x *UpdateGuildChannelRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *UpdateGuildChannelRequest) GetName() string {
-	if x != nil && x.Name != nil {
-		return *x.Name
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UpdateGuildChannelRequest) GetTopic() string {
-	if x != nil && x.Topic != nil {
-		return *x.Topic
+	if x != nil {
+		if x.xxx_hidden_Topic != nil {
+			return *x.xxx_hidden_Topic
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UpdateGuildChannelRequest) GetParentId() int64 {
-	if x != nil && x.ParentId != nil {
-		return *x.ParentId
+	if x != nil {
+		return x.xxx_hidden_ParentId
 	}
 	return 0
 }
 
+func (x *UpdateGuildChannelRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *UpdateGuildChannelRequest) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *UpdateGuildChannelRequest) SetTopic(v string) {
+	x.xxx_hidden_Topic = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *UpdateGuildChannelRequest) SetParentId(v int64) {
+	x.xxx_hidden_ParentId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *UpdateGuildChannelRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateGuildChannelRequest) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateGuildChannelRequest) HasTopic() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpdateGuildChannelRequest) HasParentId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *UpdateGuildChannelRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *UpdateGuildChannelRequest) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *UpdateGuildChannelRequest) ClearTopic() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Topic = nil
+}
+
+func (x *UpdateGuildChannelRequest) ClearParentId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ParentId = 0
+}
+
+type UpdateGuildChannelRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	Name      *string
+	Topic     *string
+	ParentId  *int64
+}
+
+func (b0 UpdateGuildChannelRequest_builder) Build() *UpdateGuildChannelRequest {
+	m0 := &UpdateGuildChannelRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Topic != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Topic = b.Topic
+	}
+	if b.ParentId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_ParentId = *b.ParentId
+	}
+	return m0
+}
+
 type UpdateGuildChannelResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       *GuildChannel          `protobuf:"bytes,1,opt,name=channel" json:"channel,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channel *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UpdateGuildChannelResponse) Reset() {
@@ -4384,23 +8735,49 @@ func (x *UpdateGuildChannelResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateGuildChannelResponse.ProtoReflect.Descriptor instead.
-func (*UpdateGuildChannelResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{76}
-}
-
 func (x *UpdateGuildChannelResponse) GetChannel() *GuildChannel {
 	if x != nil {
-		return x.Channel
+		return x.xxx_hidden_Channel
 	}
 	return nil
 }
 
+func (x *UpdateGuildChannelResponse) SetChannel(v *GuildChannel) {
+	x.xxx_hidden_Channel = v
+}
+
+func (x *UpdateGuildChannelResponse) HasChannel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Channel != nil
+}
+
+func (x *UpdateGuildChannelResponse) ClearChannel() {
+	x.xxx_hidden_Channel = nil
+}
+
+type UpdateGuildChannelResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channel *GuildChannel
+}
+
+func (b0 UpdateGuildChannelResponse_builder) Build() *UpdateGuildChannelResponse {
+	m0 := &UpdateGuildChannelResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channel = b.Channel
+	return m0
+}
+
 type DeleteGuildChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId     *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildChannelRequest) Reset() {
@@ -4428,23 +8805,54 @@ func (x *DeleteGuildChannelRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildChannelRequest.ProtoReflect.Descriptor instead.
-func (*DeleteGuildChannelRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{77}
-}
-
 func (x *DeleteGuildChannelRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
+func (x *DeleteGuildChannelRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildChannelRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildChannelRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+type DeleteGuildChannelRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+}
+
+func (b0 DeleteGuildChannelRequest_builder) Build() *DeleteGuildChannelRequest {
+	m0 := &DeleteGuildChannelRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	return m0
+}
+
 type DeleteGuildChannelResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildChannelResponse) Reset() {
@@ -4472,24 +8880,55 @@ func (x *DeleteGuildChannelResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildChannelResponse.ProtoReflect.Descriptor instead.
-func (*DeleteGuildChannelResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{78}
-}
-
 func (x *DeleteGuildChannelResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DeleteGuildChannelResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildChannelResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildChannelResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DeleteGuildChannelResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DeleteGuildChannelResponse_builder) Build() *DeleteGuildChannelResponse {
+	m0 := &DeleteGuildChannelResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type GuildChannelPosition struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId     *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	Position      *int32                 `protobuf:"varint,2,opt,name=position" json:"position,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_Position    int32                  `protobuf:"varint,2,opt,name=position"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GuildChannelPosition) Reset() {
@@ -4517,31 +8956,84 @@ func (x *GuildChannelPosition) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GuildChannelPosition.ProtoReflect.Descriptor instead.
-func (*GuildChannelPosition) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{79}
-}
-
 func (x *GuildChannelPosition) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *GuildChannelPosition) GetPosition() int32 {
-	if x != nil && x.Position != nil {
-		return *x.Position
+	if x != nil {
+		return x.xxx_hidden_Position
 	}
 	return 0
 }
 
+func (x *GuildChannelPosition) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GuildChannelPosition) SetPosition(v int32) {
+	x.xxx_hidden_Position = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GuildChannelPosition) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildChannelPosition) HasPosition() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GuildChannelPosition) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *GuildChannelPosition) ClearPosition() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Position = 0
+}
+
+type GuildChannelPosition_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	Position  *int32
+}
+
+func (b0 GuildChannelPosition_builder) Build() *GuildChannelPosition {
+	m0 := &GuildChannelPosition{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.Position != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Position = *b.Position
+	}
+	return m0
+}
+
 type ReorderGuildChannelsRequest struct {
-	state         protoimpl.MessageState  `protogen:"open.v1"`
-	GuildId       *int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	Positions     []*GuildChannelPosition `protobuf:"bytes,2,rep,name=positions" json:"positions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                    `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_Positions   *[]*GuildChannelPosition `protobuf:"bytes,2,rep,name=positions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ReorderGuildChannelsRequest) Reset() {
@@ -4569,30 +9061,67 @@ func (x *ReorderGuildChannelsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReorderGuildChannelsRequest.ProtoReflect.Descriptor instead.
-func (*ReorderGuildChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{80}
-}
-
 func (x *ReorderGuildChannelsRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
 func (x *ReorderGuildChannelsRequest) GetPositions() []*GuildChannelPosition {
 	if x != nil {
-		return x.Positions
+		if x.xxx_hidden_Positions != nil {
+			return *x.xxx_hidden_Positions
+		}
 	}
 	return nil
 }
 
+func (x *ReorderGuildChannelsRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ReorderGuildChannelsRequest) SetPositions(v []*GuildChannelPosition) {
+	x.xxx_hidden_Positions = &v
+}
+
+func (x *ReorderGuildChannelsRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ReorderGuildChannelsRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type ReorderGuildChannelsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId   *int64
+	Positions []*GuildChannelPosition
+}
+
+func (b0 ReorderGuildChannelsRequest_builder) Build() *ReorderGuildChannelsRequest {
+	m0 := &ReorderGuildChannelsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	x.xxx_hidden_Positions = &b.Positions
+	return m0
+}
+
 type ReorderGuildChannelsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channels      []*GuildChannel        `protobuf:"bytes,1,rep,name=channels" json:"channels,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channels *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *ReorderGuildChannelsResponse) Reset() {
@@ -4620,27 +9149,44 @@ func (x *ReorderGuildChannelsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ReorderGuildChannelsResponse.ProtoReflect.Descriptor instead.
-func (*ReorderGuildChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{81}
-}
-
 func (x *ReorderGuildChannelsResponse) GetChannels() []*GuildChannel {
 	if x != nil {
-		return x.Channels
+		if x.xxx_hidden_Channels != nil {
+			return *x.xxx_hidden_Channels
+		}
 	}
 	return nil
 }
 
+func (x *ReorderGuildChannelsResponse) SetChannels(v []*GuildChannel) {
+	x.xxx_hidden_Channels = &v
+}
+
+type ReorderGuildChannelsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channels []*GuildChannel
+}
+
+func (b0 ReorderGuildChannelsResponse_builder) Build() *ReorderGuildChannelsResponse {
+	m0 := &ReorderGuildChannelsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channels = &b.Channels
+	return m0
+}
+
 type UpsertGuildChannelPermissionOverwriteRequest struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	ChannelId     *int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	TargetType    *GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType" json:"target_type,omitempty"`
-	TargetId      *int64                        `protobuf:"varint,3,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	Allow         *uint64                       `protobuf:"varint,4,opt,name=allow" json:"allow,omitempty"`
-	Deny          *uint64                       `protobuf:"varint,5,opt,name=deny" json:"deny,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_TargetType  GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType"`
+	xxx_hidden_TargetId    int64                        `protobuf:"varint,3,opt,name=target_id,json=targetId"`
+	xxx_hidden_Allow       uint64                       `protobuf:"varint,4,opt,name=allow"`
+	xxx_hidden_Deny        uint64                       `protobuf:"varint,5,opt,name=deny"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) Reset() {
@@ -4668,51 +9214,170 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) ProtoReflect() protorefle
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpsertGuildChannelPermissionOverwriteRequest.ProtoReflect.Descriptor instead.
-func (*UpsertGuildChannelPermissionOverwriteRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{82}
-}
-
 func (x *UpsertGuildChannelPermissionOverwriteRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) GetTargetType() GuildPermissionOverwriteType {
-	if x != nil && x.TargetType != nil {
-		return *x.TargetType
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
+			return x.xxx_hidden_TargetType
+		}
 	}
 	return GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) GetAllow() uint64 {
-	if x != nil && x.Allow != nil {
-		return *x.Allow
+	if x != nil {
+		return x.xxx_hidden_Allow
 	}
 	return 0
 }
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) GetDeny() uint64 {
-	if x != nil && x.Deny != nil {
-		return *x.Deny
+	if x != nil {
+		return x.xxx_hidden_Deny
 	}
 	return 0
 }
 
+func (x *UpsertGuildChannelPermissionOverwriteRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) SetTargetType(v GuildPermissionOverwriteType) {
+	x.xxx_hidden_TargetType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) SetAllow(v uint64) {
+	x.xxx_hidden_Allow = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) SetDeny(v uint64) {
+	x.xxx_hidden_Deny = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) HasTargetType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) HasAllow() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) HasDeny() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearTargetType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_TargetType = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_TargetId = 0
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearAllow() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Allow = 0
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearDeny() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Deny = 0
+}
+
+type UpsertGuildChannelPermissionOverwriteRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId  *int64
+	TargetType *GuildPermissionOverwriteType
+	TargetId   *int64
+	Allow      *uint64
+	Deny       *uint64
+}
+
+func (b0 UpsertGuildChannelPermissionOverwriteRequest_builder) Build() *UpsertGuildChannelPermissionOverwriteRequest {
+	m0 := &UpsertGuildChannelPermissionOverwriteRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.TargetType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_TargetType = *b.TargetType
+	}
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	if b.Allow != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_Allow = *b.Allow
+	}
+	if b.Deny != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_Deny = *b.Deny
+	}
+	return m0
+}
+
 type UpsertGuildChannelPermissionOverwriteResponse struct {
-	state         protoimpl.MessageState           `protogen:"open.v1"`
-	Overwrite     *GuildChannelPermissionOverwrite `protobuf:"bytes,1,opt,name=overwrite" json:"overwrite,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState           `protogen:"opaque.v1"`
+	xxx_hidden_Overwrite *GuildChannelPermissionOverwrite `protobuf:"bytes,1,opt,name=overwrite"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *UpsertGuildChannelPermissionOverwriteResponse) Reset() {
@@ -4740,25 +9405,51 @@ func (x *UpsertGuildChannelPermissionOverwriteResponse) ProtoReflect() protorefl
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpsertGuildChannelPermissionOverwriteResponse.ProtoReflect.Descriptor instead.
-func (*UpsertGuildChannelPermissionOverwriteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{83}
-}
-
 func (x *UpsertGuildChannelPermissionOverwriteResponse) GetOverwrite() *GuildChannelPermissionOverwrite {
 	if x != nil {
-		return x.Overwrite
+		return x.xxx_hidden_Overwrite
 	}
 	return nil
 }
 
+func (x *UpsertGuildChannelPermissionOverwriteResponse) SetOverwrite(v *GuildChannelPermissionOverwrite) {
+	x.xxx_hidden_Overwrite = v
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteResponse) HasOverwrite() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Overwrite != nil
+}
+
+func (x *UpsertGuildChannelPermissionOverwriteResponse) ClearOverwrite() {
+	x.xxx_hidden_Overwrite = nil
+}
+
+type UpsertGuildChannelPermissionOverwriteResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Overwrite *GuildChannelPermissionOverwrite
+}
+
+func (b0 UpsertGuildChannelPermissionOverwriteResponse_builder) Build() *UpsertGuildChannelPermissionOverwriteResponse {
+	m0 := &UpsertGuildChannelPermissionOverwriteResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Overwrite = b.Overwrite
+	return m0
+}
+
 type DeleteGuildChannelPermissionOverwriteRequest struct {
-	state         protoimpl.MessageState        `protogen:"open.v1"`
-	ChannelId     *int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	TargetType    *GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType" json:"target_type,omitempty"`
-	TargetId      *int64                        `protobuf:"varint,3,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_TargetType  GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType"`
+	xxx_hidden_TargetId    int64                        `protobuf:"varint,3,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildChannelPermissionOverwriteRequest) Reset() {
@@ -4786,37 +9477,114 @@ func (x *DeleteGuildChannelPermissionOverwriteRequest) ProtoReflect() protorefle
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildChannelPermissionOverwriteRequest.ProtoReflect.Descriptor instead.
-func (*DeleteGuildChannelPermissionOverwriteRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{84}
-}
-
 func (x *DeleteGuildChannelPermissionOverwriteRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *DeleteGuildChannelPermissionOverwriteRequest) GetTargetType() GuildPermissionOverwriteType {
-	if x != nil && x.TargetType != nil {
-		return *x.TargetType
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
+			return x.xxx_hidden_TargetType
+		}
 	}
 	return GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
 func (x *DeleteGuildChannelPermissionOverwriteRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *DeleteGuildChannelPermissionOverwriteRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) SetTargetType(v GuildPermissionOverwriteType) {
+	x.xxx_hidden_TargetType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) HasTargetType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearTargetType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_TargetType = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_TargetId = 0
+}
+
+type DeleteGuildChannelPermissionOverwriteRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId  *int64
+	TargetType *GuildPermissionOverwriteType
+	TargetId   *int64
+}
+
+func (b0 DeleteGuildChannelPermissionOverwriteRequest_builder) Build() *DeleteGuildChannelPermissionOverwriteRequest {
+	m0 := &DeleteGuildChannelPermissionOverwriteRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.TargetType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_TargetType = *b.TargetType
+	}
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type DeleteGuildChannelPermissionOverwriteResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteGuildChannelPermissionOverwriteResponse) Reset() {
@@ -4844,23 +9612,54 @@ func (x *DeleteGuildChannelPermissionOverwriteResponse) ProtoReflect() protorefl
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteGuildChannelPermissionOverwriteResponse.ProtoReflect.Descriptor instead.
-func (*DeleteGuildChannelPermissionOverwriteResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{85}
-}
-
 func (x *DeleteGuildChannelPermissionOverwriteResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DeleteGuildChannelPermissionOverwriteResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteGuildChannelPermissionOverwriteResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DeleteGuildChannelPermissionOverwriteResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DeleteGuildChannelPermissionOverwriteResponse_builder) Build() *DeleteGuildChannelPermissionOverwriteResponse {
+	m0 := &DeleteGuildChannelPermissionOverwriteResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type ListGuildChannelPermissionOverwritesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId     *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildChannelPermissionOverwritesRequest) Reset() {
@@ -4888,23 +9687,52 @@ func (x *ListGuildChannelPermissionOverwritesRequest) ProtoReflect() protoreflec
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildChannelPermissionOverwritesRequest.ProtoReflect.Descriptor instead.
-func (*ListGuildChannelPermissionOverwritesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{86}
-}
-
 func (x *ListGuildChannelPermissionOverwritesRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
+func (x *ListGuildChannelPermissionOverwritesRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *ListGuildChannelPermissionOverwritesRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildChannelPermissionOverwritesRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+type ListGuildChannelPermissionOverwritesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+}
+
+func (b0 ListGuildChannelPermissionOverwritesRequest_builder) Build() *ListGuildChannelPermissionOverwritesRequest {
+	m0 := &ListGuildChannelPermissionOverwritesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	return m0
+}
+
 type ListGuildChannelPermissionOverwritesResponse struct {
-	state         protoimpl.MessageState             `protogen:"open.v1"`
-	Overwrites    []*GuildChannelPermissionOverwrite `protobuf:"bytes,1,rep,name=overwrites" json:"overwrites,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState              `protogen:"opaque.v1"`
+	xxx_hidden_Overwrites *[]*GuildChannelPermissionOverwrite `protobuf:"bytes,1,rep,name=overwrites"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ListGuildChannelPermissionOverwritesResponse) Reset() {
@@ -4932,16 +9760,31 @@ func (x *ListGuildChannelPermissionOverwritesResponse) ProtoReflect() protorefle
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListGuildChannelPermissionOverwritesResponse.ProtoReflect.Descriptor instead.
-func (*ListGuildChannelPermissionOverwritesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_guild_proto_rawDescGZIP(), []int{87}
-}
-
 func (x *ListGuildChannelPermissionOverwritesResponse) GetOverwrites() []*GuildChannelPermissionOverwrite {
 	if x != nil {
-		return x.Overwrites
+		if x.xxx_hidden_Overwrites != nil {
+			return *x.xxx_hidden_Overwrites
+		}
 	}
 	return nil
+}
+
+func (x *ListGuildChannelPermissionOverwritesResponse) SetOverwrites(v []*GuildChannelPermissionOverwrite) {
+	x.xxx_hidden_Overwrites = &v
+}
+
+type ListGuildChannelPermissionOverwritesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Overwrites []*GuildChannelPermissionOverwrite
+}
+
+func (b0 ListGuildChannelPermissionOverwritesResponse_builder) Build() *ListGuildChannelPermissionOverwritesResponse {
+	m0 := &ListGuildChannelPermissionOverwritesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Overwrites = &b.Overwrites
+	return m0
 }
 
 var File_api_v1_guild_proto protoreflect.FileDescriptor
@@ -5329,18 +10172,6 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"com.api.v1B\n" +
 	"GuildProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
-
-var (
-	file_api_v1_guild_proto_rawDescOnce sync.Once
-	file_api_v1_guild_proto_rawDescData []byte
-)
-
-func file_api_v1_guild_proto_rawDescGZIP() []byte {
-	file_api_v1_guild_proto_rawDescOnce.Do(func() {
-		file_api_v1_guild_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_v1_guild_proto_rawDesc), len(file_api_v1_guild_proto_rawDesc)))
-	})
-	return file_api_v1_guild_proto_rawDescData
-}
 
 var file_api_v1_guild_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_api_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 88)

@@ -26,7 +26,9 @@ func (s *guildServer) CreateGuildInvite(ctx context.Context, req *apiv1.CreateGu
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CreateGuildInviteResponse{Invite: guildInviteToAPI(svcResp.GetInvite())}, nil
+	resp := new(apiv1.CreateGuildInviteResponse)
+	resp.SetInvite(guildInviteToAPI(svcResp.GetInvite()))
+	return resp, nil
 }
 
 func (s *guildServer) GetGuildInvite(ctx context.Context, req *apiv1.GetGuildInviteRequest) (*apiv1.GetGuildInviteResponse, error) {
@@ -39,7 +41,9 @@ func (s *guildServer) GetGuildInvite(ctx context.Context, req *apiv1.GetGuildInv
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetGuildInviteResponse{Preview: guildInvitePreviewToAPI(svcResp.GetPreview())}, nil
+	resp := new(apiv1.GetGuildInviteResponse)
+	resp.SetPreview(guildInvitePreviewToAPI(svcResp.GetPreview()))
+	return resp, nil
 }
 
 func (s *guildServer) ListGuildInvites(ctx context.Context, req *apiv1.ListGuildInvitesRequest) (*apiv1.ListGuildInvitesResponse, error) {
@@ -56,10 +60,10 @@ func (s *guildServer) ListGuildInvites(ctx context.Context, req *apiv1.ListGuild
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildInvitesResponse{
-		Invites:  guildInvitesToAPI(svcResp.GetInvites()),
-		BeforeId: new(svcResp.GetBeforeId()),
-	}, nil
+	resp := new(apiv1.ListGuildInvitesResponse)
+	resp.SetInvites(guildInvitesToAPI(svcResp.GetInvites()))
+	resp.SetBeforeId(svcResp.GetBeforeId())
+	return resp, nil
 }
 
 func (s *guildServer) DeleteGuildInvite(ctx context.Context, req *apiv1.DeleteGuildInviteRequest) (*apiv1.DeleteGuildInviteResponse, error) {
@@ -74,7 +78,9 @@ func (s *guildServer) DeleteGuildInvite(ctx context.Context, req *apiv1.DeleteGu
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DeleteGuildInviteResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.DeleteGuildInviteResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *apiv1.JoinGuildByInviteRequest) (*apiv1.JoinGuildByInviteResponse, error) {
@@ -95,26 +101,26 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *apiv1.JoinGuil
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.JoinGuildByInviteResponse{
-		Guild:  guildToAPI(svcResp.GetGuild()),
-		Member: guildMemberToAPI(svcResp.GetMember()),
-	}, nil
+	resp := new(apiv1.JoinGuildByInviteResponse)
+	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
+	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	return resp, nil
 }
 
 func guildInviteToAPI(invite *guildv1.GuildInvite) *apiv1.GuildInvite {
 	if invite == nil {
 		return nil
 	}
-	return &apiv1.GuildInvite{
-		Id:            new(invite.GetId()),
-		Code:          new(invite.GetCode()),
-		GuildId:       new(invite.GetGuildId()),
-		CreatorUserId: new(invite.GetCreatorUserId()),
-		MaxUses:       new(invite.GetMaxUses()),
-		Uses:          new(invite.GetUses()),
-		ExpiresAt:     new(invite.GetExpiresAt()),
-		CreatedAt:     new(invite.GetCreatedAt()),
-	}
+	resp := new(apiv1.GuildInvite)
+	resp.SetId(invite.GetId())
+	resp.SetCode(invite.GetCode())
+	resp.SetGuildId(invite.GetGuildId())
+	resp.SetCreatorUserId(invite.GetCreatorUserId())
+	resp.SetMaxUses(invite.GetMaxUses())
+	resp.SetUses(invite.GetUses())
+	resp.SetExpiresAt(invite.GetExpiresAt())
+	resp.SetCreatedAt(invite.GetCreatedAt())
+	return resp
 }
 
 func guildInvitesToAPI(invites []*guildv1.GuildInvite) []*apiv1.GuildInvite {
@@ -129,12 +135,12 @@ func guildInvitePreviewToAPI(preview *guildv1.GuildInvitePreview) *apiv1.GuildIn
 	if preview == nil {
 		return nil
 	}
-	return &apiv1.GuildInvitePreview{
-		Code:         new(preview.GetCode()),
-		GuildId:      new(preview.GetGuildId()),
-		GuildName:    new(preview.GetGuildName()),
-		GuildIconUri: new(preview.GetGuildIconUri()),
-		MemberCount:  new(preview.GetMemberCount()),
-		ExpiresAt:    new(preview.GetExpiresAt()),
-	}
+	resp := new(apiv1.GuildInvitePreview)
+	resp.SetCode(preview.GetCode())
+	resp.SetGuildId(preview.GetGuildId())
+	resp.SetGuildName(preview.GetGuildName())
+	resp.SetGuildIconUri(preview.GetGuildIconUri())
+	resp.SetMemberCount(preview.GetMemberCount())
+	resp.SetExpiresAt(preview.GetExpiresAt())
+	return resp
 }

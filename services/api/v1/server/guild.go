@@ -35,7 +35,9 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *apiv1.CreateGuildReq
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CreateGuildResponse{Guild: guildToAPI(svcResp.GetGuild())}, nil
+	resp := new(apiv1.CreateGuildResponse)
+	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
+	return resp, nil
 }
 
 func (s *guildServer) GetGuild(ctx context.Context, req *apiv1.GetGuildRequest) (*apiv1.GetGuildResponse, error) {
@@ -50,7 +52,9 @@ func (s *guildServer) GetGuild(ctx context.Context, req *apiv1.GetGuildRequest) 
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetGuildResponse{Guild: guildToAPI(svcResp.GetGuild())}, nil
+	resp := new(apiv1.GetGuildResponse)
+	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
+	return resp, nil
 }
 
 func (s *guildServer) ListGuilds(ctx context.Context, req *apiv1.ListGuildsRequest) (*apiv1.ListGuildsResponse, error) {
@@ -66,10 +70,10 @@ func (s *guildServer) ListGuilds(ctx context.Context, req *apiv1.ListGuildsReque
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildsResponse{
-		Guilds:       guildsToAPI(svcResp.GetGuilds()),
-		BeforeCursor: new(svcResp.GetBeforeCursor()),
-	}, nil
+	resp := new(apiv1.ListGuildsResponse)
+	resp.SetGuilds(guildsToAPI(svcResp.GetGuilds()))
+	resp.SetBeforeCursor(svcResp.GetBeforeCursor())
+	return resp, nil
 }
 
 func (s *guildServer) UpdateGuild(ctx context.Context, req *apiv1.UpdateGuildRequest) (*apiv1.UpdateGuildResponse, error) {
@@ -80,17 +84,19 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *apiv1.UpdateGuildReq
 	svcReq := new(guildv1.UpdateGuildRequest)
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())
-	if req.Name != nil {
+	if req.HasName() {
 		svcReq.SetName(req.GetName())
 	}
-	if req.IconUri != nil {
+	if req.HasIconUri() {
 		svcReq.SetIconUri(req.GetIconUri())
 	}
 	svcResp, err := s.svcCtx.GuildClient.UpdateGuild(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateGuildResponse{Guild: guildToAPI(svcResp.GetGuild())}, nil
+	resp := new(apiv1.UpdateGuildResponse)
+	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
+	return resp, nil
 }
 
 func (s *guildServer) DeleteGuild(ctx context.Context, req *apiv1.DeleteGuildRequest) (*apiv1.DeleteGuildResponse, error) {
@@ -105,7 +111,9 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *apiv1.DeleteGuildReq
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DeleteGuildResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.DeleteGuildResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) AddGuildMember(ctx context.Context, req *apiv1.AddGuildMemberRequest) (*apiv1.AddGuildMemberResponse, error) {
@@ -121,7 +129,9 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *apiv1.AddGuildMem
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.AddGuildMemberResponse{Member: guildMemberToAPI(svcResp.GetMember())}, nil
+	resp := new(apiv1.AddGuildMemberResponse)
+	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	return resp, nil
 }
 
 func (s *guildServer) GetGuildMember(ctx context.Context, req *apiv1.GetGuildMemberRequest) (*apiv1.GetGuildMemberResponse, error) {
@@ -137,7 +147,9 @@ func (s *guildServer) GetGuildMember(ctx context.Context, req *apiv1.GetGuildMem
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetGuildMemberResponse{Member: guildMemberToAPI(svcResp.GetMember())}, nil
+	resp := new(apiv1.GetGuildMemberResponse)
+	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	return resp, nil
 }
 
 func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuildMembersRequest) (*apiv1.ListGuildMembersResponse, error) {
@@ -154,10 +166,10 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuild
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildMembersResponse{
-		Members:      guildMembersToAPI(svcResp.GetMembers()),
-		BeforeUserId: new(svcResp.GetBeforeUserId()),
-	}, nil
+	resp := new(apiv1.ListGuildMembersResponse)
+	resp.SetMembers(guildMembersToAPI(svcResp.GetMembers()))
+	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
+	return resp, nil
 }
 
 func (s *guildServer) UpdateCurrentGuildMember(ctx context.Context, req *apiv1.UpdateCurrentGuildMemberRequest) (*apiv1.UpdateCurrentGuildMemberResponse, error) {
@@ -173,7 +185,9 @@ func (s *guildServer) UpdateCurrentGuildMember(ctx context.Context, req *apiv1.U
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateCurrentGuildMemberResponse{Member: guildMemberToAPI(svcResp.GetMember())}, nil
+	resp := new(apiv1.UpdateCurrentGuildMemberResponse)
+	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	return resp, nil
 }
 
 func (s *guildServer) KickGuildMember(ctx context.Context, req *apiv1.KickGuildMemberRequest) (*apiv1.KickGuildMemberResponse, error) {
@@ -189,7 +203,9 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *apiv1.KickGuildM
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.KickGuildMemberResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.KickGuildMemberResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) BanGuildMember(ctx context.Context, req *apiv1.BanGuildMemberRequest) (*apiv1.BanGuildMemberResponse, error) {
@@ -206,7 +222,9 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *apiv1.BanGuildMem
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.BanGuildMemberResponse{Ban: guildBanToAPI(svcResp.GetBan())}, nil
+	resp := new(apiv1.BanGuildMemberResponse)
+	resp.SetBan(guildBanToAPI(svcResp.GetBan()))
+	return resp, nil
 }
 
 func (s *guildServer) UnbanGuildMember(ctx context.Context, req *apiv1.UnbanGuildMemberRequest) (*apiv1.UnbanGuildMemberResponse, error) {
@@ -222,7 +240,9 @@ func (s *guildServer) UnbanGuildMember(ctx context.Context, req *apiv1.UnbanGuil
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UnbanGuildMemberResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.UnbanGuildMemberResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) ListGuildBans(ctx context.Context, req *apiv1.ListGuildBansRequest) (*apiv1.ListGuildBansResponse, error) {
@@ -239,9 +259,10 @@ func (s *guildServer) ListGuildBans(ctx context.Context, req *apiv1.ListGuildBan
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildBansResponse{
-		Bans: guildBansToAPI(svcResp.GetBans()), BeforeUserId: new(svcResp.GetBeforeUserId()),
-	}, nil
+	resp := new(apiv1.ListGuildBansResponse)
+	resp.SetBans(guildBansToAPI(svcResp.GetBans()))
+	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
+	return resp, nil
 }
 
 func (s *guildServer) LeaveGuild(ctx context.Context, req *apiv1.LeaveGuildRequest) (*apiv1.LeaveGuildResponse, error) {
@@ -256,7 +277,9 @@ func (s *guildServer) LeaveGuild(ctx context.Context, req *apiv1.LeaveGuildReque
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.LeaveGuildResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.LeaveGuildResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) TransferGuildOwnership(ctx context.Context, req *apiv1.TransferGuildOwnershipRequest) (*apiv1.TransferGuildOwnershipResponse, error) {
@@ -272,22 +295,24 @@ func (s *guildServer) TransferGuildOwnership(ctx context.Context, req *apiv1.Tra
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.TransferGuildOwnershipResponse{Guild: guildToAPI(svcResp.GetGuild())}, nil
+	resp := new(apiv1.TransferGuildOwnershipResponse)
+	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
+	return resp, nil
 }
 
 func guildToAPI(guild *guildv1.Guild) *apiv1.Guild {
 	if guild == nil {
 		return nil
 	}
-	return &apiv1.Guild{
-		Id:        new(guild.GetId()),
-		OwnerId:   new(guild.GetOwnerId()),
-		Name:      new(guild.GetName()),
-		IconUri:   new(guild.GetIconUri()),
-		Revision:  new(guild.GetRevision()),
-		CreatedAt: new(guild.GetCreatedAt()),
-		UpdatedAt: new(guild.GetUpdatedAt()),
-	}
+	resp := new(apiv1.Guild)
+	resp.SetId(guild.GetId())
+	resp.SetOwnerId(guild.GetOwnerId())
+	resp.SetName(guild.GetName())
+	resp.SetIconUri(guild.GetIconUri())
+	resp.SetRevision(guild.GetRevision())
+	resp.SetCreatedAt(guild.GetCreatedAt())
+	resp.SetUpdatedAt(guild.GetUpdatedAt())
+	return resp
 }
 
 func guildsToAPI(guilds []*guildv1.Guild) []*apiv1.Guild {
@@ -302,14 +327,14 @@ func guildMemberToAPI(member *guildv1.GuildMember) *apiv1.GuildMember {
 	if member == nil {
 		return nil
 	}
-	return &apiv1.GuildMember{
-		GuildId:   new(member.GetGuildId()),
-		UserId:    new(member.GetUserId()),
-		Nickname:  new(member.GetNickname()),
-		Revision:  new(member.GetRevision()),
-		JoinedAt:  new(member.GetJoinedAt()),
-		UpdatedAt: new(member.GetUpdatedAt()),
-	}
+	resp := new(apiv1.GuildMember)
+	resp.SetGuildId(member.GetGuildId())
+	resp.SetUserId(member.GetUserId())
+	resp.SetNickname(member.GetNickname())
+	resp.SetRevision(member.GetRevision())
+	resp.SetJoinedAt(member.GetJoinedAt())
+	resp.SetUpdatedAt(member.GetUpdatedAt())
+	return resp
 }
 
 func guildMembersToAPI(members []*guildv1.GuildMember) []*apiv1.GuildMember {
@@ -324,11 +349,13 @@ func guildBanToAPI(ban *guildv1.GuildBan) *apiv1.GuildBan {
 	if ban == nil {
 		return nil
 	}
-	return &apiv1.GuildBan{
-		GuildId: new(ban.GetGuildId()), UserId: new(ban.GetUserId()),
-		ActorUserId: new(ban.GetActorUserId()), Reason: new(ban.GetReason()),
-		CreatedAt: new(ban.GetCreatedAt()),
-	}
+	resp := new(apiv1.GuildBan)
+	resp.SetGuildId(ban.GetGuildId())
+	resp.SetUserId(ban.GetUserId())
+	resp.SetActorUserId(ban.GetActorUserId())
+	resp.SetReason(ban.GetReason())
+	resp.SetCreatedAt(ban.GetCreatedAt())
+	return resp
 }
 
 func guildBansToAPI(bans []*guildv1.GuildBan) []*apiv1.GuildBan {

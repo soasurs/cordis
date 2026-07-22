@@ -368,26 +368,31 @@ func TestGuildMemberMutationsUseAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	_, err := client.AddGuildMember(context.Background(), &apiv1.AddGuildMemberRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)),
-	})
+	addMemberReq := new(apiv1.AddGuildMemberRequest)
+	addMemberReq.SetGuildId(3001)
+	addMemberReq.SetUserId(1002)
+	_, err := client.AddGuildMember(context.Background(), addMemberReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.addMemberRequest.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.addMemberRequest.GetUserId())
 
-	_, err = client.UpdateCurrentGuildMember(context.Background(), &apiv1.UpdateCurrentGuildMemberRequest{
-		GuildId: new(int64(3001)), Nickname: new("member"),
-	})
+	updateCurrentMemberReq := new(apiv1.UpdateCurrentGuildMemberRequest)
+	updateCurrentMemberReq.SetGuildId(3001)
+	updateCurrentMemberReq.SetNickname("member")
+	_, err = client.UpdateCurrentGuildMember(context.Background(), updateCurrentMemberReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateMemberRequest.GetActorUserId())
 
-	_, err = client.LeaveGuild(context.Background(), &apiv1.LeaveGuildRequest{GuildId: new(int64(3001))})
+	leaveReq := new(apiv1.LeaveGuildRequest)
+	leaveReq.SetGuildId(3001)
+	_, err = client.LeaveGuild(context.Background(), leaveReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.leaveRequest.GetUserId())
 
-	_, err = client.TransferGuildOwnership(context.Background(), &apiv1.TransferGuildOwnershipRequest{
-		GuildId: new(int64(3001)), NewOwnerId: new(int64(1002)),
-	})
+	transferReq := new(apiv1.TransferGuildOwnershipRequest)
+	transferReq.SetGuildId(3001)
+	transferReq.SetNewOwnerId(1002)
+	_, err = client.TransferGuildOwnership(context.Background(), transferReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.transferRequest.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.transferRequest.GetNewOwnerId())
@@ -406,9 +411,10 @@ func TestCreateGuildUsesAuthenticatedOwner(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.CreateGuild(context.Background(), &apiv1.CreateGuildRequest{
-		Name: new("Cordis"), IconUri: new("icon://guild"),
-	})
+	createReq := new(apiv1.CreateGuildRequest)
+	createReq.SetName("Cordis")
+	createReq.SetIconUri("icon://guild")
+	resp, err := client.CreateGuild(context.Background(), createReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.createRequest.GetOwnerId())
 	require.Equal(t, "Cordis", guildClient.createRequest.GetName())
@@ -422,9 +428,10 @@ func TestUpdateGuildUsesAuthenticatedActorAndFieldPresence(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	_, err := client.UpdateGuild(context.Background(), &apiv1.UpdateGuildRequest{
-		GuildId: new(int64(3001)), IconUri: new(""),
-	})
+	updateReq := new(apiv1.UpdateGuildRequest)
+	updateReq.SetGuildId(3001)
+	updateReq.SetIconUri("")
+	_, err := client.UpdateGuild(context.Background(), updateReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateRequest.GetActorUserId())
 	require.False(t, guildClient.updateRequest.HasName())
@@ -444,9 +451,11 @@ func TestCreateGuildRoleUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	result, err := client.CreateGuildRole(context.Background(), &apiv1.CreateGuildRoleRequest{
-		GuildId: new(int64(3001)), Name: new("moderator"), Permissions: new(uint64(16)),
-	})
+	createRoleReq := new(apiv1.CreateGuildRoleRequest)
+	createRoleReq.SetGuildId(3001)
+	createRoleReq.SetName("moderator")
+	createRoleReq.SetPermissions(16)
+	result, err := client.CreateGuildRole(context.Background(), createRoleReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.createRoleRequest.GetActorUserId())
 	require.Equal(t, uint64(16), guildClient.createRoleRequest.GetPermissions())
@@ -465,10 +474,11 @@ func TestCreateGuildChannelUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	result, err := client.CreateGuildChannel(context.Background(), &apiv1.CreateGuildChannelRequest{
-		GuildId: new(int64(3001)), Name: new("general"),
-		Type: new(apiv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT),
-	})
+	createChannelReq := new(apiv1.CreateGuildChannelRequest)
+	createChannelReq.SetGuildId(3001)
+	createChannelReq.SetName("general")
+	createChannelReq.SetType(apiv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+	result, err := client.CreateGuildChannel(context.Background(), createChannelReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.createChannelRequest.GetActorUserId())
 	require.Equal(t, int64(5001), result.GetChannel().GetId())
@@ -485,7 +495,9 @@ func TestGetGuildUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.GetGuild(context.Background(), &apiv1.GetGuildRequest{GuildId: new(int64(3001))})
+	getGuildReq := new(apiv1.GetGuildRequest)
+	getGuildReq.SetGuildId(3001)
+	resp, err := client.GetGuild(context.Background(), getGuildReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(3001), guildClient.getGuildReq.GetGuildId())
 	require.Equal(t, int64(1001), guildClient.getGuildReq.GetUserId())
@@ -504,9 +516,10 @@ func TestListGuildsUsesAuthenticatedUser(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuilds(context.Background(), &apiv1.ListGuildsRequest{
-		Before: new(int64(3000)), Limit: new(int32(25)),
-	})
+	listGuildsReq := new(apiv1.ListGuildsRequest)
+	listGuildsReq.SetBefore(3000)
+	listGuildsReq.SetLimit(25)
+	resp, err := client.ListGuilds(context.Background(), listGuildsReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listGuildsReq.GetUserId())
 	require.Equal(t, int64(3000), guildClient.listGuildsReq.GetBefore())
@@ -526,7 +539,9 @@ func TestDeleteGuildUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.DeleteGuild(context.Background(), &apiv1.DeleteGuildRequest{GuildId: new(int64(3001))})
+	deleteReq := new(apiv1.DeleteGuildRequest)
+	deleteReq.SetGuildId(3001)
+	resp, err := client.DeleteGuild(context.Background(), deleteReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(3001), guildClient.deleteReq.GetGuildId())
 	require.Equal(t, int64(1001), guildClient.deleteReq.GetActorUserId())
@@ -544,9 +559,10 @@ func TestGetGuildMemberUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.GetGuildMember(context.Background(), &apiv1.GetGuildMemberRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)),
-	})
+	getMemberReq := new(apiv1.GetGuildMemberRequest)
+	getMemberReq.SetGuildId(3001)
+	getMemberReq.SetUserId(1002)
+	resp, err := client.GetGuildMember(context.Background(), getMemberReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.getMemberReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.getMemberReq.GetUserId())
@@ -566,9 +582,11 @@ func TestListGuildMembersMapsRequestAndResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuildMembers(context.Background(), &apiv1.ListGuildMembersRequest{
-		GuildId: new(int64(3001)), BeforeUserId: new(int64(1002)), Limit: new(int32(50)),
-	})
+	listMembersReq := new(apiv1.ListGuildMembersRequest)
+	listMembersReq.SetGuildId(3001)
+	listMembersReq.SetBeforeUserId(1002)
+	listMembersReq.SetLimit(50)
+	resp, err := client.ListGuildMembers(context.Background(), listMembersReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listMembersReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.listMembersReq.GetBeforeUserId())
@@ -588,9 +606,10 @@ func TestKickGuildMemberUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.KickGuildMember(context.Background(), &apiv1.KickGuildMemberRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)),
-	})
+	kickReq := new(apiv1.KickGuildMemberRequest)
+	kickReq.SetGuildId(3001)
+	kickReq.SetUserId(1002)
+	resp, err := client.KickGuildMember(context.Background(), kickReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.kickReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.kickReq.GetUserId())
@@ -614,9 +633,11 @@ func TestBanGuildMemberMapsRequestAndResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.BanGuildMember(context.Background(), &apiv1.BanGuildMemberRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)), Reason: new("spam"),
-	})
+	banReq := new(apiv1.BanGuildMemberRequest)
+	banReq.SetGuildId(3001)
+	banReq.SetUserId(1002)
+	banReq.SetReason("spam")
+	resp, err := client.BanGuildMember(context.Background(), banReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.banReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.banReq.GetUserId())
@@ -635,9 +656,10 @@ func TestUnbanGuildMemberUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.UnbanGuildMember(context.Background(), &apiv1.UnbanGuildMemberRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)),
-	})
+	unbanReq := new(apiv1.UnbanGuildMemberRequest)
+	unbanReq.SetGuildId(3001)
+	unbanReq.SetUserId(1002)
+	resp, err := client.UnbanGuildMember(context.Background(), unbanReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.unbanReq.GetActorUserId())
 	require.True(t, resp.GetOk())
@@ -659,9 +681,11 @@ func TestListGuildBansMapsRequestAndResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuildBans(context.Background(), &apiv1.ListGuildBansRequest{
-		GuildId: new(int64(3001)), BeforeUserId: new(int64(1003)), Limit: new(int32(20)),
-	})
+	listBansReq := new(apiv1.ListGuildBansRequest)
+	listBansReq.SetGuildId(3001)
+	listBansReq.SetBeforeUserId(1003)
+	listBansReq.SetLimit(20)
+	resp, err := client.ListGuildBans(context.Background(), listBansReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listBansReq.GetActorUserId())
 	require.Len(t, resp.GetBans(), 1)
@@ -679,9 +703,10 @@ func TestGetGuildRoleMapsRequestAndResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.GetGuildRole(context.Background(), &apiv1.GetGuildRoleRequest{
-		GuildId: new(int64(3001)), RoleId: new(int64(4001)),
-	})
+	getRoleReq := new(apiv1.GetGuildRoleRequest)
+	getRoleReq.SetGuildId(3001)
+	getRoleReq.SetRoleId(4001)
+	resp, err := client.GetGuildRole(context.Background(), getRoleReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.getRoleReq.GetActorUserId())
 	require.Equal(t, int64(4001), guildClient.getRoleReq.GetRoleId())
@@ -699,7 +724,9 @@ func TestListGuildRolesMapsResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuildRoles(context.Background(), &apiv1.ListGuildRolesRequest{GuildId: new(int64(3001))})
+	listRolesReq := new(apiv1.ListGuildRolesRequest)
+	listRolesReq.SetGuildId(3001)
+	resp, err := client.ListGuildRoles(context.Background(), listRolesReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listRolesReq.GetActorUserId())
 	require.Len(t, resp.GetRoles(), 1)
@@ -716,9 +743,11 @@ func TestUpdateGuildRolePreservesFieldPresence(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	_, err := client.UpdateGuildRole(context.Background(), &apiv1.UpdateGuildRoleRequest{
-		GuildId: new(int64(3001)), RoleId: new(int64(4001)), Permissions: new(uint64(32)),
-	})
+	updateRoleReq := new(apiv1.UpdateGuildRoleRequest)
+	updateRoleReq.SetGuildId(3001)
+	updateRoleReq.SetRoleId(4001)
+	updateRoleReq.SetPermissions(32)
+	_, err := client.UpdateGuildRole(context.Background(), updateRoleReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateRoleReq.GetActorUserId())
 	require.False(t, guildClient.updateRoleReq.HasName())
@@ -737,9 +766,10 @@ func TestDeleteGuildRoleMapsRequest(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.DeleteGuildRole(context.Background(), &apiv1.DeleteGuildRoleRequest{
-		GuildId: new(int64(3001)), RoleId: new(int64(4001)),
-	})
+	deleteRoleReq := new(apiv1.DeleteGuildRoleRequest)
+	deleteRoleReq.SetGuildId(3001)
+	deleteRoleReq.SetRoleId(4001)
+	resp, err := client.DeleteGuildRole(context.Background(), deleteRoleReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.deleteRoleReq.GetActorUserId())
 	require.True(t, resp.GetOk())
@@ -756,13 +786,16 @@ func TestReorderGuildRolesMapsPositions(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ReorderGuildRoles(context.Background(), &apiv1.ReorderGuildRolesRequest{
-		GuildId: new(int64(3001)),
-		Positions: []*apiv1.GuildRolePosition{
-			{RoleId: new(int64(4001)), Position: new(int32(0))},
-			{RoleId: new(int64(4002)), Position: new(int32(1))},
-		},
-	})
+	pos1 := new(apiv1.GuildRolePosition)
+	pos1.SetRoleId(4001)
+	pos1.SetPosition(0)
+	pos2 := new(apiv1.GuildRolePosition)
+	pos2.SetRoleId(4002)
+	pos2.SetPosition(1)
+	reorderRolesReq := new(apiv1.ReorderGuildRolesRequest)
+	reorderRolesReq.SetGuildId(3001)
+	reorderRolesReq.SetPositions([]*apiv1.GuildRolePosition{pos1, pos2})
+	resp, err := client.ReorderGuildRoles(context.Background(), reorderRolesReq)
 	require.NoError(t, err)
 	require.Len(t, resp.GetRoles(), 1)
 	require.Equal(t, int64(1001), guildClient.reorderRolesReq.GetActorUserId())
@@ -782,9 +815,11 @@ func TestAddGuildMemberRoleUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.AddGuildMemberRole(context.Background(), &apiv1.AddGuildMemberRoleRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)), RoleId: new(int64(4001)),
-	})
+	addMemberRoleReq := new(apiv1.AddGuildMemberRoleRequest)
+	addMemberRoleReq.SetGuildId(3001)
+	addMemberRoleReq.SetUserId(1002)
+	addMemberRoleReq.SetRoleId(4001)
+	resp, err := client.AddGuildMemberRole(context.Background(), addMemberRoleReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.addMemberRoleReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.addMemberRoleReq.GetUserId())
@@ -803,9 +838,11 @@ func TestRemoveGuildMemberRoleUsesAuthenticatedActor(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.RemoveGuildMemberRole(context.Background(), &apiv1.RemoveGuildMemberRoleRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)), RoleId: new(int64(4001)),
-	})
+	removeMemberRoleReq := new(apiv1.RemoveGuildMemberRoleRequest)
+	removeMemberRoleReq.SetGuildId(3001)
+	removeMemberRoleReq.SetUserId(1002)
+	removeMemberRoleReq.SetRoleId(4001)
+	resp, err := client.RemoveGuildMemberRole(context.Background(), removeMemberRoleReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.removeMemberRoleReq.GetActorUserId())
 	require.True(t, resp.GetOk())
@@ -822,9 +859,10 @@ func TestListGuildMemberRolesMapsResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuildMemberRoles(context.Background(), &apiv1.ListGuildMemberRolesRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)),
-	})
+	listMemberRolesReq := new(apiv1.ListGuildMemberRolesRequest)
+	listMemberRolesReq.SetGuildId(3001)
+	listMemberRolesReq.SetUserId(1002)
+	resp, err := client.ListGuildMemberRoles(context.Background(), listMemberRolesReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listMemberRolesReq.GetActorUserId())
 	require.Len(t, resp.GetRoles(), 1)
@@ -841,9 +879,10 @@ func TestGetGuildMemberPermissionsMapsResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.GetGuildMemberPermissions(context.Background(), &apiv1.GetGuildMemberPermissionsRequest{
-		GuildId: new(int64(3001)), UserId: new(int64(1002)),
-	})
+	permissionsReq := new(apiv1.GetGuildMemberPermissionsRequest)
+	permissionsReq.SetGuildId(3001)
+	permissionsReq.SetUserId(1002)
+	resp, err := client.GetGuildMemberPermissions(context.Background(), permissionsReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.permissionsReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.permissionsReq.GetUserId())
@@ -861,7 +900,9 @@ func TestGetGuildChannelMapsRequestAndResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.GetGuildChannel(context.Background(), &apiv1.GetGuildChannelRequest{ChannelId: new(int64(5001))})
+	getChannelReq := new(apiv1.GetGuildChannelRequest)
+	getChannelReq.SetChannelId(5001)
+	resp, err := client.GetGuildChannel(context.Background(), getChannelReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.getChannelReq.GetActorUserId())
 	require.Equal(t, int64(5001), resp.GetChannel().GetId())
@@ -878,7 +919,9 @@ func TestListGuildChannelsMapsResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuildChannels(context.Background(), &apiv1.ListGuildChannelsRequest{GuildId: new(int64(3001))})
+	listChannelsReq := new(apiv1.ListGuildChannelsRequest)
+	listChannelsReq.SetGuildId(3001)
+	resp, err := client.ListGuildChannels(context.Background(), listChannelsReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listChannelsReq.GetActorUserId())
 	require.Len(t, resp.GetChannels(), 1)
@@ -895,9 +938,11 @@ func TestUpdateGuildChannelPreservesFieldPresence(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	_, err := client.UpdateGuildChannel(context.Background(), &apiv1.UpdateGuildChannelRequest{
-		ChannelId: new(int64(5001)), Name: new("renamed"), ParentId: new(int64(0)),
-	})
+	updateChannelReq := new(apiv1.UpdateGuildChannelRequest)
+	updateChannelReq.SetChannelId(5001)
+	updateChannelReq.SetName("renamed")
+	updateChannelReq.SetParentId(0)
+	_, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateChannelReq.GetActorUserId())
 	require.True(t, guildClient.updateChannelReq.HasName())
@@ -916,7 +961,9 @@ func TestDeleteGuildChannelMapsRequest(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.DeleteGuildChannel(context.Background(), &apiv1.DeleteGuildChannelRequest{ChannelId: new(int64(5001))})
+	deleteChannelReq := new(apiv1.DeleteGuildChannelRequest)
+	deleteChannelReq.SetChannelId(5001)
+	resp, err := client.DeleteGuildChannel(context.Background(), deleteChannelReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.deleteChannelReq.GetActorUserId())
 	require.True(t, resp.GetOk())
@@ -933,12 +980,13 @@ func TestReorderGuildChannelsMapsPositions(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ReorderGuildChannels(context.Background(), &apiv1.ReorderGuildChannelsRequest{
-		GuildId: new(int64(3001)),
-		Positions: []*apiv1.GuildChannelPosition{
-			{ChannelId: new(int64(5001)), Position: new(int32(0))},
-		},
-	})
+	pos := new(apiv1.GuildChannelPosition)
+	pos.SetChannelId(5001)
+	pos.SetPosition(0)
+	reorderChannelsReq := new(apiv1.ReorderGuildChannelsRequest)
+	reorderChannelsReq.SetGuildId(3001)
+	reorderChannelsReq.SetPositions([]*apiv1.GuildChannelPosition{pos})
+	resp, err := client.ReorderGuildChannels(context.Background(), reorderChannelsReq)
 	require.NoError(t, err)
 	require.Len(t, resp.GetChannels(), 1)
 	require.Equal(t, int64(1001), guildClient.reorderChannelsReq.GetActorUserId())
@@ -964,13 +1012,13 @@ func TestUpsertGuildChannelPermissionOverwriteMapsRequestAndResponse(t *testing.
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.UpsertGuildChannelPermissionOverwrite(context.Background(), &apiv1.UpsertGuildChannelPermissionOverwriteRequest{
-		ChannelId:  new(int64(5001)),
-		TargetType: new(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE),
-		TargetId:   new(int64(4001)),
-		Allow:      new(uint64(8)),
-		Deny:       new(uint64(4)),
-	})
+	upsertOverwriteReq := new(apiv1.UpsertGuildChannelPermissionOverwriteRequest)
+	upsertOverwriteReq.SetChannelId(5001)
+	upsertOverwriteReq.SetTargetType(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
+	upsertOverwriteReq.SetTargetId(4001)
+	upsertOverwriteReq.SetAllow(8)
+	upsertOverwriteReq.SetDeny(4)
+	resp, err := client.UpsertGuildChannelPermissionOverwrite(context.Background(), upsertOverwriteReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.upsertOverwriteReq.GetActorUserId())
 	require.Equal(t, int64(5001), resp.GetOverwrite().GetChannelId())
@@ -988,11 +1036,11 @@ func TestDeleteGuildChannelPermissionOverwriteMapsRequest(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.DeleteGuildChannelPermissionOverwrite(context.Background(), &apiv1.DeleteGuildChannelPermissionOverwriteRequest{
-		ChannelId:  new(int64(5001)),
-		TargetType: new(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
-		TargetId:   new(int64(1002)),
-	})
+	deleteOverwriteReq := new(apiv1.DeleteGuildChannelPermissionOverwriteRequest)
+	deleteOverwriteReq.SetChannelId(5001)
+	deleteOverwriteReq.SetTargetType(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER)
+	deleteOverwriteReq.SetTargetId(1002)
+	resp, err := client.DeleteGuildChannelPermissionOverwrite(context.Background(), deleteOverwriteReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.deleteOverwriteReq.GetActorUserId())
 	require.True(t, resp.GetOk())
@@ -1013,9 +1061,9 @@ func TestListGuildChannelPermissionOverwritesMapsResponse(t *testing.T) {
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
 
-	resp, err := client.ListGuildChannelPermissionOverwrites(context.Background(), &apiv1.ListGuildChannelPermissionOverwritesRequest{
-		ChannelId: new(int64(5001)),
-	})
+	listOverwritesReq := new(apiv1.ListGuildChannelPermissionOverwritesRequest)
+	listOverwritesReq.SetChannelId(5001)
+	resp, err := client.ListGuildChannelPermissionOverwrites(context.Background(), listOverwritesReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listOverwritesReq.GetActorUserId())
 	require.Len(t, resp.GetOverwrites(), 1)
@@ -1034,7 +1082,9 @@ func TestGuildErrorMappings(t *testing.T) {
 				}
 				client, closeServer := newGuildHTTPClient(t, f)
 				defer closeServer()
-				_, err := client.GetGuild(context.Background(), &apiv1.GetGuildRequest{GuildId: new(int64(3001))})
+				getGuildReq := new(apiv1.GetGuildRequest)
+				getGuildReq.SetGuildId(3001)
+				_, err := client.GetGuild(context.Background(), getGuildReq)
 				return err
 			},
 			connectCode: connect.CodeNotFound,
@@ -1047,9 +1097,11 @@ func TestGuildErrorMappings(t *testing.T) {
 				}
 				client, closeServer := newGuildHTTPClient(t, f)
 				defer closeServer()
-				_, err := client.UpdateGuildRole(context.Background(), &apiv1.UpdateGuildRoleRequest{
-					GuildId: new(int64(3001)), RoleId: new(int64(4001)), Name: new("test"),
-				})
+				updateRoleReq := new(apiv1.UpdateGuildRoleRequest)
+				updateRoleReq.SetGuildId(3001)
+				updateRoleReq.SetRoleId(4001)
+				updateRoleReq.SetName("test")
+				_, err := client.UpdateGuildRole(context.Background(), updateRoleReq)
 				return err
 			},
 			connectCode: connect.CodePermissionDenied,

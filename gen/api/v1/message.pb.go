@@ -10,7 +10,6 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
-	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -70,11 +69,6 @@ func (x MessageType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use MessageType.Descriptor instead.
-func (MessageType) EnumDescriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{0}
-}
-
 // MessageFlag contains bit values combined in Message.flags.
 type MessageFlag int32
 
@@ -122,11 +116,6 @@ func (x MessageFlag) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use MessageFlag.Descriptor instead.
-func (MessageFlag) EnumDescriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{1}
-}
-
 type ReadStateScopeType int32
 
 const (
@@ -171,20 +160,17 @@ func (x ReadStateScopeType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use ReadStateScopeType.Descriptor instead.
-func (ReadStateScopeType) EnumDescriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{2}
-}
-
 // ChannelReadState is one user's read position relative to a channel head.
 type ChannelReadState struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId         *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	LastMessageId     *int64                 `protobuf:"varint,2,opt,name=last_message_id,json=lastMessageId" json:"last_message_id,omitempty"`
-	LastReadMessageId *int64                 `protobuf:"varint,3,opt,name=last_read_message_id,json=lastReadMessageId" json:"last_read_message_id,omitempty"`
-	MentionCount      *int32                 `protobuf:"varint,4,opt,name=mention_count,json=mentionCount" json:"mention_count,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId         int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_LastMessageId     int64                  `protobuf:"varint,2,opt,name=last_message_id,json=lastMessageId"`
+	xxx_hidden_LastReadMessageId int64                  `protobuf:"varint,3,opt,name=last_read_message_id,json=lastReadMessageId"`
+	xxx_hidden_MentionCount      int32                  `protobuf:"varint,4,opt,name=mention_count,json=mentionCount"`
+	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
+	XXX_presence                 [1]uint32
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *ChannelReadState) Reset() {
@@ -212,49 +198,145 @@ func (x *ChannelReadState) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ChannelReadState.ProtoReflect.Descriptor instead.
-func (*ChannelReadState) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{0}
-}
-
 func (x *ChannelReadState) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *ChannelReadState) GetLastMessageId() int64 {
-	if x != nil && x.LastMessageId != nil {
-		return *x.LastMessageId
+	if x != nil {
+		return x.xxx_hidden_LastMessageId
 	}
 	return 0
 }
 
 func (x *ChannelReadState) GetLastReadMessageId() int64 {
-	if x != nil && x.LastReadMessageId != nil {
-		return *x.LastReadMessageId
+	if x != nil {
+		return x.xxx_hidden_LastReadMessageId
 	}
 	return 0
 }
 
 func (x *ChannelReadState) GetMentionCount() int32 {
-	if x != nil && x.MentionCount != nil {
-		return *x.MentionCount
+	if x != nil {
+		return x.xxx_hidden_MentionCount
 	}
 	return 0
+}
+
+func (x *ChannelReadState) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *ChannelReadState) SetLastMessageId(v int64) {
+	x.xxx_hidden_LastMessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *ChannelReadState) SetLastReadMessageId(v int64) {
+	x.xxx_hidden_LastReadMessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ChannelReadState) SetMentionCount(v int32) {
+	x.xxx_hidden_MentionCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *ChannelReadState) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ChannelReadState) HasLastMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ChannelReadState) HasLastReadMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ChannelReadState) HasMentionCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *ChannelReadState) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *ChannelReadState) ClearLastMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_LastMessageId = 0
+}
+
+func (x *ChannelReadState) ClearLastReadMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_LastReadMessageId = 0
+}
+
+func (x *ChannelReadState) ClearMentionCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_MentionCount = 0
+}
+
+type ChannelReadState_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId         *int64
+	LastMessageId     *int64
+	LastReadMessageId *int64
+	MentionCount      *int32
+}
+
+func (b0 ChannelReadState_builder) Build() *ChannelReadState {
+	m0 := &ChannelReadState{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.LastMessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_LastMessageId = *b.LastMessageId
+	}
+	if b.LastReadMessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_LastReadMessageId = *b.LastReadMessageId
+	}
+	if b.MentionCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_MentionCount = *b.MentionCount
+	}
+	return m0
 }
 
 // DmChannel is a private 1:1 conversation from the caller's perspective.
 // All timestamps are Unix time in milliseconds.
 type DmChannel struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Id    *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	// The other participant.
-	RecipientId   *int64 `protobuf:"varint,2,opt,name=recipient_id,json=recipientId" json:"recipient_id,omitempty"`
-	CreatedAt     *int64 `protobuf:"varint,3,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_RecipientId int64                  `protobuf:"varint,2,opt,name=recipient_id,json=recipientId"`
+	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DmChannel) Reset() {
@@ -282,56 +364,127 @@ func (x *DmChannel) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DmChannel.ProtoReflect.Descriptor instead.
-func (*DmChannel) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{1}
-}
-
 func (x *DmChannel) GetId() int64 {
-	if x != nil && x.Id != nil {
-		return *x.Id
+	if x != nil {
+		return x.xxx_hidden_Id
 	}
 	return 0
 }
 
 func (x *DmChannel) GetRecipientId() int64 {
-	if x != nil && x.RecipientId != nil {
-		return *x.RecipientId
+	if x != nil {
+		return x.xxx_hidden_RecipientId
 	}
 	return 0
 }
 
 func (x *DmChannel) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
+}
+
+func (x *DmChannel) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *DmChannel) SetRecipientId(v int64) {
+	x.xxx_hidden_RecipientId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *DmChannel) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *DmChannel) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DmChannel) HasRecipientId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DmChannel) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *DmChannel) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = 0
+}
+
+func (x *DmChannel) ClearRecipientId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_RecipientId = 0
+}
+
+func (x *DmChannel) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+type DmChannel_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id *int64
+	// The other participant.
+	RecipientId *int64
+	CreatedAt   *int64
+}
+
+func (b0 DmChannel_builder) Build() *DmChannel {
+	m0 := &DmChannel{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_Id = *b.Id
+	}
+	if b.RecipientId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_RecipientId = *b.RecipientId
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	return m0
 }
 
 // Message represents one message in a channel or thread.
 // All timestamps are Unix time in milliseconds.
 type Message struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	Id        *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	ChannelId *int64                 `protobuf:"varint,2,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	// Public profile of the user who sent this message.
-	Author  *UserProfile `protobuf:"bytes,3,opt,name=author" json:"author,omitempty"`
-	Content *string      `protobuf:"bytes,4,opt,name=content" json:"content,omitempty"`
-	Type    *MessageType `protobuf:"varint,5,opt,name=type,enum=api.v1.MessageType" json:"type,omitempty"`
-	// Bitmask of MessageFlag values.
-	Flags *int32 `protobuf:"varint,6,opt,name=flags" json:"flags,omitempty"`
-	// Set when this message references another message.
-	ReferencedMessageId *int64        `protobuf:"varint,7,opt,name=referenced_message_id,json=referencedMessageId" json:"referenced_message_id,omitempty"`
-	ReferencedChannelId *int64        `protobuf:"varint,8,opt,name=referenced_channel_id,json=referencedChannelId" json:"referenced_channel_id,omitempty"`
-	Attachments         []*Attachment `protobuf:"bytes,9,rep,name=attachments" json:"attachments,omitempty"`
-	// Non-zero after the message has been edited.
-	EditedAt  *int64 `protobuf:"varint,10,opt,name=edited_at,json=editedAt" json:"edited_at,omitempty"`
-	CreatedAt *int64 `protobuf:"varint,11,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt *int64 `protobuf:"varint,12,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	// Monotonically increasing version used to discard stale events.
-	Revision      *int64 `protobuf:"varint,13,opt,name=revision" json:"revision,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                  int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_ChannelId           int64                  `protobuf:"varint,2,opt,name=channel_id,json=channelId"`
+	xxx_hidden_Author              *UserProfile           `protobuf:"bytes,3,opt,name=author"`
+	xxx_hidden_Content             *string                `protobuf:"bytes,4,opt,name=content"`
+	xxx_hidden_Type                MessageType            `protobuf:"varint,5,opt,name=type,enum=api.v1.MessageType"`
+	xxx_hidden_Flags               int32                  `protobuf:"varint,6,opt,name=flags"`
+	xxx_hidden_ReferencedMessageId int64                  `protobuf:"varint,7,opt,name=referenced_message_id,json=referencedMessageId"`
+	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,8,opt,name=referenced_channel_id,json=referencedChannelId"`
+	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,9,rep,name=attachments"`
+	xxx_hidden_EditedAt            int64                  `protobuf:"varint,10,opt,name=edited_at,json=editedAt"`
+	xxx_hidden_CreatedAt           int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt           int64                  `protobuf:"varint,12,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Revision            int64                  `protobuf:"varint,13,opt,name=revision"`
+	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
+	XXX_presence                   [1]uint32
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *Message) Reset() {
@@ -359,115 +512,399 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Message.ProtoReflect.Descriptor instead.
-func (*Message) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{2}
-}
-
 func (x *Message) GetId() int64 {
-	if x != nil && x.Id != nil {
-		return *x.Id
+	if x != nil {
+		return x.xxx_hidden_Id
 	}
 	return 0
 }
 
 func (x *Message) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *Message) GetAuthor() *UserProfile {
 	if x != nil {
-		return x.Author
+		return x.xxx_hidden_Author
 	}
 	return nil
 }
 
 func (x *Message) GetContent() string {
-	if x != nil && x.Content != nil {
-		return *x.Content
+	if x != nil {
+		if x.xxx_hidden_Content != nil {
+			return *x.xxx_hidden_Content
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Message) GetType() MessageType {
-	if x != nil && x.Type != nil {
-		return *x.Type
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
+			return x.xxx_hidden_Type
+		}
 	}
 	return MessageType_MESSAGE_TYPE_UNSPECIFIED
 }
 
 func (x *Message) GetFlags() int32 {
-	if x != nil && x.Flags != nil {
-		return *x.Flags
+	if x != nil {
+		return x.xxx_hidden_Flags
 	}
 	return 0
 }
 
 func (x *Message) GetReferencedMessageId() int64 {
-	if x != nil && x.ReferencedMessageId != nil {
-		return *x.ReferencedMessageId
+	if x != nil {
+		return x.xxx_hidden_ReferencedMessageId
 	}
 	return 0
 }
 
 func (x *Message) GetReferencedChannelId() int64 {
-	if x != nil && x.ReferencedChannelId != nil {
-		return *x.ReferencedChannelId
+	if x != nil {
+		return x.xxx_hidden_ReferencedChannelId
 	}
 	return 0
 }
 
 func (x *Message) GetAttachments() []*Attachment {
 	if x != nil {
-		return x.Attachments
+		if x.xxx_hidden_Attachments != nil {
+			return *x.xxx_hidden_Attachments
+		}
 	}
 	return nil
 }
 
 func (x *Message) GetEditedAt() int64 {
-	if x != nil && x.EditedAt != nil {
-		return *x.EditedAt
+	if x != nil {
+		return x.xxx_hidden_EditedAt
 	}
 	return 0
 }
 
 func (x *Message) GetCreatedAt() int64 {
-	if x != nil && x.CreatedAt != nil {
-		return *x.CreatedAt
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return 0
 }
 
 func (x *Message) GetUpdatedAt() int64 {
-	if x != nil && x.UpdatedAt != nil {
-		return *x.UpdatedAt
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
 	}
 	return 0
 }
 
 func (x *Message) GetRevision() int64 {
-	if x != nil && x.Revision != nil {
-		return *x.Revision
+	if x != nil {
+		return x.xxx_hidden_Revision
 	}
 	return 0
 }
 
+func (x *Message) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+}
+
+func (x *Message) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
+}
+
+func (x *Message) SetAuthor(v *UserProfile) {
+	x.xxx_hidden_Author = v
+}
+
+func (x *Message) SetContent(v string) {
+	x.xxx_hidden_Content = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
+}
+
+func (x *Message) SetType(v MessageType) {
+	x.xxx_hidden_Type = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
+}
+
+func (x *Message) SetFlags(v int32) {
+	x.xxx_hidden_Flags = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
+}
+
+func (x *Message) SetReferencedMessageId(v int64) {
+	x.xxx_hidden_ReferencedMessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+}
+
+func (x *Message) SetReferencedChannelId(v int64) {
+	x.xxx_hidden_ReferencedChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 13)
+}
+
+func (x *Message) SetAttachments(v []*Attachment) {
+	x.xxx_hidden_Attachments = &v
+}
+
+func (x *Message) SetEditedAt(v int64) {
+	x.xxx_hidden_EditedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+}
+
+func (x *Message) SetCreatedAt(v int64) {
+	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
+}
+
+func (x *Message) SetUpdatedAt(v int64) {
+	x.xxx_hidden_UpdatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
+}
+
+func (x *Message) SetRevision(v int64) {
+	x.xxx_hidden_Revision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 13)
+}
+
+func (x *Message) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *Message) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *Message) HasAuthor() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Author != nil
+}
+
+func (x *Message) HasContent() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *Message) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *Message) HasFlags() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *Message) HasReferencedMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *Message) HasReferencedChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *Message) HasEditedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
+func (x *Message) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
+func (x *Message) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
+func (x *Message) HasRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+}
+
+func (x *Message) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = 0
+}
+
+func (x *Message) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *Message) ClearAuthor() {
+	x.xxx_hidden_Author = nil
+}
+
+func (x *Message) ClearContent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Content = nil
+}
+
+func (x *Message) ClearType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Type = MessageType_MESSAGE_TYPE_UNSPECIFIED
+}
+
+func (x *Message) ClearFlags() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Flags = 0
+}
+
+func (x *Message) ClearReferencedMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ReferencedMessageId = 0
+}
+
+func (x *Message) ClearReferencedChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_ReferencedChannelId = 0
+}
+
+func (x *Message) ClearEditedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_EditedAt = 0
+}
+
+func (x *Message) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_CreatedAt = 0
+}
+
+func (x *Message) ClearUpdatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_UpdatedAt = 0
+}
+
+func (x *Message) ClearRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_Revision = 0
+}
+
+type Message_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Id        *int64
+	ChannelId *int64
+	// Public profile of the user who sent this message.
+	Author  *UserProfile
+	Content *string
+	Type    *MessageType
+	// Bitmask of MessageFlag values.
+	Flags *int32
+	// Set when this message references another message.
+	ReferencedMessageId *int64
+	ReferencedChannelId *int64
+	Attachments         []*Attachment
+	// Non-zero after the message has been edited.
+	EditedAt  *int64
+	CreatedAt *int64
+	UpdatedAt *int64
+	// Monotonically increasing version used to discard stale events.
+	Revision *int64
+}
+
+func (b0 Message_builder) Build() *Message {
+	m0 := &Message{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
+		x.xxx_hidden_Id = *b.Id
+	}
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	x.xxx_hidden_Author = b.Author
+	if b.Content != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
+		x.xxx_hidden_Content = b.Content
+	}
+	if b.Type != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
+		x.xxx_hidden_Type = *b.Type
+	}
+	if b.Flags != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
+		x.xxx_hidden_Flags = *b.Flags
+	}
+	if b.ReferencedMessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		x.xxx_hidden_ReferencedMessageId = *b.ReferencedMessageId
+	}
+	if b.ReferencedChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 13)
+		x.xxx_hidden_ReferencedChannelId = *b.ReferencedChannelId
+	}
+	x.xxx_hidden_Attachments = &b.Attachments
+	if b.EditedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		x.xxx_hidden_EditedAt = *b.EditedAt
+	}
+	if b.CreatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
+		x.xxx_hidden_CreatedAt = *b.CreatedAt
+	}
+	if b.UpdatedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
+		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	if b.Revision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 13)
+		x.xxx_hidden_Revision = *b.Revision
+	}
+	return m0
+}
+
 // Attachment describes a file uploaded before the message is created.
 type Attachment struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Object storage key returned by the upload flow.
-	Key         *string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
-	Filename    *string `protobuf:"bytes,2,opt,name=filename" json:"filename,omitempty"`
-	Size        *int64  `protobuf:"varint,3,opt,name=size" json:"size,omitempty"`
-	ContentType *string `protobuf:"bytes,4,opt,name=content_type,json=contentType" json:"content_type,omitempty"`
-	// Image dimensions; zero for files without dimensions.
-	Width         *int32 `protobuf:"varint,5,opt,name=width" json:"width,omitempty"`
-	Height        *int32 `protobuf:"varint,6,opt,name=height" json:"height,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Key         *string                `protobuf:"bytes,1,opt,name=key"`
+	xxx_hidden_Filename    *string                `protobuf:"bytes,2,opt,name=filename"`
+	xxx_hidden_Size        int64                  `protobuf:"varint,3,opt,name=size"`
+	xxx_hidden_ContentType *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType"`
+	xxx_hidden_Width       int32                  `protobuf:"varint,5,opt,name=width"`
+	xxx_hidden_Height      int32                  `protobuf:"varint,6,opt,name=height"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Attachment) Reset() {
@@ -495,60 +932,210 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Attachment.ProtoReflect.Descriptor instead.
-func (*Attachment) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{3}
-}
-
 func (x *Attachment) GetKey() string {
-	if x != nil && x.Key != nil {
-		return *x.Key
+	if x != nil {
+		if x.xxx_hidden_Key != nil {
+			return *x.xxx_hidden_Key
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Attachment) GetFilename() string {
-	if x != nil && x.Filename != nil {
-		return *x.Filename
+	if x != nil {
+		if x.xxx_hidden_Filename != nil {
+			return *x.xxx_hidden_Filename
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Attachment) GetSize() int64 {
-	if x != nil && x.Size != nil {
-		return *x.Size
+	if x != nil {
+		return x.xxx_hidden_Size
 	}
 	return 0
 }
 
 func (x *Attachment) GetContentType() string {
-	if x != nil && x.ContentType != nil {
-		return *x.ContentType
+	if x != nil {
+		if x.xxx_hidden_ContentType != nil {
+			return *x.xxx_hidden_ContentType
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *Attachment) GetWidth() int32 {
-	if x != nil && x.Width != nil {
-		return *x.Width
+	if x != nil {
+		return x.xxx_hidden_Width
 	}
 	return 0
 }
 
 func (x *Attachment) GetHeight() int32 {
-	if x != nil && x.Height != nil {
-		return *x.Height
+	if x != nil {
+		return x.xxx_hidden_Height
 	}
 	return 0
+}
+
+func (x *Attachment) SetKey(v string) {
+	x.xxx_hidden_Key = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+}
+
+func (x *Attachment) SetFilename(v string) {
+	x.xxx_hidden_Filename = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+}
+
+func (x *Attachment) SetSize(v int64) {
+	x.xxx_hidden_Size = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+}
+
+func (x *Attachment) SetContentType(v string) {
+	x.xxx_hidden_ContentType = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+}
+
+func (x *Attachment) SetWidth(v int32) {
+	x.xxx_hidden_Width = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *Attachment) SetHeight(v int32) {
+	x.xxx_hidden_Height = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+}
+
+func (x *Attachment) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *Attachment) HasFilename() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *Attachment) HasSize() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *Attachment) HasContentType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *Attachment) HasWidth() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *Attachment) HasHeight() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *Attachment) ClearKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Key = nil
+}
+
+func (x *Attachment) ClearFilename() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Filename = nil
+}
+
+func (x *Attachment) ClearSize() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Size = 0
+}
+
+func (x *Attachment) ClearContentType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ContentType = nil
+}
+
+func (x *Attachment) ClearWidth() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Width = 0
+}
+
+func (x *Attachment) ClearHeight() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Height = 0
+}
+
+type Attachment_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Object storage key returned by the upload flow.
+	Key         *string
+	Filename    *string
+	Size        *int64
+	ContentType *string
+	// Image dimensions; zero for files without dimensions.
+	Width  *int32
+	Height *int32
+}
+
+func (b0 Attachment_builder) Build() *Attachment {
+	m0 := &Attachment{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Key != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		x.xxx_hidden_Key = b.Key
+	}
+	if b.Filename != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		x.xxx_hidden_Filename = b.Filename
+	}
+	if b.Size != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		x.xxx_hidden_Size = *b.Size
+	}
+	if b.ContentType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		x.xxx_hidden_ContentType = b.ContentType
+	}
+	if b.Width != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		x.xxx_hidden_Width = *b.Width
+	}
+	if b.Height != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_Height = *b.Height
+	}
+	return m0
 }
 
 // AttachmentList distinguishes an omitted update from replacing attachments
 // with an empty list.
 type AttachmentList struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Attachments   []*Attachment          `protobuf:"bytes,1,rep,name=attachments" json:"attachments,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Attachments *[]*Attachment         `protobuf:"bytes,1,rep,name=attachments"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *AttachmentList) Reset() {
@@ -576,24 +1163,39 @@ func (x *AttachmentList) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AttachmentList.ProtoReflect.Descriptor instead.
-func (*AttachmentList) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{4}
-}
-
 func (x *AttachmentList) GetAttachments() []*Attachment {
 	if x != nil {
-		return x.Attachments
+		if x.xxx_hidden_Attachments != nil {
+			return *x.xxx_hidden_Attachments
+		}
 	}
 	return nil
 }
 
+func (x *AttachmentList) SetAttachments(v []*Attachment) {
+	x.xxx_hidden_Attachments = &v
+}
+
+type AttachmentList_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attachments []*Attachment
+}
+
+func (b0 AttachmentList_builder) Build() *AttachmentList {
+	m0 := &AttachmentList{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attachments = &b.Attachments
+	return m0
+}
+
 // MentionList distinguishes an omitted update from removing every mention.
 type MentionList struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserIds       []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds" json:"user_ids,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *MentionList) Reset() {
@@ -621,33 +1223,45 @@ func (x *MentionList) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use MentionList.ProtoReflect.Descriptor instead.
-func (*MentionList) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{5}
-}
-
 func (x *MentionList) GetUserIds() []int64 {
 	if x != nil {
-		return x.UserIds
+		return x.xxx_hidden_UserIds
 	}
 	return nil
 }
 
+func (x *MentionList) SetUserIds(v []int64) {
+	x.xxx_hidden_UserIds = v
+}
+
+type MentionList_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserIds []int64
+}
+
+func (b0 MentionList_builder) Build() *MentionList {
+	m0 := &MentionList{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_UserIds = b.UserIds
+	return m0
+}
+
 type CreateMessageRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	Content   *string                `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
-	Type      *MessageType           `protobuf:"varint,3,opt,name=type,enum=api.v1.MessageType" json:"type,omitempty"`
-	// Initial client-settable MessageFlag values.
-	Flags *int32 `protobuf:"varint,4,opt,name=flags" json:"flags,omitempty"`
-	// Both reference fields must be set for a reply.
-	ReferencedMessageId *int64        `protobuf:"varint,5,opt,name=referenced_message_id,json=referencedMessageId" json:"referenced_message_id,omitempty"`
-	ReferencedChannelId *int64        `protobuf:"varint,6,opt,name=referenced_channel_id,json=referencedChannelId" json:"referenced_channel_id,omitempty"`
-	Attachments         []*Attachment `protobuf:"bytes,7,rep,name=attachments" json:"attachments,omitempty"`
-	// User IDs parsed from mentions in content.
-	MentionUserIds []int64 `protobuf:"varint,8,rep,packed,name=mention_user_ids,json=mentionUserIds" json:"mention_user_ids,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId           int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_Content             *string                `protobuf:"bytes,2,opt,name=content"`
+	xxx_hidden_Type                MessageType            `protobuf:"varint,3,opt,name=type,enum=api.v1.MessageType"`
+	xxx_hidden_Flags               int32                  `protobuf:"varint,4,opt,name=flags"`
+	xxx_hidden_ReferencedMessageId int64                  `protobuf:"varint,5,opt,name=referenced_message_id,json=referencedMessageId"`
+	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,6,opt,name=referenced_channel_id,json=referencedChannelId"`
+	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,7,rep,name=attachments"`
+	xxx_hidden_MentionUserIds      []int64                `protobuf:"varint,8,rep,packed,name=mention_user_ids,json=mentionUserIds"`
+	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
+	XXX_presence                   [1]uint32
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
 }
 
 func (x *CreateMessageRequest) Reset() {
@@ -675,72 +1289,233 @@ func (x *CreateMessageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateMessageRequest.ProtoReflect.Descriptor instead.
-func (*CreateMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{6}
-}
-
 func (x *CreateMessageRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *CreateMessageRequest) GetContent() string {
-	if x != nil && x.Content != nil {
-		return *x.Content
+	if x != nil {
+		if x.xxx_hidden_Content != nil {
+			return *x.xxx_hidden_Content
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *CreateMessageRequest) GetType() MessageType {
-	if x != nil && x.Type != nil {
-		return *x.Type
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+			return x.xxx_hidden_Type
+		}
 	}
 	return MessageType_MESSAGE_TYPE_UNSPECIFIED
 }
 
 func (x *CreateMessageRequest) GetFlags() int32 {
-	if x != nil && x.Flags != nil {
-		return *x.Flags
+	if x != nil {
+		return x.xxx_hidden_Flags
 	}
 	return 0
 }
 
 func (x *CreateMessageRequest) GetReferencedMessageId() int64 {
-	if x != nil && x.ReferencedMessageId != nil {
-		return *x.ReferencedMessageId
+	if x != nil {
+		return x.xxx_hidden_ReferencedMessageId
 	}
 	return 0
 }
 
 func (x *CreateMessageRequest) GetReferencedChannelId() int64 {
-	if x != nil && x.ReferencedChannelId != nil {
-		return *x.ReferencedChannelId
+	if x != nil {
+		return x.xxx_hidden_ReferencedChannelId
 	}
 	return 0
 }
 
 func (x *CreateMessageRequest) GetAttachments() []*Attachment {
 	if x != nil {
-		return x.Attachments
+		if x.xxx_hidden_Attachments != nil {
+			return *x.xxx_hidden_Attachments
+		}
 	}
 	return nil
 }
 
 func (x *CreateMessageRequest) GetMentionUserIds() []int64 {
 	if x != nil {
-		return x.MentionUserIds
+		return x.xxx_hidden_MentionUserIds
 	}
 	return nil
 }
 
+func (x *CreateMessageRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+}
+
+func (x *CreateMessageRequest) SetContent(v string) {
+	x.xxx_hidden_Content = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+}
+
+func (x *CreateMessageRequest) SetType(v MessageType) {
+	x.xxx_hidden_Type = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
+}
+
+func (x *CreateMessageRequest) SetFlags(v int32) {
+	x.xxx_hidden_Flags = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+}
+
+func (x *CreateMessageRequest) SetReferencedMessageId(v int64) {
+	x.xxx_hidden_ReferencedMessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
+}
+
+func (x *CreateMessageRequest) SetReferencedChannelId(v int64) {
+	x.xxx_hidden_ReferencedChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+}
+
+func (x *CreateMessageRequest) SetAttachments(v []*Attachment) {
+	x.xxx_hidden_Attachments = &v
+}
+
+func (x *CreateMessageRequest) SetMentionUserIds(v []int64) {
+	x.xxx_hidden_MentionUserIds = v
+}
+
+func (x *CreateMessageRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateMessageRequest) HasContent() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateMessageRequest) HasType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateMessageRequest) HasFlags() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *CreateMessageRequest) HasReferencedMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *CreateMessageRequest) HasReferencedChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *CreateMessageRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *CreateMessageRequest) ClearContent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Content = nil
+}
+
+func (x *CreateMessageRequest) ClearType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Type = MessageType_MESSAGE_TYPE_UNSPECIFIED
+}
+
+func (x *CreateMessageRequest) ClearFlags() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Flags = 0
+}
+
+func (x *CreateMessageRequest) ClearReferencedMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_ReferencedMessageId = 0
+}
+
+func (x *CreateMessageRequest) ClearReferencedChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_ReferencedChannelId = 0
+}
+
+type CreateMessageRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	Content   *string
+	Type      *MessageType
+	// Initial client-settable MessageFlag values.
+	Flags *int32
+	// Both reference fields must be set for a reply.
+	ReferencedMessageId *int64
+	ReferencedChannelId *int64
+	Attachments         []*Attachment
+	// User IDs parsed from mentions in content.
+	MentionUserIds []int64
+}
+
+func (b0 CreateMessageRequest_builder) Build() *CreateMessageRequest {
+	m0 := &CreateMessageRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.Content != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		x.xxx_hidden_Content = b.Content
+	}
+	if b.Type != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
+		x.xxx_hidden_Type = *b.Type
+	}
+	if b.Flags != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		x.xxx_hidden_Flags = *b.Flags
+	}
+	if b.ReferencedMessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
+		x.xxx_hidden_ReferencedMessageId = *b.ReferencedMessageId
+	}
+	if b.ReferencedChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		x.xxx_hidden_ReferencedChannelId = *b.ReferencedChannelId
+	}
+	x.xxx_hidden_Attachments = &b.Attachments
+	x.xxx_hidden_MentionUserIds = b.MentionUserIds
+	return m0
+}
+
 type CreateMessageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       *Message               `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Message *Message               `protobuf:"bytes,1,opt,name=message"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CreateMessageResponse) Reset() {
@@ -768,31 +1543,53 @@ func (x *CreateMessageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateMessageResponse.ProtoReflect.Descriptor instead.
-func (*CreateMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{7}
-}
-
 func (x *CreateMessageResponse) GetMessage() *Message {
 	if x != nil {
-		return x.Message
+		return x.xxx_hidden_Message
 	}
 	return nil
 }
 
+func (x *CreateMessageResponse) SetMessage(v *Message) {
+	x.xxx_hidden_Message = v
+}
+
+func (x *CreateMessageResponse) HasMessage() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Message != nil
+}
+
+func (x *CreateMessageResponse) ClearMessage() {
+	x.xxx_hidden_Message = nil
+}
+
+type CreateMessageResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Message *Message
+}
+
+func (b0 CreateMessageResponse_builder) Build() *CreateMessageResponse {
+	m0 := &CreateMessageResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Message = b.Message
+	return m0
+}
+
 type UpdateMessageRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	MessageId *int64                 `protobuf:"varint,1,opt,name=message_id,json=messageId" json:"message_id,omitempty"`
-	// When present, replaces the content; an explicit empty string clears it.
-	Content *string `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
-	// When present, replaces all client-settable flags.
-	Flags *int32 `protobuf:"varint,3,opt,name=flags" json:"flags,omitempty"`
-	// When present, replaces the complete attachment list.
-	Attachments *AttachmentList `protobuf:"bytes,4,opt,name=attachments" json:"attachments,omitempty"`
-	// When present, replaces the complete mention list.
-	Mentions      *MentionList `protobuf:"bytes,5,opt,name=mentions" json:"mentions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
+	xxx_hidden_Content     *string                `protobuf:"bytes,2,opt,name=content"`
+	xxx_hidden_Flags       int32                  `protobuf:"varint,3,opt,name=flags"`
+	xxx_hidden_Attachments *AttachmentList        `protobuf:"bytes,4,opt,name=attachments"`
+	xxx_hidden_Mentions    *MentionList           `protobuf:"bytes,5,opt,name=mentions"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *UpdateMessageRequest) Reset() {
@@ -820,51 +1617,165 @@ func (x *UpdateMessageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateMessageRequest.ProtoReflect.Descriptor instead.
-func (*UpdateMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{8}
-}
-
 func (x *UpdateMessageRequest) GetMessageId() int64 {
-	if x != nil && x.MessageId != nil {
-		return *x.MessageId
+	if x != nil {
+		return x.xxx_hidden_MessageId
 	}
 	return 0
 }
 
 func (x *UpdateMessageRequest) GetContent() string {
-	if x != nil && x.Content != nil {
-		return *x.Content
+	if x != nil {
+		if x.xxx_hidden_Content != nil {
+			return *x.xxx_hidden_Content
+		}
+		return ""
 	}
 	return ""
 }
 
 func (x *UpdateMessageRequest) GetFlags() int32 {
-	if x != nil && x.Flags != nil {
-		return *x.Flags
+	if x != nil {
+		return x.xxx_hidden_Flags
 	}
 	return 0
 }
 
 func (x *UpdateMessageRequest) GetAttachments() *AttachmentList {
 	if x != nil {
-		return x.Attachments
+		return x.xxx_hidden_Attachments
 	}
 	return nil
 }
 
 func (x *UpdateMessageRequest) GetMentions() *MentionList {
 	if x != nil {
-		return x.Mentions
+		return x.xxx_hidden_Mentions
 	}
 	return nil
 }
 
+func (x *UpdateMessageRequest) SetMessageId(v int64) {
+	x.xxx_hidden_MessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *UpdateMessageRequest) SetContent(v string) {
+	x.xxx_hidden_Content = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *UpdateMessageRequest) SetFlags(v int32) {
+	x.xxx_hidden_Flags = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *UpdateMessageRequest) SetAttachments(v *AttachmentList) {
+	x.xxx_hidden_Attachments = v
+}
+
+func (x *UpdateMessageRequest) SetMentions(v *MentionList) {
+	x.xxx_hidden_Mentions = v
+}
+
+func (x *UpdateMessageRequest) HasMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateMessageRequest) HasContent() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateMessageRequest) HasFlags() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpdateMessageRequest) HasAttachments() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Attachments != nil
+}
+
+func (x *UpdateMessageRequest) HasMentions() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Mentions != nil
+}
+
+func (x *UpdateMessageRequest) ClearMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_MessageId = 0
+}
+
+func (x *UpdateMessageRequest) ClearContent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Content = nil
+}
+
+func (x *UpdateMessageRequest) ClearFlags() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Flags = 0
+}
+
+func (x *UpdateMessageRequest) ClearAttachments() {
+	x.xxx_hidden_Attachments = nil
+}
+
+func (x *UpdateMessageRequest) ClearMentions() {
+	x.xxx_hidden_Mentions = nil
+}
+
+type UpdateMessageRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MessageId *int64
+	// When present, replaces the content; an explicit empty string clears it.
+	Content *string
+	// When present, replaces all client-settable flags.
+	Flags *int32
+	// When present, replaces the complete attachment list.
+	Attachments *AttachmentList
+	// When present, replaces the complete mention list.
+	Mentions *MentionList
+}
+
+func (b0 UpdateMessageRequest_builder) Build() *UpdateMessageRequest {
+	m0 := &UpdateMessageRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.MessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_MessageId = *b.MessageId
+	}
+	if b.Content != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_Content = b.Content
+	}
+	if b.Flags != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_Flags = *b.Flags
+	}
+	x.xxx_hidden_Attachments = b.Attachments
+	x.xxx_hidden_Mentions = b.Mentions
+	return m0
+}
+
 type UpdateMessageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       *Message               `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Message *Message               `protobuf:"bytes,1,opt,name=message"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *UpdateMessageResponse) Reset() {
@@ -892,23 +1803,49 @@ func (x *UpdateMessageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use UpdateMessageResponse.ProtoReflect.Descriptor instead.
-func (*UpdateMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{9}
-}
-
 func (x *UpdateMessageResponse) GetMessage() *Message {
 	if x != nil {
-		return x.Message
+		return x.xxx_hidden_Message
 	}
 	return nil
 }
 
+func (x *UpdateMessageResponse) SetMessage(v *Message) {
+	x.xxx_hidden_Message = v
+}
+
+func (x *UpdateMessageResponse) HasMessage() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Message != nil
+}
+
+func (x *UpdateMessageResponse) ClearMessage() {
+	x.xxx_hidden_Message = nil
+}
+
+type UpdateMessageResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Message *Message
+}
+
+func (b0 UpdateMessageResponse_builder) Build() *UpdateMessageResponse {
+	m0 := &UpdateMessageResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Message = b.Message
+	return m0
+}
+
 type DeleteMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MessageId     *int64                 `protobuf:"varint,1,opt,name=message_id,json=messageId" json:"message_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteMessageRequest) Reset() {
@@ -936,23 +1873,54 @@ func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteMessageRequest.ProtoReflect.Descriptor instead.
-func (*DeleteMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{10}
-}
-
 func (x *DeleteMessageRequest) GetMessageId() int64 {
-	if x != nil && x.MessageId != nil {
-		return *x.MessageId
+	if x != nil {
+		return x.xxx_hidden_MessageId
 	}
 	return 0
 }
 
+func (x *DeleteMessageRequest) SetMessageId(v int64) {
+	x.xxx_hidden_MessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteMessageRequest) HasMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteMessageRequest) ClearMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_MessageId = 0
+}
+
+type DeleteMessageRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MessageId *int64
+}
+
+func (b0 DeleteMessageRequest_builder) Build() *DeleteMessageRequest {
+	m0 := &DeleteMessageRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.MessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_MessageId = *b.MessageId
+	}
+	return m0
+}
+
 type DeleteMessageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ok            *bool                  `protobuf:"varint,1,opt,name=ok" json:"ok,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DeleteMessageResponse) Reset() {
@@ -980,23 +1948,54 @@ func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteMessageResponse.ProtoReflect.Descriptor instead.
-func (*DeleteMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{11}
-}
-
 func (x *DeleteMessageResponse) GetOk() bool {
-	if x != nil && x.Ok != nil {
-		return *x.Ok
+	if x != nil {
+		return x.xxx_hidden_Ok
 	}
 	return false
 }
 
+func (x *DeleteMessageResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteMessageResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteMessageResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+type DeleteMessageResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok *bool
+}
+
+func (b0 DeleteMessageResponse_builder) Build() *DeleteMessageResponse {
+	m0 := &DeleteMessageResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	return m0
+}
+
 type GetMessageRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MessageId     *int64                 `protobuf:"varint,1,opt,name=message_id,json=messageId" json:"message_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetMessageRequest) Reset() {
@@ -1024,23 +2023,52 @@ func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetMessageRequest.ProtoReflect.Descriptor instead.
-func (*GetMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{12}
-}
-
 func (x *GetMessageRequest) GetMessageId() int64 {
-	if x != nil && x.MessageId != nil {
-		return *x.MessageId
+	if x != nil {
+		return x.xxx_hidden_MessageId
 	}
 	return 0
 }
 
+func (x *GetMessageRequest) SetMessageId(v int64) {
+	x.xxx_hidden_MessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetMessageRequest) HasMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetMessageRequest) ClearMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_MessageId = 0
+}
+
+type GetMessageRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	MessageId *int64
+}
+
+func (b0 GetMessageRequest_builder) Build() *GetMessageRequest {
+	m0 := &GetMessageRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.MessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_MessageId = *b.MessageId
+	}
+	return m0
+}
+
 type GetMessageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       *Message               `protobuf:"bytes,1,opt,name=message" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Message *Message               `protobuf:"bytes,1,opt,name=message"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *GetMessageResponse) Reset() {
@@ -1068,33 +2096,51 @@ func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetMessageResponse.ProtoReflect.Descriptor instead.
-func (*GetMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{13}
-}
-
 func (x *GetMessageResponse) GetMessage() *Message {
 	if x != nil {
-		return x.Message
+		return x.xxx_hidden_Message
 	}
 	return nil
 }
 
+func (x *GetMessageResponse) SetMessage(v *Message) {
+	x.xxx_hidden_Message = v
+}
+
+func (x *GetMessageResponse) HasMessage() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Message != nil
+}
+
+func (x *GetMessageResponse) ClearMessage() {
+	x.xxx_hidden_Message = nil
+}
+
+type GetMessageResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Message *Message
+}
+
+func (b0 GetMessageResponse_builder) Build() *GetMessageResponse {
+	m0 := &GetMessageResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Message = b.Message
+	return m0
+}
+
 type ListMessagesRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	// before, after, and around are mutually exclusive.
-	//
-	// Types that are valid to be assigned to Cursor:
-	//
-	//	*ListMessagesRequest_Before
-	//	*ListMessagesRequest_After
-	//	*ListMessagesRequest_Around
-	Cursor isListMessagesRequest_Cursor `protobuf_oneof:"cursor"`
-	// Maximum results per page. The default is 50 and the maximum is 100.
-	Limit         *int32 `protobuf:"varint,5,opt,name=limit" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_Cursor      isListMessagesRequest_Cursor `protobuf_oneof:"cursor"`
+	xxx_hidden_Limit       int32                        `protobuf:"varint,5,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListMessagesRequest) Reset() {
@@ -1122,28 +2168,16 @@ func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListMessagesRequest.ProtoReflect.Descriptor instead.
-func (*ListMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{14}
-}
-
 func (x *ListMessagesRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
-func (x *ListMessagesRequest) GetCursor() isListMessagesRequest_Cursor {
-	if x != nil {
-		return x.Cursor
-	}
-	return nil
-}
-
 func (x *ListMessagesRequest) GetBefore() int64 {
 	if x != nil {
-		if x, ok := x.Cursor.(*ListMessagesRequest_Before); ok {
+		if x, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_Before); ok {
 			return x.Before
 		}
 	}
@@ -1152,7 +2186,7 @@ func (x *ListMessagesRequest) GetBefore() int64 {
 
 func (x *ListMessagesRequest) GetAfter() int64 {
 	if x != nil {
-		if x, ok := x.Cursor.(*ListMessagesRequest_After); ok {
+		if x, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_After); ok {
 			return x.After
 		}
 	}
@@ -1161,7 +2195,7 @@ func (x *ListMessagesRequest) GetAfter() int64 {
 
 func (x *ListMessagesRequest) GetAround() int64 {
 	if x != nil {
-		if x, ok := x.Cursor.(*ListMessagesRequest_Around); ok {
+		if x, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_Around); ok {
 			return x.Around
 		}
 	}
@@ -1169,43 +2203,212 @@ func (x *ListMessagesRequest) GetAround() int64 {
 }
 
 func (x *ListMessagesRequest) GetLimit() int32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+	if x != nil {
+		return x.xxx_hidden_Limit
 	}
 	return 0
+}
+
+func (x *ListMessagesRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *ListMessagesRequest) SetBefore(v int64) {
+	x.xxx_hidden_Cursor = &listMessagesRequest_Before{v}
+}
+
+func (x *ListMessagesRequest) SetAfter(v int64) {
+	x.xxx_hidden_Cursor = &listMessagesRequest_After{v}
+}
+
+func (x *ListMessagesRequest) SetAround(v int64) {
+	x.xxx_hidden_Cursor = &listMessagesRequest_Around{v}
+}
+
+func (x *ListMessagesRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListMessagesRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListMessagesRequest) HasCursor() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Cursor != nil
+}
+
+func (x *ListMessagesRequest) HasBefore() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_Before)
+	return ok
+}
+
+func (x *ListMessagesRequest) HasAfter() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_After)
+	return ok
+}
+
+func (x *ListMessagesRequest) HasAround() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_Around)
+	return ok
+}
+
+func (x *ListMessagesRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListMessagesRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *ListMessagesRequest) ClearCursor() {
+	x.xxx_hidden_Cursor = nil
+}
+
+func (x *ListMessagesRequest) ClearBefore() {
+	if _, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_Before); ok {
+		x.xxx_hidden_Cursor = nil
+	}
+}
+
+func (x *ListMessagesRequest) ClearAfter() {
+	if _, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_After); ok {
+		x.xxx_hidden_Cursor = nil
+	}
+}
+
+func (x *ListMessagesRequest) ClearAround() {
+	if _, ok := x.xxx_hidden_Cursor.(*listMessagesRequest_Around); ok {
+		x.xxx_hidden_Cursor = nil
+	}
+}
+
+func (x *ListMessagesRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Limit = 0
+}
+
+const ListMessagesRequest_Cursor_not_set_case case_ListMessagesRequest_Cursor = 0
+const ListMessagesRequest_Before_case case_ListMessagesRequest_Cursor = 2
+const ListMessagesRequest_After_case case_ListMessagesRequest_Cursor = 3
+const ListMessagesRequest_Around_case case_ListMessagesRequest_Cursor = 4
+
+func (x *ListMessagesRequest) WhichCursor() case_ListMessagesRequest_Cursor {
+	if x == nil {
+		return ListMessagesRequest_Cursor_not_set_case
+	}
+	switch x.xxx_hidden_Cursor.(type) {
+	case *listMessagesRequest_Before:
+		return ListMessagesRequest_Before_case
+	case *listMessagesRequest_After:
+		return ListMessagesRequest_After_case
+	case *listMessagesRequest_Around:
+		return ListMessagesRequest_Around_case
+	default:
+		return ListMessagesRequest_Cursor_not_set_case
+	}
+}
+
+type ListMessagesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	// before, after, and around are mutually exclusive.
+
+	// Fields of oneof xxx_hidden_Cursor:
+	Before *int64
+	After  *int64
+	Around *int64
+	// -- end of xxx_hidden_Cursor
+	// Maximum results per page. The default is 50 and the maximum is 100.
+	Limit *int32
+}
+
+func (b0 ListMessagesRequest_builder) Build() *ListMessagesRequest {
+	m0 := &ListMessagesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.Before != nil {
+		x.xxx_hidden_Cursor = &listMessagesRequest_Before{*b.Before}
+	}
+	if b.After != nil {
+		x.xxx_hidden_Cursor = &listMessagesRequest_After{*b.After}
+	}
+	if b.Around != nil {
+		x.xxx_hidden_Cursor = &listMessagesRequest_Around{*b.Around}
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
+type case_ListMessagesRequest_Cursor protoreflect.FieldNumber
+
+func (x case_ListMessagesRequest_Cursor) String() string {
+	md := file_api_v1_message_proto_msgTypes[14].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
 }
 
 type isListMessagesRequest_Cursor interface {
 	isListMessagesRequest_Cursor()
 }
 
-type ListMessagesRequest_Before struct {
+type listMessagesRequest_Before struct {
 	Before int64 `protobuf:"varint,2,opt,name=before,oneof"`
 }
 
-type ListMessagesRequest_After struct {
+type listMessagesRequest_After struct {
 	After int64 `protobuf:"varint,3,opt,name=after,oneof"`
 }
 
-type ListMessagesRequest_Around struct {
+type listMessagesRequest_Around struct {
 	Around int64 `protobuf:"varint,4,opt,name=around,oneof"`
 }
 
-func (*ListMessagesRequest_Before) isListMessagesRequest_Cursor() {}
+func (*listMessagesRequest_Before) isListMessagesRequest_Cursor() {}
 
-func (*ListMessagesRequest_After) isListMessagesRequest_Cursor() {}
+func (*listMessagesRequest_After) isListMessagesRequest_Cursor() {}
 
-func (*ListMessagesRequest_Around) isListMessagesRequest_Cursor() {}
+func (*listMessagesRequest_Around) isListMessagesRequest_Cursor() {}
 
 type ListMessagesResponse struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Messages []*Message             `protobuf:"bytes,1,rep,name=messages" json:"messages,omitempty"`
-	// Smallest message ID in this page, or zero when the page is empty.
-	BeforeCursor *int64 `protobuf:"varint,2,opt,name=before_cursor,json=beforeCursor" json:"before_cursor,omitempty"`
-	// Largest message ID in this page, or zero when the page is empty.
-	AfterCursor   *int64 `protobuf:"varint,3,opt,name=after_cursor,json=afterCursor" json:"after_cursor,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Messages     *[]*Message            `protobuf:"bytes,1,rep,name=messages"`
+	xxx_hidden_BeforeCursor int64                  `protobuf:"varint,2,opt,name=before_cursor,json=beforeCursor"`
+	xxx_hidden_AfterCursor  int64                  `protobuf:"varint,3,opt,name=after_cursor,json=afterCursor"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ListMessagesResponse) Reset() {
@@ -1233,37 +2436,100 @@ func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListMessagesResponse.ProtoReflect.Descriptor instead.
-func (*ListMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{15}
-}
-
 func (x *ListMessagesResponse) GetMessages() []*Message {
 	if x != nil {
-		return x.Messages
+		if x.xxx_hidden_Messages != nil {
+			return *x.xxx_hidden_Messages
+		}
 	}
 	return nil
 }
 
 func (x *ListMessagesResponse) GetBeforeCursor() int64 {
-	if x != nil && x.BeforeCursor != nil {
-		return *x.BeforeCursor
+	if x != nil {
+		return x.xxx_hidden_BeforeCursor
 	}
 	return 0
 }
 
 func (x *ListMessagesResponse) GetAfterCursor() int64 {
-	if x != nil && x.AfterCursor != nil {
-		return *x.AfterCursor
+	if x != nil {
+		return x.xxx_hidden_AfterCursor
 	}
 	return 0
 }
 
+func (x *ListMessagesResponse) SetMessages(v []*Message) {
+	x.xxx_hidden_Messages = &v
+}
+
+func (x *ListMessagesResponse) SetBeforeCursor(v int64) {
+	x.xxx_hidden_BeforeCursor = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListMessagesResponse) SetAfterCursor(v int64) {
+	x.xxx_hidden_AfterCursor = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListMessagesResponse) HasBeforeCursor() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListMessagesResponse) HasAfterCursor() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListMessagesResponse) ClearBeforeCursor() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeCursor = 0
+}
+
+func (x *ListMessagesResponse) ClearAfterCursor() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_AfterCursor = 0
+}
+
+type ListMessagesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Messages []*Message
+	// Smallest message ID in this page, or zero when the page is empty.
+	BeforeCursor *int64
+	// Largest message ID in this page, or zero when the page is empty.
+	AfterCursor *int64
+}
+
+func (b0 ListMessagesResponse_builder) Build() *ListMessagesResponse {
+	m0 := &ListMessagesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Messages = &b.Messages
+	if b.BeforeCursor != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_BeforeCursor = *b.BeforeCursor
+	}
+	if b.AfterCursor != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_AfterCursor = *b.AfterCursor
+	}
+	return m0
+}
+
 type CreateDmChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetId      *int64                 `protobuf:"varint,1,opt,name=target_id,json=targetId" json:"target_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *CreateDmChannelRequest) Reset() {
@@ -1291,23 +2557,52 @@ func (x *CreateDmChannelRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateDmChannelRequest.ProtoReflect.Descriptor instead.
-func (*CreateDmChannelRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{16}
-}
-
 func (x *CreateDmChannelRequest) GetTargetId() int64 {
-	if x != nil && x.TargetId != nil {
-		return *x.TargetId
+	if x != nil {
+		return x.xxx_hidden_TargetId
 	}
 	return 0
 }
 
+func (x *CreateDmChannelRequest) SetTargetId(v int64) {
+	x.xxx_hidden_TargetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *CreateDmChannelRequest) HasTargetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateDmChannelRequest) ClearTargetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_TargetId = 0
+}
+
+type CreateDmChannelRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	TargetId *int64
+}
+
+func (b0 CreateDmChannelRequest_builder) Build() *CreateDmChannelRequest {
+	m0 := &CreateDmChannelRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.TargetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_TargetId = *b.TargetId
+	}
+	return m0
+}
+
 type CreateDmChannelResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channel       *DmChannel             `protobuf:"bytes,1,opt,name=channel" json:"channel,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channel *DmChannel             `protobuf:"bytes,1,opt,name=channel"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *CreateDmChannelResponse) Reset() {
@@ -1335,25 +2630,50 @@ func (x *CreateDmChannelResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use CreateDmChannelResponse.ProtoReflect.Descriptor instead.
-func (*CreateDmChannelResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{17}
-}
-
 func (x *CreateDmChannelResponse) GetChannel() *DmChannel {
 	if x != nil {
-		return x.Channel
+		return x.xxx_hidden_Channel
 	}
 	return nil
 }
 
+func (x *CreateDmChannelResponse) SetChannel(v *DmChannel) {
+	x.xxx_hidden_Channel = v
+}
+
+func (x *CreateDmChannelResponse) HasChannel() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Channel != nil
+}
+
+func (x *CreateDmChannelResponse) ClearChannel() {
+	x.xxx_hidden_Channel = nil
+}
+
+type CreateDmChannelResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channel *DmChannel
+}
+
+func (b0 CreateDmChannelResponse_builder) Build() *CreateDmChannelResponse {
+	m0 := &CreateDmChannelResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channel = b.Channel
+	return m0
+}
+
 type ListDmChannelsRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Return channels with IDs smaller than this cursor.
-	BeforeId      *int64 `protobuf:"varint,1,opt,name=before_id,json=beforeId" json:"before_id,omitempty"`
-	Limit         *int32 `protobuf:"varint,2,opt,name=limit" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_BeforeId    int64                  `protobuf:"varint,1,opt,name=before_id,json=beforeId"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,2,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListDmChannelsRequest) Reset() {
@@ -1381,31 +2701,85 @@ func (x *ListDmChannelsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListDmChannelsRequest.ProtoReflect.Descriptor instead.
-func (*ListDmChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{18}
-}
-
 func (x *ListDmChannelsRequest) GetBeforeId() int64 {
-	if x != nil && x.BeforeId != nil {
-		return *x.BeforeId
+	if x != nil {
+		return x.xxx_hidden_BeforeId
 	}
 	return 0
 }
 
 func (x *ListDmChannelsRequest) GetLimit() int32 {
-	if x != nil && x.Limit != nil {
-		return *x.Limit
+	if x != nil {
+		return x.xxx_hidden_Limit
 	}
 	return 0
 }
 
+func (x *ListDmChannelsRequest) SetBeforeId(v int64) {
+	x.xxx_hidden_BeforeId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ListDmChannelsRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListDmChannelsRequest) HasBeforeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListDmChannelsRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListDmChannelsRequest) ClearBeforeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_BeforeId = 0
+}
+
+func (x *ListDmChannelsRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListDmChannelsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Return channels with IDs smaller than this cursor.
+	BeforeId *int64
+	Limit    *int32
+}
+
+func (b0 ListDmChannelsRequest_builder) Build() *ListDmChannelsRequest {
+	m0 := &ListDmChannelsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.BeforeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_BeforeId = *b.BeforeId
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
 type ListDmChannelsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Channels      []*DmChannel           `protobuf:"bytes,1,rep,name=channels" json:"channels,omitempty"`
-	BeforeId      *int64                 `protobuf:"varint,2,opt,name=before_id,json=beforeId" json:"before_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channels    *[]*DmChannel          `protobuf:"bytes,1,rep,name=channels"`
+	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListDmChannelsResponse) Reset() {
@@ -1433,32 +2807,70 @@ func (x *ListDmChannelsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ListDmChannelsResponse.ProtoReflect.Descriptor instead.
-func (*ListDmChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{19}
-}
-
 func (x *ListDmChannelsResponse) GetChannels() []*DmChannel {
 	if x != nil {
-		return x.Channels
+		if x.xxx_hidden_Channels != nil {
+			return *x.xxx_hidden_Channels
+		}
 	}
 	return nil
 }
 
 func (x *ListDmChannelsResponse) GetBeforeId() int64 {
-	if x != nil && x.BeforeId != nil {
-		return *x.BeforeId
+	if x != nil {
+		return x.xxx_hidden_BeforeId
 	}
 	return 0
 }
 
+func (x *ListDmChannelsResponse) SetChannels(v []*DmChannel) {
+	x.xxx_hidden_Channels = &v
+}
+
+func (x *ListDmChannelsResponse) SetBeforeId(v int64) {
+	x.xxx_hidden_BeforeId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListDmChannelsResponse) HasBeforeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListDmChannelsResponse) ClearBeforeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_BeforeId = 0
+}
+
+type ListDmChannelsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Channels []*DmChannel
+	BeforeId *int64
+}
+
+func (b0 ListDmChannelsResponse_builder) Build() *ListDmChannelsResponse {
+	m0 := &ListDmChannelsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Channels = &b.Channels
+	if b.BeforeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_BeforeId = *b.BeforeId
+	}
+	return m0
+}
+
 type AckMessageRequest struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	ChannelId *int64                 `protobuf:"varint,1,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	// Only a larger ID moves the cursor forward.
-	MessageId     *int64 `protobuf:"varint,2,opt,name=message_id,json=messageId" json:"message_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_MessageId   int64                  `protobuf:"varint,2,opt,name=message_id,json=messageId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *AckMessageRequest) Reset() {
@@ -1486,30 +2898,82 @@ func (x *AckMessageRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AckMessageRequest.ProtoReflect.Descriptor instead.
-func (*AckMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{20}
-}
-
 func (x *AckMessageRequest) GetChannelId() int64 {
-	if x != nil && x.ChannelId != nil {
-		return *x.ChannelId
+	if x != nil {
+		return x.xxx_hidden_ChannelId
 	}
 	return 0
 }
 
 func (x *AckMessageRequest) GetMessageId() int64 {
-	if x != nil && x.MessageId != nil {
-		return *x.MessageId
+	if x != nil {
+		return x.xxx_hidden_MessageId
 	}
 	return 0
 }
 
+func (x *AckMessageRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *AckMessageRequest) SetMessageId(v int64) {
+	x.xxx_hidden_MessageId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *AckMessageRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AckMessageRequest) HasMessageId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AckMessageRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *AckMessageRequest) ClearMessageId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_MessageId = 0
+}
+
+type AckMessageRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	// Only a larger ID moves the cursor forward.
+	MessageId *int64
+}
+
+func (b0 AckMessageRequest_builder) Build() *AckMessageRequest {
+	m0 := &AckMessageRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.MessageId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_MessageId = *b.MessageId
+	}
+	return m0
+}
+
 type AckMessageResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ReadState     *ChannelReadState      `protobuf:"bytes,1,opt,name=read_state,json=readState" json:"read_state,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ReadState *ChannelReadState      `protobuf:"bytes,1,opt,name=read_state,json=readState"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *AckMessageResponse) Reset() {
@@ -1537,25 +3001,50 @@ func (x *AckMessageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AckMessageResponse.ProtoReflect.Descriptor instead.
-func (*AckMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{21}
-}
-
 func (x *AckMessageResponse) GetReadState() *ChannelReadState {
 	if x != nil {
-		return x.ReadState
+		return x.xxx_hidden_ReadState
 	}
 	return nil
 }
 
+func (x *AckMessageResponse) SetReadState(v *ChannelReadState) {
+	x.xxx_hidden_ReadState = v
+}
+
+func (x *AckMessageResponse) HasReadState() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ReadState != nil
+}
+
+func (x *AckMessageResponse) ClearReadState() {
+	x.xxx_hidden_ReadState = nil
+}
+
+type AckMessageResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ReadState *ChannelReadState
+}
+
+func (b0 AckMessageResponse_builder) Build() *AckMessageResponse {
+	m0 := &AckMessageResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_ReadState = b.ReadState
+	return m0
+}
+
 type GetReadStatesRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Scope *ReadStateScopeType    `protobuf:"varint,1,opt,name=scope,enum=api.v1.ReadStateScopeType" json:"scope,omitempty"`
-	// Required only for READ_STATE_SCOPE_TYPE_GUILD.
-	GuildId       *int64 `protobuf:"varint,2,opt,name=guild_id,json=guildId" json:"guild_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Scope       ReadStateScopeType     `protobuf:"varint,1,opt,name=scope,enum=api.v1.ReadStateScopeType"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetReadStatesRequest) Reset() {
@@ -1583,31 +3072,85 @@ func (x *GetReadStatesRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetReadStatesRequest.ProtoReflect.Descriptor instead.
-func (*GetReadStatesRequest) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{22}
-}
-
 func (x *GetReadStatesRequest) GetScope() ReadStateScopeType {
-	if x != nil && x.Scope != nil {
-		return *x.Scope
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 0) {
+			return x.xxx_hidden_Scope
+		}
 	}
 	return ReadStateScopeType_READ_STATE_SCOPE_TYPE_UNSPECIFIED
 }
 
 func (x *GetReadStatesRequest) GetGuildId() int64 {
-	if x != nil && x.GuildId != nil {
-		return *x.GuildId
+	if x != nil {
+		return x.xxx_hidden_GuildId
 	}
 	return 0
 }
 
+func (x *GetReadStatesRequest) SetScope(v ReadStateScopeType) {
+	x.xxx_hidden_Scope = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetReadStatesRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *GetReadStatesRequest) HasScope() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetReadStatesRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetReadStatesRequest) ClearScope() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Scope = ReadStateScopeType_READ_STATE_SCOPE_TYPE_UNSPECIFIED
+}
+
+func (x *GetReadStatesRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_GuildId = 0
+}
+
+type GetReadStatesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Scope *ReadStateScopeType
+	// Required only for READ_STATE_SCOPE_TYPE_GUILD.
+	GuildId *int64
+}
+
+func (b0 GetReadStatesRequest_builder) Build() *GetReadStatesRequest {
+	m0 := &GetReadStatesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Scope != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Scope = *b.Scope
+	}
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	return m0
+}
+
 type GetReadStatesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	DmChannels    []*DmChannel           `protobuf:"bytes,1,rep,name=dm_channels,json=dmChannels" json:"dm_channels,omitempty"`
-	ReadStates    []*ChannelReadState    `protobuf:"bytes,2,rep,name=read_states,json=readStates" json:"read_states,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_DmChannels *[]*DmChannel          `protobuf:"bytes,1,rep,name=dm_channels,json=dmChannels"`
+	xxx_hidden_ReadStates *[]*ChannelReadState   `protobuf:"bytes,2,rep,name=read_states,json=readStates"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *GetReadStatesResponse) Reset() {
@@ -1635,23 +3178,46 @@ func (x *GetReadStatesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetReadStatesResponse.ProtoReflect.Descriptor instead.
-func (*GetReadStatesResponse) Descriptor() ([]byte, []int) {
-	return file_api_v1_message_proto_rawDescGZIP(), []int{23}
-}
-
 func (x *GetReadStatesResponse) GetDmChannels() []*DmChannel {
 	if x != nil {
-		return x.DmChannels
+		if x.xxx_hidden_DmChannels != nil {
+			return *x.xxx_hidden_DmChannels
+		}
 	}
 	return nil
 }
 
 func (x *GetReadStatesResponse) GetReadStates() []*ChannelReadState {
 	if x != nil {
-		return x.ReadStates
+		if x.xxx_hidden_ReadStates != nil {
+			return *x.xxx_hidden_ReadStates
+		}
 	}
 	return nil
+}
+
+func (x *GetReadStatesResponse) SetDmChannels(v []*DmChannel) {
+	x.xxx_hidden_DmChannels = &v
+}
+
+func (x *GetReadStatesResponse) SetReadStates(v []*ChannelReadState) {
+	x.xxx_hidden_ReadStates = &v
+}
+
+type GetReadStatesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	DmChannels []*DmChannel
+	ReadStates []*ChannelReadState
+}
+
+func (b0 GetReadStatesResponse_builder) Build() *GetReadStatesResponse {
+	m0 := &GetReadStatesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_DmChannels = &b.DmChannels
+	x.xxx_hidden_ReadStates = &b.ReadStates
+	return m0
 }
 
 var File_api_v1_message_proto protoreflect.FileDescriptor
@@ -1797,18 +3363,6 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"com.api.v1B\fMessageProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
-var (
-	file_api_v1_message_proto_rawDescOnce sync.Once
-	file_api_v1_message_proto_rawDescData []byte
-)
-
-func file_api_v1_message_proto_rawDescGZIP() []byte {
-	file_api_v1_message_proto_rawDescOnce.Do(func() {
-		file_api_v1_message_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_v1_message_proto_rawDesc), len(file_api_v1_message_proto_rawDesc)))
-	})
-	return file_api_v1_message_proto_rawDescData
-}
-
 var file_api_v1_message_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_api_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_api_v1_message_proto_goTypes = []any{
@@ -1892,9 +3446,9 @@ func file_api_v1_message_proto_init() {
 	}
 	file_api_v1_user_proto_init()
 	file_api_v1_message_proto_msgTypes[14].OneofWrappers = []any{
-		(*ListMessagesRequest_Before)(nil),
-		(*ListMessagesRequest_After)(nil),
-		(*ListMessagesRequest_Around)(nil),
+		(*listMessagesRequest_Before)(nil),
+		(*listMessagesRequest_After)(nil),
+		(*listMessagesRequest_Around)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

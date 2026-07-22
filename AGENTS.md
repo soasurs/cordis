@@ -45,8 +45,8 @@ go build ./services/guild/v1/...
 
 ## Proto
 
-- Protos use edition 2023. Internal generation uses opaque Go API (`default_api_level=API_OPAQUE`), so use generated getters/setters/builders instead of field access or struct literals for `gen/{authenticator,user,message,guild,presence,session}`.
-- External `proto/api` generation is open Go API plus Connect-Go under `gen/api`; existing API code uses pointer fields and struct literals there.
+- Protos use edition 2023. Both public and internal Go generation use the opaque API (`default_api_level=API_OPAQUE`), so use generated getters, setters, and builders instead of field access or message struct literals throughout `gen/`.
+- External `proto/api` generation additionally produces Connect-Go code under `gen/api/v1/apiv1connect`.
 - `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, `proto/session`, and `proto/mailer`.
 
 ## Service Wiring

@@ -25,7 +25,9 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *apiv1.CreateGuil
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.CreateGuildRoleResponse{Role: guildRoleToAPI(svcResp.GetRole())}, nil
+	resp := new(apiv1.CreateGuildRoleResponse)
+	resp.SetRole(guildRoleToAPI(svcResp.GetRole()))
+	return resp, nil
 }
 
 func (s *guildServer) GetGuildRole(ctx context.Context, req *apiv1.GetGuildRoleRequest) (*apiv1.GetGuildRoleResponse, error) {
@@ -41,7 +43,9 @@ func (s *guildServer) GetGuildRole(ctx context.Context, req *apiv1.GetGuildRoleR
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetGuildRoleResponse{Role: guildRoleToAPI(svcResp.GetRole())}, nil
+	resp := new(apiv1.GetGuildRoleResponse)
+	resp.SetRole(guildRoleToAPI(svcResp.GetRole()))
+	return resp, nil
 }
 
 func (s *guildServer) ListGuildRoles(ctx context.Context, req *apiv1.ListGuildRolesRequest) (*apiv1.ListGuildRolesResponse, error) {
@@ -56,7 +60,9 @@ func (s *guildServer) ListGuildRoles(ctx context.Context, req *apiv1.ListGuildRo
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildRolesResponse{Roles: guildRolesToAPI(svcResp.GetRoles())}, nil
+	resp := new(apiv1.ListGuildRolesResponse)
+	resp.SetRoles(guildRolesToAPI(svcResp.GetRoles()))
+	return resp, nil
 }
 
 func (s *guildServer) UpdateGuildRole(ctx context.Context, req *apiv1.UpdateGuildRoleRequest) (*apiv1.UpdateGuildRoleResponse, error) {
@@ -68,17 +74,19 @@ func (s *guildServer) UpdateGuildRole(ctx context.Context, req *apiv1.UpdateGuil
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetRoleId(req.GetRoleId())
-	if req.Name != nil {
+	if req.HasName() {
 		svcReq.SetName(req.GetName())
 	}
-	if req.Permissions != nil {
+	if req.HasPermissions() {
 		svcReq.SetPermissions(req.GetPermissions())
 	}
 	svcResp, err := s.svcCtx.GuildClient.UpdateGuildRole(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.UpdateGuildRoleResponse{Role: guildRoleToAPI(svcResp.GetRole())}, nil
+	resp := new(apiv1.UpdateGuildRoleResponse)
+	resp.SetRole(guildRoleToAPI(svcResp.GetRole()))
+	return resp, nil
 }
 
 func (s *guildServer) DeleteGuildRole(ctx context.Context, req *apiv1.DeleteGuildRoleRequest) (*apiv1.DeleteGuildRoleResponse, error) {
@@ -94,7 +102,9 @@ func (s *guildServer) DeleteGuildRole(ctx context.Context, req *apiv1.DeleteGuil
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.DeleteGuildRoleResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.DeleteGuildRoleResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) ReorderGuildRoles(ctx context.Context, req *apiv1.ReorderGuildRolesRequest) (*apiv1.ReorderGuildRolesResponse, error) {
@@ -117,7 +127,9 @@ func (s *guildServer) ReorderGuildRoles(ctx context.Context, req *apiv1.ReorderG
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ReorderGuildRolesResponse{Roles: guildRolesToAPI(svcResp.GetRoles())}, nil
+	resp := new(apiv1.ReorderGuildRolesResponse)
+	resp.SetRoles(guildRolesToAPI(svcResp.GetRoles()))
+	return resp, nil
 }
 
 func (s *guildServer) AddGuildMemberRole(ctx context.Context, req *apiv1.AddGuildMemberRoleRequest) (*apiv1.AddGuildMemberRoleResponse, error) {
@@ -134,7 +146,9 @@ func (s *guildServer) AddGuildMemberRole(ctx context.Context, req *apiv1.AddGuil
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.AddGuildMemberRoleResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.AddGuildMemberRoleResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) RemoveGuildMemberRole(ctx context.Context, req *apiv1.RemoveGuildMemberRoleRequest) (*apiv1.RemoveGuildMemberRoleResponse, error) {
@@ -151,7 +165,9 @@ func (s *guildServer) RemoveGuildMemberRole(ctx context.Context, req *apiv1.Remo
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.RemoveGuildMemberRoleResponse{Ok: new(svcResp.GetOk())}, nil
+	resp := new(apiv1.RemoveGuildMemberRoleResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
 }
 
 func (s *guildServer) ListGuildMemberRoles(ctx context.Context, req *apiv1.ListGuildMemberRolesRequest) (*apiv1.ListGuildMemberRolesResponse, error) {
@@ -167,7 +183,9 @@ func (s *guildServer) ListGuildMemberRoles(ctx context.Context, req *apiv1.ListG
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.ListGuildMemberRolesResponse{Roles: guildRolesToAPI(svcResp.GetRoles())}, nil
+	resp := new(apiv1.ListGuildMemberRolesResponse)
+	resp.SetRoles(guildRolesToAPI(svcResp.GetRoles()))
+	return resp, nil
 }
 
 func (s *guildServer) GetGuildMemberPermissions(ctx context.Context, req *apiv1.GetGuildMemberPermissionsRequest) (*apiv1.GetGuildMemberPermissionsResponse, error) {
@@ -183,24 +201,26 @@ func (s *guildServer) GetGuildMemberPermissions(ctx context.Context, req *apiv1.
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	return &apiv1.GetGuildMemberPermissionsResponse{Permissions: new(svcResp.GetPermissions())}, nil
+	resp := new(apiv1.GetGuildMemberPermissionsResponse)
+	resp.SetPermissions(svcResp.GetPermissions())
+	return resp, nil
 }
 
 func guildRoleToAPI(role *guildv1.GuildRole) *apiv1.GuildRole {
 	if role == nil {
 		return nil
 	}
-	return &apiv1.GuildRole{
-		Id:          new(role.GetId()),
-		GuildId:     new(role.GetGuildId()),
-		Name:        new(role.GetName()),
-		Permissions: new(role.GetPermissions()),
-		Position:    new(role.GetPosition()),
-		IsDefault:   new(role.GetIsDefault()),
-		Revision:    new(role.GetRevision()),
-		CreatedAt:   new(role.GetCreatedAt()),
-		UpdatedAt:   new(role.GetUpdatedAt()),
-	}
+	resp := new(apiv1.GuildRole)
+	resp.SetId(role.GetId())
+	resp.SetGuildId(role.GetGuildId())
+	resp.SetName(role.GetName())
+	resp.SetPermissions(role.GetPermissions())
+	resp.SetPosition(role.GetPosition())
+	resp.SetIsDefault(role.GetIsDefault())
+	resp.SetRevision(role.GetRevision())
+	resp.SetCreatedAt(role.GetCreatedAt())
+	resp.SetUpdatedAt(role.GetUpdatedAt())
+	return resp
 }
 
 func guildRolesToAPI(roles []*guildv1.GuildRole) []*apiv1.GuildRole {

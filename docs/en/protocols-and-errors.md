@@ -1,8 +1,8 @@
 # APIs, Protocols, and Errors
 
-Public protobuf files under `proto/api` generate open Go APIs and Connect-Go.
-Internal protobuf files use edition 2023 opaque Go APIs, so code
-uses generated getters, setters, and builders. After proto changes, run:
+Public protobuf files under `proto/api` generate opaque Go APIs and Connect-Go.
+Internal protobuf files also use edition 2023 opaque Go APIs, so code uses
+generated getters, setters, and builders throughout. After proto changes, run:
 
 ```bash
 make generate

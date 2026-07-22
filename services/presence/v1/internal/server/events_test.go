@@ -56,7 +56,7 @@ func newTestServerWithPublisher() (presencev1.PresenceServiceServer, *fakeStore,
 	publisher := new(fakePublisher)
 	svcCtx := svc.NewServiceContextWithDependencies(config.Config{
 		Kafka: config.KafkaConfig{PublishTimeoutMs: 100},
-	}, svc.Dependencies{Store: fake, Publisher: publisher})
+	}, svc.Dependencies{Store: fake, Snowflake: newTestSnowflake(), Publisher: publisher})
 	return New(svcCtx), fake, publisher
 }
 
@@ -82,11 +82,14 @@ func TestRegisterPublishesAggregateTransition(t *testing.T) {
 	require.Len(t, publisher.records, 1)
 	require.Equal(t, "601", publisher.records[0].key)
 	var envelope struct {
-		Type string          `json:"t"`
-		Data json.RawMessage `json:"d"`
+		Type           string          `json:"t"`
+		Data           json.RawMessage `json:"d"`
+		IdempotencyKey string          `json:"idempotency_key"`
 	}
 	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
 	require.Equal(t, realtime.EventPresenceUpdated, envelope.Type)
+	require.NotEqual(t, "0", envelope.IdempotencyKey)
+	require.NotEmpty(t, envelope.IdempotencyKey)
 	var payload map[string]json.RawMessage
 	require.NoError(t, json.Unmarshal(envelope.Data, &payload))
 	require.Equal(t, `"601"`, string(payload["user_id"]))

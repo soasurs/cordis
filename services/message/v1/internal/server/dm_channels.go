@@ -75,7 +75,7 @@ func (s *messageServer) CreateDmChannel(ctx context.Context, req *messagev1.Crea
 	}
 
 	for _, recipientID := range []int64{channel.UserLo, channel.UserHi} {
-		event, eventErr := newDmChannelCreatedEvent(channel, recipientID)
+		event, eventErr := newDmChannelCreatedEvent(channel, recipientID, s.svcCtx.Snowflake.Generate().Int64())
 		s.publishEvent(ctx, event, eventErr)
 	}
 
@@ -193,14 +193,14 @@ type dmChannelCreatedPayload struct {
 
 // newDmChannelCreatedEvent builds one user-routed record; the key is the
 // decimal recipient user ID so the dispatcher reaches every recipient Session.
-func newDmChannelCreatedEvent(channel *model.DmChannel, recipientID int64) (messageEvent, error) {
+func newDmChannelCreatedEvent(channel *model.DmChannel, recipientID int64, idempotencyKey int64) (messageEvent, error) {
 	payload := dmChannelCreatedPayload{
 		ChannelID:   strconv.FormatInt(channel.ID, 10),
 		UserID:      strconv.FormatInt(recipientID, 10),
 		RecipientID: strconv.FormatInt(channel.OtherParticipant(recipientID), 10),
 		CreatedAt:   channel.CreatedAt,
 	}
-	return newUserRoutedEvent(EventTypeDmChannelCreated, recipientID, payload)
+	return newUserRoutedEvent(EventTypeDmChannelCreated, recipientID, payload, idempotencyKey)
 }
 
 func dmRequiresFriendship() error {

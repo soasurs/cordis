@@ -32,8 +32,9 @@ import (
 const presenceDispatchConcurrency = 16
 
 type eventEnvelope struct {
-	Type string          `json:"t"`
-	Data json.RawMessage `json:"d"`
+	Type           string          `json:"t"`
+	Data           json.RawMessage `json:"d"`
+	IdempotencyKey string          `json:"idempotency_key"`
 }
 
 type eventRouting struct {
@@ -113,35 +114,43 @@ func New(cfg config.Config, resolver discovery.Resolver, userClient userv1.UserS
 func (s *Server) Run(ctx context.Context) {
 	defer s.close()
 	for {
-		records := s.consumer.PollRecords(ctx, 1)
+		fetches := s.consumer.PollFetches(ctx)
 		if ctx.Err() != nil {
 			return
 		}
-		for _, fetchErr := range records.Errors() {
+		for _, fetchErr := range fetches.Errors() {
 			logx.WithContext(ctx).Errorw("poll dispatcher event",
 				logx.Field("topic", fetchErr.Topic),
 				logx.Field("partition", fetchErr.Partition),
 				logx.Field("error", fetchErr.Err),
 			)
 		}
-		for _, record := range records.Records() {
-			permanent, err := s.dispatchRecord(ctx, record)
-			if err != nil && !permanent {
-				s.retryRecord(ctx, record)
-				continue
-			}
-			if err != nil {
-				logx.WithContext(ctx).Errorw("drop invalid dispatcher event",
-					logx.Field("topic", record.Topic),
-					logx.Field("partition", record.Partition),
-					logx.Field("offset", record.Offset),
-					logx.Field("error", err),
-				)
-			}
-			if err := s.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-				logx.WithContext(ctx).Errorw("commit dispatcher event", logx.Field("error", err))
-			}
-		}
+		var wg sync.WaitGroup
+		fetches.EachPartition(func(ftp kgo.FetchTopicPartition) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				ftp.EachRecord(func(record *kgo.Record) {
+					permanent, err := s.dispatchRecord(ctx, record)
+					if err != nil && !permanent {
+						s.retryRecord(ctx, record)
+						return
+					}
+					if err != nil {
+						logx.WithContext(ctx).Errorw("drop invalid dispatcher event",
+							logx.Field("topic", record.Topic),
+							logx.Field("partition", record.Partition),
+							logx.Field("offset", record.Offset),
+							logx.Field("error", err),
+						)
+					}
+					if err := s.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
+						logx.WithContext(ctx).Errorw("commit dispatcher event", logx.Field("error", err))
+					}
+				})
+			}()
+		})
+		wg.Wait()
 	}
 }
 
@@ -230,6 +239,11 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 		return true, err
 	}
 
+	idempotencyKey, err := parseIdempotencyKey(event.IdempotencyKey)
+	if err != nil {
+		return true, err
+	}
+
 	switch event.Type {
 	case realtime.EventMessageCreated, realtime.EventMessageUpdated, realtime.EventMessageDeleted,
 		realtime.EventMessageReadUpdated:
@@ -241,9 +255,9 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 		userID := int64(routing.UserID)
 		switch {
 		case guildID > 0 && userID == 0:
-			return false, s.dispatchGuildMessage(ctx, guildID, channelID, event)
+			return false, s.dispatchGuildMessage(ctx, guildID, channelID, event, idempotencyKey)
 		case userID > 0 && guildID == 0:
-			return false, s.dispatchUser(ctx, userID, event)
+			return false, s.dispatchUser(ctx, userID, event, idempotencyKey)
 		case guildID == 0 && userID == 0:
 			return true, errors.New("message event aggregate route is missing")
 		default:
@@ -255,7 +269,7 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 			if userID <= 0 {
 				return true, errors.New("presence event user id is invalid")
 			}
-			return false, s.dispatchPresence(ctx, userID, event, routing)
+			return false, s.dispatchPresence(ctx, userID, event, routing, idempotencyKey)
 		}
 		// relationship.* and dm.* records are user-routed: the payload
 		// user_id names the recipient.
@@ -264,7 +278,7 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 			if userID <= 0 {
 				return true, errors.New("user-routed event user id is invalid")
 			}
-			return false, s.dispatchUser(ctx, userID, event)
+			return false, s.dispatchUser(ctx, userID, event, idempotencyKey)
 		}
 		if !strings.HasPrefix(event.Type, "guild.") {
 			return true, errors.New("unsupported event type")
@@ -283,13 +297,21 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 		if event.Type == realtime.EventGuildMemberJoined && routing.UserID <= 0 {
 			return true, errors.New("guild member joined user id is invalid")
 		}
-		return false, s.dispatchGuild(ctx, guildID, event, routing)
+		return false, s.dispatchGuild(ctx, guildID, event, routing, idempotencyKey)
 	}
+}
+
+func parseIdempotencyKey(value string) (int64, error) {
+	idempotencyKey, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || idempotencyKey <= 0 || strconv.FormatInt(idempotencyKey, 10) != value {
+		return 0, errors.New("invalid idempotency key")
+	}
+	return idempotencyKey, nil
 }
 
 // dispatchGuildMessage uses the aggregate Guild route to locate candidate
 // Session nodes. Each node filters recipients through its visibility snapshots.
-func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID int64, event eventEnvelope) error {
+func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID int64, event eventEnvelope, idempotencyKey int64) error {
 	nodes, err := s.resolver.Resolve(ctx, discovery.RouteGuild, guildID)
 	if err != nil {
 		return err
@@ -298,7 +320,7 @@ func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID in
 		req := new(sessionv1.DispatchGuildMessageEventRequest)
 		req.SetGuildId(guildID)
 		req.SetChannelId(channelID)
-		req.SetEvent(protoEvent(event))
+		req.SetEvent(protoEvent(event, idempotencyKey))
 		_, err := client.DispatchGuildMessageEvent(ctx, req)
 		return err
 	})
@@ -306,7 +328,7 @@ func (s *Server) dispatchGuildMessage(ctx context.Context, guildID, channelID in
 
 // dispatchUser fans a user-routed event out to the recipient's session
 // nodes only.
-func (s *Server) dispatchUser(ctx context.Context, userID int64, event eventEnvelope) error {
+func (s *Server) dispatchUser(ctx context.Context, userID int64, event eventEnvelope, idempotencyKey int64) error {
 	nodes, err := s.resolver.Resolve(ctx, discovery.RouteUser, userID)
 	if err != nil {
 		return err
@@ -314,7 +336,7 @@ func (s *Server) dispatchUser(ctx context.Context, userID int64, event eventEnve
 	return s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
 		req := new(sessionv1.DispatchUserEventRequest)
 		req.SetUserId(userID)
-		req.SetEvent(protoEvent(event))
+		req.SetEvent(protoEvent(event, idempotencyKey))
 		_, err := client.DispatchUserEvent(ctx, req)
 		return err
 	})
@@ -325,7 +347,7 @@ func (s *Server) dispatchUser(ctx context.Context, userID int64, event eventEnve
 // other devices. A recipient reachable through both paths receives the
 // event more than once; presence updates are idempotent state, so
 // duplicates are harmless.
-func (s *Server) dispatchPresence(ctx context.Context, userID int64, event eventEnvelope, routing eventRouting) error {
+func (s *Server) dispatchPresence(ctx context.Context, userID int64, event eventEnvelope, routing eventRouting, idempotencyKey int64) error {
 	friends, err := s.friendIDs(ctx, userID)
 	if err != nil {
 		return err
@@ -358,15 +380,11 @@ func (s *Server) dispatchPresence(ctx context.Context, userID int64, event event
 		recipientIDs = append(recipientIDs, friendID)
 	}
 	friendCount := len(recipientIDs)
-	// The user's own other devices track the transition too.
 	recipientIDs = append(recipientIDs, userID)
 
 	logx.WithContext(ctx).Infow("presence fan-out", logx.Field("user_id", userID), logx.Field("guild_count", len(guildIDs)), logx.Field("friend_count", friendCount), logx.Field("total_recipients", len(recipientIDs)))
 	group, groupCtx := errgroup.WithContext(ctx)
 	group.SetLimit(presenceDispatchConcurrency)
-	// Submit the two paths in round-robin order. Group.Go blocks when the
-	// limit is full, so submitting every Guild first could otherwise delay
-	// friend and self delivery behind several slow Guild batches.
 	for i := range max(len(guildIDs), len(recipientIDs)) {
 		if i < len(guildIDs) {
 			guildID := guildIDs[i]
@@ -378,7 +396,7 @@ func (s *Server) dispatchPresence(ctx context.Context, userID int64, event event
 				return s.forEachNode(groupCtx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
 					req := new(sessionv1.DispatchGuildEventRequest)
 					req.SetGuildId(guildID)
-					req.SetEvent(protoEvent(event))
+					req.SetEvent(protoEvent(event, idempotencyKey))
 					_, err := client.DispatchGuildEvent(ctx, req)
 					return err
 				})
@@ -386,7 +404,7 @@ func (s *Server) dispatchPresence(ctx context.Context, userID int64, event event
 		}
 		if i < len(recipientIDs) {
 			recipientID := recipientIDs[i]
-			group.Go(func() error { return s.dispatchUser(groupCtx, recipientID, event) })
+			group.Go(func() error { return s.dispatchUser(groupCtx, recipientID, event, idempotencyKey) })
 		}
 	}
 	return group.Wait()
@@ -417,7 +435,7 @@ func (s *Server) friendIDs(ctx context.Context, userID int64) ([]int64, error) {
 	}
 }
 
-func (s *Server) dispatchGuild(ctx context.Context, guildID int64, event eventEnvelope, routing eventRouting) error {
+func (s *Server) dispatchGuild(ctx context.Context, guildID int64, event eventEnvelope, routing eventRouting, idempotencyKey int64) error {
 	nodes, err := s.resolver.Resolve(ctx, discovery.RouteGuild, guildID)
 	if err != nil {
 		return err
@@ -436,7 +454,7 @@ func (s *Server) dispatchGuild(ctx context.Context, guildID int64, event eventEn
 	return s.forEachNode(ctx, nodes, func(ctx context.Context, client sessionv1.SessionServiceClient) error {
 		req := new(sessionv1.DispatchGuildEventRequest)
 		req.SetGuildId(guildID)
-		req.SetEvent(protoEvent(event))
+		req.SetEvent(protoEvent(event, idempotencyKey))
 		_, err := client.DispatchGuildEvent(ctx, req)
 		return err
 	})
@@ -545,10 +563,11 @@ func (s *Server) retryMax() time.Duration {
 	return time.Duration(s.cfg.Dispatcher.RetryMaxSeconds) * time.Second
 }
 
-func protoEvent(event eventEnvelope) *sessionv1.EventEnvelope {
+func protoEvent(event eventEnvelope, idempotencyKey int64) *sessionv1.EventEnvelope {
 	result := new(sessionv1.EventEnvelope)
 	result.SetType(event.Type)
 	result.SetJsonPayload(string(event.Data))
+	result.SetIdempotencyKey(idempotencyKey)
 	return result
 }
 

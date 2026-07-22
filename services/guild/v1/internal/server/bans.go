@@ -98,7 +98,7 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *guildv1.BanGuildM
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberBannedEvent(ban)
+	event, eventErr := newGuildMemberBannedEvent(ban, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.BanGuildMemberResponse)
 	resp.SetBan(guildBanToProto(ban))
@@ -126,7 +126,7 @@ func (s *guildServer) UnbanGuildMember(ctx context.Context, req *guildv1.UnbanGu
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberUnbannedEvent(req.GetGuildId(), req.GetUserId(), time.Now().UnixMilli())
+	event, eventErr := newGuildMemberUnbannedEvent(req.GetGuildId(), req.GetUserId(), time.Now().UnixMilli(), s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UnbanGuildMemberResponse)
 	resp.SetOk(true)

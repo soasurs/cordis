@@ -96,6 +96,7 @@ message SyncGatewayConnectionsResponse {
 message EventEnvelope {
   string type = 1;
   string json_payload = 2;
+  int64 idempotency_key = 3;
 }
 
 message DispatchGuildEventRequest {

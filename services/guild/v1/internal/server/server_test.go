@@ -74,7 +74,7 @@ func TestPublishEventAddsCommittedAccessRevision(t *testing.T) {
 	fakeStore.guilds[10] = guild
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher).(*guildServer)
-	event, err := newGuildRoleUpdatedEvent(&model.Role{ID: 20, GuildID: 10, Revision: 2})
+	event, err := newGuildRoleUpdatedEvent(&model.Role{ID: 20, GuildID: 10, Revision: 2}, 0)
 	require.NoError(t, err)
 
 	server.publishEvent(t.Context(), event, nil)

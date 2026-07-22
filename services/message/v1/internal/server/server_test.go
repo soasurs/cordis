@@ -68,7 +68,7 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 		ReferencedMessageID: 9007199254740996, ReferencedChannelID: 9007199254740997,
 		Revision: 1,
 	}
-	events, err := newMessageCreatedEvents(message, []int64{9007199254740998}, messageAudience{guildID: 9007199254740999})
+	events, err := newMessageCreatedEvents(message, []int64{9007199254740998}, messageAudience{guildID: 9007199254740999}, 0)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	require.Equal(t, "9007199254740994", string(events[0].Key))
@@ -86,7 +86,7 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 
 func TestMessageEventRejectsEmptyDmAudience(t *testing.T) {
 	message := &model.Message{ID: 1, ChannelID: 2, AuthorID: 3}
-	_, err := newMessageCreatedEvents(message, nil, messageAudience{})
+	_, err := newMessageCreatedEvents(message, nil, messageAudience{}, 0)
 	require.Error(t, err)
 }
 

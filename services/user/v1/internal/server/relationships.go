@@ -19,19 +19,20 @@ const maxRelationshipBatch = 100
 // relationshipMutation captures what a transaction decided so events are
 // published only after the commit succeeds.
 type relationshipMutation struct {
-	events []userEvent
-	result *model.Relationship
+	events         []userEvent
+	result         *model.Relationship
+	idempotencyKey int64
 }
 
 func (m *relationshipMutation) updated(relationship *model.Relationship) {
-	event, err := newRelationshipUpdatedEvent(relationship)
+	event, err := newRelationshipUpdatedEvent(relationship, m.idempotencyKey)
 	if err == nil {
 		m.events = append(m.events, event)
 	}
 }
 
 func (m *relationshipMutation) removed(userID, targetID int64) {
-	event, err := newRelationshipRemovedEvent(userID, targetID)
+	event, err := newRelationshipRemovedEvent(userID, targetID, m.idempotencyKey)
 	if err == nil {
 		m.events = append(m.events, event)
 	}
@@ -46,7 +47,7 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *userv1.SendFrie
 	}
 
 	now := time.Now().UnixMilli()
-	mutation := new(relationshipMutation)
+	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
@@ -101,7 +102,7 @@ func (s *userServer) AcceptFriendRequest(ctx context.Context, req *userv1.Accept
 	}
 
 	now := time.Now().UnixMilli()
-	mutation := new(relationshipMutation)
+	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
@@ -130,7 +131,7 @@ func (s *userServer) DeclineFriendRequest(ctx context.Context, req *userv1.Decli
 		return nil, err
 	}
 
-	mutation := new(relationshipMutation)
+	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
@@ -159,7 +160,7 @@ func (s *userServer) RemoveFriend(ctx context.Context, req *userv1.RemoveFriendR
 		return nil, err
 	}
 
-	mutation := new(relationshipMutation)
+	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
@@ -195,7 +196,7 @@ func (s *userServer) BlockUser(ctx context.Context, req *userv1.BlockUserRequest
 	}
 
 	now := time.Now().UnixMilli()
-	mutation := new(relationshipMutation)
+	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
@@ -260,7 +261,7 @@ func (s *userServer) UnblockUser(ctx context.Context, req *userv1.UnblockUserReq
 		return nil, err
 	}
 
-	mutation := new(relationshipMutation)
+	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
 	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err

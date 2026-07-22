@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	sn "github.com/bwmarrin/snowflake"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -153,8 +154,16 @@ func TestStoreErrorPropagates(t *testing.T) {
 
 func newTestServer() (presencev1.PresenceServiceServer, *fakeStore) {
 	fake := &fakeStore{}
-	svcCtx := svc.NewServiceContextWithDependencies(config.Config{}, svc.Dependencies{Store: fake})
+	svcCtx := svc.NewServiceContextWithDependencies(config.Config{}, svc.Dependencies{Store: fake, Snowflake: newTestSnowflake()})
 	return New(svcCtx), fake
+}
+
+func newTestSnowflake() *sn.Node {
+	node, err := sn.NewNode(1)
+	if err != nil {
+		panic(err)
+	}
+	return node
 }
 
 type fakeStore struct {

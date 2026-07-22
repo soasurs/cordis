@@ -1676,13 +1676,14 @@ func (b0 SyncGatewayConnectionsResponse_builder) Build() *SyncGatewayConnections
 }
 
 type EventEnvelope struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Type        *string                `protobuf:"bytes,1,opt,name=type"`
-	xxx_hidden_JsonPayload *string                `protobuf:"bytes,2,opt,name=json_payload,json=jsonPayload"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Type           *string                `protobuf:"bytes,1,opt,name=type"`
+	xxx_hidden_JsonPayload    *string                `protobuf:"bytes,2,opt,name=json_payload,json=jsonPayload"`
+	xxx_hidden_IdempotencyKey int64                  `protobuf:"varint,3,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *EventEnvelope) Reset() {
@@ -1730,14 +1731,26 @@ func (x *EventEnvelope) GetJsonPayload() string {
 	return ""
 }
 
+func (x *EventEnvelope) GetIdempotencyKey() int64 {
+	if x != nil {
+		return x.xxx_hidden_IdempotencyKey
+	}
+	return 0
+}
+
 func (x *EventEnvelope) SetType(v string) {
 	x.xxx_hidden_Type = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *EventEnvelope) SetJsonPayload(v string) {
 	x.xxx_hidden_JsonPayload = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *EventEnvelope) SetIdempotencyKey(v int64) {
+	x.xxx_hidden_IdempotencyKey = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *EventEnvelope) HasType() bool {
@@ -1754,6 +1767,13 @@ func (x *EventEnvelope) HasJsonPayload() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *EventEnvelope) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *EventEnvelope) ClearType() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Type = nil
@@ -1764,11 +1784,17 @@ func (x *EventEnvelope) ClearJsonPayload() {
 	x.xxx_hidden_JsonPayload = nil
 }
 
+func (x *EventEnvelope) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_IdempotencyKey = 0
+}
+
 type EventEnvelope_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Type        *string
-	JsonPayload *string
+	Type           *string
+	JsonPayload    *string
+	IdempotencyKey *int64
 }
 
 func (b0 EventEnvelope_builder) Build() *EventEnvelope {
@@ -1776,12 +1802,16 @@ func (b0 EventEnvelope_builder) Build() *EventEnvelope {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_Type = b.Type
 	}
 	if b.JsonPayload != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_JsonPayload = b.JsonPayload
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_IdempotencyKey = *b.IdempotencyKey
 	}
 	return m0
 }
@@ -2399,10 +2429,11 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\x12gateway_generation\x18\x02 \x01(\tR\x11gatewayGeneration\x12I\n" +
 	"\vcheckpoints\x18\x03 \x03(\v2'.session.v1.GatewayConnectionCheckpointR\vcheckpoints\":\n" +
 	"\x1eSyncGatewayConnectionsResponse\x12\x18\n" +
-	"\aapplied\x18\x01 \x01(\x05R\aapplied\"F\n" +
+	"\aapplied\x18\x01 \x01(\x05R\aapplied\"o\n" +
 	"\rEventEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12!\n" +
-	"\fjson_payload\x18\x02 \x01(\tR\vjsonPayload\"g\n" +
+	"\fjson_payload\x18\x02 \x01(\tR\vjsonPayload\x12'\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\x03R\x0eidempotencyKey\"g\n" +
 	"\x19DispatchGuildEventRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12/\n" +
 	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"\x8d\x01\n" +

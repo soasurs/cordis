@@ -245,7 +245,7 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *guildv1.JoinGu
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberJoinedEvent(member)
+	event, eventErr := newGuildMemberJoinedEvent(member, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(guildv1.JoinGuildByInviteResponse)

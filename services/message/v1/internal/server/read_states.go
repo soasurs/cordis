@@ -245,6 +245,6 @@ func dmChannelsToProto(channels []*model.DmChannel) []*messagev1.DmChannel {
 }
 
 func (s *messageServer) publishReadStateUpdated(ctx context.Context, state *model.ChannelReadState) {
-	event, err := newMessageReadUpdatedEvent(state)
+	event, err := newMessageReadUpdatedEvent(state, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, err)
 }

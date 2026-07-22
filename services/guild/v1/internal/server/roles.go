@@ -67,7 +67,7 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *guildv1.CreateGu
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildRoleCreatedEvent(role)
+	event, eventErr := newGuildRoleCreatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.CreateGuildRoleResponse)
 	resp.SetRole(guildRoleToProto(role))
@@ -158,7 +158,7 @@ func (s *guildServer) UpdateGuildRole(ctx context.Context, req *guildv1.UpdateGu
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildRoleUpdatedEvent(updated)
+	event, eventErr := newGuildRoleUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpdateGuildRoleResponse)
 	resp.SetRole(guildRoleToProto(updated))
@@ -206,7 +206,7 @@ func (s *guildServer) DeleteGuildRole(ctx context.Context, req *guildv1.DeleteGu
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildRoleDeletedEvent(deleted)
+	event, eventErr := newGuildRoleDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.DeleteGuildRoleResponse)
 	resp.SetOk(true)
@@ -297,7 +297,7 @@ func (s *guildServer) ReorderGuildRoles(ctx context.Context, req *guildv1.Reorde
 		return nil, mapStoreError(err)
 	}
 	for _, role := range reordered {
-		event, eventErr := newGuildRoleUpdatedEvent(role)
+		event, eventErr := newGuildRoleUpdatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
 		s.publishEvent(ctx, event, eventErr)
 	}
 	resp := new(guildv1.ReorderGuildRolesResponse)
@@ -374,7 +374,7 @@ func (s *guildServer) changeGuildMemberRole(
 	if err != nil {
 		return mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberRolesUpdatedEvent(guildID, userID, roles, changedAt)
+	event, eventErr := newGuildMemberRolesUpdatedEvent(guildID, userID, roles, changedAt, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	return nil
 }

@@ -18,7 +18,7 @@ import (
 func TestDispatchRecordRoutesGuildMessageByGuild(t *testing.T) {
 	resolver := &fakeResolver{}
 	server := &Server{resolver: resolver}
-	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","guild_id":"8001","channel_id":"7001"}}`)
+	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","guild_id":"8001","channel_id":"7001"},"idempotency_key":"1"}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.NoError(t, err)
 	require.False(t, permanent)
@@ -29,7 +29,7 @@ func TestDispatchRecordRoutesGuildMessageByGuild(t *testing.T) {
 func TestDispatchRecordRoutesDmMessageByRecipient(t *testing.T) {
 	resolver := &fakeResolver{}
 	server := &Server{resolver: resolver}
-	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001","user_id":"1001"}}`)
+	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001","user_id":"1001"},"idempotency_key":"2"}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.NoError(t, err)
 	require.False(t, permanent)
@@ -40,7 +40,7 @@ func TestDispatchRecordRoutesDmMessageByRecipient(t *testing.T) {
 func TestDispatchRecordRoutesReadUpdateByUser(t *testing.T) {
 	resolver := &fakeResolver{}
 	server := &Server{resolver: resolver}
-	value := []byte(`{"t":"` + realtime.EventMessageReadUpdated + `","d":{"user_id":"1001","channel_id":"7001","last_read_message_id":"8001"}}`)
+	value := []byte(`{"t":"` + realtime.EventMessageReadUpdated + `","d":{"user_id":"1001","channel_id":"7001","last_read_message_id":"8001"},"idempotency_key":"3"}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.NoError(t, err)
 	require.False(t, permanent)
@@ -50,7 +50,7 @@ func TestDispatchRecordRoutesReadUpdateByUser(t *testing.T) {
 
 func TestDispatchRecordRejectsMessageWithoutAggregateRoute(t *testing.T) {
 	server := &Server{resolver: &fakeResolver{}}
-	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"}}`)
+	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"},"idempotency_key":"4"}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.Error(t, err)
 	require.True(t, permanent)
@@ -59,7 +59,7 @@ func TestDispatchRecordRejectsMessageWithoutAggregateRoute(t *testing.T) {
 func TestDispatchRecordAcceptsStringGuildIDs(t *testing.T) {
 	resolver := &fakeResolver{}
 	server := &Server{resolver: resolver}
-	value := []byte(`{"t":"` + realtime.EventGuildUpdated + `","d":{"id":"8001"}}`)
+	value := []byte(`{"t":"` + realtime.EventGuildUpdated + `","d":{"id":"8001"},"idempotency_key":"5"}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.NoError(t, err)
 	require.False(t, permanent)
@@ -69,10 +69,24 @@ func TestDispatchRecordAcceptsStringGuildIDs(t *testing.T) {
 
 func TestDispatchRecordRejectsUnderscoreEventName(t *testing.T) {
 	server := &Server{resolver: &fakeResolver{}}
-	value := []byte(`{"t":"message_created","d":{"id":"1","channel_id":"7001"}}`)
+	value := []byte(`{"t":"message_created","d":{"id":"1","channel_id":"7001"},"idempotency_key":"6"}`)
 	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
 	require.Error(t, err)
 	require.True(t, permanent)
+}
+
+func TestDispatchRecordRejectsInvalidIdempotencyKey(t *testing.T) {
+	server := &Server{resolver: &fakeResolver{}}
+	values := []string{"", "abc", "0", "-1", "+1", "01", "999999999999999999999999"}
+	for _, value := range values {
+		t.Run(value, func(t *testing.T) {
+			recordValue := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","guild_id":"8001","channel_id":"7001"},"idempotency_key":"` + value + `"}`)
+			permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: recordValue})
+
+			require.EqualError(t, err, "invalid idempotency key")
+			require.True(t, permanent)
+		})
+	}
 }
 
 func TestEventConstantsUseDotSeparator(t *testing.T) {
@@ -89,7 +103,7 @@ func TestDispatchPresenceSchedulesUserAlongsideGuilds(t *testing.T) {
 	}
 	done := make(chan error, 1)
 	go func() {
-		done <- server.dispatchPresence(t.Context(), 1001, eventEnvelope{Type: realtime.EventPresenceUpdated}, routing)
+		done <- server.dispatchPresence(t.Context(), 1001, eventEnvelope{Type: realtime.EventPresenceUpdated}, routing, 0)
 	}()
 
 	select {

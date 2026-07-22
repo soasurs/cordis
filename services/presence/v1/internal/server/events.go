@@ -14,8 +14,9 @@ import (
 )
 
 type eventEnvelope struct {
-	Type string          `json:"t"`
-	Data presencePayload `json:"d"`
+	Type           string          `json:"t"`
+	Data           presencePayload `json:"d"`
+	IdempotencyKey string          `json:"idempotency_key"`
 }
 
 type presencePayload struct {
@@ -60,7 +61,8 @@ func (s *presenceServer) publishTransition(
 		guilds = append(guilds, strconv.FormatInt(guildID, 10))
 	}
 	payload, err := json.Marshal(eventEnvelope{
-		Type: realtime.EventPresenceUpdated,
+		Type:           realtime.EventPresenceUpdated,
+		IdempotencyKey: strconv.FormatInt(s.svcCtx.Snowflake.Generate().Int64(), 10),
 		Data: presencePayload{
 			UserID:    strconv.FormatInt(userID, 10),
 			Status:    int32(newStatus),

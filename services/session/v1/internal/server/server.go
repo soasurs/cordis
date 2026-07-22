@@ -125,6 +125,8 @@ type Server struct {
 	routeMu         sync.Mutex
 	publishedRoutes map[store.Route]struct{}
 	tracer          trace.Tracer
+
+	dedup *dedupStore
 }
 
 func New(svcCtx *svc.ServiceContext) *Server {
@@ -150,6 +152,7 @@ func New(svcCtx *svc.ServiceContext) *Server {
 		visibilityUsers:     make(map[int64]*userVisibilityState),
 		visibilityReloadSem: semaphore.NewWeighted(svcCtx.Cfg.Node.SnapshotReloadLimit()),
 		publishedRoutes:     make(map[store.Route]struct{}),
+		dedup:               newDedupStore(),
 	}
 }
 
@@ -158,6 +161,7 @@ func (s *Server) StartBackground(ctx context.Context) {
 	go s.refreshRoutes(ctx)
 	go s.refreshSessionLeaseLoop(ctx)
 	go s.cleanupDetached(ctx)
+	go s.dedup.start(ctx)
 }
 
 func (s *Server) Drain(ctx context.Context) {

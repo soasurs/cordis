@@ -136,15 +136,56 @@ func TestGuildMessageRejectsMissingGuildID(t *testing.T) {
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
-func TestGuildMessageRejectsNonMessageEvent(t *testing.T) {
+func TestDispatchRejectsMissingIdempotencyKey(t *testing.T) {
 	server := newTestServer()
 
-	_, err := server.DispatchGuildMessageEvent(
-		t.Context(),
-		channelEventRequest(9001, 7001, realtime.EventGuildUpdated, `{"id":"9001"}`),
-	)
-
+	guildReq := guildEventRequest(9001, realtime.EventGuildUpdated, `{"id":"9001"}`)
+	guildReq.GetEvent().ClearIdempotencyKey()
+	_, err := server.DispatchGuildEvent(t.Context(), guildReq)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	messageReq := channelEventRequest(9001, 7001, realtime.EventMessageCreated, `{"id":"8001"}`)
+	messageReq.GetEvent().ClearIdempotencyKey()
+	_, err = server.DispatchGuildMessageEvent(t.Context(), messageReq)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	event := new(sessionv1.EventEnvelope)
+	event.SetType(realtime.EventRelationshipUpdated)
+	event.SetJsonPayload(`{"user_id":"1001"}`)
+	userReq := new(sessionv1.DispatchUserEventRequest)
+	userReq.SetUserId(1001)
+	userReq.SetEvent(event)
+	_, err = server.DispatchUserEvent(t.Context(), userReq)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestGuildMessageRejectsNonMessageEvent(t *testing.T) {
+	server := newTestServer()
+	req := channelEventRequest(9001, 7001, realtime.EventGuildUpdated, `{"id":"9001"}`)
+	req.GetEvent().SetIdempotencyKey(100)
+
+	_, firstErr := server.DispatchGuildMessageEvent(t.Context(), req)
+	_, secondErr := server.DispatchGuildMessageEvent(t.Context(), req)
+
+	require.Equal(t, codes.InvalidArgument, status.Code(firstErr))
+	require.Equal(t, codes.InvalidArgument, status.Code(secondErr))
+}
+
+func TestGuildMessageDeduplicatesValidEvent(t *testing.T) {
+	server := newTestServer()
+	session := testLogicalSession(1001, 9001)
+	server.addSession(session, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
+	req := channelEventRequest(9001, 7001, realtime.EventMessageCreated, `{"id":"8001"}`)
+	req.GetEvent().SetIdempotencyKey(100)
+
+	first, err := server.DispatchGuildMessageEvent(t.Context(), req)
+	require.NoError(t, err)
+	second, err := server.DispatchGuildMessageEvent(t.Context(), req)
+	require.NoError(t, err)
+
+	require.Equal(t, int32(1), first.GetDelivered())
+	require.Zero(t, second.GetDelivered())
+	require.Len(t, session.replay, 1)
 }
 
 func TestGuildMessageReloadsInvalidVisibilitySnapshot(t *testing.T) {
@@ -206,6 +247,7 @@ func guildEventRequest(guildID int64, eventType, payload string) *sessionv1.Disp
 	event := new(sessionv1.EventEnvelope)
 	event.SetType(eventType)
 	event.SetJsonPayload(payload)
+	event.SetIdempotencyKey(1)
 	req := new(sessionv1.DispatchGuildEventRequest)
 	req.SetGuildId(guildID)
 	req.SetEvent(event)
@@ -216,6 +258,7 @@ func channelEventRequest(guildID, channelID int64, eventType, payload string) *s
 	event := new(sessionv1.EventEnvelope)
 	event.SetType(eventType)
 	event.SetJsonPayload(payload)
+	event.SetIdempotencyKey(1)
 	req := new(sessionv1.DispatchGuildMessageEventRequest)
 	req.SetGuildId(guildID)
 	req.SetChannelId(channelID)

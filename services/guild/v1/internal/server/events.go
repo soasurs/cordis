@@ -30,8 +30,9 @@ const (
 )
 
 type eventEnvelope[T any] struct {
-	Type string `json:"t"`
-	Data T      `json:"d"`
+	Type           string `json:"t"`
+	Data           T      `json:"d"`
+	IdempotencyKey string `json:"idempotency_key"`
 }
 
 type guildEvent struct {
@@ -151,38 +152,38 @@ type guildChannelOverwriteDeletedPayload struct {
 	TargetID   string `json:"target_id"`
 }
 
-func newGuildCreatedEvent(guild *model.Guild) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildCreated, guild.ID, guildPayloadFromModel(guild))
+func newGuildCreatedEvent(guild *model.Guild, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildCreated, guild.ID, guildPayloadFromModel(guild), idempotencyKey)
 }
 
-func newGuildMemberJoinedEvent(member *model.GuildMember) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildMemberJoined, member.GuildID, guildMemberPayloadFromModel(member))
+func newGuildMemberJoinedEvent(member *model.GuildMember, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildMemberJoined, member.GuildID, guildMemberPayloadFromModel(member), idempotencyKey)
 }
 
-func newGuildMemberUpdatedEvent(member *model.GuildMember) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildMemberUpdated, member.GuildID, guildMemberPayloadFromModel(member))
+func newGuildMemberUpdatedEvent(member *model.GuildMember, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildMemberUpdated, member.GuildID, guildMemberPayloadFromModel(member), idempotencyKey)
 }
 
-func newGuildMemberRemovedEvent(member *model.GuildMember) (guildEvent, error) {
+func newGuildMemberRemovedEvent(member *model.GuildMember, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildMemberRemoved, member.GuildID, guildMemberRemovedPayload{
 		GuildID:   strconv.FormatInt(member.GuildID, 10),
 		UserID:    strconv.FormatInt(member.UserID, 10),
 		Revision:  member.Revision,
 		RemovedAt: member.DeletedAt,
-	})
+	}, idempotencyKey)
 }
 
-func newGuildMemberBannedEvent(ban *model.GuildBan) (guildEvent, error) {
+func newGuildMemberBannedEvent(ban *model.GuildBan, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildMemberBanned, ban.GuildID, guildMemberBannedPayload{
 		GuildID: strconv.FormatInt(ban.GuildID, 10), UserID: strconv.FormatInt(ban.UserID, 10),
 		ActorUserID: strconv.FormatInt(ban.ActorUserID, 10), Reason: ban.Reason, BannedAt: ban.CreatedAt,
-	})
+	}, idempotencyKey)
 }
 
-func newGuildMemberUnbannedEvent(guildID, userID, unbannedAt int64) (guildEvent, error) {
+func newGuildMemberUnbannedEvent(guildID, userID, unbannedAt int64, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildMemberUnbanned, guildID, guildMemberUnbannedPayload{
 		GuildID: strconv.FormatInt(guildID, 10), UserID: strconv.FormatInt(userID, 10), UnbannedAt: unbannedAt,
-	})
+	}, idempotencyKey)
 }
 
 func guildMemberPayloadFromModel(member *model.GuildMember) guildMemberPayload {
@@ -196,24 +197,24 @@ func guildMemberPayloadFromModel(member *model.GuildMember) guildMemberPayload {
 	}
 }
 
-func newGuildRoleCreatedEvent(role *model.Role) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildRoleCreated, role.GuildID, guildRolePayloadFromModel(role))
+func newGuildRoleCreatedEvent(role *model.Role, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildRoleCreated, role.GuildID, guildRolePayloadFromModel(role), idempotencyKey)
 }
 
-func newGuildRoleUpdatedEvent(role *model.Role) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildRoleUpdated, role.GuildID, guildRolePayloadFromModel(role))
+func newGuildRoleUpdatedEvent(role *model.Role, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildRoleUpdated, role.GuildID, guildRolePayloadFromModel(role), idempotencyKey)
 }
 
-func newGuildRoleDeletedEvent(role *model.Role) (guildEvent, error) {
+func newGuildRoleDeletedEvent(role *model.Role, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildRoleDeleted, role.GuildID, guildRoleDeletedPayload{
 		ID:        strconv.FormatInt(role.ID, 10),
 		GuildID:   strconv.FormatInt(role.GuildID, 10),
 		Revision:  role.Revision,
 		DeletedAt: role.DeletedAt,
-	})
+	}, idempotencyKey)
 }
 
-func newGuildMemberRolesUpdatedEvent(guildID, userID int64, roles []*model.Role, updatedAt int64) (guildEvent, error) {
+func newGuildMemberRolesUpdatedEvent(guildID, userID int64, roles []*model.Role, updatedAt int64, idempotencyKey int64) (guildEvent, error) {
 	roleIDs := make([]string, 0, len(roles))
 	for _, role := range roles {
 		if !role.IsDefault {
@@ -225,7 +226,7 @@ func newGuildMemberRolesUpdatedEvent(guildID, userID int64, roles []*model.Role,
 		UserID:    strconv.FormatInt(userID, 10),
 		RoleIDs:   roleIDs,
 		UpdatedAt: updatedAt,
-	})
+	}, idempotencyKey)
 }
 
 func guildRolePayloadFromModel(role *model.Role) guildRolePayload {
@@ -242,22 +243,22 @@ func guildRolePayloadFromModel(role *model.Role) guildRolePayload {
 	}
 }
 
-func newGuildChannelCreatedEvent(channel *model.Channel) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildChannelCreated, channel.GuildID, guildChannelPayloadFromModel(channel))
+func newGuildChannelCreatedEvent(channel *model.Channel, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildChannelCreated, channel.GuildID, guildChannelPayloadFromModel(channel), idempotencyKey)
 }
 
-func newGuildChannelUpdatedEvent(channel *model.Channel) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildChannelUpdated, channel.GuildID, guildChannelPayloadFromModel(channel))
+func newGuildChannelUpdatedEvent(channel *model.Channel, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildChannelUpdated, channel.GuildID, guildChannelPayloadFromModel(channel), idempotencyKey)
 }
 
-func newGuildChannelDeletedEvent(channel *model.Channel) (guildEvent, error) {
+func newGuildChannelDeletedEvent(channel *model.Channel, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildChannelDeleted, channel.GuildID, guildChannelDeletedPayload{
 		ID: strconv.FormatInt(channel.ID, 10), GuildID: strconv.FormatInt(channel.GuildID, 10),
 		Revision: channel.Revision, DeletedAt: channel.DeletedAt,
-	})
+	}, idempotencyKey)
 }
 
-func newGuildChannelOverwriteUpdatedEvent(overwrite *model.ChannelPermissionOverwrite) (guildEvent, error) {
+func newGuildChannelOverwriteUpdatedEvent(overwrite *model.ChannelPermissionOverwrite, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildChannelOverwriteUpdated, overwrite.GuildID, guildChannelOverwritePayload{
 		ChannelID:  strconv.FormatInt(overwrite.ChannelID, 10),
 		GuildID:    strconv.FormatInt(overwrite.GuildID, 10),
@@ -267,14 +268,14 @@ func newGuildChannelOverwriteUpdatedEvent(overwrite *model.ChannelPermissionOver
 		Deny:       strconv.FormatUint(overwrite.Deny, 10),
 		Revision:   overwrite.Revision,
 		UpdatedAt:  overwrite.UpdatedAt,
-	})
+	}, idempotencyKey)
 }
 
-func newGuildChannelOverwriteDeletedEvent(guildID, channelID int64, targetType int32, targetID int64) (guildEvent, error) {
+func newGuildChannelOverwriteDeletedEvent(guildID, channelID int64, targetType int32, targetID int64, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildChannelOverwriteDeleted, guildID, guildChannelOverwriteDeletedPayload{
 		ChannelID: strconv.FormatInt(channelID, 10), GuildID: strconv.FormatInt(guildID, 10),
 		TargetType: targetType, TargetID: strconv.FormatInt(targetID, 10),
-	})
+	}, idempotencyKey)
 }
 
 func guildChannelPayloadFromModel(channel *model.Channel) guildChannelPayload {
@@ -286,16 +287,16 @@ func guildChannelPayloadFromModel(channel *model.Channel) guildChannelPayload {
 	}
 }
 
-func newGuildUpdatedEvent(guild *model.Guild) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildUpdated, guild.ID, guildPayloadFromModel(guild))
+func newGuildUpdatedEvent(guild *model.Guild, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildUpdated, guild.ID, guildPayloadFromModel(guild), idempotencyKey)
 }
 
-func newGuildDeletedEvent(guild *model.Guild) (guildEvent, error) {
+func newGuildDeletedEvent(guild *model.Guild, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildDeleted, guild.ID, guildDeletedPayload{
 		ID:        strconv.FormatInt(guild.ID, 10),
 		Revision:  guild.Revision,
 		DeletedAt: guild.DeletedAt,
-	})
+	}, idempotencyKey)
 }
 
 func guildPayloadFromModel(guild *model.Guild) guildPayload {
@@ -310,8 +311,8 @@ func guildPayloadFromModel(guild *model.Guild) guildPayload {
 	}
 }
 
-func newGuildEvent[T any](eventType string, guildID int64, data T) (guildEvent, error) {
-	payload, err := json.Marshal(eventEnvelope[T]{Type: eventType, Data: data})
+func newGuildEvent[T any](eventType string, guildID int64, data T, idempotencyKey int64) (guildEvent, error) {
+	payload, err := json.Marshal(eventEnvelope[T]{Type: eventType, Data: data, IdempotencyKey: strconv.FormatInt(idempotencyKey, 10)})
 	if err != nil {
 		return guildEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}

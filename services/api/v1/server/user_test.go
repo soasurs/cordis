@@ -248,13 +248,21 @@ func TestUpdateUserProfileUsesAuthenticatedUser(t *testing.T) {
 
 	req := new(apiv1.UpdateUserProfileRequest)
 	req.SetName("new name")
-	req.SetAvatarUri("avatar://2")
 	resp, err := client.UpdateUserProfile(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), userClient.updateUserProfileRequest.GetUserId())
+	require.True(t, userClient.updateUserProfileRequest.HasName())
 	require.Equal(t, "new name", userClient.updateUserProfileRequest.GetName())
-	require.Equal(t, "avatar://2", userClient.updateUserProfileRequest.GetAvatarUri())
+	require.False(t, userClient.updateUserProfileRequest.HasAvatarUri())
 	require.Equal(t, int64(1001), resp.GetProfile().GetUserId())
+
+	req = new(apiv1.UpdateUserProfileRequest)
+	req.SetAvatarUri("")
+	_, err = client.UpdateUserProfile(context.Background(), req)
+	require.NoError(t, err)
+	require.False(t, userClient.updateUserProfileRequest.HasName())
+	require.True(t, userClient.updateUserProfileRequest.HasAvatarUri())
+	require.Empty(t, userClient.updateUserProfileRequest.GetAvatarUri())
 }
 
 func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {

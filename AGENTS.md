@@ -49,6 +49,14 @@ go build ./services/guild/v1/...
 - External `proto/api` generation additionally produces Connect-Go code under `gen/api/v1/apiv1connect`.
 - `buf.gen.external.yaml` only includes `proto/api`; `buf.gen.internal.yaml` includes `proto/authenticator`, `proto/user`, `proto/message`, `proto/guild`, `proto/presence`, `proto/session`, and `proto/mailer`.
 
+## Resource Updates
+
+- Resource `Update` RPCs use partial-update semantics by default. Only fields explicitly present in the request may change; omitted fields preserve their stored values. Do not read a resource, compose a complete replacement, and write every field back.
+- Use edition 2023 scalar presence (`HasFoo`) to distinguish omission from an explicit default value. An explicitly present empty string, zero, false, or empty wrapper/list applies that value when the field supports it.
+- Public API adapters must preserve field presence when forwarding to internal services: call a generated setter only when the incoming field is present.
+- Store update parameters represent mutable fields with pointers (or an equivalent presence-aware type), and SQL updates only the fields marked present. Reject an `Update` request that contains no mutable fields.
+- A present collection-valued field replaces that collection unless the API defines dedicated add/remove operations. Single-field commands such as email, username, and nickname changes are not required to wrap their sole value in a general patch shape.
+
 ## Service Wiring
 
 - Services other than Dispatcher use the construction pattern `Config -> NewDependencies(cfg) -> NewServiceContextWithDependencies(cfg, deps)`; Dispatcher constructs its Kafka consumer and route resolver directly.

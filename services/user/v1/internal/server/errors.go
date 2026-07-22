@@ -25,6 +25,7 @@ var (
 	errInvalidEmail         = status.Error(codes.InvalidArgument, "invalid email format")
 	errNameRequired         = status.Error(codes.InvalidArgument, "name is required")
 	errNameTooLong          = status.Error(codes.InvalidArgument, "name is too long")
+	errUpdateFieldsRequired = status.Error(codes.InvalidArgument, "at least one profile field is required")
 	errUserIDRequired       = status.Error(codes.InvalidArgument, "user id is required")
 	errEmailRequired        = status.Error(codes.InvalidArgument, "email is required")
 	errInvalidUsername      = status.Error(codes.InvalidArgument, "username must be 2-32 lowercase letters, digits, or underscores")

@@ -88,9 +88,10 @@ message UpdateEmailResponse {
   User user = 1;
 }
 
-// UpdateUserProfile uses replacement semantics for all public profile fields.
 message UpdateUserProfileRequest {
+  // Optional replacement field. When absent, the current name is preserved.
   string name = 1;
+  // Optional replacement field. An explicit empty string clears the avatar.
   string avatar_uri = 2;
 }
 

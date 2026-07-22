@@ -8,6 +8,7 @@ import (
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )
 
 const maxUserProfileBatch = 100
@@ -73,15 +74,27 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *userv1.UpdateUs
 	if req.GetUserId() <= 0 {
 		return nil, errUserIDRequired
 	}
-	name := strings.TrimSpace(req.GetName())
-	if name == "" {
-		return nil, errNameRequired
-	}
-	if len(name) > maxNameLength {
-		return nil, errNameTooLong
+	if !req.HasName() && !req.HasAvatarUri() {
+		return nil, errUpdateFieldsRequired
 	}
 
-	profile, err := s.svcCtx.Store.UpdateUserProfile(ctx, req.GetUserId(), name, req.GetAvatarUri())
+	params := store.UpdateUserProfileParams{UserID: req.GetUserId()}
+	if req.HasName() {
+		name := strings.TrimSpace(req.GetName())
+		if name == "" {
+			return nil, errNameRequired
+		}
+		if len(name) > maxNameLength {
+			return nil, errNameTooLong
+		}
+		params.Name = &name
+	}
+	if req.HasAvatarUri() {
+		avatarURI := req.GetAvatarUri()
+		params.AvatarURI = &avatarURI
+	}
+
+	profile, err := s.svcCtx.Store.UpdateUserProfile(ctx, params)
 	if err != nil {
 		return nil, mapStoreError(err)
 	}

@@ -191,16 +191,17 @@ func TestUpdateUserProfile(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "avatar_uri", "created_at", "updated_at", "deleted_at"}).
-		AddRow(int64(1001), "alice", "new name", "avatar://2", int64(10), int64(30), int64(0))
+		AddRow(int64(1001), "alice", "new name", "avatar://1", int64(10), int64(30), int64(0))
 
 	mock.ExpectQuery(sqlPattern(UpdateUserProfileQuery)).
-		WithArgs("new name", "avatar://2", sqlmock.AnyArg(), int64(1001), 0).
+		WithArgs(true, "new name", false, "", sqlmock.AnyArg(), int64(1001), 0).
 		WillReturnRows(rows)
 
-	profile, err := store.UpdateUserProfile(context.Background(), 1001, "new name", "avatar://2")
+	name := "new name"
+	profile, err := store.UpdateUserProfile(context.Background(), UpdateUserProfileParams{UserID: 1001, Name: &name})
 	require.NoError(t, err)
 	require.Equal(t, "new name", profile.Name)
-	require.Equal(t, "avatar://2", profile.AvatarURI)
+	require.Equal(t, "avatar://1", profile.AvatarURI)
 	require.Equal(t, int64(30), profile.UpdatedAt)
 }
 

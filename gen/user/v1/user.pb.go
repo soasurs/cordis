@@ -2129,8 +2129,10 @@ func (x *UpdateUserProfileRequest) ClearAvatarUri() {
 type UpdateUserProfileRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId    *int64
-	Name      *string
+	UserId *int64
+	// Optional replacement field. When absent, the current name is preserved.
+	Name *string
+	// Optional replacement field. An explicit empty string clears the avatar.
 	AvatarUri *string
 }
 

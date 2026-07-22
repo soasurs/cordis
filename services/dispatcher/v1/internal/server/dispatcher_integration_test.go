@@ -58,12 +58,13 @@ func testGuildMessageRoute(t *testing.T, env *dispatcherEnv) {
 	h.startDispatcher(t)
 
 	h.produce(t, h.messageTopic, strconv.FormatInt(guildID, 10),
-		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7000","channel_id":"7001"}}`)
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7000","channel_id":"7001"},"idempotency_key":"1001"}`)
 
 	request := node.waitChannelEvent(t)
 	require.Equal(t, int64(7001), request.GetChannelId())
 	require.Equal(t, guildID, request.GetGuildId())
 	require.Equal(t, realtime.EventMessageCreated, request.GetEvent().GetType())
+	require.Equal(t, int64(1001), request.GetEvent().GetIdempotencyKey())
 	require.JSONEq(t, `{"id":"9001","guild_id":"7000","channel_id":"7001"}`, request.GetEvent().GetJsonPayload())
 }
 
@@ -83,16 +84,17 @@ func testGuildRouteMergesUserNodes(t *testing.T, env *dispatcherEnv) {
 	h.startDispatcher(t)
 
 	h.produce(t, h.guildTopic, strconv.FormatInt(guildID, 10),
-		`{"t":"`+realtime.EventGuildMemberJoined+`","d":{"guild_id":"7101","user_id":"7102"}}`)
+		`{"t":"`+realtime.EventGuildMemberJoined+`","d":{"guild_id":"7101","user_id":"7102"},"idempotency_key":"1002"}`)
 
 	requestA := nodeA.waitGuildEvent(t)
 	require.Equal(t, guildID, requestA.GetGuildId())
 	require.Equal(t, realtime.EventGuildMemberJoined, requestA.GetEvent().GetType())
+	require.Equal(t, int64(1002), requestA.GetEvent().GetIdempotencyKey())
 	requestB := nodeB.waitGuildEvent(t)
 	require.Equal(t, guildID, requestB.GetGuildId())
 
 	h.produce(t, h.guildTopic, strconv.FormatInt(guildID, 10),
-		`{"t":"`+realtime.EventGuildUpdated+`","d":{"id":"7101","name":"Cordis"}}`)
+		`{"t":"`+realtime.EventGuildUpdated+`","d":{"id":"7101","name":"Cordis"},"idempotency_key":"1003"}`)
 	updated := nodeA.waitGuildEvent(t)
 	require.Equal(t, realtime.EventGuildUpdated, updated.GetEvent().GetType())
 
@@ -111,7 +113,7 @@ func testRetryPreservesUncommittedOffset(t *testing.T, env *dispatcherEnv) {
 	h.startDispatcher(t)
 
 	h.produce(t, h.messageTopic, strconv.FormatInt(guildID, 10),
-		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7200","channel_id":"7201"}}`)
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7200","channel_id":"7201"},"idempotency_key":"1004"}`)
 
 	require.Eventually(t, func() bool { return node.channelCalls() >= 2 },
 		30*time.Second, 20*time.Millisecond, "dispatcher did not retry the failing dispatch")
@@ -136,7 +138,7 @@ func testPoisonPillDoesNotBlockPartition(t *testing.T, env *dispatcherEnv) {
 	h.produce(t, h.messageTopic, "poison", `not-json`)
 	h.produce(t, h.messageTopic, "poison", `{"t":"unsupported.event","d":{}}`)
 	h.produce(t, h.messageTopic, strconv.FormatInt(guildID, 10),
-		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7300","channel_id":"7301"}}`)
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7300","channel_id":"7301"},"idempotency_key":"1005"}`)
 
 	request := node.waitChannelEvent(t)
 	require.Equal(t, int64(7301), request.GetChannelId())
@@ -447,24 +449,25 @@ func testUserRoute(t *testing.T, env *dispatcherEnv) {
 	h.startDispatcher(t)
 
 	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
-		`{"t":"`+realtime.EventRelationshipUpdated+`","d":{"user_id":"7401","target_id":"8001","type":3,"created_at":1,"updated_at":0}}`)
+		`{"t":"`+realtime.EventRelationshipUpdated+`","d":{"user_id":"7401","target_id":"8001","type":3,"created_at":1,"updated_at":0},"idempotency_key":"1006"}`)
 
 	request := node.waitUserEvent(t)
 	require.Equal(t, userID, request.GetUserId())
 	require.Equal(t, realtime.EventRelationshipUpdated, request.GetEvent().GetType())
+	require.Equal(t, int64(1006), request.GetEvent().GetIdempotencyKey())
 	require.JSONEq(t, `{"user_id":"7401","target_id":"8001","type":3,"created_at":1,"updated_at":0}`, request.GetEvent().GetJsonPayload())
 
 	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
-		`{"t":"`+realtime.EventRelationshipRemoved+`","d":{"user_id":"7401","target_id":"8001"}}`)
+		`{"t":"`+realtime.EventRelationshipRemoved+`","d":{"user_id":"7401","target_id":"8001"},"idempotency_key":"1007"}`)
 
 	request = node.waitUserEvent(t)
 	require.Equal(t, userID, request.GetUserId())
 	require.Equal(t, realtime.EventRelationshipRemoved, request.GetEvent().GetType())
 	require.JSONEq(t, `{"user_id":"7401","target_id":"8001"}`, request.GetEvent().GetJsonPayload())
 
-	h.produce(t, h.userTopic, "poison", `{"t":"relationship.updated","d":{"target_id":"8001"}}`)
+	h.produce(t, h.userTopic, "poison", `{"t":"relationship.updated","d":{"target_id":"8001"},"idempotency_key":"1008"}`)
 	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
-		`{"t":"`+realtime.EventRelationshipUpdated+`","d":{"user_id":"7401","target_id":"8001"}}`)
+		`{"t":"`+realtime.EventRelationshipUpdated+`","d":{"user_id":"7401","target_id":"8001"},"idempotency_key":"1009"}`)
 
 	request = node.waitUserEvent(t)
 	require.Equal(t, userID, request.GetUserId())
@@ -476,7 +479,7 @@ func testUserRoute(t *testing.T, env *dispatcherEnv) {
 
 	// dm.channel.created arrives on the message topic but is user-routed.
 	h.produce(t, h.messageTopic, strconv.FormatInt(userID, 10),
-		`{"t":"`+realtime.EventDmChannelCreated+`","d":{"channel_id":"9001","user_id":"7401","recipient_id":"8001","created_at":1}}`)
+		`{"t":"`+realtime.EventDmChannelCreated+`","d":{"channel_id":"9001","user_id":"7401","recipient_id":"8001","created_at":1},"idempotency_key":"1010"}`)
 
 	request = node.waitUserEvent(t)
 	require.Equal(t, userID, request.GetUserId())
@@ -484,7 +487,7 @@ func testUserRoute(t *testing.T, env *dispatcherEnv) {
 	require.JSONEq(t, `{"channel_id":"9001","user_id":"7401","recipient_id":"8001","created_at":1}`, request.GetEvent().GetJsonPayload())
 
 	h.produce(t, h.messageTopic, strconv.FormatInt(userID, 10),
-		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9101","channel_id":"9001","user_id":"7401"}}`)
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9101","channel_id":"9001","user_id":"7401"},"idempotency_key":"1011"}`)
 
 	request = node.waitUserEvent(t)
 	require.Equal(t, userID, request.GetUserId())
@@ -510,12 +513,21 @@ func testPresenceFanOut(t *testing.T, env *dispatcherEnv) {
 	h.startDispatcher(t)
 
 	h.produce(t, h.presenceTopic, strconv.FormatInt(userID, 10),
-		`{"t":"`+realtime.EventPresenceUpdated+`","d":{"user_id":"7501","status":1,"guild_ids":["7503","7503","0","7504"]}}`)
+		`{"t":"`+realtime.EventPresenceUpdated+`","d":{"user_id":"7501","status":1,"guild_ids":["7503","7503","0","7504"]},"idempotency_key":"1012"}`)
 
-	guildIDs := []int64{node.waitGuildEvent(t).GetGuildId(), node.waitGuildEvent(t).GetGuildId()}
-	userIDs := []int64{node.waitUserEvent(t).GetUserId(), node.waitUserEvent(t).GetUserId()}
+	guildRequestA := node.waitGuildEvent(t)
+	guildRequestB := node.waitGuildEvent(t)
+	userRequestA := node.waitUserEvent(t)
+	userRequestB := node.waitUserEvent(t)
+	guildIDs := []int64{guildRequestA.GetGuildId(), guildRequestB.GetGuildId()}
+	userIDs := []int64{userRequestA.GetUserId(), userRequestB.GetUserId()}
 	require.ElementsMatch(t, []int64{guildA, guildB}, guildIDs)
 	require.ElementsMatch(t, []int64{userID, friendID}, userIDs)
+	for _, request := range []*sessionv1.EventEnvelope{
+		guildRequestA.GetEvent(), guildRequestB.GetEvent(), userRequestA.GetEvent(), userRequestB.GetEvent(),
+	} {
+		require.Equal(t, int64(1012), request.GetIdempotencyKey())
+	}
 	require.Eventually(t, func() bool { return h.committedOffset(t, h.presenceTopic) == 1 },
 		15*time.Second, 50*time.Millisecond, "presence offset must be committed after both paths succeed")
 	time.Sleep(500 * time.Millisecond)
@@ -538,7 +550,7 @@ func testPresenceFriendLookupRetry(t *testing.T, env *dispatcherEnv) {
 	h.startDispatcher(t)
 
 	h.produce(t, h.presenceTopic, strconv.FormatInt(userID, 10),
-		`{"t":"`+realtime.EventPresenceUpdated+`","d":{"user_id":"7601","status":1,"guild_ids":["7602"]}}`)
+		`{"t":"`+realtime.EventPresenceUpdated+`","d":{"user_id":"7601","status":1,"guild_ids":["7602"]},"idempotency_key":"1013"}`)
 
 	require.Eventually(t, func() bool { return h.userClient.relationshipCalls() >= 2 },
 		15*time.Second, 20*time.Millisecond, "dispatcher did not retry the failed friend lookup")

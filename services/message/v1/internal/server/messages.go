@@ -111,7 +111,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		return nil, mapStoreError(err)
 	}
 
-	events, eventErr := newMessageCreatedEvents(created, req.GetMentionUserIds(), audience)
+	events, eventErr := newMessageCreatedEvents(created, req.GetMentionUserIds(), audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 	if authorReadAdvanced {
 		s.publishReadStateUpdated(ctx, authorReadState)
@@ -213,7 +213,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		return nil, mapStoreError(err)
 	}
 
-	events, eventErr := newMessageUpdatedEvents(updated, mentionUserIDs, previousMentionUserIDs, audience)
+	events, eventErr := newMessageUpdatedEvents(updated, mentionUserIDs, previousMentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
@@ -262,7 +262,7 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	events, eventErr := newMessageDeletedEvents(deleted, lastMessageID, mentionUserIDs, audience)
+	events, eventErr := newMessageDeletedEvents(deleted, lastMessageID, mentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.DeleteMessageResponse)

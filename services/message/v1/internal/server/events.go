@@ -19,8 +19,9 @@ const (
 )
 
 type eventEnvelope[T any] struct {
-	Type string `json:"t"`
-	Data T      `json:"d"`
+	Type           string `json:"t"`
+	Data           T      `json:"d"`
+	IdempotencyKey string `json:"idempotency_key"`
 }
 
 type messageEvent struct {
@@ -76,17 +77,17 @@ type messageReadUpdatedPayload struct {
 	MentionCount      int32  `json:"mention_count"`
 }
 
-func newMessageCreatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
-	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs))
+func newMessageCreatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
+	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs), idempotencyKey)
 }
 
-func newMessageUpdatedEvents(message *model.Message, mentionUserIDs, previousMentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
+func newMessageUpdatedEvents(message *model.Message, mentionUserIDs, previousMentionUserIDs []int64, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
 	payload := messagePayloadFromModel(message, mentionUserIDs)
 	payload.PreviousMentionUserIDs = idStrings(previousMentionUserIDs)
-	return newMessageEvents(EventTypeMessageUpdated, message.ChannelID, audience, payload)
+	return newMessageEvents(EventTypeMessageUpdated, message.ChannelID, audience, payload, idempotencyKey)
 }
 
-func newMessageDeletedEvents(message *model.Message, lastMessageID int64, mentionUserIDs []int64, audience messageAudience) ([]messageEvent, error) {
+func newMessageDeletedEvents(message *model.Message, lastMessageID int64, mentionUserIDs []int64, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
 	return newMessageDeletedRoutingEvents(EventTypeMessageDeleted, message.ChannelID, audience, messageDeletedPayload{
 		MessageID:      strconv.FormatInt(message.ID, 10),
 		ChannelID:      strconv.FormatInt(message.ChannelID, 10),
@@ -94,23 +95,23 @@ func newMessageDeletedEvents(message *model.Message, lastMessageID int64, mentio
 		DeletedAt:      message.DeletedAt,
 		LastMessageID:  strconv.FormatInt(lastMessageID, 10),
 		MentionUserIDs: idStrings(mentionUserIDs),
-	})
+	}, idempotencyKey)
 }
 
-func newMessageReadUpdatedEvent(state *model.ChannelReadState) (messageEvent, error) {
+func newMessageReadUpdatedEvent(state *model.ChannelReadState, idempotencyKey int64) (messageEvent, error) {
 	return newUserRoutedEvent(EventTypeMessageReadUpdated, state.UserID, messageReadUpdatedPayload{
 		UserID:            strconv.FormatInt(state.UserID, 10),
 		ChannelID:         strconv.FormatInt(state.ChannelID, 10),
 		LastMessageID:     strconv.FormatInt(state.LastMessageID, 10),
 		LastReadMessageID: strconv.FormatInt(state.LastReadMessageID, 10),
 		MentionCount:      state.MentionCount,
-	})
+	}, idempotencyKey)
 }
 
-func newMessageEvents(eventType string, channelID int64, audience messageAudience, data messagePayload) ([]messageEvent, error) {
+func newMessageEvents(eventType string, channelID int64, audience messageAudience, data messagePayload, idempotencyKey int64) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
-		event, err := newEvent(eventType, channelID, data)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey)
 		return singleEvent(event, err)
 	}
 	if err := validateDmAudience(audience.userIDs); err != nil {
@@ -119,7 +120,7 @@ func newMessageEvents(eventType string, channelID int64, audience messageAudienc
 	events := make([]messageEvent, 0, len(audience.userIDs))
 	for _, userID := range audience.userIDs {
 		data.UserID = strconv.FormatInt(userID, 10)
-		event, err := newEvent(eventType, channelID, data)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey)
 		if err != nil {
 			return nil, err
 		}
@@ -128,10 +129,10 @@ func newMessageEvents(eventType string, channelID int64, audience messageAudienc
 	return events, nil
 }
 
-func newMessageDeletedRoutingEvents(eventType string, channelID int64, audience messageAudience, data messageDeletedPayload) ([]messageEvent, error) {
+func newMessageDeletedRoutingEvents(eventType string, channelID int64, audience messageAudience, data messageDeletedPayload, idempotencyKey int64) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
-		event, err := newEvent(eventType, channelID, data)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey)
 		return singleEvent(event, err)
 	}
 	if err := validateDmAudience(audience.userIDs); err != nil {
@@ -140,7 +141,7 @@ func newMessageDeletedRoutingEvents(eventType string, channelID int64, audience 
 	events := make([]messageEvent, 0, len(audience.userIDs))
 	for _, userID := range audience.userIDs {
 		data.UserID = strconv.FormatInt(userID, 10)
-		event, err := newEvent(eventType, channelID, data)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey)
 		if err != nil {
 			return nil, err
 		}
@@ -207,10 +208,11 @@ func idStrings(ids []int64) []string {
 
 // newUserRoutedEvent keys the record by the decimal recipient user ID so
 // the dispatcher fans it out through user routes instead of channel routes.
-func newUserRoutedEvent[T any](eventType string, recipientID int64, data T) (messageEvent, error) {
+func newUserRoutedEvent[T any](eventType string, recipientID int64, data T, idempotencyKey int64) (messageEvent, error) {
 	payload, err := json.Marshal(eventEnvelope[T]{
-		Type: eventType,
-		Data: data,
+		Type:           eventType,
+		Data:           data,
+		IdempotencyKey: strconv.FormatInt(idempotencyKey, 10),
 	})
 	if err != nil {
 		return messageEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
@@ -221,10 +223,11 @@ func newUserRoutedEvent[T any](eventType string, recipientID int64, data T) (mes
 	}, nil
 }
 
-func newEvent[T any](eventType string, channelID int64, data T) (messageEvent, error) {
+func newEvent[T any](eventType string, channelID int64, data T, idempotencyKey int64) (messageEvent, error) {
 	payload, err := json.Marshal(eventEnvelope[T]{
-		Type: eventType,
-		Data: data,
+		Type:           eventType,
+		Data:           data,
+		IdempotencyKey: strconv.FormatInt(idempotencyKey, 10),
 	})
 	if err != nil {
 		return messageEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)

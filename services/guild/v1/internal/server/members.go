@@ -70,7 +70,7 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberJoinedEvent(member)
+	event, eventErr := newGuildMemberJoinedEvent(member, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.AddGuildMemberResponse)
 	resp.SetMember(guildMemberToProto(member))
@@ -143,7 +143,7 @@ func (s *guildServer) UpdateGuildMember(ctx context.Context, req *guildv1.Update
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberUpdatedEvent(member)
+	event, eventErr := newGuildMemberUpdatedEvent(member, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpdateGuildMemberResponse)
 	resp.SetMember(guildMemberToProto(member))
@@ -194,7 +194,7 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *guildv1.KickGuil
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberRemovedEvent(removed)
+	event, eventErr := newGuildMemberRemovedEvent(removed, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.KickGuildMemberResponse)
 	resp.SetOk(true)
@@ -235,7 +235,7 @@ func (s *guildServer) LeaveGuild(ctx context.Context, req *guildv1.LeaveGuildReq
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberRemovedEvent(removed)
+	event, eventErr := newGuildMemberRemovedEvent(removed, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.LeaveGuildResponse)
 	resp.SetOk(true)
@@ -275,7 +275,7 @@ func (s *guildServer) TransferGuildOwnership(ctx context.Context, req *guildv1.T
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildUpdatedEvent(updated)
+	event, eventErr := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.TransferGuildOwnershipResponse)
 	resp.SetGuild(guildToProto(updated))

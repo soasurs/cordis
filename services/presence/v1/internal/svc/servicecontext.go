@@ -3,10 +3,12 @@ package svc
 import (
 	"context"
 
+	sn "github.com/bwmarrin/snowflake"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 
 	"github.com/soasurs/cordis/pkg/kafka"
+	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/presence/v1/config"
 	"github.com/soasurs/cordis/services/presence/v1/internal/store"
 )
@@ -17,20 +19,27 @@ type EventPublisher interface {
 }
 
 type ServiceContext struct {
-	Cfg   config.Config
-	Store store.Store
+	Cfg       config.Config
+	Store     store.Store
+	Snowflake *sn.Node
 	// Publisher is optional; transition events are skipped when nil.
 	Publisher EventPublisher
 }
 
 type Dependencies struct {
 	Store     store.Store
+	Snowflake *sn.Node
 	Redis     *redis.Redis
 	Kafka     *kgo.Client
 	Publisher EventPublisher
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
+	node, err := snowflake.New()
+	if err != nil {
+		return Dependencies{}, err
+	}
+
 	rds, err := redis.NewRedis(cfg.Redis)
 	if err != nil {
 		return Dependencies{}, err
@@ -45,9 +54,10 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	}
 
 	return Dependencies{
-		Store: store.NewRedisStore(rds, cfg.Presence.UserSessionTTL(), cfg.Kafka.PublishTimeout()),
-		Redis: rds,
-		Kafka: kafkaClient,
+		Store:     store.NewRedisStore(rds, cfg.Presence.UserSessionTTL(), cfg.Kafka.PublishTimeout()),
+		Snowflake: node,
+		Redis:     rds,
+		Kafka:     kafkaClient,
 	}, nil
 }
 
@@ -63,6 +73,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.Store == nil {
 		panic("presence store is required")
 	}
+	if deps.Snowflake == nil {
+		panic("snowflake node is required")
+	}
 	publisher := deps.Publisher
 	if publisher == nil && deps.Kafka != nil {
 		publisher = kafka.NewPublisher(deps.Kafka, cfg.Kafka.Topic)
@@ -70,6 +83,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	return &ServiceContext{
 		Cfg:       cfg,
 		Store:     deps.Store,
+		Snowflake: deps.Snowflake,
 		Publisher: publisher,
 	}
 }

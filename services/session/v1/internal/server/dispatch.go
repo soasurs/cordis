@@ -34,9 +34,18 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 	if err != nil {
 		return nil, err
 	}
+	idempotencyKey := req.GetEvent().GetIdempotencyKey()
+	if idempotencyKey <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "idempotency key is required")
+	}
+
+	if !s.dedup.checkAndAdd(routeKindGuild, req.GetGuildId(), idempotencyKey, eventType, dedupTTL) {
+		return &sessionv1.DispatchGuildEventResponse{}, nil
+	}
 
 	var routing eventRouting
 	if err := json.Unmarshal(payload, &routing); err != nil {
+		s.dedup.remove(routeKindGuild, req.GetGuildId(), idempotencyKey, eventType)
 		return nil, status.Error(codes.InvalidArgument, "event routing payload is invalid")
 	}
 
@@ -46,8 +55,6 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 	case realtime.EventGuildMemberJoined:
 		s.attachGuildUser(req.GetGuildId(), parseID(routing.UserID), routing.AccessRevision)
 	case realtime.EventGuildMemberRemoved, realtime.EventGuildMemberBanned:
-		// Revoke the snapshot before delivering the terminal membership event so
-		// concurrent message dispatch fails closed during index cleanup.
 		s.invalidateGuildVisibility(req.GetGuildId(), parseID(routing.UserID), routing.AccessRevision)
 	case realtime.EventGuildUpdated, realtime.EventGuildRoleCreated:
 		s.invalidateGuildVisibility(req.GetGuildId(), 0, routing.AccessRevision)
@@ -111,11 +118,22 @@ func (s *Server) DispatchGuildMessageEvent(ctx context.Context, req *sessionv1.D
 	if err != nil {
 		return nil, err
 	}
+
 	switch eventType {
 	case realtime.EventMessageCreated, realtime.EventMessageUpdated, realtime.EventMessageDeleted:
 	default:
 		return nil, status.Error(codes.InvalidArgument, "guild message event type is invalid")
 	}
+
+	idempotencyKey := req.GetEvent().GetIdempotencyKey()
+	if idempotencyKey <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "idempotency key is required")
+	}
+	if !s.dedup.checkAndAdd(routeKindGuildMsg, req.GetGuildId(), idempotencyKey, eventType, dedupTTL) {
+		resp := new(sessionv1.DispatchGuildMessageEventResponse)
+		return resp, nil
+	}
+
 	resp := new(sessionv1.DispatchGuildMessageEventResponse)
 	resp.SetDelivered(int32(s.dispatchVisibleGuildChannel(ctx, req.GetGuildId(), req.GetChannelId(), eventType, payload)))
 	return resp, nil
@@ -170,6 +188,16 @@ func (s *Server) DispatchUserEvent(_ context.Context, req *sessionv1.DispatchUse
 	if err != nil {
 		return nil, err
 	}
+
+	idempotencyKey := req.GetEvent().GetIdempotencyKey()
+	if idempotencyKey <= 0 {
+		return nil, status.Error(codes.InvalidArgument, "idempotency key is required")
+	}
+	if !s.dedup.checkAndAdd(routeKindUser, req.GetUserId(), idempotencyKey, eventType, dedupTTL) {
+		resp := new(sessionv1.DispatchUserEventResponse)
+		return resp, nil
+	}
+
 	resp := new(sessionv1.DispatchUserEventResponse)
 	resp.SetDelivered(int32(s.dispatchSessions(s.userSessions(req.GetUserId()), eventType, payload)))
 	return resp, nil

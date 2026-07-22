@@ -63,7 +63,7 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelCreatedEvent(channel)
+	event, eventErr := newGuildChannelCreatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.CreateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(channel))
@@ -195,7 +195,7 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelUpdatedEvent(updated)
+	event, eventErr := newGuildChannelUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpdateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(updated))
@@ -256,10 +256,10 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelDeletedEvent(deleted)
+	event, eventErr := newGuildChannelDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	for _, child := range movedChildren {
-		event, eventErr := newGuildChannelUpdatedEvent(child)
+		event, eventErr := newGuildChannelUpdatedEvent(child, s.svcCtx.Snowflake.Generate().Int64())
 		s.publishEvent(ctx, event, eventErr)
 	}
 	resp := new(guildv1.DeleteGuildChannelResponse)
@@ -330,7 +330,7 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 		return nil, mapStoreError(err)
 	}
 	for _, channel := range updated {
-		event, eventErr := newGuildChannelUpdatedEvent(channel)
+		event, eventErr := newGuildChannelUpdatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
 		s.publishEvent(ctx, event, eventErr)
 	}
 	resp := new(guildv1.ReorderGuildChannelsResponse)
@@ -377,7 +377,7 @@ func (s *guildServer) UpsertGuildChannelPermissionOverwrite(
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelOverwriteUpdatedEvent(overwrite)
+	event, eventErr := newGuildChannelOverwriteUpdatedEvent(overwrite, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpsertGuildChannelPermissionOverwriteResponse)
 	resp.SetOverwrite(guildChannelOverwriteToProto(overwrite))
@@ -413,7 +413,7 @@ func (s *guildServer) DeleteGuildChannelPermissionOverwrite(
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelOverwriteDeletedEvent(guildID, req.GetChannelId(), int32(req.GetTargetType()), req.GetTargetId())
+	event, eventErr := newGuildChannelOverwriteDeletedEvent(guildID, req.GetChannelId(), int32(req.GetTargetType()), req.GetTargetId(), s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.DeleteGuildChannelPermissionOverwriteResponse)
 	resp.SetOk(true)

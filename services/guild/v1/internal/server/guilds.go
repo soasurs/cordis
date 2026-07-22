@@ -53,7 +53,7 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildCreatedEvent(created)
+	event, eventErr := newGuildCreatedEvent(created, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(guildv1.CreateGuildResponse)
@@ -148,7 +148,7 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *guildv1.UpdateGuildR
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildUpdatedEvent(updated)
+	event, eventErr := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(guildv1.UpdateGuildResponse)
@@ -202,7 +202,7 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *guildv1.DeleteGuildR
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildDeletedEvent(deleted)
+	event, eventErr := newGuildDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(guildv1.DeleteGuildResponse)

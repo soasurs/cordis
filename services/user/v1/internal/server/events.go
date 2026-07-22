@@ -18,12 +18,11 @@ const (
 )
 
 type eventEnvelope[T any] struct {
-	Type string `json:"t"`
-	Data T      `json:"d"`
+	Type           string `json:"t"`
+	Data           T      `json:"d"`
+	IdempotencyKey string `json:"idempotency_key"`
 }
 
-// userEvent is one user-routed record: the key is the decimal recipient user
-// ID so the dispatcher can resolve their session nodes.
 type userEvent struct {
 	Key     []byte
 	Payload []byte
@@ -42,25 +41,25 @@ type relationshipRemovedPayload struct {
 	TargetID string `json:"target_id"`
 }
 
-func newRelationshipUpdatedEvent(relationship *model.Relationship) (userEvent, error) {
+func newRelationshipUpdatedEvent(relationship *model.Relationship, idempotencyKey int64) (userEvent, error) {
 	return newUserEvent(EventTypeRelationshipUpdated, relationship.UserID, relationshipPayload{
 		UserID:    strconv.FormatInt(relationship.UserID, 10),
 		TargetID:  strconv.FormatInt(relationship.TargetID, 10),
 		Type:      relationship.Type,
 		CreatedAt: relationship.CreatedAt,
 		UpdatedAt: relationship.UpdatedAt,
-	})
+	}, idempotencyKey)
 }
 
-func newRelationshipRemovedEvent(userID, targetID int64) (userEvent, error) {
+func newRelationshipRemovedEvent(userID, targetID int64, idempotencyKey int64) (userEvent, error) {
 	return newUserEvent(EventTypeRelationshipRemoved, userID, relationshipRemovedPayload{
 		UserID:   strconv.FormatInt(userID, 10),
 		TargetID: strconv.FormatInt(targetID, 10),
-	})
+	}, idempotencyKey)
 }
 
-func newUserEvent[T any](eventType string, recipientID int64, data T) (userEvent, error) {
-	payload, err := json.Marshal(eventEnvelope[T]{Type: eventType, Data: data})
+func newUserEvent[T any](eventType string, recipientID int64, data T, idempotencyKey int64) (userEvent, error) {
+	payload, err := json.Marshal(eventEnvelope[T]{Type: eventType, Data: data, IdempotencyKey: strconv.FormatInt(idempotencyKey, 10)})
 	if err != nil {
 		return userEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}

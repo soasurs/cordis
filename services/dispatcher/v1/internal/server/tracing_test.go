@@ -35,7 +35,7 @@ func TestDispatchAttemptsCreateSiblingConsumerSpans(t *testing.T) {
 		Partition: 7,
 		Key:       []byte("sensitive-key"),
 		Value: []byte(`{"t":"` + realtime.EventMessageCreated +
-			`","d":{"id":"9001","guild_id":"8001","channel_id":"7001"}}`),
+			`","d":{"id":"9001","guild_id":"8001","channel_id":"7001"},"idempotency_key":"1"}`),
 	}
 	cordiskafka.InjectTraceContext(ctx, record)
 
@@ -101,7 +101,7 @@ func TestDispatchRetryableFailureUsesBoundedErrorAttributes(t *testing.T) {
 	record := &kgo.Record{
 		Topic: "cordis.message.events.v1",
 		Value: []byte(`{"t":"` + realtime.EventMessageCreated +
-			`","d":{"id":"9001","guild_id":"8001","channel_id":"7001"}}`),
+			`","d":{"id":"9001","guild_id":"8001","channel_id":"7001"},"idempotency_key":"2"}`),
 	}
 
 	permanent, err := dispatcher.dispatchRecord(t.Context(), record)
@@ -152,7 +152,7 @@ func TestDispatchPropagatesConsumerSpanToSessionRPC(t *testing.T) {
 	record := &kgo.Record{
 		Topic: "cordis.message.events.v1",
 		Value: []byte(`{"t":"` + realtime.EventMessageCreated +
-			`","d":{"id":"9001","guild_id":"8001","channel_id":"7001"}}`),
+			`","d":{"id":"9001","guild_id":"8001","channel_id":"7001"},"idempotency_key":"3"}`),
 	}
 	cordiskafka.InjectTraceContext(ctx, record)
 	permanent, err := dispatcher.dispatchRecord(t.Context(), record)

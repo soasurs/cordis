@@ -26,6 +26,7 @@ type Store interface {
 	MarkUserEmailVerified(ctx context.Context, userID int64, email string, verifiedAt int64) error
 	CreateUserProfile(ctx context.Context, userID int64, username, name, avatarURI string) (*model.UserProfile, error)
 	GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error)
+	ListUserProfiles(ctx context.Context, userIDs []int64) ([]*model.UserProfile, error)
 	GetUserProfileByUsername(ctx context.Context, username string) (*model.UserProfile, error)
 	UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error)
 	UpdateUsername(ctx context.Context, userID int64, username string) (*model.UserProfile, error)

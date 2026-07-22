@@ -314,7 +314,6 @@ type Message struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Id        *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
 	ChannelId *int64                 `protobuf:"varint,2,opt,name=channel_id,json=channelId" json:"channel_id,omitempty"`
-	AuthorId  *int64                 `protobuf:"varint,3,opt,name=author_id,json=authorId" json:"author_id,omitempty"`
 	Content   *string                `protobuf:"bytes,4,opt,name=content" json:"content,omitempty"`
 	Type      *MessageType           `protobuf:"varint,5,opt,name=type,enum=api.v1.MessageType" json:"type,omitempty"`
 	// Bitmask of MessageFlag values.
@@ -328,7 +327,9 @@ type Message struct {
 	CreatedAt *int64 `protobuf:"varint,31,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
 	UpdatedAt *int64 `protobuf:"varint,32,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
 	// Monotonically increasing version used to discard stale events.
-	Revision      *int64 `protobuf:"varint,33,opt,name=revision" json:"revision,omitempty"`
+	Revision *int64 `protobuf:"varint,33,opt,name=revision" json:"revision,omitempty"`
+	// Public profile of the user who sent this message.
+	Author        *UserProfile `protobuf:"bytes,40,opt,name=author" json:"author,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -373,13 +374,6 @@ func (x *Message) GetId() int64 {
 func (x *Message) GetChannelId() int64 {
 	if x != nil && x.ChannelId != nil {
 		return *x.ChannelId
-	}
-	return 0
-}
-
-func (x *Message) GetAuthorId() int64 {
-	if x != nil && x.AuthorId != nil {
-		return *x.AuthorId
 	}
 	return 0
 }
@@ -452,6 +446,13 @@ func (x *Message) GetRevision() int64 {
 		return *x.Revision
 	}
 	return 0
+}
+
+func (x *Message) GetAuthor() *UserProfile {
+	if x != nil {
+		return x.Author
+	}
+	return nil
 }
 
 // Attachment describes a file uploaded before the message is created.
@@ -1657,7 +1658,7 @@ var File_api_v1_message_proto protoreflect.FileDescriptor
 
 const file_api_v1_message_proto_rawDesc = "" +
 	"\n" +
-	"\x14api/v1/message.proto\x12\x06api.v1\"\xaf\x01\n" +
+	"\x14api/v1/message.proto\x12\x06api.v1\x1a\x11api/v1/user.proto\"\xaf\x01\n" +
 	"\x10ChannelReadState\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12&\n" +
@@ -1668,12 +1669,11 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
 	"\frecipient_id\x18\x02 \x01(\x03R\vrecipientId\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\x03R\tcreatedAt\"\xc3\x03\n" +
+	"created_at\x18\x03 \x01(\x03R\tcreatedAt\"\xe4\x03\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
-	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12\x1b\n" +
-	"\tauthor_id\x18\x03 \x01(\x03R\bauthorId\x12\x18\n" +
+	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12'\n" +
 	"\x04type\x18\x05 \x01(\x0e2\x13.api.v1.MessageTypeR\x04type\x12\x14\n" +
 	"\x05flags\x18\x06 \x01(\x05R\x05flags\x122\n" +
@@ -1686,7 +1686,8 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"created_at\x18\x1f \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18  \x01(\x03R\tupdatedAt\x12\x1a\n" +
-	"\brevision\x18! \x01(\x03R\brevision\"\x9f\x01\n" +
+	"\brevision\x18! \x01(\x03R\brevision\x12+\n" +
+	"\x06author\x18( \x01(\v2\x13.api.v1.UserProfileR\x06authorJ\x04\b\x03\x10\x04R\tauthor_id\"\x9f\x01\n" +
 	"\n" +
 	"Attachment\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1a\n" +
@@ -1839,48 +1840,50 @@ var file_api_v1_message_proto_goTypes = []any{
 	(*AckMessageResponse)(nil),      // 24: api.v1.AckMessageResponse
 	(*GetReadStatesRequest)(nil),    // 25: api.v1.GetReadStatesRequest
 	(*GetReadStatesResponse)(nil),   // 26: api.v1.GetReadStatesResponse
+	(*UserProfile)(nil),             // 27: api.v1.UserProfile
 }
 var file_api_v1_message_proto_depIdxs = []int32{
 	0,  // 0: api.v1.Message.type:type_name -> api.v1.MessageType
 	6,  // 1: api.v1.Message.attachments:type_name -> api.v1.Attachment
-	6,  // 2: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
-	0,  // 3: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
-	6,  // 4: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
-	5,  // 5: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
-	7,  // 6: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
-	8,  // 7: api.v1.UpdateMessageRequest.mentions:type_name -> api.v1.MentionList
-	5,  // 8: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
-	5,  // 9: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
-	5,  // 10: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
-	4,  // 11: api.v1.CreateDmChannelResponse.channel:type_name -> api.v1.DmChannel
-	4,  // 12: api.v1.ListDmChannelsResponse.channels:type_name -> api.v1.DmChannel
-	3,  // 13: api.v1.AckMessageResponse.read_state:type_name -> api.v1.ChannelReadState
-	2,  // 14: api.v1.GetReadStatesRequest.scope:type_name -> api.v1.ReadStateScopeType
-	4,  // 15: api.v1.GetReadStatesResponse.dm_channels:type_name -> api.v1.DmChannel
-	3,  // 16: api.v1.GetReadStatesResponse.read_states:type_name -> api.v1.ChannelReadState
-	9,  // 17: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
-	11, // 18: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
-	13, // 19: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
-	15, // 20: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
-	17, // 21: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
-	19, // 22: api.v1.MessageService.CreateDmChannel:input_type -> api.v1.CreateDmChannelRequest
-	21, // 23: api.v1.MessageService.ListDmChannels:input_type -> api.v1.ListDmChannelsRequest
-	23, // 24: api.v1.MessageService.AckMessage:input_type -> api.v1.AckMessageRequest
-	25, // 25: api.v1.MessageService.GetReadStates:input_type -> api.v1.GetReadStatesRequest
-	10, // 26: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
-	12, // 27: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
-	14, // 28: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
-	16, // 29: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
-	18, // 30: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
-	20, // 31: api.v1.MessageService.CreateDmChannel:output_type -> api.v1.CreateDmChannelResponse
-	22, // 32: api.v1.MessageService.ListDmChannels:output_type -> api.v1.ListDmChannelsResponse
-	24, // 33: api.v1.MessageService.AckMessage:output_type -> api.v1.AckMessageResponse
-	26, // 34: api.v1.MessageService.GetReadStates:output_type -> api.v1.GetReadStatesResponse
-	26, // [26:35] is the sub-list for method output_type
-	17, // [17:26] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	27, // 2: api.v1.Message.author:type_name -> api.v1.UserProfile
+	6,  // 3: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
+	0,  // 4: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
+	6,  // 5: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
+	5,  // 6: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
+	7,  // 7: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
+	8,  // 8: api.v1.UpdateMessageRequest.mentions:type_name -> api.v1.MentionList
+	5,  // 9: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
+	5,  // 10: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
+	5,  // 11: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
+	4,  // 12: api.v1.CreateDmChannelResponse.channel:type_name -> api.v1.DmChannel
+	4,  // 13: api.v1.ListDmChannelsResponse.channels:type_name -> api.v1.DmChannel
+	3,  // 14: api.v1.AckMessageResponse.read_state:type_name -> api.v1.ChannelReadState
+	2,  // 15: api.v1.GetReadStatesRequest.scope:type_name -> api.v1.ReadStateScopeType
+	4,  // 16: api.v1.GetReadStatesResponse.dm_channels:type_name -> api.v1.DmChannel
+	3,  // 17: api.v1.GetReadStatesResponse.read_states:type_name -> api.v1.ChannelReadState
+	9,  // 18: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
+	11, // 19: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
+	13, // 20: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
+	15, // 21: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
+	17, // 22: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
+	19, // 23: api.v1.MessageService.CreateDmChannel:input_type -> api.v1.CreateDmChannelRequest
+	21, // 24: api.v1.MessageService.ListDmChannels:input_type -> api.v1.ListDmChannelsRequest
+	23, // 25: api.v1.MessageService.AckMessage:input_type -> api.v1.AckMessageRequest
+	25, // 26: api.v1.MessageService.GetReadStates:input_type -> api.v1.GetReadStatesRequest
+	10, // 27: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
+	12, // 28: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
+	14, // 29: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
+	16, // 30: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
+	18, // 31: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
+	20, // 32: api.v1.MessageService.CreateDmChannel:output_type -> api.v1.CreateDmChannelResponse
+	22, // 33: api.v1.MessageService.ListDmChannels:output_type -> api.v1.ListDmChannelsResponse
+	24, // 34: api.v1.MessageService.AckMessage:output_type -> api.v1.AckMessageResponse
+	26, // 35: api.v1.MessageService.GetReadStates:output_type -> api.v1.GetReadStatesResponse
+	27, // [27:36] is the sub-list for method output_type
+	18, // [18:27] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_message_proto_init() }
@@ -1888,6 +1891,7 @@ func file_api_v1_message_proto_init() {
 	if File_api_v1_message_proto != nil {
 		return
 	}
+	file_api_v1_user_proto_init()
 	file_api_v1_message_proto_msgTypes[14].OneofWrappers = []any{
 		(*ListMessagesRequest_Before)(nil),
 		(*ListMessagesRequest_After)(nil),

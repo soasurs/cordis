@@ -117,6 +117,37 @@ func TestGetUserProfile(t *testing.T) {
 	require.Equal(t, "avatar://1", resp.GetProfile().GetAvatarUri())
 }
 
+func TestBatchGetUserProfiles(t *testing.T) {
+	store := newFakeStore()
+	store.batchProfiles = []*model.UserProfile{
+		{UserID: 1001, Username: "alice", Name: "Alice"},
+		{UserID: 1002, Username: "bob", Name: "Bob"},
+	}
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.BatchGetUserProfilesRequest)
+	req.SetUserIds([]int64{1002, 1001, 1002})
+	resp, err := server.BatchGetUserProfiles(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []int64{1002, 1001}, store.listProfileIDs)
+	require.Len(t, resp.GetProfiles(), 2)
+	require.Equal(t, int64(1001), resp.GetProfiles()[0].GetUserId())
+	require.Equal(t, int64(1002), resp.GetProfiles()[1].GetUserId())
+}
+
+func TestBatchGetUserProfilesValidation(t *testing.T) {
+	server := newTestUserServer(t, newFakeStore())
+
+	req := new(userv1.BatchGetUserProfilesRequest)
+	req.SetUserIds([]int64{0})
+	_, err := server.BatchGetUserProfiles(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	req.SetUserIds(make([]int64, maxUserProfileBatch+1))
+	_, err = server.BatchGetUserProfiles(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestUpdateUserProfile(t *testing.T) {
 	store := newFakeStore()
 	store.profile = &model.UserProfile{
@@ -254,6 +285,8 @@ func newTestUserServer(t *testing.T, store store.Store) userv1.UserServiceServer
 type fakeStore struct {
 	user                *model.User
 	profile             *model.UserProfile
+	batchProfiles       []*model.UserProfile
+	listProfileIDs      []int64
 	createUserErr       error
 	createProfileErr    error
 	updateUsernameErr   error
@@ -350,6 +383,11 @@ func (s *fakeStore) GetUserProfile(_ context.Context, userID int64) (*model.User
 		return nil, sql.ErrNoRows
 	}
 	return s.profile, nil
+}
+
+func (s *fakeStore) ListUserProfiles(_ context.Context, userIDs []int64) ([]*model.UserProfile, error) {
+	s.listProfileIDs = append([]int64(nil), userIDs...)
+	return s.batchProfiles, nil
 }
 
 func (s *fakeStore) UpdateUsername(_ context.Context, userID int64, username string) (*model.UserProfile, error) {

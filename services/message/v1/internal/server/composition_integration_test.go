@@ -392,5 +392,6 @@ func createMessage(
 	resp, err := service.CreateMessage(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, content, resp.GetMessage().GetContent())
+	require.Equal(t, authorID, resp.GetMessage().GetAuthor().GetUserId())
 	return resp
 }

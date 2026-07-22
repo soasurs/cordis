@@ -2,6 +2,8 @@ edition = "2023";
 
 package message.v1;
 
+import "user/v1/user.proto";
+
 // MessageService manages messages within a channel.
 // Channels and threads are owned by the guild service; this service
 // receives only channel_id as an opaque reference.
@@ -70,8 +72,8 @@ message Message {
   int64 id = 1;
   // Opaque reference to the channel or thread this message belongs to.
   int64 channel_id = 2;
-  // The user who sent this message.
-  int64 author_id = 3;
+  reserved 3;
+  reserved author_id;
   // Message body text. May be empty for attachment-only messages.
   string content = 4;
 
@@ -96,6 +98,9 @@ message Message {
   // Monotonically increasing state version. Starts at 1 and increments on
   // every update and deletion.
   int64 revision = 33;
+
+  // Public profile of the user who sent this message.
+  user.v1.UserProfile author = 40;
 }
 
 // Attachment describes a file attached to a message. The frontend uploads

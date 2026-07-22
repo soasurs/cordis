@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
@@ -61,6 +62,26 @@ func (s *SQLStore) GetUserProfile(ctx context.Context, userID int64) (*model.Use
 		UpdatedAt: row.UpdatedAt,
 		DeletedAt: row.DeletedAt,
 	}, nil
+}
+
+func (s *SQLStore) ListUserProfiles(ctx context.Context, userIDs []int64) ([]*model.UserProfile, error) {
+	var rows []*userProfileRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, ListUserProfilesQuery, pq.Array(userIDs), 0); err != nil {
+		return nil, err
+	}
+	profiles := make([]*model.UserProfile, 0, len(rows))
+	for _, row := range rows {
+		profiles = append(profiles, &model.UserProfile{
+			UserID:    row.UserID,
+			Username:  row.Username,
+			Name:      row.Name,
+			AvatarURI: row.AvatarURI,
+			CreatedAt: row.CreatedAt,
+			UpdatedAt: row.UpdatedAt,
+			DeletedAt: row.DeletedAt,
+		})
+	}
+	return profiles, nil
 }
 
 func (s *SQLStore) UpdateUserProfile(ctx context.Context, userID int64, name, avatarURI string) (*model.UserProfile, error) {

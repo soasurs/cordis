@@ -4,8 +4,11 @@ import (
 	"context"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
@@ -64,6 +67,10 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 			return nil, invalidRequest("referenced channel does not match referenced message")
 		}
 	}
+	author, err := s.getAuthor(ctx, req.GetAuthorId())
+	if err != nil {
+		return nil, err
+	}
 
 	messageID := s.svcCtx.Snowflake.Generate().Int64()
 	var created *model.Message
@@ -111,14 +118,14 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		return nil, mapStoreError(err)
 	}
 
-	events, eventErr := newMessageCreatedEvents(created, req.GetMentionUserIds(), audience, s.svcCtx.Snowflake.Generate().Int64())
+	events, eventErr := newMessageCreatedEvents(created, author, req.GetMentionUserIds(), audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 	if authorReadAdvanced {
 		s.publishReadStateUpdated(ctx, authorReadState)
 	}
 
 	resp := new(messagev1.CreateMessageResponse)
-	resp.SetMessage(messageToProto(created))
+	resp.SetMessage(messageToProto(created, author))
 	return resp, nil
 }
 
@@ -142,6 +149,10 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		requiredPermission |= permissionManageMessages
 	}
 	audience, err := s.requireChannelPermission(ctx, current.ChannelID, req.GetActorUserId(), requiredPermission)
+	if err != nil {
+		return nil, err
+	}
+	author, err := s.getAuthor(ctx, current.AuthorID)
 	if err != nil {
 		return nil, err
 	}
@@ -213,11 +224,11 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		return nil, mapStoreError(err)
 	}
 
-	events, eventErr := newMessageUpdatedEvents(updated, mentionUserIDs, previousMentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
+	events, eventErr := newMessageUpdatedEvents(updated, author, mentionUserIDs, previousMentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
-	resp.SetMessage(messageToProto(updated))
+	resp.SetMessage(messageToProto(updated, author))
 	return resp, nil
 }
 
@@ -284,9 +295,13 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 	if _, err := s.requireChannelPermission(ctx, message.ChannelID, req.GetUserId(), permissionViewChannel); err != nil {
 		return nil, err
 	}
+	author, err := s.getAuthor(ctx, message.AuthorID)
+	if err != nil {
+		return nil, err
+	}
 
 	resp := new(messagev1.GetMessageResponse)
-	resp.SetMessage(messageToProto(message))
+	resp.SetMessage(messageToProto(message, author))
 	return resp, nil
 }
 
@@ -331,18 +346,74 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 	if err != nil {
 		return nil, err
 	}
+	authors, err := s.getAuthors(ctx, messages)
+	if err != nil {
+		return nil, err
+	}
 	resp := new(messagev1.ListMessagesResponse)
-	resp.SetMessages(messagesToProto(messages))
+	resp.SetMessages(messagesToProto(messages, authors))
 	setListCursors(resp, messages)
 	return resp, nil
 }
 
-func messagesToProto(messages []*model.Message) []*messagev1.Message {
+func messagesToProto(messages []*model.Message, authors map[int64]*userv1.UserProfile) []*messagev1.Message {
 	values := make([]*messagev1.Message, 0, len(messages))
 	for _, message := range messages {
-		values = append(values, messageToProto(message))
+		values = append(values, messageToProto(message, authors[message.AuthorID]))
 	}
 	return values
+}
+
+func (s *messageServer) getAuthor(ctx context.Context, userID int64) (*userv1.UserProfile, error) {
+	req := new(userv1.GetUserProfileRequest)
+	req.SetUserId(userID)
+	resp, err := s.svcCtx.UserClient.GetUserProfile(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	profile := resp.GetProfile()
+	if profile == nil || profile.GetUserId() != userID {
+		return nil, status.Error(codes.Internal, "user service returned an invalid profile")
+	}
+	return profile, nil
+}
+
+func (s *messageServer) getAuthors(ctx context.Context, messages []*model.Message) (map[int64]*userv1.UserProfile, error) {
+	userIDs := make([]int64, 0, len(messages))
+	seen := make(map[int64]struct{}, len(messages))
+	for _, message := range messages {
+		if _, ok := seen[message.AuthorID]; ok {
+			continue
+		}
+		seen[message.AuthorID] = struct{}{}
+		userIDs = append(userIDs, message.AuthorID)
+	}
+	authors := make(map[int64]*userv1.UserProfile, len(userIDs))
+	if len(userIDs) == 0 {
+		return authors, nil
+	}
+
+	req := new(userv1.BatchGetUserProfilesRequest)
+	req.SetUserIds(userIDs)
+	resp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	for _, profile := range resp.GetProfiles() {
+		if profile == nil {
+			return nil, status.Error(codes.Internal, "user service returned an invalid profile")
+		}
+		if _, ok := seen[profile.GetUserId()]; !ok {
+			return nil, status.Error(codes.Internal, "user service returned an unexpected profile")
+		}
+		authors[profile.GetUserId()] = profile
+	}
+	for _, userID := range userIDs {
+		if authors[userID] == nil {
+			return nil, status.Error(codes.Internal, "user service did not return all profiles")
+		}
+	}
+	return authors, nil
 }
 
 func setListCursors(resp *messagev1.ListMessagesResponse, messages []*model.Message) {

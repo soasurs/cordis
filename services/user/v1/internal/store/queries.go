@@ -99,6 +99,19 @@ const (
 		1
 	`
 
+	ListUserProfilesQuery = `
+	SELECT
+		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+	FROM
+		user_profiles
+	WHERE
+		user_id = ANY($1)
+	AND
+		deleted_at = $2
+	ORDER BY
+		user_id ASC
+	`
+
 	UpdateUserProfileQuery = `
 	UPDATE
 		user_profiles

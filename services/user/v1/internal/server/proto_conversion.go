@@ -28,6 +28,14 @@ func userProfileToProto(profile *model.UserProfile) *userv1.UserProfile {
 	return pbProfile
 }
 
+func userProfilesToProto(profiles []*model.UserProfile) []*userv1.UserProfile {
+	values := make([]*userv1.UserProfile, 0, len(profiles))
+	for _, profile := range profiles {
+		values = append(values, userProfileToProto(profile))
+	}
+	return values
+}
+
 func relationshipToProto(relationship *model.Relationship) *userv1.Relationship {
 	if relationship == nil {
 		return nil

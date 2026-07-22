@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -34,7 +35,7 @@ type messagePayload struct {
 	GuildID                string           `json:"guild_id,omitempty"`
 	ChannelID              string           `json:"channel_id"`
 	UserID                 string           `json:"user_id,omitempty"`
-	AuthorID               string           `json:"author_id"`
+	Author                 authorPayload    `json:"author"`
 	Content                string           `json:"content"`
 	Type                   int32            `json:"type"`
 	Flags                  int32            `json:"flags"`
@@ -47,6 +48,15 @@ type messagePayload struct {
 	CreatedAt              int64            `json:"created_at"`
 	UpdatedAt              int64            `json:"updated_at"`
 	Revision               int64            `json:"revision"`
+}
+
+type authorPayload struct {
+	UserID    string `json:"user_id"`
+	Name      string `json:"name"`
+	AvatarURI string `json:"avatar_uri"`
+	CreatedAt int64  `json:"created_at"`
+	UpdatedAt int64  `json:"updated_at"`
+	Username  string `json:"username"`
 }
 
 type attachmentJSON struct {
@@ -77,12 +87,12 @@ type messageReadUpdatedPayload struct {
 	MentionCount      int32  `json:"mention_count"`
 }
 
-func newMessageCreatedEvents(message *model.Message, mentionUserIDs []int64, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
-	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, mentionUserIDs), idempotencyKey)
+func newMessageCreatedEvents(message *model.Message, author *userv1.UserProfile, mentionUserIDs []int64, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
+	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, author, mentionUserIDs), idempotencyKey)
 }
 
-func newMessageUpdatedEvents(message *model.Message, mentionUserIDs, previousMentionUserIDs []int64, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
-	payload := messagePayloadFromModel(message, mentionUserIDs)
+func newMessageUpdatedEvents(message *model.Message, author *userv1.UserProfile, mentionUserIDs, previousMentionUserIDs []int64, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
+	payload := messagePayloadFromModel(message, author, mentionUserIDs)
 	payload.PreviousMentionUserIDs = idStrings(previousMentionUserIDs)
 	return newMessageEvents(EventTypeMessageUpdated, message.ChannelID, audience, payload, idempotencyKey)
 }
@@ -169,11 +179,11 @@ func singleEvent(event messageEvent, err error) ([]messageEvent, error) {
 	return []messageEvent{event}, nil
 }
 
-func messagePayloadFromModel(message *model.Message, mentionUserIDs []int64) messagePayload {
+func messagePayloadFromModel(message *model.Message, author *userv1.UserProfile, mentionUserIDs []int64) messagePayload {
 	return messagePayload{
 		MessageID:           strconv.FormatInt(message.ID, 10),
 		ChannelID:           strconv.FormatInt(message.ChannelID, 10),
-		AuthorID:            strconv.FormatInt(message.AuthorID, 10),
+		Author:              authorPayloadFromProto(author),
 		Content:             message.Content,
 		Type:                message.Type,
 		Flags:               message.Flags,
@@ -185,6 +195,20 @@ func messagePayloadFromModel(message *model.Message, mentionUserIDs []int64) mes
 		CreatedAt:           message.CreatedAt,
 		UpdatedAt:           message.UpdatedAt,
 		Revision:            message.Revision,
+	}
+}
+
+func authorPayloadFromProto(author *userv1.UserProfile) authorPayload {
+	if author == nil {
+		return authorPayload{}
+	}
+	return authorPayload{
+		UserID:    strconv.FormatInt(author.GetUserId(), 10),
+		Name:      author.GetName(),
+		AvatarURI: author.GetAvatarUri(),
+		CreatedAt: author.GetCreatedAt(),
+		UpdatedAt: author.GetUpdatedAt(),
+		Username:  author.GetUsername(),
 	}
 }
 

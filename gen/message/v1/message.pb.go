@@ -7,6 +7,7 @@
 package messagev1
 
 import (
+	v1 "github.com/soasurs/cordis/gen/user/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -336,7 +337,6 @@ type Message struct {
 	state                          protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Id                  int64                  `protobuf:"varint,1,opt,name=id"`
 	xxx_hidden_ChannelId           int64                  `protobuf:"varint,2,opt,name=channel_id,json=channelId"`
-	xxx_hidden_AuthorId            int64                  `protobuf:"varint,3,opt,name=author_id,json=authorId"`
 	xxx_hidden_Content             *string                `protobuf:"bytes,4,opt,name=content"`
 	xxx_hidden_Type                MessageType            `protobuf:"varint,5,opt,name=type,enum=message.v1.MessageType"`
 	xxx_hidden_Flags               int32                  `protobuf:"varint,6,opt,name=flags"`
@@ -347,6 +347,7 @@ type Message struct {
 	xxx_hidden_CreatedAt           int64                  `protobuf:"varint,31,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt           int64                  `protobuf:"varint,32,opt,name=updated_at,json=updatedAt"`
 	xxx_hidden_Revision            int64                  `protobuf:"varint,33,opt,name=revision"`
+	xxx_hidden_Author              *v1.UserProfile        `protobuf:"bytes,40,opt,name=author"`
 	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
 	XXX_presence                   [1]uint32
 	unknownFields                  protoimpl.UnknownFields
@@ -392,13 +393,6 @@ func (x *Message) GetChannelId() int64 {
 	return 0
 }
 
-func (x *Message) GetAuthorId() int64 {
-	if x != nil {
-		return x.xxx_hidden_AuthorId
-	}
-	return 0
-}
-
 func (x *Message) GetContent() string {
 	if x != nil {
 		if x.xxx_hidden_Content != nil {
@@ -411,7 +405,7 @@ func (x *Message) GetContent() string {
 
 func (x *Message) GetType() MessageType {
 	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
 			return x.xxx_hidden_Type
 		}
 	}
@@ -476,6 +470,13 @@ func (x *Message) GetRevision() int64 {
 	return 0
 }
 
+func (x *Message) GetAuthor() *v1.UserProfile {
+	if x != nil {
+		return x.xxx_hidden_Author
+	}
+	return nil
+}
+
 func (x *Message) SetId(v int64) {
 	x.xxx_hidden_Id = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
@@ -486,34 +487,29 @@ func (x *Message) SetChannelId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
 }
 
-func (x *Message) SetAuthorId(v int64) {
-	x.xxx_hidden_AuthorId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
-}
-
 func (x *Message) SetContent(v string) {
 	x.xxx_hidden_Content = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
 }
 
 func (x *Message) SetType(v MessageType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
 }
 
 func (x *Message) SetFlags(v int32) {
 	x.xxx_hidden_Flags = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
 }
 
 func (x *Message) SetReferencedMessageId(v int64) {
 	x.xxx_hidden_ReferencedMessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
 }
 
 func (x *Message) SetReferencedChannelId(v int64) {
 	x.xxx_hidden_ReferencedChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
 }
 
 func (x *Message) SetAttachments(v []*Attachment) {
@@ -522,22 +518,26 @@ func (x *Message) SetAttachments(v []*Attachment) {
 
 func (x *Message) SetEditedAt(v int64) {
 	x.xxx_hidden_EditedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 13)
 }
 
 func (x *Message) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
 }
 
 func (x *Message) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
 }
 
 func (x *Message) SetRevision(v int64) {
 	x.xxx_hidden_Revision = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
+}
+
+func (x *Message) SetAuthor(v *v1.UserProfile) {
+	x.xxx_hidden_Author = v
 }
 
 func (x *Message) HasId() bool {
@@ -554,74 +554,74 @@ func (x *Message) HasChannelId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *Message) HasAuthorId() bool {
+func (x *Message) HasContent() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *Message) HasContent() bool {
+func (x *Message) HasType() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *Message) HasType() bool {
+func (x *Message) HasFlags() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
-func (x *Message) HasFlags() bool {
+func (x *Message) HasReferencedMessageId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
-func (x *Message) HasReferencedMessageId() bool {
+func (x *Message) HasReferencedChannelId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *Message) HasReferencedChannelId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
-}
-
 func (x *Message) HasEditedAt() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
 func (x *Message) HasCreatedAt() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
 func (x *Message) HasUpdatedAt() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
 }
 
 func (x *Message) HasRevision() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
+func (x *Message) HasAuthor() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Author != nil
 }
 
 func (x *Message) ClearId() {
@@ -634,54 +634,53 @@ func (x *Message) ClearChannelId() {
 	x.xxx_hidden_ChannelId = 0
 }
 
-func (x *Message) ClearAuthorId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_AuthorId = 0
-}
-
 func (x *Message) ClearContent() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_Content = nil
 }
 
 func (x *Message) ClearType() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_Type = MessageType_MESSAGE_TYPE_UNSPECIFIED
 }
 
 func (x *Message) ClearFlags() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
 	x.xxx_hidden_Flags = 0
 }
 
 func (x *Message) ClearReferencedMessageId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
 	x.xxx_hidden_ReferencedMessageId = 0
 }
 
 func (x *Message) ClearReferencedChannelId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
 	x.xxx_hidden_ReferencedChannelId = 0
 }
 
 func (x *Message) ClearEditedAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
 	x.xxx_hidden_EditedAt = 0
 }
 
 func (x *Message) ClearCreatedAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
 	x.xxx_hidden_CreatedAt = 0
 }
 
 func (x *Message) ClearUpdatedAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
 	x.xxx_hidden_UpdatedAt = 0
 }
 
 func (x *Message) ClearRevision() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
 	x.xxx_hidden_Revision = 0
+}
+
+func (x *Message) ClearAuthor() {
+	x.xxx_hidden_Author = nil
 }
 
 type Message_builder struct {
@@ -690,8 +689,6 @@ type Message_builder struct {
 	Id *int64
 	// Opaque reference to the channel or thread this message belongs to.
 	ChannelId *int64
-	// The user who sent this message.
-	AuthorId *int64
 	// Message body text. May be empty for attachment-only messages.
 	Content *string
 	Type    *MessageType
@@ -712,6 +709,8 @@ type Message_builder struct {
 	// Monotonically increasing state version. Starts at 1 and increments on
 	// every update and deletion.
 	Revision *int64
+	// Public profile of the user who sent this message.
+	Author *v1.UserProfile
 }
 
 func (b0 Message_builder) Build() *Message {
@@ -726,47 +725,44 @@ func (b0 Message_builder) Build() *Message {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
-	if b.AuthorId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
-		x.xxx_hidden_AuthorId = *b.AuthorId
-	}
 	if b.Content != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
 		x.xxx_hidden_Content = b.Content
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.Flags != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
 		x.xxx_hidden_Flags = *b.Flags
 	}
 	if b.ReferencedMessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
 		x.xxx_hidden_ReferencedMessageId = *b.ReferencedMessageId
 	}
 	if b.ReferencedChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
 		x.xxx_hidden_ReferencedChannelId = *b.ReferencedChannelId
 	}
 	x.xxx_hidden_Attachments = &b.Attachments
 	if b.EditedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 13)
 		x.xxx_hidden_EditedAt = *b.EditedAt
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
 	if b.Revision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
 		x.xxx_hidden_Revision = *b.Revision
 	}
+	x.xxx_hidden_Author = b.Author
 	return m0
 }
 
@@ -3727,18 +3723,17 @@ var File_message_v1_message_proto protoreflect.FileDescriptor
 const file_message_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"\x18message/v1/message.proto\x12\n" +
-	"message.v1\"l\n" +
+	"message.v1\x1a\x12user/v1/user.proto\"l\n" +
 	"\tDmChannel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
 	"\auser_lo\x18\x02 \x01(\x03R\x06userLo\x12\x17\n" +
 	"\auser_hi\x18\x03 \x01(\x03R\x06userHi\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xcb\x03\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xed\x03\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
-	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12\x1b\n" +
-	"\tauthor_id\x18\x03 \x01(\x03R\bauthorId\x12\x18\n" +
+	"channel_id\x18\x02 \x01(\x03R\tchannelId\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12+\n" +
 	"\x04type\x18\x05 \x01(\x0e2\x17.message.v1.MessageTypeR\x04type\x12\x14\n" +
 	"\x05flags\x18\x06 \x01(\x05R\x05flags\x122\n" +
@@ -3751,7 +3746,8 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"created_at\x18\x1f \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18  \x01(\x03R\tupdatedAt\x12\x1a\n" +
-	"\brevision\x18! \x01(\x03R\brevision\"\x9f\x01\n" +
+	"\brevision\x18! \x01(\x03R\brevision\x12,\n" +
+	"\x06author\x18( \x01(\v2\x14.user.v1.UserProfileR\x06authorJ\x04\b\x03\x10\x04R\tauthor_id\"\x9f\x01\n" +
 	"\n" +
 	"Attachment\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1a\n" +
@@ -3919,52 +3915,54 @@ var file_message_v1_message_proto_goTypes = []any{
 	(*GetUserReadyStateResponse)(nil), // 26: message.v1.GetUserReadyStateResponse
 	(*GetReadStatesRequest)(nil),      // 27: message.v1.GetReadStatesRequest
 	(*GetReadStatesResponse)(nil),     // 28: message.v1.GetReadStatesResponse
+	(*v1.UserProfile)(nil),            // 29: user.v1.UserProfile
 }
 var file_message_v1_message_proto_depIdxs = []int32{
 	0,  // 0: message.v1.Message.type:type_name -> message.v1.MessageType
 	5,  // 1: message.v1.Message.attachments:type_name -> message.v1.Attachment
-	5,  // 2: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
-	0,  // 3: message.v1.CreateMessageRequest.type:type_name -> message.v1.MessageType
-	5,  // 4: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment
-	4,  // 5: message.v1.CreateMessageResponse.message:type_name -> message.v1.Message
-	6,  // 6: message.v1.UpdateMessageRequest.attachments:type_name -> message.v1.AttachmentList
-	7,  // 7: message.v1.UpdateMessageRequest.mentions:type_name -> message.v1.MentionList
-	4,  // 8: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
-	4,  // 9: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
-	4,  // 10: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
-	3,  // 11: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
-	3,  // 12: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
-	25, // 13: message.v1.AckMessageResponse.read_state:type_name -> message.v1.ChannelReadState
-	3,  // 14: message.v1.GetUserReadyStateResponse.dm_channels:type_name -> message.v1.DmChannel
-	25, // 15: message.v1.GetUserReadyStateResponse.read_states:type_name -> message.v1.ChannelReadState
-	2,  // 16: message.v1.GetReadStatesRequest.scope:type_name -> message.v1.ReadStateScopeType
-	3,  // 17: message.v1.GetReadStatesResponse.dm_channels:type_name -> message.v1.DmChannel
-	25, // 18: message.v1.GetReadStatesResponse.read_states:type_name -> message.v1.ChannelReadState
-	8,  // 19: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
-	10, // 20: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
-	12, // 21: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
-	14, // 22: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
-	16, // 23: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
-	18, // 24: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
-	20, // 25: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
-	22, // 26: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
-	24, // 27: message.v1.MessageService.GetUserReadyState:input_type -> message.v1.GetUserReadyStateRequest
-	27, // 28: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
-	9,  // 29: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
-	11, // 30: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
-	13, // 31: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
-	15, // 32: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
-	17, // 33: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
-	19, // 34: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
-	21, // 35: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
-	23, // 36: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
-	26, // 37: message.v1.MessageService.GetUserReadyState:output_type -> message.v1.GetUserReadyStateResponse
-	28, // 38: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
-	29, // [29:39] is the sub-list for method output_type
-	19, // [19:29] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	29, // 2: message.v1.Message.author:type_name -> user.v1.UserProfile
+	5,  // 3: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
+	0,  // 4: message.v1.CreateMessageRequest.type:type_name -> message.v1.MessageType
+	5,  // 5: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment
+	4,  // 6: message.v1.CreateMessageResponse.message:type_name -> message.v1.Message
+	6,  // 7: message.v1.UpdateMessageRequest.attachments:type_name -> message.v1.AttachmentList
+	7,  // 8: message.v1.UpdateMessageRequest.mentions:type_name -> message.v1.MentionList
+	4,  // 9: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
+	4,  // 10: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
+	4,  // 11: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
+	3,  // 12: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
+	3,  // 13: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
+	25, // 14: message.v1.AckMessageResponse.read_state:type_name -> message.v1.ChannelReadState
+	3,  // 15: message.v1.GetUserReadyStateResponse.dm_channels:type_name -> message.v1.DmChannel
+	25, // 16: message.v1.GetUserReadyStateResponse.read_states:type_name -> message.v1.ChannelReadState
+	2,  // 17: message.v1.GetReadStatesRequest.scope:type_name -> message.v1.ReadStateScopeType
+	3,  // 18: message.v1.GetReadStatesResponse.dm_channels:type_name -> message.v1.DmChannel
+	25, // 19: message.v1.GetReadStatesResponse.read_states:type_name -> message.v1.ChannelReadState
+	8,  // 20: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
+	10, // 21: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
+	12, // 22: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
+	14, // 23: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
+	16, // 24: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
+	18, // 25: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
+	20, // 26: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
+	22, // 27: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
+	24, // 28: message.v1.MessageService.GetUserReadyState:input_type -> message.v1.GetUserReadyStateRequest
+	27, // 29: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
+	9,  // 30: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
+	11, // 31: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
+	13, // 32: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
+	15, // 33: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
+	17, // 34: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
+	19, // 35: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
+	21, // 36: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
+	23, // 37: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
+	26, // 38: message.v1.MessageService.GetUserReadyState:output_type -> message.v1.GetUserReadyStateResponse
+	28, // 39: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
+	30, // [30:40] is the sub-list for method output_type
+	20, // [20:30] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_message_v1_message_proto_init() }

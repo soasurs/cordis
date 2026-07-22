@@ -163,7 +163,6 @@ func messageToAPI(message *messagev1.Message) *apiv1.Message {
 	return &apiv1.Message{
 		Id:                  new(message.GetId()),
 		ChannelId:           new(message.GetChannelId()),
-		AuthorId:            new(message.GetAuthorId()),
 		Content:             new(message.GetContent()),
 		Type:                new(apiv1.MessageType(message.GetType())),
 		Flags:               new(message.GetFlags()),
@@ -174,6 +173,7 @@ func messageToAPI(message *messagev1.Message) *apiv1.Message {
 		CreatedAt:           new(message.GetCreatedAt()),
 		UpdatedAt:           new(message.GetUpdatedAt()),
 		Revision:            new(message.GetRevision()),
+		Author:              userProfileToAPI(message.GetAuthor()),
 	}
 }
 

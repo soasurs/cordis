@@ -2,14 +2,14 @@ package server
 
 import (
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
-func messageToProto(message *model.Message) *messagev1.Message {
+func messageToProto(message *model.Message, author *userv1.UserProfile) *messagev1.Message {
 	result := new(messagev1.Message)
 	result.SetId(message.ID)
 	result.SetChannelId(message.ChannelID)
-	result.SetAuthorId(message.AuthorID)
 	result.SetContent(message.Content)
 	result.SetType(messagev1.MessageType(message.Type))
 	result.SetFlags(message.Flags)
@@ -20,6 +20,7 @@ func messageToProto(message *model.Message) *messagev1.Message {
 	result.SetCreatedAt(message.CreatedAt)
 	result.SetUpdatedAt(message.UpdatedAt)
 	result.SetRevision(message.Revision)
+	result.SetAuthor(author)
 	return result
 }
 

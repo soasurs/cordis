@@ -14,6 +14,7 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/api/v1/svc"
@@ -117,6 +118,7 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	require.Equal(t, "attachments/a.png", messageClient.createRequest.GetAttachments()[0].GetKey())
 	require.Equal(t, int64(4001), resp.GetMessage().GetId())
 	require.Equal(t, int64(2), resp.GetMessage().GetRevision())
+	require.Equal(t, int64(1001), resp.GetMessage().GetAuthor().GetUserId())
 }
 
 func TestUpdateMessagePreservesFieldPresence(t *testing.T) {
@@ -350,7 +352,6 @@ func internalMessage() *messagev1.Message {
 	message := new(messagev1.Message)
 	message.SetId(4001)
 	message.SetChannelId(2001)
-	message.SetAuthorId(1001)
 	message.SetContent("hello")
 	message.SetType(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)
 	message.SetFlags(int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS))
@@ -359,6 +360,14 @@ func internalMessage() *messagev1.Message {
 	message.SetCreatedAt(5000)
 	message.SetUpdatedAt(5001)
 	message.SetRevision(2)
+	author := new(userv1.UserProfile)
+	author.SetUserId(1001)
+	author.SetName("Alice")
+	author.SetUsername("alice")
+	author.SetAvatarUri("avatar://alice")
+	author.SetCreatedAt(100)
+	author.SetUpdatedAt(200)
+	message.SetAuthor(author)
 	return message
 }
 

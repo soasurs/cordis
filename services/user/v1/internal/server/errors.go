@@ -4,9 +4,22 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/lib/pq"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func isUniqueViolation(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "23505"
+}
+
+// isUsernameViolation distinguishes the handle's unique index from the email
+// index inside the same transaction.
+func isUsernameViolation(err error) bool {
+	var pqErr *pq.Error
+	return errors.As(err, &pqErr) && pqErr.Code == "23505" && pqErr.Constraint == "user_profiles_username_active_idx"
+}
 
 var (
 	errInvalidEmail         = status.Error(codes.InvalidArgument, "invalid email format")

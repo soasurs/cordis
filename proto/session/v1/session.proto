@@ -25,16 +25,15 @@ service SessionService {
 
 message ConnectRequest {
   string connection_id = 1;
-  string gateway_id = 8;
-  string gateway_generation = 9;
   oneof payload {
     Identify identify = 2;
     Resume resume = 3;
     Heartbeat heartbeat = 4;
     PresenceUpdate presence = 5;
-    Detach detach = 7;
+    Detach detach = 6;
   }
-  reserved 6;
+  string gateway_id = 7;
+  string gateway_generation = 8;
 }
 
 message Identify {

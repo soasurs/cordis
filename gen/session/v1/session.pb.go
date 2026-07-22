@@ -23,9 +23,9 @@ const (
 type ConnectRequest struct {
 	state                        protoimpl.MessageState   `protogen:"opaque.v1"`
 	xxx_hidden_ConnectionId      *string                  `protobuf:"bytes,1,opt,name=connection_id,json=connectionId"`
-	xxx_hidden_GatewayId         *string                  `protobuf:"bytes,8,opt,name=gateway_id,json=gatewayId"`
-	xxx_hidden_GatewayGeneration *string                  `protobuf:"bytes,9,opt,name=gateway_generation,json=gatewayGeneration"`
 	xxx_hidden_Payload           isConnectRequest_Payload `protobuf_oneof:"payload"`
+	xxx_hidden_GatewayId         *string                  `protobuf:"bytes,7,opt,name=gateway_id,json=gatewayId"`
+	xxx_hidden_GatewayGeneration *string                  `protobuf:"bytes,8,opt,name=gateway_generation,json=gatewayGeneration"`
 	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
 	XXX_presence                 [1]uint32
 	unknownFields                protoimpl.UnknownFields
@@ -61,26 +61,6 @@ func (x *ConnectRequest) GetConnectionId() string {
 	if x != nil {
 		if x.xxx_hidden_ConnectionId != nil {
 			return *x.xxx_hidden_ConnectionId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ConnectRequest) GetGatewayId() string {
-	if x != nil {
-		if x.xxx_hidden_GatewayId != nil {
-			return *x.xxx_hidden_GatewayId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ConnectRequest) GetGatewayGeneration() string {
-	if x != nil {
-		if x.xxx_hidden_GatewayGeneration != nil {
-			return *x.xxx_hidden_GatewayGeneration
 		}
 		return ""
 	}
@@ -132,19 +112,29 @@ func (x *ConnectRequest) GetDetach() *Detach {
 	return nil
 }
 
+func (x *ConnectRequest) GetGatewayId() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayId != nil {
+			return *x.xxx_hidden_GatewayId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ConnectRequest) GetGatewayGeneration() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayGeneration != nil {
+			return *x.xxx_hidden_GatewayGeneration
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ConnectRequest) SetConnectionId(v string) {
 	x.xxx_hidden_ConnectionId = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
-}
-
-func (x *ConnectRequest) SetGatewayId(v string) {
-	x.xxx_hidden_GatewayId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *ConnectRequest) SetGatewayGeneration(v string) {
-	x.xxx_hidden_GatewayGeneration = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
 }
 
 func (x *ConnectRequest) SetIdentify(v *Identify) {
@@ -187,25 +177,21 @@ func (x *ConnectRequest) SetDetach(v *Detach) {
 	x.xxx_hidden_Payload = &connectRequest_Detach{v}
 }
 
+func (x *ConnectRequest) SetGatewayId(v string) {
+	x.xxx_hidden_GatewayId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ConnectRequest) SetGatewayGeneration(v string) {
+	x.xxx_hidden_GatewayGeneration = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
 func (x *ConnectRequest) HasConnectionId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ConnectRequest) HasGatewayId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ConnectRequest) HasGatewayGeneration() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
 func (x *ConnectRequest) HasPayload() bool {
@@ -255,19 +241,23 @@ func (x *ConnectRequest) HasDetach() bool {
 	return ok
 }
 
+func (x *ConnectRequest) HasGatewayId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ConnectRequest) HasGatewayGeneration() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ConnectRequest) ClearConnectionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ConnectionId = nil
-}
-
-func (x *ConnectRequest) ClearGatewayId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_GatewayId = nil
-}
-
-func (x *ConnectRequest) ClearGatewayGeneration() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_GatewayGeneration = nil
 }
 
 func (x *ConnectRequest) ClearPayload() {
@@ -304,12 +294,22 @@ func (x *ConnectRequest) ClearDetach() {
 	}
 }
 
+func (x *ConnectRequest) ClearGatewayId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_GatewayId = nil
+}
+
+func (x *ConnectRequest) ClearGatewayGeneration() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_GatewayGeneration = nil
+}
+
 const ConnectRequest_Payload_not_set_case case_ConnectRequest_Payload = 0
 const ConnectRequest_Identify_case case_ConnectRequest_Payload = 2
 const ConnectRequest_Resume_case case_ConnectRequest_Payload = 3
 const ConnectRequest_Heartbeat_case case_ConnectRequest_Payload = 4
 const ConnectRequest_Presence_case case_ConnectRequest_Payload = 5
-const ConnectRequest_Detach_case case_ConnectRequest_Payload = 7
+const ConnectRequest_Detach_case case_ConnectRequest_Payload = 6
 
 func (x *ConnectRequest) WhichPayload() case_ConnectRequest_Payload {
 	if x == nil {
@@ -334,9 +334,7 @@ func (x *ConnectRequest) WhichPayload() case_ConnectRequest_Payload {
 type ConnectRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ConnectionId      *string
-	GatewayId         *string
-	GatewayGeneration *string
+	ConnectionId *string
 	// Fields of oneof xxx_hidden_Payload:
 	Identify  *Identify
 	Resume    *Resume
@@ -344,6 +342,8 @@ type ConnectRequest_builder struct {
 	Presence  *PresenceUpdate
 	Detach    *Detach
 	// -- end of xxx_hidden_Payload
+	GatewayId         *string
+	GatewayGeneration *string
 }
 
 func (b0 ConnectRequest_builder) Build() *ConnectRequest {
@@ -353,14 +353,6 @@ func (b0 ConnectRequest_builder) Build() *ConnectRequest {
 	if b.ConnectionId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_ConnectionId = b.ConnectionId
-	}
-	if b.GatewayId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
-		x.xxx_hidden_GatewayId = b.GatewayId
-	}
-	if b.GatewayGeneration != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_GatewayGeneration = b.GatewayGeneration
 	}
 	if b.Identify != nil {
 		x.xxx_hidden_Payload = &connectRequest_Identify{b.Identify}
@@ -376,6 +368,14 @@ func (b0 ConnectRequest_builder) Build() *ConnectRequest {
 	}
 	if b.Detach != nil {
 		x.xxx_hidden_Payload = &connectRequest_Detach{b.Detach}
+	}
+	if b.GatewayId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_GatewayId = b.GatewayId
+	}
+	if b.GatewayGeneration != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_GatewayGeneration = b.GatewayGeneration
 	}
 	return m0
 }
@@ -411,7 +411,7 @@ type connectRequest_Presence struct {
 }
 
 type connectRequest_Detach struct {
-	Detach *Detach `protobuf:"bytes,7,opt,name=detach,oneof"`
+	Detach *Detach `protobuf:"bytes,6,opt,name=detach,oneof"`
 }
 
 func (*connectRequest_Identify) isConnectRequest_Payload() {}
@@ -2376,18 +2376,18 @@ var File_session_v1_session_proto protoreflect.FileDescriptor
 const file_session_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"\x18session/v1/session.proto\x12\n" +
-	"session.v1\"\x95\x03\n" +
+	"session.v1\"\x8f\x03\n" +
 	"\x0eConnectRequest\x12#\n" +
-	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12\x1d\n" +
-	"\n" +
-	"gateway_id\x18\b \x01(\tR\tgatewayId\x12-\n" +
-	"\x12gateway_generation\x18\t \x01(\tR\x11gatewayGeneration\x122\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x122\n" +
 	"\bidentify\x18\x02 \x01(\v2\x14.session.v1.IdentifyH\x00R\bidentify\x12,\n" +
 	"\x06resume\x18\x03 \x01(\v2\x12.session.v1.ResumeH\x00R\x06resume\x125\n" +
 	"\theartbeat\x18\x04 \x01(\v2\x15.session.v1.HeartbeatH\x00R\theartbeat\x128\n" +
 	"\bpresence\x18\x05 \x01(\v2\x1a.session.v1.PresenceUpdateH\x00R\bpresence\x12,\n" +
-	"\x06detach\x18\a \x01(\v2\x12.session.v1.DetachH\x00R\x06detachB\t\n" +
-	"\apayloadJ\x04\b\x06\x10\a\"|\n" +
+	"\x06detach\x18\x06 \x01(\v2\x12.session.v1.DetachH\x00R\x06detach\x12\x1d\n" +
+	"\n" +
+	"gateway_id\x18\a \x01(\tR\tgatewayId\x12-\n" +
+	"\x12gateway_generation\x18\b \x01(\tR\x11gatewayGenerationB\t\n" +
+	"\apayload\"|\n" +
 	"\bIdentify\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1f\n" +
 	"\vdevice_type\x18\x02 \x01(\tR\n" +

@@ -771,7 +771,7 @@ type CreateUserRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,2,opt,name=email"`
-	xxx_hidden_Username    *string                `protobuf:"bytes,4,opt,name=username"`
+	xxx_hidden_Username    *string                `protobuf:"bytes,3,opt,name=username"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -4081,11 +4081,11 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"updated_at\x18\x05 \x01(\x03R\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"deleted_at\x18\x06 \x01(\x03R\tdeletedAt\x12\x1a\n" +
-	"\busername\x18\a \x01(\tR\busername\"i\n" +
+	"\busername\x18\a \x01(\tR\busername\"Y\n" +
 	"\x11CreateUserRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\busername\x18\x04 \x01(\tR\busernameJ\x04\b\x03\x10\x04R\bpassword\"7\n" +
+	"\busername\x18\x03 \x01(\tR\busername\"7\n" +
 	"\x12CreateUserResponse\x12!\n" +
 	"\x04user\x18\x01 \x01(\v2\r.user.v1.UserR\x04user\"O\n" +
 	"\x0eGetUserRequest\x12\x19\n" +

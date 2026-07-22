@@ -72,8 +72,8 @@ message Message {
   int64 id = 1;
   // Opaque reference to the channel or thread this message belongs to.
   int64 channel_id = 2;
-  reserved 3;
-  reserved author_id;
+  // Public profile of the user who sent this message.
+  user.v1.UserProfile author = 3;
   // Message body text. May be empty for attachment-only messages.
   string content = 4;
 
@@ -83,24 +83,21 @@ message Message {
 
   // ---- Reply / Forward ----
   // ID of the message being replied to or forwarded.
-  int64 referenced_message_id = 10;
+  int64 referenced_message_id = 7;
   // Channel of the referenced message. May differ from channel_id for
   // cross-channel forwards.
-  int64 referenced_channel_id = 11;
+  int64 referenced_channel_id = 8;
 
   // Object storage keys for attached files.
-  repeated Attachment attachments = 20;
+  repeated Attachment attachments = 9;
 
   // Non-zero if the message has been edited (Unix milliseconds).
-  int64 edited_at = 30;
-  int64 created_at = 31;
-  int64 updated_at = 32;
+  int64 edited_at = 10;
+  int64 created_at = 11;
+  int64 updated_at = 12;
   // Monotonically increasing state version. Starts at 1 and increments on
   // every update and deletion.
-  int64 revision = 33;
-
-  // Public profile of the user who sent this message.
-  user.v1.UserProfile author = 40;
+  int64 revision = 13;
 }
 
 // Attachment describes a file attached to a message. The frontend uploads
@@ -148,14 +145,14 @@ message CreateMessageRequest {
   int32 flags = 5;
 
   // Set when type is MESSAGE_TYPE_REPLY.
-  int64 referenced_message_id = 10;
+  int64 referenced_message_id = 6;
   // Channel of the referenced message. Required when referenced_message_id is set.
-  int64 referenced_channel_id = 11;
+  int64 referenced_channel_id = 7;
 
-  repeated Attachment attachments = 20;
+  repeated Attachment attachments = 8;
 
   // User IDs mentioned in this message. Parsed by the caller from content.
-  repeated int64 mention_user_ids = 30;
+  repeated int64 mention_user_ids = 9;
 }
 
 message CreateMessageResponse {
@@ -170,12 +167,11 @@ message UpdateMessageRequest {
   int64 actor_user_id = 3;
   // If present, replaces editable flags. Include all flags that should remain set.
   int32 flags = 4;
-  reserved 5;
   // If present, replaces the attachment list with this complete list.
-  AttachmentList attachments = 20;
+  AttachmentList attachments = 5;
   // If present, replaces stored mentions with the parsed mentions for the
   // edited message content.
-  MentionList mentions = 30;
+  MentionList mentions = 6;
 }
 
 message UpdateMessageResponse {
@@ -186,7 +182,6 @@ message DeleteMessageRequest {
   int64 message_id = 1;
   // User performing the delete. May differ from author_id for moderation actions.
   int64 actor_user_id = 2;
-  reserved 3;
 }
 
 message DeleteMessageResponse {
@@ -200,7 +195,6 @@ message GetMessageRequest {
 
 message GetMessageResponse {
   Message message = 1;
-  reserved 2;
 }
 
 message ListMessagesRequest {
@@ -221,13 +215,12 @@ message ListMessagesRequest {
 
 message ListMessagesResponse {
   repeated Message messages = 1;
-  reserved 2;
   // The smallest message id in this page. Use as ListMessagesRequest.before
   // to fetch older messages. 0 means this page is empty.
-  int64 before_cursor = 3;
+  int64 before_cursor = 2;
   // The largest message id in this page. Use as ListMessagesRequest.after
   // to fetch newer messages. 0 means this page is empty.
-  int64 after_cursor = 4;
+  int64 after_cursor = 3;
 }
 
 message CreateDmChannelRequest {

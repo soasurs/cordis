@@ -90,6 +90,14 @@ func testUserProfiles(t *testing.T, store Store) {
 	_, err = store.GetUserProfile(ctx, 9999)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 
+	_, err = store.CreateUserProfile(ctx, userID+1, "it_user_2002", "Bob", "avatar://bob")
+	require.NoError(t, err)
+	profiles, err := store.ListUserProfiles(ctx, []int64{userID + 1, userID, 9999})
+	require.NoError(t, err)
+	require.Len(t, profiles, 2)
+	require.Equal(t, userID, profiles[0].UserID)
+	require.Equal(t, userID+1, profiles[1].UserID)
+
 	updated, err := store.UpdateUserProfile(ctx, userID, "Alice Cooper", "avatar://b")
 	require.NoError(t, err)
 	require.Equal(t, "Alice Cooper", updated.Name)

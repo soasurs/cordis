@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,11 @@ import (
 // user service's directed model.
 type fakeUserClient struct {
 	userv1.UserServiceClient
-	relationships map[[2]int64]int32
+	mu                   sync.Mutex
+	relationships        map[[2]int64]int32
+	getProfileRequests   []int64
+	batchProfileRequests [][]int64
+	getProfileErr        error
 }
 
 func newFakeUserClient() *fakeUserClient {
@@ -55,6 +60,53 @@ func (f *fakeUserClient) CheckRelationships(_ context.Context, req *userv1.Check
 	resp := new(userv1.CheckRelationshipsResponse)
 	resp.SetRelationships(values)
 	return resp, nil
+}
+
+func (f *fakeUserClient) GetUserProfile(_ context.Context, req *userv1.GetUserProfileRequest, _ ...grpc.CallOption) (*userv1.GetUserProfileResponse, error) {
+	f.mu.Lock()
+	f.getProfileRequests = append(f.getProfileRequests, req.GetUserId())
+	err := f.getProfileErr
+	f.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	resp := new(userv1.GetUserProfileResponse)
+	resp.SetProfile(testUserProfile(req.GetUserId()))
+	return resp, nil
+}
+
+func (f *fakeUserClient) BatchGetUserProfiles(_ context.Context, req *userv1.BatchGetUserProfilesRequest, _ ...grpc.CallOption) (*userv1.BatchGetUserProfilesResponse, error) {
+	userIDs := append([]int64(nil), req.GetUserIds()...)
+	f.mu.Lock()
+	f.batchProfileRequests = append(f.batchProfileRequests, userIDs)
+	err := f.getProfileErr
+	f.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	profiles := make([]*userv1.UserProfile, 0, len(userIDs))
+	for _, userID := range userIDs {
+		profiles = append(profiles, testUserProfile(userID))
+	}
+	resp := new(userv1.BatchGetUserProfilesResponse)
+	resp.SetProfiles(profiles)
+	return resp, nil
+}
+
+func (f *fakeUserClient) profileRequests() []int64 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]int64(nil), f.getProfileRequests...)
+}
+
+func (f *fakeUserClient) batchRequests() [][]int64 {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	values := make([][]int64, len(f.batchProfileRequests))
+	for i, request := range f.batchProfileRequests {
+		values[i] = append([]int64(nil), request...)
+	}
+	return values
 }
 
 func newDmTestServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher, userClient userv1.UserServiceClient) messagev1.MessageServiceServer {
@@ -211,7 +263,7 @@ func requireDmMessageRecords(t *testing.T, records []publishedRecord, eventType 
 		require.Equal(t, envelope.Data.ChannelID, string(records[i].key))
 		require.Equal(t, eventType, envelope.Type)
 		require.Equal(t, userID, envelope.Data.UserID)
-		require.Equal(t, "1001", envelope.Data.AuthorID)
+		require.Equal(t, "1001", envelope.Data.Author.UserID)
 		require.Empty(t, envelope.Data.GuildID)
 	}
 }

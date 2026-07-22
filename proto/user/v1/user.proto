@@ -6,6 +6,9 @@ service UserService {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
   rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
+  // BatchGetUserProfiles returns the existing public profiles for up to 100
+  // user IDs. Results are keyed by UserProfile.user_id and may be reordered.
+  rpc BatchGetUserProfiles(BatchGetUserProfilesRequest) returns (BatchGetUserProfilesResponse);
   // GetUserProfileByUsername resolves the globally unique handle.
   rpc GetUserProfileByUsername(GetUserProfileByUsernameRequest) returns (GetUserProfileByUsernameResponse);
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
@@ -104,6 +107,14 @@ message GetUserProfileRequest {
 
 message GetUserProfileResponse {
   UserProfile profile = 1;
+}
+
+message BatchGetUserProfilesRequest {
+  repeated int64 user_ids = 1;
+}
+
+message BatchGetUserProfilesResponse {
+  repeated UserProfile profiles = 1;
 }
 
 message CheckEmailAvailabilityRequest {

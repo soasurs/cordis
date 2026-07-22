@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 )
 
@@ -164,6 +165,25 @@ func TestGetUserProfile(t *testing.T) {
 	require.Equal(t, int64(1001), profile.UserID)
 	require.Equal(t, "display name", profile.Name)
 	require.Equal(t, "avatar://1", profile.AvatarURI)
+}
+
+func TestListUserProfiles(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{"user_id", "username", "name", "avatar_uri", "created_at", "updated_at", "deleted_at"}).
+		AddRow(int64(1001), "alice", "Alice", "avatar://1", int64(10), int64(20), int64(0)).
+		AddRow(int64(1002), "bob", "Bob", "avatar://2", int64(11), int64(21), int64(0))
+	userIDs := []int64{1002, 1001}
+	mock.ExpectQuery(sqlPattern(ListUserProfilesQuery)).
+		WithArgs(pq.Array(userIDs), 0).
+		WillReturnRows(rows)
+
+	profiles, err := store.ListUserProfiles(t.Context(), userIDs)
+	require.NoError(t, err)
+	require.Len(t, profiles, 2)
+	require.Equal(t, int64(1001), profiles[0].UserID)
+	require.Equal(t, int64(1002), profiles[1].UserID)
 }
 
 func TestUpdateUserProfile(t *testing.T) {

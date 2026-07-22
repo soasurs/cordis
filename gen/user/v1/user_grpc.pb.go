@@ -22,6 +22,7 @@ const (
 	UserService_CreateUser_FullMethodName               = "/user.v1.UserService/CreateUser"
 	UserService_GetUser_FullMethodName                  = "/user.v1.UserService/GetUser"
 	UserService_GetUserProfile_FullMethodName           = "/user.v1.UserService/GetUserProfile"
+	UserService_BatchGetUserProfiles_FullMethodName     = "/user.v1.UserService/BatchGetUserProfiles"
 	UserService_GetUserProfileByUsername_FullMethodName = "/user.v1.UserService/GetUserProfileByUsername"
 	UserService_CheckEmailAvailability_FullMethodName   = "/user.v1.UserService/CheckEmailAvailability"
 	UserService_UpdateEmail_FullMethodName              = "/user.v1.UserService/UpdateEmail"
@@ -45,6 +46,9 @@ type UserServiceClient interface {
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...grpc.CallOption) (*GetUserProfileResponse, error)
+	// BatchGetUserProfiles returns the existing public profiles for up to 100
+	// user IDs. Results are keyed by UserProfile.user_id and may be reordered.
+	BatchGetUserProfiles(ctx context.Context, in *BatchGetUserProfilesRequest, opts ...grpc.CallOption) (*BatchGetUserProfilesResponse, error)
 	// GetUserProfileByUsername resolves the globally unique handle.
 	GetUserProfileByUsername(ctx context.Context, in *GetUserProfileByUsernameRequest, opts ...grpc.CallOption) (*GetUserProfileByUsernameResponse, error)
 	CheckEmailAvailability(ctx context.Context, in *CheckEmailAvailabilityRequest, opts ...grpc.CallOption) (*CheckEmailAvailabilityResponse, error)
@@ -103,6 +107,16 @@ func (c *userServiceClient) GetUserProfile(ctx context.Context, in *GetUserProfi
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUserProfileResponse)
 	err := c.cc.Invoke(ctx, UserService_GetUserProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) BatchGetUserProfiles(ctx context.Context, in *BatchGetUserProfilesRequest, opts ...grpc.CallOption) (*BatchGetUserProfilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetUserProfilesResponse)
+	err := c.cc.Invoke(ctx, UserService_BatchGetUserProfiles_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +270,9 @@ type UserServiceServer interface {
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error)
+	// BatchGetUserProfiles returns the existing public profiles for up to 100
+	// user IDs. Results are keyed by UserProfile.user_id and may be reordered.
+	BatchGetUserProfiles(context.Context, *BatchGetUserProfilesRequest) (*BatchGetUserProfilesResponse, error)
 	// GetUserProfileByUsername resolves the globally unique handle.
 	GetUserProfileByUsername(context.Context, *GetUserProfileByUsernameRequest) (*GetUserProfileByUsernameResponse, error)
 	CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error)
@@ -297,6 +314,9 @@ func (UnimplementedUserServiceServer) GetUser(context.Context, *GetUserRequest) 
 }
 func (UnimplementedUserServiceServer) GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfile not implemented")
+}
+func (UnimplementedUserServiceServer) BatchGetUserProfiles(context.Context, *BatchGetUserProfilesRequest) (*BatchGetUserProfilesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetUserProfiles not implemented")
 }
 func (UnimplementedUserServiceServer) GetUserProfileByUsername(context.Context, *GetUserProfileByUsernameRequest) (*GetUserProfileByUsernameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserProfileByUsername not implemented")
@@ -410,6 +430,24 @@ func _UserService_GetUserProfile_Handler(srv interface{}, ctx context.Context, d
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).GetUserProfile(ctx, req.(*GetUserProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_BatchGetUserProfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUserProfilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).BatchGetUserProfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_BatchGetUserProfiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).BatchGetUserProfiles(ctx, req.(*BatchGetUserProfilesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -684,6 +722,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserProfile",
 			Handler:    _UserService_GetUserProfile_Handler,
+		},
+		{
+			MethodName: "BatchGetUserProfiles",
+			Handler:    _UserService_BatchGetUserProfiles_Handler,
 		},
 		{
 			MethodName: "GetUserProfileByUsername",

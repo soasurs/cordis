@@ -80,7 +80,7 @@ go build ./services/guild/v1/...
 - Message event values use the lightweight `{"t":"message.created","d":{...}}` envelope. Guild message records carry `guild_id`; DM message records carry `user_id` and emit one record per participant. `message.created`, `message.updated`, and `message.deleted` records are keyed by decimal `channel_id`; user-scoped `message.read.updated` records are keyed by decimal `user_id`.
 - Realtime domain event names use dot-separated hierarchy only. Shared names live in `pkg/realtime`; do not introduce underscore variants such as `message_created`.
 - Kafka publication is best-effort: publication failures are logged but do not turn an already-committed mutation into an RPC failure.
-- `message.created` and `message.updated` payloads include `mention_user_ids`.
+- `message.created` and `message.updated` payloads include `mention_user_ids` and an embedded public `author` profile. Message response objects also embed `author`; the author ID is available as `author.user_id` rather than a duplicate top-level `author_id`. Message loads one profile from User before writes and single-message reads, while list reads deduplicate author IDs and use User's internal `BatchGetUserProfiles`; User owns any future profile caching.
 - Message list pagination is cursor-based: `before`/`after` use one query; `around` queries older and newer sides and trims/backfills to the requested limit.
 - Client-settable message types are only `DEFAULT` and `REPLY`; `UNSPECIFIED` normalizes to `DEFAULT`, and `THREAD_STARTER` is reserved.
 - Client-settable flags only include `SUPPRESS_NOTIFICATIONS`; `HAS_THREAD` is rejected.

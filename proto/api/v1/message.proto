@@ -2,6 +2,8 @@ edition = "2023";
 
 package api.v1;
 
+import "api/v1/user.proto";
+
 // MessageService exposes authenticated message operations.
 // Channel membership and permissions are enforced by Message through Guild.
 service MessageService {
@@ -66,7 +68,8 @@ enum MessageFlag {
 message Message {
   int64 id = 1;
   int64 channel_id = 2;
-  int64 author_id = 3;
+  reserved 3;
+  reserved author_id;
   string content = 4;
   MessageType type = 5;
   // Bitmask of MessageFlag values.
@@ -84,6 +87,9 @@ message Message {
   int64 updated_at = 32;
   // Monotonically increasing version used to discard stale events.
   int64 revision = 33;
+
+  // Public profile of the user who sent this message.
+  UserProfile author = 40;
 }
 
 // Attachment describes a file uploaded before the message is created.

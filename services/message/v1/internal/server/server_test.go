@@ -18,6 +18,7 @@ import (
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/config"
@@ -54,6 +55,8 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, EventTypeMessageCreated, envelope.Type)
 	require.Equal(t, "9001", envelope.Data.GuildID)
 	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), envelope.Data.MessageID)
+	require.Equal(t, int64(20), resp.GetMessage().GetAuthor().GetUserId())
+	require.Equal(t, "20", envelope.Data.Author.UserID)
 	require.Equal(t, int64(1), envelope.Data.Revision)
 	var readEnvelope eventEnvelope[messageReadUpdatedPayload]
 	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &readEnvelope))
@@ -68,7 +71,8 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 		ReferencedMessageID: 9007199254740996, ReferencedChannelID: 9007199254740997,
 		Revision: 1,
 	}
-	events, err := newMessageCreatedEvents(message, []int64{9007199254740998}, messageAudience{guildID: 9007199254740999}, 0)
+	author := testUserProfile(message.AuthorID)
+	events, err := newMessageCreatedEvents(message, author, []int64{9007199254740998}, messageAudience{guildID: 9007199254740999}, 0)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	require.Equal(t, "9007199254740994", string(events[0].Key))
@@ -77,7 +81,10 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	require.NoError(t, json.Unmarshal(events[0].Payload, &envelope))
 	require.Equal(t, `"9007199254740993"`, string(envelope.Data["id"]))
 	require.Equal(t, `"9007199254740994"`, string(envelope.Data["channel_id"]))
-	require.Equal(t, `"9007199254740995"`, string(envelope.Data["author_id"]))
+	var encodedAuthor map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(envelope.Data["author"], &encodedAuthor))
+	require.Equal(t, `"9007199254740995"`, string(encodedAuthor["user_id"]))
+	require.NotContains(t, envelope.Data, "author_id")
 	require.Equal(t, `"9007199254740999"`, string(envelope.Data["guild_id"]))
 	require.Equal(t, `"9007199254740996"`, string(envelope.Data["referenced_message_id"]))
 	require.Equal(t, `"9007199254740997"`, string(envelope.Data["referenced_channel_id"]))
@@ -86,7 +93,7 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 
 func TestMessageEventRejectsEmptyDmAudience(t *testing.T) {
 	message := &model.Message{ID: 1, ChannelID: 2, AuthorID: 3}
-	_, err := newMessageCreatedEvents(message, nil, messageAudience{}, 0)
+	_, err := newMessageCreatedEvents(message, testUserProfile(message.AuthorID), nil, messageAudience{}, 0)
 	require.Error(t, err)
 }
 
@@ -120,6 +127,22 @@ func TestCreateMessageTransactionFailureDoesNotPublish(t *testing.T) {
 	_, err := server.CreateMessage(t.Context(), req)
 	require.Error(t, err)
 	require.Empty(t, publisher.records)
+}
+
+func TestCreateMessageLoadsAuthorBeforeWriting(t *testing.T) {
+	fakeStore := newFakeStore()
+	userClient := newFakeUserClient()
+	userClient.getProfileErr = status.Error(codes.Unavailable, "user unavailable")
+	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), new(fakeGuildClient), userClient)
+
+	req := new(messagev1.CreateMessageRequest)
+	req.SetChannelId(10)
+	req.SetAuthorId(20)
+	req.SetContent("hello")
+	_, err := server.CreateMessage(t.Context(), req)
+	require.Equal(t, codes.Unavailable, status.Code(err))
+	require.Empty(t, fakeStore.messages)
+	require.Equal(t, []int64{20}, userClient.profileRequests())
 }
 
 func TestCreateMessageRejectsVoiceChannel(t *testing.T) {
@@ -285,10 +308,11 @@ func TestGetAndListMessages(t *testing.T) {
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
 	}
 	fakeStore.messages[101] = &model.Message{
-		ID: 101, ChannelID: 10, AuthorID: 20, Content: "two",
+		ID: 101, ChannelID: 10, AuthorID: 21, Content: "two",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 2,
 	}
-	server := newTestMessageServer(t, fakeStore, new(fakePublisher))
+	userClient := newFakeUserClient()
+	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), new(fakeGuildClient), userClient)
 
 	getReq := new(messagev1.GetMessageRequest)
 	getReq.SetMessageId(101)
@@ -296,6 +320,7 @@ func TestGetAndListMessages(t *testing.T) {
 	getResp, err := server.GetMessage(t.Context(), getReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(2), getResp.GetMessage().GetRevision())
+	require.Equal(t, int64(21), getResp.GetMessage().GetAuthor().GetUserId())
 
 	listReq := new(messagev1.ListMessagesRequest)
 	listReq.SetChannelId(10)
@@ -305,8 +330,12 @@ func TestGetAndListMessages(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, listResp.GetMessages(), 2)
 	require.Equal(t, int64(101), listResp.GetMessages()[0].GetId())
+	require.Equal(t, int64(21), listResp.GetMessages()[0].GetAuthor().GetUserId())
+	require.Equal(t, int64(20), listResp.GetMessages()[1].GetAuthor().GetUserId())
 	require.Equal(t, int64(100), listResp.GetBeforeCursor())
 	require.Equal(t, int64(101), listResp.GetAfterCursor())
+	require.Equal(t, []int64{21}, userClient.profileRequests())
+	require.Equal(t, [][]int64{{21, 20}}, userClient.batchRequests(), "list must load distinct authors in one batch")
 }
 
 func TestCreateMessageValidation(t *testing.T) {
@@ -373,6 +402,16 @@ func newTestMessageServerWithGuild(
 	publisher svc.EventPublisher,
 	guildClient guildv1.GuildServiceClient,
 ) messagev1.MessageServiceServer {
+	return newTestMessageServerWithClients(t, fakeStore, publisher, guildClient, newFakeUserClient())
+}
+
+func newTestMessageServerWithClients(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	guildClient guildv1.GuildServiceClient,
+	userClient userv1.UserServiceClient,
+) messagev1.MessageServiceServer {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
@@ -387,7 +426,19 @@ func newTestMessageServerWithGuild(
 		Snowflake:   node,
 		Publisher:   publisher,
 		GuildClient: guildClient,
+		UserClient:  userClient,
 	})
+}
+
+func testUserProfile(userID int64) *userv1.UserProfile {
+	profile := new(userv1.UserProfile)
+	profile.SetUserId(userID)
+	profile.SetName("User " + strconv.FormatInt(userID, 10))
+	profile.SetUsername("user_" + strconv.FormatInt(userID, 10))
+	profile.SetAvatarUri("avatar://" + strconv.FormatInt(userID, 10))
+	profile.SetCreatedAt(1)
+	profile.SetUpdatedAt(2)
+	return profile
 }
 
 type fakeGuildClient struct {

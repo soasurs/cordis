@@ -164,7 +164,7 @@ func messageToAPI(message *messagev1.Message) *apiv1.Message {
 	resp := new(apiv1.Message)
 	resp.SetId(message.GetId())
 	resp.SetChannelId(message.GetChannelId())
-	resp.SetAuthorId(message.GetAuthorId())
+	resp.SetAuthor(userProfileToAPI(message.GetAuthor()))
 	resp.SetContent(message.GetContent())
 	resp.SetType(apiv1.MessageType(message.GetType()))
 	resp.SetFlags(message.GetFlags())

@@ -1,0 +1,227 @@
+edition = "2023";
+
+package media.v1;
+
+// MediaService owns binary asset upload, validation, processing, and lifecycle
+// management. It exposes generic internal RPCs to trusted API and domain
+// services. Those callers authenticate end-user access tokens and forward the
+// server-derived user ID; Media never receives end-user tokens.
+service MediaService {
+  // CreateUpload reserves an upload session owned by user_id and returns a
+  // short-lived URL for one exact HTTP PUT.
+  rpc CreateUpload(CreateUploadRequest) returns (CreateUploadResponse);
+  // CompleteUpload validates and publishes an uploaded object. Repeating the
+  // call after success returns the same asset.
+  rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
+  // AbortUpload terminates an unpublished upload. Repeating an already
+  // successful abort is a no-op; a ready asset cannot be aborted.
+  rpc AbortUpload(AbortUploadRequest) returns (AbortUploadResponse);
+  // GetAsset returns persisted metadata and never reads object bytes.
+  rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
+  // GetAssetURL resolves a ready asset to a delivery URL. The calling domain
+  // service remains responsible for authorization before requesting a URL.
+  rpc GetAssetURL(GetAssetURLRequest) returns (GetAssetURLResponse);
+}
+
+// CreateUploadRequest describes the owner and exact object the client will PUT.
+message CreateUploadRequest {
+  // user_id is the authenticated actor forwarded by the trusted caller. The
+  // caller must derive it from verified authentication state, not client input.
+  int64 user_id = 1;
+  // kind selects the validation, processing, and publication policy. Initial
+  // image kinds accept only static JPEG, PNG, and WebP files.
+  AssetKind kind = 2;
+  // expected_size is the exact Content-Length in bytes. It is signed into the
+  // presigned request and verified again when the upload is completed.
+  int64 expected_size = 3;
+  // content_type is the exact canonical lowercase media type, without
+  // parameters, signed into the presigned request. Image bytes are decoded
+  // later and must agree with this value.
+  string content_type = 4;
+}
+
+// CreateUploadResponse contains the one-shot direct-upload contract.
+message CreateUploadResponse {
+  // upload_id is the media_assets record ID. The record changes state in place,
+  // so a successful CompleteUpload returns the same value as asset_id.
+  int64 upload_id = 1;
+  // presigned_url accepts one PUT whose Content-Length and Content-Type must
+  // exactly match expected_size and content_type from the request.
+  string presigned_url = 2;
+  // expires_at is the upload-session expiration as Unix milliseconds.
+  int64 expires_at = 3;
+}
+
+// CompleteUploadRequest identifies an upload and its authenticated actor.
+message CompleteUploadRequest {
+  // upload_id is the opaque ID returned by CreateUpload.
+  int64 upload_id = 1;
+  // user_id is forwarded by the trusted caller and must match the stored
+  // upload owner.
+  int64 user_id = 2;
+}
+
+// CompleteUploadResponse describes the ready immutable asset.
+message CompleteUploadResponse {
+  // asset_id is the stable ID domain records may persist. It always equals the
+  // upload_id supplied to this successful completion.
+  int64 asset_id = 1;
+  // metadata describes the validated source and published representation.
+  AssetMetadata metadata = 2;
+  // variants is populated for processed image assets and empty for opaque
+  // private assets.
+  repeated AssetVariant variants = 3;
+}
+
+// AssetMetadata contains validated media attributes.
+message AssetMetadata {
+  // size is the uploaded source size in bytes.
+  int64 size = 1;
+  // content_type is image/webp for processed images and the validated upload
+  // content type for opaque private assets.
+  string content_type = 2;
+  // width and height are the orientation-corrected source dimensions. They are
+  // zero for non-image assets.
+  int32 width = 3;
+  int32 height = 4;
+}
+
+// AssetVariant describes one immutable processed image output.
+message AssetVariant {
+  // max_dimension is the configured bounding-box size used for this variant,
+  // such as 64, 128, 256, or 512. The output is never upscaled.
+  int32 max_dimension = 1;
+  // width and height are the actual encoded dimensions.
+  int32 width = 2;
+  int32 height = 3;
+  // size is the encoded WebP size in bytes.
+  int64 size = 4;
+}
+
+// AbortUploadRequest identifies an upload and its authenticated actor.
+message AbortUploadRequest {
+  // upload_id is the opaque ID returned by CreateUpload.
+  int64 upload_id = 1;
+  // user_id is forwarded by the trusted caller and must match the stored
+  // upload owner.
+  int64 user_id = 2;
+}
+
+// AbortUploadResponse is empty because abort has no mutable result.
+message AbortUploadResponse {}
+
+// GetAssetRequest identifies an asset.
+message GetAssetRequest {
+  // asset_id is the stable ID returned by CompleteUpload.
+  int64 asset_id = 1;
+}
+
+// GetAssetResponse wraps the requested asset.
+message GetAssetResponse {
+  // asset contains persisted metadata; object bytes and storage keys are not
+  // exposed.
+  Asset asset = 1;
+}
+
+// Asset is the persisted provider-neutral asset metadata.
+message Asset {
+  // id is the stable asset ID and equals the upload ID used to create it.
+  int64 id = 1;
+  // owner_user_id records the authenticated user that created the upload. A
+  // domain resource may have separate authorization and association rules.
+  int64 owner_user_id = 2;
+  // kind determines the asset's validation and delivery policy.
+  AssetKind kind = 3;
+  // status is the durable lifecycle state. Domain services should associate
+  // only READY assets.
+  AssetStatus status = 4;
+  // storage_backend is a logical backend name used to resolve old assets after
+  // new writes migrate to another S3-compatible provider.
+  string storage_backend = 5;
+  // content_type is the published representation's canonical media type.
+  string content_type = 6;
+  // size is the validated uploaded source size in bytes.
+  int64 size = 7;
+  // width and height are the orientation-corrected source dimensions and are
+  // zero for non-image assets.
+  int32 width = 8;
+  int32 height = 9;
+  // variants contains processed image outputs and is empty for opaque assets.
+  repeated AssetVariant variants = 10;
+  // created_at and updated_at are Unix milliseconds.
+  int64 created_at = 11;
+  int64 updated_at = 12;
+}
+
+// GetAssetURLRequest selects a delivery policy for a ready asset.
+message GetAssetURLRequest {
+  // asset_id must refer to a READY asset.
+  int64 asset_id = 1;
+  // purpose must match the asset kind: processed images support PUBLIC and
+  // opaque assets support SIGNED_DOWNLOAD.
+  AssetURLPurpose purpose = 2;
+  // expires_in_seconds controls signed URL lifetime. Zero uses the service
+  // default.
+  int64 expires_in_seconds = 3;
+}
+
+// GetAssetURLResponse contains a transient URL that must not be persisted.
+message GetAssetURLResponse {
+  // url is either a public delivery URL or a short-lived signed URL according
+  // to the requested purpose.
+  string url = 1;
+  // expires_at is Unix milliseconds.
+  int64 expires_at = 2;
+}
+
+// AssetKind selects the asset-specific upload and publication policy.
+enum AssetKind {
+  // ASSET_KIND_UNSPECIFIED is invalid for CreateUpload.
+  ASSET_KIND_UNSPECIFIED = 0;
+  // ASSET_KIND_USER_AVATAR is uploaded to staging and published as immutable
+  // public WebP variants after image validation.
+  ASSET_KIND_USER_AVATAR = 1;
+  // ASSET_KIND_GUILD_ICON follows the same image policy as USER_AVATAR.
+  ASSET_KIND_GUILD_ICON = 2;
+  // ASSET_KIND_MESSAGE_ATTACHMENT is uploaded directly to its immutable
+  // private final key and is published logically by moving to READY.
+  ASSET_KIND_MESSAGE_ATTACHMENT = 3;
+}
+
+// AssetStatus is the durable upload and publication state.
+enum AssetStatus {
+  // ASSET_STATUS_UNSPECIFIED represents an unknown or unset state.
+  ASSET_STATUS_UNSPECIFIED = 0;
+  // ASSET_STATUS_CREATED means the upload session exists but completion has
+  // not observed the object.
+  ASSET_STATUS_CREATED = 1;
+  // ASSET_STATUS_COMPLETING means Media has claimed completion and will recover
+  // by probing object storage after a crash.
+  ASSET_STATUS_COMPLETING = 2;
+  // ASSET_STATUS_UPLOADED means object size and content type were verified.
+  ASSET_STATUS_UPLOADED = 3;
+  // ASSET_STATUS_PROCESSING means image variants are being generated. A retry
+  // resumes processing while holding the asset-scoped advisory lock.
+  ASSET_STATUS_PROCESSING = 4;
+  // ASSET_STATUS_READY means the immutable asset may be associated by a domain
+  // service.
+  ASSET_STATUS_READY = 5;
+  // ASSET_STATUS_FAILED is terminal validation or processing failure.
+  ASSET_STATUS_FAILED = 6;
+  // ASSET_STATUS_ABORTED is a terminal owner-requested cancellation.
+  ASSET_STATUS_ABORTED = 7;
+  // ASSET_STATUS_EXPIRED is a terminal session timeout.
+  ASSET_STATUS_EXPIRED = 8;
+}
+
+// AssetURLPurpose selects public image delivery or private signed delivery.
+enum AssetURLPurpose {
+  // ASSET_URL_PURPOSE_UNSPECIFIED uses the image public-delivery default and
+  // is invalid for opaque private assets.
+  ASSET_URL_PURPOSE_UNSPECIFIED = 0;
+  // ASSET_URL_PURPOSE_PUBLIC is valid only for processed public images.
+  ASSET_URL_PURPOSE_PUBLIC = 1;
+  // ASSET_URL_PURPOSE_SIGNED_DOWNLOAD is valid for private opaque assets and
+  // may also resolve the largest processed image variant for internal use.
+  ASSET_URL_PURPOSE_SIGNED_DOWNLOAD = 2;
+}

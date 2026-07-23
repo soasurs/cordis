@@ -24,7 +24,7 @@ const (
 type AssetKind int32
 
 const (
-	// ASSET_KIND_UNSPECIFIED is invalid for CreateUpload.
+	// ASSET_KIND_UNSPECIFIED represents an unknown or unset kind.
 	AssetKind_ASSET_KIND_UNSPECIFIED AssetKind = 0
 	// ASSET_KIND_USER_AVATAR is uploaded to staging and published as immutable
 	// public WebP variants after image validation.
@@ -200,13 +200,14 @@ func (x AssetURLPurpose) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// CreateUploadRequest describes the owner and exact object the client will PUT.
+// CreateUploadRequest describes the actor, typed purpose, and exact object the
+// client will PUT.
 type CreateUploadRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId       int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_Kind         AssetKind              `protobuf:"varint,2,opt,name=kind,enum=media.v1.AssetKind"`
-	xxx_hidden_ExpectedSize int64                  `protobuf:"varint,3,opt,name=expected_size,json=expectedSize"`
-	xxx_hidden_ContentType  *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType"`
+	state                   protoimpl.MessageState        `protogen:"opaque.v1"`
+	xxx_hidden_ActorUserId  int64                         `protobuf:"varint,1,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_ExpectedSize int64                         `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType  *string                       `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
+	xxx_hidden_Purpose      isCreateUploadRequest_Purpose `protobuf_oneof:"purpose"`
 	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
 	XXX_presence            [1]uint32
 	unknownFields           protoimpl.UnknownFields
@@ -238,20 +239,11 @@ func (x *CreateUploadRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *CreateUploadRequest) GetUserId() int64 {
+func (x *CreateUploadRequest) GetActorUserId() int64 {
 	if x != nil {
-		return x.xxx_hidden_UserId
+		return x.xxx_hidden_ActorUserId
 	}
 	return 0
-}
-
-func (x *CreateUploadRequest) GetKind() AssetKind {
-	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
-			return x.xxx_hidden_Kind
-		}
-	}
-	return AssetKind_ASSET_KIND_UNSPECIFIED
 }
 
 func (x *CreateUploadRequest) GetExpectedSize() int64 {
@@ -271,83 +263,189 @@ func (x *CreateUploadRequest) GetContentType() string {
 	return ""
 }
 
-func (x *CreateUploadRequest) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+func (x *CreateUploadRequest) GetUserAvatar() *UserAvatarUploadPurpose {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Purpose.(*createUploadRequest_UserAvatar); ok {
+			return x.UserAvatar
+		}
+	}
+	return nil
 }
 
-func (x *CreateUploadRequest) SetKind(v AssetKind) {
-	x.xxx_hidden_Kind = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+func (x *CreateUploadRequest) GetGuildIcon() *GuildIconUploadPurpose {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Purpose.(*createUploadRequest_GuildIcon); ok {
+			return x.GuildIcon
+		}
+	}
+	return nil
+}
+
+func (x *CreateUploadRequest) GetMessageAttachment() *MessageAttachmentUploadPurpose {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Purpose.(*createUploadRequest_MessageAttachment); ok {
+			return x.MessageAttachment
+		}
+	}
+	return nil
+}
+
+func (x *CreateUploadRequest) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *CreateUploadRequest) SetExpectedSize(v int64) {
 	x.xxx_hidden_ExpectedSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *CreateUploadRequest) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
 }
 
-func (x *CreateUploadRequest) HasUserId() bool {
+func (x *CreateUploadRequest) SetUserAvatar(v *UserAvatarUploadPurpose) {
+	if v == nil {
+		x.xxx_hidden_Purpose = nil
+		return
+	}
+	x.xxx_hidden_Purpose = &createUploadRequest_UserAvatar{v}
+}
+
+func (x *CreateUploadRequest) SetGuildIcon(v *GuildIconUploadPurpose) {
+	if v == nil {
+		x.xxx_hidden_Purpose = nil
+		return
+	}
+	x.xxx_hidden_Purpose = &createUploadRequest_GuildIcon{v}
+}
+
+func (x *CreateUploadRequest) SetMessageAttachment(v *MessageAttachmentUploadPurpose) {
+	if v == nil {
+		x.xxx_hidden_Purpose = nil
+		return
+	}
+	x.xxx_hidden_Purpose = &createUploadRequest_MessageAttachment{v}
+}
+
+func (x *CreateUploadRequest) HasActorUserId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *CreateUploadRequest) HasKind() bool {
+func (x *CreateUploadRequest) HasExpectedSize() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *CreateUploadRequest) HasExpectedSize() bool {
+func (x *CreateUploadRequest) HasContentType() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *CreateUploadRequest) HasContentType() bool {
+func (x *CreateUploadRequest) HasPurpose() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+	return x.xxx_hidden_Purpose != nil
 }
 
-func (x *CreateUploadRequest) ClearUserId() {
+func (x *CreateUploadRequest) HasUserAvatar() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Purpose.(*createUploadRequest_UserAvatar)
+	return ok
+}
+
+func (x *CreateUploadRequest) HasGuildIcon() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Purpose.(*createUploadRequest_GuildIcon)
+	return ok
+}
+
+func (x *CreateUploadRequest) HasMessageAttachment() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Purpose.(*createUploadRequest_MessageAttachment)
+	return ok
+}
+
+func (x *CreateUploadRequest) ClearActorUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_UserId = 0
-}
-
-func (x *CreateUploadRequest) ClearKind() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Kind = AssetKind_ASSET_KIND_UNSPECIFIED
+	x.xxx_hidden_ActorUserId = 0
 }
 
 func (x *CreateUploadRequest) ClearExpectedSize() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_ExpectedSize = 0
 }
 
 func (x *CreateUploadRequest) ClearContentType() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_ContentType = nil
+}
+
+func (x *CreateUploadRequest) ClearPurpose() {
+	x.xxx_hidden_Purpose = nil
+}
+
+func (x *CreateUploadRequest) ClearUserAvatar() {
+	if _, ok := x.xxx_hidden_Purpose.(*createUploadRequest_UserAvatar); ok {
+		x.xxx_hidden_Purpose = nil
+	}
+}
+
+func (x *CreateUploadRequest) ClearGuildIcon() {
+	if _, ok := x.xxx_hidden_Purpose.(*createUploadRequest_GuildIcon); ok {
+		x.xxx_hidden_Purpose = nil
+	}
+}
+
+func (x *CreateUploadRequest) ClearMessageAttachment() {
+	if _, ok := x.xxx_hidden_Purpose.(*createUploadRequest_MessageAttachment); ok {
+		x.xxx_hidden_Purpose = nil
+	}
+}
+
+const CreateUploadRequest_Purpose_not_set_case case_CreateUploadRequest_Purpose = 0
+const CreateUploadRequest_UserAvatar_case case_CreateUploadRequest_Purpose = 10
+const CreateUploadRequest_GuildIcon_case case_CreateUploadRequest_Purpose = 11
+const CreateUploadRequest_MessageAttachment_case case_CreateUploadRequest_Purpose = 12
+
+func (x *CreateUploadRequest) WhichPurpose() case_CreateUploadRequest_Purpose {
+	if x == nil {
+		return CreateUploadRequest_Purpose_not_set_case
+	}
+	switch x.xxx_hidden_Purpose.(type) {
+	case *createUploadRequest_UserAvatar:
+		return CreateUploadRequest_UserAvatar_case
+	case *createUploadRequest_GuildIcon:
+		return CreateUploadRequest_GuildIcon_case
+	case *createUploadRequest_MessageAttachment:
+		return CreateUploadRequest_MessageAttachment_case
+	default:
+		return CreateUploadRequest_Purpose_not_set_case
+	}
 }
 
 type CreateUploadRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// user_id is the authenticated actor forwarded by the trusted caller. The
-	// caller must derive it from verified authentication state, not client input.
-	UserId *int64
-	// kind selects the validation, processing, and publication policy. Initial
-	// image kinds accept only static JPEG, PNG, and WebP files.
-	Kind *AssetKind
+	// actor_user_id is the authenticated actor forwarded by the trusted domain
+	// service. The caller must derive it from verified authentication state, not
+	// client input.
+	ActorUserId *int64
 	// expected_size is the exact Content-Length in bytes. It is signed into the
 	// presigned request and verified again when the upload is completed.
 	ExpectedSize *int64
@@ -355,27 +453,278 @@ type CreateUploadRequest_builder struct {
 	// parameters, signed into the presigned request. Image bytes are decoded
 	// later and must agree with this value.
 	ContentType *string
+	// purpose selects exactly one domain-specific validation, storage, and
+	// publication policy. Domain services authorize the referenced target before
+	// calling Media.
+
+	// Fields of oneof xxx_hidden_Purpose:
+	// user_avatar targets actor_user_id.
+	UserAvatar *UserAvatarUploadPurpose
+	// guild_icon targets the guild identified inside this purpose.
+	GuildIcon *GuildIconUploadPurpose
+	// message_attachment targets the channel identified inside this purpose.
+	MessageAttachment *MessageAttachmentUploadPurpose
+	// -- end of xxx_hidden_Purpose
 }
 
 func (b0 CreateUploadRequest_builder) Build() *CreateUploadRequest {
 	m0 := &CreateUploadRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
-	if b.UserId != nil {
+	if b.ActorUserId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
-		x.xxx_hidden_UserId = *b.UserId
-	}
-	if b.Kind != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
-		x.xxx_hidden_Kind = *b.Kind
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.ExpectedSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_ContentType = b.ContentType
+	}
+	if b.UserAvatar != nil {
+		x.xxx_hidden_Purpose = &createUploadRequest_UserAvatar{b.UserAvatar}
+	}
+	if b.GuildIcon != nil {
+		x.xxx_hidden_Purpose = &createUploadRequest_GuildIcon{b.GuildIcon}
+	}
+	if b.MessageAttachment != nil {
+		x.xxx_hidden_Purpose = &createUploadRequest_MessageAttachment{b.MessageAttachment}
+	}
+	return m0
+}
+
+type case_CreateUploadRequest_Purpose protoreflect.FieldNumber
+
+func (x case_CreateUploadRequest_Purpose) String() string {
+	md := file_media_v1_media_proto_msgTypes[0].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
+type isCreateUploadRequest_Purpose interface {
+	isCreateUploadRequest_Purpose()
+}
+
+type createUploadRequest_UserAvatar struct {
+	// user_avatar targets actor_user_id.
+	UserAvatar *UserAvatarUploadPurpose `protobuf:"bytes,10,opt,name=user_avatar,json=userAvatar,oneof"`
+}
+
+type createUploadRequest_GuildIcon struct {
+	// guild_icon targets the guild identified inside this purpose.
+	GuildIcon *GuildIconUploadPurpose `protobuf:"bytes,11,opt,name=guild_icon,json=guildIcon,oneof"`
+}
+
+type createUploadRequest_MessageAttachment struct {
+	// message_attachment targets the channel identified inside this purpose.
+	MessageAttachment *MessageAttachmentUploadPurpose `protobuf:"bytes,12,opt,name=message_attachment,json=messageAttachment,oneof"`
+}
+
+func (*createUploadRequest_UserAvatar) isCreateUploadRequest_Purpose() {}
+
+func (*createUploadRequest_GuildIcon) isCreateUploadRequest_Purpose() {}
+
+func (*createUploadRequest_MessageAttachment) isCreateUploadRequest_Purpose() {}
+
+// UserAvatarUploadPurpose selects a user avatar upload. The target user is the
+// request's actor_user_id, so no second user ID is accepted.
+type UserAvatarUploadPurpose struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserAvatarUploadPurpose) Reset() {
+	*x = UserAvatarUploadPurpose{}
+	mi := &file_media_v1_media_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserAvatarUploadPurpose) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserAvatarUploadPurpose) ProtoMessage() {}
+
+func (x *UserAvatarUploadPurpose) ProtoReflect() protoreflect.Message {
+	mi := &file_media_v1_media_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+type UserAvatarUploadPurpose_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 UserAvatarUploadPurpose_builder) Build() *UserAvatarUploadPurpose {
+	m0 := &UserAvatarUploadPurpose{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
+}
+
+// GuildIconUploadPurpose selects an icon upload for one Guild.
+type GuildIconUploadPurpose struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *GuildIconUploadPurpose) Reset() {
+	*x = GuildIconUploadPurpose{}
+	mi := &file_media_v1_media_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GuildIconUploadPurpose) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GuildIconUploadPurpose) ProtoMessage() {}
+
+func (x *GuildIconUploadPurpose) ProtoReflect() protoreflect.Message {
+	mi := &file_media_v1_media_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GuildIconUploadPurpose) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
+func (x *GuildIconUploadPurpose) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GuildIconUploadPurpose) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GuildIconUploadPurpose) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+type GuildIconUploadPurpose_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// guild_id is the target Guild already authorized by the trusted caller.
+	GuildId *int64
+}
+
+func (b0 GuildIconUploadPurpose_builder) Build() *GuildIconUploadPurpose {
+	m0 := &GuildIconUploadPurpose{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	return m0
+}
+
+// MessageAttachmentUploadPurpose selects an attachment upload for one channel.
+type MessageAttachmentUploadPurpose struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *MessageAttachmentUploadPurpose) Reset() {
+	*x = MessageAttachmentUploadPurpose{}
+	mi := &file_media_v1_media_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MessageAttachmentUploadPurpose) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MessageAttachmentUploadPurpose) ProtoMessage() {}
+
+func (x *MessageAttachmentUploadPurpose) ProtoReflect() protoreflect.Message {
+	mi := &file_media_v1_media_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MessageAttachmentUploadPurpose) GetChannelId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelId
+	}
+	return 0
+}
+
+func (x *MessageAttachmentUploadPurpose) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *MessageAttachmentUploadPurpose) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MessageAttachmentUploadPurpose) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+type MessageAttachmentUploadPurpose_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// channel_id is the target channel already authorized by the trusted caller.
+	ChannelId *int64
+}
+
+func (b0 MessageAttachmentUploadPurpose_builder) Build() *MessageAttachmentUploadPurpose {
+	m0 := &MessageAttachmentUploadPurpose{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	return m0
 }
@@ -394,7 +743,7 @@ type CreateUploadResponse struct {
 
 func (x *CreateUploadResponse) Reset() {
 	*x = CreateUploadResponse{}
-	mi := &file_media_v1_media_proto_msgTypes[1]
+	mi := &file_media_v1_media_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -406,7 +755,7 @@ func (x *CreateUploadResponse) String() string {
 func (*CreateUploadResponse) ProtoMessage() {}
 
 func (x *CreateUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[1]
+	mi := &file_media_v1_media_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -528,7 +877,7 @@ func (b0 CreateUploadResponse_builder) Build() *CreateUploadResponse {
 type CompleteUploadRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UploadId    int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -537,7 +886,7 @@ type CompleteUploadRequest struct {
 
 func (x *CompleteUploadRequest) Reset() {
 	*x = CompleteUploadRequest{}
-	mi := &file_media_v1_media_proto_msgTypes[2]
+	mi := &file_media_v1_media_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -549,7 +898,7 @@ func (x *CompleteUploadRequest) String() string {
 func (*CompleteUploadRequest) ProtoMessage() {}
 
 func (x *CompleteUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[2]
+	mi := &file_media_v1_media_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -567,9 +916,9 @@ func (x *CompleteUploadRequest) GetUploadId() int64 {
 	return 0
 }
 
-func (x *CompleteUploadRequest) GetUserId() int64 {
+func (x *CompleteUploadRequest) GetActorUserId() int64 {
 	if x != nil {
-		return x.xxx_hidden_UserId
+		return x.xxx_hidden_ActorUserId
 	}
 	return 0
 }
@@ -579,8 +928,8 @@ func (x *CompleteUploadRequest) SetUploadId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
-func (x *CompleteUploadRequest) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
+func (x *CompleteUploadRequest) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
@@ -591,7 +940,7 @@ func (x *CompleteUploadRequest) HasUploadId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *CompleteUploadRequest) HasUserId() bool {
+func (x *CompleteUploadRequest) HasActorUserId() bool {
 	if x == nil {
 		return false
 	}
@@ -603,9 +952,9 @@ func (x *CompleteUploadRequest) ClearUploadId() {
 	x.xxx_hidden_UploadId = 0
 }
 
-func (x *CompleteUploadRequest) ClearUserId() {
+func (x *CompleteUploadRequest) ClearActorUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_UserId = 0
+	x.xxx_hidden_ActorUserId = 0
 }
 
 type CompleteUploadRequest_builder struct {
@@ -613,9 +962,9 @@ type CompleteUploadRequest_builder struct {
 
 	// upload_id is the opaque ID returned by CreateUpload.
 	UploadId *int64
-	// user_id is forwarded by the trusted caller and must match the stored
-	// upload owner.
-	UserId *int64
+	// actor_user_id is forwarded by the trusted caller and must match the user
+	// that created the upload.
+	ActorUserId *int64
 }
 
 func (b0 CompleteUploadRequest_builder) Build() *CompleteUploadRequest {
@@ -626,9 +975,9 @@ func (b0 CompleteUploadRequest_builder) Build() *CompleteUploadRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_UploadId = *b.UploadId
 	}
-	if b.UserId != nil {
+	if b.ActorUserId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_UserId = *b.UserId
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	return m0
 }
@@ -647,7 +996,7 @@ type CompleteUploadResponse struct {
 
 func (x *CompleteUploadResponse) Reset() {
 	*x = CompleteUploadResponse{}
-	mi := &file_media_v1_media_proto_msgTypes[3]
+	mi := &file_media_v1_media_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -659,7 +1008,7 @@ func (x *CompleteUploadResponse) String() string {
 func (*CompleteUploadResponse) ProtoMessage() {}
 
 func (x *CompleteUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[3]
+	mi := &file_media_v1_media_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -770,7 +1119,7 @@ type AssetMetadata struct {
 
 func (x *AssetMetadata) Reset() {
 	*x = AssetMetadata{}
-	mi := &file_media_v1_media_proto_msgTypes[4]
+	mi := &file_media_v1_media_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +1131,7 @@ func (x *AssetMetadata) String() string {
 func (*AssetMetadata) ProtoMessage() {}
 
 func (x *AssetMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[4]
+	mi := &file_media_v1_media_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -944,7 +1293,7 @@ type AssetVariant struct {
 
 func (x *AssetVariant) Reset() {
 	*x = AssetVariant{}
-	mi := &file_media_v1_media_proto_msgTypes[5]
+	mi := &file_media_v1_media_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -956,7 +1305,7 @@ func (x *AssetVariant) String() string {
 func (*AssetVariant) ProtoMessage() {}
 
 func (x *AssetVariant) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[5]
+	mi := &file_media_v1_media_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1103,7 +1452,7 @@ func (b0 AssetVariant_builder) Build() *AssetVariant {
 type AbortUploadRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UploadId    int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1112,7 +1461,7 @@ type AbortUploadRequest struct {
 
 func (x *AbortUploadRequest) Reset() {
 	*x = AbortUploadRequest{}
-	mi := &file_media_v1_media_proto_msgTypes[6]
+	mi := &file_media_v1_media_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1124,7 +1473,7 @@ func (x *AbortUploadRequest) String() string {
 func (*AbortUploadRequest) ProtoMessage() {}
 
 func (x *AbortUploadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[6]
+	mi := &file_media_v1_media_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1142,9 +1491,9 @@ func (x *AbortUploadRequest) GetUploadId() int64 {
 	return 0
 }
 
-func (x *AbortUploadRequest) GetUserId() int64 {
+func (x *AbortUploadRequest) GetActorUserId() int64 {
 	if x != nil {
-		return x.xxx_hidden_UserId
+		return x.xxx_hidden_ActorUserId
 	}
 	return 0
 }
@@ -1154,8 +1503,8 @@ func (x *AbortUploadRequest) SetUploadId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
-func (x *AbortUploadRequest) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
+func (x *AbortUploadRequest) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
@@ -1166,7 +1515,7 @@ func (x *AbortUploadRequest) HasUploadId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *AbortUploadRequest) HasUserId() bool {
+func (x *AbortUploadRequest) HasActorUserId() bool {
 	if x == nil {
 		return false
 	}
@@ -1178,9 +1527,9 @@ func (x *AbortUploadRequest) ClearUploadId() {
 	x.xxx_hidden_UploadId = 0
 }
 
-func (x *AbortUploadRequest) ClearUserId() {
+func (x *AbortUploadRequest) ClearActorUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_UserId = 0
+	x.xxx_hidden_ActorUserId = 0
 }
 
 type AbortUploadRequest_builder struct {
@@ -1188,9 +1537,9 @@ type AbortUploadRequest_builder struct {
 
 	// upload_id is the opaque ID returned by CreateUpload.
 	UploadId *int64
-	// user_id is forwarded by the trusted caller and must match the stored
-	// upload owner.
-	UserId *int64
+	// actor_user_id is forwarded by the trusted caller and must match the user
+	// that created the upload.
+	ActorUserId *int64
 }
 
 func (b0 AbortUploadRequest_builder) Build() *AbortUploadRequest {
@@ -1201,9 +1550,9 @@ func (b0 AbortUploadRequest_builder) Build() *AbortUploadRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_UploadId = *b.UploadId
 	}
-	if b.UserId != nil {
+	if b.ActorUserId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_UserId = *b.UserId
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	return m0
 }
@@ -1217,7 +1566,7 @@ type AbortUploadResponse struct {
 
 func (x *AbortUploadResponse) Reset() {
 	*x = AbortUploadResponse{}
-	mi := &file_media_v1_media_proto_msgTypes[7]
+	mi := &file_media_v1_media_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1229,7 +1578,7 @@ func (x *AbortUploadResponse) String() string {
 func (*AbortUploadResponse) ProtoMessage() {}
 
 func (x *AbortUploadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[7]
+	mi := &file_media_v1_media_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1264,7 +1613,7 @@ type GetAssetRequest struct {
 
 func (x *GetAssetRequest) Reset() {
 	*x = GetAssetRequest{}
-	mi := &file_media_v1_media_proto_msgTypes[8]
+	mi := &file_media_v1_media_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1276,7 +1625,7 @@ func (x *GetAssetRequest) String() string {
 func (*GetAssetRequest) ProtoMessage() {}
 
 func (x *GetAssetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[8]
+	mi := &file_media_v1_media_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1339,7 +1688,7 @@ type GetAssetResponse struct {
 
 func (x *GetAssetResponse) Reset() {
 	*x = GetAssetResponse{}
-	mi := &file_media_v1_media_proto_msgTypes[9]
+	mi := &file_media_v1_media_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1351,7 +1700,7 @@ func (x *GetAssetResponse) String() string {
 func (*GetAssetResponse) ProtoMessage() {}
 
 func (x *GetAssetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[9]
+	mi := &file_media_v1_media_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1402,28 +1751,29 @@ func (b0 GetAssetResponse_builder) Build() *GetAssetResponse {
 
 // Asset is the persisted provider-neutral asset metadata.
 type Asset struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id             int64                  `protobuf:"varint,1,opt,name=id"`
-	xxx_hidden_OwnerUserId    int64                  `protobuf:"varint,2,opt,name=owner_user_id,json=ownerUserId"`
-	xxx_hidden_Kind           AssetKind              `protobuf:"varint,3,opt,name=kind,enum=media.v1.AssetKind"`
-	xxx_hidden_Status         AssetStatus            `protobuf:"varint,4,opt,name=status,enum=media.v1.AssetStatus"`
-	xxx_hidden_StorageBackend *string                `protobuf:"bytes,5,opt,name=storage_backend,json=storageBackend"`
-	xxx_hidden_ContentType    *string                `protobuf:"bytes,6,opt,name=content_type,json=contentType"`
-	xxx_hidden_Size           int64                  `protobuf:"varint,7,opt,name=size"`
-	xxx_hidden_Width          int32                  `protobuf:"varint,8,opt,name=width"`
-	xxx_hidden_Height         int32                  `protobuf:"varint,9,opt,name=height"`
-	xxx_hidden_Variants       *[]*AssetVariant       `protobuf:"bytes,10,rep,name=variants"`
-	xxx_hidden_CreatedAt      int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt      int64                  `protobuf:"varint,12,opt,name=updated_at,json=updatedAt"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id              int64                  `protobuf:"varint,1,opt,name=id"`
+	xxx_hidden_CreatedByUserId int64                  `protobuf:"varint,2,opt,name=created_by_user_id,json=createdByUserId"`
+	xxx_hidden_Kind            AssetKind              `protobuf:"varint,3,opt,name=kind,enum=media.v1.AssetKind"`
+	xxx_hidden_Status          AssetStatus            `protobuf:"varint,4,opt,name=status,enum=media.v1.AssetStatus"`
+	xxx_hidden_StorageBackend  *string                `protobuf:"bytes,5,opt,name=storage_backend,json=storageBackend"`
+	xxx_hidden_ContentType     *string                `protobuf:"bytes,6,opt,name=content_type,json=contentType"`
+	xxx_hidden_Size            int64                  `protobuf:"varint,7,opt,name=size"`
+	xxx_hidden_Width           int32                  `protobuf:"varint,8,opt,name=width"`
+	xxx_hidden_Height          int32                  `protobuf:"varint,9,opt,name=height"`
+	xxx_hidden_Variants        *[]*AssetVariant       `protobuf:"bytes,10,rep,name=variants"`
+	xxx_hidden_CreatedAt       int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt       int64                  `protobuf:"varint,12,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_SubjectId       int64                  `protobuf:"varint,13,opt,name=subject_id,json=subjectId"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Asset) Reset() {
 	*x = Asset{}
-	mi := &file_media_v1_media_proto_msgTypes[10]
+	mi := &file_media_v1_media_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1435,7 +1785,7 @@ func (x *Asset) String() string {
 func (*Asset) ProtoMessage() {}
 
 func (x *Asset) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[10]
+	mi := &file_media_v1_media_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1453,9 +1803,9 @@ func (x *Asset) GetId() int64 {
 	return 0
 }
 
-func (x *Asset) GetOwnerUserId() int64 {
+func (x *Asset) GetCreatedByUserId() int64 {
 	if x != nil {
-		return x.xxx_hidden_OwnerUserId
+		return x.xxx_hidden_CreatedByUserId
 	}
 	return 0
 }
@@ -1542,49 +1892,56 @@ func (x *Asset) GetUpdatedAt() int64 {
 	return 0
 }
 
-func (x *Asset) SetId(v int64) {
-	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
+func (x *Asset) GetSubjectId() int64 {
+	if x != nil {
+		return x.xxx_hidden_SubjectId
+	}
+	return 0
 }
 
-func (x *Asset) SetOwnerUserId(v int64) {
-	x.xxx_hidden_OwnerUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
+func (x *Asset) SetId(v int64) {
+	x.xxx_hidden_Id = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+}
+
+func (x *Asset) SetCreatedByUserId(v int64) {
+	x.xxx_hidden_CreatedByUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
 }
 
 func (x *Asset) SetKind(v AssetKind) {
 	x.xxx_hidden_Kind = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
 }
 
 func (x *Asset) SetStatus(v AssetStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
 }
 
 func (x *Asset) SetStorageBackend(v string) {
 	x.xxx_hidden_StorageBackend = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
 }
 
 func (x *Asset) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
 }
 
 func (x *Asset) SetSize(v int64) {
 	x.xxx_hidden_Size = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
 }
 
 func (x *Asset) SetWidth(v int32) {
 	x.xxx_hidden_Width = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 13)
 }
 
 func (x *Asset) SetHeight(v int32) {
 	x.xxx_hidden_Height = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 13)
 }
 
 func (x *Asset) SetVariants(v []*AssetVariant) {
@@ -1593,12 +1950,17 @@ func (x *Asset) SetVariants(v []*AssetVariant) {
 
 func (x *Asset) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
 }
 
 func (x *Asset) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
+}
+
+func (x *Asset) SetSubjectId(v int64) {
+	x.xxx_hidden_SubjectId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 13)
 }
 
 func (x *Asset) HasId() bool {
@@ -1608,7 +1970,7 @@ func (x *Asset) HasId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *Asset) HasOwnerUserId() bool {
+func (x *Asset) HasCreatedByUserId() bool {
 	if x == nil {
 		return false
 	}
@@ -1678,14 +2040,21 @@ func (x *Asset) HasUpdatedAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
 }
 
+func (x *Asset) HasSubjectId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+}
+
 func (x *Asset) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = 0
 }
 
-func (x *Asset) ClearOwnerUserId() {
+func (x *Asset) ClearCreatedByUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_OwnerUserId = 0
+	x.xxx_hidden_CreatedByUserId = 0
 }
 
 func (x *Asset) ClearKind() {
@@ -1733,14 +2102,19 @@ func (x *Asset) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = 0
 }
 
+func (x *Asset) ClearSubjectId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_SubjectId = 0
+}
+
 type Asset_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// id is the stable asset ID and equals the upload ID used to create it.
 	Id *int64
-	// owner_user_id records the authenticated user that created the upload. A
-	// domain resource may have separate authorization and association rules.
-	OwnerUserId *int64
+	// created_by_user_id records the authenticated actor that created the
+	// upload. The target domain resource is identified separately by subject_id.
+	CreatedByUserId *int64
 	// kind determines the asset's validation and delivery policy.
 	Kind *AssetKind
 	// status is the durable lifecycle state. Domain services should associate
@@ -1762,6 +2136,9 @@ type Asset_builder struct {
 	// created_at and updated_at are Unix milliseconds.
 	CreatedAt *int64
 	UpdatedAt *int64
+	// subject_id is the purpose-specific target: the user ID for USER_AVATAR,
+	// Guild ID for GUILD_ICON, or channel ID for MESSAGE_ATTACHMENT.
+	SubjectId *int64
 }
 
 func (b0 Asset_builder) Build() *Asset {
@@ -1769,49 +2146,53 @@ func (b0 Asset_builder) Build() *Asset {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
 		x.xxx_hidden_Id = *b.Id
 	}
-	if b.OwnerUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
-		x.xxx_hidden_OwnerUserId = *b.OwnerUserId
+	if b.CreatedByUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
+		x.xxx_hidden_CreatedByUserId = *b.CreatedByUserId
 	}
 	if b.Kind != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
 		x.xxx_hidden_Kind = *b.Kind
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.StorageBackend != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
 		x.xxx_hidden_StorageBackend = b.StorageBackend
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
 		x.xxx_hidden_ContentType = b.ContentType
 	}
 	if b.Size != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
 		x.xxx_hidden_Size = *b.Size
 	}
 	if b.Width != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 13)
 		x.xxx_hidden_Width = *b.Width
 	}
 	if b.Height != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 13)
 		x.xxx_hidden_Height = *b.Height
 	}
 	x.xxx_hidden_Variants = &b.Variants
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	if b.SubjectId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 13)
+		x.xxx_hidden_SubjectId = *b.SubjectId
 	}
 	return m0
 }
@@ -1830,7 +2211,7 @@ type GetAssetURLRequest struct {
 
 func (x *GetAssetURLRequest) Reset() {
 	*x = GetAssetURLRequest{}
-	mi := &file_media_v1_media_proto_msgTypes[11]
+	mi := &file_media_v1_media_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1842,7 +2223,7 @@ func (x *GetAssetURLRequest) String() string {
 func (*GetAssetURLRequest) ProtoMessage() {}
 
 func (x *GetAssetURLRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[11]
+	mi := &file_media_v1_media_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1972,7 +2353,7 @@ type GetAssetURLResponse struct {
 
 func (x *GetAssetURLResponse) Reset() {
 	*x = GetAssetURLResponse{}
-	mi := &file_media_v1_media_proto_msgTypes[12]
+	mi := &file_media_v1_media_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1984,7 +2365,7 @@ func (x *GetAssetURLResponse) String() string {
 func (*GetAssetURLResponse) ProtoMessage() {}
 
 func (x *GetAssetURLResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[12]
+	mi := &file_media_v1_media_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2075,20 +2456,32 @@ var File_media_v1_media_proto protoreflect.FileDescriptor
 
 const file_media_v1_media_proto_rawDesc = "" +
 	"\n" +
-	"\x14media/v1/media.proto\x12\bmedia.v1\"\x9f\x01\n" +
-	"\x13CreateUploadRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12'\n" +
-	"\x04kind\x18\x02 \x01(\x0e2\x13.media.v1.AssetKindR\x04kind\x12#\n" +
-	"\rexpected_size\x18\x03 \x01(\x03R\fexpectedSize\x12!\n" +
-	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\"w\n" +
+	"\x14media/v1/media.proto\x12\bmedia.v1\"\xf0\x02\n" +
+	"\x13CreateUploadRequest\x12\"\n" +
+	"\ractor_user_id\x18\x01 \x01(\x03R\vactorUserId\x12#\n" +
+	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12D\n" +
+	"\vuser_avatar\x18\n" +
+	" \x01(\v2!.media.v1.UserAvatarUploadPurposeH\x00R\n" +
+	"userAvatar\x12A\n" +
+	"\n" +
+	"guild_icon\x18\v \x01(\v2 .media.v1.GuildIconUploadPurposeH\x00R\tguildIcon\x12Y\n" +
+	"\x12message_attachment\x18\f \x01(\v2(.media.v1.MessageAttachmentUploadPurposeH\x00R\x11messageAttachmentB\t\n" +
+	"\apurpose\"\x19\n" +
+	"\x17UserAvatarUploadPurpose\"3\n" +
+	"\x16GuildIconUploadPurpose\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\"?\n" +
+	"\x1eMessageAttachmentUploadPurpose\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\"w\n" +
 	"\x14CreateUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\x03R\texpiresAt\"M\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt\"X\n" +
 	"\x15CompleteUploadRequest\x12\x1b\n" +
-	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x03R\x06userId\"\x9c\x01\n" +
+	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12\"\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"\x9c\x01\n" +
 	"\x16CompleteUploadResponse\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\x123\n" +
 	"\bmetadata\x18\x02 \x01(\v2\x17.media.v1.AssetMetadataR\bmetadata\x122\n" +
@@ -2102,18 +2495,18 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\rmax_dimension\x18\x01 \x01(\x05R\fmaxDimension\x12\x14\n" +
 	"\x05width\x18\x02 \x01(\x05R\x05width\x12\x16\n" +
 	"\x06height\x18\x03 \x01(\x05R\x06height\x12\x12\n" +
-	"\x04size\x18\x04 \x01(\x03R\x04size\"J\n" +
+	"\x04size\x18\x04 \x01(\x03R\x04size\"U\n" +
 	"\x12AbortUploadRequest\x12\x1b\n" +
-	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\x03R\x06userId\"\x15\n" +
+	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12\"\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"\x15\n" +
 	"\x13AbortUploadResponse\",\n" +
 	"\x0fGetAssetRequest\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\"9\n" +
 	"\x10GetAssetResponse\x12%\n" +
-	"\x05asset\x18\x01 \x01(\v2\x0f.media.v1.AssetR\x05asset\"\x93\x03\n" +
+	"\x05asset\x18\x01 \x01(\v2\x0f.media.v1.AssetR\x05asset\"\xbb\x03\n" +
 	"\x05Asset\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12\"\n" +
-	"\rowner_user_id\x18\x02 \x01(\x03R\vownerUserId\x12'\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12+\n" +
+	"\x12created_by_user_id\x18\x02 \x01(\x03R\x0fcreatedByUserId\x12'\n" +
 	"\x04kind\x18\x03 \x01(\x0e2\x13.media.v1.AssetKindR\x04kind\x12-\n" +
 	"\x06status\x18\x04 \x01(\x0e2\x15.media.v1.AssetStatusR\x06status\x12'\n" +
 	"\x0fstorage_backend\x18\x05 \x01(\tR\x0estorageBackend\x12!\n" +
@@ -2126,7 +2519,9 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\x03R\tupdatedAt\"\x92\x01\n" +
+	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"subject_id\x18\r \x01(\x03R\tsubjectId\"\x92\x01\n" +
 	"\x12GetAssetURLRequest\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\x123\n" +
 	"\apurpose\x18\x02 \x01(\x0e2\x19.media.v1.AssetURLPurposeR\apurpose\x12,\n" +
@@ -2164,49 +2559,54 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"MediaProtoP\x01Z.github.com/soasurs/cordis/gen/media/v1;mediav1\xa2\x02\x03MXX\xaa\x02\bMedia.V1\xca\x02\bMedia\\V1\xe2\x02\x14Media\\V1\\GPBMetadata\xea\x02\tMedia::V1b\beditionsp\xe8\a"
 
 var file_media_v1_media_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_media_v1_media_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_media_v1_media_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_media_v1_media_proto_goTypes = []any{
-	(AssetKind)(0),                 // 0: media.v1.AssetKind
-	(AssetStatus)(0),               // 1: media.v1.AssetStatus
-	(AssetURLPurpose)(0),           // 2: media.v1.AssetURLPurpose
-	(*CreateUploadRequest)(nil),    // 3: media.v1.CreateUploadRequest
-	(*CreateUploadResponse)(nil),   // 4: media.v1.CreateUploadResponse
-	(*CompleteUploadRequest)(nil),  // 5: media.v1.CompleteUploadRequest
-	(*CompleteUploadResponse)(nil), // 6: media.v1.CompleteUploadResponse
-	(*AssetMetadata)(nil),          // 7: media.v1.AssetMetadata
-	(*AssetVariant)(nil),           // 8: media.v1.AssetVariant
-	(*AbortUploadRequest)(nil),     // 9: media.v1.AbortUploadRequest
-	(*AbortUploadResponse)(nil),    // 10: media.v1.AbortUploadResponse
-	(*GetAssetRequest)(nil),        // 11: media.v1.GetAssetRequest
-	(*GetAssetResponse)(nil),       // 12: media.v1.GetAssetResponse
-	(*Asset)(nil),                  // 13: media.v1.Asset
-	(*GetAssetURLRequest)(nil),     // 14: media.v1.GetAssetURLRequest
-	(*GetAssetURLResponse)(nil),    // 15: media.v1.GetAssetURLResponse
+	(AssetKind)(0),                         // 0: media.v1.AssetKind
+	(AssetStatus)(0),                       // 1: media.v1.AssetStatus
+	(AssetURLPurpose)(0),                   // 2: media.v1.AssetURLPurpose
+	(*CreateUploadRequest)(nil),            // 3: media.v1.CreateUploadRequest
+	(*UserAvatarUploadPurpose)(nil),        // 4: media.v1.UserAvatarUploadPurpose
+	(*GuildIconUploadPurpose)(nil),         // 5: media.v1.GuildIconUploadPurpose
+	(*MessageAttachmentUploadPurpose)(nil), // 6: media.v1.MessageAttachmentUploadPurpose
+	(*CreateUploadResponse)(nil),           // 7: media.v1.CreateUploadResponse
+	(*CompleteUploadRequest)(nil),          // 8: media.v1.CompleteUploadRequest
+	(*CompleteUploadResponse)(nil),         // 9: media.v1.CompleteUploadResponse
+	(*AssetMetadata)(nil),                  // 10: media.v1.AssetMetadata
+	(*AssetVariant)(nil),                   // 11: media.v1.AssetVariant
+	(*AbortUploadRequest)(nil),             // 12: media.v1.AbortUploadRequest
+	(*AbortUploadResponse)(nil),            // 13: media.v1.AbortUploadResponse
+	(*GetAssetRequest)(nil),                // 14: media.v1.GetAssetRequest
+	(*GetAssetResponse)(nil),               // 15: media.v1.GetAssetResponse
+	(*Asset)(nil),                          // 16: media.v1.Asset
+	(*GetAssetURLRequest)(nil),             // 17: media.v1.GetAssetURLRequest
+	(*GetAssetURLResponse)(nil),            // 18: media.v1.GetAssetURLResponse
 }
 var file_media_v1_media_proto_depIdxs = []int32{
-	0,  // 0: media.v1.CreateUploadRequest.kind:type_name -> media.v1.AssetKind
-	7,  // 1: media.v1.CompleteUploadResponse.metadata:type_name -> media.v1.AssetMetadata
-	8,  // 2: media.v1.CompleteUploadResponse.variants:type_name -> media.v1.AssetVariant
-	13, // 3: media.v1.GetAssetResponse.asset:type_name -> media.v1.Asset
-	0,  // 4: media.v1.Asset.kind:type_name -> media.v1.AssetKind
-	1,  // 5: media.v1.Asset.status:type_name -> media.v1.AssetStatus
-	8,  // 6: media.v1.Asset.variants:type_name -> media.v1.AssetVariant
-	2,  // 7: media.v1.GetAssetURLRequest.purpose:type_name -> media.v1.AssetURLPurpose
-	3,  // 8: media.v1.MediaService.CreateUpload:input_type -> media.v1.CreateUploadRequest
-	5,  // 9: media.v1.MediaService.CompleteUpload:input_type -> media.v1.CompleteUploadRequest
-	9,  // 10: media.v1.MediaService.AbortUpload:input_type -> media.v1.AbortUploadRequest
-	11, // 11: media.v1.MediaService.GetAsset:input_type -> media.v1.GetAssetRequest
-	14, // 12: media.v1.MediaService.GetAssetURL:input_type -> media.v1.GetAssetURLRequest
-	4,  // 13: media.v1.MediaService.CreateUpload:output_type -> media.v1.CreateUploadResponse
-	6,  // 14: media.v1.MediaService.CompleteUpload:output_type -> media.v1.CompleteUploadResponse
-	10, // 15: media.v1.MediaService.AbortUpload:output_type -> media.v1.AbortUploadResponse
-	12, // 16: media.v1.MediaService.GetAsset:output_type -> media.v1.GetAssetResponse
-	15, // 17: media.v1.MediaService.GetAssetURL:output_type -> media.v1.GetAssetURLResponse
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	4,  // 0: media.v1.CreateUploadRequest.user_avatar:type_name -> media.v1.UserAvatarUploadPurpose
+	5,  // 1: media.v1.CreateUploadRequest.guild_icon:type_name -> media.v1.GuildIconUploadPurpose
+	6,  // 2: media.v1.CreateUploadRequest.message_attachment:type_name -> media.v1.MessageAttachmentUploadPurpose
+	10, // 3: media.v1.CompleteUploadResponse.metadata:type_name -> media.v1.AssetMetadata
+	11, // 4: media.v1.CompleteUploadResponse.variants:type_name -> media.v1.AssetVariant
+	16, // 5: media.v1.GetAssetResponse.asset:type_name -> media.v1.Asset
+	0,  // 6: media.v1.Asset.kind:type_name -> media.v1.AssetKind
+	1,  // 7: media.v1.Asset.status:type_name -> media.v1.AssetStatus
+	11, // 8: media.v1.Asset.variants:type_name -> media.v1.AssetVariant
+	2,  // 9: media.v1.GetAssetURLRequest.purpose:type_name -> media.v1.AssetURLPurpose
+	3,  // 10: media.v1.MediaService.CreateUpload:input_type -> media.v1.CreateUploadRequest
+	8,  // 11: media.v1.MediaService.CompleteUpload:input_type -> media.v1.CompleteUploadRequest
+	12, // 12: media.v1.MediaService.AbortUpload:input_type -> media.v1.AbortUploadRequest
+	14, // 13: media.v1.MediaService.GetAsset:input_type -> media.v1.GetAssetRequest
+	17, // 14: media.v1.MediaService.GetAssetURL:input_type -> media.v1.GetAssetURLRequest
+	7,  // 15: media.v1.MediaService.CreateUpload:output_type -> media.v1.CreateUploadResponse
+	9,  // 16: media.v1.MediaService.CompleteUpload:output_type -> media.v1.CompleteUploadResponse
+	13, // 17: media.v1.MediaService.AbortUpload:output_type -> media.v1.AbortUploadResponse
+	15, // 18: media.v1.MediaService.GetAsset:output_type -> media.v1.GetAssetResponse
+	18, // 19: media.v1.MediaService.GetAssetURL:output_type -> media.v1.GetAssetURLResponse
+	15, // [15:20] is the sub-list for method output_type
+	10, // [10:15] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_media_v1_media_proto_init() }
@@ -2214,13 +2614,18 @@ func file_media_v1_media_proto_init() {
 	if File_media_v1_media_proto != nil {
 		return
 	}
+	file_media_v1_media_proto_msgTypes[0].OneofWrappers = []any{
+		(*createUploadRequest_UserAvatar)(nil),
+		(*createUploadRequest_GuildIcon)(nil),
+		(*createUploadRequest_MessageAttachment)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_media_v1_media_proto_rawDesc), len(file_media_v1_media_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   13,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

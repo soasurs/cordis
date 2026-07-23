@@ -23,13 +23,13 @@ func (s *MediaServer) CreateUpload(
 	ctx context.Context,
 	req *mediav1.CreateUploadRequest,
 ) (*mediav1.CreateUploadResponse, error) {
-	userID := req.GetUserId()
-	if userID <= 0 {
-		return nil, errUserIDRequired
+	actorUserID := req.GetActorUserId()
+	if actorUserID <= 0 {
+		return nil, errActorUserIDRequired
 	}
-	kind, ok := kindFromProto(req.GetKind())
-	if !ok {
-		return nil, errKindInvalid
+	kind, subjectID, err := uploadPurpose(req, actorUserID)
+	if err != nil {
+		return nil, err
 	}
 	expectedSize := req.GetExpectedSize()
 	if expectedSize <= 0 {
@@ -56,21 +56,22 @@ func (s *MediaServer) CreateUpload(
 	uploadTTL := s.svcCtx.Cfg.Media.UploadSessionTTL()
 	presignedTTL := s.svcCtx.Cfg.Media.PresignedURLTTL()
 	asset := &store.Asset{
-		ID:             id,
-		UserID:         userID,
-		Kind:           kind,
-		Status:         store.StatusCreated,
-		StorageBackend: s.storageBackend(),
-		ExpectedSize:   expectedSize,
-		ContentType:    contentType,
-		ExpiresAt:      now + uploadTTL*1000,
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		ID:              id,
+		CreatedByUserID: actorUserID,
+		SubjectID:       subjectID,
+		Kind:            kind,
+		Status:          store.StatusCreated,
+		StorageBackend:  s.storageBackend(),
+		ExpectedSize:    expectedSize,
+		ContentType:     contentType,
+		ExpiresAt:       now + uploadTTL*1000,
+		CreatedAt:       now,
+		UpdatedAt:       now,
 	}
 	if kind.IsImage() {
 		asset.StagingKey = fmt.Sprintf("staging/%d", id)
 	} else {
-		asset.PublishedKey = fmt.Sprintf("private/%d/original", id)
+		asset.PublishedKey = fmt.Sprintf("private/attachments/%d/%d", subjectID, id)
 	}
 
 	presignedURL, err := s.svcCtx.ObjectStore.CreatePresignedPutURL(
@@ -105,9 +106,9 @@ func (s *MediaServer) CompleteUpload(
 	ctx context.Context,
 	req *mediav1.CompleteUploadRequest,
 ) (*mediav1.CompleteUploadResponse, error) {
-	userID := req.GetUserId()
-	if userID <= 0 {
-		return nil, errUserIDRequired
+	actorUserID := req.GetActorUserId()
+	if actorUserID <= 0 {
+		return nil, errActorUserIDRequired
 	}
 	uploadID := req.GetUploadId()
 	lockedStore, unlock, err := s.svcCtx.Store.AcquireAssetLock(ctx, uploadID)
@@ -120,7 +121,7 @@ func (s *MediaServer) CompleteUpload(
 	if err != nil {
 		return nil, err
 	}
-	if userID != asset.UserID {
+	if actorUserID != asset.CreatedByUserID {
 		return nil, errWrongOwner
 	}
 	return s.completeLocked(ctx, lockedStore, asset)
@@ -314,9 +315,9 @@ func (s *MediaServer) AbortUpload(
 	ctx context.Context,
 	req *mediav1.AbortUploadRequest,
 ) (*mediav1.AbortUploadResponse, error) {
-	userID := req.GetUserId()
-	if userID <= 0 {
-		return nil, errUserIDRequired
+	actorUserID := req.GetActorUserId()
+	if actorUserID <= 0 {
+		return nil, errActorUserIDRequired
 	}
 	uploadID := req.GetUploadId()
 	lockedStore, unlock, err := s.svcCtx.Store.AcquireAssetLock(ctx, uploadID)
@@ -329,7 +330,7 @@ func (s *MediaServer) AbortUpload(
 	if err != nil {
 		return nil, err
 	}
-	if userID != asset.UserID {
+	if actorUserID != asset.CreatedByUserID {
 		return nil, errWrongOwner
 	}
 	switch asset.Status {
@@ -364,7 +365,7 @@ func (s *MediaServer) GetAsset(
 	resp := new(mediav1.GetAssetResponse)
 	value := new(mediav1.Asset)
 	value.SetId(asset.ID)
-	value.SetOwnerUserId(asset.UserID)
+	value.SetCreatedByUserId(asset.CreatedByUserID)
 	value.SetKind(kindToProto(asset.Kind))
 	value.SetStatus(assetStatusToProto(asset.Status))
 	value.SetStorageBackend(asset.StorageBackend)
@@ -375,6 +376,7 @@ func (s *MediaServer) GetAsset(
 	value.SetVariants(variantsToProto(asset.Variants()))
 	value.SetCreatedAt(asset.CreatedAt)
 	value.SetUpdatedAt(asset.UpdatedAt)
+	value.SetSubjectId(asset.SubjectID)
 	resp.SetAsset(value)
 	return resp, nil
 }
@@ -448,16 +450,27 @@ func variantsToProto(variants []store.Variant) []*mediav1.AssetVariant {
 	return result
 }
 
-func kindFromProto(kind mediav1.AssetKind) (store.Kind, bool) {
-	switch kind {
-	case mediav1.AssetKind_ASSET_KIND_USER_AVATAR:
-		return store.KindUserAvatar, true
-	case mediav1.AssetKind_ASSET_KIND_GUILD_ICON:
-		return store.KindGuildIcon, true
-	case mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT:
-		return store.KindMessageAttachment, true
+func uploadPurpose(
+	req *mediav1.CreateUploadRequest,
+	actorUserID int64,
+) (store.Kind, int64, error) {
+	switch {
+	case req.HasUserAvatar():
+		return store.KindUserAvatar, actorUserID, nil
+	case req.HasGuildIcon():
+		guildID := req.GetGuildIcon().GetGuildId()
+		if guildID <= 0 {
+			return "", 0, errGuildIDRequired
+		}
+		return store.KindGuildIcon, guildID, nil
+	case req.HasMessageAttachment():
+		channelID := req.GetMessageAttachment().GetChannelId()
+		if channelID <= 0 {
+			return "", 0, errChannelIDRequired
+		}
+		return store.KindMessageAttachment, channelID, nil
 	default:
-		return "", false
+		return "", 0, errPurposeRequired
 	}
 }
 

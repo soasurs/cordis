@@ -26,7 +26,7 @@ func TestMediaStoreWithPostgres(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
 	require.NoError(t, migration.Apply(t.Context(), db, mediamigrations.FS))
 
-	assetStore := NewPostgres(db)
+	assetStore := New(db)
 	t.Run("create get and update", func(t *testing.T) {
 		testCreateGetAndUpdate(t, assetStore)
 	})
@@ -50,7 +50,8 @@ func testCreateGetAndUpdate(t *testing.T, assetStore Store) {
 
 	loaded, err := assetStore.GetAsset(t.Context(), asset.ID)
 	require.NoError(t, err)
-	require.Equal(t, asset.UserID, loaded.UserID)
+	require.Equal(t, asset.CreatedByUserID, loaded.CreatedByUserID)
+	require.Equal(t, asset.SubjectID, loaded.SubjectID)
 	require.Equal(t, asset.StagingKey, loaded.StagingKey)
 
 	lockedStore, unlock, err := assetStore.AcquireAssetLock(t.Context(), asset.ID)
@@ -62,7 +63,7 @@ func testCreateGetAndUpdate(t *testing.T, assetStore Store) {
 	loaded.Width = 64
 	loaded.Height = 32
 	loaded.SetVariants([]Variant{{
-		Key:          "public/1001/64.webp",
+		Key:          "avatars/1001/1101/64.webp",
 		MaxDimension: 64,
 		Width:        64,
 		Height:       32,
@@ -154,27 +155,39 @@ func testAssetAdvisoryLock(t *testing.T, assetStore Store) {
 }
 
 func testConstraints(t *testing.T, assetStore Store) {
-	invalid := integrationAsset(-1, 1401)
-	err := assetStore.CreateAssetWithQuota(t.Context(), invalid, 5)
-	var pqErr *pq.Error
-	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
-	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	t.Run("asset id", func(t *testing.T) {
+		invalid := integrationAsset(-1, 1401)
+		err := assetStore.CreateAssetWithQuota(t.Context(), invalid, 5)
+		var pqErr *pq.Error
+		require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
+		require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	})
+
+	t.Run("subject id", func(t *testing.T) {
+		invalid := integrationAsset(1402, 1401)
+		invalid.SubjectID = 0
+		err := assetStore.CreateAssetWithQuota(t.Context(), invalid, 5)
+		var pqErr *pq.Error
+		require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
+		require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	})
 }
 
 func integrationAsset(id, userID int64) *Asset {
 	now := time.Now().UnixMilli()
 	return &Asset{
-		ID:             id,
-		UserID:         userID,
-		Kind:           KindUserAvatar,
-		Status:         StatusCreated,
-		StorageBackend: "test",
-		StagingKey:     fmt.Sprintf("staging/%d", id),
-		ExpectedSize:   1024,
-		ContentType:    "image/png",
-		ExpiresAt:      now + int64(time.Minute/time.Millisecond),
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		ID:              id,
+		CreatedByUserID: userID,
+		SubjectID:       userID,
+		Kind:            KindUserAvatar,
+		Status:          StatusCreated,
+		StorageBackend:  "test",
+		StagingKey:      fmt.Sprintf("staging/%d", id),
+		ExpectedSize:    1024,
+		ContentType:     "image/png",
+		ExpiresAt:       now + int64(time.Minute/time.Millisecond),
+		CreatedAt:       now,
+		UpdatedAt:       now,
 	}
 }
 

@@ -60,24 +60,25 @@ type Variant struct {
 }
 
 type Asset struct {
-	ID             int64  `db:"id"`
-	UserID         int64  `db:"user_id"`
-	Kind           Kind   `db:"kind"`
-	Status         Status `db:"status"`
-	StorageBackend string `db:"storage_backend"`
-	StagingKey     string `db:"staging_key"`
-	PublishedKey   string `db:"published_key"`
-	ExpectedSize   int64  `db:"expected_size"`
-	ActualSize     int64  `db:"actual_size"`
-	ContentType    string `db:"content_type"`
-	ExpiresAt      int64  `db:"expires_at"`
-	Width          int32  `db:"width"`
-	Height         int32  `db:"height"`
-	VariantsJSON   string `db:"variants"`
-	ErrorMessage   string `db:"error_message"`
-	CreatedAt      int64  `db:"created_at"`
-	UpdatedAt      int64  `db:"updated_at"`
-	DeletedAt      int64  `db:"deleted_at"`
+	ID              int64  `db:"id"`
+	CreatedByUserID int64  `db:"created_by_user_id"`
+	SubjectID       int64  `db:"subject_id"`
+	Kind            Kind   `db:"kind"`
+	Status          Status `db:"status"`
+	StorageBackend  string `db:"storage_backend"`
+	StagingKey      string `db:"staging_key"`
+	PublishedKey    string `db:"published_key"`
+	ExpectedSize    int64  `db:"expected_size"`
+	ActualSize      int64  `db:"actual_size"`
+	ContentType     string `db:"content_type"`
+	ExpiresAt       int64  `db:"expires_at"`
+	Width           int32  `db:"width"`
+	Height          int32  `db:"height"`
+	VariantsJSON    string `db:"variants"`
+	ErrorMessage    string `db:"error_message"`
+	CreatedAt       int64  `db:"created_at"`
+	UpdatedAt       int64  `db:"updated_at"`
+	DeletedAt       int64  `db:"deleted_at"`
 }
 
 func (a *Asset) Variants() []Variant {
@@ -100,5 +101,12 @@ func (a *Asset) SetVariants(v []Variant) {
 }
 
 func (a *Asset) PublicPrefix() string {
-	return fmt.Sprintf("public/%d", a.ID)
+	switch a.Kind {
+	case KindUserAvatar:
+		return fmt.Sprintf("avatars/%d/%d", a.SubjectID, a.ID)
+	case KindGuildIcon:
+		return fmt.Sprintf("icons/%d/%d", a.SubjectID, a.ID)
+	default:
+		return fmt.Sprintf("assets/%d", a.ID)
+	}
 }

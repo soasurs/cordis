@@ -7,8 +7,8 @@ package media.v1;
 // services. Those callers authenticate end-user access tokens and forward the
 // server-derived user ID; Media never receives end-user tokens.
 service MediaService {
-  // CreateUpload reserves an upload session owned by user_id and returns a
-  // short-lived URL for one exact HTTP PUT.
+  // CreateUpload reserves an upload session for one typed purpose and returns
+  // a short-lived URL for one exact HTTP PUT.
   rpc CreateUpload(CreateUploadRequest) returns (CreateUploadResponse);
   // CompleteUpload validates and publishes an uploaded object. Repeating the
   // call after success returns the same asset.
@@ -23,21 +23,48 @@ service MediaService {
   rpc GetAssetURL(GetAssetURLRequest) returns (GetAssetURLResponse);
 }
 
-// CreateUploadRequest describes the owner and exact object the client will PUT.
+// CreateUploadRequest describes the actor, typed purpose, and exact object the
+// client will PUT.
 message CreateUploadRequest {
-  // user_id is the authenticated actor forwarded by the trusted caller. The
-  // caller must derive it from verified authentication state, not client input.
-  int64 user_id = 1;
-  // kind selects the validation, processing, and publication policy. Initial
-  // image kinds accept only static JPEG, PNG, and WebP files.
-  AssetKind kind = 2;
+  // actor_user_id is the authenticated actor forwarded by the trusted domain
+  // service. The caller must derive it from verified authentication state, not
+  // client input.
+  int64 actor_user_id = 1;
   // expected_size is the exact Content-Length in bytes. It is signed into the
   // presigned request and verified again when the upload is completed.
-  int64 expected_size = 3;
+  int64 expected_size = 2;
   // content_type is the exact canonical lowercase media type, without
   // parameters, signed into the presigned request. Image bytes are decoded
   // later and must agree with this value.
-  string content_type = 4;
+  string content_type = 3;
+
+  // purpose selects exactly one domain-specific validation, storage, and
+  // publication policy. Domain services authorize the referenced target before
+  // calling Media.
+  oneof purpose {
+    // user_avatar targets actor_user_id.
+    UserAvatarUploadPurpose user_avatar = 10;
+    // guild_icon targets the guild identified inside this purpose.
+    GuildIconUploadPurpose guild_icon = 11;
+    // message_attachment targets the channel identified inside this purpose.
+    MessageAttachmentUploadPurpose message_attachment = 12;
+  }
+}
+
+// UserAvatarUploadPurpose selects a user avatar upload. The target user is the
+// request's actor_user_id, so no second user ID is accepted.
+message UserAvatarUploadPurpose {}
+
+// GuildIconUploadPurpose selects an icon upload for one Guild.
+message GuildIconUploadPurpose {
+  // guild_id is the target Guild already authorized by the trusted caller.
+  int64 guild_id = 1;
+}
+
+// MessageAttachmentUploadPurpose selects an attachment upload for one channel.
+message MessageAttachmentUploadPurpose {
+  // channel_id is the target channel already authorized by the trusted caller.
+  int64 channel_id = 1;
 }
 
 // CreateUploadResponse contains the one-shot direct-upload contract.
@@ -56,9 +83,9 @@ message CreateUploadResponse {
 message CompleteUploadRequest {
   // upload_id is the opaque ID returned by CreateUpload.
   int64 upload_id = 1;
-  // user_id is forwarded by the trusted caller and must match the stored
-  // upload owner.
-  int64 user_id = 2;
+  // actor_user_id is forwarded by the trusted caller and must match the user
+  // that created the upload.
+  int64 actor_user_id = 2;
 }
 
 // CompleteUploadResponse describes the ready immutable asset.
@@ -102,9 +129,9 @@ message AssetVariant {
 message AbortUploadRequest {
   // upload_id is the opaque ID returned by CreateUpload.
   int64 upload_id = 1;
-  // user_id is forwarded by the trusted caller and must match the stored
-  // upload owner.
-  int64 user_id = 2;
+  // actor_user_id is forwarded by the trusted caller and must match the user
+  // that created the upload.
+  int64 actor_user_id = 2;
 }
 
 // AbortUploadResponse is empty because abort has no mutable result.
@@ -127,9 +154,9 @@ message GetAssetResponse {
 message Asset {
   // id is the stable asset ID and equals the upload ID used to create it.
   int64 id = 1;
-  // owner_user_id records the authenticated user that created the upload. A
-  // domain resource may have separate authorization and association rules.
-  int64 owner_user_id = 2;
+  // created_by_user_id records the authenticated actor that created the
+  // upload. The target domain resource is identified separately by subject_id.
+  int64 created_by_user_id = 2;
   // kind determines the asset's validation and delivery policy.
   AssetKind kind = 3;
   // status is the durable lifecycle state. Domain services should associate
@@ -151,6 +178,9 @@ message Asset {
   // created_at and updated_at are Unix milliseconds.
   int64 created_at = 11;
   int64 updated_at = 12;
+  // subject_id is the purpose-specific target: the user ID for USER_AVATAR,
+  // Guild ID for GUILD_ICON, or channel ID for MESSAGE_ATTACHMENT.
+  int64 subject_id = 13;
 }
 
 // GetAssetURLRequest selects a delivery policy for a ready asset.
@@ -176,7 +206,7 @@ message GetAssetURLResponse {
 
 // AssetKind selects the asset-specific upload and publication policy.
 enum AssetKind {
-  // ASSET_KIND_UNSPECIFIED is invalid for CreateUpload.
+  // ASSET_KIND_UNSPECIFIED represents an unknown or unset kind.
   ASSET_KIND_UNSPECIFIED = 0;
   // ASSET_KIND_USER_AVATAR is uploaded to staging and published as immutable
   // public WebP variants after image validation.

@@ -35,8 +35,8 @@ const (
 // services. Those callers authenticate end-user access tokens and forward the
 // server-derived user ID; Media never receives end-user tokens.
 type MediaServiceClient interface {
-	// CreateUpload reserves an upload session owned by user_id and returns a
-	// short-lived URL for one exact HTTP PUT.
+	// CreateUpload reserves an upload session for one typed purpose and returns
+	// a short-lived URL for one exact HTTP PUT.
 	CreateUpload(ctx context.Context, in *CreateUploadRequest, opts ...grpc.CallOption) (*CreateUploadResponse, error)
 	// CompleteUpload validates and publishes an uploaded object. Repeating the
 	// call after success returns the same asset.
@@ -118,8 +118,8 @@ func (c *mediaServiceClient) GetAssetURL(ctx context.Context, in *GetAssetURLReq
 // services. Those callers authenticate end-user access tokens and forward the
 // server-derived user ID; Media never receives end-user tokens.
 type MediaServiceServer interface {
-	// CreateUpload reserves an upload session owned by user_id and returns a
-	// short-lived URL for one exact HTTP PUT.
+	// CreateUpload reserves an upload session for one typed purpose and returns
+	// a short-lived URL for one exact HTTP PUT.
 	CreateUpload(context.Context, *CreateUploadRequest) (*CreateUploadResponse, error)
 	// CompleteUpload validates and publishes an uploaded object. Repeating the
 	// call after success returns the same asset.

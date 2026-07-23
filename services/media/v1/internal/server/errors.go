@@ -6,9 +6,10 @@ import (
 )
 
 var (
-	errUserIDRequired        = status.Error(codes.InvalidArgument, "user id is required")
-	errKindRequired          = status.Error(codes.InvalidArgument, "asset kind is required")
-	errKindInvalid           = status.Error(codes.InvalidArgument, "asset kind is invalid")
+	errActorUserIDRequired   = status.Error(codes.InvalidArgument, "actor user id is required")
+	errPurposeRequired       = status.Error(codes.InvalidArgument, "upload purpose is required")
+	errGuildIDRequired       = status.Error(codes.InvalidArgument, "guild id is required")
+	errChannelIDRequired     = status.Error(codes.InvalidArgument, "channel id is required")
 	errSizeRequired          = status.Error(codes.InvalidArgument, "upload size must be positive")
 	errSizeExceeded          = status.Error(codes.InvalidArgument, "upload size exceeds limit")
 	errContentTypeRequired   = status.Error(codes.InvalidArgument, "content type is required")

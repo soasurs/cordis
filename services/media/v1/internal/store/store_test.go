@@ -11,11 +11,11 @@ import (
 
 func TestCreateAssetWithQuotaLocksCountAndInsert(t *testing.T) {
 	db, mock := newSQLMock(t)
-	assetStore := NewPostgres(db)
+	assetStore := New(db)
 	asset := testAsset()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(lockQuotaScopeQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(lockUploadQuotaScopeStatement)).
 		WithArgs("cordis:media:upload-quota:1001").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM assets`).
@@ -24,7 +24,8 @@ func TestCreateAssetWithQuotaLocksCountAndInsert(t *testing.T) {
 	mock.ExpectExec(`INSERT INTO assets`).
 		WithArgs(
 			asset.ID,
-			asset.UserID,
+			asset.CreatedByUserID,
+			asset.SubjectID,
 			asset.Kind,
 			asset.Status,
 			asset.StorageBackend,
@@ -45,11 +46,11 @@ func TestCreateAssetWithQuotaLocksCountAndInsert(t *testing.T) {
 
 func TestCreateAssetWithQuotaRejectsAtLimit(t *testing.T) {
 	db, mock := newSQLMock(t)
-	assetStore := NewPostgres(db)
+	assetStore := New(db)
 	asset := testAsset()
 
 	mock.ExpectBegin()
-	mock.ExpectExec(regexp.QuoteMeta(lockQuotaScopeQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(lockUploadQuotaScopeStatement)).
 		WithArgs("cordis:media:upload-quota:1001").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM assets`).
@@ -63,12 +64,12 @@ func TestCreateAssetWithQuotaRejectsAtLimit(t *testing.T) {
 
 func TestAcquireAssetLockUsesSessionAdvisoryLock(t *testing.T) {
 	db, mock := newSQLMock(t)
-	assetStore := NewPostgres(db)
+	assetStore := New(db)
 
-	mock.ExpectExec(regexp.QuoteMeta(lockAssetQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(lockAssetStatement)).
 		WithArgs("cordis:media:asset:123").
 		WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectExec(regexp.QuoteMeta(unlockAssetQuery)).
+	mock.ExpectExec(regexp.QuoteMeta(unlockAssetStatement)).
 		WithArgs("cordis:media:asset:123").
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -89,16 +90,17 @@ func newSQLMock(t *testing.T) (*sqlx.DB, sqlmock.Sqlmock) {
 
 func testAsset() *Asset {
 	return &Asset{
-		ID:             123,
-		UserID:         1001,
-		Kind:           KindUserAvatar,
-		Status:         StatusCreated,
-		StorageBackend: "r2",
-		StagingKey:     "staging/123",
-		ExpectedSize:   1024,
-		ContentType:    "image/png",
-		ExpiresAt:      2000,
-		CreatedAt:      1000,
-		UpdatedAt:      1000,
+		ID:              123,
+		CreatedByUserID: 1001,
+		SubjectID:       1001,
+		Kind:            KindUserAvatar,
+		Status:          StatusCreated,
+		StorageBackend:  "r2",
+		StagingKey:      "staging/123",
+		ExpectedSize:    1024,
+		ContentType:     "image/png",
+		ExpiresAt:       2000,
+		CreatedAt:       1000,
+		UpdatedAt:       1000,
 	}
 }

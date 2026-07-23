@@ -45,7 +45,8 @@ func (f *fakeStore) CreateAssetWithQuota(
 	defer f.mu.Unlock()
 	var count int64
 	for _, current := range f.assets {
-		if current.UserID == asset.UserID && current.Status == store.StatusCreated {
+		if current.CreatedByUserID == asset.CreatedByUserID &&
+			current.Status == store.StatusCreated {
 			count++
 		}
 	}
@@ -277,6 +278,8 @@ func TestCreateUploadSignsExactImageContract(t *testing.T) {
 	asset, err := assets.GetAsset(t.Context(), resp.GetUploadId())
 	require.NoError(t, err)
 	require.Equal(t, store.StatusCreated, asset.Status)
+	require.Equal(t, int64(1001), asset.CreatedByUserID)
+	require.Equal(t, int64(1001), asset.SubjectID)
 	require.Equal(t, store.KindUserAvatar, asset.Kind)
 	require.Equal(t, "r2", asset.StorageBackend)
 	require.Equal(t, "staging/"+fmtID(resp.GetUploadId()), asset.StagingKey)
@@ -298,8 +301,35 @@ func TestCreateOpaqueUploadUsesPrivateFinalKey(t *testing.T) {
 	asset, err := assets.GetAsset(t.Context(), resp.GetUploadId())
 	require.NoError(t, err)
 	require.Empty(t, asset.StagingKey)
-	require.Equal(t, "private/"+fmtID(asset.ID)+"/original", asset.PublishedKey)
+	require.Equal(t, int64(3001), asset.SubjectID)
+	require.Equal(
+		t,
+		"private/attachments/3001/"+fmtID(asset.ID),
+		asset.PublishedKey,
+	)
 	require.Equal(t, asset.PublishedKey, objects.lastPresignedKey)
+}
+
+func TestCreateGuildIconUploadUsesTypedSubject(t *testing.T) {
+	srv, assets, _ := newTestServer(t)
+	req := newCreateRequest(
+		mediav1.AssetKind_ASSET_KIND_GUILD_ICON,
+		1024,
+		"image/png",
+	)
+
+	resp, err := srv.CreateUpload(t.Context(), req)
+	require.NoError(t, err)
+	asset, err := assets.GetAsset(t.Context(), resp.GetUploadId())
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), asset.CreatedByUserID)
+	require.Equal(t, int64(2001), asset.SubjectID)
+	require.Equal(t, store.KindGuildIcon, asset.Kind)
+	require.Equal(
+		t,
+		"icons/2001/"+fmtID(asset.ID),
+		asset.PublicPrefix(),
+	)
 }
 
 func TestCreateUploadValidation(t *testing.T) {
@@ -309,7 +339,42 @@ func TestCreateUploadValidation(t *testing.T) {
 		req  *mediav1.CreateUploadRequest
 		code codes.Code
 	}{
-		{name: "user id required", req: new(mediav1.CreateUploadRequest), code: codes.InvalidArgument},
+		{name: "actor user id required", req: new(mediav1.CreateUploadRequest), code: codes.InvalidArgument},
+		{
+			name: "purpose required",
+			req: func() *mediav1.CreateUploadRequest {
+				req := new(mediav1.CreateUploadRequest)
+				req.SetActorUserId(1001)
+				return req
+			}(),
+			code: codes.InvalidArgument,
+		},
+		{
+			name: "guild id required",
+			req: func() *mediav1.CreateUploadRequest {
+				req := newCreateRequest(
+					mediav1.AssetKind_ASSET_KIND_GUILD_ICON,
+					1024,
+					"image/png",
+				)
+				req.SetGuildIcon(new(mediav1.GuildIconUploadPurpose))
+				return req
+			}(),
+			code: codes.InvalidArgument,
+		},
+		{
+			name: "channel id required",
+			req: func() *mediav1.CreateUploadRequest {
+				req := newCreateRequest(
+					mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT,
+					1024,
+					"application/octet-stream",
+				)
+				req.SetMessageAttachment(new(mediav1.MessageAttachmentUploadPurpose))
+				return req
+			}(),
+			code: codes.InvalidArgument,
+		},
 		{
 			name: "size required",
 			req: newCreateRequest(
@@ -335,6 +400,30 @@ func TestCreateUploadValidation(t *testing.T) {
 			require.Equal(t, test.code, status.Code(err))
 		})
 	}
+}
+
+func TestGetAssetReturnsCreatorAndSubject(t *testing.T) {
+	srv, assets, _ := newTestServer(t)
+	asset := &store.Asset{
+		ID:              123,
+		CreatedByUserID: 1001,
+		SubjectID:       2001,
+		Kind:            store.KindGuildIcon,
+		Status:          store.StatusReady,
+	}
+	assets.createAsset(asset)
+
+	req := new(mediav1.GetAssetRequest)
+	req.SetAssetId(asset.ID)
+	resp, err := srv.GetAsset(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, asset.CreatedByUserID, resp.GetAsset().GetCreatedByUserId())
+	require.Equal(t, asset.SubjectID, resp.GetAsset().GetSubjectId())
+	require.Equal(
+		t,
+		mediav1.AssetKind_ASSET_KIND_GUILD_ICON,
+		resp.GetAsset().GetKind(),
+	)
 }
 
 func TestCreateUploadQuotaIsAtomic(t *testing.T) {
@@ -397,7 +486,8 @@ func TestCompleteImageUploadPublishesBeforeDeletingStaging(t *testing.T) {
 		require.Positive(t, variant.GetSize())
 		require.Positive(t, variant.GetMaxDimension())
 		require.True(t, objects.hasObject(
-			"public/"+fmtID(asset.ID)+"/"+fmtID(int64(variant.GetMaxDimension()))+".webp",
+			"avatars/1001/"+fmtID(asset.ID)+"/"+
+				fmtID(int64(variant.GetMaxDimension()))+".webp",
 		))
 	}
 
@@ -413,14 +503,15 @@ func TestCompleteUploadResumesCompletingAndProcessing(t *testing.T) {
 			srv, assets, objects := newTestServer(t)
 			source := testPNG(t, 20, 10)
 			asset := &store.Asset{
-				ID:           123,
-				UserID:       1001,
-				Kind:         store.KindUserAvatar,
-				Status:       initialStatus,
-				StagingKey:   "staging/123",
-				ExpectedSize: int64(len(source)),
-				ActualSize:   int64(len(source)),
-				ContentType:  "image/png",
+				ID:              123,
+				CreatedByUserID: 1001,
+				SubjectID:       1001,
+				Kind:            store.KindUserAvatar,
+				Status:          initialStatus,
+				StagingKey:      "staging/123",
+				ExpectedSize:    int64(len(source)),
+				ActualSize:      int64(len(source)),
+				ContentType:     "image/png",
 			}
 			assets.createAsset(asset)
 			objects.setObject(asset.StagingKey, "image/png", source)
@@ -466,13 +557,14 @@ func TestCompleteUploadRejectsObjectMetadataMismatch(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			srv, assets, objects := newTestServer(t)
 			asset := &store.Asset{
-				ID:           123,
-				UserID:       1001,
-				Kind:         store.KindUserAvatar,
-				Status:       store.StatusCreated,
-				StagingKey:   "staging/123",
-				ExpectedSize: 10,
-				ContentType:  "image/png",
+				ID:              123,
+				CreatedByUserID: 1001,
+				SubjectID:       1001,
+				Kind:            store.KindUserAvatar,
+				Status:          store.StatusCreated,
+				StagingKey:      "staging/123",
+				ExpectedSize:    10,
+				ContentType:     "image/png",
 			}
 			assets.createAsset(asset)
 			objects.setObject(asset.StagingKey, test.contentType, test.data)
@@ -487,7 +579,7 @@ func TestCompleteUploadRejectsObjectMetadataMismatch(t *testing.T) {
 
 func TestCompleteAndAbortVerifyOwner(t *testing.T) {
 	srv, assets, _ := newTestServer(t)
-	asset := &store.Asset{ID: 123, UserID: 1001, Status: store.StatusCreated}
+	asset := &store.Asset{ID: 123, CreatedByUserID: 1001, Status: store.StatusCreated}
 	assets.createAsset(asset)
 
 	_, err := srv.CompleteUpload(t.Context(), completeRequest(asset.ID, 2002))
@@ -495,7 +587,7 @@ func TestCompleteAndAbortVerifyOwner(t *testing.T) {
 
 	abortReq := new(mediav1.AbortUploadRequest)
 	abortReq.SetUploadId(asset.ID)
-	abortReq.SetUserId(2002)
+	abortReq.SetActorUserId(2002)
 	_, err = srv.AbortUpload(t.Context(), abortReq)
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
@@ -503,16 +595,17 @@ func TestCompleteAndAbortVerifyOwner(t *testing.T) {
 func TestAbortUploadIsIdempotentAndPreservesReadyAsset(t *testing.T) {
 	srv, assets, _ := newTestServer(t)
 	asset := &store.Asset{
-		ID:         123,
-		UserID:     1001,
-		Kind:       store.KindUserAvatar,
-		Status:     store.StatusCreated,
-		StagingKey: "staging/123",
+		ID:              123,
+		CreatedByUserID: 1001,
+		SubjectID:       1001,
+		Kind:            store.KindUserAvatar,
+		Status:          store.StatusCreated,
+		StagingKey:      "staging/123",
 	}
 	assets.createAsset(asset)
 	req := new(mediav1.AbortUploadRequest)
 	req.SetUploadId(asset.ID)
-	req.SetUserId(1001)
+	req.SetActorUserId(1001)
 
 	_, err := srv.AbortUpload(t.Context(), req)
 	require.NoError(t, err)
@@ -520,7 +613,7 @@ func TestAbortUploadIsIdempotentAndPreservesReadyAsset(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, store.StatusAborted, asset.Status)
 
-	ready := &store.Asset{ID: 124, UserID: 1001, Status: store.StatusReady}
+	ready := &store.Asset{ID: 124, CreatedByUserID: 1001, Status: store.StatusReady}
 	assets.createAsset(ready)
 	req.SetUploadId(ready.ID)
 	_, err = srv.AbortUpload(t.Context(), req)
@@ -532,18 +625,19 @@ func TestCleanupExpiredRechecksStateUnderLock(t *testing.T) {
 	srv, assets, objects := newTestServer(t)
 	now := time.Now().UnixMilli()
 	expired := &store.Asset{
-		ID:           1,
-		UserID:       1001,
-		Kind:         store.KindMessageAttachment,
-		Status:       store.StatusCreated,
-		PublishedKey: "private/1/original",
-		ExpiresAt:    now - 1000,
+		ID:              1,
+		CreatedByUserID: 1001,
+		SubjectID:       3001,
+		Kind:            store.KindMessageAttachment,
+		Status:          store.StatusCreated,
+		PublishedKey:    "private/attachments/3001/1",
+		ExpiresAt:       now - 1000,
 	}
 	ready := &store.Asset{
-		ID:        2,
-		UserID:    1001,
-		Status:    store.StatusReady,
-		ExpiresAt: now - 1000,
+		ID:              2,
+		CreatedByUserID: 1001,
+		Status:          store.StatusReady,
+		ExpiresAt:       now - 1000,
 	}
 	assets.createAsset(expired)
 	assets.createAsset(ready)
@@ -561,17 +655,28 @@ func newCreateRequest(
 	contentType string,
 ) *mediav1.CreateUploadRequest {
 	req := new(mediav1.CreateUploadRequest)
-	req.SetUserId(1001)
-	req.SetKind(kind)
+	req.SetActorUserId(1001)
 	req.SetExpectedSize(expectedSize)
 	req.SetContentType(contentType)
+	switch kind {
+	case mediav1.AssetKind_ASSET_KIND_USER_AVATAR:
+		req.SetUserAvatar(new(mediav1.UserAvatarUploadPurpose))
+	case mediav1.AssetKind_ASSET_KIND_GUILD_ICON:
+		purpose := new(mediav1.GuildIconUploadPurpose)
+		purpose.SetGuildId(2001)
+		req.SetGuildIcon(purpose)
+	case mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT:
+		purpose := new(mediav1.MessageAttachmentUploadPurpose)
+		purpose.SetChannelId(3001)
+		req.SetMessageAttachment(purpose)
+	}
 	return req
 }
 
-func completeRequest(uploadID, userID int64) *mediav1.CompleteUploadRequest {
+func completeRequest(uploadID, actorUserID int64) *mediav1.CompleteUploadRequest {
 	req := new(mediav1.CompleteUploadRequest)
 	req.SetUploadId(uploadID)
-	req.SetUserId(userID)
+	req.SetActorUserId(actorUserID)
 	return req
 }
 

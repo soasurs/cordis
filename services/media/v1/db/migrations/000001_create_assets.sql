@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS assets (
     id                      BIGINT PRIMARY KEY CHECK (id > 0),
-    user_id                 BIGINT NOT NULL CHECK (user_id > 0),
+    created_by_user_id      BIGINT NOT NULL CHECK (created_by_user_id > 0),
+    subject_id              BIGINT NOT NULL CHECK (subject_id > 0),
     kind                    TEXT NOT NULL CHECK (kind IN ('user_avatar','guild_icon','message_attachment')),
     status                  TEXT NOT NULL DEFAULT 'CREATED' CHECK (status IN ('CREATED','COMPLETING','UPLOADED','PROCESSING','READY','FAILED','ABORTED','EXPIRED')),
     storage_backend         TEXT NOT NULL DEFAULT '',
@@ -19,8 +20,8 @@ CREATE TABLE IF NOT EXISTS assets (
     deleted_at              BIGINT NOT NULL DEFAULT 0 CHECK (deleted_at >= 0)
 );
 
-CREATE INDEX IF NOT EXISTS assets_user_id_status_idx
-    ON assets (user_id, status)
+CREATE INDEX IF NOT EXISTS assets_created_by_user_id_status_idx
+    ON assets (created_by_user_id, status)
     WHERE deleted_at = 0;
 
 CREATE INDEX IF NOT EXISTS assets_status_expires_idx

@@ -50,7 +50,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	proc := processing.NewProcessor(objStore, cfg.Media)
 
 	return Dependencies{
-		Store:       store.NewPostgres(db),
+		Store:       store.New(db),
 		Snowflake:   node,
 		ObjectStore: objStore,
 		Processor:   proc,

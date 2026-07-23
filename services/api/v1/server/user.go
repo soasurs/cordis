@@ -105,9 +105,6 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *apiv1.UpdateUse
 	if req.HasName() {
 		svcReq.SetName(req.GetName())
 	}
-	if req.HasAvatarUri() {
-		svcReq.SetAvatarUri(req.GetAvatarUri())
-	}
 	svcResp, err := s.svcCtx.UserClient.UpdateUserProfile(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -115,6 +112,66 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *apiv1.UpdateUse
 	resp := new(apiv1.UpdateUserProfileResponse)
 	resp.SetProfile(userProfileToAPI(svcResp.GetProfile()))
 	return resp, nil
+}
+
+func (s *userServer) CreateAvatarUpload(
+	ctx context.Context,
+	req *apiv1.CreateAvatarUploadRequest,
+) (*apiv1.CreateAvatarUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(userv1.CreateAvatarUploadRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetExpectedSize(req.GetExpectedSize())
+	svcReq.SetContentType(req.GetContentType())
+	svcResp, err := s.svcCtx.UserClient.CreateAvatarUpload(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CreateAvatarUploadResponse)
+	resp.SetUploadId(svcResp.GetUploadId())
+	resp.SetPresignedUrl(svcResp.GetPresignedUrl())
+	resp.SetExpiresAt(svcResp.GetExpiresAt())
+	return resp, nil
+}
+
+func (s *userServer) CompleteAvatarUpload(
+	ctx context.Context,
+	req *apiv1.CompleteAvatarUploadRequest,
+) (*apiv1.CompleteAvatarUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(userv1.CompleteAvatarUploadRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetUploadId(req.GetUploadId())
+	svcResp, err := s.svcCtx.UserClient.CompleteAvatarUpload(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CompleteAvatarUploadResponse)
+	resp.SetProfile(userProfileToAPI(svcResp.GetProfile()))
+	return resp, nil
+}
+
+func (s *userServer) AbortAvatarUpload(
+	ctx context.Context,
+	req *apiv1.AbortAvatarUploadRequest,
+) (*apiv1.AbortAvatarUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(userv1.AbortAvatarUploadRequest)
+	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetUploadId(req.GetUploadId())
+	if _, err := s.svcCtx.UserClient.AbortAvatarUpload(ctx, svcReq); err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return new(apiv1.AbortAvatarUploadResponse), nil
 }
 
 func (s *userServer) ChangePassword(ctx context.Context, req *apiv1.ChangePasswordRequest) (*apiv1.ChangePasswordResponse, error) {
@@ -178,7 +235,7 @@ func userProfileToAPI(profile *userv1.UserProfile) *apiv1.UserProfile {
 	resp.SetUserId(profile.GetUserId())
 	resp.SetUsername(profile.GetUsername())
 	resp.SetName(profile.GetName())
-	resp.SetAvatarUri(profile.GetAvatarUri())
+	resp.SetAvatarAssetId(profile.GetAvatarAssetId())
 	resp.SetCreatedAt(profile.GetCreatedAt())
 	resp.SetUpdatedAt(profile.GetUpdatedAt())
 	return resp

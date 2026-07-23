@@ -1,7 +1,6 @@
 package store
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -10,8 +9,6 @@ type Status string
 const (
 	StatusCreated    Status = "CREATED"
 	StatusCompleting Status = "COMPLETING"
-	StatusUploaded   Status = "UPLOADED"
-	StatusProcessing Status = "PROCESSING"
 	StatusReady      Status = "READY"
 	StatusFailed     Status = "FAILED"
 	StatusAborted    Status = "ABORTED"
@@ -20,8 +17,8 @@ const (
 
 func (s Status) Valid() bool {
 	switch s {
-	case StatusCreated, StatusCompleting, StatusUploaded,
-		StatusProcessing, StatusReady, StatusFailed, StatusAborted, StatusExpired:
+	case StatusCreated, StatusCompleting, StatusReady,
+		StatusFailed, StatusAborted, StatusExpired:
 		return true
 	}
 	return false
@@ -51,14 +48,6 @@ func (k Kind) IsImage() bool {
 	return k == KindUserAvatar || k == KindGuildIcon
 }
 
-type Variant struct {
-	Key          string `json:"key"`
-	MaxDimension int32  `json:"max_dimension"`
-	Width        int32  `json:"width"`
-	Height       int32  `json:"height"`
-	Size         int64  `json:"size"`
-}
-
 type Asset struct {
 	ID              int64  `db:"id"`
 	CreatedByUserID int64  `db:"created_by_user_id"`
@@ -74,33 +63,13 @@ type Asset struct {
 	ExpiresAt       int64  `db:"expires_at"`
 	Width           int32  `db:"width"`
 	Height          int32  `db:"height"`
-	VariantsJSON    string `db:"variants"`
 	ErrorMessage    string `db:"error_message"`
 	CreatedAt       int64  `db:"created_at"`
 	UpdatedAt       int64  `db:"updated_at"`
 	DeletedAt       int64  `db:"deleted_at"`
 }
 
-func (a *Asset) Variants() []Variant {
-	if a.VariantsJSON == "" || a.VariantsJSON == "[]" {
-		return nil
-	}
-	var v []Variant
-	if err := json.Unmarshal([]byte(a.VariantsJSON), &v); err != nil {
-		return nil
-	}
-	return v
-}
-
-func (a *Asset) SetVariants(v []Variant) {
-	if v == nil {
-		v = []Variant{}
-	}
-	data, _ := json.Marshal(v)
-	a.VariantsJSON = string(data)
-}
-
-func (a *Asset) PublicPrefix() string {
+func (a *Asset) PublicKey() string {
 	switch a.Kind {
 	case KindUserAvatar:
 		return fmt.Sprintf("avatars/%d/%d", a.SubjectID, a.ID)

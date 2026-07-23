@@ -160,9 +160,7 @@ func (s *MediaServer) completeLocked(
 		if err := assetStore.UpdateAsset(ctx, asset); err != nil {
 			return nil, fmt.Errorf("update asset to completing: %w", err)
 		}
-		if err := s.markUploaded(ctx, assetStore, asset, info); err != nil {
-			return nil, err
-		}
+		asset.ActualSize = info.Size
 	}
 
 	if asset.Status == store.StatusCompleting {
@@ -170,24 +168,17 @@ func (s *MediaServer) completeLocked(
 		if err != nil {
 			return nil, err
 		}
-		if err := s.markUploaded(ctx, assetStore, asset, info); err != nil {
-			return nil, err
-		}
-	}
-
-	switch asset.Status {
-	case store.StatusUploaded, store.StatusProcessing:
+		asset.ActualSize = info.Size
 		if asset.Kind.IsImage() {
-			return s.processImage(ctx, assetStore, asset)
+			return s.publishImage(ctx, assetStore, asset)
 		}
 		asset.Status = store.StatusReady
 		if err := assetStore.UpdateAsset(ctx, asset); err != nil {
 			return nil, fmt.Errorf("update asset to ready: %w", err)
 		}
 		return s.buildCompleteResponse(asset)
-	default:
-		return nil, errNotUploaded
 	}
+	return nil, errNotUploaded
 }
 
 func (s *MediaServer) statUploadedObject(
@@ -226,32 +217,11 @@ func (s *MediaServer) statUploadedObject(
 	return info, nil
 }
 
-func (s *MediaServer) markUploaded(
-	ctx context.Context,
-	assetStore store.AssetStore,
-	asset *store.Asset,
-	info *objectstore.ObjectInfo,
-) error {
-	asset.ActualSize = info.Size
-	asset.Status = store.StatusUploaded
-	if err := assetStore.UpdateAsset(ctx, asset); err != nil {
-		return fmt.Errorf("update asset to uploaded: %w", err)
-	}
-	return nil
-}
-
-func (s *MediaServer) processImage(
+func (s *MediaServer) publishImage(
 	ctx context.Context,
 	assetStore store.AssetStore,
 	asset *store.Asset,
 ) (*mediav1.CompleteUploadResponse, error) {
-	if asset.Status == store.StatusUploaded {
-		asset.Status = store.StatusProcessing
-		if err := assetStore.UpdateAsset(ctx, asset); err != nil {
-			return nil, fmt.Errorf("update asset to processing: %w", err)
-		}
-	}
-
 	result, err := s.svcCtx.Processor.Process(ctx, asset)
 	if err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -266,11 +236,9 @@ func (s *MediaServer) processImage(
 		return nil, errProcessingFailed
 	}
 
-	asset.PublishedKey = asset.PublicPrefix()
+	asset.PublishedKey = result.PublishedKey
 	asset.Width = result.Width
 	asset.Height = result.Height
-	asset.SetVariants(result.Variants)
-	asset.ContentType = "image/webp"
 	asset.Status = store.StatusReady
 	asset.ErrorMessage = ""
 	if err := assetStore.UpdateAsset(ctx, asset); err != nil {
@@ -307,7 +275,6 @@ func (s *MediaServer) buildCompleteResponse(
 	metadata.SetWidth(asset.Width)
 	metadata.SetHeight(asset.Height)
 	resp.SetMetadata(metadata)
-	resp.SetVariants(variantsToProto(asset.Variants()))
 	return resp, nil
 }
 
@@ -373,7 +340,6 @@ func (s *MediaServer) GetAsset(
 	value.SetSize(asset.ActualSize)
 	value.SetWidth(asset.Width)
 	value.SetHeight(asset.Height)
-	value.SetVariants(variantsToProto(asset.Variants()))
 	value.SetCreatedAt(asset.CreatedAt)
 	value.SetUpdatedAt(asset.UpdatedAt)
 	value.SetSubjectId(asset.SubjectID)
@@ -381,10 +347,10 @@ func (s *MediaServer) GetAsset(
 	return resp, nil
 }
 
-func (s *MediaServer) GetAssetURL(
+func (s *MediaServer) GetAssetDownloadURL(
 	ctx context.Context,
-	req *mediav1.GetAssetURLRequest,
-) (*mediav1.GetAssetURLResponse, error) {
+	req *mediav1.GetAssetDownloadURLRequest,
+) (*mediav1.GetAssetDownloadURLResponse, error) {
 	asset, err := s.svcCtx.Store.GetAsset(ctx, req.GetAssetId())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -395,59 +361,22 @@ func (s *MediaServer) GetAssetURL(
 	if asset.Status != store.StatusReady {
 		return nil, errAssetNotReady
 	}
-
-	key, err := assetURLKey(asset, req.GetPurpose())
-	if err != nil {
-		return nil, err
+	if asset.Kind != store.KindMessageAttachment || asset.PublishedKey == "" {
+		return nil, errAssetNotDownloadable
 	}
 	expiresIn := req.GetExpiresInSeconds()
 	if expiresIn <= 0 {
 		expiresIn = 3600
 	}
-	url, err := s.svcCtx.ObjectStore.CreatePresignedGetURL(ctx, key, expiresIn)
+	url, err := s.svcCtx.ObjectStore.CreatePresignedGetURL(ctx, asset.PublishedKey, expiresIn)
 	if err != nil {
 		return nil, fmt.Errorf("create presigned get url: %w", err)
 	}
 
-	resp := new(mediav1.GetAssetURLResponse)
+	resp := new(mediav1.GetAssetDownloadURLResponse)
 	resp.SetUrl(url)
 	resp.SetExpiresAt(time.Now().UnixMilli() + expiresIn*1000)
 	return resp, nil
-}
-
-func assetURLKey(asset *store.Asset, purpose mediav1.AssetURLPurpose) (string, error) {
-	variants := asset.Variants()
-	if asset.Kind.IsImage() {
-		if len(variants) == 0 {
-			return "", errAssetNotReady
-		}
-		switch purpose {
-		case mediav1.AssetURLPurpose_ASSET_URL_PURPOSE_UNSPECIFIED,
-			mediav1.AssetURLPurpose_ASSET_URL_PURPOSE_PUBLIC:
-			return variants[0].Key, nil
-		case mediav1.AssetURLPurpose_ASSET_URL_PURPOSE_SIGNED_DOWNLOAD:
-			return variants[len(variants)-1].Key, nil
-		default:
-			return "", errURLPurposeInvalid
-		}
-	}
-	if purpose != mediav1.AssetURLPurpose_ASSET_URL_PURPOSE_SIGNED_DOWNLOAD {
-		return "", errURLPurposeInvalid
-	}
-	return asset.PublishedKey, nil
-}
-
-func variantsToProto(variants []store.Variant) []*mediav1.AssetVariant {
-	result := make([]*mediav1.AssetVariant, 0, len(variants))
-	for _, variant := range variants {
-		value := new(mediav1.AssetVariant)
-		value.SetMaxDimension(variant.MaxDimension)
-		value.SetWidth(variant.Width)
-		value.SetHeight(variant.Height)
-		value.SetSize(variant.Size)
-		result = append(result, value)
-	}
-	return result
 }
 
 func uploadPurpose(
@@ -493,10 +422,6 @@ func assetStatusToProto(statusValue store.Status) mediav1.AssetStatus {
 		return mediav1.AssetStatus_ASSET_STATUS_CREATED
 	case store.StatusCompleting:
 		return mediav1.AssetStatus_ASSET_STATUS_COMPLETING
-	case store.StatusUploaded:
-		return mediav1.AssetStatus_ASSET_STATUS_UPLOADED
-	case store.StatusProcessing:
-		return mediav1.AssetStatus_ASSET_STATUS_PROCESSING
 	case store.StatusReady:
 		return mediav1.AssetStatus_ASSET_STATUS_READY
 	case store.StatusFailed:

@@ -6,7 +6,6 @@ require (
 	connectrpc.com/connect v1.20.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/bwmarrin/snowflake v0.3.0
-	github.com/chai2010/webp v1.4.0
 	github.com/coder/websocket v1.8.14
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jmoiron/sqlx v1.4.0

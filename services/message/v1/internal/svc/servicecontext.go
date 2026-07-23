@@ -10,6 +10,7 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/concurrencylimit"
 	"github.com/soasurs/cordis/pkg/database"
@@ -36,6 +37,7 @@ type ServiceContext struct {
 	Publisher         EventPublisher
 	GuildClient       guildv1.GuildServiceClient
 	UserClient        userv1.UserServiceClient
+	MediaClient       mediav1.MediaServiceClient
 	ReadStatesLimiter ConcurrencyLimiter
 }
 
@@ -46,6 +48,7 @@ type Dependencies struct {
 	Publisher         EventPublisher
 	GuildClient       guildv1.GuildServiceClient
 	UserClient        userv1.UserServiceClient
+	MediaClient       mediav1.MediaServiceClient
 	ReadStatesLimiter ConcurrencyLimiter
 	DB                *sqlx.DB
 }
@@ -74,6 +77,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		db.Close()
 		return Dependencies{}, err
 	}
+	mediaRPCClient, err := zrpc.NewClient(cfg.Services.Media)
+	if err != nil {
+		db.Close()
+		return Dependencies{}, err
+	}
 
 	var kafkaClient *kgo.Client
 	if len(cfg.Kafka.Seeds) > 0 {
@@ -91,6 +99,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		DB:                db,
 		GuildClient:       guildv1.NewGuildServiceClient(guildRPCClient.Conn()),
 		UserClient:        userv1.NewUserServiceClient(userRPCClient.Conn()),
+		MediaClient:       mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
 		ReadStatesLimiter: readStatesLimiter,
 	}, nil
 }
@@ -116,6 +125,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.UserClient == nil {
 		panic("user client is required")
 	}
+	if deps.MediaClient == nil {
+		panic("media client is required")
+	}
 	if cfg.ReadStates.MaxConcurrentChannels > 0 && deps.ReadStatesLimiter == nil {
 		panic("read states concurrency limiter is required")
 	}
@@ -130,6 +142,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		Publisher:         publisher,
 		GuildClient:       deps.GuildClient,
 		UserClient:        deps.UserClient,
+		MediaClient:       deps.MediaClient,
 		ReadStatesLimiter: deps.ReadStatesLimiter,
 	}
 }

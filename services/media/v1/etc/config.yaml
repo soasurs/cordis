@@ -40,11 +40,6 @@ media:
   maxUploadSizeBytes: 524288000
   maxActiveUploadsPerUser: 5
   stagingCleanupIntervalSeconds: 300
-  imageVariantSizes:
-    - 64
-    - 128
-    - 256
-    - 512
   imageProcessingTimeoutMs: 30000
   maxConcurrentImageProcessing: 4
   maxImageSizeBytes: 10485760

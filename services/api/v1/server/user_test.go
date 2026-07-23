@@ -41,6 +41,8 @@ type fakeUserClient struct {
 	updateUserProfileRequest         *userv1.UpdateUserProfileRequest
 	updateUserProfileResponse        *userv1.UpdateUserProfileResponse
 	updateUserProfileError           error
+	createAvatarUploadRequest        *userv1.CreateAvatarUploadRequest
+	createAvatarUploadResponse       *userv1.CreateAvatarUploadResponse
 	updateUsernameRequest            *userv1.UpdateUsernameRequest
 	updateUsernameResponse           *userv1.UpdateUsernameResponse
 	updateUsernameError              error
@@ -109,6 +111,15 @@ func (f *fakeUserClient) UpdateEmail(_ context.Context, req *userv1.UpdateEmailR
 func (f *fakeUserClient) UpdateUserProfile(_ context.Context, req *userv1.UpdateUserProfileRequest, _ ...grpc.CallOption) (*userv1.UpdateUserProfileResponse, error) {
 	f.updateUserProfileRequest = req
 	return f.updateUserProfileResponse, f.updateUserProfileError
+}
+
+func (f *fakeUserClient) CreateAvatarUpload(
+	_ context.Context,
+	req *userv1.CreateAvatarUploadRequest,
+	_ ...grpc.CallOption,
+) (*userv1.CreateAvatarUploadResponse, error) {
+	f.createAvatarUploadRequest = req
+	return f.createAvatarUploadResponse, nil
 }
 
 func TestGetCurrentUserOverConnectHTTP(t *testing.T) {
@@ -253,16 +264,37 @@ func TestUpdateUserProfileUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, int64(1001), userClient.updateUserProfileRequest.GetUserId())
 	require.True(t, userClient.updateUserProfileRequest.HasName())
 	require.Equal(t, "new name", userClient.updateUserProfileRequest.GetName())
-	require.False(t, userClient.updateUserProfileRequest.HasAvatarUri())
 	require.Equal(t, int64(1001), resp.GetProfile().GetUserId())
 
 	req = new(apiv1.UpdateUserProfileRequest)
-	req.SetAvatarUri("")
+	req.SetName("")
 	_, err = client.UpdateUserProfile(context.Background(), req)
 	require.NoError(t, err)
-	require.False(t, userClient.updateUserProfileRequest.HasName())
-	require.True(t, userClient.updateUserProfileRequest.HasAvatarUri())
-	require.Empty(t, userClient.updateUserProfileRequest.GetAvatarUri())
+	require.True(t, userClient.updateUserProfileRequest.HasName())
+	require.Empty(t, userClient.updateUserProfileRequest.GetName())
+}
+
+func TestCreateAvatarUploadUsesAuthenticatedUser(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	svcResp := new(userv1.CreateAvatarUploadResponse)
+	svcResp.SetUploadId(7001)
+	svcResp.SetPresignedUrl("https://upload.example/7001")
+	svcResp.SetExpiresAt(9001)
+	userClient := &fakeUserClient{createAvatarUploadResponse: svcResp}
+	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
+	defer closeServer()
+
+	req := new(apiv1.CreateAvatarUploadRequest)
+	req.SetExpectedSize(123)
+	req.SetContentType("image/png")
+	resp, err := client.CreateAvatarUpload(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), userClient.createAvatarUploadRequest.GetUserId())
+	require.Equal(t, int64(123), userClient.createAvatarUploadRequest.GetExpectedSize())
+	require.Equal(t, "image/png", userClient.createAvatarUploadRequest.GetContentType())
+	require.Equal(t, int64(7001), resp.GetUploadId())
 }
 
 func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {
@@ -368,7 +400,7 @@ func internalUserProfile() *userv1.UserProfile {
 	profile := new(userv1.UserProfile)
 	profile.SetUserId(1001)
 	profile.SetName("display name")
-	profile.SetAvatarUri("https://example.com/avatar.png")
+	profile.SetAvatarAssetId(6001)
 	profile.SetCreatedAt(2001)
 	profile.SetUpdatedAt(3001)
 	return profile

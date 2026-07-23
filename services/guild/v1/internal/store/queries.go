@@ -1,7 +1,7 @@
 package store
 
 const guildColumns = `
-    id, owner_id, name, icon_uri, revision, access_revision, created_at, updated_at, deleted_at
+    id, owner_id, name, icon_asset_id, revision, access_revision, created_at, updated_at, deleted_at
 `
 
 const guildMemberColumns = `
@@ -28,9 +28,9 @@ const channelOverwriteColumns = `
 
 const createGuildQuery = `
     INSERT INTO guilds (
-        id, owner_id, name, icon_uri, revision, created_at, updated_at, deleted_at
+        id, owner_id, name, icon_asset_id, revision, created_at, updated_at, deleted_at
     ) VALUES (
-        $1, $2, $3, $4, 1, $5, 0, 0
+        $1, $2, $3, 0, 1, $4, 0, 0
     )
     RETURNING ` + guildColumns
 
@@ -99,9 +99,17 @@ const listUserGuildsQuery = `
 const updateGuildQuery = `
     UPDATE guilds
     SET name = CASE WHEN $2 THEN $3 ELSE name END,
-        icon_uri = CASE WHEN $4 THEN $5 ELSE icon_uri END,
         revision = revision + 1,
-        updated_at = $6
+        updated_at = $4
+    WHERE id = $1
+      AND deleted_at = 0
+    RETURNING ` + guildColumns
+
+const updateGuildIconQuery = `
+    UPDATE guilds
+    SET icon_asset_id = $2,
+        revision = revision + 1,
+        updated_at = $3
     WHERE id = $1
       AND deleted_at = 0
     RETURNING ` + guildColumns

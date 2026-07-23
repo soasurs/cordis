@@ -30,3 +30,14 @@ database:
   dataSource: postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable
   maxOpenConns: 10
   maxIdleConns: 5
+
+services:
+  media:
+    endpoints:
+      - 127.0.0.1:3008
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true

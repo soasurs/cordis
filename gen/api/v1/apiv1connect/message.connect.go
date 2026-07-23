@@ -48,6 +48,18 @@ const (
 	// MessageServiceListMessagesProcedure is the fully-qualified name of the MessageService's
 	// ListMessages RPC.
 	MessageServiceListMessagesProcedure = "/api.v1.MessageService/ListMessages"
+	// MessageServiceCreateAttachmentUploadProcedure is the fully-qualified name of the MessageService's
+	// CreateAttachmentUpload RPC.
+	MessageServiceCreateAttachmentUploadProcedure = "/api.v1.MessageService/CreateAttachmentUpload"
+	// MessageServiceCompleteAttachmentUploadProcedure is the fully-qualified name of the
+	// MessageService's CompleteAttachmentUpload RPC.
+	MessageServiceCompleteAttachmentUploadProcedure = "/api.v1.MessageService/CompleteAttachmentUpload"
+	// MessageServiceAbortAttachmentUploadProcedure is the fully-qualified name of the MessageService's
+	// AbortAttachmentUpload RPC.
+	MessageServiceAbortAttachmentUploadProcedure = "/api.v1.MessageService/AbortAttachmentUpload"
+	// MessageServiceGetAttachmentDownloadURLProcedure is the fully-qualified name of the
+	// MessageService's GetAttachmentDownloadURL RPC.
+	MessageServiceGetAttachmentDownloadURLProcedure = "/api.v1.MessageService/GetAttachmentDownloadURL"
 	// MessageServiceCreateDmChannelProcedure is the fully-qualified name of the MessageService's
 	// CreateDmChannel RPC.
 	MessageServiceCreateDmChannelProcedure = "/api.v1.MessageService/CreateDmChannel"
@@ -74,6 +86,17 @@ type MessageServiceClient interface {
 	GetMessage(context.Context, *v1.GetMessageRequest) (*v1.GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered newest first.
 	ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error)
+	// CreateAttachmentUpload creates a single-PUT private upload after checking
+	// that the bearer token user may send messages in the channel.
+	CreateAttachmentUpload(context.Context, *v1.CreateAttachmentUploadRequest) (*v1.CreateAttachmentUploadResponse, error)
+	// CompleteAttachmentUpload validates object metadata and returns trusted
+	// attachment metadata for use in CreateMessage or UpdateMessage.
+	CompleteAttachmentUpload(context.Context, *v1.CompleteAttachmentUploadRequest) (*v1.CompleteAttachmentUploadResponse, error)
+	// AbortAttachmentUpload cancels an unpublished attachment upload.
+	AbortAttachmentUpload(context.Context, *v1.AbortAttachmentUploadRequest) (*v1.AbortAttachmentUploadResponse, error)
+	// GetAttachmentDownloadURL returns a short-lived URL only after checking
+	// message association and the caller's current channel visibility.
+	GetAttachmentDownloadURL(context.Context, *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error)
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
 	// friend. Messages then flow through the regular message RPCs using the
 	// returned channel ID.
@@ -126,6 +149,30 @@ func NewMessageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(messageServiceMethods.ByName("ListMessages")),
 			connect.WithClientOptions(opts...),
 		),
+		createAttachmentUpload: connect.NewClient[v1.CreateAttachmentUploadRequest, v1.CreateAttachmentUploadResponse](
+			httpClient,
+			baseURL+MessageServiceCreateAttachmentUploadProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("CreateAttachmentUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		completeAttachmentUpload: connect.NewClient[v1.CompleteAttachmentUploadRequest, v1.CompleteAttachmentUploadResponse](
+			httpClient,
+			baseURL+MessageServiceCompleteAttachmentUploadProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("CompleteAttachmentUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		abortAttachmentUpload: connect.NewClient[v1.AbortAttachmentUploadRequest, v1.AbortAttachmentUploadResponse](
+			httpClient,
+			baseURL+MessageServiceAbortAttachmentUploadProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("AbortAttachmentUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		getAttachmentDownloadURL: connect.NewClient[v1.GetAttachmentDownloadURLRequest, v1.GetAttachmentDownloadURLResponse](
+			httpClient,
+			baseURL+MessageServiceGetAttachmentDownloadURLProcedure,
+			connect.WithSchema(messageServiceMethods.ByName("GetAttachmentDownloadURL")),
+			connect.WithClientOptions(opts...),
+		),
 		createDmChannel: connect.NewClient[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse](
 			httpClient,
 			baseURL+MessageServiceCreateDmChannelProcedure,
@@ -155,15 +202,19 @@ func NewMessageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // messageServiceClient implements MessageServiceClient.
 type messageServiceClient struct {
-	createMessage   *connect.Client[v1.CreateMessageRequest, v1.CreateMessageResponse]
-	updateMessage   *connect.Client[v1.UpdateMessageRequest, v1.UpdateMessageResponse]
-	deleteMessage   *connect.Client[v1.DeleteMessageRequest, v1.DeleteMessageResponse]
-	getMessage      *connect.Client[v1.GetMessageRequest, v1.GetMessageResponse]
-	listMessages    *connect.Client[v1.ListMessagesRequest, v1.ListMessagesResponse]
-	createDmChannel *connect.Client[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse]
-	listDmChannels  *connect.Client[v1.ListDmChannelsRequest, v1.ListDmChannelsResponse]
-	ackMessage      *connect.Client[v1.AckMessageRequest, v1.AckMessageResponse]
-	getReadStates   *connect.Client[v1.GetReadStatesRequest, v1.GetReadStatesResponse]
+	createMessage            *connect.Client[v1.CreateMessageRequest, v1.CreateMessageResponse]
+	updateMessage            *connect.Client[v1.UpdateMessageRequest, v1.UpdateMessageResponse]
+	deleteMessage            *connect.Client[v1.DeleteMessageRequest, v1.DeleteMessageResponse]
+	getMessage               *connect.Client[v1.GetMessageRequest, v1.GetMessageResponse]
+	listMessages             *connect.Client[v1.ListMessagesRequest, v1.ListMessagesResponse]
+	createAttachmentUpload   *connect.Client[v1.CreateAttachmentUploadRequest, v1.CreateAttachmentUploadResponse]
+	completeAttachmentUpload *connect.Client[v1.CompleteAttachmentUploadRequest, v1.CompleteAttachmentUploadResponse]
+	abortAttachmentUpload    *connect.Client[v1.AbortAttachmentUploadRequest, v1.AbortAttachmentUploadResponse]
+	getAttachmentDownloadURL *connect.Client[v1.GetAttachmentDownloadURLRequest, v1.GetAttachmentDownloadURLResponse]
+	createDmChannel          *connect.Client[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse]
+	listDmChannels           *connect.Client[v1.ListDmChannelsRequest, v1.ListDmChannelsResponse]
+	ackMessage               *connect.Client[v1.AckMessageRequest, v1.AckMessageResponse]
+	getReadStates            *connect.Client[v1.GetReadStatesRequest, v1.GetReadStatesResponse]
 }
 
 // CreateMessage calls api.v1.MessageService.CreateMessage.
@@ -205,6 +256,42 @@ func (c *messageServiceClient) GetMessage(ctx context.Context, req *v1.GetMessag
 // ListMessages calls api.v1.MessageService.ListMessages.
 func (c *messageServiceClient) ListMessages(ctx context.Context, req *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error) {
 	response, err := c.listMessages.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CreateAttachmentUpload calls api.v1.MessageService.CreateAttachmentUpload.
+func (c *messageServiceClient) CreateAttachmentUpload(ctx context.Context, req *v1.CreateAttachmentUploadRequest) (*v1.CreateAttachmentUploadResponse, error) {
+	response, err := c.createAttachmentUpload.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CompleteAttachmentUpload calls api.v1.MessageService.CompleteAttachmentUpload.
+func (c *messageServiceClient) CompleteAttachmentUpload(ctx context.Context, req *v1.CompleteAttachmentUploadRequest) (*v1.CompleteAttachmentUploadResponse, error) {
+	response, err := c.completeAttachmentUpload.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// AbortAttachmentUpload calls api.v1.MessageService.AbortAttachmentUpload.
+func (c *messageServiceClient) AbortAttachmentUpload(ctx context.Context, req *v1.AbortAttachmentUploadRequest) (*v1.AbortAttachmentUploadResponse, error) {
+	response, err := c.abortAttachmentUpload.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetAttachmentDownloadURL calls api.v1.MessageService.GetAttachmentDownloadURL.
+func (c *messageServiceClient) GetAttachmentDownloadURL(ctx context.Context, req *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error) {
+	response, err := c.getAttachmentDownloadURL.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -259,6 +346,17 @@ type MessageServiceHandler interface {
 	GetMessage(context.Context, *v1.GetMessageRequest) (*v1.GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered newest first.
 	ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error)
+	// CreateAttachmentUpload creates a single-PUT private upload after checking
+	// that the bearer token user may send messages in the channel.
+	CreateAttachmentUpload(context.Context, *v1.CreateAttachmentUploadRequest) (*v1.CreateAttachmentUploadResponse, error)
+	// CompleteAttachmentUpload validates object metadata and returns trusted
+	// attachment metadata for use in CreateMessage or UpdateMessage.
+	CompleteAttachmentUpload(context.Context, *v1.CompleteAttachmentUploadRequest) (*v1.CompleteAttachmentUploadResponse, error)
+	// AbortAttachmentUpload cancels an unpublished attachment upload.
+	AbortAttachmentUpload(context.Context, *v1.AbortAttachmentUploadRequest) (*v1.AbortAttachmentUploadResponse, error)
+	// GetAttachmentDownloadURL returns a short-lived URL only after checking
+	// message association and the caller's current channel visibility.
+	GetAttachmentDownloadURL(context.Context, *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error)
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
 	// friend. Messages then flow through the regular message RPCs using the
 	// returned channel ID.
@@ -307,6 +405,30 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 		connect.WithSchema(messageServiceMethods.ByName("ListMessages")),
 		connect.WithHandlerOptions(opts...),
 	)
+	messageServiceCreateAttachmentUploadHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceCreateAttachmentUploadProcedure,
+		svc.CreateAttachmentUpload,
+		connect.WithSchema(messageServiceMethods.ByName("CreateAttachmentUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	messageServiceCompleteAttachmentUploadHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceCompleteAttachmentUploadProcedure,
+		svc.CompleteAttachmentUpload,
+		connect.WithSchema(messageServiceMethods.ByName("CompleteAttachmentUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	messageServiceAbortAttachmentUploadHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceAbortAttachmentUploadProcedure,
+		svc.AbortAttachmentUpload,
+		connect.WithSchema(messageServiceMethods.ByName("AbortAttachmentUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	messageServiceGetAttachmentDownloadURLHandler := connect.NewUnaryHandlerSimple(
+		MessageServiceGetAttachmentDownloadURLProcedure,
+		svc.GetAttachmentDownloadURL,
+		connect.WithSchema(messageServiceMethods.ByName("GetAttachmentDownloadURL")),
+		connect.WithHandlerOptions(opts...),
+	)
 	messageServiceCreateDmChannelHandler := connect.NewUnaryHandlerSimple(
 		MessageServiceCreateDmChannelProcedure,
 		svc.CreateDmChannel,
@@ -343,6 +465,14 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 			messageServiceGetMessageHandler.ServeHTTP(w, r)
 		case MessageServiceListMessagesProcedure:
 			messageServiceListMessagesHandler.ServeHTTP(w, r)
+		case MessageServiceCreateAttachmentUploadProcedure:
+			messageServiceCreateAttachmentUploadHandler.ServeHTTP(w, r)
+		case MessageServiceCompleteAttachmentUploadProcedure:
+			messageServiceCompleteAttachmentUploadHandler.ServeHTTP(w, r)
+		case MessageServiceAbortAttachmentUploadProcedure:
+			messageServiceAbortAttachmentUploadHandler.ServeHTTP(w, r)
+		case MessageServiceGetAttachmentDownloadURLProcedure:
+			messageServiceGetAttachmentDownloadURLHandler.ServeHTTP(w, r)
 		case MessageServiceCreateDmChannelProcedure:
 			messageServiceCreateDmChannelHandler.ServeHTTP(w, r)
 		case MessageServiceListDmChannelsProcedure:
@@ -378,6 +508,22 @@ func (UnimplementedMessageServiceHandler) GetMessage(context.Context, *v1.GetMes
 
 func (UnimplementedMessageServiceHandler) ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.ListMessages is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) CreateAttachmentUpload(context.Context, *v1.CreateAttachmentUploadRequest) (*v1.CreateAttachmentUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.CreateAttachmentUpload is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) CompleteAttachmentUpload(context.Context, *v1.CompleteAttachmentUploadRequest) (*v1.CompleteAttachmentUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.CompleteAttachmentUpload is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) AbortAttachmentUpload(context.Context, *v1.AbortAttachmentUploadRequest) (*v1.AbortAttachmentUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.AbortAttachmentUpload is not implemented"))
+}
+
+func (UnimplementedMessageServiceHandler) GetAttachmentDownloadURL(context.Context, *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.GetAttachmentDownloadURL is not implemented"))
 }
 
 func (UnimplementedMessageServiceHandler) CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error) {

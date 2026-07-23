@@ -25,6 +25,9 @@ const (
 	GuildService_GetUserReadyState_FullMethodName                     = "/guild.v1.GuildService/GetUserReadyState"
 	GuildService_GetUserGuildChannelVisibility_FullMethodName         = "/guild.v1.GuildService/GetUserGuildChannelVisibility"
 	GuildService_UpdateGuild_FullMethodName                           = "/guild.v1.GuildService/UpdateGuild"
+	GuildService_CreateGuildIconUpload_FullMethodName                 = "/guild.v1.GuildService/CreateGuildIconUpload"
+	GuildService_CompleteGuildIconUpload_FullMethodName               = "/guild.v1.GuildService/CompleteGuildIconUpload"
+	GuildService_AbortGuildIconUpload_FullMethodName                  = "/guild.v1.GuildService/AbortGuildIconUpload"
 	GuildService_DeleteGuild_FullMethodName                           = "/guild.v1.GuildService/DeleteGuild"
 	GuildService_AddGuildMember_FullMethodName                        = "/guild.v1.GuildService/AddGuildMember"
 	GuildService_GetGuildMember_FullMethodName                        = "/guild.v1.GuildService/GetGuildMember"
@@ -78,6 +81,9 @@ type GuildServiceClient interface {
 	// for an on-demand snapshot reload by Session nodes.
 	GetUserGuildChannelVisibility(ctx context.Context, in *GetUserGuildChannelVisibilityRequest, opts ...grpc.CallOption) (*GetUserGuildChannelVisibilityResponse, error)
 	UpdateGuild(ctx context.Context, in *UpdateGuildRequest, opts ...grpc.CallOption) (*UpdateGuildResponse, error)
+	CreateGuildIconUpload(ctx context.Context, in *CreateGuildIconUploadRequest, opts ...grpc.CallOption) (*CreateGuildIconUploadResponse, error)
+	CompleteGuildIconUpload(ctx context.Context, in *CompleteGuildIconUploadRequest, opts ...grpc.CallOption) (*CompleteGuildIconUploadResponse, error)
+	AbortGuildIconUpload(ctx context.Context, in *AbortGuildIconUploadRequest, opts ...grpc.CallOption) (*AbortGuildIconUploadResponse, error)
 	DeleteGuild(ctx context.Context, in *DeleteGuildRequest, opts ...grpc.CallOption) (*DeleteGuildResponse, error)
 	AddGuildMember(ctx context.Context, in *AddGuildMemberRequest, opts ...grpc.CallOption) (*AddGuildMemberResponse, error)
 	GetGuildMember(ctx context.Context, in *GetGuildMemberRequest, opts ...grpc.CallOption) (*GetGuildMemberResponse, error)
@@ -178,6 +184,36 @@ func (c *guildServiceClient) UpdateGuild(ctx context.Context, in *UpdateGuildReq
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateGuildResponse)
 	err := c.cc.Invoke(ctx, GuildService_UpdateGuild_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) CreateGuildIconUpload(ctx context.Context, in *CreateGuildIconUploadRequest, opts ...grpc.CallOption) (*CreateGuildIconUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateGuildIconUploadResponse)
+	err := c.cc.Invoke(ctx, GuildService_CreateGuildIconUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) CompleteGuildIconUpload(ctx context.Context, in *CompleteGuildIconUploadRequest, opts ...grpc.CallOption) (*CompleteGuildIconUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompleteGuildIconUploadResponse)
+	err := c.cc.Invoke(ctx, GuildService_CompleteGuildIconUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) AbortGuildIconUpload(ctx context.Context, in *AbortGuildIconUploadRequest, opts ...grpc.CallOption) (*AbortGuildIconUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AbortGuildIconUploadResponse)
+	err := c.cc.Invoke(ctx, GuildService_AbortGuildIconUpload_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -559,6 +595,9 @@ type GuildServiceServer interface {
 	// for an on-demand snapshot reload by Session nodes.
 	GetUserGuildChannelVisibility(context.Context, *GetUserGuildChannelVisibilityRequest) (*GetUserGuildChannelVisibilityResponse, error)
 	UpdateGuild(context.Context, *UpdateGuildRequest) (*UpdateGuildResponse, error)
+	CreateGuildIconUpload(context.Context, *CreateGuildIconUploadRequest) (*CreateGuildIconUploadResponse, error)
+	CompleteGuildIconUpload(context.Context, *CompleteGuildIconUploadRequest) (*CompleteGuildIconUploadResponse, error)
+	AbortGuildIconUpload(context.Context, *AbortGuildIconUploadRequest) (*AbortGuildIconUploadResponse, error)
 	DeleteGuild(context.Context, *DeleteGuildRequest) (*DeleteGuildResponse, error)
 	AddGuildMember(context.Context, *AddGuildMemberRequest) (*AddGuildMemberResponse, error)
 	GetGuildMember(context.Context, *GetGuildMemberRequest) (*GetGuildMemberResponse, error)
@@ -621,6 +660,15 @@ func (UnimplementedGuildServiceServer) GetUserGuildChannelVisibility(context.Con
 }
 func (UnimplementedGuildServiceServer) UpdateGuild(context.Context, *UpdateGuildRequest) (*UpdateGuildResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGuild not implemented")
+}
+func (UnimplementedGuildServiceServer) CreateGuildIconUpload(context.Context, *CreateGuildIconUploadRequest) (*CreateGuildIconUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGuildIconUpload not implemented")
+}
+func (UnimplementedGuildServiceServer) CompleteGuildIconUpload(context.Context, *CompleteGuildIconUploadRequest) (*CompleteGuildIconUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CompleteGuildIconUpload not implemented")
+}
+func (UnimplementedGuildServiceServer) AbortGuildIconUpload(context.Context, *AbortGuildIconUploadRequest) (*AbortGuildIconUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AbortGuildIconUpload not implemented")
 }
 func (UnimplementedGuildServiceServer) DeleteGuild(context.Context, *DeleteGuildRequest) (*DeleteGuildResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteGuild not implemented")
@@ -854,6 +902,60 @@ func _GuildService_UpdateGuild_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GuildServiceServer).UpdateGuild(ctx, req.(*UpdateGuildRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_CreateGuildIconUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateGuildIconUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).CreateGuildIconUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_CreateGuildIconUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).CreateGuildIconUpload(ctx, req.(*CreateGuildIconUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_CompleteGuildIconUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteGuildIconUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).CompleteGuildIconUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_CompleteGuildIconUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).CompleteGuildIconUpload(ctx, req.(*CompleteGuildIconUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_AbortGuildIconUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AbortGuildIconUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).AbortGuildIconUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_AbortGuildIconUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).AbortGuildIconUpload(ctx, req.(*AbortGuildIconUploadRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1536,6 +1638,18 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateGuild",
 			Handler:    _GuildService_UpdateGuild_Handler,
+		},
+		{
+			MethodName: "CreateGuildIconUpload",
+			Handler:    _GuildService_CreateGuildIconUpload_Handler,
+		},
+		{
+			MethodName: "CompleteGuildIconUpload",
+			Handler:    _GuildService_CompleteGuildIconUpload_Handler,
+		},
+		{
+			MethodName: "AbortGuildIconUpload",
+			Handler:    _GuildService_AbortGuildIconUpload_Handler,
 		},
 		{
 			MethodName: "DeleteGuild",

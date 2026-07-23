@@ -501,18 +501,18 @@ func (b0 User_builder) Build() *User {
 }
 
 type UserProfile struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
-	xxx_hidden_AvatarUri   *string                `protobuf:"bytes,3,opt,name=avatar_uri,json=avatarUri"`
-	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,5,opt,name=updated_at,json=updatedAt"`
-	xxx_hidden_DeletedAt   int64                  `protobuf:"varint,6,opt,name=deleted_at,json=deletedAt"`
-	xxx_hidden_Username    *string                `protobuf:"bytes,7,opt,name=username"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Name          *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_AvatarAssetId int64                  `protobuf:"varint,3,opt,name=avatar_asset_id,json=avatarAssetId"`
+	xxx_hidden_CreatedAt     int64                  `protobuf:"varint,4,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt     int64                  `protobuf:"varint,5,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_DeletedAt     int64                  `protobuf:"varint,6,opt,name=deleted_at,json=deletedAt"`
+	xxx_hidden_Username      *string                `protobuf:"bytes,7,opt,name=username"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *UserProfile) Reset() {
@@ -557,14 +557,11 @@ func (x *UserProfile) GetName() string {
 	return ""
 }
 
-func (x *UserProfile) GetAvatarUri() string {
+func (x *UserProfile) GetAvatarAssetId() int64 {
 	if x != nil {
-		if x.xxx_hidden_AvatarUri != nil {
-			return *x.xxx_hidden_AvatarUri
-		}
-		return ""
+		return x.xxx_hidden_AvatarAssetId
 	}
-	return ""
+	return 0
 }
 
 func (x *UserProfile) GetCreatedAt() int64 {
@@ -608,8 +605,8 @@ func (x *UserProfile) SetName(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
-func (x *UserProfile) SetAvatarUri(v string) {
-	x.xxx_hidden_AvatarUri = &v
+func (x *UserProfile) SetAvatarAssetId(v int64) {
+	x.xxx_hidden_AvatarAssetId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
 }
 
@@ -647,7 +644,7 @@ func (x *UserProfile) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *UserProfile) HasAvatarUri() bool {
+func (x *UserProfile) HasAvatarAssetId() bool {
 	if x == nil {
 		return false
 	}
@@ -692,9 +689,9 @@ func (x *UserProfile) ClearName() {
 	x.xxx_hidden_Name = nil
 }
 
-func (x *UserProfile) ClearAvatarUri() {
+func (x *UserProfile) ClearAvatarAssetId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_AvatarUri = nil
+	x.xxx_hidden_AvatarAssetId = 0
 }
 
 func (x *UserProfile) ClearCreatedAt() {
@@ -720,12 +717,14 @@ func (x *UserProfile) ClearUsername() {
 type UserProfile_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId    *int64
-	Name      *string
-	AvatarUri *string
-	CreatedAt *int64
-	UpdatedAt *int64
-	DeletedAt *int64
+	UserId *int64
+	Name   *string
+	// Zero means the user has no avatar. The public API exposes the deterministic
+	// CDN path contract; this service persists only the asset ID.
+	AvatarAssetId *int64
+	CreatedAt     *int64
+	UpdatedAt     *int64
+	DeletedAt     *int64
 	// Globally unique lowercase handle.
 	Username *string
 }
@@ -742,9 +741,9 @@ func (b0 UserProfile_builder) Build() *UserProfile {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_Name = b.Name
 	}
-	if b.AvatarUri != nil {
+	if b.AvatarAssetId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
-		x.xxx_hidden_AvatarUri = b.AvatarUri
+		x.xxx_hidden_AvatarAssetId = *b.AvatarAssetId
 	}
 	if b.CreatedAt != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
@@ -2016,7 +2015,6 @@ type UpdateUserProfileRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
-	xxx_hidden_AvatarUri   *string                `protobuf:"bytes,3,opt,name=avatar_uri,json=avatarUri"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2065,29 +2063,14 @@ func (x *UpdateUserProfileRequest) GetName() string {
 	return ""
 }
 
-func (x *UpdateUserProfileRequest) GetAvatarUri() string {
-	if x != nil {
-		if x.xxx_hidden_AvatarUri != nil {
-			return *x.xxx_hidden_AvatarUri
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *UpdateUserProfileRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
 func (x *UpdateUserProfileRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *UpdateUserProfileRequest) SetAvatarUri(v string) {
-	x.xxx_hidden_AvatarUri = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *UpdateUserProfileRequest) HasUserId() bool {
@@ -2104,13 +2087,6 @@ func (x *UpdateUserProfileRequest) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *UpdateUserProfileRequest) HasAvatarUri() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
 func (x *UpdateUserProfileRequest) ClearUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UserId = 0
@@ -2121,19 +2097,12 @@ func (x *UpdateUserProfileRequest) ClearName() {
 	x.xxx_hidden_Name = nil
 }
 
-func (x *UpdateUserProfileRequest) ClearAvatarUri() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_AvatarUri = nil
-}
-
 type UpdateUserProfileRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	UserId *int64
 	// Optional replacement field. When absent, the current name is preserved.
 	Name *string
-	// Optional replacement field. An explicit empty string clears the avatar.
-	AvatarUri *string
 }
 
 func (b0 UpdateUserProfileRequest_builder) Build() *UpdateUserProfileRequest {
@@ -2141,16 +2110,12 @@ func (b0 UpdateUserProfileRequest_builder) Build() *UpdateUserProfileRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
 		x.xxx_hidden_Name = b.Name
-	}
-	if b.AvatarUri != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_AvatarUri = b.AvatarUri
 	}
 	return m0
 }
@@ -2223,6 +2188,621 @@ func (b0 UpdateUserProfileResponse_builder) Build() *UpdateUserProfileResponse {
 	return m0
 }
 
+// CreateAvatarUploadRequest carries an authenticated user identity and the
+// exact image upload contract to Media.
+type CreateAvatarUploadRequest struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId       int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_ExpectedSize int64                  `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType  *string                `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *CreateAvatarUploadRequest) Reset() {
+	*x = CreateAvatarUploadRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAvatarUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAvatarUploadRequest) ProtoMessage() {}
+
+func (x *CreateAvatarUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateAvatarUploadRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *CreateAvatarUploadRequest) GetExpectedSize() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpectedSize
+	}
+	return 0
+}
+
+func (x *CreateAvatarUploadRequest) GetContentType() string {
+	if x != nil {
+		if x.xxx_hidden_ContentType != nil {
+			return *x.xxx_hidden_ContentType
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateAvatarUploadRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CreateAvatarUploadRequest) SetExpectedSize(v int64) {
+	x.xxx_hidden_ExpectedSize = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateAvatarUploadRequest) SetContentType(v string) {
+	x.xxx_hidden_ContentType = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *CreateAvatarUploadRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateAvatarUploadRequest) HasExpectedSize() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateAvatarUploadRequest) HasContentType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateAvatarUploadRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *CreateAvatarUploadRequest) ClearExpectedSize() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ExpectedSize = 0
+}
+
+func (x *CreateAvatarUploadRequest) ClearContentType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ContentType = nil
+}
+
+type CreateAvatarUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// user_id is derived from verified authentication state by the API service.
+	UserId *int64
+	// Exact number of bytes the client will PUT.
+	ExpectedSize *int64
+	// Canonical image/jpeg, image/png, or image/webp media type.
+	ContentType *string
+}
+
+func (b0 CreateAvatarUploadRequest_builder) Build() *CreateAvatarUploadRequest {
+	m0 := &CreateAvatarUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.ExpectedSize != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
+	}
+	if b.ContentType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ContentType = b.ContentType
+	}
+	return m0
+}
+
+// CreateAvatarUploadResponse forwards Media's one-shot direct-upload contract.
+type CreateAvatarUploadResponse struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UploadId     int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
+	xxx_hidden_PresignedUrl *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
+	xxx_hidden_ExpiresAt    int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *CreateAvatarUploadResponse) Reset() {
+	*x = CreateAvatarUploadResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAvatarUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAvatarUploadResponse) ProtoMessage() {}
+
+func (x *CreateAvatarUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateAvatarUploadResponse) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *CreateAvatarUploadResponse) GetPresignedUrl() string {
+	if x != nil {
+		if x.xxx_hidden_PresignedUrl != nil {
+			return *x.xxx_hidden_PresignedUrl
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateAvatarUploadResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *CreateAvatarUploadResponse) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CreateAvatarUploadResponse) SetPresignedUrl(v string) {
+	x.xxx_hidden_PresignedUrl = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateAvatarUploadResponse) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *CreateAvatarUploadResponse) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateAvatarUploadResponse) HasPresignedUrl() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateAvatarUploadResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateAvatarUploadResponse) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UploadId = 0
+}
+
+func (x *CreateAvatarUploadResponse) ClearPresignedUrl() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PresignedUrl = nil
+}
+
+func (x *CreateAvatarUploadResponse) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type CreateAvatarUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Opaque upload identifier used for completion or abort.
+	UploadId *int64
+	// Short-lived URL accepting one PUT with the declared length and media type.
+	PresignedUrl *string
+	// Upload session expiration as Unix milliseconds.
+	ExpiresAt *int64
+}
+
+func (b0 CreateAvatarUploadResponse_builder) Build() *CreateAvatarUploadResponse {
+	m0 := &CreateAvatarUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	if b.PresignedUrl != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_PresignedUrl = b.PresignedUrl
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
+// CompleteAvatarUploadRequest publishes an owned upload and associates the
+// resulting asset with the same user.
+type CompleteAvatarUploadRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_UploadId    int64                  `protobuf:"varint,2,opt,name=upload_id,json=uploadId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CompleteAvatarUploadRequest) Reset() {
+	*x = CompleteAvatarUploadRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteAvatarUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteAvatarUploadRequest) ProtoMessage() {}
+
+func (x *CompleteAvatarUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteAvatarUploadRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *CompleteAvatarUploadRequest) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *CompleteAvatarUploadRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *CompleteAvatarUploadRequest) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *CompleteAvatarUploadRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CompleteAvatarUploadRequest) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CompleteAvatarUploadRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *CompleteAvatarUploadRequest) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UploadId = 0
+}
+
+type CompleteAvatarUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// user_id is both the authenticated actor and avatar subject.
+	UserId *int64
+	// upload_id is the opaque value returned by CreateAvatarUpload.
+	UploadId *int64
+}
+
+func (b0 CompleteAvatarUploadRequest_builder) Build() *CompleteAvatarUploadRequest {
+	m0 := &CompleteAvatarUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	return m0
+}
+
+// CompleteAvatarUploadResponse returns the profile after association.
+type CompleteAvatarUploadResponse struct {
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CompleteAvatarUploadResponse) Reset() {
+	*x = CompleteAvatarUploadResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteAvatarUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteAvatarUploadResponse) ProtoMessage() {}
+
+func (x *CompleteAvatarUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteAvatarUploadResponse) GetProfile() *UserProfile {
+	if x != nil {
+		return x.xxx_hidden_Profile
+	}
+	return nil
+}
+
+func (x *CompleteAvatarUploadResponse) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
+}
+
+func (x *CompleteAvatarUploadResponse) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
+func (x *CompleteAvatarUploadResponse) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
+type CompleteAvatarUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Profile *UserProfile
+}
+
+func (b0 CompleteAvatarUploadResponse_builder) Build() *CompleteAvatarUploadResponse {
+	m0 := &CompleteAvatarUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Profile = b.Profile
+	return m0
+}
+
+// AbortAvatarUploadRequest cancels an unpublished upload owned by user_id.
+type AbortAvatarUploadRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_UploadId    int64                  `protobuf:"varint,2,opt,name=upload_id,json=uploadId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AbortAvatarUploadRequest) Reset() {
+	*x = AbortAvatarUploadRequest{}
+	mi := &file_user_v1_user_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AbortAvatarUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbortAvatarUploadRequest) ProtoMessage() {}
+
+func (x *AbortAvatarUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AbortAvatarUploadRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *AbortAvatarUploadRequest) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *AbortAvatarUploadRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *AbortAvatarUploadRequest) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *AbortAvatarUploadRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AbortAvatarUploadRequest) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AbortAvatarUploadRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *AbortAvatarUploadRequest) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UploadId = 0
+}
+
+type AbortAvatarUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// user_id is the authenticated actor forwarded by the API service.
+	UserId *int64
+	// upload_id is the opaque value returned by CreateAvatarUpload.
+	UploadId *int64
+}
+
+func (b0 AbortAvatarUploadRequest_builder) Build() *AbortAvatarUploadRequest {
+	m0 := &AbortAvatarUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	return m0
+}
+
+// AbortAvatarUploadResponse is empty because abort has no mutable result.
+type AbortAvatarUploadResponse struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AbortAvatarUploadResponse) Reset() {
+	*x = AbortAvatarUploadResponse{}
+	mi := &file_user_v1_user_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AbortAvatarUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbortAvatarUploadResponse) ProtoMessage() {}
+
+func (x *AbortAvatarUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_v1_user_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+type AbortAvatarUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 AbortAvatarUploadResponse_builder) Build() *AbortAvatarUploadResponse {
+	m0 := &AbortAvatarUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
+}
+
 type GetUserProfileByUsernameRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Username    *string                `protobuf:"bytes,1,opt,name=username"`
@@ -2234,7 +2814,7 @@ type GetUserProfileByUsernameRequest struct {
 
 func (x *GetUserProfileByUsernameRequest) Reset() {
 	*x = GetUserProfileByUsernameRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[19]
+	mi := &file_user_v1_user_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2246,7 +2826,7 @@ func (x *GetUserProfileByUsernameRequest) String() string {
 func (*GetUserProfileByUsernameRequest) ProtoMessage() {}
 
 func (x *GetUserProfileByUsernameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[19]
+	mi := &file_user_v1_user_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2310,7 +2890,7 @@ type GetUserProfileByUsernameResponse struct {
 
 func (x *GetUserProfileByUsernameResponse) Reset() {
 	*x = GetUserProfileByUsernameResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[20]
+	mi := &file_user_v1_user_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2322,7 +2902,7 @@ func (x *GetUserProfileByUsernameResponse) String() string {
 func (*GetUserProfileByUsernameResponse) ProtoMessage() {}
 
 func (x *GetUserProfileByUsernameResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[20]
+	mi := &file_user_v1_user_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2381,7 +2961,7 @@ type SendFriendRequestRequest struct {
 
 func (x *SendFriendRequestRequest) Reset() {
 	*x = SendFriendRequestRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[21]
+	mi := &file_user_v1_user_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2393,7 +2973,7 @@ func (x *SendFriendRequestRequest) String() string {
 func (*SendFriendRequestRequest) ProtoMessage() {}
 
 func (x *SendFriendRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[21]
+	mi := &file_user_v1_user_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2483,7 +3063,7 @@ type SendFriendRequestResponse struct {
 
 func (x *SendFriendRequestResponse) Reset() {
 	*x = SendFriendRequestResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[22]
+	mi := &file_user_v1_user_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2495,7 +3075,7 @@ func (x *SendFriendRequestResponse) String() string {
 func (*SendFriendRequestResponse) ProtoMessage() {}
 
 func (x *SendFriendRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[22]
+	mi := &file_user_v1_user_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2556,7 +3136,7 @@ type AcceptFriendRequestRequest struct {
 
 func (x *AcceptFriendRequestRequest) Reset() {
 	*x = AcceptFriendRequestRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[23]
+	mi := &file_user_v1_user_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2568,7 +3148,7 @@ func (x *AcceptFriendRequestRequest) String() string {
 func (*AcceptFriendRequestRequest) ProtoMessage() {}
 
 func (x *AcceptFriendRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[23]
+	mi := &file_user_v1_user_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2658,7 +3238,7 @@ type AcceptFriendRequestResponse struct {
 
 func (x *AcceptFriendRequestResponse) Reset() {
 	*x = AcceptFriendRequestResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[24]
+	mi := &file_user_v1_user_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2670,7 +3250,7 @@ func (x *AcceptFriendRequestResponse) String() string {
 func (*AcceptFriendRequestResponse) ProtoMessage() {}
 
 func (x *AcceptFriendRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[24]
+	mi := &file_user_v1_user_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2729,7 +3309,7 @@ type DeclineFriendRequestRequest struct {
 
 func (x *DeclineFriendRequestRequest) Reset() {
 	*x = DeclineFriendRequestRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[25]
+	mi := &file_user_v1_user_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2741,7 +3321,7 @@ func (x *DeclineFriendRequestRequest) String() string {
 func (*DeclineFriendRequestRequest) ProtoMessage() {}
 
 func (x *DeclineFriendRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[25]
+	mi := &file_user_v1_user_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2833,7 +3413,7 @@ type DeclineFriendRequestResponse struct {
 
 func (x *DeclineFriendRequestResponse) Reset() {
 	*x = DeclineFriendRequestResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[26]
+	mi := &file_user_v1_user_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2845,7 +3425,7 @@ func (x *DeclineFriendRequestResponse) String() string {
 func (*DeclineFriendRequestResponse) ProtoMessage() {}
 
 func (x *DeclineFriendRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[26]
+	mi := &file_user_v1_user_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2909,7 +3489,7 @@ type RemoveFriendRequest struct {
 
 func (x *RemoveFriendRequest) Reset() {
 	*x = RemoveFriendRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[27]
+	mi := &file_user_v1_user_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2921,7 +3501,7 @@ func (x *RemoveFriendRequest) String() string {
 func (*RemoveFriendRequest) ProtoMessage() {}
 
 func (x *RemoveFriendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[27]
+	mi := &file_user_v1_user_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3013,7 +3593,7 @@ type RemoveFriendResponse struct {
 
 func (x *RemoveFriendResponse) Reset() {
 	*x = RemoveFriendResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[28]
+	mi := &file_user_v1_user_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3025,7 +3605,7 @@ func (x *RemoveFriendResponse) String() string {
 func (*RemoveFriendResponse) ProtoMessage() {}
 
 func (x *RemoveFriendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[28]
+	mi := &file_user_v1_user_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3089,7 +3669,7 @@ type BlockUserRequest struct {
 
 func (x *BlockUserRequest) Reset() {
 	*x = BlockUserRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[29]
+	mi := &file_user_v1_user_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3101,7 +3681,7 @@ func (x *BlockUserRequest) String() string {
 func (*BlockUserRequest) ProtoMessage() {}
 
 func (x *BlockUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[29]
+	mi := &file_user_v1_user_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3191,7 +3771,7 @@ type BlockUserResponse struct {
 
 func (x *BlockUserResponse) Reset() {
 	*x = BlockUserResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[30]
+	mi := &file_user_v1_user_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3203,7 +3783,7 @@ func (x *BlockUserResponse) String() string {
 func (*BlockUserResponse) ProtoMessage() {}
 
 func (x *BlockUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[30]
+	mi := &file_user_v1_user_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3262,7 +3842,7 @@ type UnblockUserRequest struct {
 
 func (x *UnblockUserRequest) Reset() {
 	*x = UnblockUserRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[31]
+	mi := &file_user_v1_user_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3274,7 +3854,7 @@ func (x *UnblockUserRequest) String() string {
 func (*UnblockUserRequest) ProtoMessage() {}
 
 func (x *UnblockUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[31]
+	mi := &file_user_v1_user_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3366,7 +3946,7 @@ type UnblockUserResponse struct {
 
 func (x *UnblockUserResponse) Reset() {
 	*x = UnblockUserResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[32]
+	mi := &file_user_v1_user_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3378,7 +3958,7 @@ func (x *UnblockUserResponse) String() string {
 func (*UnblockUserResponse) ProtoMessage() {}
 
 func (x *UnblockUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[32]
+	mi := &file_user_v1_user_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3444,7 +4024,7 @@ type ListRelationshipsRequest struct {
 
 func (x *ListRelationshipsRequest) Reset() {
 	*x = ListRelationshipsRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[33]
+	mi := &file_user_v1_user_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3456,7 +4036,7 @@ func (x *ListRelationshipsRequest) String() string {
 func (*ListRelationshipsRequest) ProtoMessage() {}
 
 func (x *ListRelationshipsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[33]
+	mi := &file_user_v1_user_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3611,7 +4191,7 @@ type ListRelationshipsResponse struct {
 
 func (x *ListRelationshipsResponse) Reset() {
 	*x = ListRelationshipsResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[34]
+	mi := &file_user_v1_user_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3623,7 +4203,7 @@ func (x *ListRelationshipsResponse) String() string {
 func (*ListRelationshipsResponse) ProtoMessage() {}
 
 func (x *ListRelationshipsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[34]
+	mi := &file_user_v1_user_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3703,7 +4283,7 @@ type CheckRelationshipsRequest struct {
 
 func (x *CheckRelationshipsRequest) Reset() {
 	*x = CheckRelationshipsRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[35]
+	mi := &file_user_v1_user_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3715,7 +4295,7 @@ func (x *CheckRelationshipsRequest) String() string {
 func (*CheckRelationshipsRequest) ProtoMessage() {}
 
 func (x *CheckRelationshipsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[35]
+	mi := &file_user_v1_user_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3822,7 +4402,7 @@ type CheckRelationshipsResponse struct {
 
 func (x *CheckRelationshipsResponse) Reset() {
 	*x = CheckRelationshipsResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[36]
+	mi := &file_user_v1_user_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3834,7 +4414,7 @@ func (x *CheckRelationshipsResponse) String() string {
 func (*CheckRelationshipsResponse) ProtoMessage() {}
 
 func (x *CheckRelationshipsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[36]
+	mi := &file_user_v1_user_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3885,7 +4465,7 @@ type UpdateUsernameRequest struct {
 
 func (x *UpdateUsernameRequest) Reset() {
 	*x = UpdateUsernameRequest{}
-	mi := &file_user_v1_user_proto_msgTypes[37]
+	mi := &file_user_v1_user_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3897,7 +4477,7 @@ func (x *UpdateUsernameRequest) String() string {
 func (*UpdateUsernameRequest) ProtoMessage() {}
 
 func (x *UpdateUsernameRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[37]
+	mi := &file_user_v1_user_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3990,7 +4570,7 @@ type UpdateUsernameResponse struct {
 
 func (x *UpdateUsernameResponse) Reset() {
 	*x = UpdateUsernameResponse{}
-	mi := &file_user_v1_user_proto_msgTypes[38]
+	mi := &file_user_v1_user_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4002,7 +4582,7 @@ func (x *UpdateUsernameResponse) String() string {
 func (*UpdateUsernameResponse) ProtoMessage() {}
 
 func (x *UpdateUsernameResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_user_v1_user_proto_msgTypes[38]
+	mi := &file_user_v1_user_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4071,12 +4651,11 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"deleted_at\x18\x05 \x01(\x03R\tdeletedAt\x12*\n" +
-	"\x11email_verified_at\x18\x06 \x01(\x03R\x0femailVerifiedAt\"\xd2\x01\n" +
+	"\x11email_verified_at\x18\x06 \x01(\x03R\x0femailVerifiedAt\"\xdb\x01\n" +
 	"\vUserProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
-	"\n" +
-	"avatar_uri\x18\x03 \x01(\tR\tavatarUri\x12\x1d\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
+	"\x0favatar_asset_id\x18\x03 \x01(\x03R\ravatarAssetId\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
@@ -4120,14 +4699,30 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\vverified_at\x18\x03 \x01(\x03R\n" +
 	"verifiedAt\"+\n" +
 	"\x19MarkEmailVerifiedResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"f\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"G\n" +
 	"\x18UpdateUserProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1d\n" +
-	"\n" +
-	"avatar_uri\x18\x03 \x01(\tR\tavatarUri\"K\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"K\n" +
 	"\x19UpdateUserProfileResponse\x12.\n" +
-	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"=\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"|\n" +
+	"\x19CreateAvatarUploadRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12#\n" +
+	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"}\n" +
+	"\x1aCreateAvatarUploadResponse\x12\x1b\n" +
+	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
+	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt\"S\n" +
+	"\x1bCompleteAvatarUploadRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\tupload_id\x18\x02 \x01(\x03R\buploadId\"N\n" +
+	"\x1cCompleteAvatarUploadResponse\x12.\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"P\n" +
+	"\x18AbortAvatarUploadRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
+	"\tupload_id\x18\x02 \x01(\x03R\buploadId\"\x1b\n" +
+	"\x19AbortAvatarUploadResponse\"=\n" +
 	"\x1fGetUserProfileByUsernameRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\"R\n" +
 	" GetUserProfileByUsernameResponse\x12.\n" +
@@ -4187,7 +4782,7 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x1aRELATIONSHIP_TYPE_OUTGOING\x10\x01\x12\x1e\n" +
 	"\x1aRELATIONSHIP_TYPE_INCOMING\x10\x02\x12\x1c\n" +
 	"\x18RELATIONSHIP_TYPE_FRIEND\x10\x03\x12\x1d\n" +
-	"\x19RELATIONSHIP_TYPE_BLOCKED\x10\x042\xb4\f\n" +
+	"\x19RELATIONSHIP_TYPE_BLOCKED\x10\x042\xd4\x0e\n" +
 	"\vUserService\x12E\n" +
 	"\n" +
 	"CreateUser\x12\x1a.user.v1.CreateUserRequest\x1a\x1b.user.v1.CreateUserResponse\x12<\n" +
@@ -4198,7 +4793,10 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x16CheckEmailAvailability\x12&.user.v1.CheckEmailAvailabilityRequest\x1a'.user.v1.CheckEmailAvailabilityResponse\x12H\n" +
 	"\vUpdateEmail\x12\x1b.user.v1.UpdateEmailRequest\x1a\x1c.user.v1.UpdateEmailResponse\x12Z\n" +
 	"\x11MarkEmailVerified\x12!.user.v1.MarkEmailVerifiedRequest\x1a\".user.v1.MarkEmailVerifiedResponse\x12Z\n" +
-	"\x11UpdateUserProfile\x12!.user.v1.UpdateUserProfileRequest\x1a\".user.v1.UpdateUserProfileResponse\x12Q\n" +
+	"\x11UpdateUserProfile\x12!.user.v1.UpdateUserProfileRequest\x1a\".user.v1.UpdateUserProfileResponse\x12]\n" +
+	"\x12CreateAvatarUpload\x12\".user.v1.CreateAvatarUploadRequest\x1a#.user.v1.CreateAvatarUploadResponse\x12c\n" +
+	"\x14CompleteAvatarUpload\x12$.user.v1.CompleteAvatarUploadRequest\x1a%.user.v1.CompleteAvatarUploadResponse\x12Z\n" +
+	"\x11AbortAvatarUpload\x12!.user.v1.AbortAvatarUploadRequest\x1a\".user.v1.AbortAvatarUploadResponse\x12Q\n" +
 	"\x0eUpdateUsername\x12\x1e.user.v1.UpdateUsernameRequest\x1a\x1f.user.v1.UpdateUsernameResponse\x12Z\n" +
 	"\x11SendFriendRequest\x12!.user.v1.SendFriendRequestRequest\x1a\".user.v1.SendFriendRequestResponse\x12`\n" +
 	"\x13AcceptFriendRequest\x12#.user.v1.AcceptFriendRequestRequest\x1a$.user.v1.AcceptFriendRequestResponse\x12c\n" +
@@ -4211,7 +4809,7 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\vcom.user.v1B\tUserProtoP\x01Z,github.com/soasurs/cordis/gen/user/v1;userv1\xa2\x02\x03UXX\xaa\x02\aUser.V1\xca\x02\aUser\\V1\xe2\x02\x13User\\V1\\GPBMetadata\xea\x02\bUser::V1b\beditionsp\xe8\a"
 
 var file_user_v1_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
 var file_user_v1_user_proto_goTypes = []any{
 	(RelationshipType)(0),                    // 0: user.v1.RelationshipType
 	(*Relationship)(nil),                     // 1: user.v1.Relationship
@@ -4233,26 +4831,32 @@ var file_user_v1_user_proto_goTypes = []any{
 	(*MarkEmailVerifiedResponse)(nil),        // 17: user.v1.MarkEmailVerifiedResponse
 	(*UpdateUserProfileRequest)(nil),         // 18: user.v1.UpdateUserProfileRequest
 	(*UpdateUserProfileResponse)(nil),        // 19: user.v1.UpdateUserProfileResponse
-	(*GetUserProfileByUsernameRequest)(nil),  // 20: user.v1.GetUserProfileByUsernameRequest
-	(*GetUserProfileByUsernameResponse)(nil), // 21: user.v1.GetUserProfileByUsernameResponse
-	(*SendFriendRequestRequest)(nil),         // 22: user.v1.SendFriendRequestRequest
-	(*SendFriendRequestResponse)(nil),        // 23: user.v1.SendFriendRequestResponse
-	(*AcceptFriendRequestRequest)(nil),       // 24: user.v1.AcceptFriendRequestRequest
-	(*AcceptFriendRequestResponse)(nil),      // 25: user.v1.AcceptFriendRequestResponse
-	(*DeclineFriendRequestRequest)(nil),      // 26: user.v1.DeclineFriendRequestRequest
-	(*DeclineFriendRequestResponse)(nil),     // 27: user.v1.DeclineFriendRequestResponse
-	(*RemoveFriendRequest)(nil),              // 28: user.v1.RemoveFriendRequest
-	(*RemoveFriendResponse)(nil),             // 29: user.v1.RemoveFriendResponse
-	(*BlockUserRequest)(nil),                 // 30: user.v1.BlockUserRequest
-	(*BlockUserResponse)(nil),                // 31: user.v1.BlockUserResponse
-	(*UnblockUserRequest)(nil),               // 32: user.v1.UnblockUserRequest
-	(*UnblockUserResponse)(nil),              // 33: user.v1.UnblockUserResponse
-	(*ListRelationshipsRequest)(nil),         // 34: user.v1.ListRelationshipsRequest
-	(*ListRelationshipsResponse)(nil),        // 35: user.v1.ListRelationshipsResponse
-	(*CheckRelationshipsRequest)(nil),        // 36: user.v1.CheckRelationshipsRequest
-	(*CheckRelationshipsResponse)(nil),       // 37: user.v1.CheckRelationshipsResponse
-	(*UpdateUsernameRequest)(nil),            // 38: user.v1.UpdateUsernameRequest
-	(*UpdateUsernameResponse)(nil),           // 39: user.v1.UpdateUsernameResponse
+	(*CreateAvatarUploadRequest)(nil),        // 20: user.v1.CreateAvatarUploadRequest
+	(*CreateAvatarUploadResponse)(nil),       // 21: user.v1.CreateAvatarUploadResponse
+	(*CompleteAvatarUploadRequest)(nil),      // 22: user.v1.CompleteAvatarUploadRequest
+	(*CompleteAvatarUploadResponse)(nil),     // 23: user.v1.CompleteAvatarUploadResponse
+	(*AbortAvatarUploadRequest)(nil),         // 24: user.v1.AbortAvatarUploadRequest
+	(*AbortAvatarUploadResponse)(nil),        // 25: user.v1.AbortAvatarUploadResponse
+	(*GetUserProfileByUsernameRequest)(nil),  // 26: user.v1.GetUserProfileByUsernameRequest
+	(*GetUserProfileByUsernameResponse)(nil), // 27: user.v1.GetUserProfileByUsernameResponse
+	(*SendFriendRequestRequest)(nil),         // 28: user.v1.SendFriendRequestRequest
+	(*SendFriendRequestResponse)(nil),        // 29: user.v1.SendFriendRequestResponse
+	(*AcceptFriendRequestRequest)(nil),       // 30: user.v1.AcceptFriendRequestRequest
+	(*AcceptFriendRequestResponse)(nil),      // 31: user.v1.AcceptFriendRequestResponse
+	(*DeclineFriendRequestRequest)(nil),      // 32: user.v1.DeclineFriendRequestRequest
+	(*DeclineFriendRequestResponse)(nil),     // 33: user.v1.DeclineFriendRequestResponse
+	(*RemoveFriendRequest)(nil),              // 34: user.v1.RemoveFriendRequest
+	(*RemoveFriendResponse)(nil),             // 35: user.v1.RemoveFriendResponse
+	(*BlockUserRequest)(nil),                 // 36: user.v1.BlockUserRequest
+	(*BlockUserResponse)(nil),                // 37: user.v1.BlockUserResponse
+	(*UnblockUserRequest)(nil),               // 38: user.v1.UnblockUserRequest
+	(*UnblockUserResponse)(nil),              // 39: user.v1.UnblockUserResponse
+	(*ListRelationshipsRequest)(nil),         // 40: user.v1.ListRelationshipsRequest
+	(*ListRelationshipsResponse)(nil),        // 41: user.v1.ListRelationshipsResponse
+	(*CheckRelationshipsRequest)(nil),        // 42: user.v1.CheckRelationshipsRequest
+	(*CheckRelationshipsResponse)(nil),       // 43: user.v1.CheckRelationshipsResponse
+	(*UpdateUsernameRequest)(nil),            // 44: user.v1.UpdateUsernameRequest
+	(*UpdateUsernameResponse)(nil),           // 45: user.v1.UpdateUsernameResponse
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	0,  // 0: user.v1.Relationship.type:type_name -> user.v1.RelationshipType
@@ -4262,55 +4866,62 @@ var file_user_v1_user_proto_depIdxs = []int32{
 	3,  // 4: user.v1.BatchGetUserProfilesResponse.profiles:type_name -> user.v1.UserProfile
 	2,  // 5: user.v1.UpdateEmailResponse.user:type_name -> user.v1.User
 	3,  // 6: user.v1.UpdateUserProfileResponse.profile:type_name -> user.v1.UserProfile
-	3,  // 7: user.v1.GetUserProfileByUsernameResponse.profile:type_name -> user.v1.UserProfile
-	1,  // 8: user.v1.SendFriendRequestResponse.relationship:type_name -> user.v1.Relationship
-	1,  // 9: user.v1.AcceptFriendRequestResponse.relationship:type_name -> user.v1.Relationship
-	1,  // 10: user.v1.BlockUserResponse.relationship:type_name -> user.v1.Relationship
-	0,  // 11: user.v1.ListRelationshipsRequest.type:type_name -> user.v1.RelationshipType
-	1,  // 12: user.v1.ListRelationshipsResponse.relationships:type_name -> user.v1.Relationship
-	1,  // 13: user.v1.CheckRelationshipsResponse.relationships:type_name -> user.v1.Relationship
-	3,  // 14: user.v1.UpdateUsernameResponse.profile:type_name -> user.v1.UserProfile
-	4,  // 15: user.v1.UserService.CreateUser:input_type -> user.v1.CreateUserRequest
-	6,  // 16: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
-	8,  // 17: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
-	10, // 18: user.v1.UserService.BatchGetUserProfiles:input_type -> user.v1.BatchGetUserProfilesRequest
-	20, // 19: user.v1.UserService.GetUserProfileByUsername:input_type -> user.v1.GetUserProfileByUsernameRequest
-	12, // 20: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
-	14, // 21: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
-	16, // 22: user.v1.UserService.MarkEmailVerified:input_type -> user.v1.MarkEmailVerifiedRequest
-	18, // 23: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
-	38, // 24: user.v1.UserService.UpdateUsername:input_type -> user.v1.UpdateUsernameRequest
-	22, // 25: user.v1.UserService.SendFriendRequest:input_type -> user.v1.SendFriendRequestRequest
-	24, // 26: user.v1.UserService.AcceptFriendRequest:input_type -> user.v1.AcceptFriendRequestRequest
-	26, // 27: user.v1.UserService.DeclineFriendRequest:input_type -> user.v1.DeclineFriendRequestRequest
-	28, // 28: user.v1.UserService.RemoveFriend:input_type -> user.v1.RemoveFriendRequest
-	30, // 29: user.v1.UserService.BlockUser:input_type -> user.v1.BlockUserRequest
-	32, // 30: user.v1.UserService.UnblockUser:input_type -> user.v1.UnblockUserRequest
-	34, // 31: user.v1.UserService.ListRelationships:input_type -> user.v1.ListRelationshipsRequest
-	36, // 32: user.v1.UserService.CheckRelationships:input_type -> user.v1.CheckRelationshipsRequest
-	5,  // 33: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
-	7,  // 34: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	9,  // 35: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
-	11, // 36: user.v1.UserService.BatchGetUserProfiles:output_type -> user.v1.BatchGetUserProfilesResponse
-	21, // 37: user.v1.UserService.GetUserProfileByUsername:output_type -> user.v1.GetUserProfileByUsernameResponse
-	13, // 38: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
-	15, // 39: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
-	17, // 40: user.v1.UserService.MarkEmailVerified:output_type -> user.v1.MarkEmailVerifiedResponse
-	19, // 41: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
-	39, // 42: user.v1.UserService.UpdateUsername:output_type -> user.v1.UpdateUsernameResponse
-	23, // 43: user.v1.UserService.SendFriendRequest:output_type -> user.v1.SendFriendRequestResponse
-	25, // 44: user.v1.UserService.AcceptFriendRequest:output_type -> user.v1.AcceptFriendRequestResponse
-	27, // 45: user.v1.UserService.DeclineFriendRequest:output_type -> user.v1.DeclineFriendRequestResponse
-	29, // 46: user.v1.UserService.RemoveFriend:output_type -> user.v1.RemoveFriendResponse
-	31, // 47: user.v1.UserService.BlockUser:output_type -> user.v1.BlockUserResponse
-	33, // 48: user.v1.UserService.UnblockUser:output_type -> user.v1.UnblockUserResponse
-	35, // 49: user.v1.UserService.ListRelationships:output_type -> user.v1.ListRelationshipsResponse
-	37, // 50: user.v1.UserService.CheckRelationships:output_type -> user.v1.CheckRelationshipsResponse
-	33, // [33:51] is the sub-list for method output_type
-	15, // [15:33] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	3,  // 7: user.v1.CompleteAvatarUploadResponse.profile:type_name -> user.v1.UserProfile
+	3,  // 8: user.v1.GetUserProfileByUsernameResponse.profile:type_name -> user.v1.UserProfile
+	1,  // 9: user.v1.SendFriendRequestResponse.relationship:type_name -> user.v1.Relationship
+	1,  // 10: user.v1.AcceptFriendRequestResponse.relationship:type_name -> user.v1.Relationship
+	1,  // 11: user.v1.BlockUserResponse.relationship:type_name -> user.v1.Relationship
+	0,  // 12: user.v1.ListRelationshipsRequest.type:type_name -> user.v1.RelationshipType
+	1,  // 13: user.v1.ListRelationshipsResponse.relationships:type_name -> user.v1.Relationship
+	1,  // 14: user.v1.CheckRelationshipsResponse.relationships:type_name -> user.v1.Relationship
+	3,  // 15: user.v1.UpdateUsernameResponse.profile:type_name -> user.v1.UserProfile
+	4,  // 16: user.v1.UserService.CreateUser:input_type -> user.v1.CreateUserRequest
+	6,  // 17: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
+	8,  // 18: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
+	10, // 19: user.v1.UserService.BatchGetUserProfiles:input_type -> user.v1.BatchGetUserProfilesRequest
+	26, // 20: user.v1.UserService.GetUserProfileByUsername:input_type -> user.v1.GetUserProfileByUsernameRequest
+	12, // 21: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
+	14, // 22: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
+	16, // 23: user.v1.UserService.MarkEmailVerified:input_type -> user.v1.MarkEmailVerifiedRequest
+	18, // 24: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
+	20, // 25: user.v1.UserService.CreateAvatarUpload:input_type -> user.v1.CreateAvatarUploadRequest
+	22, // 26: user.v1.UserService.CompleteAvatarUpload:input_type -> user.v1.CompleteAvatarUploadRequest
+	24, // 27: user.v1.UserService.AbortAvatarUpload:input_type -> user.v1.AbortAvatarUploadRequest
+	44, // 28: user.v1.UserService.UpdateUsername:input_type -> user.v1.UpdateUsernameRequest
+	28, // 29: user.v1.UserService.SendFriendRequest:input_type -> user.v1.SendFriendRequestRequest
+	30, // 30: user.v1.UserService.AcceptFriendRequest:input_type -> user.v1.AcceptFriendRequestRequest
+	32, // 31: user.v1.UserService.DeclineFriendRequest:input_type -> user.v1.DeclineFriendRequestRequest
+	34, // 32: user.v1.UserService.RemoveFriend:input_type -> user.v1.RemoveFriendRequest
+	36, // 33: user.v1.UserService.BlockUser:input_type -> user.v1.BlockUserRequest
+	38, // 34: user.v1.UserService.UnblockUser:input_type -> user.v1.UnblockUserRequest
+	40, // 35: user.v1.UserService.ListRelationships:input_type -> user.v1.ListRelationshipsRequest
+	42, // 36: user.v1.UserService.CheckRelationships:input_type -> user.v1.CheckRelationshipsRequest
+	5,  // 37: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
+	7,  // 38: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	9,  // 39: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
+	11, // 40: user.v1.UserService.BatchGetUserProfiles:output_type -> user.v1.BatchGetUserProfilesResponse
+	27, // 41: user.v1.UserService.GetUserProfileByUsername:output_type -> user.v1.GetUserProfileByUsernameResponse
+	13, // 42: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
+	15, // 43: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
+	17, // 44: user.v1.UserService.MarkEmailVerified:output_type -> user.v1.MarkEmailVerifiedResponse
+	19, // 45: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
+	21, // 46: user.v1.UserService.CreateAvatarUpload:output_type -> user.v1.CreateAvatarUploadResponse
+	23, // 47: user.v1.UserService.CompleteAvatarUpload:output_type -> user.v1.CompleteAvatarUploadResponse
+	25, // 48: user.v1.UserService.AbortAvatarUpload:output_type -> user.v1.AbortAvatarUploadResponse
+	45, // 49: user.v1.UserService.UpdateUsername:output_type -> user.v1.UpdateUsernameResponse
+	29, // 50: user.v1.UserService.SendFriendRequest:output_type -> user.v1.SendFriendRequestResponse
+	31, // 51: user.v1.UserService.AcceptFriendRequest:output_type -> user.v1.AcceptFriendRequestResponse
+	33, // 52: user.v1.UserService.DeclineFriendRequest:output_type -> user.v1.DeclineFriendRequestResponse
+	35, // 53: user.v1.UserService.RemoveFriend:output_type -> user.v1.RemoveFriendResponse
+	37, // 54: user.v1.UserService.BlockUser:output_type -> user.v1.BlockUserResponse
+	39, // 55: user.v1.UserService.UnblockUser:output_type -> user.v1.UnblockUserResponse
+	41, // 56: user.v1.UserService.ListRelationships:output_type -> user.v1.ListRelationshipsResponse
+	43, // 57: user.v1.UserService.CheckRelationships:output_type -> user.v1.CheckRelationshipsResponse
+	37, // [37:58] is the sub-list for method output_type
+	16, // [16:37] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_user_v1_user_proto_init() }
@@ -4328,7 +4939,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   39,
+			NumMessages:   45,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

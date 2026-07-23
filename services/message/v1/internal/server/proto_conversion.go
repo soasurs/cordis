@@ -28,7 +28,7 @@ func attachmentsToProto(attachments []model.Attachment) []*messagev1.Attachment 
 	values := make([]*messagev1.Attachment, 0, len(attachments))
 	for _, attachment := range attachments {
 		result := new(messagev1.Attachment)
-		result.SetKey(attachment.Key)
+		result.SetAssetId(attachment.AssetID)
 		result.SetFilename(attachment.Filename)
 		result.SetSize(attachment.Size)
 		result.SetContentType(attachment.ContentType)
@@ -43,7 +43,7 @@ func attachmentsFromProto(attachments []*messagev1.Attachment) []model.Attachmen
 	values := make([]model.Attachment, 0, len(attachments))
 	for _, attachment := range attachments {
 		values = append(values, model.Attachment{
-			Key:         attachment.GetKey(),
+			AssetID:     attachment.GetAssetId(),
 			Filename:    attachment.GetFilename(),
 			Size:        attachment.GetSize(),
 			ContentType: attachment.GetContentType(),

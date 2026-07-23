@@ -37,6 +37,13 @@ service GuildService {
   rpc GetGuild(GetGuildRequest) returns (GetGuildResponse);
   rpc ListGuilds(ListGuildsRequest) returns (ListGuildsResponse);
   rpc UpdateGuild(UpdateGuildRequest) returns (UpdateGuildResponse);
+  // CreateGuildIconUpload creates a single-PUT icon upload after checking the
+  // bearer token user's MANAGE_GUILD permission.
+  rpc CreateGuildIconUpload(CreateGuildIconUploadRequest) returns (CreateGuildIconUploadResponse);
+  // CompleteGuildIconUpload validates the image and replaces the Guild icon.
+  rpc CompleteGuildIconUpload(CompleteGuildIconUploadRequest) returns (CompleteGuildIconUploadResponse);
+  // AbortGuildIconUpload cancels an unpublished icon upload.
+  rpc AbortGuildIconUpload(AbortGuildIconUploadRequest) returns (AbortGuildIconUploadResponse);
   rpc DeleteGuild(DeleteGuildRequest) returns (DeleteGuildResponse);
   rpc AddGuildMember(AddGuildMemberRequest) returns (AddGuildMemberResponse);
   rpc GetGuildMember(GetGuildMemberRequest) returns (GetGuildMemberResponse);
@@ -80,7 +87,9 @@ message Guild {
   int64 id = 1;
   int64 owner_id = 2;
   string name = 3;
-  string icon_uri = 4;
+  // Zero means the Guild has no icon. Clients resolve a non-zero value through
+  // the public CDN path icons/{id}/{icon_asset_id}.
+  int64 icon_asset_id = 4;
   int64 revision = 5;
   int64 created_at = 6;
   int64 updated_at = 7;
@@ -146,7 +155,6 @@ message GuildChannelPermissionOverwrite {
 
 message CreateGuildRequest {
   string name = 1;
-  string icon_uri = 2;
 }
 
 message CreateGuildResponse {
@@ -173,14 +181,57 @@ message ListGuildsResponse {
 
 message UpdateGuildRequest {
   int64 guild_id = 1;
-  // Optional replacement fields. An explicit empty icon_uri clears the icon.
+  // Optional replacement name.
   string name = 2;
-  string icon_uri = 3;
 }
 
 message UpdateGuildResponse {
   Guild guild = 1;
 }
+
+// CreateGuildIconUploadRequest declares the target Guild and exact image the
+// client will upload.
+message CreateGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // Exact Content-Length in bytes for the subsequent PUT.
+  int64 expected_size = 2;
+  // Canonical image/jpeg, image/png, or image/webp media type. The same value
+  // must be sent as the PUT Content-Type.
+  string content_type = 3;
+}
+
+// CreateGuildIconUploadResponse contains a one-shot direct-upload contract.
+message CreateGuildIconUploadResponse {
+  // Opaque upload identifier used by completion or abort.
+  int64 upload_id = 1;
+  // Short-lived URL accepting one PUT with the declared length and media type.
+  string presigned_url = 2;
+  // Upload session expiration as Unix milliseconds.
+  int64 expires_at = 3;
+}
+
+// CompleteGuildIconUploadRequest selects an icon upload for one Guild.
+message CompleteGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // Opaque value returned by CreateGuildIconUpload.
+  int64 upload_id = 2;
+}
+
+// CompleteGuildIconUploadResponse returns the Guild after its icon reference
+// has been replaced.
+message CompleteGuildIconUploadResponse {
+  Guild guild = 1;
+}
+
+// AbortGuildIconUploadRequest selects an unpublished icon upload to cancel.
+message AbortGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // Opaque value returned by CreateGuildIconUpload.
+  int64 upload_id = 2;
+}
+
+// AbortGuildIconUploadResponse is empty because abort has no mutable result.
+message AbortGuildIconUploadResponse {}
 
 message DeleteGuildRequest {
   int64 guild_id = 1;
@@ -305,7 +356,9 @@ message GuildInvitePreview {
   string code = 1;
   int64 guild_id = 2;
   string guild_name = 3;
-  string guild_icon_uri = 4;
+  // Zero means the Guild has no icon. Clients use
+  // icons/{guild_id}/{guild_icon_asset_id} for a non-zero value.
+  int64 guild_icon_asset_id = 4;
   int64 member_count = 5;
   int64 expires_at = 6;
 }

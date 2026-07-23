@@ -28,6 +28,9 @@ const (
 	UserService_UpdateEmail_FullMethodName              = "/user.v1.UserService/UpdateEmail"
 	UserService_MarkEmailVerified_FullMethodName        = "/user.v1.UserService/MarkEmailVerified"
 	UserService_UpdateUserProfile_FullMethodName        = "/user.v1.UserService/UpdateUserProfile"
+	UserService_CreateAvatarUpload_FullMethodName       = "/user.v1.UserService/CreateAvatarUpload"
+	UserService_CompleteAvatarUpload_FullMethodName     = "/user.v1.UserService/CompleteAvatarUpload"
+	UserService_AbortAvatarUpload_FullMethodName        = "/user.v1.UserService/AbortAvatarUpload"
 	UserService_UpdateUsername_FullMethodName           = "/user.v1.UserService/UpdateUsername"
 	UserService_SendFriendRequest_FullMethodName        = "/user.v1.UserService/SendFriendRequest"
 	UserService_AcceptFriendRequest_FullMethodName      = "/user.v1.UserService/AcceptFriendRequest"
@@ -58,6 +61,14 @@ type UserServiceClient interface {
 	MarkEmailVerified(ctx context.Context, in *MarkEmailVerifiedRequest, opts ...grpc.CallOption) (*MarkEmailVerifiedResponse, error)
 	// UpdateUserProfile replaces all mutable public profile fields.
 	UpdateUserProfile(ctx context.Context, in *UpdateUserProfileRequest, opts ...grpc.CallOption) (*UpdateUserProfileResponse, error)
+	// CreateAvatarUpload authorizes an avatar upload for the user and delegates
+	// the binary upload session to Media.
+	CreateAvatarUpload(ctx context.Context, in *CreateAvatarUploadRequest, opts ...grpc.CallOption) (*CreateAvatarUploadResponse, error)
+	// CompleteAvatarUpload publishes the upload and atomically replaces the
+	// user's avatar asset reference.
+	CompleteAvatarUpload(ctx context.Context, in *CompleteAvatarUploadRequest, opts ...grpc.CallOption) (*CompleteAvatarUploadResponse, error)
+	// AbortAvatarUpload cancels an unpublished avatar upload owned by the user.
+	AbortAvatarUpload(ctx context.Context, in *AbortAvatarUploadRequest, opts ...grpc.CallOption) (*AbortAvatarUploadResponse, error)
 	// UpdateUsername replaces the unique handle; the old handle is released
 	// immediately.
 	UpdateUsername(ctx context.Context, in *UpdateUsernameRequest, opts ...grpc.CallOption) (*UpdateUsernameResponse, error)
@@ -173,6 +184,36 @@ func (c *userServiceClient) UpdateUserProfile(ctx context.Context, in *UpdateUse
 	return out, nil
 }
 
+func (c *userServiceClient) CreateAvatarUpload(ctx context.Context, in *CreateAvatarUploadRequest, opts ...grpc.CallOption) (*CreateAvatarUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateAvatarUploadResponse)
+	err := c.cc.Invoke(ctx, UserService_CreateAvatarUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) CompleteAvatarUpload(ctx context.Context, in *CompleteAvatarUploadRequest, opts ...grpc.CallOption) (*CompleteAvatarUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompleteAvatarUploadResponse)
+	err := c.cc.Invoke(ctx, UserService_CompleteAvatarUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) AbortAvatarUpload(ctx context.Context, in *AbortAvatarUploadRequest, opts ...grpc.CallOption) (*AbortAvatarUploadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AbortAvatarUploadResponse)
+	err := c.cc.Invoke(ctx, UserService_AbortAvatarUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userServiceClient) UpdateUsername(ctx context.Context, in *UpdateUsernameRequest, opts ...grpc.CallOption) (*UpdateUsernameResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateUsernameResponse)
@@ -282,6 +323,14 @@ type UserServiceServer interface {
 	MarkEmailVerified(context.Context, *MarkEmailVerifiedRequest) (*MarkEmailVerifiedResponse, error)
 	// UpdateUserProfile replaces all mutable public profile fields.
 	UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*UpdateUserProfileResponse, error)
+	// CreateAvatarUpload authorizes an avatar upload for the user and delegates
+	// the binary upload session to Media.
+	CreateAvatarUpload(context.Context, *CreateAvatarUploadRequest) (*CreateAvatarUploadResponse, error)
+	// CompleteAvatarUpload publishes the upload and atomically replaces the
+	// user's avatar asset reference.
+	CompleteAvatarUpload(context.Context, *CompleteAvatarUploadRequest) (*CompleteAvatarUploadResponse, error)
+	// AbortAvatarUpload cancels an unpublished avatar upload owned by the user.
+	AbortAvatarUpload(context.Context, *AbortAvatarUploadRequest) (*AbortAvatarUploadResponse, error)
 	// UpdateUsername replaces the unique handle; the old handle is released
 	// immediately.
 	UpdateUsername(context.Context, *UpdateUsernameRequest) (*UpdateUsernameResponse, error)
@@ -332,6 +381,15 @@ func (UnimplementedUserServiceServer) MarkEmailVerified(context.Context, *MarkEm
 }
 func (UnimplementedUserServiceServer) UpdateUserProfile(context.Context, *UpdateUserProfileRequest) (*UpdateUserProfileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserProfile not implemented")
+}
+func (UnimplementedUserServiceServer) CreateAvatarUpload(context.Context, *CreateAvatarUploadRequest) (*CreateAvatarUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateAvatarUpload not implemented")
+}
+func (UnimplementedUserServiceServer) CompleteAvatarUpload(context.Context, *CompleteAvatarUploadRequest) (*CompleteAvatarUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CompleteAvatarUpload not implemented")
+}
+func (UnimplementedUserServiceServer) AbortAvatarUpload(context.Context, *AbortAvatarUploadRequest) (*AbortAvatarUploadResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AbortAvatarUpload not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateUsername(context.Context, *UpdateUsernameRequest) (*UpdateUsernameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUsername not implemented")
@@ -542,6 +600,60 @@ func _UserService_UpdateUserProfile_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_CreateAvatarUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateAvatarUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CreateAvatarUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CreateAvatarUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CreateAvatarUpload(ctx, req.(*CreateAvatarUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_CompleteAvatarUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteAvatarUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CompleteAvatarUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CompleteAvatarUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CompleteAvatarUpload(ctx, req.(*CompleteAvatarUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_AbortAvatarUpload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AbortAvatarUploadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AbortAvatarUpload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AbortAvatarUpload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AbortAvatarUpload(ctx, req.(*AbortAvatarUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserService_UpdateUsername_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateUsernameRequest)
 	if err := dec(in); err != nil {
@@ -746,6 +858,18 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateUserProfile",
 			Handler:    _UserService_UpdateUserProfile_Handler,
+		},
+		{
+			MethodName: "CreateAvatarUpload",
+			Handler:    _UserService_CreateAvatarUpload_Handler,
+		},
+		{
+			MethodName: "CompleteAvatarUpload",
+			Handler:    _UserService_CompleteAvatarUpload_Handler,
+		},
+		{
+			MethodName: "AbortAvatarUpload",
+			Handler:    _UserService_AbortAvatarUpload_Handler,
 		},
 		{
 			MethodName: "UpdateUsername",

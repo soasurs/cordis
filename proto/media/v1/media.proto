@@ -2,7 +2,7 @@ edition = "2023";
 
 package media.v1;
 
-// MediaService owns binary asset upload, validation, processing, and lifecycle
+// MediaService owns binary asset upload, validation, publication, and lifecycle
 // management. It exposes generic internal RPCs to trusted API and domain
 // services. Those callers authenticate end-user access tokens and forward the
 // server-derived user ID; Media never receives end-user tokens.
@@ -18,9 +18,10 @@ service MediaService {
   rpc AbortUpload(AbortUploadRequest) returns (AbortUploadResponse);
   // GetAsset returns persisted metadata and never reads object bytes.
   rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
-  // GetAssetURL resolves a ready asset to a delivery URL. The calling domain
-  // service remains responsible for authorization before requesting a URL.
-  rpc GetAssetURL(GetAssetURLRequest) returns (GetAssetURLResponse);
+  // GetAssetDownloadURL creates a short-lived download URL for a ready private
+  // attachment. The calling domain service must authorize the user and verify
+  // that the asset is associated with the requested message first.
+  rpc GetAssetDownloadURL(GetAssetDownloadURLRequest) returns (GetAssetDownloadURLResponse);
 }
 
 // CreateUploadRequest describes the actor, typed purpose, and exact object the
@@ -95,34 +96,18 @@ message CompleteUploadResponse {
   int64 asset_id = 1;
   // metadata describes the validated source and published representation.
   AssetMetadata metadata = 2;
-  // variants is populated for processed image assets and empty for opaque
-  // private assets.
-  repeated AssetVariant variants = 3;
 }
 
 // AssetMetadata contains validated media attributes.
 message AssetMetadata {
   // size is the uploaded source size in bytes.
   int64 size = 1;
-  // content_type is image/webp for processed images and the validated upload
-  // content type for opaque private assets.
+  // content_type is the validated media type of the published object.
   string content_type = 2;
-  // width and height are the orientation-corrected source dimensions. They are
-  // zero for non-image assets.
+  // width and height are the decoded image dimensions and are zero for
+  // non-image assets.
   int32 width = 3;
   int32 height = 4;
-}
-
-// AssetVariant describes one immutable processed image output.
-message AssetVariant {
-  // max_dimension is the configured bounding-box size used for this variant,
-  // such as 64, 128, 256, or 512. The output is never upscaled.
-  int32 max_dimension = 1;
-  // width and height are the actual encoded dimensions.
-  int32 width = 2;
-  int32 height = 3;
-  // size is the encoded WebP size in bytes.
-  int64 size = 4;
 }
 
 // AbortUploadRequest identifies an upload and its authenticated actor.
@@ -173,8 +158,6 @@ message Asset {
   // zero for non-image assets.
   int32 width = 8;
   int32 height = 9;
-  // variants contains processed image outputs and is empty for opaque assets.
-  repeated AssetVariant variants = 10;
   // created_at and updated_at are Unix milliseconds.
   int64 created_at = 11;
   int64 updated_at = 12;
@@ -183,24 +166,22 @@ message Asset {
   int64 subject_id = 13;
 }
 
-// GetAssetURLRequest selects a delivery policy for a ready asset.
-message GetAssetURLRequest {
-  // asset_id must refer to a READY asset.
+// GetAssetDownloadURLRequest identifies a ready private attachment.
+message GetAssetDownloadURLRequest {
+  // asset_id must refer to a READY MESSAGE_ATTACHMENT asset. Public avatars and
+  // Guild icons use deterministic CDN paths and do not use this RPC.
   int64 asset_id = 1;
-  // purpose must match the asset kind: processed images support PUBLIC and
-  // opaque assets support SIGNED_DOWNLOAD.
-  AssetURLPurpose purpose = 2;
   // expires_in_seconds controls signed URL lifetime. Zero uses the service
   // default.
-  int64 expires_in_seconds = 3;
+  int64 expires_in_seconds = 2;
 }
 
-// GetAssetURLResponse contains a transient URL that must not be persisted.
-message GetAssetURLResponse {
-  // url is either a public delivery URL or a short-lived signed URL according
-  // to the requested purpose.
+// GetAssetDownloadURLResponse contains a transient URL that must not be
+// persisted.
+message GetAssetDownloadURLResponse {
+  // url is a short-lived signed URL for the private attachment object.
   string url = 1;
-  // expires_at is Unix milliseconds.
+  // expires_at is the URL expiration as Unix milliseconds.
   int64 expires_at = 2;
 }
 
@@ -208,8 +189,8 @@ message GetAssetURLResponse {
 enum AssetKind {
   // ASSET_KIND_UNSPECIFIED represents an unknown or unset kind.
   ASSET_KIND_UNSPECIFIED = 0;
-  // ASSET_KIND_USER_AVATAR is uploaded to staging and published as immutable
-  // public WebP variants after image validation.
+  // ASSET_KIND_USER_AVATAR is uploaded to staging and published in its
+  // validated original JPEG, PNG, or WebP representation.
   ASSET_KIND_USER_AVATAR = 1;
   // ASSET_KIND_GUILD_ICON follows the same image policy as USER_AVATAR.
   ASSET_KIND_GUILD_ICON = 2;
@@ -228,11 +209,6 @@ enum AssetStatus {
   // ASSET_STATUS_COMPLETING means Media has claimed completion and will recover
   // by probing object storage after a crash.
   ASSET_STATUS_COMPLETING = 2;
-  // ASSET_STATUS_UPLOADED means object size and content type were verified.
-  ASSET_STATUS_UPLOADED = 3;
-  // ASSET_STATUS_PROCESSING means image variants are being generated. A retry
-  // resumes processing while holding the asset-scoped advisory lock.
-  ASSET_STATUS_PROCESSING = 4;
   // ASSET_STATUS_READY means the immutable asset may be associated by a domain
   // service.
   ASSET_STATUS_READY = 5;
@@ -242,16 +218,4 @@ enum AssetStatus {
   ASSET_STATUS_ABORTED = 7;
   // ASSET_STATUS_EXPIRED is a terminal session timeout.
   ASSET_STATUS_EXPIRED = 8;
-}
-
-// AssetURLPurpose selects public image delivery or private signed delivery.
-enum AssetURLPurpose {
-  // ASSET_URL_PURPOSE_UNSPECIFIED uses the image public-delivery default and
-  // is invalid for opaque private assets.
-  ASSET_URL_PURPOSE_UNSPECIFIED = 0;
-  // ASSET_URL_PURPOSE_PUBLIC is valid only for processed public images.
-  ASSET_URL_PURPOSE_PUBLIC = 1;
-  // ASSET_URL_PURPOSE_SIGNED_DOWNLOAD is valid for private opaque assets and
-  // may also resolve the largest processed image variant for internal use.
-  ASSET_URL_PURPOSE_SIGNED_DOWNLOAD = 2;
 }

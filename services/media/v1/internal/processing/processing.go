@@ -11,10 +11,7 @@ import (
 	_ "image/png"
 	"io"
 	"strings"
-	"time"
 
-	"github.com/chai2010/webp"
-	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
 	"golang.org/x/sync/semaphore"
 
@@ -23,7 +20,8 @@ import (
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
 )
 
-// Processor validates source images and publishes metadata-free WebP variants.
+// Processor validates source images and publishes the validated original
+// representation under its immutable public key.
 type Processor struct {
 	objStore objectstore.ObjectStore
 	cfg      config.MediaConfig
@@ -39,14 +37,15 @@ func NewProcessor(objStore objectstore.ObjectStore, cfg config.MediaConfig) *Pro
 	}
 }
 
-// ProcessResult describes the validated source dimensions and published variants.
+// ProcessResult describes the validated source dimensions and published key.
 type ProcessResult struct {
-	Width    int32
-	Height   int32
-	Variants []store.Variant
+	Width        int32
+	Height       int32
+	PublishedKey string
 }
 
-// Process validates the uploaded object and writes all configured variants.
+// Process fully decodes the uploaded image and copies the original bytes to
+// its immutable public key. The frontend owns crop and compression.
 func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessResult, error) {
 	processCtx, cancel := context.WithTimeout(ctx, p.cfg.ImageProcessingTimeout())
 	defer cancel()
@@ -103,89 +102,28 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	if err := processCtx.Err(); err != nil {
 		return nil, err
 	}
-	img = applyOrientation(img, imageOrientation(data, format))
-
 	bounds := img.Bounds()
 	origW := int32(bounds.Dx())
 	origH := int32(bounds.Dy())
+	if orientation := imageOrientation(data, format); orientation >= 5 {
+		origW, origH = origH, origW
+	}
 	if err := validateDimensions(int(origW), int(origH), p.cfg); err != nil {
 		return nil, err
 	}
-
-	variants, err := p.encodeVariants(processCtx, img, asset.PublicPrefix())
-	if err != nil {
-		return nil, err
+	publishedKey := asset.PublicKey()
+	if err := p.objStore.PutObject(
+		processCtx,
+		publishedKey,
+		actualContentType,
+		bytes.NewReader(data),
+	); err != nil {
+		return nil, fmt.Errorf("publish image: %w", err)
 	}
-	return &ProcessResult{Width: origW, Height: origH, Variants: variants}, nil
-}
-
-func (p *Processor) encodeVariants(
-	ctx context.Context,
-	img image.Image,
-	publishedKey string,
-) ([]store.Variant, error) {
-	variants := make([]store.Variant, 0, len(p.cfg.ImageVariantSizes))
-	for _, configuredSize := range p.cfg.ImageVariantSizes {
-		if err := ctx.Err(); err != nil {
-			p.deleteUnpublishedVariants(variants)
-			return nil, err
-		}
-		size := int(configuredSize)
-		if size <= 0 {
-			return nil, fmt.Errorf("image variant size must be positive: %d", size)
-		}
-		variant, err := p.encodeVariant(ctx, img, publishedKey, size)
-		if err != nil {
-			p.deleteUnpublishedVariants(variants)
-			return nil, fmt.Errorf("encode variant %d: %w", size, err)
-		}
-		variants = append(variants, *variant)
-	}
-	return variants, nil
-}
-
-func (p *Processor) deleteUnpublishedVariants(variants []store.Variant) {
-	deleteCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	for _, variant := range variants {
-		_ = p.objStore.DeleteObject(deleteCtx, variant.Key)
-	}
-}
-
-func (p *Processor) encodeVariant(
-	ctx context.Context,
-	src image.Image,
-	publishedKey string,
-	size int,
-) (*store.Variant, error) {
-	key := variantKey(publishedKey, size)
-	resized := resizeToFit(src, size)
-	if resized == nil {
-		return nil, fmt.Errorf("resize variant %d: nil result", size)
-	}
-
-	bounds := resized.Bounds()
-	width := int32(bounds.Dx())
-	height := int32(bounds.Dy())
-
-	var buf bytes.Buffer
-	if err := webp.Encode(&buf, resized, nil); err != nil {
-		return nil, fmt.Errorf("webp encode: %w", err)
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	encodedSize := int64(buf.Len())
-	if err := p.objStore.PutObject(ctx, key, "image/webp", &buf); err != nil {
-		return nil, fmt.Errorf("put variant: %w", err)
-	}
-
-	return &store.Variant{
-		Key:          key,
-		MaxDimension: int32(size),
-		Width:        width,
-		Height:       height,
-		Size:         encodedSize,
+	return &ProcessResult{
+		Width:        origW,
+		Height:       origH,
+		PublishedKey: publishedKey,
 	}, nil
 }
 
@@ -286,28 +224,6 @@ func webpHasAnimation(data []byte) bool {
 		offset = end + length%2
 	}
 	return false
-}
-
-func resizeToFit(src image.Image, targetSize int) image.Image {
-	bounds := src.Bounds()
-	w, h := bounds.Dx(), bounds.Dy()
-	if w <= 0 || h <= 0 {
-		return nil
-	}
-	if w <= targetSize && h <= targetSize {
-		return src
-	}
-
-	ratio := float64(targetSize) / float64(max(w, h))
-	newW := max(1, int(float64(w)*ratio))
-	newH := max(1, int(float64(h)*ratio))
-	dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
-	draw.CatmullRom.Scale(dst, dst.Bounds(), src, bounds, draw.Over, nil)
-	return dst
-}
-
-func variantKey(publishedKey string, size int) string {
-	return fmt.Sprintf("%s/%d.webp", publishedKey, size)
 }
 
 func imageOrientation(data []byte, format string) int {

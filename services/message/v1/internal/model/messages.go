@@ -18,7 +18,7 @@ type Message struct {
 }
 
 type Attachment struct {
-	Key         string
+	AssetID     int64
 	Filename    string
 	Size        int64
 	ContentType string

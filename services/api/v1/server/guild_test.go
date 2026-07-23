@@ -23,6 +23,8 @@ type fakeGuildClient struct {
 	guildv1.GuildServiceClient
 	createRequest         *guildv1.CreateGuildRequest
 	updateRequest         *guildv1.UpdateGuildRequest
+	createIconRequest     *guildv1.CreateGuildIconUploadRequest
+	createIconResponse    *guildv1.CreateGuildIconUploadResponse
 	addMemberRequest      *guildv1.AddGuildMemberRequest
 	updateMemberRequest   *guildv1.UpdateGuildMemberRequest
 	leaveRequest          *guildv1.LeaveGuildRequest
@@ -403,6 +405,15 @@ func (f *fakeGuildClient) UpdateGuild(_ context.Context, req *guildv1.UpdateGuil
 	return f.updateResponse, nil
 }
 
+func (f *fakeGuildClient) CreateGuildIconUpload(
+	_ context.Context,
+	req *guildv1.CreateGuildIconUploadRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.CreateGuildIconUploadResponse, error) {
+	f.createIconRequest = req
+	return f.createIconResponse, nil
+}
+
 func TestCreateGuildUsesAuthenticatedOwner(t *testing.T) {
 	internal := internalGuild()
 	createResp := new(guildv1.CreateGuildResponse)
@@ -413,7 +424,6 @@ func TestCreateGuildUsesAuthenticatedOwner(t *testing.T) {
 
 	createReq := new(apiv1.CreateGuildRequest)
 	createReq.SetName("Cordis")
-	createReq.SetIconUri("icon://guild")
 	resp, err := client.CreateGuild(context.Background(), createReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.createRequest.GetOwnerId())
@@ -430,13 +440,33 @@ func TestUpdateGuildUsesAuthenticatedActorAndFieldPresence(t *testing.T) {
 
 	updateReq := new(apiv1.UpdateGuildRequest)
 	updateReq.SetGuildId(3001)
-	updateReq.SetIconUri("")
+	updateReq.SetName("")
 	_, err := client.UpdateGuild(context.Background(), updateReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateRequest.GetActorUserId())
-	require.False(t, guildClient.updateRequest.HasName())
-	require.True(t, guildClient.updateRequest.HasIconUri())
-	require.Empty(t, guildClient.updateRequest.GetIconUri())
+	require.True(t, guildClient.updateRequest.HasName())
+	require.Empty(t, guildClient.updateRequest.GetName())
+}
+
+func TestCreateGuildIconUploadUsesAuthenticatedActor(t *testing.T) {
+	svcResp := new(guildv1.CreateGuildIconUploadResponse)
+	svcResp.SetUploadId(7001)
+	svcResp.SetPresignedUrl("https://upload.example/7001")
+	svcResp.SetExpiresAt(9001)
+	guildClient := &fakeGuildClient{createIconResponse: svcResp}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	req := new(apiv1.CreateGuildIconUploadRequest)
+	req.SetGuildId(3001)
+	req.SetExpectedSize(123)
+	req.SetContentType("image/png")
+	resp, err := client.CreateGuildIconUpload(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.createIconRequest.GetActorUserId())
+	require.Equal(t, int64(3001), guildClient.createIconRequest.GetGuildId())
+	require.Equal(t, int64(123), guildClient.createIconRequest.GetExpectedSize())
+	require.Equal(t, int64(7001), resp.GetUploadId())
 }
 
 func TestCreateGuildRoleUsesAuthenticatedActor(t *testing.T) {
@@ -1136,7 +1166,7 @@ func internalGuild() *guildv1.Guild {
 	guild.SetId(3001)
 	guild.SetOwnerId(1001)
 	guild.SetName("Cordis")
-	guild.SetIconUri("icon://guild")
+	guild.SetIconAssetId(6001)
 	guild.SetRevision(1)
 	guild.SetCreatedAt(4001)
 	return guild

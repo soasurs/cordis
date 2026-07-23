@@ -27,5 +27,5 @@ var (
 	errAssetNotReady         = status.Error(codes.FailedPrecondition, "asset not ready")
 	errObjectStoreDown       = status.Error(codes.Unavailable, "object storage unavailable")
 	errProcessingInterrupted = status.Error(codes.Unavailable, "image processing interrupted")
-	errURLPurposeInvalid     = status.Error(codes.InvalidArgument, "asset URL purpose is invalid")
+	errAssetNotDownloadable  = status.Error(codes.InvalidArgument, "asset does not support signed download")
 )

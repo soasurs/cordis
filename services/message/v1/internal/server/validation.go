@@ -46,8 +46,8 @@ func validateAttachments(attachments []model.Attachment, limit int) error {
 		return resourceLimitExceeded("attachment limit exceeded")
 	}
 	for _, attachment := range attachments {
-		if strings.TrimSpace(attachment.Key) == "" {
-			return invalidRequest("attachment key is required")
+		if attachment.AssetID <= 0 {
+			return invalidRequest("attachment asset id is required")
 		}
 		if strings.TrimSpace(attachment.Filename) == "" {
 			return invalidRequest("attachment filename is required")

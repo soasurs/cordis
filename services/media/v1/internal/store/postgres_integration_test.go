@@ -62,13 +62,7 @@ func testCreateGetAndUpdate(t *testing.T, assetStore Store) {
 	loaded.ActualSize = loaded.ExpectedSize
 	loaded.Width = 64
 	loaded.Height = 32
-	loaded.SetVariants([]Variant{{
-		Key:          "avatars/1001/1101/64.webp",
-		MaxDimension: 64,
-		Width:        64,
-		Height:       32,
-		Size:         512,
-	}})
+	loaded.PublishedKey = "avatars/1101/1001"
 	require.NoError(t, lockedStore.UpdateAsset(t.Context(), loaded))
 	unlock()
 
@@ -76,7 +70,7 @@ func testCreateGetAndUpdate(t *testing.T, assetStore Store) {
 	require.NoError(t, err)
 	require.Equal(t, StatusReady, loaded.Status)
 	require.Equal(t, int64(1024), loaded.ActualSize)
-	require.Len(t, loaded.Variants(), 1)
+	require.Equal(t, "avatars/1101/1001", loaded.PublishedKey)
 }
 
 func testConcurrentQuota(t *testing.T, assetStore Store) {

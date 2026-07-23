@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/internal/testkit"
@@ -29,6 +30,10 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/svc"
 	usermigrations "github.com/soasurs/cordis/services/user/v1/db/migrations"
 )
+
+type unusedMediaClient struct {
+	mediav1.MediaServiceClient
+}
 
 // TestMessageGuildUserComposition runs the Message server in-process against
 // real User and Guild service binaries so that channel authorization and
@@ -54,6 +59,7 @@ func TestMessageGuildUserComposition(t *testing.T) {
 		Snowflake:   node,
 		GuildClient: guildClient,
 		UserClient:  userClient,
+		MediaClient: &unusedMediaClient{},
 	}))
 
 	ctx := t.Context()
@@ -285,6 +291,10 @@ log:
   stat: false
 database:
   dataSource: %s
+services:
+  media:
+    endpoints:
+      - 127.0.0.1:1
 `, address, dsn))
 	waitUserReady(t, address)
 	return address
@@ -307,6 +317,9 @@ services:
   user:
     endpoints:
       - %s
+  media:
+    endpoints:
+      - 127.0.0.1:1
 `, address, dsn, userAddress))
 	waitGuildReady(t, address)
 	return address

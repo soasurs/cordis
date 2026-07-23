@@ -23,18 +23,26 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if err := validateContent(req.GetContent()); err != nil {
 		return nil, err
 	}
-	attachments := attachmentsFromProto(req.GetAttachments())
-	if err := validateAttachments(attachments, s.svcCtx.Cfg.Limits.Attachments()); err != nil {
-		return nil, err
+	if len(req.GetAttachments()) > s.svcCtx.Cfg.Limits.Attachments() {
+		return nil, resourceLimitExceeded("attachment limit exceeded")
 	}
 	if err := validateFlags(req.GetFlags()); err != nil {
 		return nil, err
 	}
-	if req.GetContent() == "" && len(attachments) == 0 {
+	if req.GetContent() == "" && len(req.GetAttachments()) == 0 {
 		return nil, invalidRequest("content or attachments are required")
 	}
 
 	messageType, err := normalizeMessageType(req.GetType())
+	if err != nil {
+		return nil, err
+	}
+	attachments, err := s.resolveAttachments(
+		ctx,
+		req.GetChannelId(),
+		req.GetAuthorId(),
+		req.GetAttachments(),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -177,8 +185,16 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		params.Flags = &flags
 	}
 	if req.HasAttachments() {
-		attachments := attachmentsFromProto(req.GetAttachments().GetAttachments())
-		if err := validateAttachments(attachments, s.svcCtx.Cfg.Limits.Attachments()); err != nil {
+		if len(req.GetAttachments().GetAttachments()) > s.svcCtx.Cfg.Limits.Attachments() {
+			return nil, resourceLimitExceeded("attachment limit exceeded")
+		}
+		attachments, err := s.resolveAttachments(
+			ctx,
+			current.ChannelID,
+			req.GetActorUserId(),
+			req.GetAttachments().GetAttachments(),
+		)
+		if err != nil {
 			return nil, err
 		}
 		params.Attachments = &attachments

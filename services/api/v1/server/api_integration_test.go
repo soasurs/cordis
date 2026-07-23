@@ -491,6 +491,10 @@ log:
   stat: false
 database:
   dataSource: %s
+services:
+  media:
+    endpoints:
+      - 127.0.0.1:1
 `, addr, dsn))
 	return addr
 }
@@ -590,6 +594,9 @@ services:
   user:
     endpoints:
       - %s
+  media:
+    endpoints:
+      - 127.0.0.1:1
 `, addr, dsn, userAddr))
 	return addr
 }
@@ -614,6 +621,9 @@ services:
   user:
     endpoints:
       - %s
+  media:
+    endpoints:
+      - 127.0.0.1:1
 `, addr, dsn, guildAddr, userAddr))
 	return addr
 }

@@ -17,7 +17,7 @@ import (
 )
 
 type attachmentJSON struct {
-	Key         string `json:"key"`
+	AssetID     int64  `json:"asset_id"`
 	Filename    string `json:"filename"`
 	Size        int64  `json:"size"`
 	ContentType string `json:"content_type"`
@@ -320,7 +320,7 @@ func marshalAttachments(attachments []model.Attachment) (string, error) {
 	values := make([]attachmentJSON, 0, len(attachments))
 	for _, attachment := range attachments {
 		values = append(values, attachmentJSON{
-			Key:         attachment.Key,
+			AssetID:     attachment.AssetID,
 			Filename:    attachment.Filename,
 			Size:        attachment.Size,
 			ContentType: attachment.ContentType,
@@ -346,7 +346,7 @@ func unmarshalAttachments(value string) ([]model.Attachment, error) {
 	values := make([]model.Attachment, 0, len(attachments))
 	for _, attachment := range attachments {
 		values = append(values, model.Attachment{
-			Key:         attachment.Key,
+			AssetID:     attachment.AssetID,
 			Filename:    attachment.Filename,
 			Size:        attachment.Size,
 			ContentType: attachment.ContentType,

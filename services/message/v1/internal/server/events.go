@@ -51,16 +51,16 @@ type messagePayload struct {
 }
 
 type authorPayload struct {
-	UserID    string `json:"user_id"`
-	Name      string `json:"name"`
-	AvatarURI string `json:"avatar_uri"`
-	CreatedAt int64  `json:"created_at"`
-	UpdatedAt int64  `json:"updated_at"`
-	Username  string `json:"username"`
+	UserID        string `json:"user_id"`
+	Name          string `json:"name"`
+	AvatarAssetID string `json:"avatar_asset_id"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     int64  `json:"updated_at"`
+	Username      string `json:"username"`
 }
 
 type attachmentJSON struct {
-	Key         string `json:"key"`
+	AssetID     string `json:"asset_id"`
 	Filename    string `json:"filename"`
 	Size        int64  `json:"size"`
 	ContentType string `json:"content_type"`
@@ -203,12 +203,12 @@ func authorPayloadFromProto(author *userv1.UserProfile) authorPayload {
 		return authorPayload{}
 	}
 	return authorPayload{
-		UserID:    strconv.FormatInt(author.GetUserId(), 10),
-		Name:      author.GetName(),
-		AvatarURI: author.GetAvatarUri(),
-		CreatedAt: author.GetCreatedAt(),
-		UpdatedAt: author.GetUpdatedAt(),
-		Username:  author.GetUsername(),
+		UserID:        strconv.FormatInt(author.GetUserId(), 10),
+		Name:          author.GetName(),
+		AvatarAssetID: strconv.FormatInt(author.GetAvatarAssetId(), 10),
+		CreatedAt:     author.GetCreatedAt(),
+		UpdatedAt:     author.GetUpdatedAt(),
+		Username:      author.GetUsername(),
 	}
 }
 
@@ -266,7 +266,7 @@ func attachmentsForEvent(attachments []model.Attachment) []attachmentJSON {
 	values := make([]attachmentJSON, 0, len(attachments))
 	for _, attachment := range attachments {
 		values = append(values, attachmentJSON{
-			Key:         attachment.Key,
+			AssetID:     strconv.FormatInt(attachment.AssetID, 10),
 			Filename:    attachment.Filename,
 			Size:        attachment.Size,
 			ContentType: attachment.ContentType,

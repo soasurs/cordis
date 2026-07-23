@@ -43,7 +43,6 @@ func TestProcessorRejectsPixelLimitBeforePublication(t *testing.T) {
 		},
 	}
 	processor := NewProcessor(objectStore, config.MediaConfig{
-		ImageVariantSizes:            []int32{64},
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
 		MaxImageSizeBytes:            1 << 20,
@@ -52,6 +51,8 @@ func TestProcessorRejectsPixelLimitBeforePublication(t *testing.T) {
 	})
 	asset := &store.Asset{
 		ID:           1,
+		SubjectID:    10,
+		Kind:         store.KindUserAvatar,
 		StagingKey:   "staging/1",
 		ExpectedSize: int64(len(source)),
 		ContentType:  "image/png",
@@ -110,6 +111,8 @@ func TestProcessorBoundsConcurrency(t *testing.T) {
 	})
 	asset := &store.Asset{
 		ID:           1,
+		SubjectID:    10,
+		Kind:         store.KindUserAvatar,
 		StagingKey:   "staging/1",
 		ExpectedSize: int64(len(source)),
 		ContentType:  "image/png",
@@ -171,6 +174,16 @@ func (f *blockingObjectStore) GetObject(
 		Size:        int64(len(f.data)),
 		ContentType: f.contentType,
 	}, nil
+}
+
+func (*blockingObjectStore) PutObject(
+	_ context.Context,
+	_ string,
+	_ string,
+	data io.Reader,
+) error {
+	_, err := io.Copy(io.Discard, data)
+	return err
 }
 
 func (f *processorObjectStore) CreatePresignedPutURL(

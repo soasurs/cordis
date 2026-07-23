@@ -43,6 +43,15 @@ const (
 	// GuildServiceUpdateGuildProcedure is the fully-qualified name of the GuildService's UpdateGuild
 	// RPC.
 	GuildServiceUpdateGuildProcedure = "/api.v1.GuildService/UpdateGuild"
+	// GuildServiceCreateGuildIconUploadProcedure is the fully-qualified name of the GuildService's
+	// CreateGuildIconUpload RPC.
+	GuildServiceCreateGuildIconUploadProcedure = "/api.v1.GuildService/CreateGuildIconUpload"
+	// GuildServiceCompleteGuildIconUploadProcedure is the fully-qualified name of the GuildService's
+	// CompleteGuildIconUpload RPC.
+	GuildServiceCompleteGuildIconUploadProcedure = "/api.v1.GuildService/CompleteGuildIconUpload"
+	// GuildServiceAbortGuildIconUploadProcedure is the fully-qualified name of the GuildService's
+	// AbortGuildIconUpload RPC.
+	GuildServiceAbortGuildIconUploadProcedure = "/api.v1.GuildService/AbortGuildIconUpload"
 	// GuildServiceDeleteGuildProcedure is the fully-qualified name of the GuildService's DeleteGuild
 	// RPC.
 	GuildServiceDeleteGuildProcedure = "/api.v1.GuildService/DeleteGuild"
@@ -155,6 +164,13 @@ type GuildServiceClient interface {
 	GetGuild(context.Context, *v1.GetGuildRequest) (*v1.GetGuildResponse, error)
 	ListGuilds(context.Context, *v1.ListGuildsRequest) (*v1.ListGuildsResponse, error)
 	UpdateGuild(context.Context, *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error)
+	// CreateGuildIconUpload creates a single-PUT icon upload after checking the
+	// bearer token user's MANAGE_GUILD permission.
+	CreateGuildIconUpload(context.Context, *v1.CreateGuildIconUploadRequest) (*v1.CreateGuildIconUploadResponse, error)
+	// CompleteGuildIconUpload validates the image and replaces the Guild icon.
+	CompleteGuildIconUpload(context.Context, *v1.CompleteGuildIconUploadRequest) (*v1.CompleteGuildIconUploadResponse, error)
+	// AbortGuildIconUpload cancels an unpublished icon upload.
+	AbortGuildIconUpload(context.Context, *v1.AbortGuildIconUploadRequest) (*v1.AbortGuildIconUploadResponse, error)
 	DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error)
 	AddGuildMember(context.Context, *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error)
 	GetGuildMember(context.Context, *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error)
@@ -225,6 +241,24 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+GuildServiceUpdateGuildProcedure,
 			connect.WithSchema(guildServiceMethods.ByName("UpdateGuild")),
+			connect.WithClientOptions(opts...),
+		),
+		createGuildIconUpload: connect.NewClient[v1.CreateGuildIconUploadRequest, v1.CreateGuildIconUploadResponse](
+			httpClient,
+			baseURL+GuildServiceCreateGuildIconUploadProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("CreateGuildIconUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		completeGuildIconUpload: connect.NewClient[v1.CompleteGuildIconUploadRequest, v1.CompleteGuildIconUploadResponse](
+			httpClient,
+			baseURL+GuildServiceCompleteGuildIconUploadProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("CompleteGuildIconUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		abortGuildIconUpload: connect.NewClient[v1.AbortGuildIconUploadRequest, v1.AbortGuildIconUploadResponse](
+			httpClient,
+			baseURL+GuildServiceAbortGuildIconUploadProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("AbortGuildIconUpload")),
 			connect.WithClientOptions(opts...),
 		),
 		deleteGuild: connect.NewClient[v1.DeleteGuildRequest, v1.DeleteGuildResponse](
@@ -446,6 +480,9 @@ type guildServiceClient struct {
 	getGuild                              *connect.Client[v1.GetGuildRequest, v1.GetGuildResponse]
 	listGuilds                            *connect.Client[v1.ListGuildsRequest, v1.ListGuildsResponse]
 	updateGuild                           *connect.Client[v1.UpdateGuildRequest, v1.UpdateGuildResponse]
+	createGuildIconUpload                 *connect.Client[v1.CreateGuildIconUploadRequest, v1.CreateGuildIconUploadResponse]
+	completeGuildIconUpload               *connect.Client[v1.CompleteGuildIconUploadRequest, v1.CompleteGuildIconUploadResponse]
+	abortGuildIconUpload                  *connect.Client[v1.AbortGuildIconUploadRequest, v1.AbortGuildIconUploadResponse]
 	deleteGuild                           *connect.Client[v1.DeleteGuildRequest, v1.DeleteGuildResponse]
 	addGuildMember                        *connect.Client[v1.AddGuildMemberRequest, v1.AddGuildMemberResponse]
 	getGuildMember                        *connect.Client[v1.GetGuildMemberRequest, v1.GetGuildMemberResponse]
@@ -513,6 +550,33 @@ func (c *guildServiceClient) ListGuilds(ctx context.Context, req *v1.ListGuildsR
 // UpdateGuild calls api.v1.GuildService.UpdateGuild.
 func (c *guildServiceClient) UpdateGuild(ctx context.Context, req *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error) {
 	response, err := c.updateGuild.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CreateGuildIconUpload calls api.v1.GuildService.CreateGuildIconUpload.
+func (c *guildServiceClient) CreateGuildIconUpload(ctx context.Context, req *v1.CreateGuildIconUploadRequest) (*v1.CreateGuildIconUploadResponse, error) {
+	response, err := c.createGuildIconUpload.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CompleteGuildIconUpload calls api.v1.GuildService.CompleteGuildIconUpload.
+func (c *guildServiceClient) CompleteGuildIconUpload(ctx context.Context, req *v1.CompleteGuildIconUploadRequest) (*v1.CompleteGuildIconUploadResponse, error) {
+	response, err := c.completeGuildIconUpload.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// AbortGuildIconUpload calls api.v1.GuildService.AbortGuildIconUpload.
+func (c *guildServiceClient) AbortGuildIconUpload(ctx context.Context, req *v1.AbortGuildIconUploadRequest) (*v1.AbortGuildIconUploadResponse, error) {
+	response, err := c.abortGuildIconUpload.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -843,6 +907,13 @@ type GuildServiceHandler interface {
 	GetGuild(context.Context, *v1.GetGuildRequest) (*v1.GetGuildResponse, error)
 	ListGuilds(context.Context, *v1.ListGuildsRequest) (*v1.ListGuildsResponse, error)
 	UpdateGuild(context.Context, *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error)
+	// CreateGuildIconUpload creates a single-PUT icon upload after checking the
+	// bearer token user's MANAGE_GUILD permission.
+	CreateGuildIconUpload(context.Context, *v1.CreateGuildIconUploadRequest) (*v1.CreateGuildIconUploadResponse, error)
+	// CompleteGuildIconUpload validates the image and replaces the Guild icon.
+	CompleteGuildIconUpload(context.Context, *v1.CompleteGuildIconUploadRequest) (*v1.CompleteGuildIconUploadResponse, error)
+	// AbortGuildIconUpload cancels an unpublished icon upload.
+	AbortGuildIconUpload(context.Context, *v1.AbortGuildIconUploadRequest) (*v1.AbortGuildIconUploadResponse, error)
 	DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error)
 	AddGuildMember(context.Context, *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error)
 	GetGuildMember(context.Context, *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error)
@@ -909,6 +980,24 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		GuildServiceUpdateGuildProcedure,
 		svc.UpdateGuild,
 		connect.WithSchema(guildServiceMethods.ByName("UpdateGuild")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceCreateGuildIconUploadHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceCreateGuildIconUploadProcedure,
+		svc.CreateGuildIconUpload,
+		connect.WithSchema(guildServiceMethods.ByName("CreateGuildIconUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceCompleteGuildIconUploadHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceCompleteGuildIconUploadProcedure,
+		svc.CompleteGuildIconUpload,
+		connect.WithSchema(guildServiceMethods.ByName("CompleteGuildIconUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceAbortGuildIconUploadHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceAbortGuildIconUploadProcedure,
+		svc.AbortGuildIconUpload,
+		connect.WithSchema(guildServiceMethods.ByName("AbortGuildIconUpload")),
 		connect.WithHandlerOptions(opts...),
 	)
 	guildServiceDeleteGuildHandler := connect.NewUnaryHandlerSimple(
@@ -1131,6 +1220,12 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceListGuildsHandler.ServeHTTP(w, r)
 		case GuildServiceUpdateGuildProcedure:
 			guildServiceUpdateGuildHandler.ServeHTTP(w, r)
+		case GuildServiceCreateGuildIconUploadProcedure:
+			guildServiceCreateGuildIconUploadHandler.ServeHTTP(w, r)
+		case GuildServiceCompleteGuildIconUploadProcedure:
+			guildServiceCompleteGuildIconUploadHandler.ServeHTTP(w, r)
+		case GuildServiceAbortGuildIconUploadProcedure:
+			guildServiceAbortGuildIconUploadHandler.ServeHTTP(w, r)
 		case GuildServiceDeleteGuildProcedure:
 			guildServiceDeleteGuildHandler.ServeHTTP(w, r)
 		case GuildServiceAddGuildMemberProcedure:
@@ -1224,6 +1319,18 @@ func (UnimplementedGuildServiceHandler) ListGuilds(context.Context, *v1.ListGuil
 
 func (UnimplementedGuildServiceHandler) UpdateGuild(context.Context, *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.UpdateGuild is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) CreateGuildIconUpload(context.Context, *v1.CreateGuildIconUploadRequest) (*v1.CreateGuildIconUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.CreateGuildIconUpload is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) CompleteGuildIconUpload(context.Context, *v1.CompleteGuildIconUploadRequest) (*v1.CompleteGuildIconUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.CompleteGuildIconUpload is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) AbortGuildIconUpload(context.Context, *v1.AbortGuildIconUploadRequest) (*v1.AbortGuildIconUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.AbortGuildIconUpload is not implemented"))
 }
 
 func (UnimplementedGuildServiceHandler) DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error) {

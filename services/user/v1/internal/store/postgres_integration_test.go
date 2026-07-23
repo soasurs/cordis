@@ -77,7 +77,7 @@ func testUserProfiles(t *testing.T, store Store) {
 	const userID = int64(2001)
 	ctx := t.Context()
 
-	profile, err := store.CreateUserProfile(ctx, userID, "it_user_2001", "Alice", "avatar://a")
+	profile, err := store.CreateUserProfile(ctx, userID, "it_user_2001", "Alice")
 	require.NoError(t, err)
 	require.Equal(t, userID, profile.UserID)
 	require.Equal(t, "Alice", profile.Name)
@@ -86,11 +86,11 @@ func testUserProfiles(t *testing.T, store Store) {
 	loaded, err := store.GetUserProfile(ctx, userID)
 	require.NoError(t, err)
 	require.Equal(t, "Alice", loaded.Name)
-	require.Equal(t, "avatar://a", loaded.AvatarURI)
+	require.Zero(t, loaded.AvatarAssetID)
 	_, err = store.GetUserProfile(ctx, 9999)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 
-	_, err = store.CreateUserProfile(ctx, userID+1, "it_user_2002", "Bob", "avatar://bob")
+	_, err = store.CreateUserProfile(ctx, userID+1, "it_user_2002", "Bob")
 	require.NoError(t, err)
 	profiles, err := store.ListUserProfiles(ctx, []int64{userID + 1, userID, 9999})
 	require.NoError(t, err)
@@ -102,14 +102,13 @@ func testUserProfiles(t *testing.T, store Store) {
 	updated, err := store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: userID, Name: &name})
 	require.NoError(t, err)
 	require.Equal(t, "Alice Cooper", updated.Name)
-	require.Equal(t, "avatar://a", updated.AvatarURI)
+	require.Zero(t, updated.AvatarAssetID)
 	require.True(t, updated.UpdatedAt > 0)
 
-	avatarURI := "avatar://b"
-	updated, err = store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: userID, AvatarURI: &avatarURI})
+	updated, err = store.UpdateUserAvatar(ctx, userID, 9001)
 	require.NoError(t, err)
 	require.Equal(t, "Alice Cooper", updated.Name)
-	require.Equal(t, "avatar://b", updated.AvatarURI)
+	require.Equal(t, int64(9001), updated.AvatarAssetID)
 
 	_, err = store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: 9999, Name: &name})
 	require.ErrorIs(t, err, sql.ErrNoRows)
@@ -123,7 +122,7 @@ func testTransact(t *testing.T, store Store) {
 		if _, err := tx.CreateUser(ctx, userID, "tx@example.com"); err != nil {
 			return err
 		}
-		_, err := tx.CreateUserProfile(ctx, userID, "it_user_3001", "Tx", "")
+		_, err := tx.CreateUserProfile(ctx, userID, "it_user_3001", "Tx")
 		return err
 	}))
 	profile, err := store.GetUserProfile(ctx, userID)
@@ -200,7 +199,7 @@ func testUsernames(t *testing.T, store Store) {
 
 	_, err := store.CreateUser(ctx, userID, "handle@example.com")
 	require.NoError(t, err)
-	_, err = store.CreateUserProfile(ctx, userID, "handle_owner", "Handle Owner", "")
+	_, err = store.CreateUserProfile(ctx, userID, "handle_owner", "Handle Owner")
 	require.NoError(t, err)
 
 	profile, err := store.GetUserProfileByUsername(ctx, "handle_owner")
@@ -214,14 +213,14 @@ func testUsernames(t *testing.T, store Store) {
 	// The active unique index rejects a duplicate handle.
 	_, err = store.CreateUser(ctx, userID+1, "handle2@example.com")
 	require.NoError(t, err)
-	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second", "")
+	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second")
 	var pqErr *pq.Error
 	require.True(t, errors.As(err, &pqErr))
 	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
 	require.Equal(t, "user_profiles_username_active_idx", pqErr.Constraint)
 
 	// The CHECK constraint rejects malformed handles.
-	_, err = store.CreateUserProfile(ctx, userID+1, "Bad Handle!", "Second", "")
+	_, err = store.CreateUserProfile(ctx, userID+1, "Bad Handle!", "Second")
 	require.True(t, errors.As(err, &pqErr))
 	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
 
@@ -229,7 +228,7 @@ func testUsernames(t *testing.T, store Store) {
 	renamed, err := store.UpdateUsername(ctx, userID, "handle_renamed")
 	require.NoError(t, err)
 	require.Equal(t, "handle_renamed", renamed.Username)
-	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second", "")
+	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second")
 	require.NoError(t, err)
 	_, err = store.UpdateUsername(ctx, userID, "handle_owner")
 	require.True(t, errors.As(err, &pqErr))

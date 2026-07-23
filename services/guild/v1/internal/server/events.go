@@ -43,13 +43,13 @@ type guildEvent struct {
 }
 
 type guildPayload struct {
-	ID        string `json:"id"`
-	OwnerID   string `json:"owner_id"`
-	Name      string `json:"name"`
-	IconURI   string `json:"icon_uri"`
-	Revision  int64  `json:"revision"`
-	CreatedAt int64  `json:"created_at"`
-	UpdatedAt int64  `json:"updated_at"`
+	ID          string `json:"id"`
+	OwnerID     string `json:"owner_id"`
+	Name        string `json:"name"`
+	IconAssetID string `json:"icon_asset_id"`
+	Revision    int64  `json:"revision"`
+	CreatedAt   int64  `json:"created_at"`
+	UpdatedAt   int64  `json:"updated_at"`
 }
 
 type guildDeletedPayload struct {
@@ -301,13 +301,13 @@ func newGuildDeletedEvent(guild *model.Guild, idempotencyKey int64) (guildEvent,
 
 func guildPayloadFromModel(guild *model.Guild) guildPayload {
 	return guildPayload{
-		ID:        strconv.FormatInt(guild.ID, 10),
-		OwnerID:   strconv.FormatInt(guild.OwnerID, 10),
-		Name:      guild.Name,
-		IconURI:   guild.IconURI,
-		Revision:  guild.Revision,
-		CreatedAt: guild.CreatedAt,
-		UpdatedAt: guild.UpdatedAt,
+		ID:          strconv.FormatInt(guild.ID, 10),
+		OwnerID:     strconv.FormatInt(guild.OwnerID, 10),
+		Name:        guild.Name,
+		IconAssetID: strconv.FormatInt(guild.IconAssetID, 10),
+		Revision:    guild.Revision,
+		CreatedAt:   guild.CreatedAt,
+		UpdatedAt:   guild.UpdatedAt,
 	}
 }
 

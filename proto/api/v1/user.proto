@@ -14,6 +14,15 @@ service UserService {
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
   // UpdateUserProfile replaces the bearer token owner's public profile fields.
   rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+  // CreateAvatarUpload creates a single-PUT avatar upload owned by the bearer
+  // token user.
+  rpc CreateAvatarUpload(CreateAvatarUploadRequest) returns (CreateAvatarUploadResponse);
+  // CompleteAvatarUpload validates the uploaded image and replaces the bearer
+  // token user's avatar reference.
+  rpc CompleteAvatarUpload(CompleteAvatarUploadRequest) returns (CompleteAvatarUploadResponse);
+  // AbortAvatarUpload cancels an unpublished upload owned by the bearer token
+  // user.
+  rpc AbortAvatarUpload(AbortAvatarUploadRequest) returns (AbortAvatarUploadResponse);
   // ChangePassword changes the bearer token owner's password after verifying the old password.
   // A successful change revokes every other session owned by the user.
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
@@ -49,7 +58,9 @@ message User {
 message UserProfile {
   int64 user_id = 1;
   string name = 2;
-  string avatar_uri = 3;
+  // Zero means the user has no avatar. Clients resolve a non-zero value through
+  // the public CDN path avatars/{user_id}/{avatar_asset_id}.
+  int64 avatar_asset_id = 3;
   int64 created_at = 4;
   int64 updated_at = 5;
   // Globally unique lowercase handle.
@@ -91,13 +102,49 @@ message UpdateEmailResponse {
 message UpdateUserProfileRequest {
   // Optional replacement field. When absent, the current name is preserved.
   string name = 1;
-  // Optional replacement field. An explicit empty string clears the avatar.
-  string avatar_uri = 2;
 }
 
 message UpdateUserProfileResponse {
   UserProfile profile = 1;
 }
+
+// CreateAvatarUploadRequest declares the exact image the client will upload.
+message CreateAvatarUploadRequest {
+  // Exact Content-Length in bytes for the subsequent PUT.
+  int64 expected_size = 1;
+  // Canonical image/jpeg, image/png, or image/webp media type. The same value
+  // must be sent as the PUT Content-Type.
+  string content_type = 2;
+}
+
+// CreateAvatarUploadResponse contains a one-shot direct-upload contract.
+message CreateAvatarUploadResponse {
+  // Opaque upload identifier used by CompleteAvatarUpload or AbortAvatarUpload.
+  int64 upload_id = 1;
+  // Short-lived URL accepting one PUT with the declared length and media type.
+  string presigned_url = 2;
+  // Upload session expiration as Unix milliseconds.
+  int64 expires_at = 3;
+}
+
+// CompleteAvatarUploadRequest selects a previously created avatar upload.
+message CompleteAvatarUploadRequest {
+  int64 upload_id = 1;
+}
+
+// CompleteAvatarUploadResponse returns the profile after its avatar reference
+// has been replaced.
+message CompleteAvatarUploadResponse {
+  UserProfile profile = 1;
+}
+
+// AbortAvatarUploadRequest selects an unpublished avatar upload to cancel.
+message AbortAvatarUploadRequest {
+  int64 upload_id = 1;
+}
+
+// AbortAvatarUploadResponse is empty because abort has no mutable result.
+message AbortAvatarUploadResponse {}
 
 message ChangePasswordRequest {
   string old_password = 1;

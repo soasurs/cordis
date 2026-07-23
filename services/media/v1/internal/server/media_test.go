@@ -123,6 +123,7 @@ type fakeObjectStore struct {
 	lastPresignedKey    string
 	lastPresignedType   string
 	lastPresignedLength int64
+	lastDownloadKey     string
 }
 
 func newFakeObjectStore() *fakeObjectStore {
@@ -201,6 +202,9 @@ func (f *fakeObjectStore) CreatePresignedGetURL(
 	key string,
 	_ int64,
 ) (string, error) {
+	f.mu.Lock()
+	f.lastDownloadKey = key
+	f.mu.Unlock()
 	return "https://s3.example.com/" + key, nil
 }
 
@@ -241,7 +245,6 @@ func newTestServer(t *testing.T) (*MediaServer, *fakeStore, *fakeObjectStore) {
 		PresignedURLTTLSeconds:       900,
 		MaxUploadSizeBytes:           524288000,
 		MaxActiveUploadsPerUser:      5,
-		ImageVariantSizes:            []int32{64, 128, 256, 512},
 		ImageProcessingTimeoutMs:     30000,
 		MaxConcurrentImageProcessing: 2,
 		MaxImageSizeBytes:            10 << 20,
@@ -328,7 +331,7 @@ func TestCreateGuildIconUploadUsesTypedSubject(t *testing.T) {
 	require.Equal(
 		t,
 		"icons/2001/"+fmtID(asset.ID),
-		asset.PublicPrefix(),
+		asset.PublicKey(),
 	)
 }
 
@@ -477,28 +480,20 @@ func TestCompleteImageUploadPublishesBeforeDeletingStaging(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, asset.ID, resp.GetAssetId())
 	require.Equal(t, int64(len(source)), resp.GetMetadata().GetSize())
-	require.Equal(t, "image/webp", resp.GetMetadata().GetContentType())
+	require.Equal(t, "image/png", resp.GetMetadata().GetContentType())
 	require.Equal(t, int32(96), resp.GetMetadata().GetWidth())
 	require.Equal(t, int32(48), resp.GetMetadata().GetHeight())
-	require.Len(t, resp.GetVariants(), 4)
 	require.False(t, objects.hasObject(asset.StagingKey))
-	for _, variant := range resp.GetVariants() {
-		require.Positive(t, variant.GetSize())
-		require.Positive(t, variant.GetMaxDimension())
-		require.True(t, objects.hasObject(
-			"avatars/1001/"+fmtID(asset.ID)+"/"+
-				fmtID(int64(variant.GetMaxDimension()))+".webp",
-		))
-	}
+	require.True(t, objects.hasObject("avatars/1001/"+fmtID(asset.ID)))
 
 	retry, err := srv.CompleteUpload(t.Context(), completeRequest(asset.ID, 1001))
 	require.NoError(t, err)
 	require.Equal(t, resp.GetAssetId(), retry.GetAssetId())
-	require.Equal(t, resp.GetVariants(), retry.GetVariants())
+	require.Equal(t, resp.GetMetadata().GetContentType(), retry.GetMetadata().GetContentType())
 }
 
-func TestCompleteUploadResumesCompletingAndProcessing(t *testing.T) {
-	for _, initialStatus := range []store.Status{store.StatusCompleting, store.StatusProcessing} {
+func TestCompleteUploadResumesCompleting(t *testing.T) {
+	for _, initialStatus := range []store.Status{store.StatusCompleting} {
 		t.Run(string(initialStatus), func(t *testing.T) {
 			srv, assets, objects := newTestServer(t)
 			source := testPNG(t, 20, 10)
@@ -619,6 +614,38 @@ func TestAbortUploadIsIdempotentAndPreservesReadyAsset(t *testing.T) {
 	_, err = srv.AbortUpload(t.Context(), req)
 	require.Equal(t, codes.AlreadyExists, status.Code(err))
 	require.Equal(t, store.StatusReady, ready.Status)
+}
+
+func TestGetAssetDownloadURLOnlySignsReadyAttachments(t *testing.T) {
+	srv, assets, objects := newTestServer(t)
+	attachment := &store.Asset{
+		ID:             123,
+		Kind:           store.KindMessageAttachment,
+		Status:         store.StatusReady,
+		PublishedKey:   "private/attachments/10/123",
+		StorageBackend: "r2",
+	}
+	assets.createAsset(attachment)
+	req := new(mediav1.GetAssetDownloadURLRequest)
+	req.SetAssetId(attachment.ID)
+
+	resp, err := srv.GetAssetDownloadURL(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, "https://s3.example.com/private/attachments/10/123", resp.GetUrl())
+	require.Equal(t, attachment.PublishedKey, objects.lastDownloadKey)
+	require.Greater(t, resp.GetExpiresAt(), time.Now().UnixMilli())
+
+	image := &store.Asset{
+		ID:           124,
+		Kind:         store.KindUserAvatar,
+		Status:       store.StatusReady,
+		PublishedKey: "avatars/10/124",
+	}
+	assets.createAsset(image)
+	req.SetAssetId(image.ID)
+	_, err = srv.GetAssetDownloadURL(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Equal(t, attachment.PublishedKey, objects.lastDownloadKey)
 }
 
 func TestCleanupExpiredRechecksStateUnderLock(t *testing.T) {

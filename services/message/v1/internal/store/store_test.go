@@ -12,7 +12,7 @@ import (
 func TestMarshalAttachmentsRoundTrip(t *testing.T) {
 	attachments := []model.Attachment{
 		{
-			Key:         "attachments/1/a.png",
+			AssetID:     101,
 			Filename:    "a.png",
 			Size:        10,
 			ContentType: "image/png",
@@ -38,7 +38,7 @@ func TestBuildUpdateMessageQuery(t *testing.T) {
 	content := "updated'); DROP TABLE messages; --"
 	flags := int32(1)
 	attachments := []model.Attachment{
-		{Key: "attachments/1/a.png", Filename: "a.png", Size: 10},
+		{AssetID: 101, Filename: "a.png", Size: 10},
 	}
 
 	query, args, err := buildUpdateMessageQuery(UpdateMessageParams{
@@ -63,7 +63,7 @@ func TestBuildUpdateMessageQuery(t *testing.T) {
 		int64(1234),
 		content,
 		flags,
-		`[{"key":"attachments/1/a.png","filename":"a.png","size":10,"content_type":"","width":0,"height":0}]`,
+		`[{"asset_id":101,"filename":"a.png","size":10,"content_type":"","width":0,"height":0}]`,
 		int64(100),
 		int64(20),
 		int64(0),

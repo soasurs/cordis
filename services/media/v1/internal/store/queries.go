@@ -3,7 +3,7 @@ package store
 const assetColumns = `
 	id, created_by_user_id, subject_id, kind, status, storage_backend,
 	staging_key, published_key, expected_size, actual_size, content_type,
-	expires_at, width, height, variants, error_message, created_at, updated_at,
+	expires_at, width, height, error_message, created_at, updated_at,
 	deleted_at
 `
 
@@ -48,7 +48,6 @@ const updateAssetStatement = `
 		content_type = :content_type,
 		width = :width,
 		height = :height,
-		variants = :variants,
 		error_message = :error_message,
 		updated_at = :updated_at
 	WHERE id = :id

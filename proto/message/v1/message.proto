@@ -16,6 +16,17 @@ service MessageService {
   // ListMessages returns messages in a channel ordered by id descending
   // (newest first). Uses cursor-based pagination.
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  // CreateAttachmentUpload authorizes the target channel and delegates a
+  // single-PUT private upload session to Media.
+  rpc CreateAttachmentUpload(CreateAttachmentUploadRequest) returns (CreateAttachmentUploadResponse);
+  // CompleteAttachmentUpload publishes an owned upload and returns trusted
+  // Media metadata for a subsequent message write.
+  rpc CompleteAttachmentUpload(CompleteAttachmentUploadRequest) returns (CompleteAttachmentUploadResponse);
+  // AbortAttachmentUpload cancels an unpublished upload owned by the actor.
+  rpc AbortAttachmentUpload(AbortAttachmentUploadRequest) returns (AbortAttachmentUploadResponse);
+  // GetAttachmentDownloadURL verifies message association and channel access
+  // before asking Media for a short-lived private download URL.
+  rpc GetAttachmentDownloadURL(GetAttachmentDownloadURLRequest) returns (GetAttachmentDownloadURLResponse);
   // CreateDmChannel opens (or idempotently returns) the 1:1 channel between
   // two friends.
   rpc CreateDmChannel(CreateDmChannelRequest) returns (CreateDmChannelResponse);
@@ -88,7 +99,7 @@ message Message {
   // cross-channel forwards.
   int64 referenced_channel_id = 8;
 
-  // Object storage keys for attached files.
+  // Immutable media assets attached to this message.
   repeated Attachment attachments = 9;
 
   // Non-zero if the message has been edited (Unix milliseconds).
@@ -100,13 +111,11 @@ message Message {
   int64 revision = 13;
 }
 
-// Attachment describes a file attached to a message. The frontend uploads
-// the file to object storage first, then includes the resulting key when
-// sending the message. The backend prepends a CDN base URL when returning
-// attachments to clients.
+// Attachment describes a validated Media asset attached to a message.
 message Attachment {
-  // Object storage key (e.g., "attachments/123/abc.png").
-  string key = 1;
+  // Stable Media asset ID. Message persists this ID rather than an object key
+  // or URL.
+  int64 asset_id = 1;
   // Original filename shown to users.
   string filename = 2;
   // File size in bytes.
@@ -116,6 +125,79 @@ message Attachment {
   // Image dimensions, 0 if not applicable.
   int32 width = 5;
   int32 height = 6;
+}
+
+// CreateAttachmentUploadRequest carries an authenticated actor, target channel,
+// and exact object upload contract to Media.
+message CreateAttachmentUploadRequest {
+  int64 channel_id = 1;
+  // actor_user_id is derived from verified authentication state by the API
+  // service.
+  int64 actor_user_id = 2;
+  // Exact Content-Length in bytes for the subsequent PUT.
+  int64 expected_size = 3;
+  // Canonical media type sent unchanged as the PUT Content-Type.
+  string content_type = 4;
+}
+
+// CreateAttachmentUploadResponse forwards Media's direct-upload contract.
+message CreateAttachmentUploadResponse {
+  // Opaque upload identifier used for completion or abort. It becomes the
+  // stable asset ID after successful completion.
+  int64 upload_id = 1;
+  // Short-lived URL accepting one PUT with the declared length and media type.
+  string presigned_url = 2;
+  // Upload session expiration as Unix milliseconds.
+  int64 expires_at = 3;
+}
+
+// CompleteAttachmentUploadRequest publishes one channel-scoped upload.
+message CompleteAttachmentUploadRequest {
+  int64 channel_id = 1;
+  // actor_user_id must be the user that created the upload.
+  int64 actor_user_id = 2;
+  // upload_id is the opaque value returned by CreateAttachmentUpload.
+  int64 upload_id = 3;
+  // Original filename shown to users. Media does not use filenames for
+  // validation or object keys.
+  string filename = 4;
+}
+
+// CompleteAttachmentUploadResponse contains trusted metadata suitable for a
+// subsequent CreateMessage or UpdateMessage request.
+message CompleteAttachmentUploadResponse {
+  Attachment attachment = 1;
+}
+
+// AbortAttachmentUploadRequest cancels an unpublished channel-scoped upload.
+message AbortAttachmentUploadRequest {
+  int64 channel_id = 1;
+  // actor_user_id must be the user that created the upload.
+  int64 actor_user_id = 2;
+  // upload_id is the opaque value returned by CreateAttachmentUpload.
+  int64 upload_id = 3;
+}
+
+// AbortAttachmentUploadResponse is empty because abort has no mutable result.
+message AbortAttachmentUploadResponse {}
+
+// GetAttachmentDownloadURLRequest identifies an attachment through its
+// containing message and authenticated viewer.
+message GetAttachmentDownloadURLRequest {
+  int64 message_id = 1;
+  // asset_id must occur in the persisted attachment list of message_id.
+  int64 asset_id = 2;
+  // user_id is the authenticated viewer forwarded by the API service.
+  int64 user_id = 3;
+}
+
+// GetAttachmentDownloadURLResponse contains a transient URL that must not be
+// persisted.
+message GetAttachmentDownloadURLResponse {
+  // Short-lived signed URL for the private attachment object.
+  string url = 1;
+  // URL expiration as Unix milliseconds.
+  int64 expires_at = 2;
 }
 
 // AttachmentList is used on updates to distinguish "leave unchanged" from

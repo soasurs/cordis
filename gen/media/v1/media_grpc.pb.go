@@ -19,18 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MediaService_CreateUpload_FullMethodName   = "/media.v1.MediaService/CreateUpload"
-	MediaService_CompleteUpload_FullMethodName = "/media.v1.MediaService/CompleteUpload"
-	MediaService_AbortUpload_FullMethodName    = "/media.v1.MediaService/AbortUpload"
-	MediaService_GetAsset_FullMethodName       = "/media.v1.MediaService/GetAsset"
-	MediaService_GetAssetURL_FullMethodName    = "/media.v1.MediaService/GetAssetURL"
+	MediaService_CreateUpload_FullMethodName        = "/media.v1.MediaService/CreateUpload"
+	MediaService_CompleteUpload_FullMethodName      = "/media.v1.MediaService/CompleteUpload"
+	MediaService_AbortUpload_FullMethodName         = "/media.v1.MediaService/AbortUpload"
+	MediaService_GetAsset_FullMethodName            = "/media.v1.MediaService/GetAsset"
+	MediaService_GetAssetDownloadURL_FullMethodName = "/media.v1.MediaService/GetAssetDownloadURL"
 )
 
 // MediaServiceClient is the client API for MediaService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// MediaService owns binary asset upload, validation, processing, and lifecycle
+// MediaService owns binary asset upload, validation, publication, and lifecycle
 // management. It exposes generic internal RPCs to trusted API and domain
 // services. Those callers authenticate end-user access tokens and forward the
 // server-derived user ID; Media never receives end-user tokens.
@@ -46,9 +46,10 @@ type MediaServiceClient interface {
 	AbortUpload(ctx context.Context, in *AbortUploadRequest, opts ...grpc.CallOption) (*AbortUploadResponse, error)
 	// GetAsset returns persisted metadata and never reads object bytes.
 	GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*GetAssetResponse, error)
-	// GetAssetURL resolves a ready asset to a delivery URL. The calling domain
-	// service remains responsible for authorization before requesting a URL.
-	GetAssetURL(ctx context.Context, in *GetAssetURLRequest, opts ...grpc.CallOption) (*GetAssetURLResponse, error)
+	// GetAssetDownloadURL creates a short-lived download URL for a ready private
+	// attachment. The calling domain service must authorize the user and verify
+	// that the asset is associated with the requested message first.
+	GetAssetDownloadURL(ctx context.Context, in *GetAssetDownloadURLRequest, opts ...grpc.CallOption) (*GetAssetDownloadURLResponse, error)
 }
 
 type mediaServiceClient struct {
@@ -99,10 +100,10 @@ func (c *mediaServiceClient) GetAsset(ctx context.Context, in *GetAssetRequest, 
 	return out, nil
 }
 
-func (c *mediaServiceClient) GetAssetURL(ctx context.Context, in *GetAssetURLRequest, opts ...grpc.CallOption) (*GetAssetURLResponse, error) {
+func (c *mediaServiceClient) GetAssetDownloadURL(ctx context.Context, in *GetAssetDownloadURLRequest, opts ...grpc.CallOption) (*GetAssetDownloadURLResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAssetURLResponse)
-	err := c.cc.Invoke(ctx, MediaService_GetAssetURL_FullMethodName, in, out, cOpts...)
+	out := new(GetAssetDownloadURLResponse)
+	err := c.cc.Invoke(ctx, MediaService_GetAssetDownloadURL_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +114,7 @@ func (c *mediaServiceClient) GetAssetURL(ctx context.Context, in *GetAssetURLReq
 // All implementations should embed UnimplementedMediaServiceServer
 // for forward compatibility.
 //
-// MediaService owns binary asset upload, validation, processing, and lifecycle
+// MediaService owns binary asset upload, validation, publication, and lifecycle
 // management. It exposes generic internal RPCs to trusted API and domain
 // services. Those callers authenticate end-user access tokens and forward the
 // server-derived user ID; Media never receives end-user tokens.
@@ -129,9 +130,10 @@ type MediaServiceServer interface {
 	AbortUpload(context.Context, *AbortUploadRequest) (*AbortUploadResponse, error)
 	// GetAsset returns persisted metadata and never reads object bytes.
 	GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error)
-	// GetAssetURL resolves a ready asset to a delivery URL. The calling domain
-	// service remains responsible for authorization before requesting a URL.
-	GetAssetURL(context.Context, *GetAssetURLRequest) (*GetAssetURLResponse, error)
+	// GetAssetDownloadURL creates a short-lived download URL for a ready private
+	// attachment. The calling domain service must authorize the user and verify
+	// that the asset is associated with the requested message first.
+	GetAssetDownloadURL(context.Context, *GetAssetDownloadURLRequest) (*GetAssetDownloadURLResponse, error)
 }
 
 // UnimplementedMediaServiceServer should be embedded to have
@@ -153,8 +155,8 @@ func (UnimplementedMediaServiceServer) AbortUpload(context.Context, *AbortUpload
 func (UnimplementedMediaServiceServer) GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAsset not implemented")
 }
-func (UnimplementedMediaServiceServer) GetAssetURL(context.Context, *GetAssetURLRequest) (*GetAssetURLResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAssetURL not implemented")
+func (UnimplementedMediaServiceServer) GetAssetDownloadURL(context.Context, *GetAssetDownloadURLRequest) (*GetAssetDownloadURLResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAssetDownloadURL not implemented")
 }
 func (UnimplementedMediaServiceServer) testEmbeddedByValue() {}
 
@@ -248,20 +250,20 @@ func _MediaService_GetAsset_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MediaService_GetAssetURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAssetURLRequest)
+func _MediaService_GetAssetDownloadURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAssetDownloadURLRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MediaServiceServer).GetAssetURL(ctx, in)
+		return srv.(MediaServiceServer).GetAssetDownloadURL(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MediaService_GetAssetURL_FullMethodName,
+		FullMethod: MediaService_GetAssetDownloadURL_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServiceServer).GetAssetURL(ctx, req.(*GetAssetURLRequest))
+		return srv.(MediaServiceServer).GetAssetDownloadURL(ctx, req.(*GetAssetDownloadURLRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -290,8 +292,8 @@ var MediaService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MediaService_GetAsset_Handler,
 		},
 		{
-			MethodName: "GetAssetURL",
-			Handler:    _MediaService_GetAssetURL_Handler,
+			MethodName: "GetAssetDownloadURL",
+			Handler:    _MediaService_GetAssetDownloadURL_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

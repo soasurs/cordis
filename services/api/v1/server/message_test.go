@@ -22,21 +22,23 @@ import (
 
 type fakeMessageClient struct {
 	messagev1.MessageServiceClient
-	createRequest  *messagev1.CreateMessageRequest
-	createResponse *messagev1.CreateMessageResponse
-	createError    error
-	updateRequest  *messagev1.UpdateMessageRequest
-	updateResponse *messagev1.UpdateMessageResponse
-	updateError    error
-	deleteRequest  *messagev1.DeleteMessageRequest
-	deleteResponse *messagev1.DeleteMessageResponse
-	deleteError    error
-	getRequest     *messagev1.GetMessageRequest
-	getResponse    *messagev1.GetMessageResponse
-	getError       error
-	listRequest    *messagev1.ListMessagesRequest
-	listResponse   *messagev1.ListMessagesResponse
-	listError      error
+	createRequest    *messagev1.CreateMessageRequest
+	createResponse   *messagev1.CreateMessageResponse
+	createError      error
+	updateRequest    *messagev1.UpdateMessageRequest
+	updateResponse   *messagev1.UpdateMessageResponse
+	updateError      error
+	deleteRequest    *messagev1.DeleteMessageRequest
+	deleteResponse   *messagev1.DeleteMessageResponse
+	deleteError      error
+	getRequest       *messagev1.GetMessageRequest
+	getResponse      *messagev1.GetMessageResponse
+	getError         error
+	listRequest      *messagev1.ListMessagesRequest
+	listResponse     *messagev1.ListMessagesResponse
+	listError        error
+	downloadRequest  *messagev1.GetAttachmentDownloadURLRequest
+	downloadResponse *messagev1.GetAttachmentDownloadURLResponse
 
 	createDmChannelRequest  *messagev1.CreateDmChannelRequest
 	createDmChannelResponse *messagev1.CreateDmChannelResponse
@@ -78,6 +80,15 @@ func (f *fakeMessageClient) ListMessages(_ context.Context, req *messagev1.ListM
 	return f.listResponse, f.listError
 }
 
+func (f *fakeMessageClient) GetAttachmentDownloadURL(
+	_ context.Context,
+	req *messagev1.GetAttachmentDownloadURLRequest,
+	_ ...grpc.CallOption,
+) (*messagev1.GetAttachmentDownloadURLResponse, error) {
+	f.downloadRequest = req
+	return f.downloadResponse, nil
+}
+
 func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	authenticatorClient := &fakeAuthenticatorClient{
 		verifyResponse: verifyAccessTokenResponse(1001),
@@ -89,7 +100,7 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	defer closeServer()
 
 	attachment := new(apiv1.Attachment)
-	attachment.SetKey("attachments/a.png")
+	attachment.SetAssetId(101)
 	attachment.SetFilename("a.png")
 	attachment.SetSize(10)
 	attachment.SetContentType("image/png")
@@ -115,10 +126,32 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	require.Equal(t, int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS), messageClient.createRequest.GetFlags())
 	require.Equal(t, int64(3000), messageClient.createRequest.GetReferencedMessageId())
 	require.Equal(t, []int64{1002}, messageClient.createRequest.GetMentionUserIds())
-	require.Equal(t, "attachments/a.png", messageClient.createRequest.GetAttachments()[0].GetKey())
+	require.Equal(t, int64(101), messageClient.createRequest.GetAttachments()[0].GetAssetId())
 	require.Equal(t, int64(4001), resp.GetMessage().GetId())
 	require.Equal(t, int64(2), resp.GetMessage().GetRevision())
 	require.Equal(t, int64(1001), resp.GetMessage().GetAuthor().GetUserId())
+}
+
+func TestGetAttachmentDownloadURLUsesAuthenticatedViewer(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	svcResp := new(messagev1.GetAttachmentDownloadURLResponse)
+	svcResp.SetUrl("https://download.example/7001")
+	svcResp.SetExpiresAt(9001)
+	messageClient := &fakeMessageClient{downloadResponse: svcResp}
+	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+	defer closeServer()
+
+	req := new(apiv1.GetAttachmentDownloadURLRequest)
+	req.SetMessageId(4001)
+	req.SetAssetId(7001)
+	resp, err := client.GetAttachmentDownloadURL(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), messageClient.downloadRequest.GetUserId())
+	require.Equal(t, int64(4001), messageClient.downloadRequest.GetMessageId())
+	require.Equal(t, int64(7001), messageClient.downloadRequest.GetAssetId())
+	require.Equal(t, "https://download.example/7001", resp.GetUrl())
 }
 
 func TestUpdateMessagePreservesFieldPresence(t *testing.T) {
@@ -346,7 +379,7 @@ func newMessageHTTPClient(
 
 func internalMessage() *messagev1.Message {
 	attachment := new(messagev1.Attachment)
-	attachment.SetKey("attachments/a.png")
+	attachment.SetAssetId(101)
 	attachment.SetFilename("a.png")
 	attachment.SetSize(10)
 	attachment.SetContentType("image/png")
@@ -368,7 +401,7 @@ func internalMessage() *messagev1.Message {
 	author.SetUserId(1001)
 	author.SetName("Alice")
 	author.SetUsername("alice")
-	author.SetAvatarUri("avatar://alice")
+	author.SetAvatarAssetId(77)
 	author.SetCreatedAt(100)
 	author.SetUpdatedAt(200)
 	message.SetAuthor(author)

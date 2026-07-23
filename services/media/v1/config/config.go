@@ -40,17 +40,16 @@ func (c ObjectStoreConfig) ToObjectStoreConfig() objectstore.Config {
 }
 
 type MediaConfig struct {
-	UploadSessionTTLSeconds       int     `json:",default=900"`
-	PresignedURLTTLSeconds        int     `json:",default=900"`
-	MaxUploadSizeBytes            int64   `json:",default=524288000"`
-	MaxActiveUploadsPerUser       int64   `json:",default=5"`
-	StagingCleanupIntervalSeconds int     `json:",default=300"`
-	ImageVariantSizes             []int32 `json:",default=[64,128,256,512]"`
-	ImageProcessingTimeoutMs      int     `json:",default=30000"`
-	MaxConcurrentImageProcessing  int64   `json:",default=4"`
-	MaxImageSizeBytes             int64   `json:",default=10485760"`
-	MaxImageDimension             int32   `json:",default=4096"`
-	MaxImagePixels                int64   `json:",default=16777216"`
+	UploadSessionTTLSeconds       int   `json:",default=900"`
+	PresignedURLTTLSeconds        int   `json:",default=900"`
+	MaxUploadSizeBytes            int64 `json:",default=524288000"`
+	MaxActiveUploadsPerUser       int64 `json:",default=5"`
+	StagingCleanupIntervalSeconds int   `json:",default=300"`
+	ImageProcessingTimeoutMs      int   `json:",default=30000"`
+	MaxConcurrentImageProcessing  int64 `json:",default=4"`
+	MaxImageSizeBytes             int64 `json:",default=10485760"`
+	MaxImageDimension             int32 `json:",default=4096"`
+	MaxImagePixels                int64 `json:",default=16777216"`
 }
 
 func (c MediaConfig) UploadSessionTTL() int64 {

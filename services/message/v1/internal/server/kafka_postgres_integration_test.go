@@ -57,6 +57,7 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 		Kafka:       producer,
 		GuildClient: &fakeGuildClient{},
 		UserClient:  newFakeUserClient(),
+		MediaClient: &unusedMediaClient{},
 	}))
 
 	req := new(messagev1.CreateMessageRequest)

@@ -13,6 +13,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	"github.com/soasurs/cordis/internal/testkit"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/migration"
@@ -22,6 +23,10 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 	"github.com/soasurs/cordis/services/guild/v1/internal/svc"
 )
+
+type unusedMediaClient struct {
+	mediav1.MediaServiceClient
+}
 
 func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	postgres := testkit.StartPostgres(t)
@@ -50,10 +55,11 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	service := New(svc.NewServiceContextWithDependencies(config.Config{
 		Kafka: config.KafkaConfig{Topic: topic, PublishTimeoutMs: 5000},
 	}, svc.Dependencies{
-		Store:      store.New(db),
-		Snowflake:  node,
-		Kafka:      producer,
-		UserClient: &fakeUserClient{},
+		Store:       store.New(db),
+		Snowflake:   node,
+		Kafka:       producer,
+		UserClient:  &fakeUserClient{},
+		MediaClient: &unusedMediaClient{},
 	}))
 
 	req := new(guildv1.CreateGuildRequest)

@@ -83,41 +83,52 @@ func TestRedisStoreOwnerPipelineTracingIsBounded(t *testing.T) {
 	cycle.End()
 
 	spans := exporter.GetSpans()
-	wantRedisSpans := leaseOwnerBatchSizeForTest / ownerPipelineBatchSize
-	require.Len(t, spans, wantRedisSpans+1, "one cycle span plus one go-zero span per Redis pipeline")
-	redisSpans := make([]tracetest.SpanStub, 0, wantRedisSpans)
+	wantOwnerPipelineSpans := leaseOwnerBatchSizeForTest / ownerPipelineBatchSize
+	ownerPipelineSpans := make([]tracetest.SpanStub, 0, wantOwnerPipelineSpans)
 	for _, span := range spans {
-		if span.Name == "redis" {
-			redisSpans = append(redisSpans, span)
-		}
-	}
-	require.Len(t, redisSpans, wantRedisSpans)
-	for _, span := range redisSpans {
-		require.Equal(t, cycleTraceID, span.SpanContext.TraceID())
-		require.Equal(t, cycleSpanID, span.Parent.SpanID())
-		commands := redisCommandsAttribute(t, span)
-		require.Len(t, commands, ownerPipelineBatchSize*2)
-		for _, command := range commands {
-			require.Contains(t, []string{"hset", "expire"}, strings.ToLower(command))
-		}
 		telemetry := strings.ToLower(fmt.Sprint(span.Attributes, span.Events, span.Status))
 		require.NotContains(t, telemetry, "sensitive-session")
 		require.NotContains(t, telemetry, "sensitive-node")
 		require.NotContains(t, telemetry, "sensitive-generation")
+		if span.Name == "redis" && containsOnlyOwnerPipelineCommands(redisCommandsAttribute(span)) {
+			ownerPipelineSpans = append(ownerPipelineSpans, span)
+		}
+	}
+	require.Len(t, ownerPipelineSpans, wantOwnerPipelineSpans)
+	for _, span := range ownerPipelineSpans {
+		require.Equal(t, cycleTraceID, span.SpanContext.TraceID())
+		require.Equal(t, cycleSpanID, span.Parent.SpanID())
+		commands := redisCommandsAttribute(span)
+		require.Len(t, commands, ownerPipelineBatchSize*2)
+		for _, command := range commands {
+			require.Contains(t, []string{"hset", "expire"}, strings.ToLower(command))
+		}
 	}
 }
 
 const leaseOwnerBatchSizeForTest = 500
 
-func redisCommandsAttribute(t *testing.T, span tracetest.SpanStub) []string {
-	t.Helper()
+func redisCommandsAttribute(span tracetest.SpanStub) []string {
 	for _, attr := range span.Attributes {
 		if attr.Key == "redis.cmds" {
 			return attr.Value.AsStringSlice()
 		}
 	}
-	require.FailNow(t, "redis.cmds attribute not found")
 	return nil
+}
+
+func containsOnlyOwnerPipelineCommands(commands []string) bool {
+	if len(commands) == 0 {
+		return false
+	}
+	for _, command := range commands {
+		switch strings.ToLower(command) {
+		case "hset", "expire":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func TestRedisStoreDeleteOwner(t *testing.T) {

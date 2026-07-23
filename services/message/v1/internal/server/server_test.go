@@ -66,7 +66,11 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, "image/png", resp.GetMessage().GetAttachments()[0].GetContentType())
 	require.Equal(t, int32(1), resp.GetMessage().GetAttachments()[0].GetWidth())
 	require.Equal(t, int32(1), resp.GetMessage().GetAttachments()[0].GetHeight())
+	require.Equal(t, "https://download.example/101", resp.GetMessage().GetAttachments()[0].GetUrl())
+	require.Equal(t, int64(9001), resp.GetMessage().GetAttachments()[0].GetUrlExpiresAt())
 	require.Equal(t, "20", envelope.Data.Author.UserID)
+	require.Equal(t, "https://download.example/101", envelope.Data.Attachments[0].URL)
+	require.Equal(t, int64(9001), envelope.Data.Attachments[0].URLExpiresAt)
 	require.Equal(t, int64(1), envelope.Data.Revision)
 	var readEnvelope eventEnvelope[messageReadUpdatedPayload]
 	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &readEnvelope))
@@ -183,7 +187,7 @@ func TestMessageResourceLimits(t *testing.T) {
 	require.Equal(t, codes.InvalidArgument, status.Code(validateMentionUserIDs([]int64{1, 1}, 100)))
 }
 
-func TestAttachmentUploadLifecycleAndDownload(t *testing.T) {
+func TestAttachmentUploadLifecycle(t *testing.T) {
 	fakeStore := newFakeStore()
 	mediaClient := &fakeMediaClient{asset: attachmentAsset(7001, 10, 20)}
 	server := newTestMessageServerWithMedia(
@@ -200,40 +204,27 @@ func TestAttachmentUploadLifecycleAndDownload(t *testing.T) {
 	createReq.SetActorUserId(20)
 	createReq.SetExpectedSize(123)
 	createReq.SetContentType("application/pdf")
+	createReq.SetFilename("report.pdf")
 	createResp, err := server.CreateAttachmentUpload(t.Context(), createReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(7001), createResp.GetUploadId())
+	require.Equal(t, map[string]string{"Content-Type": "application/pdf"}, createResp.GetRequestHeaders())
 	require.Equal(t, int64(20), mediaClient.createRequest.GetActorUserId())
 	require.Equal(t, int64(10), mediaClient.createRequest.GetMessageAttachment().GetChannelId())
+	require.Equal(t, "report.pdf", mediaClient.createRequest.GetMessageAttachment().GetFilename())
 
 	completeReq := new(messagev1.CompleteAttachmentUploadRequest)
 	completeReq.SetChannelId(10)
 	completeReq.SetActorUserId(20)
 	completeReq.SetUploadId(7001)
-	completeReq.SetFilename("report.pdf")
 	completeResp, err := server.CompleteAttachmentUpload(t.Context(), completeReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(7001), completeResp.GetAttachment().GetAssetId())
 	require.Equal(t, "report.pdf", completeResp.GetAttachment().GetFilename())
 	require.Equal(t, int64(123), completeResp.GetAttachment().GetSize())
 	require.Equal(t, "application/pdf", completeResp.GetAttachment().GetContentType())
-
-	fakeStore.messages[100] = &model.Message{
-		ID:        100,
-		ChannelID: 10,
-		AuthorID:  20,
-		Attachments: []model.Attachment{
-			{AssetID: 7001, Filename: "report.pdf"},
-		},
-	}
-	downloadReq := new(messagev1.GetAttachmentDownloadURLRequest)
-	downloadReq.SetMessageId(100)
-	downloadReq.SetAssetId(7001)
-	downloadReq.SetUserId(30)
-	downloadResp, err := server.GetAttachmentDownloadURL(t.Context(), downloadReq)
-	require.NoError(t, err)
-	require.Equal(t, "https://download.example/7001", downloadResp.GetUrl())
-	require.Equal(t, int64(7001), mediaClient.downloadRequest.GetAssetId())
+	require.Equal(t, "https://download.example/7001", completeResp.GetAttachment().GetUrl())
+	require.Equal(t, int64(9001), completeResp.GetAttachment().GetUrlExpiresAt())
 }
 
 func TestCreateMessageRejectsAttachmentOwnedByAnotherUser(t *testing.T) {
@@ -391,13 +382,26 @@ func TestGetAndListMessages(t *testing.T) {
 	fakeStore.messages[100] = &model.Message{
 		ID: 100, ChannelID: 10, AuthorID: 20, Content: "one",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
+		Attachments: []model.Attachment{{AssetID: 7001, Filename: "one.png"}},
 	}
 	fakeStore.messages[101] = &model.Message{
 		ID: 101, ChannelID: 10, AuthorID: 21, Content: "two",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 2,
+		Attachments: []model.Attachment{
+			{AssetID: 7002, Filename: "two.png"},
+			{AssetID: 7001, Filename: "one.png"},
+		},
 	}
 	userClient := newFakeUserClient()
-	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), new(fakeGuildClient), userClient)
+	mediaClient := new(fakeMediaClient)
+	server := newTestMessageServerWithMedia(
+		t,
+		fakeStore,
+		new(fakePublisher),
+		new(fakeGuildClient),
+		userClient,
+		mediaClient,
+	)
 
 	getReq := new(messagev1.GetMessageRequest)
 	getReq.SetMessageId(101)
@@ -406,6 +410,7 @@ func TestGetAndListMessages(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(2), getResp.GetMessage().GetRevision())
 	require.Equal(t, int64(21), getResp.GetMessage().GetAuthor().GetUserId())
+	require.Equal(t, "https://download.example/7002", getResp.GetMessage().GetAttachments()[0].GetUrl())
 
 	listReq := new(messagev1.ListMessagesRequest)
 	listReq.SetChannelId(10)
@@ -421,6 +426,9 @@ func TestGetAndListMessages(t *testing.T) {
 	require.Equal(t, int64(101), listResp.GetAfterCursor())
 	require.Equal(t, []int64{21}, userClient.profileRequests())
 	require.Equal(t, [][]int64{{21, 20}}, userClient.batchRequests(), "list must load distinct authors in one batch")
+	require.Len(t, mediaClient.batchRequests, 2)
+	require.Equal(t, []int64{7002, 7001}, mediaClient.batchRequests[0].GetAssetIds())
+	require.Equal(t, []int64{7002, 7001}, mediaClient.batchRequests[1].GetAssetIds())
 }
 
 func TestCreateMessageValidation(t *testing.T) {
@@ -557,12 +565,12 @@ type fakeGuildClient struct {
 
 type fakeMediaClient struct {
 	mediav1.MediaServiceClient
-	asset            *mediav1.Asset
-	createRequest    *mediav1.CreateUploadRequest
-	completeRequest  *mediav1.CompleteUploadRequest
-	abortRequest     *mediav1.AbortUploadRequest
-	downloadRequest  *mediav1.GetAssetDownloadURLRequest
-	downloadResponse *mediav1.GetAssetDownloadURLResponse
+	asset           *mediav1.Asset
+	createRequest   *mediav1.CreateUploadRequest
+	completeRequest *mediav1.CompleteUploadRequest
+	abortRequest    *mediav1.AbortUploadRequest
+	batchRequests   []*mediav1.BatchGetAssetURLsRequest
+	batchResponse   *mediav1.BatchGetAssetURLsResponse
 }
 
 func (f *fakeMediaClient) CreateUpload(
@@ -575,6 +583,7 @@ func (f *fakeMediaClient) CreateUpload(
 	resp.SetUploadId(7001)
 	resp.SetPresignedUrl("https://upload.example/7001")
 	resp.SetExpiresAt(9001)
+	resp.SetRequestHeaders(map[string]string{"Content-Type": req.GetContentType()})
 	return resp, nil
 }
 
@@ -589,8 +598,11 @@ func (f *fakeMediaClient) GetAsset(
 		asset.SetStatus(mediav1.AssetStatus_ASSET_STATUS_READY)
 		asset.SetSize(10)
 		asset.SetContentType("image/png")
+		asset.SetFilename("file.png")
 		asset.SetWidth(1)
 		asset.SetHeight(1)
+		asset.SetUrl("https://download.example/" + strconv.FormatInt(req.GetAssetId(), 10))
+		asset.SetUrlExpiresAt(9001)
 	}
 	resp := new(mediav1.GetAssetResponse)
 	resp.SetAsset(asset)
@@ -608,6 +620,9 @@ func (f *fakeMediaClient) CompleteUpload(
 	metadata := new(mediav1.AssetMetadata)
 	metadata.SetSize(123)
 	metadata.SetContentType("application/pdf")
+	metadata.SetFilename("report.pdf")
+	metadata.SetUrl("https://download.example/" + strconv.FormatInt(req.GetUploadId(), 10))
+	metadata.SetUrlExpiresAt(9001)
 	resp.SetMetadata(metadata)
 	return resp, nil
 }
@@ -621,18 +636,25 @@ func (f *fakeMediaClient) AbortUpload(
 	return new(mediav1.AbortUploadResponse), nil
 }
 
-func (f *fakeMediaClient) GetAssetDownloadURL(
+func (f *fakeMediaClient) BatchGetAssetURLs(
 	_ context.Context,
-	req *mediav1.GetAssetDownloadURLRequest,
+	req *mediav1.BatchGetAssetURLsRequest,
 	_ ...grpc.CallOption,
-) (*mediav1.GetAssetDownloadURLResponse, error) {
-	f.downloadRequest = req
-	if f.downloadResponse != nil {
-		return f.downloadResponse, nil
+) (*mediav1.BatchGetAssetURLsResponse, error) {
+	f.batchRequests = append(f.batchRequests, req)
+	if f.batchResponse != nil {
+		return f.batchResponse, nil
 	}
-	resp := new(mediav1.GetAssetDownloadURLResponse)
-	resp.SetUrl("https://download.example/" + strconv.FormatInt(req.GetAssetId(), 10))
-	resp.SetExpiresAt(9001)
+	values := make([]*mediav1.AssetURL, 0, len(req.GetAssetIds()))
+	for _, assetID := range req.GetAssetIds() {
+		value := new(mediav1.AssetURL)
+		value.SetAssetId(assetID)
+		value.SetUrl("https://download.example/" + strconv.FormatInt(assetID, 10))
+		value.SetExpiresAt(9001)
+		values = append(values, value)
+	}
+	resp := new(mediav1.BatchGetAssetURLsResponse)
+	resp.SetAssets(values)
 	return resp, nil
 }
 

@@ -34,6 +34,7 @@ func (s *guildServer) CreateGuildIconUpload(
 	resp.SetUploadId(mediaResp.GetUploadId())
 	resp.SetPresignedUrl(mediaResp.GetPresignedUrl())
 	resp.SetExpiresAt(mediaResp.GetExpiresAt())
+	resp.SetRequestHeaders(mediaResp.GetRequestHeaders())
 	return resp, nil
 }
 

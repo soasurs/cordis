@@ -27,7 +27,6 @@ const (
 	MessageService_CreateAttachmentUpload_FullMethodName   = "/message.v1.MessageService/CreateAttachmentUpload"
 	MessageService_CompleteAttachmentUpload_FullMethodName = "/message.v1.MessageService/CompleteAttachmentUpload"
 	MessageService_AbortAttachmentUpload_FullMethodName    = "/message.v1.MessageService/AbortAttachmentUpload"
-	MessageService_GetAttachmentDownloadURL_FullMethodName = "/message.v1.MessageService/GetAttachmentDownloadURL"
 	MessageService_CreateDmChannel_FullMethodName          = "/message.v1.MessageService/CreateDmChannel"
 	MessageService_ListDmChannels_FullMethodName           = "/message.v1.MessageService/ListDmChannels"
 	MessageService_AckMessage_FullMethodName               = "/message.v1.MessageService/AckMessage"
@@ -52,16 +51,13 @@ type MessageServiceClient interface {
 	// (newest first). Uses cursor-based pagination.
 	ListMessages(ctx context.Context, in *ListMessagesRequest, opts ...grpc.CallOption) (*ListMessagesResponse, error)
 	// CreateAttachmentUpload authorizes the target channel and delegates a
-	// single-PUT private upload session to Media.
+	// single-PUT upload session to Media.
 	CreateAttachmentUpload(ctx context.Context, in *CreateAttachmentUploadRequest, opts ...grpc.CallOption) (*CreateAttachmentUploadResponse, error)
 	// CompleteAttachmentUpload publishes an owned upload and returns trusted
 	// Media metadata for a subsequent message write.
 	CompleteAttachmentUpload(ctx context.Context, in *CompleteAttachmentUploadRequest, opts ...grpc.CallOption) (*CompleteAttachmentUploadResponse, error)
 	// AbortAttachmentUpload cancels an unpublished upload owned by the actor.
 	AbortAttachmentUpload(ctx context.Context, in *AbortAttachmentUploadRequest, opts ...grpc.CallOption) (*AbortAttachmentUploadResponse, error)
-	// GetAttachmentDownloadURL verifies message association and channel access
-	// before asking Media for a short-lived private download URL.
-	GetAttachmentDownloadURL(ctx context.Context, in *GetAttachmentDownloadURLRequest, opts ...grpc.CallOption) (*GetAttachmentDownloadURLResponse, error)
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel between
 	// two friends.
 	CreateDmChannel(ctx context.Context, in *CreateDmChannelRequest, opts ...grpc.CallOption) (*CreateDmChannelResponse, error)
@@ -162,16 +158,6 @@ func (c *messageServiceClient) AbortAttachmentUpload(ctx context.Context, in *Ab
 	return out, nil
 }
 
-func (c *messageServiceClient) GetAttachmentDownloadURL(ctx context.Context, in *GetAttachmentDownloadURLRequest, opts ...grpc.CallOption) (*GetAttachmentDownloadURLResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAttachmentDownloadURLResponse)
-	err := c.cc.Invoke(ctx, MessageService_GetAttachmentDownloadURL_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *messageServiceClient) CreateDmChannel(ctx context.Context, in *CreateDmChannelRequest, opts ...grpc.CallOption) (*CreateDmChannelResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateDmChannelResponse)
@@ -239,16 +225,13 @@ type MessageServiceServer interface {
 	// (newest first). Uses cursor-based pagination.
 	ListMessages(context.Context, *ListMessagesRequest) (*ListMessagesResponse, error)
 	// CreateAttachmentUpload authorizes the target channel and delegates a
-	// single-PUT private upload session to Media.
+	// single-PUT upload session to Media.
 	CreateAttachmentUpload(context.Context, *CreateAttachmentUploadRequest) (*CreateAttachmentUploadResponse, error)
 	// CompleteAttachmentUpload publishes an owned upload and returns trusted
 	// Media metadata for a subsequent message write.
 	CompleteAttachmentUpload(context.Context, *CompleteAttachmentUploadRequest) (*CompleteAttachmentUploadResponse, error)
 	// AbortAttachmentUpload cancels an unpublished upload owned by the actor.
 	AbortAttachmentUpload(context.Context, *AbortAttachmentUploadRequest) (*AbortAttachmentUploadResponse, error)
-	// GetAttachmentDownloadURL verifies message association and channel access
-	// before asking Media for a short-lived private download URL.
-	GetAttachmentDownloadURL(context.Context, *GetAttachmentDownloadURLRequest) (*GetAttachmentDownloadURLResponse, error)
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel between
 	// two friends.
 	CreateDmChannel(context.Context, *CreateDmChannelRequest) (*CreateDmChannelResponse, error)
@@ -291,9 +274,6 @@ func (UnimplementedMessageServiceServer) CompleteAttachmentUpload(context.Contex
 }
 func (UnimplementedMessageServiceServer) AbortAttachmentUpload(context.Context, *AbortAttachmentUploadRequest) (*AbortAttachmentUploadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AbortAttachmentUpload not implemented")
-}
-func (UnimplementedMessageServiceServer) GetAttachmentDownloadURL(context.Context, *GetAttachmentDownloadURLRequest) (*GetAttachmentDownloadURLResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAttachmentDownloadURL not implemented")
 }
 func (UnimplementedMessageServiceServer) CreateDmChannel(context.Context, *CreateDmChannelRequest) (*CreateDmChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateDmChannel not implemented")
@@ -474,24 +454,6 @@ func _MessageService_AbortAttachmentUpload_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MessageService_GetAttachmentDownloadURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAttachmentDownloadURLRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MessageServiceServer).GetAttachmentDownloadURL(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: MessageService_GetAttachmentDownloadURL_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MessageServiceServer).GetAttachmentDownloadURL(ctx, req.(*GetAttachmentDownloadURLRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _MessageService_CreateDmChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateDmChannelRequest)
 	if err := dec(in); err != nil {
@@ -620,10 +582,6 @@ var MessageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AbortAttachmentUpload",
 			Handler:    _MessageService_AbortAttachmentUpload_Handler,
-		},
-		{
-			MethodName: "GetAttachmentDownloadURL",
-			Handler:    _MessageService_GetAttachmentDownloadURL_Handler,
 		},
 		{
 			MethodName: "CreateDmChannel",

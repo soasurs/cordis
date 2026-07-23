@@ -12,21 +12,28 @@ import (
 func TestMarshalAttachmentsRoundTrip(t *testing.T) {
 	attachments := []model.Attachment{
 		{
-			AssetID:     101,
-			Filename:    "a.png",
-			Size:        10,
-			ContentType: "image/png",
-			Width:       100,
-			Height:      200,
+			AssetID:      101,
+			Filename:     "a.png",
+			Size:         10,
+			ContentType:  "image/png",
+			Width:        100,
+			Height:       200,
+			URL:          "https://cdn.example.com/a.png",
+			URLExpiresAt: 9001,
 		},
 	}
 
 	value, err := marshalAttachments(attachments)
 	require.NoError(t, err)
+	require.NotContains(t, value, "https://cdn.example.com")
+	require.NotContains(t, value, "url_expires_at")
 
 	got, err := unmarshalAttachments(value)
 	require.NoError(t, err)
-	require.Equal(t, attachments, got)
+	expected := append([]model.Attachment(nil), attachments...)
+	expected[0].URL = ""
+	expected[0].URLExpiresAt = 0
+	require.Equal(t, expected, got)
 }
 
 func TestUniquePositiveIDs(t *testing.T) {

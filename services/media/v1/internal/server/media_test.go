@@ -73,6 +73,18 @@ func (f *fakeStore) GetAsset(_ context.Context, id int64) (*store.Asset, error) 
 	return asset, nil
 }
 
+func (f *fakeStore) ListAssets(_ context.Context, ids []int64) ([]*store.Asset, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	assets := make([]*store.Asset, 0, len(ids))
+	for _, id := range ids {
+		if asset := f.assets[id]; asset != nil {
+			assets = append(assets, asset)
+		}
+	}
+	return assets, nil
+}
+
 func (f *fakeStore) UpdateAsset(_ context.Context, asset *store.Asset) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -130,19 +142,25 @@ func newFakeObjectStore() *fakeObjectStore {
 	return &fakeObjectStore{objects: make(map[string]fakeObject)}
 }
 
-func (f *fakeObjectStore) CreatePresignedPutURL(
+func (f *fakeObjectStore) CreatePresignedPutRequest(
 	_ context.Context,
 	key string,
 	contentType string,
 	contentLength int64,
 	_ int64,
-) (string, error) {
+) (*objectstore.PresignedPutRequest, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.lastPresignedKey = key
 	f.lastPresignedType = contentType
 	f.lastPresignedLength = contentLength
-	return "https://s3.example.com/upload/" + key, nil
+	return &objectstore.PresignedPutRequest{
+		URL: "https://s3.example.com/upload/" + key,
+		RequestHeaders: map[string]string{
+			"Content-Length": strconv.FormatInt(contentLength, 10),
+			"Content-Type":   contentType,
+		},
+	}, nil
 }
 
 func (f *fakeObjectStore) StatObject(_ context.Context, key string) (*objectstore.ObjectInfo, error) {
@@ -241,7 +259,7 @@ func newTestServer(t *testing.T) (*MediaServer, *fakeStore, *fakeObjectStore) {
 	require.NoError(t, err)
 
 	mediaConfig := config.MediaConfig{
-		UploadSessionTTLSeconds:      900,
+		UploadSessionTTLSeconds:      1800,
 		PresignedURLTTLSeconds:       900,
 		MaxUploadSizeBytes:           524288000,
 		MaxActiveUploadsPerUser:      5,
@@ -250,17 +268,24 @@ func newTestServer(t *testing.T) (*MediaServer, *fakeStore, *fakeObjectStore) {
 		MaxImageSizeBytes:            10 << 20,
 		MaxImageDimension:            4096,
 		MaxImagePixels:               4096 * 4096,
+		AttachmentAccessMode:         config.AttachmentAccessPublic,
+		AttachmentDownloadTTLSeconds: 3600,
 	}
-	processor := processing.NewProcessor(objStore, mediaConfig)
+	processor := processing.NewProcessor(objStore, objStore, mediaConfig)
 	svcCtx := &svc.ServiceContext{
 		Cfg: config.Config{
-			ObjectStore: config.ObjectStoreConfig{Backend: "r2"},
-			Media:       mediaConfig,
+			ObjectStore: config.ObjectStoreConfig{
+				Backend:                 "r2",
+				AttachmentPublicBaseURL: "https://cdn.example.com",
+			},
+			Media: mediaConfig,
 		},
-		Store:       assetStore,
-		Snowflake:   node,
-		ObjectStore: objStore,
-		Processor:   processor,
+		Store:                 assetStore,
+		Snowflake:             node,
+		PublicObjectStore:     objStore,
+		StagingObjectStore:    objStore,
+		AttachmentObjectStore: objStore,
+		Processor:             processor,
 	}
 	return New(svcCtx), assetStore, objStore
 }
@@ -277,6 +302,10 @@ func TestCreateUploadSignsExactImageContract(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, resp.GetUploadId())
 	require.NotEmpty(t, resp.GetPresignedUrl())
+	require.Equal(t, map[string]string{
+		"Content-Length": "1024",
+		"Content-Type":   "image/png",
+	}, resp.GetRequestHeaders())
 
 	asset, err := assets.GetAsset(t.Context(), resp.GetUploadId())
 	require.NoError(t, err)
@@ -289,9 +318,10 @@ func TestCreateUploadSignsExactImageContract(t *testing.T) {
 	require.Equal(t, asset.StagingKey, objects.lastPresignedKey)
 	require.Equal(t, "image/png", objects.lastPresignedType)
 	require.Equal(t, int64(1024), objects.lastPresignedLength)
+	require.Equal(t, int64(900_000), asset.ExpiresAt-resp.GetExpiresAt())
 }
 
-func TestCreateOpaqueUploadUsesPrivateFinalKey(t *testing.T) {
+func TestCreateAttachmentUploadUsesTokenizedFinalKey(t *testing.T) {
 	srv, assets, objects := newTestServer(t)
 	req := newCreateRequest(
 		mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT,
@@ -305,12 +335,76 @@ func TestCreateOpaqueUploadUsesPrivateFinalKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, asset.StagingKey)
 	require.Equal(t, int64(3001), asset.SubjectID)
-	require.Equal(
-		t,
-		"private/attachments/3001/"+fmtID(asset.ID),
-		asset.PublishedKey,
-	)
+	require.Equal(t, "report.pdf", asset.Filename)
+	require.Len(t, asset.StorageToken, 22)
+	require.Equal(t, "attachments/3001/"+fmtID(asset.ID)+"/"+asset.StorageToken+"/report.pdf", asset.PublishedKey)
 	require.Equal(t, asset.PublishedKey, objects.lastPresignedKey)
+}
+
+func TestCreateUploadUsesPurposeSpecificObjectStores(t *testing.T) {
+	assetStore := newFakeStore()
+	stagingStore := newFakeObjectStore()
+	publicStore := newFakeObjectStore()
+	attachmentStore := newFakeObjectStore()
+	node, err := sn.NewNode(1)
+	require.NoError(t, err)
+	mediaConfig := config.MediaConfig{
+		UploadSessionTTLSeconds:      1800,
+		PresignedURLTTLSeconds:       900,
+		MaxUploadSizeBytes:           524288000,
+		MaxActiveUploadsPerUser:      5,
+		ImageProcessingTimeoutMs:     30000,
+		MaxConcurrentImageProcessing: 2,
+		MaxImageSizeBytes:            10 << 20,
+		MaxImageDimension:            4096,
+		MaxImagePixels:               4096 * 4096,
+		AttachmentAccessMode:         config.AttachmentAccessPublic,
+		AttachmentDownloadTTLSeconds: 3600,
+	}
+	srv := New(&svc.ServiceContext{
+		Cfg: config.Config{
+			ObjectStore: config.ObjectStoreConfig{
+				Backend:                 "r2",
+				AttachmentPublicBaseURL: "https://cdn.example.com",
+			},
+			Media: mediaConfig,
+		},
+		Store:                 assetStore,
+		Snowflake:             node,
+		PublicObjectStore:     publicStore,
+		StagingObjectStore:    stagingStore,
+		AttachmentObjectStore: attachmentStore,
+		Processor:             processing.NewProcessor(stagingStore, publicStore, mediaConfig),
+	})
+
+	source := testPNG(t, 2, 1)
+	imageResp, err := srv.CreateUpload(t.Context(), newCreateRequest(
+		mediav1.AssetKind_ASSET_KIND_USER_AVATAR,
+		int64(len(source)),
+		"image/png",
+	))
+	require.NoError(t, err)
+	image, err := assetStore.GetAsset(t.Context(), imageResp.GetUploadId())
+	require.NoError(t, err)
+	require.Equal(t, image.StagingKey, stagingStore.lastPresignedKey)
+	require.Empty(t, publicStore.lastPresignedKey)
+	require.Empty(t, attachmentStore.lastPresignedKey)
+
+	stagingStore.setObject(image.StagingKey, image.ContentType, source)
+	_, err = srv.CompleteUpload(t.Context(), completeRequest(image.ID, 1001))
+	require.NoError(t, err)
+	require.False(t, stagingStore.hasObject(image.StagingKey))
+	require.True(t, publicStore.hasObject(image.PublicKey()))
+
+	attachmentResp, err := srv.CreateUpload(t.Context(), newCreateRequest(
+		mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT,
+		10,
+		"application/octet-stream",
+	))
+	require.NoError(t, err)
+	attachment, err := assetStore.GetAsset(t.Context(), attachmentResp.GetUploadId())
+	require.NoError(t, err)
+	require.Equal(t, attachment.PublishedKey, attachmentStore.lastPresignedKey)
 }
 
 func TestCreateGuildIconUploadUsesTypedSubject(t *testing.T) {
@@ -374,6 +468,19 @@ func TestCreateUploadValidation(t *testing.T) {
 					"application/octet-stream",
 				)
 				req.SetMessageAttachment(new(mediav1.MessageAttachmentUploadPurpose))
+				return req
+			}(),
+			code: codes.InvalidArgument,
+		},
+		{
+			name: "attachment filename invalid",
+			req: func() *mediav1.CreateUploadRequest {
+				req := newCreateRequest(
+					mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT,
+					1024,
+					"application/octet-stream",
+				)
+				req.GetMessageAttachment().SetFilename("../secret")
 				return req
 			}(),
 			code: codes.InvalidArgument,
@@ -535,6 +642,9 @@ func TestCompleteOpaqueUploadKeepsPrivateObject(t *testing.T) {
 	resp, err := srv.CompleteUpload(t.Context(), completeRequest(asset.ID, 1001))
 	require.NoError(t, err)
 	require.Equal(t, "application/octet-stream", resp.GetMetadata().GetContentType())
+	require.Equal(t, "report.pdf", resp.GetMetadata().GetFilename())
+	require.Contains(t, resp.GetMetadata().GetUrl(), "/report.pdf")
+	require.Zero(t, resp.GetMetadata().GetUrlExpiresAt())
 	require.True(t, objects.hasObject(asset.PublishedKey))
 	require.Equal(t, store.StatusReady, asset.Status)
 }
@@ -616,24 +726,25 @@ func TestAbortUploadIsIdempotentAndPreservesReadyAsset(t *testing.T) {
 	require.Equal(t, store.StatusReady, ready.Status)
 }
 
-func TestGetAssetDownloadURLOnlySignsReadyAttachments(t *testing.T) {
+func TestBatchGetAssetURLsUsesConfiguredAccessMode(t *testing.T) {
 	srv, assets, objects := newTestServer(t)
 	attachment := &store.Asset{
 		ID:             123,
 		Kind:           store.KindMessageAttachment,
 		Status:         store.StatusReady,
-		PublishedKey:   "private/attachments/10/123",
+		PublishedKey:   "attachments/10/123/token/report.pdf",
 		StorageBackend: "r2",
 	}
 	assets.createAsset(attachment)
-	req := new(mediav1.GetAssetDownloadURLRequest)
-	req.SetAssetId(attachment.ID)
+	req := new(mediav1.BatchGetAssetURLsRequest)
+	req.SetAssetIds([]int64{attachment.ID, attachment.ID})
 
-	resp, err := srv.GetAssetDownloadURL(t.Context(), req)
+	resp, err := srv.BatchGetAssetURLs(t.Context(), req)
 	require.NoError(t, err)
-	require.Equal(t, "https://s3.example.com/private/attachments/10/123", resp.GetUrl())
-	require.Equal(t, attachment.PublishedKey, objects.lastDownloadKey)
-	require.Greater(t, resp.GetExpiresAt(), time.Now().UnixMilli())
+	require.Len(t, resp.GetAssets(), 1)
+	require.Equal(t, "https://cdn.example.com/attachments/10/123/token/report.pdf", resp.GetAssets()[0].GetUrl())
+	require.Zero(t, resp.GetAssets()[0].GetExpiresAt())
+	require.Empty(t, objects.lastDownloadKey)
 
 	image := &store.Asset{
 		ID:           124,
@@ -642,10 +753,17 @@ func TestGetAssetDownloadURLOnlySignsReadyAttachments(t *testing.T) {
 		PublishedKey: "avatars/10/124",
 	}
 	assets.createAsset(image)
-	req.SetAssetId(image.ID)
-	_, err = srv.GetAssetDownloadURL(t.Context(), req)
+	req.SetAssetIds([]int64{image.ID})
+	_, err = srv.BatchGetAssetURLs(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	srv.svcCtx.Cfg.Media.AttachmentAccessMode = config.AttachmentAccessPresigned
+	req.SetAssetIds([]int64{attachment.ID})
+	resp, err = srv.BatchGetAssetURLs(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, "https://s3.example.com/"+attachment.PublishedKey, resp.GetAssets()[0].GetUrl())
 	require.Equal(t, attachment.PublishedKey, objects.lastDownloadKey)
+	require.Greater(t, resp.GetAssets()[0].GetExpiresAt(), time.Now().UnixMilli())
 }
 
 func TestCleanupExpiredRechecksStateUnderLock(t *testing.T) {
@@ -657,7 +775,7 @@ func TestCleanupExpiredRechecksStateUnderLock(t *testing.T) {
 		SubjectID:       3001,
 		Kind:            store.KindMessageAttachment,
 		Status:          store.StatusCreated,
-		PublishedKey:    "private/attachments/3001/1",
+		PublishedKey:    "attachments/3001/1/token/file.bin",
 		ExpiresAt:       now - 1000,
 	}
 	ready := &store.Asset{
@@ -695,6 +813,7 @@ func newCreateRequest(
 	case mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT:
 		purpose := new(mediav1.MessageAttachmentUploadPurpose)
 		purpose.SetChannelId(3001)
+		purpose.SetFilename("report.pdf")
 		req.SetMessageAttachment(purpose)
 	}
 	return req

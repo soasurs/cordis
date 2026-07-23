@@ -18,10 +18,9 @@ service MediaService {
   rpc AbortUpload(AbortUploadRequest) returns (AbortUploadResponse);
   // GetAsset returns persisted metadata and never reads object bytes.
   rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
-  // GetAssetDownloadURL creates a short-lived download URL for a ready private
-  // attachment. The calling domain service must authorize the user and verify
-  // that the asset is associated with the requested message first.
-  rpc GetAssetDownloadURL(GetAssetDownloadURLRequest) returns (GetAssetDownloadURLResponse);
+  // BatchGetAssetURLs resolves delivery URLs for ready attachments after the
+  // trusted Message caller has authorized the containing messages.
+  rpc BatchGetAssetURLs(BatchGetAssetURLsRequest) returns (BatchGetAssetURLsResponse);
 }
 
 // CreateUploadRequest describes the actor, typed purpose, and exact object the
@@ -66,6 +65,8 @@ message GuildIconUploadPurpose {
 message MessageAttachmentUploadPurpose {
   // channel_id is the target channel already authorized by the trusted caller.
   int64 channel_id = 1;
+  // filename is the validated display name and final object-key suffix.
+  string filename = 2;
 }
 
 // CreateUploadResponse contains the one-shot direct-upload contract.
@@ -76,8 +77,12 @@ message CreateUploadResponse {
   // presigned_url accepts one PUT whose Content-Length and Content-Type must
   // exactly match expected_size and content_type from the request.
   string presigned_url = 2;
-  // expires_at is the upload-session expiration as Unix milliseconds.
+  // expires_at is the presigned URL expiration as Unix milliseconds.
   int64 expires_at = 3;
+  // request_headers contains the HTTP headers required by the presigned PUT.
+  // Browser-managed headers such as Content-Length are informational and must
+  // not be set explicitly by browser clients.
+  map<string, string> request_headers = 4;
 }
 
 // CompleteUploadRequest identifies an upload and its authenticated actor.
@@ -108,6 +113,13 @@ message AssetMetadata {
   // non-image assets.
   int32 width = 3;
   int32 height = 4;
+  // filename is set only for message attachments.
+  string filename = 5;
+  // url is populated for ready message attachments.
+  string url = 6;
+  // url_expires_at is zero for public URLs and Unix milliseconds for
+  // presigned URLs.
+  int64 url_expires_at = 7;
 }
 
 // AbortUploadRequest identifies an upload and its authenticated actor.
@@ -164,25 +176,38 @@ message Asset {
   // subject_id is the purpose-specific target: the user ID for USER_AVATAR,
   // Guild ID for GUILD_ICON, or channel ID for MESSAGE_ATTACHMENT.
   int64 subject_id = 13;
+  // filename is set only for MESSAGE_ATTACHMENT.
+  string filename = 14;
+  // url is populated for ready MESSAGE_ATTACHMENT assets.
+  string url = 15;
+  // url_expires_at is zero for public URLs and Unix milliseconds for
+  // presigned URLs.
+  int64 url_expires_at = 16;
 }
 
-// GetAssetDownloadURLRequest identifies a ready private attachment.
-message GetAssetDownloadURLRequest {
-  // asset_id must refer to a READY MESSAGE_ATTACHMENT asset. Public avatars and
-  // Guild icons use deterministic CDN paths and do not use this RPC.
+// BatchGetAssetURLsRequest identifies attachment assets whose delivery URLs
+// should be resolved.
+message BatchGetAssetURLsRequest {
+  // asset_ids contains ready message attachment IDs. Duplicate IDs are
+  // resolved once.
+  repeated int64 asset_ids = 1;
+}
+
+// AssetURL associates one attachment asset with its current delivery URL.
+message AssetURL {
+  // asset_id identifies the requested attachment.
   int64 asset_id = 1;
-  // expires_in_seconds controls signed URL lifetime. Zero uses the service
-  // default.
-  int64 expires_in_seconds = 2;
+  // url is the complete public or presigned delivery URL.
+  string url = 2;
+  // expires_at is zero for public URLs and Unix milliseconds for presigned
+  // URLs.
+  int64 expires_at = 3;
 }
 
-// GetAssetDownloadURLResponse contains a transient URL that must not be
-// persisted.
-message GetAssetDownloadURLResponse {
-  // url is a short-lived signed URL for the private attachment object.
-  string url = 1;
-  // expires_at is the URL expiration as Unix milliseconds.
-  int64 expires_at = 2;
+// BatchGetAssetURLsResponse contains one URL per distinct requested asset.
+message BatchGetAssetURLsResponse {
+  // assets follows the first-occurrence order of asset_ids.
+  repeated AssetURL assets = 1;
 }
 
 // AssetKind selects the asset-specific upload and publication policy.
@@ -194,8 +219,8 @@ enum AssetKind {
   ASSET_KIND_USER_AVATAR = 1;
   // ASSET_KIND_GUILD_ICON follows the same image policy as USER_AVATAR.
   ASSET_KIND_GUILD_ICON = 2;
-  // ASSET_KIND_MESSAGE_ATTACHMENT is uploaded directly to its immutable
-  // private final key and is published logically by moving to READY.
+  // ASSET_KIND_MESSAGE_ATTACHMENT is uploaded directly to its immutable final
+  // key in the globally configured public or presigned attachment bucket.
   ASSET_KIND_MESSAGE_ATTACHMENT = 3;
 }
 

@@ -123,8 +123,11 @@ message CreateAvatarUploadResponse {
   int64 upload_id = 1;
   // Short-lived URL accepting one PUT with the declared length and media type.
   string presigned_url = 2;
-  // Upload session expiration as Unix milliseconds.
+  // Presigned URL expiration as Unix milliseconds.
   int64 expires_at = 3;
+  // HTTP headers required by the presigned PUT. Browser-managed headers such
+  // as Content-Length are informational and must not be set explicitly.
+  map<string, string> request_headers = 4;
 }
 
 // CompleteAvatarUploadRequest selects a previously created avatar upload.

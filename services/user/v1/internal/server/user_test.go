@@ -284,6 +284,7 @@ func TestAvatarUploadLifecycle(t *testing.T) {
 	createResp, err := server.CreateAvatarUpload(t.Context(), createReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(7001), createResp.GetUploadId())
+	require.Equal(t, map[string]string{"Content-Type": "image/png"}, createResp.GetRequestHeaders())
 	require.Equal(t, int64(1001), mediaClient.createRequest.GetActorUserId())
 	require.True(t, mediaClient.createRequest.HasUserAvatar())
 
@@ -351,6 +352,7 @@ func (f *fakeMediaClient) CreateUpload(
 	resp.SetUploadId(7001)
 	resp.SetPresignedUrl("https://upload.example/7001")
 	resp.SetExpiresAt(9001)
+	resp.SetRequestHeaders(map[string]string{"Content-Type": "image/png"})
 	return resp, nil
 }
 

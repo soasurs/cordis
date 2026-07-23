@@ -42,7 +42,7 @@ func TestProcessorRejectsPixelLimitBeforePublication(t *testing.T) {
 			"staging/1": {data: source, contentType: "image/png"},
 		},
 	}
-	processor := NewProcessor(objectStore, config.MediaConfig{
+	processor := NewProcessor(objectStore, objectStore, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
 		MaxImageSizeBytes:            1 << 20,
@@ -83,7 +83,8 @@ func TestAnimationDetection(t *testing.T) {
 }
 
 func TestProcessorAppliesTimeout(t *testing.T) {
-	processor := NewProcessor(&blockingObjectStore{}, config.MediaConfig{
+	objectStore := &blockingObjectStore{}
+	processor := NewProcessor(objectStore, objectStore, config.MediaConfig{
 		ImageProcessingTimeoutMs:     20,
 		MaxConcurrentImageProcessing: 1,
 	})
@@ -102,7 +103,7 @@ func TestProcessorBoundsConcurrency(t *testing.T) {
 		entered:     make(chan struct{}, 1),
 		release:     make(chan struct{}),
 	}
-	processor := NewProcessor(objectStore, config.MediaConfig{
+	processor := NewProcessor(objectStore, objectStore, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
 		MaxImageSizeBytes:            1 << 20,
@@ -186,13 +187,13 @@ func (*blockingObjectStore) PutObject(
 	return err
 }
 
-func (f *processorObjectStore) CreatePresignedPutURL(
+func (f *processorObjectStore) CreatePresignedPutRequest(
 	context.Context,
 	string,
 	string,
 	int64,
 	int64,
-) (string, error) {
+) (*objectstore.PresignedPutRequest, error) {
 	panic("not used")
 }
 

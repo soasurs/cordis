@@ -64,6 +64,7 @@ func (s *messageServer) CreateAttachmentUpload(
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetExpectedSize(req.GetExpectedSize())
 	svcReq.SetContentType(req.GetContentType())
+	svcReq.SetFilename(req.GetFilename())
 	svcResp, err := s.svcCtx.MessageClient.CreateAttachmentUpload(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -72,6 +73,7 @@ func (s *messageServer) CreateAttachmentUpload(
 	resp.SetUploadId(svcResp.GetUploadId())
 	resp.SetPresignedUrl(svcResp.GetPresignedUrl())
 	resp.SetExpiresAt(svcResp.GetExpiresAt())
+	resp.SetRequestHeaders(svcResp.GetRequestHeaders())
 	return resp, nil
 }
 
@@ -87,7 +89,6 @@ func (s *messageServer) CompleteAttachmentUpload(
 	svcReq.SetChannelId(req.GetChannelId())
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetUploadId(req.GetUploadId())
-	svcReq.SetFilename(req.GetFilename())
 	svcResp, err := s.svcCtx.MessageClient.CompleteAttachmentUpload(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -113,28 +114,6 @@ func (s *messageServer) AbortAttachmentUpload(
 		return nil, apierror.FromRPC(err)
 	}
 	return new(apiv1.AbortAttachmentUploadResponse), nil
-}
-
-func (s *messageServer) GetAttachmentDownloadURL(
-	ctx context.Context,
-	req *apiv1.GetAttachmentDownloadURLRequest,
-) (*apiv1.GetAttachmentDownloadURLResponse, error) {
-	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
-	if err != nil {
-		return nil, err
-	}
-	svcReq := new(messagev1.GetAttachmentDownloadURLRequest)
-	svcReq.SetMessageId(req.GetMessageId())
-	svcReq.SetAssetId(req.GetAssetId())
-	svcReq.SetUserId(auth.GetUserId())
-	svcResp, err := s.svcCtx.MessageClient.GetAttachmentDownloadURL(ctx, svcReq)
-	if err != nil {
-		return nil, apierror.FromRPC(err)
-	}
-	resp := new(apiv1.GetAttachmentDownloadURLResponse)
-	resp.SetUrl(svcResp.GetUrl())
-	resp.SetExpiresAt(svcResp.GetExpiresAt())
-	return resp, nil
 }
 
 func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMessageRequest) (*apiv1.UpdateMessageResponse, error) {
@@ -303,6 +282,8 @@ func attachmentToAPI(attachment *messagev1.Attachment) *apiv1.Attachment {
 	value.SetContentType(attachment.GetContentType())
 	value.SetWidth(attachment.GetWidth())
 	value.SetHeight(attachment.GetHeight())
+	value.SetUrl(attachment.GetUrl())
+	value.SetUrlExpiresAt(attachment.GetUrlExpiresAt())
 	return value
 }
 

@@ -57,9 +57,6 @@ const (
 	// MessageServiceAbortAttachmentUploadProcedure is the fully-qualified name of the MessageService's
 	// AbortAttachmentUpload RPC.
 	MessageServiceAbortAttachmentUploadProcedure = "/api.v1.MessageService/AbortAttachmentUpload"
-	// MessageServiceGetAttachmentDownloadURLProcedure is the fully-qualified name of the
-	// MessageService's GetAttachmentDownloadURL RPC.
-	MessageServiceGetAttachmentDownloadURLProcedure = "/api.v1.MessageService/GetAttachmentDownloadURL"
 	// MessageServiceCreateDmChannelProcedure is the fully-qualified name of the MessageService's
 	// CreateDmChannel RPC.
 	MessageServiceCreateDmChannelProcedure = "/api.v1.MessageService/CreateDmChannel"
@@ -86,7 +83,7 @@ type MessageServiceClient interface {
 	GetMessage(context.Context, *v1.GetMessageRequest) (*v1.GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered newest first.
 	ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error)
-	// CreateAttachmentUpload creates a single-PUT private upload after checking
+	// CreateAttachmentUpload creates a single-PUT upload after checking
 	// that the bearer token user may send messages in the channel.
 	CreateAttachmentUpload(context.Context, *v1.CreateAttachmentUploadRequest) (*v1.CreateAttachmentUploadResponse, error)
 	// CompleteAttachmentUpload validates object metadata and returns trusted
@@ -94,9 +91,6 @@ type MessageServiceClient interface {
 	CompleteAttachmentUpload(context.Context, *v1.CompleteAttachmentUploadRequest) (*v1.CompleteAttachmentUploadResponse, error)
 	// AbortAttachmentUpload cancels an unpublished attachment upload.
 	AbortAttachmentUpload(context.Context, *v1.AbortAttachmentUploadRequest) (*v1.AbortAttachmentUploadResponse, error)
-	// GetAttachmentDownloadURL returns a short-lived URL only after checking
-	// message association and the caller's current channel visibility.
-	GetAttachmentDownloadURL(context.Context, *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error)
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
 	// friend. Messages then flow through the regular message RPCs using the
 	// returned channel ID.
@@ -167,12 +161,6 @@ func NewMessageServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(messageServiceMethods.ByName("AbortAttachmentUpload")),
 			connect.WithClientOptions(opts...),
 		),
-		getAttachmentDownloadURL: connect.NewClient[v1.GetAttachmentDownloadURLRequest, v1.GetAttachmentDownloadURLResponse](
-			httpClient,
-			baseURL+MessageServiceGetAttachmentDownloadURLProcedure,
-			connect.WithSchema(messageServiceMethods.ByName("GetAttachmentDownloadURL")),
-			connect.WithClientOptions(opts...),
-		),
 		createDmChannel: connect.NewClient[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse](
 			httpClient,
 			baseURL+MessageServiceCreateDmChannelProcedure,
@@ -210,7 +198,6 @@ type messageServiceClient struct {
 	createAttachmentUpload   *connect.Client[v1.CreateAttachmentUploadRequest, v1.CreateAttachmentUploadResponse]
 	completeAttachmentUpload *connect.Client[v1.CompleteAttachmentUploadRequest, v1.CompleteAttachmentUploadResponse]
 	abortAttachmentUpload    *connect.Client[v1.AbortAttachmentUploadRequest, v1.AbortAttachmentUploadResponse]
-	getAttachmentDownloadURL *connect.Client[v1.GetAttachmentDownloadURLRequest, v1.GetAttachmentDownloadURLResponse]
 	createDmChannel          *connect.Client[v1.CreateDmChannelRequest, v1.CreateDmChannelResponse]
 	listDmChannels           *connect.Client[v1.ListDmChannelsRequest, v1.ListDmChannelsResponse]
 	ackMessage               *connect.Client[v1.AckMessageRequest, v1.AckMessageResponse]
@@ -289,15 +276,6 @@ func (c *messageServiceClient) AbortAttachmentUpload(ctx context.Context, req *v
 	return nil, err
 }
 
-// GetAttachmentDownloadURL calls api.v1.MessageService.GetAttachmentDownloadURL.
-func (c *messageServiceClient) GetAttachmentDownloadURL(ctx context.Context, req *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error) {
-	response, err := c.getAttachmentDownloadURL.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
 // CreateDmChannel calls api.v1.MessageService.CreateDmChannel.
 func (c *messageServiceClient) CreateDmChannel(ctx context.Context, req *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error) {
 	response, err := c.createDmChannel.CallUnary(ctx, connect.NewRequest(req))
@@ -346,7 +324,7 @@ type MessageServiceHandler interface {
 	GetMessage(context.Context, *v1.GetMessageRequest) (*v1.GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered newest first.
 	ListMessages(context.Context, *v1.ListMessagesRequest) (*v1.ListMessagesResponse, error)
-	// CreateAttachmentUpload creates a single-PUT private upload after checking
+	// CreateAttachmentUpload creates a single-PUT upload after checking
 	// that the bearer token user may send messages in the channel.
 	CreateAttachmentUpload(context.Context, *v1.CreateAttachmentUploadRequest) (*v1.CreateAttachmentUploadResponse, error)
 	// CompleteAttachmentUpload validates object metadata and returns trusted
@@ -354,9 +332,6 @@ type MessageServiceHandler interface {
 	CompleteAttachmentUpload(context.Context, *v1.CompleteAttachmentUploadRequest) (*v1.CompleteAttachmentUploadResponse, error)
 	// AbortAttachmentUpload cancels an unpublished attachment upload.
 	AbortAttachmentUpload(context.Context, *v1.AbortAttachmentUploadRequest) (*v1.AbortAttachmentUploadResponse, error)
-	// GetAttachmentDownloadURL returns a short-lived URL only after checking
-	// message association and the caller's current channel visibility.
-	GetAttachmentDownloadURL(context.Context, *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error)
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
 	// friend. Messages then flow through the regular message RPCs using the
 	// returned channel ID.
@@ -423,12 +398,6 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 		connect.WithSchema(messageServiceMethods.ByName("AbortAttachmentUpload")),
 		connect.WithHandlerOptions(opts...),
 	)
-	messageServiceGetAttachmentDownloadURLHandler := connect.NewUnaryHandlerSimple(
-		MessageServiceGetAttachmentDownloadURLProcedure,
-		svc.GetAttachmentDownloadURL,
-		connect.WithSchema(messageServiceMethods.ByName("GetAttachmentDownloadURL")),
-		connect.WithHandlerOptions(opts...),
-	)
 	messageServiceCreateDmChannelHandler := connect.NewUnaryHandlerSimple(
 		MessageServiceCreateDmChannelProcedure,
 		svc.CreateDmChannel,
@@ -471,8 +440,6 @@ func NewMessageServiceHandler(svc MessageServiceHandler, opts ...connect.Handler
 			messageServiceCompleteAttachmentUploadHandler.ServeHTTP(w, r)
 		case MessageServiceAbortAttachmentUploadProcedure:
 			messageServiceAbortAttachmentUploadHandler.ServeHTTP(w, r)
-		case MessageServiceGetAttachmentDownloadURLProcedure:
-			messageServiceGetAttachmentDownloadURLHandler.ServeHTTP(w, r)
 		case MessageServiceCreateDmChannelProcedure:
 			messageServiceCreateDmChannelHandler.ServeHTTP(w, r)
 		case MessageServiceListDmChannelsProcedure:
@@ -520,10 +487,6 @@ func (UnimplementedMessageServiceHandler) CompleteAttachmentUpload(context.Conte
 
 func (UnimplementedMessageServiceHandler) AbortAttachmentUpload(context.Context, *v1.AbortAttachmentUploadRequest) (*v1.AbortAttachmentUploadResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.AbortAttachmentUpload is not implemented"))
-}
-
-func (UnimplementedMessageServiceHandler) GetAttachmentDownloadURL(context.Context, *v1.GetAttachmentDownloadURLRequest) (*v1.GetAttachmentDownloadURLResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.MessageService.GetAttachmentDownloadURL is not implemented"))
 }
 
 func (UnimplementedMessageServiceHandler) CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error) {

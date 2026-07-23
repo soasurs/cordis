@@ -134,6 +134,7 @@ func (s *userServer) CreateAvatarUpload(
 	resp.SetUploadId(svcResp.GetUploadId())
 	resp.SetPresignedUrl(svcResp.GetPresignedUrl())
 	resp.SetExpiresAt(svcResp.GetExpiresAt())
+	resp.SetRequestHeaders(svcResp.GetRequestHeaders())
 	return resp, nil
 }
 

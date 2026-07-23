@@ -18,12 +18,14 @@ type Message struct {
 }
 
 type Attachment struct {
-	AssetID     int64
-	Filename    string
-	Size        int64
-	ContentType string
-	Width       int32
-	Height      int32
+	AssetID      int64
+	Filename     string
+	Size         int64
+	ContentType  string
+	Width        int32
+	Height       int32
+	URL          string
+	URLExpiresAt int64
 }
 
 // DmChannel is a private 1:1 conversation; participants are stored in

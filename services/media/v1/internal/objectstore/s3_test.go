@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreatePresignedPutURLSignsContentContract(t *testing.T) {
+func TestCreatePresignedPutRequestSignsContentContract(t *testing.T) {
 	store, err := NewS3(Config{
 		Endpoint:  "s3.example.com",
 		Region:    "us-east-1",
@@ -19,7 +19,7 @@ func TestCreatePresignedPutURLSignsContentContract(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	rawURL, err := store.CreatePresignedPutURL(
+	request, err := store.CreatePresignedPutRequest(
 		t.Context(),
 		"staging/123",
 		"image/png",
@@ -27,7 +27,11 @@ func TestCreatePresignedPutURLSignsContentContract(t *testing.T) {
 		900,
 	)
 	require.NoError(t, err)
-	parsed, err := url.Parse(rawURL)
+	require.Equal(t, map[string]string{
+		"Content-Length": "4096",
+		"Content-Type":   "image/png",
+	}, request.RequestHeaders)
+	parsed, err := url.Parse(request.URL)
 	require.NoError(t, err)
 
 	signedHeaders := strings.Split(parsed.Query().Get("X-Amz-SignedHeaders"), ";")

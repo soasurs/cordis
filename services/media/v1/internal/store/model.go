@@ -57,6 +57,8 @@ type Asset struct {
 	StorageBackend  string `db:"storage_backend"`
 	StagingKey      string `db:"staging_key"`
 	PublishedKey    string `db:"published_key"`
+	Filename        string `db:"filename"`
+	StorageToken    string `db:"storage_token"`
 	ExpectedSize    int64  `db:"expected_size"`
 	ActualSize      int64  `db:"actual_size"`
 	ContentType     string `db:"content_type"`

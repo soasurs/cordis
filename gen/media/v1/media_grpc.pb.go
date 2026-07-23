@@ -19,11 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MediaService_CreateUpload_FullMethodName        = "/media.v1.MediaService/CreateUpload"
-	MediaService_CompleteUpload_FullMethodName      = "/media.v1.MediaService/CompleteUpload"
-	MediaService_AbortUpload_FullMethodName         = "/media.v1.MediaService/AbortUpload"
-	MediaService_GetAsset_FullMethodName            = "/media.v1.MediaService/GetAsset"
-	MediaService_GetAssetDownloadURL_FullMethodName = "/media.v1.MediaService/GetAssetDownloadURL"
+	MediaService_CreateUpload_FullMethodName      = "/media.v1.MediaService/CreateUpload"
+	MediaService_CompleteUpload_FullMethodName    = "/media.v1.MediaService/CompleteUpload"
+	MediaService_AbortUpload_FullMethodName       = "/media.v1.MediaService/AbortUpload"
+	MediaService_GetAsset_FullMethodName          = "/media.v1.MediaService/GetAsset"
+	MediaService_BatchGetAssetURLs_FullMethodName = "/media.v1.MediaService/BatchGetAssetURLs"
 )
 
 // MediaServiceClient is the client API for MediaService service.
@@ -46,10 +46,9 @@ type MediaServiceClient interface {
 	AbortUpload(ctx context.Context, in *AbortUploadRequest, opts ...grpc.CallOption) (*AbortUploadResponse, error)
 	// GetAsset returns persisted metadata and never reads object bytes.
 	GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*GetAssetResponse, error)
-	// GetAssetDownloadURL creates a short-lived download URL for a ready private
-	// attachment. The calling domain service must authorize the user and verify
-	// that the asset is associated with the requested message first.
-	GetAssetDownloadURL(ctx context.Context, in *GetAssetDownloadURLRequest, opts ...grpc.CallOption) (*GetAssetDownloadURLResponse, error)
+	// BatchGetAssetURLs resolves delivery URLs for ready attachments after the
+	// trusted Message caller has authorized the containing messages.
+	BatchGetAssetURLs(ctx context.Context, in *BatchGetAssetURLsRequest, opts ...grpc.CallOption) (*BatchGetAssetURLsResponse, error)
 }
 
 type mediaServiceClient struct {
@@ -100,10 +99,10 @@ func (c *mediaServiceClient) GetAsset(ctx context.Context, in *GetAssetRequest, 
 	return out, nil
 }
 
-func (c *mediaServiceClient) GetAssetDownloadURL(ctx context.Context, in *GetAssetDownloadURLRequest, opts ...grpc.CallOption) (*GetAssetDownloadURLResponse, error) {
+func (c *mediaServiceClient) BatchGetAssetURLs(ctx context.Context, in *BatchGetAssetURLsRequest, opts ...grpc.CallOption) (*BatchGetAssetURLsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAssetDownloadURLResponse)
-	err := c.cc.Invoke(ctx, MediaService_GetAssetDownloadURL_FullMethodName, in, out, cOpts...)
+	out := new(BatchGetAssetURLsResponse)
+	err := c.cc.Invoke(ctx, MediaService_BatchGetAssetURLs_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,10 +129,9 @@ type MediaServiceServer interface {
 	AbortUpload(context.Context, *AbortUploadRequest) (*AbortUploadResponse, error)
 	// GetAsset returns persisted metadata and never reads object bytes.
 	GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error)
-	// GetAssetDownloadURL creates a short-lived download URL for a ready private
-	// attachment. The calling domain service must authorize the user and verify
-	// that the asset is associated with the requested message first.
-	GetAssetDownloadURL(context.Context, *GetAssetDownloadURLRequest) (*GetAssetDownloadURLResponse, error)
+	// BatchGetAssetURLs resolves delivery URLs for ready attachments after the
+	// trusted Message caller has authorized the containing messages.
+	BatchGetAssetURLs(context.Context, *BatchGetAssetURLsRequest) (*BatchGetAssetURLsResponse, error)
 }
 
 // UnimplementedMediaServiceServer should be embedded to have
@@ -155,8 +153,8 @@ func (UnimplementedMediaServiceServer) AbortUpload(context.Context, *AbortUpload
 func (UnimplementedMediaServiceServer) GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAsset not implemented")
 }
-func (UnimplementedMediaServiceServer) GetAssetDownloadURL(context.Context, *GetAssetDownloadURLRequest) (*GetAssetDownloadURLResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetAssetDownloadURL not implemented")
+func (UnimplementedMediaServiceServer) BatchGetAssetURLs(context.Context, *BatchGetAssetURLsRequest) (*BatchGetAssetURLsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchGetAssetURLs not implemented")
 }
 func (UnimplementedMediaServiceServer) testEmbeddedByValue() {}
 
@@ -250,20 +248,20 @@ func _MediaService_GetAsset_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MediaService_GetAssetDownloadURL_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAssetDownloadURLRequest)
+func _MediaService_BatchGetAssetURLs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetAssetURLsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MediaServiceServer).GetAssetDownloadURL(ctx, in)
+		return srv.(MediaServiceServer).BatchGetAssetURLs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MediaService_GetAssetDownloadURL_FullMethodName,
+		FullMethod: MediaService_BatchGetAssetURLs_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MediaServiceServer).GetAssetDownloadURL(ctx, req.(*GetAssetDownloadURLRequest))
+		return srv.(MediaServiceServer).BatchGetAssetURLs(ctx, req.(*BatchGetAssetURLsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -292,8 +290,8 @@ var MediaService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MediaService_GetAsset_Handler,
 		},
 		{
-			MethodName: "GetAssetDownloadURL",
-			Handler:    _MediaService_GetAssetDownloadURL_Handler,
+			MethodName: "BatchGetAssetURLs",
+			Handler:    _MediaService_BatchGetAssetURLs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

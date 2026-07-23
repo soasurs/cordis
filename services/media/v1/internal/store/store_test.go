@@ -31,6 +31,8 @@ func TestCreateAssetWithQuotaLocksCountAndInsert(t *testing.T) {
 			asset.StorageBackend,
 			asset.StagingKey,
 			asset.PublishedKey,
+			asset.Filename,
+			asset.StorageToken,
 			asset.ExpectedSize,
 			asset.ContentType,
 			asset.ExpiresAt,

@@ -14,6 +14,7 @@ type AssetStore interface {
 type Store interface {
 	AssetStore
 	CreateAssetWithQuota(ctx context.Context, asset *Asset, activeUploadLimit int64) error
+	ListAssets(ctx context.Context, ids []int64) ([]*Asset, error)
 	ListExpiredUploads(ctx context.Context, before int64) ([]*Asset, error)
 	AcquireAssetLock(ctx context.Context, id int64) (AssetStore, func(), error)
 }

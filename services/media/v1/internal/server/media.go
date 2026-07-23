@@ -2,13 +2,19 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"mime"
+	neturl "net/url"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
+	"github.com/soasurs/cordis/services/media/v1/config"
 	"github.com/soasurs/cordis/services/media/v1/internal/objectstore"
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
 )
@@ -19,6 +25,8 @@ var allowedImageContentTypes = map[string]struct{}{
 	"image/webp": {},
 }
 
+const maxBatchAssetURLs = 1000
+
 func (s *MediaServer) CreateUpload(
 	ctx context.Context,
 	req *mediav1.CreateUploadRequest,
@@ -27,7 +35,7 @@ func (s *MediaServer) CreateUpload(
 	if actorUserID <= 0 {
 		return nil, errActorUserIDRequired
 	}
-	kind, subjectID, err := uploadPurpose(req, actorUserID)
+	kind, subjectID, filename, err := uploadPurpose(req, actorUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +58,17 @@ func (s *MediaServer) CreateUpload(
 			return nil, errSizeExceeded
 		}
 	}
+	var storageToken string
+	if kind == store.KindMessageAttachment {
+		filename, err = validateAttachmentFilename(filename)
+		if err != nil {
+			return nil, err
+		}
+		storageToken, err = newStorageToken()
+		if err != nil {
+			return nil, fmt.Errorf("generate attachment storage token: %w", err)
+		}
+	}
 
 	id := s.svcCtx.Snowflake.Generate().Int64()
 	now := time.Now().UnixMilli()
@@ -64,6 +83,8 @@ func (s *MediaServer) CreateUpload(
 		StorageBackend:  s.storageBackend(),
 		ExpectedSize:    expectedSize,
 		ContentType:     contentType,
+		Filename:        filename,
+		StorageToken:    storageToken,
 		ExpiresAt:       now + uploadTTL*1000,
 		CreatedAt:       now,
 		UpdatedAt:       now,
@@ -71,10 +92,16 @@ func (s *MediaServer) CreateUpload(
 	if kind.IsImage() {
 		asset.StagingKey = fmt.Sprintf("staging/%d", id)
 	} else {
-		asset.PublishedKey = fmt.Sprintf("private/attachments/%d/%d", subjectID, id)
+		asset.PublishedKey = fmt.Sprintf(
+			"attachments/%d/%d/%s/%s",
+			subjectID,
+			id,
+			storageToken,
+			filename,
+		)
 	}
 
-	presignedURL, err := s.svcCtx.ObjectStore.CreatePresignedPutURL(
+	presignedRequest, err := s.uploadObjectStore(asset).CreatePresignedPutRequest(
 		ctx,
 		uploadObjectKey(asset),
 		contentType,
@@ -97,8 +124,9 @@ func (s *MediaServer) CreateUpload(
 
 	resp := new(mediav1.CreateUploadResponse)
 	resp.SetUploadId(id)
-	resp.SetPresignedUrl(presignedURL)
-	resp.SetExpiresAt(asset.ExpiresAt)
+	resp.SetPresignedUrl(presignedRequest.URL)
+	resp.SetExpiresAt(now + presignedTTL*1000)
+	resp.SetRequestHeaders(presignedRequest.RequestHeaders)
 	return resp, nil
 }
 
@@ -134,7 +162,7 @@ func (s *MediaServer) completeLocked(
 ) (*mediav1.CompleteUploadResponse, error) {
 	switch asset.Status {
 	case store.StatusReady:
-		return s.buildCompleteResponse(asset)
+		return s.buildCompleteResponse(ctx, asset)
 	case store.StatusFailed:
 		return nil, errProcessingFailed
 	case store.StatusAborted:
@@ -176,7 +204,7 @@ func (s *MediaServer) completeLocked(
 		if err := assetStore.UpdateAsset(ctx, asset); err != nil {
 			return nil, fmt.Errorf("update asset to ready: %w", err)
 		}
-		return s.buildCompleteResponse(asset)
+		return s.buildCompleteResponse(ctx, asset)
 	}
 	return nil, errNotUploaded
 }
@@ -186,7 +214,7 @@ func (s *MediaServer) statUploadedObject(
 	assetStore store.AssetStore,
 	asset *store.Asset,
 ) (*objectstore.ObjectInfo, error) {
-	info, err := s.svcCtx.ObjectStore.StatObject(ctx, uploadObjectKey(asset))
+	info, err := s.uploadObjectStore(asset).StatObject(ctx, uploadObjectKey(asset))
 	if err != nil {
 		if errors.Is(err, objectstore.ErrObjectNotFound) {
 			return nil, errNotUploaded
@@ -245,7 +273,7 @@ func (s *MediaServer) publishImage(
 		return nil, fmt.Errorf("update asset to ready: %w", err)
 	}
 	s.deleteUploadObject(asset)
-	return s.buildCompleteResponse(asset)
+	return s.buildCompleteResponse(ctx, asset)
 }
 
 func (s *MediaServer) failUpload(
@@ -264,6 +292,7 @@ func (s *MediaServer) failUpload(
 }
 
 func (s *MediaServer) buildCompleteResponse(
+	ctx context.Context,
 	asset *store.Asset,
 ) (*mediav1.CompleteUploadResponse, error) {
 	resp := new(mediav1.CompleteUploadResponse)
@@ -274,6 +303,15 @@ func (s *MediaServer) buildCompleteResponse(
 	metadata.SetContentType(asset.ContentType)
 	metadata.SetWidth(asset.Width)
 	metadata.SetHeight(asset.Height)
+	metadata.SetFilename(asset.Filename)
+	if asset.Kind == store.KindMessageAttachment {
+		downloadURL, expiresAt, err := s.attachmentURL(ctx, asset)
+		if err != nil {
+			return nil, err
+		}
+		metadata.SetUrl(downloadURL)
+		metadata.SetUrlExpiresAt(expiresAt)
+	}
 	resp.SetMetadata(metadata)
 	return resp, nil
 }
@@ -343,63 +381,127 @@ func (s *MediaServer) GetAsset(
 	value.SetCreatedAt(asset.CreatedAt)
 	value.SetUpdatedAt(asset.UpdatedAt)
 	value.SetSubjectId(asset.SubjectID)
+	value.SetFilename(asset.Filename)
+	if asset.Status == store.StatusReady && asset.Kind == store.KindMessageAttachment {
+		downloadURL, expiresAt, err := s.attachmentURL(ctx, asset)
+		if err != nil {
+			return nil, err
+		}
+		value.SetUrl(downloadURL)
+		value.SetUrlExpiresAt(expiresAt)
+	}
 	resp.SetAsset(value)
 	return resp, nil
 }
 
-func (s *MediaServer) GetAssetDownloadURL(
+func (s *MediaServer) BatchGetAssetURLs(
 	ctx context.Context,
-	req *mediav1.GetAssetDownloadURLRequest,
-) (*mediav1.GetAssetDownloadURLResponse, error) {
-	asset, err := s.svcCtx.Store.GetAsset(ctx, req.GetAssetId())
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
+	req *mediav1.BatchGetAssetURLsRequest,
+) (*mediav1.BatchGetAssetURLsResponse, error) {
+	ids := req.GetAssetIds()
+	if len(ids) > maxBatchAssetURLs {
+		return nil, errTooManyAssets
+	}
+	uniqueIDs := make([]int64, 0, len(ids))
+	seen := make(map[int64]struct{}, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
 			return nil, errAssetNotFound
 		}
-		return nil, fmt.Errorf("get asset: %w", err)
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		uniqueIDs = append(uniqueIDs, id)
 	}
+	assets, err := s.svcCtx.Store.ListAssets(ctx, uniqueIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list assets: %w", err)
+	}
+	assetsByID := make(map[int64]*store.Asset, len(assets))
+	for _, asset := range assets {
+		assetsByID[asset.ID] = asset
+	}
+	values := make([]*mediav1.AssetURL, 0, len(uniqueIDs))
+	for _, id := range uniqueIDs {
+		asset := assetsByID[id]
+		if asset == nil {
+			return nil, errAssetNotFound
+		}
+		if asset.Status != store.StatusReady {
+			return nil, errAssetNotReady
+		}
+		if asset.Kind != store.KindMessageAttachment || asset.PublishedKey == "" {
+			return nil, errAssetNotDownloadable
+		}
+		downloadURL, expiresAt, err := s.attachmentURL(ctx, asset)
+		if err != nil {
+			return nil, err
+		}
+		value := new(mediav1.AssetURL)
+		value.SetAssetId(id)
+		value.SetUrl(downloadURL)
+		value.SetExpiresAt(expiresAt)
+		values = append(values, value)
+	}
+	resp := new(mediav1.BatchGetAssetURLsResponse)
+	resp.SetAssets(values)
+	return resp, nil
+}
+
+func (s *MediaServer) attachmentURL(
+	ctx context.Context,
+	asset *store.Asset,
+) (string, int64, error) {
 	if asset.Status != store.StatusReady {
-		return nil, errAssetNotReady
+		return "", 0, errAssetNotReady
 	}
 	if asset.Kind != store.KindMessageAttachment || asset.PublishedKey == "" {
-		return nil, errAssetNotDownloadable
+		return "", 0, errAssetNotDownloadable
 	}
-	expiresIn := req.GetExpiresInSeconds()
-	if expiresIn <= 0 {
-		expiresIn = 3600
+	if s.svcCtx.Cfg.Media.AttachmentAccess() == config.AttachmentAccessPublic {
+		baseURL, err := neturl.Parse(s.svcCtx.Cfg.ObjectStore.AttachmentPublicBaseURL)
+		if err != nil {
+			return "", 0, fmt.Errorf("build public attachment url: %w", err)
+		}
+		baseURL.Path = strings.TrimRight(baseURL.Path, "/") + "/" + asset.PublishedKey
+		baseURL.RawPath = ""
+		return baseURL.String(), 0, nil
 	}
-	url, err := s.svcCtx.ObjectStore.CreatePresignedGetURL(ctx, asset.PublishedKey, expiresIn)
+	expiresIn := s.svcCtx.Cfg.Media.AttachmentDownloadTTL()
+	value, err := s.svcCtx.AttachmentObjectStore.CreatePresignedGetURL(
+		ctx,
+		asset.PublishedKey,
+		expiresIn,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("create presigned get url: %w", err)
+		return "", 0, fmt.Errorf("create presigned get url: %w", err)
 	}
-
-	resp := new(mediav1.GetAssetDownloadURLResponse)
-	resp.SetUrl(url)
-	resp.SetExpiresAt(time.Now().UnixMilli() + expiresIn*1000)
-	return resp, nil
+	return value, time.Now().UnixMilli() + expiresIn*1000, nil
 }
 
 func uploadPurpose(
 	req *mediav1.CreateUploadRequest,
 	actorUserID int64,
-) (store.Kind, int64, error) {
+) (store.Kind, int64, string, error) {
 	switch {
 	case req.HasUserAvatar():
-		return store.KindUserAvatar, actorUserID, nil
+		return store.KindUserAvatar, actorUserID, "", nil
 	case req.HasGuildIcon():
 		guildID := req.GetGuildIcon().GetGuildId()
 		if guildID <= 0 {
-			return "", 0, errGuildIDRequired
+			return "", 0, "", errGuildIDRequired
 		}
-		return store.KindGuildIcon, guildID, nil
+		return store.KindGuildIcon, guildID, "", nil
 	case req.HasMessageAttachment():
-		channelID := req.GetMessageAttachment().GetChannelId()
+		purpose := req.GetMessageAttachment()
+		channelID := purpose.GetChannelId()
 		if channelID <= 0 {
-			return "", 0, errChannelIDRequired
+			return "", 0, "", errChannelIDRequired
 		}
-		return store.KindMessageAttachment, channelID, nil
+		return store.KindMessageAttachment, channelID, purpose.GetFilename(), nil
 	default:
-		return "", 0, errPurposeRequired
+		return "", 0, "", errPurposeRequired
 	}
 }
 
@@ -483,7 +585,14 @@ func (s *MediaServer) getUpload(
 func (s *MediaServer) deleteUploadObject(asset *store.Asset) {
 	deleteCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	_ = s.svcCtx.ObjectStore.DeleteObject(deleteCtx, uploadObjectKey(asset))
+	_ = s.uploadObjectStore(asset).DeleteObject(deleteCtx, uploadObjectKey(asset))
+}
+
+func (s *MediaServer) uploadObjectStore(asset *store.Asset) objectstore.ObjectStore {
+	if asset.Kind == store.KindMessageAttachment {
+		return s.svcCtx.AttachmentObjectStore
+	}
+	return s.svcCtx.StagingObjectStore
 }
 
 func (s *MediaServer) storageBackend() string {
@@ -511,4 +620,26 @@ func normalizeContentType(value string) (string, error) {
 		return "", errContentTypeInvalid
 	}
 	return mediaType, nil
+}
+
+func validateAttachmentFilename(value string) (string, error) {
+	if value == "" || strings.TrimSpace(value) != value || !utf8.ValidString(value) ||
+		len(value) > 255 || value == "." || value == ".." ||
+		strings.ContainsAny(value, `/\`) {
+		return "", errFilenameInvalid
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) {
+			return "", errFilenameInvalid
+		}
+	}
+	return value, nil
+}
+
+func newStorageToken() (string, error) {
+	var value [16]byte
+	if _, err := rand.Read(value[:]); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(value[:]), nil
 }

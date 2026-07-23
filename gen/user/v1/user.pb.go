@@ -2333,14 +2333,15 @@ func (b0 CreateAvatarUploadRequest_builder) Build() *CreateAvatarUploadRequest {
 
 // CreateAvatarUploadResponse forwards Media's one-shot direct-upload contract.
 type CreateAvatarUploadResponse struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UploadId     int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
-	xxx_hidden_PresignedUrl *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
-	xxx_hidden_ExpiresAt    int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UploadId       int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
+	xxx_hidden_PresignedUrl   *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
+	xxx_hidden_ExpiresAt      int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_RequestHeaders map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateAvatarUploadResponse) Reset() {
@@ -2392,19 +2393,30 @@ func (x *CreateAvatarUploadResponse) GetExpiresAt() int64 {
 	return 0
 }
 
+func (x *CreateAvatarUploadResponse) GetRequestHeaders() map[string]string {
+	if x != nil {
+		return x.xxx_hidden_RequestHeaders
+	}
+	return nil
+}
+
 func (x *CreateAvatarUploadResponse) SetUploadId(v int64) {
 	x.xxx_hidden_UploadId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *CreateAvatarUploadResponse) SetPresignedUrl(v string) {
 	x.xxx_hidden_PresignedUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *CreateAvatarUploadResponse) SetExpiresAt(v int64) {
 	x.xxx_hidden_ExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *CreateAvatarUploadResponse) SetRequestHeaders(v map[string]string) {
+	x.xxx_hidden_RequestHeaders = v
 }
 
 func (x *CreateAvatarUploadResponse) HasUploadId() bool {
@@ -2450,8 +2462,11 @@ type CreateAvatarUploadResponse_builder struct {
 	UploadId *int64
 	// Short-lived URL accepting one PUT with the declared length and media type.
 	PresignedUrl *string
-	// Upload session expiration as Unix milliseconds.
+	// Presigned URL expiration as Unix milliseconds.
 	ExpiresAt *int64
+	// HTTP headers required by the presigned PUT. Browser-managed headers such
+	// as Content-Length are informational and must not be set explicitly.
+	RequestHeaders map[string]string
 }
 
 func (b0 CreateAvatarUploadResponse_builder) Build() *CreateAvatarUploadResponse {
@@ -2459,17 +2474,18 @@ func (b0 CreateAvatarUploadResponse_builder) Build() *CreateAvatarUploadResponse
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UploadId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_UploadId = *b.UploadId
 	}
 	if b.PresignedUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PresignedUrl = b.PresignedUrl
 	}
 	if b.ExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
 	}
+	x.xxx_hidden_RequestHeaders = b.RequestHeaders
 	return m0
 }
 
@@ -4708,12 +4724,16 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x19CreateAvatarUploadRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12#\n" +
 	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
-	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"}\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"\xa2\x02\n" +
 	"\x1aCreateAvatarUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\x03R\texpiresAt\"S\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12`\n" +
+	"\x0frequest_headers\x18\x04 \x03(\v27.user.v1.CreateAvatarUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x1aA\n" +
+	"\x13RequestHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"S\n" +
 	"\x1bCompleteAvatarUploadRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
 	"\tupload_id\x18\x02 \x01(\x03R\buploadId\"N\n" +
@@ -4809,7 +4829,7 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\vcom.user.v1B\tUserProtoP\x01Z,github.com/soasurs/cordis/gen/user/v1;userv1\xa2\x02\x03UXX\xaa\x02\aUser.V1\xca\x02\aUser\\V1\xe2\x02\x13User\\V1\\GPBMetadata\xea\x02\bUser::V1b\beditionsp\xe8\a"
 
 var file_user_v1_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_user_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_user_v1_user_proto_goTypes = []any{
 	(RelationshipType)(0),                    // 0: user.v1.RelationshipType
 	(*Relationship)(nil),                     // 1: user.v1.Relationship
@@ -4857,6 +4877,7 @@ var file_user_v1_user_proto_goTypes = []any{
 	(*CheckRelationshipsResponse)(nil),       // 43: user.v1.CheckRelationshipsResponse
 	(*UpdateUsernameRequest)(nil),            // 44: user.v1.UpdateUsernameRequest
 	(*UpdateUsernameResponse)(nil),           // 45: user.v1.UpdateUsernameResponse
+	nil,                                      // 46: user.v1.CreateAvatarUploadResponse.RequestHeadersEntry
 }
 var file_user_v1_user_proto_depIdxs = []int32{
 	0,  // 0: user.v1.Relationship.type:type_name -> user.v1.RelationshipType
@@ -4866,62 +4887,63 @@ var file_user_v1_user_proto_depIdxs = []int32{
 	3,  // 4: user.v1.BatchGetUserProfilesResponse.profiles:type_name -> user.v1.UserProfile
 	2,  // 5: user.v1.UpdateEmailResponse.user:type_name -> user.v1.User
 	3,  // 6: user.v1.UpdateUserProfileResponse.profile:type_name -> user.v1.UserProfile
-	3,  // 7: user.v1.CompleteAvatarUploadResponse.profile:type_name -> user.v1.UserProfile
-	3,  // 8: user.v1.GetUserProfileByUsernameResponse.profile:type_name -> user.v1.UserProfile
-	1,  // 9: user.v1.SendFriendRequestResponse.relationship:type_name -> user.v1.Relationship
-	1,  // 10: user.v1.AcceptFriendRequestResponse.relationship:type_name -> user.v1.Relationship
-	1,  // 11: user.v1.BlockUserResponse.relationship:type_name -> user.v1.Relationship
-	0,  // 12: user.v1.ListRelationshipsRequest.type:type_name -> user.v1.RelationshipType
-	1,  // 13: user.v1.ListRelationshipsResponse.relationships:type_name -> user.v1.Relationship
-	1,  // 14: user.v1.CheckRelationshipsResponse.relationships:type_name -> user.v1.Relationship
-	3,  // 15: user.v1.UpdateUsernameResponse.profile:type_name -> user.v1.UserProfile
-	4,  // 16: user.v1.UserService.CreateUser:input_type -> user.v1.CreateUserRequest
-	6,  // 17: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
-	8,  // 18: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
-	10, // 19: user.v1.UserService.BatchGetUserProfiles:input_type -> user.v1.BatchGetUserProfilesRequest
-	26, // 20: user.v1.UserService.GetUserProfileByUsername:input_type -> user.v1.GetUserProfileByUsernameRequest
-	12, // 21: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
-	14, // 22: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
-	16, // 23: user.v1.UserService.MarkEmailVerified:input_type -> user.v1.MarkEmailVerifiedRequest
-	18, // 24: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
-	20, // 25: user.v1.UserService.CreateAvatarUpload:input_type -> user.v1.CreateAvatarUploadRequest
-	22, // 26: user.v1.UserService.CompleteAvatarUpload:input_type -> user.v1.CompleteAvatarUploadRequest
-	24, // 27: user.v1.UserService.AbortAvatarUpload:input_type -> user.v1.AbortAvatarUploadRequest
-	44, // 28: user.v1.UserService.UpdateUsername:input_type -> user.v1.UpdateUsernameRequest
-	28, // 29: user.v1.UserService.SendFriendRequest:input_type -> user.v1.SendFriendRequestRequest
-	30, // 30: user.v1.UserService.AcceptFriendRequest:input_type -> user.v1.AcceptFriendRequestRequest
-	32, // 31: user.v1.UserService.DeclineFriendRequest:input_type -> user.v1.DeclineFriendRequestRequest
-	34, // 32: user.v1.UserService.RemoveFriend:input_type -> user.v1.RemoveFriendRequest
-	36, // 33: user.v1.UserService.BlockUser:input_type -> user.v1.BlockUserRequest
-	38, // 34: user.v1.UserService.UnblockUser:input_type -> user.v1.UnblockUserRequest
-	40, // 35: user.v1.UserService.ListRelationships:input_type -> user.v1.ListRelationshipsRequest
-	42, // 36: user.v1.UserService.CheckRelationships:input_type -> user.v1.CheckRelationshipsRequest
-	5,  // 37: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
-	7,  // 38: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
-	9,  // 39: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
-	11, // 40: user.v1.UserService.BatchGetUserProfiles:output_type -> user.v1.BatchGetUserProfilesResponse
-	27, // 41: user.v1.UserService.GetUserProfileByUsername:output_type -> user.v1.GetUserProfileByUsernameResponse
-	13, // 42: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
-	15, // 43: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
-	17, // 44: user.v1.UserService.MarkEmailVerified:output_type -> user.v1.MarkEmailVerifiedResponse
-	19, // 45: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
-	21, // 46: user.v1.UserService.CreateAvatarUpload:output_type -> user.v1.CreateAvatarUploadResponse
-	23, // 47: user.v1.UserService.CompleteAvatarUpload:output_type -> user.v1.CompleteAvatarUploadResponse
-	25, // 48: user.v1.UserService.AbortAvatarUpload:output_type -> user.v1.AbortAvatarUploadResponse
-	45, // 49: user.v1.UserService.UpdateUsername:output_type -> user.v1.UpdateUsernameResponse
-	29, // 50: user.v1.UserService.SendFriendRequest:output_type -> user.v1.SendFriendRequestResponse
-	31, // 51: user.v1.UserService.AcceptFriendRequest:output_type -> user.v1.AcceptFriendRequestResponse
-	33, // 52: user.v1.UserService.DeclineFriendRequest:output_type -> user.v1.DeclineFriendRequestResponse
-	35, // 53: user.v1.UserService.RemoveFriend:output_type -> user.v1.RemoveFriendResponse
-	37, // 54: user.v1.UserService.BlockUser:output_type -> user.v1.BlockUserResponse
-	39, // 55: user.v1.UserService.UnblockUser:output_type -> user.v1.UnblockUserResponse
-	41, // 56: user.v1.UserService.ListRelationships:output_type -> user.v1.ListRelationshipsResponse
-	43, // 57: user.v1.UserService.CheckRelationships:output_type -> user.v1.CheckRelationshipsResponse
-	37, // [37:58] is the sub-list for method output_type
-	16, // [16:37] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	46, // 7: user.v1.CreateAvatarUploadResponse.request_headers:type_name -> user.v1.CreateAvatarUploadResponse.RequestHeadersEntry
+	3,  // 8: user.v1.CompleteAvatarUploadResponse.profile:type_name -> user.v1.UserProfile
+	3,  // 9: user.v1.GetUserProfileByUsernameResponse.profile:type_name -> user.v1.UserProfile
+	1,  // 10: user.v1.SendFriendRequestResponse.relationship:type_name -> user.v1.Relationship
+	1,  // 11: user.v1.AcceptFriendRequestResponse.relationship:type_name -> user.v1.Relationship
+	1,  // 12: user.v1.BlockUserResponse.relationship:type_name -> user.v1.Relationship
+	0,  // 13: user.v1.ListRelationshipsRequest.type:type_name -> user.v1.RelationshipType
+	1,  // 14: user.v1.ListRelationshipsResponse.relationships:type_name -> user.v1.Relationship
+	1,  // 15: user.v1.CheckRelationshipsResponse.relationships:type_name -> user.v1.Relationship
+	3,  // 16: user.v1.UpdateUsernameResponse.profile:type_name -> user.v1.UserProfile
+	4,  // 17: user.v1.UserService.CreateUser:input_type -> user.v1.CreateUserRequest
+	6,  // 18: user.v1.UserService.GetUser:input_type -> user.v1.GetUserRequest
+	8,  // 19: user.v1.UserService.GetUserProfile:input_type -> user.v1.GetUserProfileRequest
+	10, // 20: user.v1.UserService.BatchGetUserProfiles:input_type -> user.v1.BatchGetUserProfilesRequest
+	26, // 21: user.v1.UserService.GetUserProfileByUsername:input_type -> user.v1.GetUserProfileByUsernameRequest
+	12, // 22: user.v1.UserService.CheckEmailAvailability:input_type -> user.v1.CheckEmailAvailabilityRequest
+	14, // 23: user.v1.UserService.UpdateEmail:input_type -> user.v1.UpdateEmailRequest
+	16, // 24: user.v1.UserService.MarkEmailVerified:input_type -> user.v1.MarkEmailVerifiedRequest
+	18, // 25: user.v1.UserService.UpdateUserProfile:input_type -> user.v1.UpdateUserProfileRequest
+	20, // 26: user.v1.UserService.CreateAvatarUpload:input_type -> user.v1.CreateAvatarUploadRequest
+	22, // 27: user.v1.UserService.CompleteAvatarUpload:input_type -> user.v1.CompleteAvatarUploadRequest
+	24, // 28: user.v1.UserService.AbortAvatarUpload:input_type -> user.v1.AbortAvatarUploadRequest
+	44, // 29: user.v1.UserService.UpdateUsername:input_type -> user.v1.UpdateUsernameRequest
+	28, // 30: user.v1.UserService.SendFriendRequest:input_type -> user.v1.SendFriendRequestRequest
+	30, // 31: user.v1.UserService.AcceptFriendRequest:input_type -> user.v1.AcceptFriendRequestRequest
+	32, // 32: user.v1.UserService.DeclineFriendRequest:input_type -> user.v1.DeclineFriendRequestRequest
+	34, // 33: user.v1.UserService.RemoveFriend:input_type -> user.v1.RemoveFriendRequest
+	36, // 34: user.v1.UserService.BlockUser:input_type -> user.v1.BlockUserRequest
+	38, // 35: user.v1.UserService.UnblockUser:input_type -> user.v1.UnblockUserRequest
+	40, // 36: user.v1.UserService.ListRelationships:input_type -> user.v1.ListRelationshipsRequest
+	42, // 37: user.v1.UserService.CheckRelationships:input_type -> user.v1.CheckRelationshipsRequest
+	5,  // 38: user.v1.UserService.CreateUser:output_type -> user.v1.CreateUserResponse
+	7,  // 39: user.v1.UserService.GetUser:output_type -> user.v1.GetUserResponse
+	9,  // 40: user.v1.UserService.GetUserProfile:output_type -> user.v1.GetUserProfileResponse
+	11, // 41: user.v1.UserService.BatchGetUserProfiles:output_type -> user.v1.BatchGetUserProfilesResponse
+	27, // 42: user.v1.UserService.GetUserProfileByUsername:output_type -> user.v1.GetUserProfileByUsernameResponse
+	13, // 43: user.v1.UserService.CheckEmailAvailability:output_type -> user.v1.CheckEmailAvailabilityResponse
+	15, // 44: user.v1.UserService.UpdateEmail:output_type -> user.v1.UpdateEmailResponse
+	17, // 45: user.v1.UserService.MarkEmailVerified:output_type -> user.v1.MarkEmailVerifiedResponse
+	19, // 46: user.v1.UserService.UpdateUserProfile:output_type -> user.v1.UpdateUserProfileResponse
+	21, // 47: user.v1.UserService.CreateAvatarUpload:output_type -> user.v1.CreateAvatarUploadResponse
+	23, // 48: user.v1.UserService.CompleteAvatarUpload:output_type -> user.v1.CompleteAvatarUploadResponse
+	25, // 49: user.v1.UserService.AbortAvatarUpload:output_type -> user.v1.AbortAvatarUploadResponse
+	45, // 50: user.v1.UserService.UpdateUsername:output_type -> user.v1.UpdateUsernameResponse
+	29, // 51: user.v1.UserService.SendFriendRequest:output_type -> user.v1.SendFriendRequestResponse
+	31, // 52: user.v1.UserService.AcceptFriendRequest:output_type -> user.v1.AcceptFriendRequestResponse
+	33, // 53: user.v1.UserService.DeclineFriendRequest:output_type -> user.v1.DeclineFriendRequestResponse
+	35, // 54: user.v1.UserService.RemoveFriend:output_type -> user.v1.RemoveFriendResponse
+	37, // 55: user.v1.UserService.BlockUser:output_type -> user.v1.BlockUserResponse
+	39, // 56: user.v1.UserService.UnblockUser:output_type -> user.v1.UnblockUserResponse
+	41, // 57: user.v1.UserService.ListRelationships:output_type -> user.v1.ListRelationshipsResponse
+	43, // 58: user.v1.UserService.CheckRelationships:output_type -> user.v1.CheckRelationshipsResponse
+	38, // [38:59] is the sub-list for method output_type
+	17, // [17:38] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_user_v1_user_proto_init() }
@@ -4939,7 +4961,7 @@ func file_user_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_v1_user_proto_rawDesc), len(file_user_v1_user_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   45,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

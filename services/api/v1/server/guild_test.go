@@ -453,6 +453,7 @@ func TestCreateGuildIconUploadUsesAuthenticatedActor(t *testing.T) {
 	svcResp.SetUploadId(7001)
 	svcResp.SetPresignedUrl("https://upload.example/7001")
 	svcResp.SetExpiresAt(9001)
+	svcResp.SetRequestHeaders(map[string]string{"Content-Type": "image/png"})
 	guildClient := &fakeGuildClient{createIconResponse: svcResp}
 	client, closeServer := newGuildHTTPClient(t, guildClient)
 	defer closeServer()
@@ -467,6 +468,7 @@ func TestCreateGuildIconUploadUsesAuthenticatedActor(t *testing.T) {
 	require.Equal(t, int64(3001), guildClient.createIconRequest.GetGuildId())
 	require.Equal(t, int64(123), guildClient.createIconRequest.GetExpectedSize())
 	require.Equal(t, int64(7001), resp.GetUploadId())
+	require.Equal(t, map[string]string{"Content-Type": "image/png"}, resp.GetRequestHeaders())
 }
 
 func TestCreateGuildRoleUsesAuthenticatedActor(t *testing.T) {

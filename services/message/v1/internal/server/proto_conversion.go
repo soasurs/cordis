@@ -34,6 +34,8 @@ func attachmentsToProto(attachments []model.Attachment) []*messagev1.Attachment 
 		result.SetContentType(attachment.ContentType)
 		result.SetWidth(attachment.Width)
 		result.SetHeight(attachment.Height)
+		result.SetUrl(attachment.URL)
+		result.SetUrlExpiresAt(attachment.URLExpiresAt)
 		values = append(values, result)
 	}
 	return values
@@ -43,12 +45,14 @@ func attachmentsFromProto(attachments []*messagev1.Attachment) []model.Attachmen
 	values := make([]model.Attachment, 0, len(attachments))
 	for _, attachment := range attachments {
 		values = append(values, model.Attachment{
-			AssetID:     attachment.GetAssetId(),
-			Filename:    attachment.GetFilename(),
-			Size:        attachment.GetSize(),
-			ContentType: attachment.GetContentType(),
-			Width:       attachment.GetWidth(),
-			Height:      attachment.GetHeight(),
+			AssetID:      attachment.GetAssetId(),
+			Filename:     attachment.GetFilename(),
+			Size:         attachment.GetSize(),
+			ContentType:  attachment.GetContentType(),
+			Width:        attachment.GetWidth(),
+			Height:       attachment.GetHeight(),
+			URL:          attachment.GetUrl(),
+			URLExpiresAt: attachment.GetUrlExpiresAt(),
 		})
 	}
 	return values

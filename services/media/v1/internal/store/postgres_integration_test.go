@@ -33,6 +33,9 @@ func TestMediaStoreWithPostgres(t *testing.T) {
 	t.Run("concurrent quota", func(t *testing.T) {
 		testConcurrentQuota(t, assetStore)
 	})
+	t.Run("list assets", func(t *testing.T) {
+		testListAssets(t, assetStore)
+	})
 	t.Run("expired uploads", func(t *testing.T) {
 		testExpiredUploads(t, assetStore)
 	})
@@ -42,6 +45,21 @@ func TestMediaStoreWithPostgres(t *testing.T) {
 	t.Run("constraints", func(t *testing.T) {
 		testConstraints(t, assetStore)
 	})
+}
+
+func testListAssets(t *testing.T, assetStore Store) {
+	first := integrationAsset(2501, 1251)
+	second := integrationAsset(2502, 1251)
+	require.NoError(t, assetStore.CreateAssetWithQuota(t.Context(), first, 5))
+	require.NoError(t, assetStore.CreateAssetWithQuota(t.Context(), second, 5))
+
+	assets, err := assetStore.ListAssets(t.Context(), []int64{second.ID, first.ID, 9999})
+	require.NoError(t, err)
+	require.ElementsMatch(t, []int64{first.ID, second.ID}, assetIDs(assets))
+
+	assets, err = assetStore.ListAssets(t.Context(), nil)
+	require.NoError(t, err)
+	require.Empty(t, assets)
 }
 
 func testCreateGetAndUpdate(t *testing.T, assetStore Store) {

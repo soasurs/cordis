@@ -2,20 +2,20 @@ package store
 
 const assetColumns = `
 	id, created_by_user_id, subject_id, kind, status, storage_backend,
-	staging_key, published_key, expected_size, actual_size, content_type,
-	expires_at, width, height, error_message, created_at, updated_at,
-	deleted_at
+	staging_key, published_key, filename, storage_token, expected_size,
+	actual_size, content_type, expires_at, width, height, error_message,
+	created_at, updated_at, deleted_at
 `
 
 const createAssetStatement = `
 	INSERT INTO assets (
 		id, created_by_user_id, subject_id, kind, status, storage_backend,
-		staging_key, published_key, expected_size, content_type, expires_at,
-		created_at, updated_at
+		staging_key, published_key, filename, storage_token, expected_size,
+		content_type, expires_at, created_at, updated_at
 	) VALUES (
 		:id, :created_by_user_id, :subject_id, :kind, :status, :storage_backend,
-		:staging_key, :published_key, :expected_size, :content_type, :expires_at,
-		:created_at, :updated_at
+		:staging_key, :published_key, :filename, :storage_token, :expected_size,
+		:content_type, :expires_at, :created_at, :updated_at
 	)
 `
 
@@ -37,6 +37,13 @@ const getAssetQuery = `
 	WHERE id = $1
 	  AND deleted_at = 0
 	LIMIT 1
+`
+
+const listAssetsQuery = `
+	SELECT ` + assetColumns + `
+	FROM assets
+	WHERE id = ANY($1)
+	  AND deleted_at = 0
 `
 
 const updateAssetStatement = `

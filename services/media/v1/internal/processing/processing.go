@@ -23,17 +23,23 @@ import (
 // Processor validates source images and publishes the validated original
 // representation under its immutable public key.
 type Processor struct {
-	objStore objectstore.ObjectStore
-	cfg      config.MediaConfig
-	limit    *semaphore.Weighted
+	stagingStore objectstore.ObjectStore
+	publicStore  objectstore.ObjectStore
+	cfg          config.MediaConfig
+	limit        *semaphore.Weighted
 }
 
 // NewProcessor creates a bounded image processor.
-func NewProcessor(objStore objectstore.ObjectStore, cfg config.MediaConfig) *Processor {
+func NewProcessor(
+	stagingStore objectstore.ObjectStore,
+	publicStore objectstore.ObjectStore,
+	cfg config.MediaConfig,
+) *Processor {
 	return &Processor{
-		objStore: objStore,
-		cfg:      cfg,
-		limit:    semaphore.NewWeighted(cfg.ImageProcessingLimit()),
+		stagingStore: stagingStore,
+		publicStore:  publicStore,
+		cfg:          cfg,
+		limit:        semaphore.NewWeighted(cfg.ImageProcessingLimit()),
 	}
 }
 
@@ -54,7 +60,7 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	}
 	defer p.limit.Release(1)
 
-	reader, info, err := p.objStore.GetObject(processCtx, asset.StagingKey)
+	reader, info, err := p.stagingStore.GetObject(processCtx, asset.StagingKey)
 	if err != nil {
 		return nil, fmt.Errorf("get staging object: %w", err)
 	}
@@ -112,7 +118,7 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 		return nil, err
 	}
 	publishedKey := asset.PublicKey()
-	if err := p.objStore.PutObject(
+	if err := p.publicStore.PutObject(
 		processCtx,
 		publishedKey,
 		actualContentType,

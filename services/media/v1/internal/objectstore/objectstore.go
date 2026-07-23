@@ -13,15 +13,16 @@ var ErrObjectNotFound = errors.New("object not found")
 // ObjectStore is a conservative S3-compatible storage abstraction. Only the
 // operations needed by the Media service are exposed.
 type ObjectStore interface {
-	// CreatePresignedPutURL returns a short-lived URL for a single PUT whose
-	// Content-Type and Content-Length are part of the signature.
-	CreatePresignedPutURL(
+	// CreatePresignedPutRequest returns the short-lived request contract for a
+	// single PUT whose Content-Type and Content-Length are part of the
+	// signature.
+	CreatePresignedPutRequest(
 		ctx context.Context,
 		key string,
 		contentType string,
 		contentLength int64,
 		expiresInSeconds int64,
-	) (string, error)
+	) (*PresignedPutRequest, error)
 
 	// StatObject returns the object's current size and content type.
 	StatObject(ctx context.Context, key string) (*ObjectInfo, error)
@@ -41,6 +42,12 @@ type ObjectStore interface {
 
 	// ListObjects returns keys with the given prefix.
 	ListObjects(ctx context.Context, prefix string) ([]string, error)
+}
+
+// PresignedPutRequest contains the URL and headers required for an upload.
+type PresignedPutRequest struct {
+	URL            string
+	RequestHeaders map[string]string
 }
 
 // ObjectInfo carries the minimal metadata for an object.

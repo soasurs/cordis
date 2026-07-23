@@ -1350,14 +1350,15 @@ func (b0 CreateAvatarUploadRequest_builder) Build() *CreateAvatarUploadRequest {
 
 // CreateAvatarUploadResponse contains a one-shot direct-upload contract.
 type CreateAvatarUploadResponse struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UploadId     int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
-	xxx_hidden_PresignedUrl *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
-	xxx_hidden_ExpiresAt    int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UploadId       int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
+	xxx_hidden_PresignedUrl   *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
+	xxx_hidden_ExpiresAt      int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_RequestHeaders map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateAvatarUploadResponse) Reset() {
@@ -1409,19 +1410,30 @@ func (x *CreateAvatarUploadResponse) GetExpiresAt() int64 {
 	return 0
 }
 
+func (x *CreateAvatarUploadResponse) GetRequestHeaders() map[string]string {
+	if x != nil {
+		return x.xxx_hidden_RequestHeaders
+	}
+	return nil
+}
+
 func (x *CreateAvatarUploadResponse) SetUploadId(v int64) {
 	x.xxx_hidden_UploadId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *CreateAvatarUploadResponse) SetPresignedUrl(v string) {
 	x.xxx_hidden_PresignedUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *CreateAvatarUploadResponse) SetExpiresAt(v int64) {
 	x.xxx_hidden_ExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *CreateAvatarUploadResponse) SetRequestHeaders(v map[string]string) {
+	x.xxx_hidden_RequestHeaders = v
 }
 
 func (x *CreateAvatarUploadResponse) HasUploadId() bool {
@@ -1467,8 +1479,11 @@ type CreateAvatarUploadResponse_builder struct {
 	UploadId *int64
 	// Short-lived URL accepting one PUT with the declared length and media type.
 	PresignedUrl *string
-	// Upload session expiration as Unix milliseconds.
+	// Presigned URL expiration as Unix milliseconds.
 	ExpiresAt *int64
+	// HTTP headers required by the presigned PUT. Browser-managed headers such
+	// as Content-Length are informational and must not be set explicitly.
+	RequestHeaders map[string]string
 }
 
 func (b0 CreateAvatarUploadResponse_builder) Build() *CreateAvatarUploadResponse {
@@ -1476,17 +1491,18 @@ func (b0 CreateAvatarUploadResponse_builder) Build() *CreateAvatarUploadResponse
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UploadId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_UploadId = *b.UploadId
 	}
 	if b.PresignedUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PresignedUrl = b.PresignedUrl
 	}
 	if b.ExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
 	}
+	x.xxx_hidden_RequestHeaders = b.RequestHeaders
 	return m0
 }
 
@@ -3558,12 +3574,16 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"\aprofile\x18\x01 \x01(\v2\x13.api.v1.UserProfileR\aprofile\"c\n" +
 	"\x19CreateAvatarUploadRequest\x12#\n" +
 	"\rexpected_size\x18\x01 \x01(\x03R\fexpectedSize\x12!\n" +
-	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\"}\n" +
+	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\"\xa1\x02\n" +
 	"\x1aCreateAvatarUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x03 \x01(\x03R\texpiresAt\":\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12_\n" +
+	"\x0frequest_headers\x18\x04 \x03(\v26.api.v1.CreateAvatarUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x1aA\n" +
+	"\x13RequestHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\":\n" +
 	"\x1bCompleteAvatarUploadRequest\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\"M\n" +
 	"\x1cCompleteAvatarUploadResponse\x12-\n" +
@@ -3652,7 +3672,7 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"com.api.v1B\tUserProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
 var file_api_v1_user_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_api_v1_user_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_api_v1_user_proto_goTypes = []any{
 	(RelationshipType)(0),                  // 0: api.v1.RelationshipType
 	(*User)(nil),                           // 1: api.v1.User
@@ -3694,6 +3714,7 @@ var file_api_v1_user_proto_goTypes = []any{
 	(*ListRelationshipsResponse)(nil),      // 37: api.v1.ListRelationshipsResponse
 	(*UpdateUsernameRequest)(nil),          // 38: api.v1.UpdateUsernameRequest
 	(*UpdateUsernameResponse)(nil),         // 39: api.v1.UpdateUsernameResponse
+	nil,                                    // 40: api.v1.CreateAvatarUploadResponse.RequestHeadersEntry
 }
 var file_api_v1_user_proto_depIdxs = []int32{
 	1,  // 0: api.v1.GetCurrentUserResponse.user:type_name -> api.v1.User
@@ -3701,56 +3722,57 @@ var file_api_v1_user_proto_depIdxs = []int32{
 	2,  // 2: api.v1.GetUserProfileResponse.profile:type_name -> api.v1.UserProfile
 	1,  // 3: api.v1.UpdateEmailResponse.user:type_name -> api.v1.User
 	2,  // 4: api.v1.UpdateUserProfileResponse.profile:type_name -> api.v1.UserProfile
-	2,  // 5: api.v1.CompleteAvatarUploadResponse.profile:type_name -> api.v1.UserProfile
-	0,  // 6: api.v1.Relationship.type:type_name -> api.v1.RelationshipType
-	2,  // 7: api.v1.LookupUserResponse.profile:type_name -> api.v1.UserProfile
-	21, // 8: api.v1.SendFriendRequestResponse.relationship:type_name -> api.v1.Relationship
-	21, // 9: api.v1.AcceptFriendRequestResponse.relationship:type_name -> api.v1.Relationship
-	21, // 10: api.v1.BlockUserResponse.relationship:type_name -> api.v1.Relationship
-	0,  // 11: api.v1.ListRelationshipsRequest.type:type_name -> api.v1.RelationshipType
-	21, // 12: api.v1.ListRelationshipsResponse.relationships:type_name -> api.v1.Relationship
-	2,  // 13: api.v1.UpdateUsernameResponse.profile:type_name -> api.v1.UserProfile
-	3,  // 14: api.v1.UserService.GetCurrentUser:input_type -> api.v1.GetCurrentUserRequest
-	5,  // 15: api.v1.UserService.GetUserProfile:input_type -> api.v1.GetUserProfileRequest
-	7,  // 16: api.v1.UserService.CheckEmailAvailability:input_type -> api.v1.CheckEmailAvailabilityRequest
-	9,  // 17: api.v1.UserService.UpdateEmail:input_type -> api.v1.UpdateEmailRequest
-	11, // 18: api.v1.UserService.UpdateUserProfile:input_type -> api.v1.UpdateUserProfileRequest
-	13, // 19: api.v1.UserService.CreateAvatarUpload:input_type -> api.v1.CreateAvatarUploadRequest
-	15, // 20: api.v1.UserService.CompleteAvatarUpload:input_type -> api.v1.CompleteAvatarUploadRequest
-	17, // 21: api.v1.UserService.AbortAvatarUpload:input_type -> api.v1.AbortAvatarUploadRequest
-	19, // 22: api.v1.UserService.ChangePassword:input_type -> api.v1.ChangePasswordRequest
-	22, // 23: api.v1.UserService.LookupUser:input_type -> api.v1.LookupUserRequest
-	38, // 24: api.v1.UserService.UpdateUsername:input_type -> api.v1.UpdateUsernameRequest
-	24, // 25: api.v1.UserService.SendFriendRequest:input_type -> api.v1.SendFriendRequestRequest
-	26, // 26: api.v1.UserService.AcceptFriendRequest:input_type -> api.v1.AcceptFriendRequestRequest
-	28, // 27: api.v1.UserService.DeclineFriendRequest:input_type -> api.v1.DeclineFriendRequestRequest
-	30, // 28: api.v1.UserService.RemoveFriend:input_type -> api.v1.RemoveFriendRequest
-	32, // 29: api.v1.UserService.BlockUser:input_type -> api.v1.BlockUserRequest
-	34, // 30: api.v1.UserService.UnblockUser:input_type -> api.v1.UnblockUserRequest
-	36, // 31: api.v1.UserService.ListRelationships:input_type -> api.v1.ListRelationshipsRequest
-	4,  // 32: api.v1.UserService.GetCurrentUser:output_type -> api.v1.GetCurrentUserResponse
-	6,  // 33: api.v1.UserService.GetUserProfile:output_type -> api.v1.GetUserProfileResponse
-	8,  // 34: api.v1.UserService.CheckEmailAvailability:output_type -> api.v1.CheckEmailAvailabilityResponse
-	10, // 35: api.v1.UserService.UpdateEmail:output_type -> api.v1.UpdateEmailResponse
-	12, // 36: api.v1.UserService.UpdateUserProfile:output_type -> api.v1.UpdateUserProfileResponse
-	14, // 37: api.v1.UserService.CreateAvatarUpload:output_type -> api.v1.CreateAvatarUploadResponse
-	16, // 38: api.v1.UserService.CompleteAvatarUpload:output_type -> api.v1.CompleteAvatarUploadResponse
-	18, // 39: api.v1.UserService.AbortAvatarUpload:output_type -> api.v1.AbortAvatarUploadResponse
-	20, // 40: api.v1.UserService.ChangePassword:output_type -> api.v1.ChangePasswordResponse
-	23, // 41: api.v1.UserService.LookupUser:output_type -> api.v1.LookupUserResponse
-	39, // 42: api.v1.UserService.UpdateUsername:output_type -> api.v1.UpdateUsernameResponse
-	25, // 43: api.v1.UserService.SendFriendRequest:output_type -> api.v1.SendFriendRequestResponse
-	27, // 44: api.v1.UserService.AcceptFriendRequest:output_type -> api.v1.AcceptFriendRequestResponse
-	29, // 45: api.v1.UserService.DeclineFriendRequest:output_type -> api.v1.DeclineFriendRequestResponse
-	31, // 46: api.v1.UserService.RemoveFriend:output_type -> api.v1.RemoveFriendResponse
-	33, // 47: api.v1.UserService.BlockUser:output_type -> api.v1.BlockUserResponse
-	35, // 48: api.v1.UserService.UnblockUser:output_type -> api.v1.UnblockUserResponse
-	37, // 49: api.v1.UserService.ListRelationships:output_type -> api.v1.ListRelationshipsResponse
-	32, // [32:50] is the sub-list for method output_type
-	14, // [14:32] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	40, // 5: api.v1.CreateAvatarUploadResponse.request_headers:type_name -> api.v1.CreateAvatarUploadResponse.RequestHeadersEntry
+	2,  // 6: api.v1.CompleteAvatarUploadResponse.profile:type_name -> api.v1.UserProfile
+	0,  // 7: api.v1.Relationship.type:type_name -> api.v1.RelationshipType
+	2,  // 8: api.v1.LookupUserResponse.profile:type_name -> api.v1.UserProfile
+	21, // 9: api.v1.SendFriendRequestResponse.relationship:type_name -> api.v1.Relationship
+	21, // 10: api.v1.AcceptFriendRequestResponse.relationship:type_name -> api.v1.Relationship
+	21, // 11: api.v1.BlockUserResponse.relationship:type_name -> api.v1.Relationship
+	0,  // 12: api.v1.ListRelationshipsRequest.type:type_name -> api.v1.RelationshipType
+	21, // 13: api.v1.ListRelationshipsResponse.relationships:type_name -> api.v1.Relationship
+	2,  // 14: api.v1.UpdateUsernameResponse.profile:type_name -> api.v1.UserProfile
+	3,  // 15: api.v1.UserService.GetCurrentUser:input_type -> api.v1.GetCurrentUserRequest
+	5,  // 16: api.v1.UserService.GetUserProfile:input_type -> api.v1.GetUserProfileRequest
+	7,  // 17: api.v1.UserService.CheckEmailAvailability:input_type -> api.v1.CheckEmailAvailabilityRequest
+	9,  // 18: api.v1.UserService.UpdateEmail:input_type -> api.v1.UpdateEmailRequest
+	11, // 19: api.v1.UserService.UpdateUserProfile:input_type -> api.v1.UpdateUserProfileRequest
+	13, // 20: api.v1.UserService.CreateAvatarUpload:input_type -> api.v1.CreateAvatarUploadRequest
+	15, // 21: api.v1.UserService.CompleteAvatarUpload:input_type -> api.v1.CompleteAvatarUploadRequest
+	17, // 22: api.v1.UserService.AbortAvatarUpload:input_type -> api.v1.AbortAvatarUploadRequest
+	19, // 23: api.v1.UserService.ChangePassword:input_type -> api.v1.ChangePasswordRequest
+	22, // 24: api.v1.UserService.LookupUser:input_type -> api.v1.LookupUserRequest
+	38, // 25: api.v1.UserService.UpdateUsername:input_type -> api.v1.UpdateUsernameRequest
+	24, // 26: api.v1.UserService.SendFriendRequest:input_type -> api.v1.SendFriendRequestRequest
+	26, // 27: api.v1.UserService.AcceptFriendRequest:input_type -> api.v1.AcceptFriendRequestRequest
+	28, // 28: api.v1.UserService.DeclineFriendRequest:input_type -> api.v1.DeclineFriendRequestRequest
+	30, // 29: api.v1.UserService.RemoveFriend:input_type -> api.v1.RemoveFriendRequest
+	32, // 30: api.v1.UserService.BlockUser:input_type -> api.v1.BlockUserRequest
+	34, // 31: api.v1.UserService.UnblockUser:input_type -> api.v1.UnblockUserRequest
+	36, // 32: api.v1.UserService.ListRelationships:input_type -> api.v1.ListRelationshipsRequest
+	4,  // 33: api.v1.UserService.GetCurrentUser:output_type -> api.v1.GetCurrentUserResponse
+	6,  // 34: api.v1.UserService.GetUserProfile:output_type -> api.v1.GetUserProfileResponse
+	8,  // 35: api.v1.UserService.CheckEmailAvailability:output_type -> api.v1.CheckEmailAvailabilityResponse
+	10, // 36: api.v1.UserService.UpdateEmail:output_type -> api.v1.UpdateEmailResponse
+	12, // 37: api.v1.UserService.UpdateUserProfile:output_type -> api.v1.UpdateUserProfileResponse
+	14, // 38: api.v1.UserService.CreateAvatarUpload:output_type -> api.v1.CreateAvatarUploadResponse
+	16, // 39: api.v1.UserService.CompleteAvatarUpload:output_type -> api.v1.CompleteAvatarUploadResponse
+	18, // 40: api.v1.UserService.AbortAvatarUpload:output_type -> api.v1.AbortAvatarUploadResponse
+	20, // 41: api.v1.UserService.ChangePassword:output_type -> api.v1.ChangePasswordResponse
+	23, // 42: api.v1.UserService.LookupUser:output_type -> api.v1.LookupUserResponse
+	39, // 43: api.v1.UserService.UpdateUsername:output_type -> api.v1.UpdateUsernameResponse
+	25, // 44: api.v1.UserService.SendFriendRequest:output_type -> api.v1.SendFriendRequestResponse
+	27, // 45: api.v1.UserService.AcceptFriendRequest:output_type -> api.v1.AcceptFriendRequestResponse
+	29, // 46: api.v1.UserService.DeclineFriendRequest:output_type -> api.v1.DeclineFriendRequestResponse
+	31, // 47: api.v1.UserService.RemoveFriend:output_type -> api.v1.RemoveFriendResponse
+	33, // 48: api.v1.UserService.BlockUser:output_type -> api.v1.BlockUserResponse
+	35, // 49: api.v1.UserService.UnblockUser:output_type -> api.v1.UnblockUserResponse
+	37, // 50: api.v1.UserService.ListRelationships:output_type -> api.v1.ListRelationshipsResponse
+	33, // [33:51] is the sub-list for method output_type
+	15, // [15:33] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_user_proto_init() }
@@ -3764,7 +3786,7 @@ func file_api_v1_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_user_proto_rawDesc), len(file_api_v1_user_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   39,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

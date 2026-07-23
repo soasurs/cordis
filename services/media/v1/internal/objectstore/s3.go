@@ -38,13 +38,13 @@ func NewS3(cfg Config) (*S3Store, error) {
 	}, nil
 }
 
-func (s *S3Store) CreatePresignedPutURL(
+func (s *S3Store) CreatePresignedPutRequest(
 	ctx context.Context,
 	key string,
 	contentType string,
 	contentLength int64,
 	expiresInSeconds int64,
-) (string, error) {
+) (*PresignedPutRequest, error) {
 	headers := make(http.Header)
 	headers.Set("Content-Type", contentType)
 	headers.Set("Content-Length", strconv.FormatInt(contentLength, 10))
@@ -58,9 +58,15 @@ func (s *S3Store) CreatePresignedPutURL(
 		headers,
 	)
 	if err != nil {
-		return "", fmt.Errorf("create presigned put url: %w", err)
+		return nil, fmt.Errorf("create presigned put url: %w", err)
 	}
-	return u.String(), nil
+	return &PresignedPutRequest{
+		URL: u.String(),
+		RequestHeaders: map[string]string{
+			"Content-Length": strconv.FormatInt(contentLength, 10),
+			"Content-Type":   contentType,
+		},
+	}, nil
 }
 
 func (s *S3Store) StatObject(ctx context.Context, key string) (*ObjectInfo, error) {

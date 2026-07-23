@@ -17,7 +17,7 @@ service MessageService {
   rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
   // ListMessages returns messages in a channel ordered newest first.
   rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
-  // CreateAttachmentUpload creates a single-PUT private upload after checking
+  // CreateAttachmentUpload creates a single-PUT upload after checking
   // that the bearer token user may send messages in the channel.
   rpc CreateAttachmentUpload(CreateAttachmentUploadRequest) returns (CreateAttachmentUploadResponse);
   // CompleteAttachmentUpload validates object metadata and returns trusted
@@ -25,9 +25,6 @@ service MessageService {
   rpc CompleteAttachmentUpload(CompleteAttachmentUploadRequest) returns (CompleteAttachmentUploadResponse);
   // AbortAttachmentUpload cancels an unpublished attachment upload.
   rpc AbortAttachmentUpload(AbortAttachmentUploadRequest) returns (AbortAttachmentUploadResponse);
-  // GetAttachmentDownloadURL returns a short-lived URL only after checking
-  // message association and the caller's current channel visibility.
-  rpc GetAttachmentDownloadURL(GetAttachmentDownloadURLRequest) returns (GetAttachmentDownloadURLResponse);
   // CreateDmChannel opens (or idempotently returns) the 1:1 channel with a
   // friend. Messages then flow through the regular message RPCs using the
   // returned channel ID.
@@ -105,7 +102,9 @@ message Attachment {
   // Stable Media asset ID. The asset must already be READY and belong to the
   // message channel and bearer token user when submitted on a write request.
   int64 asset_id = 1;
-  // Original filename displayed to users; it is not part of the object key.
+  // Original filename displayed to users and preserved as the final object-key
+  // suffix. Values supplied on message writes are ignored and replaced from
+  // Media metadata.
   string filename = 2;
   // Trusted size in bytes returned by Message. Values supplied on message
   // writes are ignored and replaced from Media metadata.
@@ -117,6 +116,10 @@ message Attachment {
   // supplied on message writes are ignored and replaced from Media metadata.
   int32 width = 5;
   int32 height = 6;
+  // Complete public or presigned download URL.
+  string url = 7;
+  // Zero for public URLs; presigned URL expiration as Unix milliseconds.
+  int64 url_expires_at = 8;
 }
 
 // CreateAttachmentUploadRequest declares the target channel and exact object
@@ -127,6 +130,8 @@ message CreateAttachmentUploadRequest {
   int64 expected_size = 2;
   // Canonical media type sent unchanged as the PUT Content-Type.
   string content_type = 3;
+  // Original filename displayed to users.
+  string filename = 4;
 }
 
 // CreateAttachmentUploadResponse contains a one-shot direct-upload contract.
@@ -136,18 +141,18 @@ message CreateAttachmentUploadResponse {
   int64 upload_id = 1;
   // Short-lived URL accepting one PUT with the declared length and media type.
   string presigned_url = 2;
-  // Upload session expiration as Unix milliseconds.
+  // Presigned URL expiration as Unix milliseconds.
   int64 expires_at = 3;
+  // HTTP headers required by the presigned PUT. Browser-managed headers such
+  // as Content-Length are informational and must not be set explicitly.
+  map<string, string> request_headers = 4;
 }
 
-// CompleteAttachmentUploadRequest selects an uploaded object and supplies its
-// display filename.
+// CompleteAttachmentUploadRequest selects an uploaded object.
 message CompleteAttachmentUploadRequest {
   int64 channel_id = 1;
   // Opaque value returned by CreateAttachmentUpload.
   int64 upload_id = 2;
-  // Original filename displayed to users; it does not affect object storage.
-  string filename = 3;
 }
 
 // CompleteAttachmentUploadResponse contains trusted metadata suitable for a
@@ -165,22 +170,6 @@ message AbortAttachmentUploadRequest {
 
 // AbortAttachmentUploadResponse is empty because abort has no mutable result.
 message AbortAttachmentUploadResponse {}
-
-// GetAttachmentDownloadURLRequest identifies both the containing message and
-// one of its persisted attachment assets.
-message GetAttachmentDownloadURLRequest {
-  int64 message_id = 1;
-  int64 asset_id = 2;
-}
-
-// GetAttachmentDownloadURLResponse contains a transient URL that must not be
-// persisted.
-message GetAttachmentDownloadURLResponse {
-  // Short-lived signed URL for the private attachment object.
-  string url = 1;
-  // URL expiration as Unix milliseconds.
-  int64 expires_at = 2;
-}
 
 // AttachmentList distinguishes an omitted update from replacing attachments
 // with an empty list.

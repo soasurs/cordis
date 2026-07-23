@@ -125,6 +125,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	copyAttachmentURLs(created.Attachments, attachments)
 
 	events, eventErr := newMessageCreatedEvents(created, author, req.GetMentionUserIds(), audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
@@ -170,6 +171,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		ActorUserID:      req.GetActorUserId(),
 		HasModPermission: hasModPermission,
 	}
+	attachmentURLSource := current.Attachments
 	if req.HasContent() {
 		content := req.GetContent()
 		if err := validateContent(content); err != nil {
@@ -198,11 +200,18 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 			return nil, err
 		}
 		params.Attachments = &attachments
+		attachmentURLSource = attachments
 	}
 	if req.HasMentions() {
 		if err := validateMentionUserIDs(req.GetMentions().GetUserIds(), s.svcCtx.Cfg.Limits.Mentions()); err != nil {
 			return nil, err
 		}
+	}
+	if !req.HasAttachments() {
+		if err := s.hydrateAttachmentURLs(ctx, current); err != nil {
+			return nil, err
+		}
+		attachmentURLSource = current.Attachments
 	}
 
 	var updated *model.Message
@@ -239,6 +248,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	copyAttachmentURLs(updated.Attachments, attachmentURLSource)
 
 	events, eventErr := newMessageUpdatedEvents(updated, author, mentionUserIDs, previousMentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
@@ -311,6 +321,9 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 	if _, err := s.requireChannelPermission(ctx, message.ChannelID, req.GetUserId(), permissionViewChannel); err != nil {
 		return nil, err
 	}
+	if err := s.hydrateAttachmentURLs(ctx, message); err != nil {
+		return nil, err
+	}
 	author, err := s.getAuthor(ctx, message.AuthorID)
 	if err != nil {
 		return nil, err
@@ -360,6 +373,9 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 
 	messages, err := s.svcCtx.Store.ListMessages(ctx, params)
 	if err != nil {
+		return nil, err
+	}
+	if err := s.hydrateAttachmentURLs(ctx, messages...); err != nil {
 		return nil, err
 	}
 	authors, err := s.getAuthors(ctx, messages)

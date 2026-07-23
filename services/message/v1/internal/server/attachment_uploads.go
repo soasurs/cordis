@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,6 +29,7 @@ func (s *messageServer) CreateAttachmentUpload(
 	mediaReq.SetContentType(req.GetContentType())
 	purpose := new(mediav1.MessageAttachmentUploadPurpose)
 	purpose.SetChannelId(req.GetChannelId())
+	purpose.SetFilename(req.GetFilename())
 	mediaReq.SetMessageAttachment(purpose)
 	mediaResp, err := s.svcCtx.MediaClient.CreateUpload(ctx, mediaReq)
 	if err != nil {
@@ -39,6 +39,7 @@ func (s *messageServer) CreateAttachmentUpload(
 	resp.SetUploadId(mediaResp.GetUploadId())
 	resp.SetPresignedUrl(mediaResp.GetPresignedUrl())
 	resp.SetExpiresAt(mediaResp.GetExpiresAt())
+	resp.SetRequestHeaders(mediaResp.GetRequestHeaders())
 	return resp, nil
 }
 
@@ -53,9 +54,6 @@ func (s *messageServer) CompleteAttachmentUpload(
 		permissionSendMessages,
 	); err != nil {
 		return nil, err
-	}
-	if strings.TrimSpace(req.GetFilename()) == "" {
-		return nil, invalidRequest("filename is required")
 	}
 	asset, err := s.getAttachmentAsset(
 		ctx,
@@ -79,11 +77,13 @@ func (s *messageServer) CompleteAttachmentUpload(
 	}
 	attachment := new(messagev1.Attachment)
 	attachment.SetAssetId(mediaResp.GetAssetId())
-	attachment.SetFilename(req.GetFilename())
+	attachment.SetFilename(mediaResp.GetMetadata().GetFilename())
 	attachment.SetSize(mediaResp.GetMetadata().GetSize())
 	attachment.SetContentType(mediaResp.GetMetadata().GetContentType())
 	attachment.SetWidth(mediaResp.GetMetadata().GetWidth())
 	attachment.SetHeight(mediaResp.GetMetadata().GetHeight())
+	attachment.SetUrl(mediaResp.GetMetadata().GetUrl())
+	attachment.SetUrlExpiresAt(mediaResp.GetMetadata().GetUrlExpiresAt())
 	resp := new(messagev1.CompleteAttachmentUploadResponse)
 	resp.SetAttachment(attachment)
 	return resp, nil
@@ -119,44 +119,6 @@ func (s *messageServer) AbortAttachmentUpload(
 	return new(messagev1.AbortAttachmentUploadResponse), nil
 }
 
-func (s *messageServer) GetAttachmentDownloadURL(
-	ctx context.Context,
-	req *messagev1.GetAttachmentDownloadURLRequest,
-) (*messagev1.GetAttachmentDownloadURLResponse, error) {
-	message, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId())
-	if err != nil {
-		return nil, mapStoreError(err)
-	}
-	if _, err := s.requireChannelPermission(
-		ctx,
-		message.ChannelID,
-		req.GetUserId(),
-		permissionViewChannel,
-	); err != nil {
-		return nil, err
-	}
-	found := false
-	for _, attachment := range message.Attachments {
-		if attachment.AssetID == req.GetAssetId() {
-			found = true
-			break
-		}
-	}
-	if !found {
-		return nil, notFound()
-	}
-	mediaReq := new(mediav1.GetAssetDownloadURLRequest)
-	mediaReq.SetAssetId(req.GetAssetId())
-	mediaResp, err := s.svcCtx.MediaClient.GetAssetDownloadURL(ctx, mediaReq)
-	if err != nil {
-		return nil, err
-	}
-	resp := new(messagev1.GetAttachmentDownloadURLResponse)
-	resp.SetUrl(mediaResp.GetUrl())
-	resp.SetExpiresAt(mediaResp.GetExpiresAt())
-	return resp, nil
-}
-
 func (s *messageServer) resolveAttachments(
 	ctx context.Context,
 	channelID, actorUserID int64,
@@ -167,9 +129,6 @@ func (s *messageServer) resolveAttachments(
 	for _, value := range values {
 		if value == nil || value.GetAssetId() <= 0 {
 			return nil, invalidRequest("attachment asset id is required")
-		}
-		if strings.TrimSpace(value.GetFilename()) == "" {
-			return nil, invalidRequest("attachment filename is required")
 		}
 		if _, ok := seen[value.GetAssetId()]; ok {
 			return nil, invalidRequest("attachment asset ids must be unique")
@@ -186,12 +145,14 @@ func (s *messageServer) resolveAttachments(
 			return nil, err
 		}
 		attachments = append(attachments, model.Attachment{
-			AssetID:     asset.GetId(),
-			Filename:    value.GetFilename(),
-			Size:        asset.GetSize(),
-			ContentType: asset.GetContentType(),
-			Width:       asset.GetWidth(),
-			Height:      asset.GetHeight(),
+			AssetID:      asset.GetId(),
+			Filename:     asset.GetFilename(),
+			Size:         asset.GetSize(),
+			ContentType:  asset.GetContentType(),
+			Width:        asset.GetWidth(),
+			Height:       asset.GetHeight(),
+			URL:          asset.GetUrl(),
+			URLExpiresAt: asset.GetUrlExpiresAt(),
 		})
 	}
 	return attachments, nil
@@ -227,4 +188,69 @@ func (s *messageServer) getAttachmentAsset(
 		return nil, status.Error(codes.FailedPrecondition, "attachment asset is not ready")
 	}
 	return asset, nil
+}
+
+func (s *messageServer) hydrateAttachmentURLs(
+	ctx context.Context,
+	messages ...*model.Message,
+) error {
+	ids := make([]int64, 0)
+	seen := make(map[int64]struct{})
+	for _, message := range messages {
+		for _, attachment := range message.Attachments {
+			if _, ok := seen[attachment.AssetID]; ok {
+				continue
+			}
+			seen[attachment.AssetID] = struct{}{}
+			ids = append(ids, attachment.AssetID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	req := new(mediav1.BatchGetAssetURLsRequest)
+	req.SetAssetIds(ids)
+	resp, err := s.svcCtx.MediaClient.BatchGetAssetURLs(ctx, req)
+	if err != nil {
+		return err
+	}
+	urls := make(map[int64]*mediav1.AssetURL, len(resp.GetAssets()))
+	for _, value := range resp.GetAssets() {
+		if value == nil || value.GetAssetId() <= 0 || value.GetUrl() == "" {
+			return status.Error(codes.Internal, "media returned an invalid attachment url")
+		}
+		if _, ok := seen[value.GetAssetId()]; !ok {
+			return status.Error(codes.Internal, "media returned an unexpected attachment url")
+		}
+		if _, ok := urls[value.GetAssetId()]; ok {
+			return status.Error(codes.Internal, "media returned a duplicate attachment url")
+		}
+		urls[value.GetAssetId()] = value
+	}
+	if len(urls) != len(ids) {
+		return status.Error(codes.Internal, "media did not return all attachment urls")
+	}
+	for _, message := range messages {
+		for index := range message.Attachments {
+			value := urls[message.Attachments[index].AssetID]
+			message.Attachments[index].URL = value.GetUrl()
+			message.Attachments[index].URLExpiresAt = value.GetExpiresAt()
+		}
+	}
+	return nil
+}
+
+func copyAttachmentURLs(target, source []model.Attachment) {
+	urls := make(map[int64]model.Attachment, len(source))
+	for _, attachment := range source {
+		urls[attachment.AssetID] = attachment
+	}
+	for index := range target {
+		sourceAttachment, ok := urls[target[index].AssetID]
+		if !ok {
+			continue
+		}
+		target[index].URL = sourceAttachment.URL
+		target[index].URLExpiresAt = sourceAttachment.URLExpiresAt
+	}
 }

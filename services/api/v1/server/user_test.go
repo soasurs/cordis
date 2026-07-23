@@ -282,6 +282,7 @@ func TestCreateAvatarUploadUsesAuthenticatedUser(t *testing.T) {
 	svcResp.SetUploadId(7001)
 	svcResp.SetPresignedUrl("https://upload.example/7001")
 	svcResp.SetExpiresAt(9001)
+	svcResp.SetRequestHeaders(map[string]string{"Content-Type": "image/png"})
 	userClient := &fakeUserClient{createAvatarUploadResponse: svcResp}
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
@@ -295,6 +296,7 @@ func TestCreateAvatarUploadUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, int64(123), userClient.createAvatarUploadRequest.GetExpectedSize())
 	require.Equal(t, "image/png", userClient.createAvatarUploadRequest.GetContentType())
 	require.Equal(t, int64(7001), resp.GetUploadId())
+	require.Equal(t, map[string]string{"Content-Type": "image/png"}, resp.GetRequestHeaders())
 }
 
 func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {

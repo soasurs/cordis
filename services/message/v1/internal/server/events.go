@@ -60,12 +60,14 @@ type authorPayload struct {
 }
 
 type attachmentJSON struct {
-	AssetID     string `json:"asset_id"`
-	Filename    string `json:"filename"`
-	Size        int64  `json:"size"`
-	ContentType string `json:"content_type"`
-	Width       int32  `json:"width"`
-	Height      int32  `json:"height"`
+	AssetID      string `json:"asset_id"`
+	Filename     string `json:"filename"`
+	Size         int64  `json:"size"`
+	ContentType  string `json:"content_type"`
+	Width        int32  `json:"width"`
+	Height       int32  `json:"height"`
+	URL          string `json:"url"`
+	URLExpiresAt int64  `json:"url_expires_at"`
 }
 
 type messageDeletedPayload struct {
@@ -266,12 +268,14 @@ func attachmentsForEvent(attachments []model.Attachment) []attachmentJSON {
 	values := make([]attachmentJSON, 0, len(attachments))
 	for _, attachment := range attachments {
 		values = append(values, attachmentJSON{
-			AssetID:     strconv.FormatInt(attachment.AssetID, 10),
-			Filename:    attachment.Filename,
-			Size:        attachment.Size,
-			ContentType: attachment.ContentType,
-			Width:       attachment.Width,
-			Height:      attachment.Height,
+			AssetID:      strconv.FormatInt(attachment.AssetID, 10),
+			Filename:     attachment.Filename,
+			Size:         attachment.Size,
+			ContentType:  attachment.ContentType,
+			Width:        attachment.Width,
+			Height:       attachment.Height,
+			URL:          attachment.URL,
+			URLExpiresAt: attachment.URLExpiresAt,
 		})
 	}
 	return values

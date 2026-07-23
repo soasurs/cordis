@@ -190,7 +190,7 @@ type Guild struct {
 	xxx_hidden_Id          int64                  `protobuf:"varint,1,opt,name=id"`
 	xxx_hidden_OwnerId     int64                  `protobuf:"varint,2,opt,name=owner_id,json=ownerId"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
-	xxx_hidden_IconUri     *string                `protobuf:"bytes,4,opt,name=icon_uri,json=iconUri"`
+	xxx_hidden_IconAssetId int64                  `protobuf:"varint,4,opt,name=icon_asset_id,json=iconAssetId"`
 	xxx_hidden_Revision    int64                  `protobuf:"varint,5,opt,name=revision"`
 	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,7,opt,name=updated_at,json=updatedAt"`
@@ -249,14 +249,11 @@ func (x *Guild) GetName() string {
 	return ""
 }
 
-func (x *Guild) GetIconUri() string {
+func (x *Guild) GetIconAssetId() int64 {
 	if x != nil {
-		if x.xxx_hidden_IconUri != nil {
-			return *x.xxx_hidden_IconUri
-		}
-		return ""
+		return x.xxx_hidden_IconAssetId
 	}
-	return ""
+	return 0
 }
 
 func (x *Guild) GetRevision() int64 {
@@ -295,8 +292,8 @@ func (x *Guild) SetName(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
 }
 
-func (x *Guild) SetIconUri(v string) {
-	x.xxx_hidden_IconUri = &v
+func (x *Guild) SetIconAssetId(v int64) {
+	x.xxx_hidden_IconAssetId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
 }
 
@@ -336,7 +333,7 @@ func (x *Guild) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *Guild) HasIconUri() bool {
+func (x *Guild) HasIconAssetId() bool {
 	if x == nil {
 		return false
 	}
@@ -379,9 +376,9 @@ func (x *Guild) ClearName() {
 	x.xxx_hidden_Name = nil
 }
 
-func (x *Guild) ClearIconUri() {
+func (x *Guild) ClearIconAssetId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_IconUri = nil
+	x.xxx_hidden_IconAssetId = 0
 }
 
 func (x *Guild) ClearRevision() {
@@ -402,13 +399,15 @@ func (x *Guild) ClearUpdatedAt() {
 type Guild_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id        *int64
-	OwnerId   *int64
-	Name      *string
-	IconUri   *string
-	Revision  *int64
-	CreatedAt *int64
-	UpdatedAt *int64
+	Id      *int64
+	OwnerId *int64
+	Name    *string
+	// Zero means the Guild has no icon. Clients resolve a non-zero value through
+	// the public CDN path icons/{id}/{icon_asset_id}.
+	IconAssetId *int64
+	Revision    *int64
+	CreatedAt   *int64
+	UpdatedAt   *int64
 }
 
 func (b0 Guild_builder) Build() *Guild {
@@ -427,9 +426,9 @@ func (b0 Guild_builder) Build() *Guild {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
 		x.xxx_hidden_Name = b.Name
 	}
-	if b.IconUri != nil {
+	if b.IconAssetId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
-		x.xxx_hidden_IconUri = b.IconUri
+		x.xxx_hidden_IconAssetId = *b.IconAssetId
 	}
 	if b.Revision != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
@@ -1867,7 +1866,6 @@ func (b0 GuildChannelPermissionOverwrite_builder) Build() *GuildChannelPermissio
 type CreateGuildRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
-	xxx_hidden_IconUri     *string                `protobuf:"bytes,2,opt,name=icon_uri,json=iconUri"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1909,24 +1907,9 @@ func (x *CreateGuildRequest) GetName() string {
 	return ""
 }
 
-func (x *CreateGuildRequest) GetIconUri() string {
-	if x != nil {
-		if x.xxx_hidden_IconUri != nil {
-			return *x.xxx_hidden_IconUri
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *CreateGuildRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *CreateGuildRequest) SetIconUri(v string) {
-	x.xxx_hidden_IconUri = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
 }
 
 func (x *CreateGuildRequest) HasName() bool {
@@ -1936,28 +1919,15 @@ func (x *CreateGuildRequest) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *CreateGuildRequest) HasIconUri() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
 func (x *CreateGuildRequest) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
 }
 
-func (x *CreateGuildRequest) ClearIconUri() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_IconUri = nil
-}
-
 type CreateGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Name    *string
-	IconUri *string
+	Name *string
 }
 
 func (b0 CreateGuildRequest_builder) Build() *CreateGuildRequest {
@@ -1965,12 +1935,8 @@ func (b0 CreateGuildRequest_builder) Build() *CreateGuildRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
 		x.xxx_hidden_Name = b.Name
-	}
-	if b.IconUri != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_IconUri = b.IconUri
 	}
 	return m0
 }
@@ -2386,7 +2352,6 @@ type UpdateGuildRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
-	xxx_hidden_IconUri     *string                `protobuf:"bytes,3,opt,name=icon_uri,json=iconUri"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2435,29 +2400,14 @@ func (x *UpdateGuildRequest) GetName() string {
 	return ""
 }
 
-func (x *UpdateGuildRequest) GetIconUri() string {
-	if x != nil {
-		if x.xxx_hidden_IconUri != nil {
-			return *x.xxx_hidden_IconUri
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *UpdateGuildRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
 func (x *UpdateGuildRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *UpdateGuildRequest) SetIconUri(v string) {
-	x.xxx_hidden_IconUri = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *UpdateGuildRequest) HasGuildId() bool {
@@ -2474,13 +2424,6 @@ func (x *UpdateGuildRequest) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *UpdateGuildRequest) HasIconUri() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
 func (x *UpdateGuildRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -2491,18 +2434,12 @@ func (x *UpdateGuildRequest) ClearName() {
 	x.xxx_hidden_Name = nil
 }
 
-func (x *UpdateGuildRequest) ClearIconUri() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_IconUri = nil
-}
-
 type UpdateGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	GuildId *int64
-	// Optional replacement fields. An explicit empty icon_uri clears the icon.
-	Name    *string
-	IconUri *string
+	// Optional replacement name.
+	Name *string
 }
 
 func (b0 UpdateGuildRequest_builder) Build() *UpdateGuildRequest {
@@ -2510,16 +2447,12 @@ func (b0 UpdateGuildRequest_builder) Build() *UpdateGuildRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
 		x.xxx_hidden_Name = b.Name
-	}
-	if b.IconUri != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_IconUri = b.IconUri
 	}
 	return m0
 }
@@ -2592,6 +2525,635 @@ func (b0 UpdateGuildResponse_builder) Build() *UpdateGuildResponse {
 	return m0
 }
 
+// CreateGuildIconUploadRequest declares the target Guild and exact image the
+// client will upload.
+type CreateGuildIconUploadRequest struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId      int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ExpectedSize int64                  `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType  *string                `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *CreateGuildIconUploadRequest) Reset() {
+	*x = CreateGuildIconUploadRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateGuildIconUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateGuildIconUploadRequest) ProtoMessage() {}
+
+func (x *CreateGuildIconUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateGuildIconUploadRequest) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
+func (x *CreateGuildIconUploadRequest) GetExpectedSize() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpectedSize
+	}
+	return 0
+}
+
+func (x *CreateGuildIconUploadRequest) GetContentType() string {
+	if x != nil {
+		if x.xxx_hidden_ContentType != nil {
+			return *x.xxx_hidden_ContentType
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateGuildIconUploadRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CreateGuildIconUploadRequest) SetExpectedSize(v int64) {
+	x.xxx_hidden_ExpectedSize = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateGuildIconUploadRequest) SetContentType(v string) {
+	x.xxx_hidden_ContentType = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *CreateGuildIconUploadRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGuildIconUploadRequest) HasExpectedSize() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGuildIconUploadRequest) HasContentType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateGuildIconUploadRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *CreateGuildIconUploadRequest) ClearExpectedSize() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ExpectedSize = 0
+}
+
+func (x *CreateGuildIconUploadRequest) ClearContentType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ContentType = nil
+}
+
+type CreateGuildIconUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	// Exact Content-Length in bytes for the subsequent PUT.
+	ExpectedSize *int64
+	// Canonical image/jpeg, image/png, or image/webp media type. The same value
+	// must be sent as the PUT Content-Type.
+	ContentType *string
+}
+
+func (b0 CreateGuildIconUploadRequest_builder) Build() *CreateGuildIconUploadRequest {
+	m0 := &CreateGuildIconUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.ExpectedSize != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
+	}
+	if b.ContentType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ContentType = b.ContentType
+	}
+	return m0
+}
+
+// CreateGuildIconUploadResponse contains a one-shot direct-upload contract.
+type CreateGuildIconUploadResponse struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UploadId       int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
+	xxx_hidden_PresignedUrl   *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
+	xxx_hidden_ExpiresAt      int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_RequestHeaders map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *CreateGuildIconUploadResponse) Reset() {
+	*x = CreateGuildIconUploadResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateGuildIconUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateGuildIconUploadResponse) ProtoMessage() {}
+
+func (x *CreateGuildIconUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateGuildIconUploadResponse) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *CreateGuildIconUploadResponse) GetPresignedUrl() string {
+	if x != nil {
+		if x.xxx_hidden_PresignedUrl != nil {
+			return *x.xxx_hidden_PresignedUrl
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateGuildIconUploadResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *CreateGuildIconUploadResponse) GetRequestHeaders() map[string]string {
+	if x != nil {
+		return x.xxx_hidden_RequestHeaders
+	}
+	return nil
+}
+
+func (x *CreateGuildIconUploadResponse) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *CreateGuildIconUploadResponse) SetPresignedUrl(v string) {
+	x.xxx_hidden_PresignedUrl = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *CreateGuildIconUploadResponse) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *CreateGuildIconUploadResponse) SetRequestHeaders(v map[string]string) {
+	x.xxx_hidden_RequestHeaders = v
+}
+
+func (x *CreateGuildIconUploadResponse) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGuildIconUploadResponse) HasPresignedUrl() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGuildIconUploadResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateGuildIconUploadResponse) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UploadId = 0
+}
+
+func (x *CreateGuildIconUploadResponse) ClearPresignedUrl() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PresignedUrl = nil
+}
+
+func (x *CreateGuildIconUploadResponse) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type CreateGuildIconUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Opaque upload identifier used by completion or abort.
+	UploadId *int64
+	// Short-lived URL accepting one PUT with the declared length and media type.
+	PresignedUrl *string
+	// Presigned URL expiration as Unix milliseconds.
+	ExpiresAt *int64
+	// HTTP headers required by the presigned PUT. Browser-managed headers such
+	// as Content-Length are informational and must not be set explicitly.
+	RequestHeaders map[string]string
+}
+
+func (b0 CreateGuildIconUploadResponse_builder) Build() *CreateGuildIconUploadResponse {
+	m0 := &CreateGuildIconUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	if b.PresignedUrl != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_PresignedUrl = b.PresignedUrl
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	x.xxx_hidden_RequestHeaders = b.RequestHeaders
+	return m0
+}
+
+// CompleteGuildIconUploadRequest selects an icon upload for one Guild.
+type CompleteGuildIconUploadRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UploadId    int64                  `protobuf:"varint,2,opt,name=upload_id,json=uploadId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CompleteGuildIconUploadRequest) Reset() {
+	*x = CompleteGuildIconUploadRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteGuildIconUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteGuildIconUploadRequest) ProtoMessage() {}
+
+func (x *CompleteGuildIconUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteGuildIconUploadRequest) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
+func (x *CompleteGuildIconUploadRequest) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *CompleteGuildIconUploadRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *CompleteGuildIconUploadRequest) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *CompleteGuildIconUploadRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CompleteGuildIconUploadRequest) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CompleteGuildIconUploadRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *CompleteGuildIconUploadRequest) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UploadId = 0
+}
+
+type CompleteGuildIconUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	// Opaque value returned by CreateGuildIconUpload.
+	UploadId *int64
+}
+
+func (b0 CompleteGuildIconUploadRequest_builder) Build() *CompleteGuildIconUploadRequest {
+	m0 := &CompleteGuildIconUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	return m0
+}
+
+// CompleteGuildIconUploadResponse returns the Guild after its icon reference
+// has been replaced.
+type CompleteGuildIconUploadResponse struct {
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CompleteGuildIconUploadResponse) Reset() {
+	*x = CompleteGuildIconUploadResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteGuildIconUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteGuildIconUploadResponse) ProtoMessage() {}
+
+func (x *CompleteGuildIconUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteGuildIconUploadResponse) GetGuild() *Guild {
+	if x != nil {
+		return x.xxx_hidden_Guild
+	}
+	return nil
+}
+
+func (x *CompleteGuildIconUploadResponse) SetGuild(v *Guild) {
+	x.xxx_hidden_Guild = v
+}
+
+func (x *CompleteGuildIconUploadResponse) HasGuild() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Guild != nil
+}
+
+func (x *CompleteGuildIconUploadResponse) ClearGuild() {
+	x.xxx_hidden_Guild = nil
+}
+
+type CompleteGuildIconUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Guild *Guild
+}
+
+func (b0 CompleteGuildIconUploadResponse_builder) Build() *CompleteGuildIconUploadResponse {
+	m0 := &CompleteGuildIconUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Guild = b.Guild
+	return m0
+}
+
+// AbortGuildIconUploadRequest selects an unpublished icon upload to cancel.
+type AbortGuildIconUploadRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_UploadId    int64                  `protobuf:"varint,2,opt,name=upload_id,json=uploadId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AbortGuildIconUploadRequest) Reset() {
+	*x = AbortGuildIconUploadRequest{}
+	mi := &file_api_v1_guild_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AbortGuildIconUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbortGuildIconUploadRequest) ProtoMessage() {}
+
+func (x *AbortGuildIconUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AbortGuildIconUploadRequest) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
+func (x *AbortGuildIconUploadRequest) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *AbortGuildIconUploadRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *AbortGuildIconUploadRequest) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *AbortGuildIconUploadRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AbortGuildIconUploadRequest) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AbortGuildIconUploadRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *AbortGuildIconUploadRequest) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UploadId = 0
+}
+
+type AbortGuildIconUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId *int64
+	// Opaque value returned by CreateGuildIconUpload.
+	UploadId *int64
+}
+
+func (b0 AbortGuildIconUploadRequest_builder) Build() *AbortGuildIconUploadRequest {
+	m0 := &AbortGuildIconUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	return m0
+}
+
+// AbortGuildIconUploadResponse is empty because abort has no mutable result.
+type AbortGuildIconUploadResponse struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AbortGuildIconUploadResponse) Reset() {
+	*x = AbortGuildIconUploadResponse{}
+	mi := &file_api_v1_guild_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AbortGuildIconUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbortGuildIconUploadResponse) ProtoMessage() {}
+
+func (x *AbortGuildIconUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_guild_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+type AbortGuildIconUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 AbortGuildIconUploadResponse_builder) Build() *AbortGuildIconUploadResponse {
+	m0 := &AbortGuildIconUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
+}
+
 type DeleteGuildRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2603,7 +3165,7 @@ type DeleteGuildRequest struct {
 
 func (x *DeleteGuildRequest) Reset() {
 	*x = DeleteGuildRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[14]
+	mi := &file_api_v1_guild_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2615,7 +3177,7 @@ func (x *DeleteGuildRequest) String() string {
 func (*DeleteGuildRequest) ProtoMessage() {}
 
 func (x *DeleteGuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[14]
+	mi := &file_api_v1_guild_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2678,7 +3240,7 @@ type DeleteGuildResponse struct {
 
 func (x *DeleteGuildResponse) Reset() {
 	*x = DeleteGuildResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[15]
+	mi := &file_api_v1_guild_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2690,7 +3252,7 @@ func (x *DeleteGuildResponse) String() string {
 func (*DeleteGuildResponse) ProtoMessage() {}
 
 func (x *DeleteGuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[15]
+	mi := &file_api_v1_guild_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2754,7 +3316,7 @@ type AddGuildMemberRequest struct {
 
 func (x *AddGuildMemberRequest) Reset() {
 	*x = AddGuildMemberRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[16]
+	mi := &file_api_v1_guild_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2766,7 +3328,7 @@ func (x *AddGuildMemberRequest) String() string {
 func (*AddGuildMemberRequest) ProtoMessage() {}
 
 func (x *AddGuildMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[16]
+	mi := &file_api_v1_guild_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2856,7 +3418,7 @@ type AddGuildMemberResponse struct {
 
 func (x *AddGuildMemberResponse) Reset() {
 	*x = AddGuildMemberResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[17]
+	mi := &file_api_v1_guild_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2868,7 +3430,7 @@ func (x *AddGuildMemberResponse) String() string {
 func (*AddGuildMemberResponse) ProtoMessage() {}
 
 func (x *AddGuildMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[17]
+	mi := &file_api_v1_guild_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2927,7 +3489,7 @@ type GetGuildMemberRequest struct {
 
 func (x *GetGuildMemberRequest) Reset() {
 	*x = GetGuildMemberRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[18]
+	mi := &file_api_v1_guild_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2939,7 +3501,7 @@ func (x *GetGuildMemberRequest) String() string {
 func (*GetGuildMemberRequest) ProtoMessage() {}
 
 func (x *GetGuildMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[18]
+	mi := &file_api_v1_guild_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3029,7 +3591,7 @@ type GetGuildMemberResponse struct {
 
 func (x *GetGuildMemberResponse) Reset() {
 	*x = GetGuildMemberResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[19]
+	mi := &file_api_v1_guild_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3041,7 +3603,7 @@ func (x *GetGuildMemberResponse) String() string {
 func (*GetGuildMemberResponse) ProtoMessage() {}
 
 func (x *GetGuildMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[19]
+	mi := &file_api_v1_guild_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3101,7 +3663,7 @@ type ListGuildMembersRequest struct {
 
 func (x *ListGuildMembersRequest) Reset() {
 	*x = ListGuildMembersRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[20]
+	mi := &file_api_v1_guild_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3113,7 +3675,7 @@ func (x *ListGuildMembersRequest) String() string {
 func (*ListGuildMembersRequest) ProtoMessage() {}
 
 func (x *ListGuildMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[20]
+	mi := &file_api_v1_guild_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3235,7 +3797,7 @@ type ListGuildMembersResponse struct {
 
 func (x *ListGuildMembersResponse) Reset() {
 	*x = ListGuildMembersResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[21]
+	mi := &file_api_v1_guild_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3247,7 +3809,7 @@ func (x *ListGuildMembersResponse) String() string {
 func (*ListGuildMembersResponse) ProtoMessage() {}
 
 func (x *ListGuildMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[21]
+	mi := &file_api_v1_guild_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3326,7 +3888,7 @@ type UpdateCurrentGuildMemberRequest struct {
 
 func (x *UpdateCurrentGuildMemberRequest) Reset() {
 	*x = UpdateCurrentGuildMemberRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[22]
+	mi := &file_api_v1_guild_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3338,7 +3900,7 @@ func (x *UpdateCurrentGuildMemberRequest) String() string {
 func (*UpdateCurrentGuildMemberRequest) ProtoMessage() {}
 
 func (x *UpdateCurrentGuildMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[22]
+	mi := &file_api_v1_guild_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3432,7 +3994,7 @@ type UpdateCurrentGuildMemberResponse struct {
 
 func (x *UpdateCurrentGuildMemberResponse) Reset() {
 	*x = UpdateCurrentGuildMemberResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[23]
+	mi := &file_api_v1_guild_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3444,7 +4006,7 @@ func (x *UpdateCurrentGuildMemberResponse) String() string {
 func (*UpdateCurrentGuildMemberResponse) ProtoMessage() {}
 
 func (x *UpdateCurrentGuildMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[23]
+	mi := &file_api_v1_guild_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3503,7 +4065,7 @@ type KickGuildMemberRequest struct {
 
 func (x *KickGuildMemberRequest) Reset() {
 	*x = KickGuildMemberRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[24]
+	mi := &file_api_v1_guild_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3515,7 +4077,7 @@ func (x *KickGuildMemberRequest) String() string {
 func (*KickGuildMemberRequest) ProtoMessage() {}
 
 func (x *KickGuildMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[24]
+	mi := &file_api_v1_guild_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3607,7 +4169,7 @@ type KickGuildMemberResponse struct {
 
 func (x *KickGuildMemberResponse) Reset() {
 	*x = KickGuildMemberResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[25]
+	mi := &file_api_v1_guild_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3619,7 +4181,7 @@ func (x *KickGuildMemberResponse) String() string {
 func (*KickGuildMemberResponse) ProtoMessage() {}
 
 func (x *KickGuildMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[25]
+	mi := &file_api_v1_guild_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3684,7 +4246,7 @@ type BanGuildMemberRequest struct {
 
 func (x *BanGuildMemberRequest) Reset() {
 	*x = BanGuildMemberRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[26]
+	mi := &file_api_v1_guild_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3696,7 +4258,7 @@ func (x *BanGuildMemberRequest) String() string {
 func (*BanGuildMemberRequest) ProtoMessage() {}
 
 func (x *BanGuildMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[26]
+	mi := &file_api_v1_guild_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3818,7 +4380,7 @@ type BanGuildMemberResponse struct {
 
 func (x *BanGuildMemberResponse) Reset() {
 	*x = BanGuildMemberResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[27]
+	mi := &file_api_v1_guild_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3830,7 +4392,7 @@ func (x *BanGuildMemberResponse) String() string {
 func (*BanGuildMemberResponse) ProtoMessage() {}
 
 func (x *BanGuildMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[27]
+	mi := &file_api_v1_guild_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3889,7 +4451,7 @@ type UnbanGuildMemberRequest struct {
 
 func (x *UnbanGuildMemberRequest) Reset() {
 	*x = UnbanGuildMemberRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[28]
+	mi := &file_api_v1_guild_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3901,7 +4463,7 @@ func (x *UnbanGuildMemberRequest) String() string {
 func (*UnbanGuildMemberRequest) ProtoMessage() {}
 
 func (x *UnbanGuildMemberRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[28]
+	mi := &file_api_v1_guild_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3993,7 +4555,7 @@ type UnbanGuildMemberResponse struct {
 
 func (x *UnbanGuildMemberResponse) Reset() {
 	*x = UnbanGuildMemberResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[29]
+	mi := &file_api_v1_guild_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4005,7 +4567,7 @@ func (x *UnbanGuildMemberResponse) String() string {
 func (*UnbanGuildMemberResponse) ProtoMessage() {}
 
 func (x *UnbanGuildMemberResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[29]
+	mi := &file_api_v1_guild_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4070,7 +4632,7 @@ type ListGuildBansRequest struct {
 
 func (x *ListGuildBansRequest) Reset() {
 	*x = ListGuildBansRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[30]
+	mi := &file_api_v1_guild_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4082,7 +4644,7 @@ func (x *ListGuildBansRequest) String() string {
 func (*ListGuildBansRequest) ProtoMessage() {}
 
 func (x *ListGuildBansRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[30]
+	mi := &file_api_v1_guild_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4204,7 +4766,7 @@ type ListGuildBansResponse struct {
 
 func (x *ListGuildBansResponse) Reset() {
 	*x = ListGuildBansResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[31]
+	mi := &file_api_v1_guild_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4216,7 +4778,7 @@ func (x *ListGuildBansResponse) String() string {
 func (*ListGuildBansResponse) ProtoMessage() {}
 
 func (x *ListGuildBansResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[31]
+	mi := &file_api_v1_guild_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4294,7 +4856,7 @@ type LeaveGuildRequest struct {
 
 func (x *LeaveGuildRequest) Reset() {
 	*x = LeaveGuildRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[32]
+	mi := &file_api_v1_guild_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4306,7 +4868,7 @@ func (x *LeaveGuildRequest) String() string {
 func (*LeaveGuildRequest) ProtoMessage() {}
 
 func (x *LeaveGuildRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[32]
+	mi := &file_api_v1_guild_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4369,7 +4931,7 @@ type LeaveGuildResponse struct {
 
 func (x *LeaveGuildResponse) Reset() {
 	*x = LeaveGuildResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[33]
+	mi := &file_api_v1_guild_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4381,7 +4943,7 @@ func (x *LeaveGuildResponse) String() string {
 func (*LeaveGuildResponse) ProtoMessage() {}
 
 func (x *LeaveGuildResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[33]
+	mi := &file_api_v1_guild_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4445,7 +5007,7 @@ type TransferGuildOwnershipRequest struct {
 
 func (x *TransferGuildOwnershipRequest) Reset() {
 	*x = TransferGuildOwnershipRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[34]
+	mi := &file_api_v1_guild_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4457,7 +5019,7 @@ func (x *TransferGuildOwnershipRequest) String() string {
 func (*TransferGuildOwnershipRequest) ProtoMessage() {}
 
 func (x *TransferGuildOwnershipRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[34]
+	mi := &file_api_v1_guild_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4547,7 +5109,7 @@ type TransferGuildOwnershipResponse struct {
 
 func (x *TransferGuildOwnershipResponse) Reset() {
 	*x = TransferGuildOwnershipResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[35]
+	mi := &file_api_v1_guild_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4559,7 +5121,7 @@ func (x *TransferGuildOwnershipResponse) String() string {
 func (*TransferGuildOwnershipResponse) ProtoMessage() {}
 
 func (x *TransferGuildOwnershipResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[35]
+	mi := &file_api_v1_guild_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4626,7 +5188,7 @@ type GuildInvite struct {
 
 func (x *GuildInvite) Reset() {
 	*x = GuildInvite{}
-	mi := &file_api_v1_guild_proto_msgTypes[36]
+	mi := &file_api_v1_guild_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4638,7 +5200,7 @@ func (x *GuildInvite) String() string {
 func (*GuildInvite) ProtoMessage() {}
 
 func (x *GuildInvite) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[36]
+	mi := &file_api_v1_guild_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4900,22 +5462,22 @@ func (b0 GuildInvite_builder) Build() *GuildInvite {
 
 // GuildInvitePreview is the guild summary shown to a user before joining.
 type GuildInvitePreview struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Code         *string                `protobuf:"bytes,1,opt,name=code"`
-	xxx_hidden_GuildId      int64                  `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
-	xxx_hidden_GuildName    *string                `protobuf:"bytes,3,opt,name=guild_name,json=guildName"`
-	xxx_hidden_GuildIconUri *string                `protobuf:"bytes,4,opt,name=guild_icon_uri,json=guildIconUri"`
-	xxx_hidden_MemberCount  int64                  `protobuf:"varint,5,opt,name=member_count,json=memberCount"`
-	xxx_hidden_ExpiresAt    int64                  `protobuf:"varint,6,opt,name=expires_at,json=expiresAt"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Code             *string                `protobuf:"bytes,1,opt,name=code"`
+	xxx_hidden_GuildId          int64                  `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
+	xxx_hidden_GuildName        *string                `protobuf:"bytes,3,opt,name=guild_name,json=guildName"`
+	xxx_hidden_GuildIconAssetId int64                  `protobuf:"varint,4,opt,name=guild_icon_asset_id,json=guildIconAssetId"`
+	xxx_hidden_MemberCount      int64                  `protobuf:"varint,5,opt,name=member_count,json=memberCount"`
+	xxx_hidden_ExpiresAt        int64                  `protobuf:"varint,6,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *GuildInvitePreview) Reset() {
 	*x = GuildInvitePreview{}
-	mi := &file_api_v1_guild_proto_msgTypes[37]
+	mi := &file_api_v1_guild_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4927,7 +5489,7 @@ func (x *GuildInvitePreview) String() string {
 func (*GuildInvitePreview) ProtoMessage() {}
 
 func (x *GuildInvitePreview) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[37]
+	mi := &file_api_v1_guild_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4965,14 +5527,11 @@ func (x *GuildInvitePreview) GetGuildName() string {
 	return ""
 }
 
-func (x *GuildInvitePreview) GetGuildIconUri() string {
+func (x *GuildInvitePreview) GetGuildIconAssetId() int64 {
 	if x != nil {
-		if x.xxx_hidden_GuildIconUri != nil {
-			return *x.xxx_hidden_GuildIconUri
-		}
-		return ""
+		return x.xxx_hidden_GuildIconAssetId
 	}
-	return ""
+	return 0
 }
 
 func (x *GuildInvitePreview) GetMemberCount() int64 {
@@ -5004,8 +5563,8 @@ func (x *GuildInvitePreview) SetGuildName(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
 }
 
-func (x *GuildInvitePreview) SetGuildIconUri(v string) {
-	x.xxx_hidden_GuildIconUri = &v
+func (x *GuildInvitePreview) SetGuildIconAssetId(v int64) {
+	x.xxx_hidden_GuildIconAssetId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
@@ -5040,7 +5599,7 @@ func (x *GuildInvitePreview) HasGuildName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *GuildInvitePreview) HasGuildIconUri() bool {
+func (x *GuildInvitePreview) HasGuildIconAssetId() bool {
 	if x == nil {
 		return false
 	}
@@ -5076,9 +5635,9 @@ func (x *GuildInvitePreview) ClearGuildName() {
 	x.xxx_hidden_GuildName = nil
 }
 
-func (x *GuildInvitePreview) ClearGuildIconUri() {
+func (x *GuildInvitePreview) ClearGuildIconAssetId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_GuildIconUri = nil
+	x.xxx_hidden_GuildIconAssetId = 0
 }
 
 func (x *GuildInvitePreview) ClearMemberCount() {
@@ -5094,12 +5653,14 @@ func (x *GuildInvitePreview) ClearExpiresAt() {
 type GuildInvitePreview_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Code         *string
-	GuildId      *int64
-	GuildName    *string
-	GuildIconUri *string
-	MemberCount  *int64
-	ExpiresAt    *int64
+	Code      *string
+	GuildId   *int64
+	GuildName *string
+	// Zero means the Guild has no icon. Clients use
+	// icons/{guild_id}/{guild_icon_asset_id} for a non-zero value.
+	GuildIconAssetId *int64
+	MemberCount      *int64
+	ExpiresAt        *int64
 }
 
 func (b0 GuildInvitePreview_builder) Build() *GuildInvitePreview {
@@ -5118,9 +5679,9 @@ func (b0 GuildInvitePreview_builder) Build() *GuildInvitePreview {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_GuildName = b.GuildName
 	}
-	if b.GuildIconUri != nil {
+	if b.GuildIconAssetId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
-		x.xxx_hidden_GuildIconUri = b.GuildIconUri
+		x.xxx_hidden_GuildIconAssetId = *b.GuildIconAssetId
 	}
 	if b.MemberCount != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
@@ -5146,7 +5707,7 @@ type CreateGuildInviteRequest struct {
 
 func (x *CreateGuildInviteRequest) Reset() {
 	*x = CreateGuildInviteRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[38]
+	mi := &file_api_v1_guild_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5158,7 +5719,7 @@ func (x *CreateGuildInviteRequest) String() string {
 func (*CreateGuildInviteRequest) ProtoMessage() {}
 
 func (x *CreateGuildInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[38]
+	mi := &file_api_v1_guild_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5279,7 +5840,7 @@ type CreateGuildInviteResponse struct {
 
 func (x *CreateGuildInviteResponse) Reset() {
 	*x = CreateGuildInviteResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[39]
+	mi := &file_api_v1_guild_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5291,7 +5852,7 @@ func (x *CreateGuildInviteResponse) String() string {
 func (*CreateGuildInviteResponse) ProtoMessage() {}
 
 func (x *CreateGuildInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[39]
+	mi := &file_api_v1_guild_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5349,7 +5910,7 @@ type GetGuildInviteRequest struct {
 
 func (x *GetGuildInviteRequest) Reset() {
 	*x = GetGuildInviteRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[40]
+	mi := &file_api_v1_guild_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5361,7 +5922,7 @@ func (x *GetGuildInviteRequest) String() string {
 func (*GetGuildInviteRequest) ProtoMessage() {}
 
 func (x *GetGuildInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[40]
+	mi := &file_api_v1_guild_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5425,7 +5986,7 @@ type GetGuildInviteResponse struct {
 
 func (x *GetGuildInviteResponse) Reset() {
 	*x = GetGuildInviteResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[41]
+	mi := &file_api_v1_guild_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5437,7 +5998,7 @@ func (x *GetGuildInviteResponse) String() string {
 func (*GetGuildInviteResponse) ProtoMessage() {}
 
 func (x *GetGuildInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[41]
+	mi := &file_api_v1_guild_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5497,7 +6058,7 @@ type ListGuildInvitesRequest struct {
 
 func (x *ListGuildInvitesRequest) Reset() {
 	*x = ListGuildInvitesRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[42]
+	mi := &file_api_v1_guild_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5509,7 +6070,7 @@ func (x *ListGuildInvitesRequest) String() string {
 func (*ListGuildInvitesRequest) ProtoMessage() {}
 
 func (x *ListGuildInvitesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[42]
+	mi := &file_api_v1_guild_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5632,7 +6193,7 @@ type ListGuildInvitesResponse struct {
 
 func (x *ListGuildInvitesResponse) Reset() {
 	*x = ListGuildInvitesResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[43]
+	mi := &file_api_v1_guild_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5644,7 +6205,7 @@ func (x *ListGuildInvitesResponse) String() string {
 func (*ListGuildInvitesResponse) ProtoMessage() {}
 
 func (x *ListGuildInvitesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[43]
+	mi := &file_api_v1_guild_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5722,7 +6283,7 @@ type DeleteGuildInviteRequest struct {
 
 func (x *DeleteGuildInviteRequest) Reset() {
 	*x = DeleteGuildInviteRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[44]
+	mi := &file_api_v1_guild_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5734,7 +6295,7 @@ func (x *DeleteGuildInviteRequest) String() string {
 func (*DeleteGuildInviteRequest) ProtoMessage() {}
 
 func (x *DeleteGuildInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[44]
+	mi := &file_api_v1_guild_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5800,7 +6361,7 @@ type DeleteGuildInviteResponse struct {
 
 func (x *DeleteGuildInviteResponse) Reset() {
 	*x = DeleteGuildInviteResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[45]
+	mi := &file_api_v1_guild_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5812,7 +6373,7 @@ func (x *DeleteGuildInviteResponse) String() string {
 func (*DeleteGuildInviteResponse) ProtoMessage() {}
 
 func (x *DeleteGuildInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[45]
+	mi := &file_api_v1_guild_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5875,7 +6436,7 @@ type JoinGuildByInviteRequest struct {
 
 func (x *JoinGuildByInviteRequest) Reset() {
 	*x = JoinGuildByInviteRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[46]
+	mi := &file_api_v1_guild_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5887,7 +6448,7 @@ func (x *JoinGuildByInviteRequest) String() string {
 func (*JoinGuildByInviteRequest) ProtoMessage() {}
 
 func (x *JoinGuildByInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[46]
+	mi := &file_api_v1_guild_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5952,7 +6513,7 @@ type JoinGuildByInviteResponse struct {
 
 func (x *JoinGuildByInviteResponse) Reset() {
 	*x = JoinGuildByInviteResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[47]
+	mi := &file_api_v1_guild_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5964,7 +6525,7 @@ func (x *JoinGuildByInviteResponse) String() string {
 func (*JoinGuildByInviteResponse) ProtoMessage() {}
 
 func (x *JoinGuildByInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[47]
+	mi := &file_api_v1_guild_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6048,7 +6609,7 @@ type CreateGuildRoleRequest struct {
 
 func (x *CreateGuildRoleRequest) Reset() {
 	*x = CreateGuildRoleRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[48]
+	mi := &file_api_v1_guild_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6060,7 +6621,7 @@ func (x *CreateGuildRoleRequest) String() string {
 func (*CreateGuildRoleRequest) ProtoMessage() {}
 
 func (x *CreateGuildRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[48]
+	mi := &file_api_v1_guild_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6182,7 +6743,7 @@ type CreateGuildRoleResponse struct {
 
 func (x *CreateGuildRoleResponse) Reset() {
 	*x = CreateGuildRoleResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[49]
+	mi := &file_api_v1_guild_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6194,7 +6755,7 @@ func (x *CreateGuildRoleResponse) String() string {
 func (*CreateGuildRoleResponse) ProtoMessage() {}
 
 func (x *CreateGuildRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[49]
+	mi := &file_api_v1_guild_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6253,7 +6814,7 @@ type GetGuildRoleRequest struct {
 
 func (x *GetGuildRoleRequest) Reset() {
 	*x = GetGuildRoleRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[50]
+	mi := &file_api_v1_guild_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6265,7 +6826,7 @@ func (x *GetGuildRoleRequest) String() string {
 func (*GetGuildRoleRequest) ProtoMessage() {}
 
 func (x *GetGuildRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[50]
+	mi := &file_api_v1_guild_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6355,7 +6916,7 @@ type GetGuildRoleResponse struct {
 
 func (x *GetGuildRoleResponse) Reset() {
 	*x = GetGuildRoleResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[51]
+	mi := &file_api_v1_guild_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6367,7 +6928,7 @@ func (x *GetGuildRoleResponse) String() string {
 func (*GetGuildRoleResponse) ProtoMessage() {}
 
 func (x *GetGuildRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[51]
+	mi := &file_api_v1_guild_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6425,7 +6986,7 @@ type ListGuildRolesRequest struct {
 
 func (x *ListGuildRolesRequest) Reset() {
 	*x = ListGuildRolesRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[52]
+	mi := &file_api_v1_guild_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6437,7 +6998,7 @@ func (x *ListGuildRolesRequest) String() string {
 func (*ListGuildRolesRequest) ProtoMessage() {}
 
 func (x *ListGuildRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[52]
+	mi := &file_api_v1_guild_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6498,7 +7059,7 @@ type ListGuildRolesResponse struct {
 
 func (x *ListGuildRolesResponse) Reset() {
 	*x = ListGuildRolesResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[53]
+	mi := &file_api_v1_guild_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6510,7 +7071,7 @@ func (x *ListGuildRolesResponse) String() string {
 func (*ListGuildRolesResponse) ProtoMessage() {}
 
 func (x *ListGuildRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[53]
+	mi := &file_api_v1_guild_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6562,7 +7123,7 @@ type UpdateGuildRoleRequest struct {
 
 func (x *UpdateGuildRoleRequest) Reset() {
 	*x = UpdateGuildRoleRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[54]
+	mi := &file_api_v1_guild_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6574,7 +7135,7 @@ func (x *UpdateGuildRoleRequest) String() string {
 func (*UpdateGuildRoleRequest) ProtoMessage() {}
 
 func (x *UpdateGuildRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[54]
+	mi := &file_api_v1_guild_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6726,7 +7287,7 @@ type UpdateGuildRoleResponse struct {
 
 func (x *UpdateGuildRoleResponse) Reset() {
 	*x = UpdateGuildRoleResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[55]
+	mi := &file_api_v1_guild_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6738,7 +7299,7 @@ func (x *UpdateGuildRoleResponse) String() string {
 func (*UpdateGuildRoleResponse) ProtoMessage() {}
 
 func (x *UpdateGuildRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[55]
+	mi := &file_api_v1_guild_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6797,7 +7358,7 @@ type DeleteGuildRoleRequest struct {
 
 func (x *DeleteGuildRoleRequest) Reset() {
 	*x = DeleteGuildRoleRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[56]
+	mi := &file_api_v1_guild_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6809,7 +7370,7 @@ func (x *DeleteGuildRoleRequest) String() string {
 func (*DeleteGuildRoleRequest) ProtoMessage() {}
 
 func (x *DeleteGuildRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[56]
+	mi := &file_api_v1_guild_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6901,7 +7462,7 @@ type DeleteGuildRoleResponse struct {
 
 func (x *DeleteGuildRoleResponse) Reset() {
 	*x = DeleteGuildRoleResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[57]
+	mi := &file_api_v1_guild_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6913,7 +7474,7 @@ func (x *DeleteGuildRoleResponse) String() string {
 func (*DeleteGuildRoleResponse) ProtoMessage() {}
 
 func (x *DeleteGuildRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[57]
+	mi := &file_api_v1_guild_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6977,7 +7538,7 @@ type GuildRolePosition struct {
 
 func (x *GuildRolePosition) Reset() {
 	*x = GuildRolePosition{}
-	mi := &file_api_v1_guild_proto_msgTypes[58]
+	mi := &file_api_v1_guild_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6989,7 +7550,7 @@ func (x *GuildRolePosition) String() string {
 func (*GuildRolePosition) ProtoMessage() {}
 
 func (x *GuildRolePosition) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[58]
+	mi := &file_api_v1_guild_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7082,7 +7643,7 @@ type ReorderGuildRolesRequest struct {
 
 func (x *ReorderGuildRolesRequest) Reset() {
 	*x = ReorderGuildRolesRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[59]
+	mi := &file_api_v1_guild_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7094,7 +7655,7 @@ func (x *ReorderGuildRolesRequest) String() string {
 func (*ReorderGuildRolesRequest) ProtoMessage() {}
 
 func (x *ReorderGuildRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[59]
+	mi := &file_api_v1_guild_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7170,7 +7731,7 @@ type ReorderGuildRolesResponse struct {
 
 func (x *ReorderGuildRolesResponse) Reset() {
 	*x = ReorderGuildRolesResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[60]
+	mi := &file_api_v1_guild_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7182,7 +7743,7 @@ func (x *ReorderGuildRolesResponse) String() string {
 func (*ReorderGuildRolesResponse) ProtoMessage() {}
 
 func (x *ReorderGuildRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[60]
+	mi := &file_api_v1_guild_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7233,7 +7794,7 @@ type AddGuildMemberRoleRequest struct {
 
 func (x *AddGuildMemberRoleRequest) Reset() {
 	*x = AddGuildMemberRoleRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[61]
+	mi := &file_api_v1_guild_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7245,7 +7806,7 @@ func (x *AddGuildMemberRoleRequest) String() string {
 func (*AddGuildMemberRoleRequest) ProtoMessage() {}
 
 func (x *AddGuildMemberRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[61]
+	mi := &file_api_v1_guild_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7366,7 +7927,7 @@ type AddGuildMemberRoleResponse struct {
 
 func (x *AddGuildMemberRoleResponse) Reset() {
 	*x = AddGuildMemberRoleResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[62]
+	mi := &file_api_v1_guild_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7378,7 +7939,7 @@ func (x *AddGuildMemberRoleResponse) String() string {
 func (*AddGuildMemberRoleResponse) ProtoMessage() {}
 
 func (x *AddGuildMemberRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[62]
+	mi := &file_api_v1_guild_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7443,7 +8004,7 @@ type RemoveGuildMemberRoleRequest struct {
 
 func (x *RemoveGuildMemberRoleRequest) Reset() {
 	*x = RemoveGuildMemberRoleRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[63]
+	mi := &file_api_v1_guild_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7455,7 +8016,7 @@ func (x *RemoveGuildMemberRoleRequest) String() string {
 func (*RemoveGuildMemberRoleRequest) ProtoMessage() {}
 
 func (x *RemoveGuildMemberRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[63]
+	mi := &file_api_v1_guild_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7576,7 +8137,7 @@ type RemoveGuildMemberRoleResponse struct {
 
 func (x *RemoveGuildMemberRoleResponse) Reset() {
 	*x = RemoveGuildMemberRoleResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[64]
+	mi := &file_api_v1_guild_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7588,7 +8149,7 @@ func (x *RemoveGuildMemberRoleResponse) String() string {
 func (*RemoveGuildMemberRoleResponse) ProtoMessage() {}
 
 func (x *RemoveGuildMemberRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[64]
+	mi := &file_api_v1_guild_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7652,7 +8213,7 @@ type ListGuildMemberRolesRequest struct {
 
 func (x *ListGuildMemberRolesRequest) Reset() {
 	*x = ListGuildMemberRolesRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[65]
+	mi := &file_api_v1_guild_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7664,7 +8225,7 @@ func (x *ListGuildMemberRolesRequest) String() string {
 func (*ListGuildMemberRolesRequest) ProtoMessage() {}
 
 func (x *ListGuildMemberRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[65]
+	mi := &file_api_v1_guild_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7754,7 +8315,7 @@ type ListGuildMemberRolesResponse struct {
 
 func (x *ListGuildMemberRolesResponse) Reset() {
 	*x = ListGuildMemberRolesResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[66]
+	mi := &file_api_v1_guild_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7766,7 +8327,7 @@ func (x *ListGuildMemberRolesResponse) String() string {
 func (*ListGuildMemberRolesResponse) ProtoMessage() {}
 
 func (x *ListGuildMemberRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[66]
+	mi := &file_api_v1_guild_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7816,7 +8377,7 @@ type GetGuildMemberPermissionsRequest struct {
 
 func (x *GetGuildMemberPermissionsRequest) Reset() {
 	*x = GetGuildMemberPermissionsRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[67]
+	mi := &file_api_v1_guild_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7828,7 +8389,7 @@ func (x *GetGuildMemberPermissionsRequest) String() string {
 func (*GetGuildMemberPermissionsRequest) ProtoMessage() {}
 
 func (x *GetGuildMemberPermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[67]
+	mi := &file_api_v1_guild_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7920,7 +8481,7 @@ type GetGuildMemberPermissionsResponse struct {
 
 func (x *GetGuildMemberPermissionsResponse) Reset() {
 	*x = GetGuildMemberPermissionsResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[68]
+	mi := &file_api_v1_guild_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7932,7 +8493,7 @@ func (x *GetGuildMemberPermissionsResponse) String() string {
 func (*GetGuildMemberPermissionsResponse) ProtoMessage() {}
 
 func (x *GetGuildMemberPermissionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[68]
+	mi := &file_api_v1_guild_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7999,7 +8560,7 @@ type CreateGuildChannelRequest struct {
 
 func (x *CreateGuildChannelRequest) Reset() {
 	*x = CreateGuildChannelRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[69]
+	mi := &file_api_v1_guild_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8011,7 +8572,7 @@ func (x *CreateGuildChannelRequest) String() string {
 func (*CreateGuildChannelRequest) ProtoMessage() {}
 
 func (x *CreateGuildChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[69]
+	mi := &file_api_v1_guild_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8196,7 +8757,7 @@ type CreateGuildChannelResponse struct {
 
 func (x *CreateGuildChannelResponse) Reset() {
 	*x = CreateGuildChannelResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[70]
+	mi := &file_api_v1_guild_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8208,7 +8769,7 @@ func (x *CreateGuildChannelResponse) String() string {
 func (*CreateGuildChannelResponse) ProtoMessage() {}
 
 func (x *CreateGuildChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[70]
+	mi := &file_api_v1_guild_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8266,7 +8827,7 @@ type GetGuildChannelRequest struct {
 
 func (x *GetGuildChannelRequest) Reset() {
 	*x = GetGuildChannelRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[71]
+	mi := &file_api_v1_guild_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8278,7 +8839,7 @@ func (x *GetGuildChannelRequest) String() string {
 func (*GetGuildChannelRequest) ProtoMessage() {}
 
 func (x *GetGuildChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[71]
+	mi := &file_api_v1_guild_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8339,7 +8900,7 @@ type GetGuildChannelResponse struct {
 
 func (x *GetGuildChannelResponse) Reset() {
 	*x = GetGuildChannelResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[72]
+	mi := &file_api_v1_guild_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8351,7 +8912,7 @@ func (x *GetGuildChannelResponse) String() string {
 func (*GetGuildChannelResponse) ProtoMessage() {}
 
 func (x *GetGuildChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[72]
+	mi := &file_api_v1_guild_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8409,7 +8970,7 @@ type ListGuildChannelsRequest struct {
 
 func (x *ListGuildChannelsRequest) Reset() {
 	*x = ListGuildChannelsRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[73]
+	mi := &file_api_v1_guild_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8421,7 +8982,7 @@ func (x *ListGuildChannelsRequest) String() string {
 func (*ListGuildChannelsRequest) ProtoMessage() {}
 
 func (x *ListGuildChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[73]
+	mi := &file_api_v1_guild_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8482,7 +9043,7 @@ type ListGuildChannelsResponse struct {
 
 func (x *ListGuildChannelsResponse) Reset() {
 	*x = ListGuildChannelsResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[74]
+	mi := &file_api_v1_guild_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8494,7 +9055,7 @@ func (x *ListGuildChannelsResponse) String() string {
 func (*ListGuildChannelsResponse) ProtoMessage() {}
 
 func (x *ListGuildChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[74]
+	mi := &file_api_v1_guild_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8546,7 +9107,7 @@ type UpdateGuildChannelRequest struct {
 
 func (x *UpdateGuildChannelRequest) Reset() {
 	*x = UpdateGuildChannelRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[75]
+	mi := &file_api_v1_guild_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8558,7 +9119,7 @@ func (x *UpdateGuildChannelRequest) String() string {
 func (*UpdateGuildChannelRequest) ProtoMessage() {}
 
 func (x *UpdateGuildChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[75]
+	mi := &file_api_v1_guild_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8712,7 +9273,7 @@ type UpdateGuildChannelResponse struct {
 
 func (x *UpdateGuildChannelResponse) Reset() {
 	*x = UpdateGuildChannelResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[76]
+	mi := &file_api_v1_guild_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8724,7 +9285,7 @@ func (x *UpdateGuildChannelResponse) String() string {
 func (*UpdateGuildChannelResponse) ProtoMessage() {}
 
 func (x *UpdateGuildChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[76]
+	mi := &file_api_v1_guild_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8782,7 +9343,7 @@ type DeleteGuildChannelRequest struct {
 
 func (x *DeleteGuildChannelRequest) Reset() {
 	*x = DeleteGuildChannelRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[77]
+	mi := &file_api_v1_guild_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8794,7 +9355,7 @@ func (x *DeleteGuildChannelRequest) String() string {
 func (*DeleteGuildChannelRequest) ProtoMessage() {}
 
 func (x *DeleteGuildChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[77]
+	mi := &file_api_v1_guild_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8857,7 +9418,7 @@ type DeleteGuildChannelResponse struct {
 
 func (x *DeleteGuildChannelResponse) Reset() {
 	*x = DeleteGuildChannelResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[78]
+	mi := &file_api_v1_guild_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8869,7 +9430,7 @@ func (x *DeleteGuildChannelResponse) String() string {
 func (*DeleteGuildChannelResponse) ProtoMessage() {}
 
 func (x *DeleteGuildChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[78]
+	mi := &file_api_v1_guild_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8933,7 +9494,7 @@ type GuildChannelPosition struct {
 
 func (x *GuildChannelPosition) Reset() {
 	*x = GuildChannelPosition{}
-	mi := &file_api_v1_guild_proto_msgTypes[79]
+	mi := &file_api_v1_guild_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8945,7 +9506,7 @@ func (x *GuildChannelPosition) String() string {
 func (*GuildChannelPosition) ProtoMessage() {}
 
 func (x *GuildChannelPosition) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[79]
+	mi := &file_api_v1_guild_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9038,7 +9599,7 @@ type ReorderGuildChannelsRequest struct {
 
 func (x *ReorderGuildChannelsRequest) Reset() {
 	*x = ReorderGuildChannelsRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[80]
+	mi := &file_api_v1_guild_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9050,7 +9611,7 @@ func (x *ReorderGuildChannelsRequest) String() string {
 func (*ReorderGuildChannelsRequest) ProtoMessage() {}
 
 func (x *ReorderGuildChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[80]
+	mi := &file_api_v1_guild_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9126,7 +9687,7 @@ type ReorderGuildChannelsResponse struct {
 
 func (x *ReorderGuildChannelsResponse) Reset() {
 	*x = ReorderGuildChannelsResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[81]
+	mi := &file_api_v1_guild_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9138,7 +9699,7 @@ func (x *ReorderGuildChannelsResponse) String() string {
 func (*ReorderGuildChannelsResponse) ProtoMessage() {}
 
 func (x *ReorderGuildChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[81]
+	mi := &file_api_v1_guild_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9191,7 +9752,7 @@ type UpsertGuildChannelPermissionOverwriteRequest struct {
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) Reset() {
 	*x = UpsertGuildChannelPermissionOverwriteRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[82]
+	mi := &file_api_v1_guild_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9203,7 +9764,7 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) String() string {
 func (*UpsertGuildChannelPermissionOverwriteRequest) ProtoMessage() {}
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[82]
+	mi := &file_api_v1_guild_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9382,7 +9943,7 @@ type UpsertGuildChannelPermissionOverwriteResponse struct {
 
 func (x *UpsertGuildChannelPermissionOverwriteResponse) Reset() {
 	*x = UpsertGuildChannelPermissionOverwriteResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[83]
+	mi := &file_api_v1_guild_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9394,7 +9955,7 @@ func (x *UpsertGuildChannelPermissionOverwriteResponse) String() string {
 func (*UpsertGuildChannelPermissionOverwriteResponse) ProtoMessage() {}
 
 func (x *UpsertGuildChannelPermissionOverwriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[83]
+	mi := &file_api_v1_guild_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9454,7 +10015,7 @@ type DeleteGuildChannelPermissionOverwriteRequest struct {
 
 func (x *DeleteGuildChannelPermissionOverwriteRequest) Reset() {
 	*x = DeleteGuildChannelPermissionOverwriteRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[84]
+	mi := &file_api_v1_guild_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9466,7 +10027,7 @@ func (x *DeleteGuildChannelPermissionOverwriteRequest) String() string {
 func (*DeleteGuildChannelPermissionOverwriteRequest) ProtoMessage() {}
 
 func (x *DeleteGuildChannelPermissionOverwriteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[84]
+	mi := &file_api_v1_guild_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9589,7 +10150,7 @@ type DeleteGuildChannelPermissionOverwriteResponse struct {
 
 func (x *DeleteGuildChannelPermissionOverwriteResponse) Reset() {
 	*x = DeleteGuildChannelPermissionOverwriteResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[85]
+	mi := &file_api_v1_guild_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9601,7 +10162,7 @@ func (x *DeleteGuildChannelPermissionOverwriteResponse) String() string {
 func (*DeleteGuildChannelPermissionOverwriteResponse) ProtoMessage() {}
 
 func (x *DeleteGuildChannelPermissionOverwriteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[85]
+	mi := &file_api_v1_guild_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9664,7 +10225,7 @@ type ListGuildChannelPermissionOverwritesRequest struct {
 
 func (x *ListGuildChannelPermissionOverwritesRequest) Reset() {
 	*x = ListGuildChannelPermissionOverwritesRequest{}
-	mi := &file_api_v1_guild_proto_msgTypes[86]
+	mi := &file_api_v1_guild_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9676,7 +10237,7 @@ func (x *ListGuildChannelPermissionOverwritesRequest) String() string {
 func (*ListGuildChannelPermissionOverwritesRequest) ProtoMessage() {}
 
 func (x *ListGuildChannelPermissionOverwritesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[86]
+	mi := &file_api_v1_guild_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9737,7 +10298,7 @@ type ListGuildChannelPermissionOverwritesResponse struct {
 
 func (x *ListGuildChannelPermissionOverwritesResponse) Reset() {
 	*x = ListGuildChannelPermissionOverwritesResponse{}
-	mi := &file_api_v1_guild_proto_msgTypes[87]
+	mi := &file_api_v1_guild_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -9749,7 +10310,7 @@ func (x *ListGuildChannelPermissionOverwritesResponse) String() string {
 func (*ListGuildChannelPermissionOverwritesResponse) ProtoMessage() {}
 
 func (x *ListGuildChannelPermissionOverwritesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_v1_guild_proto_msgTypes[87]
+	mi := &file_api_v1_guild_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -9791,12 +10352,12 @@ var File_api_v1_guild_proto protoreflect.FileDescriptor
 
 const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
-	"\x12api/v1/guild.proto\x12\x06api.v1\"\xbb\x01\n" +
+	"\x12api/v1/guild.proto\x12\x06api.v1\"\xc4\x01\n" +
 	"\x05Guild\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\x03R\aownerId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\x12\x19\n" +
-	"\bicon_uri\x18\x04 \x01(\tR\aiconUri\x12\x1a\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\"\n" +
+	"\ricon_asset_id\x18\x04 \x01(\x03R\viconAssetId\x12\x1a\n" +
 	"\brevision\x18\x05 \x01(\x03R\brevision\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x1d\n" +
@@ -9857,10 +10418,9 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\x03R\tupdatedAt\"C\n" +
+	"updated_at\x18\t \x01(\x03R\tupdatedAt\"(\n" +
 	"\x12CreateGuildRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
-	"\bicon_uri\x18\x02 \x01(\tR\aiconUri\":\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\":\n" +
 	"\x13CreateGuildResponse\x12#\n" +
 	"\x05guild\x18\x01 \x01(\v2\r.api.v1.GuildR\x05guild\",\n" +
 	"\x0fGetGuildRequest\x12\x19\n" +
@@ -9872,13 +10432,34 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"`\n" +
 	"\x12ListGuildsResponse\x12%\n" +
 	"\x06guilds\x18\x01 \x03(\v2\r.api.v1.GuildR\x06guilds\x12#\n" +
-	"\rbefore_cursor\x18\x02 \x01(\x03R\fbeforeCursor\"^\n" +
+	"\rbefore_cursor\x18\x02 \x01(\x03R\fbeforeCursor\"C\n" +
 	"\x12UpdateGuildRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
-	"\bicon_uri\x18\x03 \x01(\tR\aiconUri\":\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\":\n" +
 	"\x13UpdateGuildResponse\x12#\n" +
-	"\x05guild\x18\x01 \x01(\v2\r.api.v1.GuildR\x05guild\"/\n" +
+	"\x05guild\x18\x01 \x01(\v2\r.api.v1.GuildR\x05guild\"\x81\x01\n" +
+	"\x1cCreateGuildIconUploadRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12#\n" +
+	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"\xa7\x02\n" +
+	"\x1dCreateGuildIconUploadResponse\x12\x1b\n" +
+	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
+	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12b\n" +
+	"\x0frequest_headers\x18\x04 \x03(\v29.api.v1.CreateGuildIconUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x1aA\n" +
+	"\x13RequestHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"X\n" +
+	"\x1eCompleteGuildIconUploadRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x1b\n" +
+	"\tupload_id\x18\x02 \x01(\x03R\buploadId\"F\n" +
+	"\x1fCompleteGuildIconUploadResponse\x12#\n" +
+	"\x05guild\x18\x01 \x01(\v2\r.api.v1.GuildR\x05guild\"U\n" +
+	"\x1bAbortGuildIconUploadRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x1b\n" +
+	"\tupload_id\x18\x02 \x01(\x03R\buploadId\"\x1e\n" +
+	"\x1cAbortGuildIconUploadResponse\"/\n" +
 	"\x12DeleteGuildRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\"%\n" +
 	"\x13DeleteGuildResponse\x12\x0e\n" +
@@ -9948,13 +10529,13 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\a \x01(\x03R\texpiresAt\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\x03R\tcreatedAt\"\xca\x01\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt\"\xd3\x01\n" +
 	"\x12GuildInvitePreview\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x19\n" +
 	"\bguild_id\x18\x02 \x01(\x03R\aguildId\x12\x1d\n" +
 	"\n" +
-	"guild_name\x18\x03 \x01(\tR\tguildName\x12$\n" +
-	"\x0eguild_icon_uri\x18\x04 \x01(\tR\fguildIconUri\x12!\n" +
+	"guild_name\x18\x03 \x01(\tR\tguildName\x12-\n" +
+	"\x13guild_icon_asset_id\x18\x04 \x01(\x03R\x10guildIconAssetId\x12!\n" +
 	"\fmember_count\x18\x05 \x01(\x03R\vmemberCount\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x06 \x01(\x03R\texpiresAt\"t\n" +
@@ -10126,13 +10707,16 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\x1cGuildPermissionOverwriteType\x12/\n" +
 	"+GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$GUILD_PERMISSION_OVERWRITE_TYPE_ROLE\x10\x01\x12*\n" +
-	"&GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER\x10\x022\xf4\x1b\n" +
+	"&GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER\x10\x022\xa9\x1e\n" +
 	"\fGuildService\x12F\n" +
 	"\vCreateGuild\x12\x1a.api.v1.CreateGuildRequest\x1a\x1b.api.v1.CreateGuildResponse\x12=\n" +
 	"\bGetGuild\x12\x17.api.v1.GetGuildRequest\x1a\x18.api.v1.GetGuildResponse\x12C\n" +
 	"\n" +
 	"ListGuilds\x12\x19.api.v1.ListGuildsRequest\x1a\x1a.api.v1.ListGuildsResponse\x12F\n" +
-	"\vUpdateGuild\x12\x1a.api.v1.UpdateGuildRequest\x1a\x1b.api.v1.UpdateGuildResponse\x12F\n" +
+	"\vUpdateGuild\x12\x1a.api.v1.UpdateGuildRequest\x1a\x1b.api.v1.UpdateGuildResponse\x12d\n" +
+	"\x15CreateGuildIconUpload\x12$.api.v1.CreateGuildIconUploadRequest\x1a%.api.v1.CreateGuildIconUploadResponse\x12j\n" +
+	"\x17CompleteGuildIconUpload\x12&.api.v1.CompleteGuildIconUploadRequest\x1a'.api.v1.CompleteGuildIconUploadResponse\x12a\n" +
+	"\x14AbortGuildIconUpload\x12#.api.v1.AbortGuildIconUploadRequest\x1a$.api.v1.AbortGuildIconUploadResponse\x12F\n" +
 	"\vDeleteGuild\x12\x1a.api.v1.DeleteGuildRequest\x1a\x1b.api.v1.DeleteGuildResponse\x12O\n" +
 	"\x0eAddGuildMember\x12\x1d.api.v1.AddGuildMemberRequest\x1a\x1e.api.v1.AddGuildMemberResponse\x12O\n" +
 	"\x0eGetGuildMember\x12\x1d.api.v1.GetGuildMemberRequest\x1a\x1e.api.v1.GetGuildMemberResponse\x12U\n" +
@@ -10174,7 +10758,7 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"GuildProtoP\x01Z*github.com/soasurs/cordis/gen/api/v1;apiv1\xa2\x02\x03AXX\xaa\x02\x06Api.V1\xca\x02\x06Api\\V1\xe2\x02\x12Api\\V1\\GPBMetadata\xea\x02\aApi::V1b\beditionsp\xe8\a"
 
 var file_api_v1_guild_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_api_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 88)
+var file_api_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 95)
 var file_api_v1_guild_proto_goTypes = []any{
 	(GuildPermission)(0),                                  // 0: api.v1.GuildPermission
 	(GuildChannelType)(0),                                 // 1: api.v1.GuildChannelType
@@ -10193,80 +10777,87 @@ var file_api_v1_guild_proto_goTypes = []any{
 	(*ListGuildsResponse)(nil),                            // 14: api.v1.ListGuildsResponse
 	(*UpdateGuildRequest)(nil),                            // 15: api.v1.UpdateGuildRequest
 	(*UpdateGuildResponse)(nil),                           // 16: api.v1.UpdateGuildResponse
-	(*DeleteGuildRequest)(nil),                            // 17: api.v1.DeleteGuildRequest
-	(*DeleteGuildResponse)(nil),                           // 18: api.v1.DeleteGuildResponse
-	(*AddGuildMemberRequest)(nil),                         // 19: api.v1.AddGuildMemberRequest
-	(*AddGuildMemberResponse)(nil),                        // 20: api.v1.AddGuildMemberResponse
-	(*GetGuildMemberRequest)(nil),                         // 21: api.v1.GetGuildMemberRequest
-	(*GetGuildMemberResponse)(nil),                        // 22: api.v1.GetGuildMemberResponse
-	(*ListGuildMembersRequest)(nil),                       // 23: api.v1.ListGuildMembersRequest
-	(*ListGuildMembersResponse)(nil),                      // 24: api.v1.ListGuildMembersResponse
-	(*UpdateCurrentGuildMemberRequest)(nil),               // 25: api.v1.UpdateCurrentGuildMemberRequest
-	(*UpdateCurrentGuildMemberResponse)(nil),              // 26: api.v1.UpdateCurrentGuildMemberResponse
-	(*KickGuildMemberRequest)(nil),                        // 27: api.v1.KickGuildMemberRequest
-	(*KickGuildMemberResponse)(nil),                       // 28: api.v1.KickGuildMemberResponse
-	(*BanGuildMemberRequest)(nil),                         // 29: api.v1.BanGuildMemberRequest
-	(*BanGuildMemberResponse)(nil),                        // 30: api.v1.BanGuildMemberResponse
-	(*UnbanGuildMemberRequest)(nil),                       // 31: api.v1.UnbanGuildMemberRequest
-	(*UnbanGuildMemberResponse)(nil),                      // 32: api.v1.UnbanGuildMemberResponse
-	(*ListGuildBansRequest)(nil),                          // 33: api.v1.ListGuildBansRequest
-	(*ListGuildBansResponse)(nil),                         // 34: api.v1.ListGuildBansResponse
-	(*LeaveGuildRequest)(nil),                             // 35: api.v1.LeaveGuildRequest
-	(*LeaveGuildResponse)(nil),                            // 36: api.v1.LeaveGuildResponse
-	(*TransferGuildOwnershipRequest)(nil),                 // 37: api.v1.TransferGuildOwnershipRequest
-	(*TransferGuildOwnershipResponse)(nil),                // 38: api.v1.TransferGuildOwnershipResponse
-	(*GuildInvite)(nil),                                   // 39: api.v1.GuildInvite
-	(*GuildInvitePreview)(nil),                            // 40: api.v1.GuildInvitePreview
-	(*CreateGuildInviteRequest)(nil),                      // 41: api.v1.CreateGuildInviteRequest
-	(*CreateGuildInviteResponse)(nil),                     // 42: api.v1.CreateGuildInviteResponse
-	(*GetGuildInviteRequest)(nil),                         // 43: api.v1.GetGuildInviteRequest
-	(*GetGuildInviteResponse)(nil),                        // 44: api.v1.GetGuildInviteResponse
-	(*ListGuildInvitesRequest)(nil),                       // 45: api.v1.ListGuildInvitesRequest
-	(*ListGuildInvitesResponse)(nil),                      // 46: api.v1.ListGuildInvitesResponse
-	(*DeleteGuildInviteRequest)(nil),                      // 47: api.v1.DeleteGuildInviteRequest
-	(*DeleteGuildInviteResponse)(nil),                     // 48: api.v1.DeleteGuildInviteResponse
-	(*JoinGuildByInviteRequest)(nil),                      // 49: api.v1.JoinGuildByInviteRequest
-	(*JoinGuildByInviteResponse)(nil),                     // 50: api.v1.JoinGuildByInviteResponse
-	(*CreateGuildRoleRequest)(nil),                        // 51: api.v1.CreateGuildRoleRequest
-	(*CreateGuildRoleResponse)(nil),                       // 52: api.v1.CreateGuildRoleResponse
-	(*GetGuildRoleRequest)(nil),                           // 53: api.v1.GetGuildRoleRequest
-	(*GetGuildRoleResponse)(nil),                          // 54: api.v1.GetGuildRoleResponse
-	(*ListGuildRolesRequest)(nil),                         // 55: api.v1.ListGuildRolesRequest
-	(*ListGuildRolesResponse)(nil),                        // 56: api.v1.ListGuildRolesResponse
-	(*UpdateGuildRoleRequest)(nil),                        // 57: api.v1.UpdateGuildRoleRequest
-	(*UpdateGuildRoleResponse)(nil),                       // 58: api.v1.UpdateGuildRoleResponse
-	(*DeleteGuildRoleRequest)(nil),                        // 59: api.v1.DeleteGuildRoleRequest
-	(*DeleteGuildRoleResponse)(nil),                       // 60: api.v1.DeleteGuildRoleResponse
-	(*GuildRolePosition)(nil),                             // 61: api.v1.GuildRolePosition
-	(*ReorderGuildRolesRequest)(nil),                      // 62: api.v1.ReorderGuildRolesRequest
-	(*ReorderGuildRolesResponse)(nil),                     // 63: api.v1.ReorderGuildRolesResponse
-	(*AddGuildMemberRoleRequest)(nil),                     // 64: api.v1.AddGuildMemberRoleRequest
-	(*AddGuildMemberRoleResponse)(nil),                    // 65: api.v1.AddGuildMemberRoleResponse
-	(*RemoveGuildMemberRoleRequest)(nil),                  // 66: api.v1.RemoveGuildMemberRoleRequest
-	(*RemoveGuildMemberRoleResponse)(nil),                 // 67: api.v1.RemoveGuildMemberRoleResponse
-	(*ListGuildMemberRolesRequest)(nil),                   // 68: api.v1.ListGuildMemberRolesRequest
-	(*ListGuildMemberRolesResponse)(nil),                  // 69: api.v1.ListGuildMemberRolesResponse
-	(*GetGuildMemberPermissionsRequest)(nil),              // 70: api.v1.GetGuildMemberPermissionsRequest
-	(*GetGuildMemberPermissionsResponse)(nil),             // 71: api.v1.GetGuildMemberPermissionsResponse
-	(*CreateGuildChannelRequest)(nil),                     // 72: api.v1.CreateGuildChannelRequest
-	(*CreateGuildChannelResponse)(nil),                    // 73: api.v1.CreateGuildChannelResponse
-	(*GetGuildChannelRequest)(nil),                        // 74: api.v1.GetGuildChannelRequest
-	(*GetGuildChannelResponse)(nil),                       // 75: api.v1.GetGuildChannelResponse
-	(*ListGuildChannelsRequest)(nil),                      // 76: api.v1.ListGuildChannelsRequest
-	(*ListGuildChannelsResponse)(nil),                     // 77: api.v1.ListGuildChannelsResponse
-	(*UpdateGuildChannelRequest)(nil),                     // 78: api.v1.UpdateGuildChannelRequest
-	(*UpdateGuildChannelResponse)(nil),                    // 79: api.v1.UpdateGuildChannelResponse
-	(*DeleteGuildChannelRequest)(nil),                     // 80: api.v1.DeleteGuildChannelRequest
-	(*DeleteGuildChannelResponse)(nil),                    // 81: api.v1.DeleteGuildChannelResponse
-	(*GuildChannelPosition)(nil),                          // 82: api.v1.GuildChannelPosition
-	(*ReorderGuildChannelsRequest)(nil),                   // 83: api.v1.ReorderGuildChannelsRequest
-	(*ReorderGuildChannelsResponse)(nil),                  // 84: api.v1.ReorderGuildChannelsResponse
-	(*UpsertGuildChannelPermissionOverwriteRequest)(nil),  // 85: api.v1.UpsertGuildChannelPermissionOverwriteRequest
-	(*UpsertGuildChannelPermissionOverwriteResponse)(nil), // 86: api.v1.UpsertGuildChannelPermissionOverwriteResponse
-	(*DeleteGuildChannelPermissionOverwriteRequest)(nil),  // 87: api.v1.DeleteGuildChannelPermissionOverwriteRequest
-	(*DeleteGuildChannelPermissionOverwriteResponse)(nil), // 88: api.v1.DeleteGuildChannelPermissionOverwriteResponse
-	(*ListGuildChannelPermissionOverwritesRequest)(nil),   // 89: api.v1.ListGuildChannelPermissionOverwritesRequest
-	(*ListGuildChannelPermissionOverwritesResponse)(nil),  // 90: api.v1.ListGuildChannelPermissionOverwritesResponse
+	(*CreateGuildIconUploadRequest)(nil),                  // 17: api.v1.CreateGuildIconUploadRequest
+	(*CreateGuildIconUploadResponse)(nil),                 // 18: api.v1.CreateGuildIconUploadResponse
+	(*CompleteGuildIconUploadRequest)(nil),                // 19: api.v1.CompleteGuildIconUploadRequest
+	(*CompleteGuildIconUploadResponse)(nil),               // 20: api.v1.CompleteGuildIconUploadResponse
+	(*AbortGuildIconUploadRequest)(nil),                   // 21: api.v1.AbortGuildIconUploadRequest
+	(*AbortGuildIconUploadResponse)(nil),                  // 22: api.v1.AbortGuildIconUploadResponse
+	(*DeleteGuildRequest)(nil),                            // 23: api.v1.DeleteGuildRequest
+	(*DeleteGuildResponse)(nil),                           // 24: api.v1.DeleteGuildResponse
+	(*AddGuildMemberRequest)(nil),                         // 25: api.v1.AddGuildMemberRequest
+	(*AddGuildMemberResponse)(nil),                        // 26: api.v1.AddGuildMemberResponse
+	(*GetGuildMemberRequest)(nil),                         // 27: api.v1.GetGuildMemberRequest
+	(*GetGuildMemberResponse)(nil),                        // 28: api.v1.GetGuildMemberResponse
+	(*ListGuildMembersRequest)(nil),                       // 29: api.v1.ListGuildMembersRequest
+	(*ListGuildMembersResponse)(nil),                      // 30: api.v1.ListGuildMembersResponse
+	(*UpdateCurrentGuildMemberRequest)(nil),               // 31: api.v1.UpdateCurrentGuildMemberRequest
+	(*UpdateCurrentGuildMemberResponse)(nil),              // 32: api.v1.UpdateCurrentGuildMemberResponse
+	(*KickGuildMemberRequest)(nil),                        // 33: api.v1.KickGuildMemberRequest
+	(*KickGuildMemberResponse)(nil),                       // 34: api.v1.KickGuildMemberResponse
+	(*BanGuildMemberRequest)(nil),                         // 35: api.v1.BanGuildMemberRequest
+	(*BanGuildMemberResponse)(nil),                        // 36: api.v1.BanGuildMemberResponse
+	(*UnbanGuildMemberRequest)(nil),                       // 37: api.v1.UnbanGuildMemberRequest
+	(*UnbanGuildMemberResponse)(nil),                      // 38: api.v1.UnbanGuildMemberResponse
+	(*ListGuildBansRequest)(nil),                          // 39: api.v1.ListGuildBansRequest
+	(*ListGuildBansResponse)(nil),                         // 40: api.v1.ListGuildBansResponse
+	(*LeaveGuildRequest)(nil),                             // 41: api.v1.LeaveGuildRequest
+	(*LeaveGuildResponse)(nil),                            // 42: api.v1.LeaveGuildResponse
+	(*TransferGuildOwnershipRequest)(nil),                 // 43: api.v1.TransferGuildOwnershipRequest
+	(*TransferGuildOwnershipResponse)(nil),                // 44: api.v1.TransferGuildOwnershipResponse
+	(*GuildInvite)(nil),                                   // 45: api.v1.GuildInvite
+	(*GuildInvitePreview)(nil),                            // 46: api.v1.GuildInvitePreview
+	(*CreateGuildInviteRequest)(nil),                      // 47: api.v1.CreateGuildInviteRequest
+	(*CreateGuildInviteResponse)(nil),                     // 48: api.v1.CreateGuildInviteResponse
+	(*GetGuildInviteRequest)(nil),                         // 49: api.v1.GetGuildInviteRequest
+	(*GetGuildInviteResponse)(nil),                        // 50: api.v1.GetGuildInviteResponse
+	(*ListGuildInvitesRequest)(nil),                       // 51: api.v1.ListGuildInvitesRequest
+	(*ListGuildInvitesResponse)(nil),                      // 52: api.v1.ListGuildInvitesResponse
+	(*DeleteGuildInviteRequest)(nil),                      // 53: api.v1.DeleteGuildInviteRequest
+	(*DeleteGuildInviteResponse)(nil),                     // 54: api.v1.DeleteGuildInviteResponse
+	(*JoinGuildByInviteRequest)(nil),                      // 55: api.v1.JoinGuildByInviteRequest
+	(*JoinGuildByInviteResponse)(nil),                     // 56: api.v1.JoinGuildByInviteResponse
+	(*CreateGuildRoleRequest)(nil),                        // 57: api.v1.CreateGuildRoleRequest
+	(*CreateGuildRoleResponse)(nil),                       // 58: api.v1.CreateGuildRoleResponse
+	(*GetGuildRoleRequest)(nil),                           // 59: api.v1.GetGuildRoleRequest
+	(*GetGuildRoleResponse)(nil),                          // 60: api.v1.GetGuildRoleResponse
+	(*ListGuildRolesRequest)(nil),                         // 61: api.v1.ListGuildRolesRequest
+	(*ListGuildRolesResponse)(nil),                        // 62: api.v1.ListGuildRolesResponse
+	(*UpdateGuildRoleRequest)(nil),                        // 63: api.v1.UpdateGuildRoleRequest
+	(*UpdateGuildRoleResponse)(nil),                       // 64: api.v1.UpdateGuildRoleResponse
+	(*DeleteGuildRoleRequest)(nil),                        // 65: api.v1.DeleteGuildRoleRequest
+	(*DeleteGuildRoleResponse)(nil),                       // 66: api.v1.DeleteGuildRoleResponse
+	(*GuildRolePosition)(nil),                             // 67: api.v1.GuildRolePosition
+	(*ReorderGuildRolesRequest)(nil),                      // 68: api.v1.ReorderGuildRolesRequest
+	(*ReorderGuildRolesResponse)(nil),                     // 69: api.v1.ReorderGuildRolesResponse
+	(*AddGuildMemberRoleRequest)(nil),                     // 70: api.v1.AddGuildMemberRoleRequest
+	(*AddGuildMemberRoleResponse)(nil),                    // 71: api.v1.AddGuildMemberRoleResponse
+	(*RemoveGuildMemberRoleRequest)(nil),                  // 72: api.v1.RemoveGuildMemberRoleRequest
+	(*RemoveGuildMemberRoleResponse)(nil),                 // 73: api.v1.RemoveGuildMemberRoleResponse
+	(*ListGuildMemberRolesRequest)(nil),                   // 74: api.v1.ListGuildMemberRolesRequest
+	(*ListGuildMemberRolesResponse)(nil),                  // 75: api.v1.ListGuildMemberRolesResponse
+	(*GetGuildMemberPermissionsRequest)(nil),              // 76: api.v1.GetGuildMemberPermissionsRequest
+	(*GetGuildMemberPermissionsResponse)(nil),             // 77: api.v1.GetGuildMemberPermissionsResponse
+	(*CreateGuildChannelRequest)(nil),                     // 78: api.v1.CreateGuildChannelRequest
+	(*CreateGuildChannelResponse)(nil),                    // 79: api.v1.CreateGuildChannelResponse
+	(*GetGuildChannelRequest)(nil),                        // 80: api.v1.GetGuildChannelRequest
+	(*GetGuildChannelResponse)(nil),                       // 81: api.v1.GetGuildChannelResponse
+	(*ListGuildChannelsRequest)(nil),                      // 82: api.v1.ListGuildChannelsRequest
+	(*ListGuildChannelsResponse)(nil),                     // 83: api.v1.ListGuildChannelsResponse
+	(*UpdateGuildChannelRequest)(nil),                     // 84: api.v1.UpdateGuildChannelRequest
+	(*UpdateGuildChannelResponse)(nil),                    // 85: api.v1.UpdateGuildChannelResponse
+	(*DeleteGuildChannelRequest)(nil),                     // 86: api.v1.DeleteGuildChannelRequest
+	(*DeleteGuildChannelResponse)(nil),                    // 87: api.v1.DeleteGuildChannelResponse
+	(*GuildChannelPosition)(nil),                          // 88: api.v1.GuildChannelPosition
+	(*ReorderGuildChannelsRequest)(nil),                   // 89: api.v1.ReorderGuildChannelsRequest
+	(*ReorderGuildChannelsResponse)(nil),                  // 90: api.v1.ReorderGuildChannelsResponse
+	(*UpsertGuildChannelPermissionOverwriteRequest)(nil),  // 91: api.v1.UpsertGuildChannelPermissionOverwriteRequest
+	(*UpsertGuildChannelPermissionOverwriteResponse)(nil), // 92: api.v1.UpsertGuildChannelPermissionOverwriteResponse
+	(*DeleteGuildChannelPermissionOverwriteRequest)(nil),  // 93: api.v1.DeleteGuildChannelPermissionOverwriteRequest
+	(*DeleteGuildChannelPermissionOverwriteResponse)(nil), // 94: api.v1.DeleteGuildChannelPermissionOverwriteResponse
+	(*ListGuildChannelPermissionOverwritesRequest)(nil),   // 95: api.v1.ListGuildChannelPermissionOverwritesRequest
+	(*ListGuildChannelPermissionOverwritesResponse)(nil),  // 96: api.v1.ListGuildChannelPermissionOverwritesResponse
+	nil, // 97: api.v1.CreateGuildIconUploadResponse.RequestHeadersEntry
 }
 var file_api_v1_guild_proto_depIdxs = []int32{
 	1,  // 0: api.v1.GuildChannel.type:type_name -> api.v1.GuildChannelType
@@ -10275,119 +10866,127 @@ var file_api_v1_guild_proto_depIdxs = []int32{
 	3,  // 3: api.v1.GetGuildResponse.guild:type_name -> api.v1.Guild
 	3,  // 4: api.v1.ListGuildsResponse.guilds:type_name -> api.v1.Guild
 	3,  // 5: api.v1.UpdateGuildResponse.guild:type_name -> api.v1.Guild
-	4,  // 6: api.v1.AddGuildMemberResponse.member:type_name -> api.v1.GuildMember
-	4,  // 7: api.v1.GetGuildMemberResponse.member:type_name -> api.v1.GuildMember
-	4,  // 8: api.v1.ListGuildMembersResponse.members:type_name -> api.v1.GuildMember
-	4,  // 9: api.v1.UpdateCurrentGuildMemberResponse.member:type_name -> api.v1.GuildMember
-	5,  // 10: api.v1.BanGuildMemberResponse.ban:type_name -> api.v1.GuildBan
-	5,  // 11: api.v1.ListGuildBansResponse.bans:type_name -> api.v1.GuildBan
-	3,  // 12: api.v1.TransferGuildOwnershipResponse.guild:type_name -> api.v1.Guild
-	39, // 13: api.v1.CreateGuildInviteResponse.invite:type_name -> api.v1.GuildInvite
-	40, // 14: api.v1.GetGuildInviteResponse.preview:type_name -> api.v1.GuildInvitePreview
-	39, // 15: api.v1.ListGuildInvitesResponse.invites:type_name -> api.v1.GuildInvite
-	3,  // 16: api.v1.JoinGuildByInviteResponse.guild:type_name -> api.v1.Guild
-	4,  // 17: api.v1.JoinGuildByInviteResponse.member:type_name -> api.v1.GuildMember
-	6,  // 18: api.v1.CreateGuildRoleResponse.role:type_name -> api.v1.GuildRole
-	6,  // 19: api.v1.GetGuildRoleResponse.role:type_name -> api.v1.GuildRole
-	6,  // 20: api.v1.ListGuildRolesResponse.roles:type_name -> api.v1.GuildRole
-	6,  // 21: api.v1.UpdateGuildRoleResponse.role:type_name -> api.v1.GuildRole
-	61, // 22: api.v1.ReorderGuildRolesRequest.positions:type_name -> api.v1.GuildRolePosition
-	6,  // 23: api.v1.ReorderGuildRolesResponse.roles:type_name -> api.v1.GuildRole
-	6,  // 24: api.v1.ListGuildMemberRolesResponse.roles:type_name -> api.v1.GuildRole
-	1,  // 25: api.v1.CreateGuildChannelRequest.type:type_name -> api.v1.GuildChannelType
-	7,  // 26: api.v1.CreateGuildChannelResponse.channel:type_name -> api.v1.GuildChannel
-	7,  // 27: api.v1.GetGuildChannelResponse.channel:type_name -> api.v1.GuildChannel
-	7,  // 28: api.v1.ListGuildChannelsResponse.channels:type_name -> api.v1.GuildChannel
-	7,  // 29: api.v1.UpdateGuildChannelResponse.channel:type_name -> api.v1.GuildChannel
-	82, // 30: api.v1.ReorderGuildChannelsRequest.positions:type_name -> api.v1.GuildChannelPosition
-	7,  // 31: api.v1.ReorderGuildChannelsResponse.channels:type_name -> api.v1.GuildChannel
-	2,  // 32: api.v1.UpsertGuildChannelPermissionOverwriteRequest.target_type:type_name -> api.v1.GuildPermissionOverwriteType
-	8,  // 33: api.v1.UpsertGuildChannelPermissionOverwriteResponse.overwrite:type_name -> api.v1.GuildChannelPermissionOverwrite
-	2,  // 34: api.v1.DeleteGuildChannelPermissionOverwriteRequest.target_type:type_name -> api.v1.GuildPermissionOverwriteType
-	8,  // 35: api.v1.ListGuildChannelPermissionOverwritesResponse.overwrites:type_name -> api.v1.GuildChannelPermissionOverwrite
-	9,  // 36: api.v1.GuildService.CreateGuild:input_type -> api.v1.CreateGuildRequest
-	11, // 37: api.v1.GuildService.GetGuild:input_type -> api.v1.GetGuildRequest
-	13, // 38: api.v1.GuildService.ListGuilds:input_type -> api.v1.ListGuildsRequest
-	15, // 39: api.v1.GuildService.UpdateGuild:input_type -> api.v1.UpdateGuildRequest
-	17, // 40: api.v1.GuildService.DeleteGuild:input_type -> api.v1.DeleteGuildRequest
-	19, // 41: api.v1.GuildService.AddGuildMember:input_type -> api.v1.AddGuildMemberRequest
-	21, // 42: api.v1.GuildService.GetGuildMember:input_type -> api.v1.GetGuildMemberRequest
-	23, // 43: api.v1.GuildService.ListGuildMembers:input_type -> api.v1.ListGuildMembersRequest
-	25, // 44: api.v1.GuildService.UpdateCurrentGuildMember:input_type -> api.v1.UpdateCurrentGuildMemberRequest
-	27, // 45: api.v1.GuildService.KickGuildMember:input_type -> api.v1.KickGuildMemberRequest
-	29, // 46: api.v1.GuildService.BanGuildMember:input_type -> api.v1.BanGuildMemberRequest
-	31, // 47: api.v1.GuildService.UnbanGuildMember:input_type -> api.v1.UnbanGuildMemberRequest
-	33, // 48: api.v1.GuildService.ListGuildBans:input_type -> api.v1.ListGuildBansRequest
-	35, // 49: api.v1.GuildService.LeaveGuild:input_type -> api.v1.LeaveGuildRequest
-	37, // 50: api.v1.GuildService.TransferGuildOwnership:input_type -> api.v1.TransferGuildOwnershipRequest
-	41, // 51: api.v1.GuildService.CreateGuildInvite:input_type -> api.v1.CreateGuildInviteRequest
-	43, // 52: api.v1.GuildService.GetGuildInvite:input_type -> api.v1.GetGuildInviteRequest
-	45, // 53: api.v1.GuildService.ListGuildInvites:input_type -> api.v1.ListGuildInvitesRequest
-	47, // 54: api.v1.GuildService.DeleteGuildInvite:input_type -> api.v1.DeleteGuildInviteRequest
-	49, // 55: api.v1.GuildService.JoinGuildByInvite:input_type -> api.v1.JoinGuildByInviteRequest
-	51, // 56: api.v1.GuildService.CreateGuildRole:input_type -> api.v1.CreateGuildRoleRequest
-	53, // 57: api.v1.GuildService.GetGuildRole:input_type -> api.v1.GetGuildRoleRequest
-	55, // 58: api.v1.GuildService.ListGuildRoles:input_type -> api.v1.ListGuildRolesRequest
-	57, // 59: api.v1.GuildService.UpdateGuildRole:input_type -> api.v1.UpdateGuildRoleRequest
-	59, // 60: api.v1.GuildService.DeleteGuildRole:input_type -> api.v1.DeleteGuildRoleRequest
-	62, // 61: api.v1.GuildService.ReorderGuildRoles:input_type -> api.v1.ReorderGuildRolesRequest
-	64, // 62: api.v1.GuildService.AddGuildMemberRole:input_type -> api.v1.AddGuildMemberRoleRequest
-	66, // 63: api.v1.GuildService.RemoveGuildMemberRole:input_type -> api.v1.RemoveGuildMemberRoleRequest
-	68, // 64: api.v1.GuildService.ListGuildMemberRoles:input_type -> api.v1.ListGuildMemberRolesRequest
-	70, // 65: api.v1.GuildService.GetGuildMemberPermissions:input_type -> api.v1.GetGuildMemberPermissionsRequest
-	72, // 66: api.v1.GuildService.CreateGuildChannel:input_type -> api.v1.CreateGuildChannelRequest
-	74, // 67: api.v1.GuildService.GetGuildChannel:input_type -> api.v1.GetGuildChannelRequest
-	76, // 68: api.v1.GuildService.ListGuildChannels:input_type -> api.v1.ListGuildChannelsRequest
-	78, // 69: api.v1.GuildService.UpdateGuildChannel:input_type -> api.v1.UpdateGuildChannelRequest
-	80, // 70: api.v1.GuildService.DeleteGuildChannel:input_type -> api.v1.DeleteGuildChannelRequest
-	83, // 71: api.v1.GuildService.ReorderGuildChannels:input_type -> api.v1.ReorderGuildChannelsRequest
-	85, // 72: api.v1.GuildService.UpsertGuildChannelPermissionOverwrite:input_type -> api.v1.UpsertGuildChannelPermissionOverwriteRequest
-	87, // 73: api.v1.GuildService.DeleteGuildChannelPermissionOverwrite:input_type -> api.v1.DeleteGuildChannelPermissionOverwriteRequest
-	89, // 74: api.v1.GuildService.ListGuildChannelPermissionOverwrites:input_type -> api.v1.ListGuildChannelPermissionOverwritesRequest
-	10, // 75: api.v1.GuildService.CreateGuild:output_type -> api.v1.CreateGuildResponse
-	12, // 76: api.v1.GuildService.GetGuild:output_type -> api.v1.GetGuildResponse
-	14, // 77: api.v1.GuildService.ListGuilds:output_type -> api.v1.ListGuildsResponse
-	16, // 78: api.v1.GuildService.UpdateGuild:output_type -> api.v1.UpdateGuildResponse
-	18, // 79: api.v1.GuildService.DeleteGuild:output_type -> api.v1.DeleteGuildResponse
-	20, // 80: api.v1.GuildService.AddGuildMember:output_type -> api.v1.AddGuildMemberResponse
-	22, // 81: api.v1.GuildService.GetGuildMember:output_type -> api.v1.GetGuildMemberResponse
-	24, // 82: api.v1.GuildService.ListGuildMembers:output_type -> api.v1.ListGuildMembersResponse
-	26, // 83: api.v1.GuildService.UpdateCurrentGuildMember:output_type -> api.v1.UpdateCurrentGuildMemberResponse
-	28, // 84: api.v1.GuildService.KickGuildMember:output_type -> api.v1.KickGuildMemberResponse
-	30, // 85: api.v1.GuildService.BanGuildMember:output_type -> api.v1.BanGuildMemberResponse
-	32, // 86: api.v1.GuildService.UnbanGuildMember:output_type -> api.v1.UnbanGuildMemberResponse
-	34, // 87: api.v1.GuildService.ListGuildBans:output_type -> api.v1.ListGuildBansResponse
-	36, // 88: api.v1.GuildService.LeaveGuild:output_type -> api.v1.LeaveGuildResponse
-	38, // 89: api.v1.GuildService.TransferGuildOwnership:output_type -> api.v1.TransferGuildOwnershipResponse
-	42, // 90: api.v1.GuildService.CreateGuildInvite:output_type -> api.v1.CreateGuildInviteResponse
-	44, // 91: api.v1.GuildService.GetGuildInvite:output_type -> api.v1.GetGuildInviteResponse
-	46, // 92: api.v1.GuildService.ListGuildInvites:output_type -> api.v1.ListGuildInvitesResponse
-	48, // 93: api.v1.GuildService.DeleteGuildInvite:output_type -> api.v1.DeleteGuildInviteResponse
-	50, // 94: api.v1.GuildService.JoinGuildByInvite:output_type -> api.v1.JoinGuildByInviteResponse
-	52, // 95: api.v1.GuildService.CreateGuildRole:output_type -> api.v1.CreateGuildRoleResponse
-	54, // 96: api.v1.GuildService.GetGuildRole:output_type -> api.v1.GetGuildRoleResponse
-	56, // 97: api.v1.GuildService.ListGuildRoles:output_type -> api.v1.ListGuildRolesResponse
-	58, // 98: api.v1.GuildService.UpdateGuildRole:output_type -> api.v1.UpdateGuildRoleResponse
-	60, // 99: api.v1.GuildService.DeleteGuildRole:output_type -> api.v1.DeleteGuildRoleResponse
-	63, // 100: api.v1.GuildService.ReorderGuildRoles:output_type -> api.v1.ReorderGuildRolesResponse
-	65, // 101: api.v1.GuildService.AddGuildMemberRole:output_type -> api.v1.AddGuildMemberRoleResponse
-	67, // 102: api.v1.GuildService.RemoveGuildMemberRole:output_type -> api.v1.RemoveGuildMemberRoleResponse
-	69, // 103: api.v1.GuildService.ListGuildMemberRoles:output_type -> api.v1.ListGuildMemberRolesResponse
-	71, // 104: api.v1.GuildService.GetGuildMemberPermissions:output_type -> api.v1.GetGuildMemberPermissionsResponse
-	73, // 105: api.v1.GuildService.CreateGuildChannel:output_type -> api.v1.CreateGuildChannelResponse
-	75, // 106: api.v1.GuildService.GetGuildChannel:output_type -> api.v1.GetGuildChannelResponse
-	77, // 107: api.v1.GuildService.ListGuildChannels:output_type -> api.v1.ListGuildChannelsResponse
-	79, // 108: api.v1.GuildService.UpdateGuildChannel:output_type -> api.v1.UpdateGuildChannelResponse
-	81, // 109: api.v1.GuildService.DeleteGuildChannel:output_type -> api.v1.DeleteGuildChannelResponse
-	84, // 110: api.v1.GuildService.ReorderGuildChannels:output_type -> api.v1.ReorderGuildChannelsResponse
-	86, // 111: api.v1.GuildService.UpsertGuildChannelPermissionOverwrite:output_type -> api.v1.UpsertGuildChannelPermissionOverwriteResponse
-	88, // 112: api.v1.GuildService.DeleteGuildChannelPermissionOverwrite:output_type -> api.v1.DeleteGuildChannelPermissionOverwriteResponse
-	90, // 113: api.v1.GuildService.ListGuildChannelPermissionOverwrites:output_type -> api.v1.ListGuildChannelPermissionOverwritesResponse
-	75, // [75:114] is the sub-list for method output_type
-	36, // [36:75] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	97, // 6: api.v1.CreateGuildIconUploadResponse.request_headers:type_name -> api.v1.CreateGuildIconUploadResponse.RequestHeadersEntry
+	3,  // 7: api.v1.CompleteGuildIconUploadResponse.guild:type_name -> api.v1.Guild
+	4,  // 8: api.v1.AddGuildMemberResponse.member:type_name -> api.v1.GuildMember
+	4,  // 9: api.v1.GetGuildMemberResponse.member:type_name -> api.v1.GuildMember
+	4,  // 10: api.v1.ListGuildMembersResponse.members:type_name -> api.v1.GuildMember
+	4,  // 11: api.v1.UpdateCurrentGuildMemberResponse.member:type_name -> api.v1.GuildMember
+	5,  // 12: api.v1.BanGuildMemberResponse.ban:type_name -> api.v1.GuildBan
+	5,  // 13: api.v1.ListGuildBansResponse.bans:type_name -> api.v1.GuildBan
+	3,  // 14: api.v1.TransferGuildOwnershipResponse.guild:type_name -> api.v1.Guild
+	45, // 15: api.v1.CreateGuildInviteResponse.invite:type_name -> api.v1.GuildInvite
+	46, // 16: api.v1.GetGuildInviteResponse.preview:type_name -> api.v1.GuildInvitePreview
+	45, // 17: api.v1.ListGuildInvitesResponse.invites:type_name -> api.v1.GuildInvite
+	3,  // 18: api.v1.JoinGuildByInviteResponse.guild:type_name -> api.v1.Guild
+	4,  // 19: api.v1.JoinGuildByInviteResponse.member:type_name -> api.v1.GuildMember
+	6,  // 20: api.v1.CreateGuildRoleResponse.role:type_name -> api.v1.GuildRole
+	6,  // 21: api.v1.GetGuildRoleResponse.role:type_name -> api.v1.GuildRole
+	6,  // 22: api.v1.ListGuildRolesResponse.roles:type_name -> api.v1.GuildRole
+	6,  // 23: api.v1.UpdateGuildRoleResponse.role:type_name -> api.v1.GuildRole
+	67, // 24: api.v1.ReorderGuildRolesRequest.positions:type_name -> api.v1.GuildRolePosition
+	6,  // 25: api.v1.ReorderGuildRolesResponse.roles:type_name -> api.v1.GuildRole
+	6,  // 26: api.v1.ListGuildMemberRolesResponse.roles:type_name -> api.v1.GuildRole
+	1,  // 27: api.v1.CreateGuildChannelRequest.type:type_name -> api.v1.GuildChannelType
+	7,  // 28: api.v1.CreateGuildChannelResponse.channel:type_name -> api.v1.GuildChannel
+	7,  // 29: api.v1.GetGuildChannelResponse.channel:type_name -> api.v1.GuildChannel
+	7,  // 30: api.v1.ListGuildChannelsResponse.channels:type_name -> api.v1.GuildChannel
+	7,  // 31: api.v1.UpdateGuildChannelResponse.channel:type_name -> api.v1.GuildChannel
+	88, // 32: api.v1.ReorderGuildChannelsRequest.positions:type_name -> api.v1.GuildChannelPosition
+	7,  // 33: api.v1.ReorderGuildChannelsResponse.channels:type_name -> api.v1.GuildChannel
+	2,  // 34: api.v1.UpsertGuildChannelPermissionOverwriteRequest.target_type:type_name -> api.v1.GuildPermissionOverwriteType
+	8,  // 35: api.v1.UpsertGuildChannelPermissionOverwriteResponse.overwrite:type_name -> api.v1.GuildChannelPermissionOverwrite
+	2,  // 36: api.v1.DeleteGuildChannelPermissionOverwriteRequest.target_type:type_name -> api.v1.GuildPermissionOverwriteType
+	8,  // 37: api.v1.ListGuildChannelPermissionOverwritesResponse.overwrites:type_name -> api.v1.GuildChannelPermissionOverwrite
+	9,  // 38: api.v1.GuildService.CreateGuild:input_type -> api.v1.CreateGuildRequest
+	11, // 39: api.v1.GuildService.GetGuild:input_type -> api.v1.GetGuildRequest
+	13, // 40: api.v1.GuildService.ListGuilds:input_type -> api.v1.ListGuildsRequest
+	15, // 41: api.v1.GuildService.UpdateGuild:input_type -> api.v1.UpdateGuildRequest
+	17, // 42: api.v1.GuildService.CreateGuildIconUpload:input_type -> api.v1.CreateGuildIconUploadRequest
+	19, // 43: api.v1.GuildService.CompleteGuildIconUpload:input_type -> api.v1.CompleteGuildIconUploadRequest
+	21, // 44: api.v1.GuildService.AbortGuildIconUpload:input_type -> api.v1.AbortGuildIconUploadRequest
+	23, // 45: api.v1.GuildService.DeleteGuild:input_type -> api.v1.DeleteGuildRequest
+	25, // 46: api.v1.GuildService.AddGuildMember:input_type -> api.v1.AddGuildMemberRequest
+	27, // 47: api.v1.GuildService.GetGuildMember:input_type -> api.v1.GetGuildMemberRequest
+	29, // 48: api.v1.GuildService.ListGuildMembers:input_type -> api.v1.ListGuildMembersRequest
+	31, // 49: api.v1.GuildService.UpdateCurrentGuildMember:input_type -> api.v1.UpdateCurrentGuildMemberRequest
+	33, // 50: api.v1.GuildService.KickGuildMember:input_type -> api.v1.KickGuildMemberRequest
+	35, // 51: api.v1.GuildService.BanGuildMember:input_type -> api.v1.BanGuildMemberRequest
+	37, // 52: api.v1.GuildService.UnbanGuildMember:input_type -> api.v1.UnbanGuildMemberRequest
+	39, // 53: api.v1.GuildService.ListGuildBans:input_type -> api.v1.ListGuildBansRequest
+	41, // 54: api.v1.GuildService.LeaveGuild:input_type -> api.v1.LeaveGuildRequest
+	43, // 55: api.v1.GuildService.TransferGuildOwnership:input_type -> api.v1.TransferGuildOwnershipRequest
+	47, // 56: api.v1.GuildService.CreateGuildInvite:input_type -> api.v1.CreateGuildInviteRequest
+	49, // 57: api.v1.GuildService.GetGuildInvite:input_type -> api.v1.GetGuildInviteRequest
+	51, // 58: api.v1.GuildService.ListGuildInvites:input_type -> api.v1.ListGuildInvitesRequest
+	53, // 59: api.v1.GuildService.DeleteGuildInvite:input_type -> api.v1.DeleteGuildInviteRequest
+	55, // 60: api.v1.GuildService.JoinGuildByInvite:input_type -> api.v1.JoinGuildByInviteRequest
+	57, // 61: api.v1.GuildService.CreateGuildRole:input_type -> api.v1.CreateGuildRoleRequest
+	59, // 62: api.v1.GuildService.GetGuildRole:input_type -> api.v1.GetGuildRoleRequest
+	61, // 63: api.v1.GuildService.ListGuildRoles:input_type -> api.v1.ListGuildRolesRequest
+	63, // 64: api.v1.GuildService.UpdateGuildRole:input_type -> api.v1.UpdateGuildRoleRequest
+	65, // 65: api.v1.GuildService.DeleteGuildRole:input_type -> api.v1.DeleteGuildRoleRequest
+	68, // 66: api.v1.GuildService.ReorderGuildRoles:input_type -> api.v1.ReorderGuildRolesRequest
+	70, // 67: api.v1.GuildService.AddGuildMemberRole:input_type -> api.v1.AddGuildMemberRoleRequest
+	72, // 68: api.v1.GuildService.RemoveGuildMemberRole:input_type -> api.v1.RemoveGuildMemberRoleRequest
+	74, // 69: api.v1.GuildService.ListGuildMemberRoles:input_type -> api.v1.ListGuildMemberRolesRequest
+	76, // 70: api.v1.GuildService.GetGuildMemberPermissions:input_type -> api.v1.GetGuildMemberPermissionsRequest
+	78, // 71: api.v1.GuildService.CreateGuildChannel:input_type -> api.v1.CreateGuildChannelRequest
+	80, // 72: api.v1.GuildService.GetGuildChannel:input_type -> api.v1.GetGuildChannelRequest
+	82, // 73: api.v1.GuildService.ListGuildChannels:input_type -> api.v1.ListGuildChannelsRequest
+	84, // 74: api.v1.GuildService.UpdateGuildChannel:input_type -> api.v1.UpdateGuildChannelRequest
+	86, // 75: api.v1.GuildService.DeleteGuildChannel:input_type -> api.v1.DeleteGuildChannelRequest
+	89, // 76: api.v1.GuildService.ReorderGuildChannels:input_type -> api.v1.ReorderGuildChannelsRequest
+	91, // 77: api.v1.GuildService.UpsertGuildChannelPermissionOverwrite:input_type -> api.v1.UpsertGuildChannelPermissionOverwriteRequest
+	93, // 78: api.v1.GuildService.DeleteGuildChannelPermissionOverwrite:input_type -> api.v1.DeleteGuildChannelPermissionOverwriteRequest
+	95, // 79: api.v1.GuildService.ListGuildChannelPermissionOverwrites:input_type -> api.v1.ListGuildChannelPermissionOverwritesRequest
+	10, // 80: api.v1.GuildService.CreateGuild:output_type -> api.v1.CreateGuildResponse
+	12, // 81: api.v1.GuildService.GetGuild:output_type -> api.v1.GetGuildResponse
+	14, // 82: api.v1.GuildService.ListGuilds:output_type -> api.v1.ListGuildsResponse
+	16, // 83: api.v1.GuildService.UpdateGuild:output_type -> api.v1.UpdateGuildResponse
+	18, // 84: api.v1.GuildService.CreateGuildIconUpload:output_type -> api.v1.CreateGuildIconUploadResponse
+	20, // 85: api.v1.GuildService.CompleteGuildIconUpload:output_type -> api.v1.CompleteGuildIconUploadResponse
+	22, // 86: api.v1.GuildService.AbortGuildIconUpload:output_type -> api.v1.AbortGuildIconUploadResponse
+	24, // 87: api.v1.GuildService.DeleteGuild:output_type -> api.v1.DeleteGuildResponse
+	26, // 88: api.v1.GuildService.AddGuildMember:output_type -> api.v1.AddGuildMemberResponse
+	28, // 89: api.v1.GuildService.GetGuildMember:output_type -> api.v1.GetGuildMemberResponse
+	30, // 90: api.v1.GuildService.ListGuildMembers:output_type -> api.v1.ListGuildMembersResponse
+	32, // 91: api.v1.GuildService.UpdateCurrentGuildMember:output_type -> api.v1.UpdateCurrentGuildMemberResponse
+	34, // 92: api.v1.GuildService.KickGuildMember:output_type -> api.v1.KickGuildMemberResponse
+	36, // 93: api.v1.GuildService.BanGuildMember:output_type -> api.v1.BanGuildMemberResponse
+	38, // 94: api.v1.GuildService.UnbanGuildMember:output_type -> api.v1.UnbanGuildMemberResponse
+	40, // 95: api.v1.GuildService.ListGuildBans:output_type -> api.v1.ListGuildBansResponse
+	42, // 96: api.v1.GuildService.LeaveGuild:output_type -> api.v1.LeaveGuildResponse
+	44, // 97: api.v1.GuildService.TransferGuildOwnership:output_type -> api.v1.TransferGuildOwnershipResponse
+	48, // 98: api.v1.GuildService.CreateGuildInvite:output_type -> api.v1.CreateGuildInviteResponse
+	50, // 99: api.v1.GuildService.GetGuildInvite:output_type -> api.v1.GetGuildInviteResponse
+	52, // 100: api.v1.GuildService.ListGuildInvites:output_type -> api.v1.ListGuildInvitesResponse
+	54, // 101: api.v1.GuildService.DeleteGuildInvite:output_type -> api.v1.DeleteGuildInviteResponse
+	56, // 102: api.v1.GuildService.JoinGuildByInvite:output_type -> api.v1.JoinGuildByInviteResponse
+	58, // 103: api.v1.GuildService.CreateGuildRole:output_type -> api.v1.CreateGuildRoleResponse
+	60, // 104: api.v1.GuildService.GetGuildRole:output_type -> api.v1.GetGuildRoleResponse
+	62, // 105: api.v1.GuildService.ListGuildRoles:output_type -> api.v1.ListGuildRolesResponse
+	64, // 106: api.v1.GuildService.UpdateGuildRole:output_type -> api.v1.UpdateGuildRoleResponse
+	66, // 107: api.v1.GuildService.DeleteGuildRole:output_type -> api.v1.DeleteGuildRoleResponse
+	69, // 108: api.v1.GuildService.ReorderGuildRoles:output_type -> api.v1.ReorderGuildRolesResponse
+	71, // 109: api.v1.GuildService.AddGuildMemberRole:output_type -> api.v1.AddGuildMemberRoleResponse
+	73, // 110: api.v1.GuildService.RemoveGuildMemberRole:output_type -> api.v1.RemoveGuildMemberRoleResponse
+	75, // 111: api.v1.GuildService.ListGuildMemberRoles:output_type -> api.v1.ListGuildMemberRolesResponse
+	77, // 112: api.v1.GuildService.GetGuildMemberPermissions:output_type -> api.v1.GetGuildMemberPermissionsResponse
+	79, // 113: api.v1.GuildService.CreateGuildChannel:output_type -> api.v1.CreateGuildChannelResponse
+	81, // 114: api.v1.GuildService.GetGuildChannel:output_type -> api.v1.GetGuildChannelResponse
+	83, // 115: api.v1.GuildService.ListGuildChannels:output_type -> api.v1.ListGuildChannelsResponse
+	85, // 116: api.v1.GuildService.UpdateGuildChannel:output_type -> api.v1.UpdateGuildChannelResponse
+	87, // 117: api.v1.GuildService.DeleteGuildChannel:output_type -> api.v1.DeleteGuildChannelResponse
+	90, // 118: api.v1.GuildService.ReorderGuildChannels:output_type -> api.v1.ReorderGuildChannelsResponse
+	92, // 119: api.v1.GuildService.UpsertGuildChannelPermissionOverwrite:output_type -> api.v1.UpsertGuildChannelPermissionOverwriteResponse
+	94, // 120: api.v1.GuildService.DeleteGuildChannelPermissionOverwrite:output_type -> api.v1.DeleteGuildChannelPermissionOverwriteResponse
+	96, // 121: api.v1.GuildService.ListGuildChannelPermissionOverwrites:output_type -> api.v1.ListGuildChannelPermissionOverwritesResponse
+	80, // [80:122] is the sub-list for method output_type
+	38, // [38:80] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_guild_proto_init() }
@@ -10401,7 +11000,7 @@ func file_api_v1_guild_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_v1_guild_proto_rawDesc), len(file_api_v1_guild_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   88,
+			NumMessages:   95,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

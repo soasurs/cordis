@@ -47,6 +47,15 @@ const (
 	// UserServiceUpdateUserProfileProcedure is the fully-qualified name of the UserService's
 	// UpdateUserProfile RPC.
 	UserServiceUpdateUserProfileProcedure = "/api.v1.UserService/UpdateUserProfile"
+	// UserServiceCreateAvatarUploadProcedure is the fully-qualified name of the UserService's
+	// CreateAvatarUpload RPC.
+	UserServiceCreateAvatarUploadProcedure = "/api.v1.UserService/CreateAvatarUpload"
+	// UserServiceCompleteAvatarUploadProcedure is the fully-qualified name of the UserService's
+	// CompleteAvatarUpload RPC.
+	UserServiceCompleteAvatarUploadProcedure = "/api.v1.UserService/CompleteAvatarUpload"
+	// UserServiceAbortAvatarUploadProcedure is the fully-qualified name of the UserService's
+	// AbortAvatarUpload RPC.
+	UserServiceAbortAvatarUploadProcedure = "/api.v1.UserService/AbortAvatarUpload"
 	// UserServiceChangePasswordProcedure is the fully-qualified name of the UserService's
 	// ChangePassword RPC.
 	UserServiceChangePasswordProcedure = "/api.v1.UserService/ChangePassword"
@@ -88,6 +97,15 @@ type UserServiceClient interface {
 	UpdateEmail(context.Context, *v1.UpdateEmailRequest) (*v1.UpdateEmailResponse, error)
 	// UpdateUserProfile replaces the bearer token owner's public profile fields.
 	UpdateUserProfile(context.Context, *v1.UpdateUserProfileRequest) (*v1.UpdateUserProfileResponse, error)
+	// CreateAvatarUpload creates a single-PUT avatar upload owned by the bearer
+	// token user.
+	CreateAvatarUpload(context.Context, *v1.CreateAvatarUploadRequest) (*v1.CreateAvatarUploadResponse, error)
+	// CompleteAvatarUpload validates the uploaded image and replaces the bearer
+	// token user's avatar reference.
+	CompleteAvatarUpload(context.Context, *v1.CompleteAvatarUploadRequest) (*v1.CompleteAvatarUploadResponse, error)
+	// AbortAvatarUpload cancels an unpublished upload owned by the bearer token
+	// user.
+	AbortAvatarUpload(context.Context, *v1.AbortAvatarUploadRequest) (*v1.AbortAvatarUploadResponse, error)
 	// ChangePassword changes the bearer token owner's password after verifying the old password.
 	// A successful change revokes every other session owned by the user.
 	ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error)
@@ -146,6 +164,24 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+UserServiceUpdateUserProfileProcedure,
 			connect.WithSchema(userServiceMethods.ByName("UpdateUserProfile")),
+			connect.WithClientOptions(opts...),
+		),
+		createAvatarUpload: connect.NewClient[v1.CreateAvatarUploadRequest, v1.CreateAvatarUploadResponse](
+			httpClient,
+			baseURL+UserServiceCreateAvatarUploadProcedure,
+			connect.WithSchema(userServiceMethods.ByName("CreateAvatarUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		completeAvatarUpload: connect.NewClient[v1.CompleteAvatarUploadRequest, v1.CompleteAvatarUploadResponse](
+			httpClient,
+			baseURL+UserServiceCompleteAvatarUploadProcedure,
+			connect.WithSchema(userServiceMethods.ByName("CompleteAvatarUpload")),
+			connect.WithClientOptions(opts...),
+		),
+		abortAvatarUpload: connect.NewClient[v1.AbortAvatarUploadRequest, v1.AbortAvatarUploadResponse](
+			httpClient,
+			baseURL+UserServiceAbortAvatarUploadProcedure,
+			connect.WithSchema(userServiceMethods.ByName("AbortAvatarUpload")),
 			connect.WithClientOptions(opts...),
 		),
 		changePassword: connect.NewClient[v1.ChangePasswordRequest, v1.ChangePasswordResponse](
@@ -218,6 +254,9 @@ type userServiceClient struct {
 	checkEmailAvailability *connect.Client[v1.CheckEmailAvailabilityRequest, v1.CheckEmailAvailabilityResponse]
 	updateEmail            *connect.Client[v1.UpdateEmailRequest, v1.UpdateEmailResponse]
 	updateUserProfile      *connect.Client[v1.UpdateUserProfileRequest, v1.UpdateUserProfileResponse]
+	createAvatarUpload     *connect.Client[v1.CreateAvatarUploadRequest, v1.CreateAvatarUploadResponse]
+	completeAvatarUpload   *connect.Client[v1.CompleteAvatarUploadRequest, v1.CompleteAvatarUploadResponse]
+	abortAvatarUpload      *connect.Client[v1.AbortAvatarUploadRequest, v1.AbortAvatarUploadResponse]
 	changePassword         *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
 	lookupUser             *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
 	updateUsername         *connect.Client[v1.UpdateUsernameRequest, v1.UpdateUsernameResponse]
@@ -269,6 +308,33 @@ func (c *userServiceClient) UpdateEmail(ctx context.Context, req *v1.UpdateEmail
 // UpdateUserProfile calls api.v1.UserService.UpdateUserProfile.
 func (c *userServiceClient) UpdateUserProfile(ctx context.Context, req *v1.UpdateUserProfileRequest) (*v1.UpdateUserProfileResponse, error) {
 	response, err := c.updateUserProfile.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CreateAvatarUpload calls api.v1.UserService.CreateAvatarUpload.
+func (c *userServiceClient) CreateAvatarUpload(ctx context.Context, req *v1.CreateAvatarUploadRequest) (*v1.CreateAvatarUploadResponse, error) {
+	response, err := c.createAvatarUpload.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CompleteAvatarUpload calls api.v1.UserService.CompleteAvatarUpload.
+func (c *userServiceClient) CompleteAvatarUpload(ctx context.Context, req *v1.CompleteAvatarUploadRequest) (*v1.CompleteAvatarUploadResponse, error) {
+	response, err := c.completeAvatarUpload.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// AbortAvatarUpload calls api.v1.UserService.AbortAvatarUpload.
+func (c *userServiceClient) AbortAvatarUpload(ctx context.Context, req *v1.AbortAvatarUploadRequest) (*v1.AbortAvatarUploadResponse, error) {
+	response, err := c.abortAvatarUpload.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -377,6 +443,15 @@ type UserServiceHandler interface {
 	UpdateEmail(context.Context, *v1.UpdateEmailRequest) (*v1.UpdateEmailResponse, error)
 	// UpdateUserProfile replaces the bearer token owner's public profile fields.
 	UpdateUserProfile(context.Context, *v1.UpdateUserProfileRequest) (*v1.UpdateUserProfileResponse, error)
+	// CreateAvatarUpload creates a single-PUT avatar upload owned by the bearer
+	// token user.
+	CreateAvatarUpload(context.Context, *v1.CreateAvatarUploadRequest) (*v1.CreateAvatarUploadResponse, error)
+	// CompleteAvatarUpload validates the uploaded image and replaces the bearer
+	// token user's avatar reference.
+	CompleteAvatarUpload(context.Context, *v1.CompleteAvatarUploadRequest) (*v1.CompleteAvatarUploadResponse, error)
+	// AbortAvatarUpload cancels an unpublished upload owned by the bearer token
+	// user.
+	AbortAvatarUpload(context.Context, *v1.AbortAvatarUploadRequest) (*v1.AbortAvatarUploadResponse, error)
 	// ChangePassword changes the bearer token owner's password after verifying the old password.
 	// A successful change revokes every other session owned by the user.
 	ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error)
@@ -431,6 +506,24 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		UserServiceUpdateUserProfileProcedure,
 		svc.UpdateUserProfile,
 		connect.WithSchema(userServiceMethods.ByName("UpdateUserProfile")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceCreateAvatarUploadHandler := connect.NewUnaryHandlerSimple(
+		UserServiceCreateAvatarUploadProcedure,
+		svc.CreateAvatarUpload,
+		connect.WithSchema(userServiceMethods.ByName("CreateAvatarUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceCompleteAvatarUploadHandler := connect.NewUnaryHandlerSimple(
+		UserServiceCompleteAvatarUploadProcedure,
+		svc.CompleteAvatarUpload,
+		connect.WithSchema(userServiceMethods.ByName("CompleteAvatarUpload")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceAbortAvatarUploadHandler := connect.NewUnaryHandlerSimple(
+		UserServiceAbortAvatarUploadProcedure,
+		svc.AbortAvatarUpload,
+		connect.WithSchema(userServiceMethods.ByName("AbortAvatarUpload")),
 		connect.WithHandlerOptions(opts...),
 	)
 	userServiceChangePasswordHandler := connect.NewUnaryHandlerSimple(
@@ -505,6 +598,12 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceUpdateEmailHandler.ServeHTTP(w, r)
 		case UserServiceUpdateUserProfileProcedure:
 			userServiceUpdateUserProfileHandler.ServeHTTP(w, r)
+		case UserServiceCreateAvatarUploadProcedure:
+			userServiceCreateAvatarUploadHandler.ServeHTTP(w, r)
+		case UserServiceCompleteAvatarUploadProcedure:
+			userServiceCompleteAvatarUploadHandler.ServeHTTP(w, r)
+		case UserServiceAbortAvatarUploadProcedure:
+			userServiceAbortAvatarUploadHandler.ServeHTTP(w, r)
 		case UserServiceChangePasswordProcedure:
 			userServiceChangePasswordHandler.ServeHTTP(w, r)
 		case UserServiceLookupUserProcedure:
@@ -552,6 +651,18 @@ func (UnimplementedUserServiceHandler) UpdateEmail(context.Context, *v1.UpdateEm
 
 func (UnimplementedUserServiceHandler) UpdateUserProfile(context.Context, *v1.UpdateUserProfileRequest) (*v1.UpdateUserProfileResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.UpdateUserProfile is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) CreateAvatarUpload(context.Context, *v1.CreateAvatarUploadRequest) (*v1.CreateAvatarUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.CreateAvatarUpload is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) CompleteAvatarUpload(context.Context, *v1.CompleteAvatarUploadRequest) (*v1.CompleteAvatarUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.CompleteAvatarUpload is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) AbortAvatarUpload(context.Context, *v1.AbortAvatarUploadRequest) (*v1.AbortAvatarUploadResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.AbortAvatarUpload is not implemented"))
 }
 
 func (UnimplementedUserServiceHandler) ChangePassword(context.Context, *v1.ChangePasswordRequest) (*v1.ChangePasswordResponse, error) {

@@ -51,6 +51,71 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *apiv1.CreateMess
 	return resp, nil
 }
 
+func (s *messageServer) CreateAttachmentUpload(
+	ctx context.Context,
+	req *apiv1.CreateAttachmentUploadRequest,
+) (*apiv1.CreateAttachmentUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(messagev1.CreateAttachmentUploadRequest)
+	svcReq.SetChannelId(req.GetChannelId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetExpectedSize(req.GetExpectedSize())
+	svcReq.SetContentType(req.GetContentType())
+	svcReq.SetFilename(req.GetFilename())
+	svcResp, err := s.svcCtx.MessageClient.CreateAttachmentUpload(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CreateAttachmentUploadResponse)
+	resp.SetUploadId(svcResp.GetUploadId())
+	resp.SetPresignedUrl(svcResp.GetPresignedUrl())
+	resp.SetExpiresAt(svcResp.GetExpiresAt())
+	resp.SetRequestHeaders(svcResp.GetRequestHeaders())
+	return resp, nil
+}
+
+func (s *messageServer) CompleteAttachmentUpload(
+	ctx context.Context,
+	req *apiv1.CompleteAttachmentUploadRequest,
+) (*apiv1.CompleteAttachmentUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(messagev1.CompleteAttachmentUploadRequest)
+	svcReq.SetChannelId(req.GetChannelId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUploadId(req.GetUploadId())
+	svcResp, err := s.svcCtx.MessageClient.CompleteAttachmentUpload(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CompleteAttachmentUploadResponse)
+	resp.SetAttachment(attachmentToAPI(svcResp.GetAttachment()))
+	return resp, nil
+}
+
+func (s *messageServer) AbortAttachmentUpload(
+	ctx context.Context,
+	req *apiv1.AbortAttachmentUploadRequest,
+) (*apiv1.AbortAttachmentUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(messagev1.AbortAttachmentUploadRequest)
+	svcReq.SetChannelId(req.GetChannelId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUploadId(req.GetUploadId())
+	if _, err := s.svcCtx.MessageClient.AbortAttachmentUpload(ctx, svcReq); err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return new(apiv1.AbortAttachmentUploadResponse), nil
+}
+
 func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMessageRequest) (*apiv1.UpdateMessageResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {
@@ -185,7 +250,7 @@ func attachmentsToMessageService(attachments []*apiv1.Attachment) []*messagev1.A
 			continue
 		}
 		value := new(messagev1.Attachment)
-		value.SetKey(attachment.GetKey())
+		value.SetAssetId(attachment.GetAssetId())
 		value.SetFilename(attachment.GetFilename())
 		value.SetSize(attachment.GetSize())
 		value.SetContentType(attachment.GetContentType())
@@ -199,19 +264,27 @@ func attachmentsToMessageService(attachments []*apiv1.Attachment) []*messagev1.A
 func attachmentsToAPI(attachments []*messagev1.Attachment) []*apiv1.Attachment {
 	values := make([]*apiv1.Attachment, 0, len(attachments))
 	for _, attachment := range attachments {
-		if attachment == nil {
-			continue
+		if value := attachmentToAPI(attachment); value != nil {
+			values = append(values, value)
 		}
-		value := new(apiv1.Attachment)
-		value.SetKey(attachment.GetKey())
-		value.SetFilename(attachment.GetFilename())
-		value.SetSize(attachment.GetSize())
-		value.SetContentType(attachment.GetContentType())
-		value.SetWidth(attachment.GetWidth())
-		value.SetHeight(attachment.GetHeight())
-		values = append(values, value)
 	}
 	return values
+}
+
+func attachmentToAPI(attachment *messagev1.Attachment) *apiv1.Attachment {
+	if attachment == nil {
+		return nil
+	}
+	value := new(apiv1.Attachment)
+	value.SetAssetId(attachment.GetAssetId())
+	value.SetFilename(attachment.GetFilename())
+	value.SetSize(attachment.GetSize())
+	value.SetContentType(attachment.GetContentType())
+	value.SetWidth(attachment.GetWidth())
+	value.SetHeight(attachment.GetHeight())
+	value.SetUrl(attachment.GetUrl())
+	value.SetUrlExpiresAt(attachment.GetUrlExpiresAt())
+	return value
 }
 
 func (s *messageServer) CreateDmChannel(ctx context.Context, req *apiv1.CreateDmChannelRequest) (*apiv1.CreateDmChannelResponse, error) {

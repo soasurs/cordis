@@ -17,9 +17,8 @@ type ListRelationshipsParams struct {
 }
 
 type UpdateUserProfileParams struct {
-	UserID    int64
-	Name      *string
-	AvatarURI *string
+	UserID int64
+	Name   *string
 }
 
 type Store interface {
@@ -30,11 +29,12 @@ type Store interface {
 	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
 	UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error)
 	MarkUserEmailVerified(ctx context.Context, userID int64, email string, verifiedAt int64) error
-	CreateUserProfile(ctx context.Context, userID int64, username, name, avatarURI string) (*model.UserProfile, error)
+	CreateUserProfile(ctx context.Context, userID int64, username, name string) (*model.UserProfile, error)
 	GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error)
 	ListUserProfiles(ctx context.Context, userIDs []int64) ([]*model.UserProfile, error)
 	GetUserProfileByUsername(ctx context.Context, username string) (*model.UserProfile, error)
 	UpdateUserProfile(ctx context.Context, params UpdateUserProfileParams) (*model.UserProfile, error)
+	UpdateUserAvatar(ctx context.Context, userID, assetID int64) (*model.UserProfile, error)
 	UpdateUsername(ctx context.Context, userID int64, username string) (*model.UserProfile, error)
 	LockRelationshipPair(ctx context.Context, userID, targetID int64) error
 	UpsertRelationship(ctx context.Context, relationship *model.Relationship) error

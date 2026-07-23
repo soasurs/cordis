@@ -1,0 +1,52 @@
+name: media.v1
+listenOn: 0.0.0.0:3008
+timeout: 0
+health: false
+log:
+  level: error
+  stat: false
+devServer:
+  enabled: true
+  host: 0.0.0.0
+  port: 6069
+  enableMetrics: true
+  enablePprof: false
+telemetry:
+  endpoint: "${CORDIS_OTEL_ENDPOINT}"
+  sampler: 1.0
+  batcher: otlpgrpc
+middlewares:
+  trace: true
+  recover: true
+  stat: false
+  prometheus: true
+  breaker: true
+database:
+  dataSource: "${CORDIS_MEDIA_DB_DSN}"
+  maxOpenConns: 10
+  maxIdleConns: 5
+objectStore:
+  backend: r2
+  endpoint: "${CORDIS_MEDIA_OBJECT_STORE_ENDPOINT}"
+  region: auto
+  publicBucket: "${CORDIS_MEDIA_PUBLIC_BUCKET}"
+  stagingBucket: "${CORDIS_MEDIA_STAGING_BUCKET}"
+  attachmentBucket: "${CORDIS_MEDIA_ATTACHMENT_BUCKET}"
+  attachmentPublicBaseURL: "${CORDIS_MEDIA_ATTACHMENT_PUBLIC_BASE_URL}"
+  accessKey: "${CORDIS_MEDIA_OBJECT_STORE_ACCESS_KEY}"
+  secretKey: "${CORDIS_MEDIA_OBJECT_STORE_SECRET_KEY}"
+  usePathStyle: true
+  secure: true
+media:
+  uploadSessionTTLSeconds: 900
+  presignedURLTTLSeconds: 900
+  maxUploadSizeBytes: 524288000
+  maxActiveUploadsPerUser: 5
+  stagingCleanupIntervalSeconds: 300
+  imageProcessingTimeoutMs: 30000
+  maxConcurrentImageProcessing: 4
+  maxImageSizeBytes: 10485760
+  maxImageDimension: 4096
+  maxImagePixels: 16777216
+  attachmentAccessMode: public
+  attachmentDownloadTTLSeconds: 86400

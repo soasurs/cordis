@@ -39,7 +39,7 @@ func (s *userServer) CreateUser(ctx context.Context, req *userv1.CreateUserReque
 		}
 		user = createdUser
 
-		if _, err := txStore.CreateUserProfile(ctx, userID, username, req.GetName(), ""); err != nil {
+		if _, err := txStore.CreateUserProfile(ctx, userID, username, req.GetName()); err != nil {
 			return err
 		}
 		return nil

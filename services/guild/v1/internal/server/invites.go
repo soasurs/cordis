@@ -114,7 +114,7 @@ func (s *guildServer) GetGuildInvite(ctx context.Context, req *guildv1.GetGuildI
 	preview.SetCode(invite.Code)
 	preview.SetGuildId(guild.ID)
 	preview.SetGuildName(guild.Name)
-	preview.SetGuildIconUri(guild.IconURI)
+	preview.SetGuildIconAssetId(guild.IconAssetID)
 	preview.SetMemberCount(memberCount)
 	preview.SetExpiresAt(invite.ExpiresAt)
 	resp := new(guildv1.GetGuildInviteResponse)

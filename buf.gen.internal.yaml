@@ -25,3 +25,4 @@ inputs:
       - proto/presence
       - proto/session
       - proto/mailer
+      - proto/media

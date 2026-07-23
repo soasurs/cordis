@@ -99,7 +99,7 @@ func TestGetGuildInviteMapsPreview(t *testing.T) {
 			preview.SetCode("invite-code")
 			preview.SetGuildId(3001)
 			preview.SetGuildName("Cordis")
-			preview.SetGuildIconUri("icon://guild")
+			preview.SetGuildIconAssetId(6001)
 			preview.SetMemberCount(42)
 			preview.SetExpiresAt(4002)
 			resp := new(guildv1.GetGuildInviteResponse)
@@ -116,6 +116,7 @@ func TestGetGuildInviteMapsPreview(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "invite-code", guildClient.getInviteReq.GetCode())
 	require.Equal(t, "Cordis", resp.GetPreview().GetGuildName())
+	require.Equal(t, int64(6001), resp.GetPreview().GetGuildIconAssetId())
 	require.Equal(t, int64(42), resp.GetPreview().GetMemberCount())
 }
 

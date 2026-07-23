@@ -15,7 +15,7 @@ type guildRow struct {
 	ID             int64  `db:"id"`
 	OwnerID        int64  `db:"owner_id"`
 	Name           string `db:"name"`
-	IconURI        string `db:"icon_uri"`
+	IconAssetID    int64  `db:"icon_asset_id"`
 	Revision       int64  `db:"revision"`
 	AccessRevision int64  `db:"access_revision"`
 	CreatedAt      int64  `db:"created_at"`
@@ -23,9 +23,9 @@ type guildRow struct {
 	DeletedAt      int64  `db:"deleted_at"`
 }
 
-func (s *SQLStore) CreateGuild(ctx context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error) {
+func (s *SQLStore) CreateGuild(ctx context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error) {
 	row := new(guildRow)
-	if err := sqlx.GetContext(ctx, s.q, row, createGuildQuery, guildID, ownerID, name, iconURI, createdAt); err != nil {
+	if err := sqlx.GetContext(ctx, s.q, row, createGuildQuery, guildID, ownerID, name, createdAt); err != nil {
 		return nil, err
 	}
 	return guildFromRow(row), nil
@@ -217,12 +217,9 @@ func (s *SQLStore) ListUserGuilds(ctx context.Context, params ListUserGuildsPara
 
 func (s *SQLStore) UpdateGuild(ctx context.Context, params UpdateGuildParams) (*model.Guild, error) {
 	row := new(guildRow)
-	var name, iconURI string
+	var name string
 	if params.Name != nil {
 		name = *params.Name
-	}
-	if params.IconURI != nil {
-		iconURI = *params.IconURI
 	}
 	err := sqlx.GetContext(
 		ctx,
@@ -232,11 +229,25 @@ func (s *SQLStore) UpdateGuild(ctx context.Context, params UpdateGuildParams) (*
 		params.GuildID,
 		params.Name != nil,
 		name,
-		params.IconURI != nil,
-		iconURI,
 		time.Now().UnixMilli(),
 	)
 	if err != nil {
+		return nil, err
+	}
+	return guildFromRow(row), nil
+}
+
+func (s *SQLStore) UpdateGuildIcon(ctx context.Context, guildID, assetID int64) (*model.Guild, error) {
+	row := new(guildRow)
+	if err := sqlx.GetContext(
+		ctx,
+		s.q,
+		row,
+		updateGuildIconQuery,
+		guildID,
+		assetID,
+		time.Now().UnixMilli(),
+	); err != nil {
 		return nil, err
 	}
 	return guildFromRow(row), nil
@@ -265,7 +276,7 @@ func guildFromRow(row *guildRow) *model.Guild {
 		ID:             row.ID,
 		OwnerID:        row.OwnerID,
 		Name:           row.Name,
-		IconURI:        row.IconURI,
+		IconAssetID:    row.IconAssetID,
 		Revision:       row.Revision,
 		AccessRevision: row.AccessRevision,
 		CreatedAt:      row.CreatedAt,

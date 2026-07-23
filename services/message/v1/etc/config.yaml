@@ -62,3 +62,12 @@ services:
       prometheus: true
       breaker: true
       timeout: true
+  media:
+    endpoints:
+      - 127.0.0.1:3008
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true

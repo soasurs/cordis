@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS guilds (
     id          BIGINT PRIMARY KEY CHECK (id > 0),
     owner_id    BIGINT NOT NULL CHECK (owner_id > 0),
     name        TEXT NOT NULL CHECK (char_length(name) BETWEEN 1 AND 100),
-    icon_uri    TEXT NOT NULL DEFAULT '',
+    icon_asset_id BIGINT NOT NULL DEFAULT 0 CHECK (icon_asset_id >= 0),
     revision    BIGINT NOT NULL DEFAULT 1 CHECK (revision > 0),
     created_at  BIGINT NOT NULL CHECK (created_at > 0),
     updated_at  BIGINT NOT NULL DEFAULT 0 CHECK (updated_at >= 0),

@@ -18,6 +18,14 @@ service UserService {
   rpc MarkEmailVerified(MarkEmailVerifiedRequest) returns (MarkEmailVerifiedResponse);
   // UpdateUserProfile replaces all mutable public profile fields.
   rpc UpdateUserProfile(UpdateUserProfileRequest) returns (UpdateUserProfileResponse);
+  // CreateAvatarUpload authorizes an avatar upload for the user and delegates
+  // the binary upload session to Media.
+  rpc CreateAvatarUpload(CreateAvatarUploadRequest) returns (CreateAvatarUploadResponse);
+  // CompleteAvatarUpload publishes the upload and atomically replaces the
+  // user's avatar asset reference.
+  rpc CompleteAvatarUpload(CompleteAvatarUploadRequest) returns (CompleteAvatarUploadResponse);
+  // AbortAvatarUpload cancels an unpublished avatar upload owned by the user.
+  rpc AbortAvatarUpload(AbortAvatarUploadRequest) returns (AbortAvatarUploadResponse);
   // UpdateUsername replaces the unique handle; the old handle is released
   // immediately.
   rpc UpdateUsername(UpdateUsernameRequest) returns (UpdateUsernameResponse);
@@ -68,7 +76,9 @@ message User {
 message UserProfile {
   int64 user_id = 1;
   string name = 2;
-  string avatar_uri = 3;
+  // Zero means the user has no avatar. The public API exposes the deterministic
+  // CDN path contract; this service persists only the asset ID.
+  int64 avatar_asset_id = 3;
   int64 created_at = 4;
   int64 updated_at = 5;
   int64 deleted_at = 6;
@@ -147,13 +157,60 @@ message UpdateUserProfileRequest {
   int64 user_id = 1;
   // Optional replacement field. When absent, the current name is preserved.
   string name = 2;
-  // Optional replacement field. An explicit empty string clears the avatar.
-  string avatar_uri = 3;
 }
 
 message UpdateUserProfileResponse {
   UserProfile profile = 1;
 }
+
+// CreateAvatarUploadRequest carries an authenticated user identity and the
+// exact image upload contract to Media.
+message CreateAvatarUploadRequest {
+  // user_id is derived from verified authentication state by the API service.
+  int64 user_id = 1;
+  // Exact number of bytes the client will PUT.
+  int64 expected_size = 2;
+  // Canonical image/jpeg, image/png, or image/webp media type.
+  string content_type = 3;
+}
+
+// CreateAvatarUploadResponse forwards Media's one-shot direct-upload contract.
+message CreateAvatarUploadResponse {
+  // Opaque upload identifier used for completion or abort.
+  int64 upload_id = 1;
+  // Short-lived URL accepting one PUT with the declared length and media type.
+  string presigned_url = 2;
+  // Presigned URL expiration as Unix milliseconds.
+  int64 expires_at = 3;
+  // HTTP headers required by the presigned PUT. Browser-managed headers such
+  // as Content-Length are informational and must not be set explicitly.
+  map<string, string> request_headers = 4;
+}
+
+// CompleteAvatarUploadRequest publishes an owned upload and associates the
+// resulting asset with the same user.
+message CompleteAvatarUploadRequest {
+  // user_id is both the authenticated actor and avatar subject.
+  int64 user_id = 1;
+  // upload_id is the opaque value returned by CreateAvatarUpload.
+  int64 upload_id = 2;
+}
+
+// CompleteAvatarUploadResponse returns the profile after association.
+message CompleteAvatarUploadResponse {
+  UserProfile profile = 1;
+}
+
+// AbortAvatarUploadRequest cancels an unpublished upload owned by user_id.
+message AbortAvatarUploadRequest {
+  // user_id is the authenticated actor forwarded by the API service.
+  int64 user_id = 1;
+  // upload_id is the opaque value returned by CreateAvatarUpload.
+  int64 upload_id = 2;
+}
+
+// AbortAvatarUploadResponse is empty because abort has no mutable result.
+message AbortAvatarUploadResponse {}
 
 message GetUserProfileByUsernameRequest {
   string username = 1;

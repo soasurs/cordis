@@ -37,6 +37,8 @@ type fakeMessageClient struct {
 	listRequest    *messagev1.ListMessagesRequest
 	listResponse   *messagev1.ListMessagesResponse
 	listError      error
+	uploadRequest  *messagev1.CreateAttachmentUploadRequest
+	uploadResponse *messagev1.CreateAttachmentUploadResponse
 
 	createDmChannelRequest  *messagev1.CreateDmChannelRequest
 	createDmChannelResponse *messagev1.CreateDmChannelResponse
@@ -78,6 +80,15 @@ func (f *fakeMessageClient) ListMessages(_ context.Context, req *messagev1.ListM
 	return f.listResponse, f.listError
 }
 
+func (f *fakeMessageClient) CreateAttachmentUpload(
+	_ context.Context,
+	req *messagev1.CreateAttachmentUploadRequest,
+	_ ...grpc.CallOption,
+) (*messagev1.CreateAttachmentUploadResponse, error) {
+	f.uploadRequest = req
+	return f.uploadResponse, nil
+}
+
 func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	authenticatorClient := &fakeAuthenticatorClient{
 		verifyResponse: verifyAccessTokenResponse(1001),
@@ -89,7 +100,7 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	defer closeServer()
 
 	attachment := new(apiv1.Attachment)
-	attachment.SetKey("attachments/a.png")
+	attachment.SetAssetId(101)
 	attachment.SetFilename("a.png")
 	attachment.SetSize(10)
 	attachment.SetContentType("image/png")
@@ -115,10 +126,42 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	require.Equal(t, int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS), messageClient.createRequest.GetFlags())
 	require.Equal(t, int64(3000), messageClient.createRequest.GetReferencedMessageId())
 	require.Equal(t, []int64{1002}, messageClient.createRequest.GetMentionUserIds())
-	require.Equal(t, "attachments/a.png", messageClient.createRequest.GetAttachments()[0].GetKey())
+	require.Equal(t, int64(101), messageClient.createRequest.GetAttachments()[0].GetAssetId())
 	require.Equal(t, int64(4001), resp.GetMessage().GetId())
 	require.Equal(t, int64(2), resp.GetMessage().GetRevision())
 	require.Equal(t, int64(1001), resp.GetMessage().GetAuthor().GetUserId())
+	require.Equal(t, "https://download.example/101", resp.GetMessage().GetAttachments()[0].GetUrl())
+	require.Equal(t, int64(9001), resp.GetMessage().GetAttachments()[0].GetUrlExpiresAt())
+}
+
+func TestCreateAttachmentUploadForwardsRequestHeaders(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	svcResp := new(messagev1.CreateAttachmentUploadResponse)
+	svcResp.SetUploadId(7001)
+	svcResp.SetPresignedUrl("https://upload.example/7001")
+	svcResp.SetExpiresAt(9001)
+	svcResp.SetRequestHeaders(map[string]string{
+		"Content-Length": "123",
+		"Content-Type":   "application/pdf",
+	})
+	messageClient := &fakeMessageClient{uploadResponse: svcResp}
+	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+	defer closeServer()
+
+	req := new(apiv1.CreateAttachmentUploadRequest)
+	req.SetChannelId(2001)
+	req.SetExpectedSize(123)
+	req.SetContentType("application/pdf")
+	req.SetFilename("report.pdf")
+	resp, err := client.CreateAttachmentUpload(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), messageClient.uploadRequest.GetActorUserId())
+	require.Equal(t, int64(2001), messageClient.uploadRequest.GetChannelId())
+	require.Equal(t, int64(123), messageClient.uploadRequest.GetExpectedSize())
+	require.Equal(t, "report.pdf", messageClient.uploadRequest.GetFilename())
+	require.Equal(t, svcResp.GetRequestHeaders(), resp.GetRequestHeaders())
 }
 
 func TestUpdateMessagePreservesFieldPresence(t *testing.T) {
@@ -346,12 +389,14 @@ func newMessageHTTPClient(
 
 func internalMessage() *messagev1.Message {
 	attachment := new(messagev1.Attachment)
-	attachment.SetKey("attachments/a.png")
+	attachment.SetAssetId(101)
 	attachment.SetFilename("a.png")
 	attachment.SetSize(10)
 	attachment.SetContentType("image/png")
 	attachment.SetWidth(100)
 	attachment.SetHeight(200)
+	attachment.SetUrl("https://download.example/101")
+	attachment.SetUrlExpiresAt(9001)
 
 	message := new(messagev1.Message)
 	message.SetId(4001)
@@ -368,7 +413,7 @@ func internalMessage() *messagev1.Message {
 	author.SetUserId(1001)
 	author.SetName("Alice")
 	author.SetUsername("alice")
-	author.SetAvatarUri("avatar://alice")
+	author.SetAvatarAssetId(77)
 	author.SetCreatedAt(100)
 	author.SetUpdatedAt(200)
 	message.SetAuthor(author)

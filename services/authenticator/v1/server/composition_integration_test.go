@@ -298,6 +298,10 @@ log:
   stat: false
 database:
   dataSource: %s
+services:
+  media:
+    endpoints:
+      - 127.0.0.1:1
 `, address, dsn))
 	return address
 }

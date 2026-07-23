@@ -38,13 +38,13 @@ func TestCreateGuild(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{
-		"id", "owner_id", "name", "icon_uri", "revision", "created_at", "updated_at", "deleted_at",
-	}).AddRow(int64(1001), int64(2001), "Cordis", "", int64(1), int64(10), int64(0), int64(0))
+		"id", "owner_id", "name", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "Cordis", int64(0), int64(1), int64(10), int64(0), int64(0))
 	mock.ExpectQuery(sqlPattern(createGuildQuery)).
-		WithArgs(int64(1001), int64(2001), "Cordis", "", int64(10)).
+		WithArgs(int64(1001), int64(2001), "Cordis", int64(10)).
 		WillReturnRows(rows)
 
-	guild, err := store.CreateGuild(context.Background(), 1001, 2001, "Cordis", "", 10)
+	guild, err := store.CreateGuild(context.Background(), 1001, 2001, "Cordis", 10)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guild.ID)
 	require.Equal(t, int64(2001), guild.OwnerID)
@@ -56,8 +56,8 @@ func TestGetGuildForMember(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{
-		"id", "owner_id", "name", "icon_uri", "revision", "created_at", "updated_at", "deleted_at",
-	}).AddRow(int64(1001), int64(2001), "Cordis", "", int64(1), int64(10), int64(0), int64(0))
+		"id", "owner_id", "name", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "Cordis", int64(0), int64(1), int64(10), int64(0), int64(0))
 	mock.ExpectQuery(sqlPattern(getGuildForMemberQuery)).
 		WithArgs(int64(1001), int64(2001)).
 		WillReturnRows(rows)
@@ -137,8 +137,8 @@ func TestTransferGuildOwnership(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{
-		"id", "owner_id", "name", "icon_uri", "revision", "created_at", "updated_at", "deleted_at",
-	}).AddRow(int64(1001), int64(2002), "Cordis", "", int64(2), int64(10), int64(20), int64(0))
+		"id", "owner_id", "name", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2002), "Cordis", int64(0), int64(2), int64(10), int64(20), int64(0))
 	mock.ExpectQuery(sqlPattern(transferGuildOwnershipQuery)).
 		WithArgs(int64(1001), int64(2001), int64(2002), sqlmock.AnyArg()).
 		WillReturnRows(rows)

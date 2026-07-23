@@ -81,14 +81,14 @@ const (
 const (
 	CreateUserProfileStatement = `
 	INSERT INTO
-		user_profiles (user_id, username, name, avatar_uri, created_at, updated_at, deleted_at)
+		user_profiles (user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at)
 	VALUES
-		(:user_id, :username, :name, :avatar_uri, :created_at, :updated_at, :deleted_at);
+		(:user_id, :username, :name, :avatar_asset_id, :created_at, :updated_at, :deleted_at);
 	`
 
 	GetUserProfileQuery = `
 	SELECT
-		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
 	FROM
 		user_profiles
 	WHERE
@@ -101,7 +101,7 @@ const (
 
 	ListUserProfilesQuery = `
 	SELECT
-		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
 	FROM
 		user_profiles
 	WHERE
@@ -117,14 +117,23 @@ const (
 		user_profiles
 	SET
 		name = CASE WHEN $1 THEN $2 ELSE name END,
-		avatar_uri = CASE WHEN $3 THEN $4 ELSE avatar_uri END,
-		updated_at = $5
+		updated_at = $3
 	WHERE
-		user_id = $6
+		user_id = $4
 	AND
-		deleted_at = $7
+		deleted_at = $5
 	RETURNING
-		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
+	`
+
+	UpdateUserAvatarQuery = `
+	UPDATE user_profiles
+	SET avatar_asset_id = $1,
+		updated_at = $2
+	WHERE user_id = $3
+	  AND deleted_at = 0
+	RETURNING
+		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
 	`
 
 	UpdateUsernameQuery = `
@@ -138,12 +147,12 @@ const (
 	AND
 		deleted_at = $4
 	RETURNING
-		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
 	`
 
 	GetUserProfileByUsernameQuery = `
 	SELECT
-		user_id, username, name, avatar_uri, created_at, updated_at, deleted_at
+		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
 	FROM
 		user_profiles
 	WHERE

@@ -74,7 +74,7 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *userv1.UpdateUs
 	if req.GetUserId() <= 0 {
 		return nil, errUserIDRequired
 	}
-	if !req.HasName() && !req.HasAvatarUri() {
+	if !req.HasName() {
 		return nil, errUpdateFieldsRequired
 	}
 
@@ -89,11 +89,6 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *userv1.UpdateUs
 		}
 		params.Name = &name
 	}
-	if req.HasAvatarUri() {
-		avatarURI := req.GetAvatarUri()
-		params.AvatarURI = &avatarURI
-	}
-
 	profile, err := s.svcCtx.Store.UpdateUserProfile(ctx, params)
 	if err != nil {
 		return nil, mapStoreError(err)

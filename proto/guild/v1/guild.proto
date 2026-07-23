@@ -42,6 +42,9 @@ service GuildService {
   // for an on-demand snapshot reload by Session nodes.
   rpc GetUserGuildChannelVisibility(GetUserGuildChannelVisibilityRequest) returns (GetUserGuildChannelVisibilityResponse);
   rpc UpdateGuild(UpdateGuildRequest) returns (UpdateGuildResponse);
+  rpc CreateGuildIconUpload(CreateGuildIconUploadRequest) returns (CreateGuildIconUploadResponse);
+  rpc CompleteGuildIconUpload(CompleteGuildIconUploadRequest) returns (CompleteGuildIconUploadResponse);
+  rpc AbortGuildIconUpload(AbortGuildIconUploadRequest) returns (AbortGuildIconUploadResponse);
   rpc DeleteGuild(DeleteGuildRequest) returns (DeleteGuildResponse);
   rpc AddGuildMember(AddGuildMemberRequest) returns (AddGuildMemberResponse);
   rpc GetGuildMember(GetGuildMemberRequest) returns (GetGuildMemberResponse);
@@ -84,7 +87,9 @@ message Guild {
   int64 id = 1;
   int64 owner_id = 2;
   string name = 3;
-  string icon_uri = 4;
+  // Zero means the Guild has no icon. This service persists only the Media
+  // asset ID; the public API defines the deterministic CDN path contract.
+  int64 icon_asset_id = 4;
   int64 revision = 5;
   int64 created_at = 6;
   int64 updated_at = 7;
@@ -147,7 +152,6 @@ message GuildChannelPermissionOverwrite {
 message CreateGuildRequest {
   int64 owner_id = 1;
   string name = 2;
-  string icon_uri = 3;
 }
 
 message CreateGuildResponse {
@@ -219,14 +223,67 @@ message GetUserGuildChannelVisibilityResponse {
 message UpdateGuildRequest {
   int64 guild_id = 1;
   int64 actor_user_id = 2;
-  // Optional replacement fields. An explicit empty icon_uri clears the icon.
+  // Optional replacement name.
   string name = 3;
-  string icon_uri = 4;
 }
 
 message UpdateGuildResponse {
   Guild guild = 1;
 }
+
+// CreateGuildIconUploadRequest carries an authenticated actor, target Guild,
+// and exact image upload contract to Media.
+message CreateGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // actor_user_id is derived from verified authentication state by the API
+  // service and must hold MANAGE_GUILD.
+  int64 actor_user_id = 2;
+  // Exact Content-Length in bytes for the subsequent PUT.
+  int64 expected_size = 3;
+  // Canonical image/jpeg, image/png, or image/webp media type.
+  string content_type = 4;
+}
+
+// CreateGuildIconUploadResponse forwards Media's direct-upload contract.
+message CreateGuildIconUploadResponse {
+  // Opaque upload identifier used for completion or abort.
+  int64 upload_id = 1;
+  // Short-lived URL accepting one PUT with the declared length and media type.
+  string presigned_url = 2;
+  // Presigned URL expiration as Unix milliseconds.
+  int64 expires_at = 3;
+  // HTTP headers required by the presigned PUT. Browser-managed headers such
+  // as Content-Length are informational and must not be set explicitly.
+  map<string, string> request_headers = 4;
+}
+
+// CompleteGuildIconUploadRequest publishes an owned upload and associates the
+// resulting asset with the same Guild after rechecking permission.
+message CompleteGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // actor_user_id is the authenticated user that created the upload.
+  int64 actor_user_id = 2;
+  // upload_id is the opaque value returned by CreateGuildIconUpload.
+  int64 upload_id = 3;
+}
+
+// CompleteGuildIconUploadResponse returns the Guild after association.
+message CompleteGuildIconUploadResponse {
+  Guild guild = 1;
+}
+
+// AbortGuildIconUploadRequest cancels an unpublished upload owned by the actor
+// and scoped to the target Guild.
+message AbortGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // actor_user_id is the authenticated user forwarded by the API service.
+  int64 actor_user_id = 2;
+  // upload_id is the opaque value returned by CreateGuildIconUpload.
+  int64 upload_id = 3;
+}
+
+// AbortGuildIconUploadResponse is empty because abort has no mutable result.
+message AbortGuildIconUploadResponse {}
 
 message DeleteGuildRequest {
   int64 guild_id = 1;
@@ -361,7 +418,9 @@ message GuildInvitePreview {
   string code = 1;
   int64 guild_id = 2;
   string guild_name = 3;
-  string guild_icon_uri = 4;
+  // Zero means the Guild has no icon. The public API defines how clients turn
+  // this asset ID and guild_id into a CDN URL.
+  int64 guild_icon_asset_id = 4;
   int64 member_count = 5;
   int64 expires_at = 6;
 }

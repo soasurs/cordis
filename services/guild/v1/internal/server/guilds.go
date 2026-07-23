@@ -21,10 +21,6 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 	if err != nil {
 		return nil, err
 	}
-	if err := validateIconURI(req.GetIconUri()); err != nil {
-		return nil, err
-	}
-
 	guildID := s.svcCtx.Snowflake.Generate().Int64()
 	createdAt := time.Now().UnixMilli()
 	var created *model.Guild
@@ -39,7 +35,7 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 		}); err != nil {
 			return err
 		}
-		guild, err := txStore.CreateGuild(ctx, guildID, req.GetOwnerId(), name, req.GetIconUri(), createdAt)
+		guild, err := txStore.CreateGuild(ctx, guildID, req.GetOwnerId(), name, createdAt)
 		if err != nil {
 			return err
 		}
@@ -112,7 +108,7 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *guildv1.UpdateGuildR
 	if req.GetActorUserId() <= 0 {
 		return nil, invalidRequest("actor user id is required")
 	}
-	if !req.HasName() && !req.HasIconUri() {
+	if !req.HasName() {
 		return nil, invalidRequest("at least one field must be updated")
 	}
 
@@ -124,14 +120,6 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *guildv1.UpdateGuildR
 		}
 		params.Name = &name
 	}
-	if req.HasIconUri() {
-		if err := validateIconURI(req.GetIconUri()); err != nil {
-			return nil, err
-		}
-		iconURI := req.GetIconUri()
-		params.IconURI = &iconURI
-	}
-
 	var updated *model.Guild
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
@@ -278,7 +266,7 @@ func guildToProto(guild *model.Guild) *guildv1.Guild {
 	value.SetId(guild.ID)
 	value.SetOwnerId(guild.OwnerID)
 	value.SetName(guild.Name)
-	value.SetIconUri(guild.IconURI)
+	value.SetIconAssetId(guild.IconAssetID)
 	value.SetRevision(guild.Revision)
 	value.SetCreatedAt(guild.CreatedAt)
 	value.SetUpdatedAt(guild.UpdatedAt)

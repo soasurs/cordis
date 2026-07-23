@@ -1,0 +1,246 @@
+edition = "2023";
+
+package media.v1;
+
+// MediaService owns binary asset upload, validation, publication, and lifecycle
+// management. It exposes generic internal RPCs to trusted API and domain
+// services. Those callers authenticate end-user access tokens and forward the
+// server-derived user ID; Media never receives end-user tokens.
+service MediaService {
+  // CreateUpload reserves an upload session for one typed purpose and returns
+  // a short-lived URL for one exact HTTP PUT.
+  rpc CreateUpload(CreateUploadRequest) returns (CreateUploadResponse);
+  // CompleteUpload validates and publishes an uploaded object. Repeating the
+  // call after success returns the same asset.
+  rpc CompleteUpload(CompleteUploadRequest) returns (CompleteUploadResponse);
+  // AbortUpload terminates an unpublished upload. Repeating an already
+  // successful abort is a no-op; a ready asset cannot be aborted.
+  rpc AbortUpload(AbortUploadRequest) returns (AbortUploadResponse);
+  // GetAsset returns persisted metadata and never reads object bytes.
+  rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
+  // BatchGetAssetURLs resolves delivery URLs for ready attachments after the
+  // trusted Message caller has authorized the containing messages.
+  rpc BatchGetAssetURLs(BatchGetAssetURLsRequest) returns (BatchGetAssetURLsResponse);
+}
+
+// CreateUploadRequest describes the actor, typed purpose, and exact object the
+// client will PUT.
+message CreateUploadRequest {
+  // actor_user_id is the authenticated actor forwarded by the trusted domain
+  // service. The caller must derive it from verified authentication state, not
+  // client input.
+  int64 actor_user_id = 1;
+  // expected_size is the exact Content-Length in bytes. It is signed into the
+  // presigned request and verified again when the upload is completed.
+  int64 expected_size = 2;
+  // content_type is the exact canonical lowercase media type, without
+  // parameters, signed into the presigned request. Image bytes are decoded
+  // later and must agree with this value.
+  string content_type = 3;
+
+  // purpose selects exactly one domain-specific validation, storage, and
+  // publication policy. Domain services authorize the referenced target before
+  // calling Media.
+  oneof purpose {
+    // user_avatar targets actor_user_id.
+    UserAvatarUploadPurpose user_avatar = 10;
+    // guild_icon targets the guild identified inside this purpose.
+    GuildIconUploadPurpose guild_icon = 11;
+    // message_attachment targets the channel identified inside this purpose.
+    MessageAttachmentUploadPurpose message_attachment = 12;
+  }
+}
+
+// UserAvatarUploadPurpose selects a user avatar upload. The target user is the
+// request's actor_user_id, so no second user ID is accepted.
+message UserAvatarUploadPurpose {}
+
+// GuildIconUploadPurpose selects an icon upload for one Guild.
+message GuildIconUploadPurpose {
+  // guild_id is the target Guild already authorized by the trusted caller.
+  int64 guild_id = 1;
+}
+
+// MessageAttachmentUploadPurpose selects an attachment upload for one channel.
+message MessageAttachmentUploadPurpose {
+  // channel_id is the target channel already authorized by the trusted caller.
+  int64 channel_id = 1;
+  // filename is the validated display name and final object-key suffix.
+  string filename = 2;
+}
+
+// CreateUploadResponse contains the one-shot direct-upload contract.
+message CreateUploadResponse {
+  // upload_id is the media_assets record ID. The record changes state in place,
+  // so a successful CompleteUpload returns the same value as asset_id.
+  int64 upload_id = 1;
+  // presigned_url accepts one PUT whose Content-Length and Content-Type must
+  // exactly match expected_size and content_type from the request.
+  string presigned_url = 2;
+  // expires_at is the presigned URL expiration as Unix milliseconds.
+  int64 expires_at = 3;
+  // request_headers contains the HTTP headers required by the presigned PUT.
+  // Browser-managed headers such as Content-Length are informational and must
+  // not be set explicitly by browser clients.
+  map<string, string> request_headers = 4;
+}
+
+// CompleteUploadRequest identifies an upload and its authenticated actor.
+message CompleteUploadRequest {
+  // upload_id is the opaque ID returned by CreateUpload.
+  int64 upload_id = 1;
+  // actor_user_id is forwarded by the trusted caller and must match the user
+  // that created the upload.
+  int64 actor_user_id = 2;
+}
+
+// CompleteUploadResponse describes the ready immutable asset.
+message CompleteUploadResponse {
+  // asset_id is the stable ID domain records may persist. It always equals the
+  // upload_id supplied to this successful completion.
+  int64 asset_id = 1;
+  // metadata describes the validated source and published representation.
+  AssetMetadata metadata = 2;
+}
+
+// AssetMetadata contains validated media attributes.
+message AssetMetadata {
+  // size is the uploaded source size in bytes.
+  int64 size = 1;
+  // content_type is the validated media type of the published object.
+  string content_type = 2;
+  // width and height are the decoded image dimensions and are zero for
+  // non-image assets.
+  int32 width = 3;
+  int32 height = 4;
+  // filename is set only for message attachments.
+  string filename = 5;
+  // url is populated for ready message attachments.
+  string url = 6;
+  // url_expires_at is zero for public URLs and Unix milliseconds for
+  // presigned URLs.
+  int64 url_expires_at = 7;
+}
+
+// AbortUploadRequest identifies an upload and its authenticated actor.
+message AbortUploadRequest {
+  // upload_id is the opaque ID returned by CreateUpload.
+  int64 upload_id = 1;
+  // actor_user_id is forwarded by the trusted caller and must match the user
+  // that created the upload.
+  int64 actor_user_id = 2;
+}
+
+// AbortUploadResponse is empty because abort has no mutable result.
+message AbortUploadResponse {}
+
+// GetAssetRequest identifies an asset.
+message GetAssetRequest {
+  // asset_id is the stable ID returned by CompleteUpload.
+  int64 asset_id = 1;
+}
+
+// GetAssetResponse wraps the requested asset.
+message GetAssetResponse {
+  // asset contains persisted metadata; object bytes and storage keys are not
+  // exposed.
+  Asset asset = 1;
+}
+
+// Asset is the persisted provider-neutral asset metadata.
+message Asset {
+  // id is the stable asset ID and equals the upload ID used to create it.
+  int64 id = 1;
+  // created_by_user_id records the authenticated actor that created the
+  // upload. The target domain resource is identified separately by subject_id.
+  int64 created_by_user_id = 2;
+  // kind determines the asset's validation and delivery policy.
+  AssetKind kind = 3;
+  // status is the durable lifecycle state. Domain services should associate
+  // only READY assets.
+  AssetStatus status = 4;
+  // storage_backend is a logical backend name used to resolve old assets after
+  // new writes migrate to another S3-compatible provider.
+  string storage_backend = 5;
+  // content_type is the published representation's canonical media type.
+  string content_type = 6;
+  // size is the validated uploaded source size in bytes.
+  int64 size = 7;
+  // width and height are the orientation-corrected source dimensions and are
+  // zero for non-image assets.
+  int32 width = 8;
+  int32 height = 9;
+  // created_at and updated_at are Unix milliseconds.
+  int64 created_at = 11;
+  int64 updated_at = 12;
+  // subject_id is the purpose-specific target: the user ID for USER_AVATAR,
+  // Guild ID for GUILD_ICON, or channel ID for MESSAGE_ATTACHMENT.
+  int64 subject_id = 13;
+  // filename is set only for MESSAGE_ATTACHMENT.
+  string filename = 14;
+  // url is populated for ready MESSAGE_ATTACHMENT assets.
+  string url = 15;
+  // url_expires_at is zero for public URLs and Unix milliseconds for
+  // presigned URLs.
+  int64 url_expires_at = 16;
+}
+
+// BatchGetAssetURLsRequest identifies attachment assets whose delivery URLs
+// should be resolved.
+message BatchGetAssetURLsRequest {
+  // asset_ids contains ready message attachment IDs. Duplicate IDs are
+  // resolved once.
+  repeated int64 asset_ids = 1;
+}
+
+// AssetURL associates one attachment asset with its current delivery URL.
+message AssetURL {
+  // asset_id identifies the requested attachment.
+  int64 asset_id = 1;
+  // url is the complete public or presigned delivery URL.
+  string url = 2;
+  // expires_at is zero for public URLs and Unix milliseconds for presigned
+  // URLs.
+  int64 expires_at = 3;
+}
+
+// BatchGetAssetURLsResponse contains one URL per distinct requested asset.
+message BatchGetAssetURLsResponse {
+  // assets follows the first-occurrence order of asset_ids.
+  repeated AssetURL assets = 1;
+}
+
+// AssetKind selects the asset-specific upload and publication policy.
+enum AssetKind {
+  // ASSET_KIND_UNSPECIFIED represents an unknown or unset kind.
+  ASSET_KIND_UNSPECIFIED = 0;
+  // ASSET_KIND_USER_AVATAR is uploaded to staging and published in its
+  // validated original JPEG, PNG, or WebP representation.
+  ASSET_KIND_USER_AVATAR = 1;
+  // ASSET_KIND_GUILD_ICON follows the same image policy as USER_AVATAR.
+  ASSET_KIND_GUILD_ICON = 2;
+  // ASSET_KIND_MESSAGE_ATTACHMENT is uploaded directly to its immutable final
+  // key in the globally configured public or presigned attachment bucket.
+  ASSET_KIND_MESSAGE_ATTACHMENT = 3;
+}
+
+// AssetStatus is the durable upload and publication state.
+enum AssetStatus {
+  // ASSET_STATUS_UNSPECIFIED represents an unknown or unset state.
+  ASSET_STATUS_UNSPECIFIED = 0;
+  // ASSET_STATUS_CREATED means the upload session exists but completion has
+  // not observed the object.
+  ASSET_STATUS_CREATED = 1;
+  // ASSET_STATUS_COMPLETING means Media has claimed completion and will recover
+  // by probing object storage after a crash.
+  ASSET_STATUS_COMPLETING = 2;
+  // ASSET_STATUS_READY means the immutable asset may be associated by a domain
+  // service.
+  ASSET_STATUS_READY = 5;
+  // ASSET_STATUS_FAILED is terminal validation or processing failure.
+  ASSET_STATUS_FAILED = 6;
+  // ASSET_STATUS_ABORTED is a terminal owner-requested cancellation.
+  ASSET_STATUS_ABORTED = 7;
+  // ASSET_STATUS_EXPIRED is a terminal session timeout.
+  ASSET_STATUS_EXPIRED = 8;
+}

@@ -702,7 +702,7 @@ type Message_builder struct {
 	// Channel of the referenced message. May differ from channel_id for
 	// cross-channel forwards.
 	ReferencedChannelId *int64
-	// Object storage keys for attached files.
+	// Immutable media assets attached to this message.
 	Attachments []*Attachment
 	// Non-zero if the message has been edited (Unix milliseconds).
 	EditedAt  *int64
@@ -766,22 +766,21 @@ func (b0 Message_builder) Build() *Message {
 	return m0
 }
 
-// Attachment describes a file attached to a message. The frontend uploads
-// the file to object storage first, then includes the resulting key when
-// sending the message. The backend prepends a CDN base URL when returning
-// attachments to clients.
+// Attachment describes a validated Media asset attached to a message.
 type Attachment struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Key         *string                `protobuf:"bytes,1,opt,name=key"`
-	xxx_hidden_Filename    *string                `protobuf:"bytes,2,opt,name=filename"`
-	xxx_hidden_Size        int64                  `protobuf:"varint,3,opt,name=size"`
-	xxx_hidden_ContentType *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType"`
-	xxx_hidden_Width       int32                  `protobuf:"varint,5,opt,name=width"`
-	xxx_hidden_Height      int32                  `protobuf:"varint,6,opt,name=height"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_AssetId      int64                  `protobuf:"varint,1,opt,name=asset_id,json=assetId"`
+	xxx_hidden_Filename     *string                `protobuf:"bytes,2,opt,name=filename"`
+	xxx_hidden_Size         int64                  `protobuf:"varint,3,opt,name=size"`
+	xxx_hidden_ContentType  *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType"`
+	xxx_hidden_Width        int32                  `protobuf:"varint,5,opt,name=width"`
+	xxx_hidden_Height       int32                  `protobuf:"varint,6,opt,name=height"`
+	xxx_hidden_Url          *string                `protobuf:"bytes,7,opt,name=url"`
+	xxx_hidden_UrlExpiresAt int64                  `protobuf:"varint,8,opt,name=url_expires_at,json=urlExpiresAt"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Attachment) Reset() {
@@ -809,14 +808,11 @@ func (x *Attachment) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *Attachment) GetKey() string {
+func (x *Attachment) GetAssetId() int64 {
 	if x != nil {
-		if x.xxx_hidden_Key != nil {
-			return *x.xxx_hidden_Key
-		}
-		return ""
+		return x.xxx_hidden_AssetId
 	}
-	return ""
+	return 0
 }
 
 func (x *Attachment) GetFilename() string {
@@ -860,37 +856,64 @@ func (x *Attachment) GetHeight() int32 {
 	return 0
 }
 
-func (x *Attachment) SetKey(v string) {
-	x.xxx_hidden_Key = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+func (x *Attachment) GetUrl() string {
+	if x != nil {
+		if x.xxx_hidden_Url != nil {
+			return *x.xxx_hidden_Url
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *Attachment) GetUrlExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_UrlExpiresAt
+	}
+	return 0
+}
+
+func (x *Attachment) SetAssetId(v int64) {
+	x.xxx_hidden_AssetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *Attachment) SetFilename(v string) {
 	x.xxx_hidden_Filename = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *Attachment) SetSize(v int64) {
 	x.xxx_hidden_Size = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *Attachment) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *Attachment) SetWidth(v int32) {
 	x.xxx_hidden_Width = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *Attachment) SetHeight(v int32) {
 	x.xxx_hidden_Height = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
-func (x *Attachment) HasKey() bool {
+func (x *Attachment) SetUrl(v string) {
+	x.xxx_hidden_Url = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *Attachment) SetUrlExpiresAt(v int64) {
+	x.xxx_hidden_UrlExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+}
+
+func (x *Attachment) HasAssetId() bool {
 	if x == nil {
 		return false
 	}
@@ -932,9 +955,23 @@ func (x *Attachment) HasHeight() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
-func (x *Attachment) ClearKey() {
+func (x *Attachment) HasUrl() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *Attachment) HasUrlExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *Attachment) ClearAssetId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Key = nil
+	x.xxx_hidden_AssetId = 0
 }
 
 func (x *Attachment) ClearFilename() {
@@ -962,12 +999,24 @@ func (x *Attachment) ClearHeight() {
 	x.xxx_hidden_Height = 0
 }
 
+func (x *Attachment) ClearUrl() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Url = nil
+}
+
+func (x *Attachment) ClearUrlExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_UrlExpiresAt = 0
+}
+
 type Attachment_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// Object storage key (e.g., "attachments/123/abc.png").
-	Key *string
-	// Original filename shown to users.
+	// Stable Media asset ID. Message persists this ID rather than an object key
+	// or URL.
+	AssetId *int64
+	// Original filename shown to users. Values supplied on message writes are
+	// ignored and replaced from Media metadata.
 	Filename *string
 	// File size in bytes.
 	Size *int64
@@ -976,36 +1025,806 @@ type Attachment_builder struct {
 	// Image dimensions, 0 if not applicable.
 	Width  *int32
 	Height *int32
+	// Complete public or presigned download URL.
+	Url *string
+	// Zero for public URLs; presigned URL expiration as Unix milliseconds.
+	UrlExpiresAt *int64
 }
 
 func (b0 Attachment_builder) Build() *Attachment {
 	m0 := &Attachment{}
 	b, x := &b0, m0
 	_, _ = b, x
-	if b.Key != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
-		x.xxx_hidden_Key = b.Key
+	if b.AssetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		x.xxx_hidden_AssetId = *b.AssetId
 	}
 	if b.Filename != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_Filename = b.Filename
 	}
 	if b.Size != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_Size = *b.Size
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_ContentType = b.ContentType
 	}
 	if b.Width != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_Width = *b.Width
 	}
 	if b.Height != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_Height = *b.Height
 	}
+	if b.Url != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_Url = b.Url
+	}
+	if b.UrlExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_UrlExpiresAt = *b.UrlExpiresAt
+	}
+	return m0
+}
+
+// CreateAttachmentUploadRequest carries an authenticated actor, target channel,
+// and exact object upload contract to Media.
+type CreateAttachmentUploadRequest struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId    int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_ActorUserId  int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_ExpectedSize int64                  `protobuf:"varint,3,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType  *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType"`
+	xxx_hidden_Filename     *string                `protobuf:"bytes,5,opt,name=filename"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *CreateAttachmentUploadRequest) Reset() {
+	*x = CreateAttachmentUploadRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAttachmentUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAttachmentUploadRequest) ProtoMessage() {}
+
+func (x *CreateAttachmentUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateAttachmentUploadRequest) GetChannelId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelId
+	}
+	return 0
+}
+
+func (x *CreateAttachmentUploadRequest) GetActorUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ActorUserId
+	}
+	return 0
+}
+
+func (x *CreateAttachmentUploadRequest) GetExpectedSize() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpectedSize
+	}
+	return 0
+}
+
+func (x *CreateAttachmentUploadRequest) GetContentType() string {
+	if x != nil {
+		if x.xxx_hidden_ContentType != nil {
+			return *x.xxx_hidden_ContentType
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateAttachmentUploadRequest) GetFilename() string {
+	if x != nil {
+		if x.xxx_hidden_Filename != nil {
+			return *x.xxx_hidden_Filename
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateAttachmentUploadRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *CreateAttachmentUploadRequest) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *CreateAttachmentUploadRequest) SetExpectedSize(v int64) {
+	x.xxx_hidden_ExpectedSize = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *CreateAttachmentUploadRequest) SetContentType(v string) {
+	x.xxx_hidden_ContentType = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *CreateAttachmentUploadRequest) SetFilename(v string) {
+	x.xxx_hidden_Filename = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *CreateAttachmentUploadRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateAttachmentUploadRequest) HasActorUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateAttachmentUploadRequest) HasExpectedSize() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateAttachmentUploadRequest) HasContentType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *CreateAttachmentUploadRequest) HasFilename() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *CreateAttachmentUploadRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *CreateAttachmentUploadRequest) ClearActorUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ActorUserId = 0
+}
+
+func (x *CreateAttachmentUploadRequest) ClearExpectedSize() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ExpectedSize = 0
+}
+
+func (x *CreateAttachmentUploadRequest) ClearContentType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ContentType = nil
+}
+
+func (x *CreateAttachmentUploadRequest) ClearFilename() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Filename = nil
+}
+
+type CreateAttachmentUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	// actor_user_id is derived from verified authentication state by the API
+	// service.
+	ActorUserId *int64
+	// Exact Content-Length in bytes for the subsequent PUT.
+	ExpectedSize *int64
+	// Canonical media type sent unchanged as the PUT Content-Type.
+	ContentType *string
+	// Original filename displayed to users and used as the safe object-key
+	// suffix.
+	Filename *string
+}
+
+func (b0 CreateAttachmentUploadRequest_builder) Build() *CreateAttachmentUploadRequest {
+	m0 := &CreateAttachmentUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.ActorUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
+	}
+	if b.ExpectedSize != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
+	}
+	if b.ContentType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_ContentType = b.ContentType
+	}
+	if b.Filename != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_Filename = b.Filename
+	}
+	return m0
+}
+
+// CreateAttachmentUploadResponse forwards Media's direct-upload contract.
+type CreateAttachmentUploadResponse struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UploadId       int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
+	xxx_hidden_PresignedUrl   *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
+	xxx_hidden_ExpiresAt      int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_RequestHeaders map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *CreateAttachmentUploadResponse) Reset() {
+	*x = CreateAttachmentUploadResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAttachmentUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAttachmentUploadResponse) ProtoMessage() {}
+
+func (x *CreateAttachmentUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateAttachmentUploadResponse) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *CreateAttachmentUploadResponse) GetPresignedUrl() string {
+	if x != nil {
+		if x.xxx_hidden_PresignedUrl != nil {
+			return *x.xxx_hidden_PresignedUrl
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateAttachmentUploadResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *CreateAttachmentUploadResponse) GetRequestHeaders() map[string]string {
+	if x != nil {
+		return x.xxx_hidden_RequestHeaders
+	}
+	return nil
+}
+
+func (x *CreateAttachmentUploadResponse) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *CreateAttachmentUploadResponse) SetPresignedUrl(v string) {
+	x.xxx_hidden_PresignedUrl = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *CreateAttachmentUploadResponse) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *CreateAttachmentUploadResponse) SetRequestHeaders(v map[string]string) {
+	x.xxx_hidden_RequestHeaders = v
+}
+
+func (x *CreateAttachmentUploadResponse) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateAttachmentUploadResponse) HasPresignedUrl() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateAttachmentUploadResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateAttachmentUploadResponse) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UploadId = 0
+}
+
+func (x *CreateAttachmentUploadResponse) ClearPresignedUrl() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PresignedUrl = nil
+}
+
+func (x *CreateAttachmentUploadResponse) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type CreateAttachmentUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Opaque upload identifier used for completion or abort. It becomes the
+	// stable asset ID after successful completion.
+	UploadId *int64
+	// Short-lived URL accepting one PUT with the declared length and media type.
+	PresignedUrl *string
+	// Presigned URL expiration as Unix milliseconds.
+	ExpiresAt *int64
+	// HTTP headers required by the presigned PUT. Browser-managed headers such
+	// as Content-Length are informational and must not be set explicitly.
+	RequestHeaders map[string]string
+}
+
+func (b0 CreateAttachmentUploadResponse_builder) Build() *CreateAttachmentUploadResponse {
+	m0 := &CreateAttachmentUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	if b.PresignedUrl != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_PresignedUrl = b.PresignedUrl
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	x.xxx_hidden_RequestHeaders = b.RequestHeaders
+	return m0
+}
+
+// CompleteAttachmentUploadRequest publishes one channel-scoped upload.
+type CompleteAttachmentUploadRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_UploadId    int64                  `protobuf:"varint,3,opt,name=upload_id,json=uploadId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CompleteAttachmentUploadRequest) Reset() {
+	*x = CompleteAttachmentUploadRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteAttachmentUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteAttachmentUploadRequest) ProtoMessage() {}
+
+func (x *CompleteAttachmentUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteAttachmentUploadRequest) GetChannelId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelId
+	}
+	return 0
+}
+
+func (x *CompleteAttachmentUploadRequest) GetActorUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ActorUserId
+	}
+	return 0
+}
+
+func (x *CompleteAttachmentUploadRequest) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *CompleteAttachmentUploadRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CompleteAttachmentUploadRequest) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CompleteAttachmentUploadRequest) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *CompleteAttachmentUploadRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CompleteAttachmentUploadRequest) HasActorUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CompleteAttachmentUploadRequest) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CompleteAttachmentUploadRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *CompleteAttachmentUploadRequest) ClearActorUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ActorUserId = 0
+}
+
+func (x *CompleteAttachmentUploadRequest) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_UploadId = 0
+}
+
+type CompleteAttachmentUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	// actor_user_id must be the user that created the upload.
+	ActorUserId *int64
+	// upload_id is the opaque value returned by CreateAttachmentUpload.
+	UploadId *int64
+}
+
+func (b0 CompleteAttachmentUploadRequest_builder) Build() *CompleteAttachmentUploadRequest {
+	m0 := &CompleteAttachmentUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.ActorUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
+	}
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	return m0
+}
+
+// CompleteAttachmentUploadResponse contains trusted metadata suitable for a
+// subsequent CreateMessage or UpdateMessage request.
+type CompleteAttachmentUploadResponse struct {
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Attachment *Attachment            `protobuf:"bytes,1,opt,name=attachment"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *CompleteAttachmentUploadResponse) Reset() {
+	*x = CompleteAttachmentUploadResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompleteAttachmentUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompleteAttachmentUploadResponse) ProtoMessage() {}
+
+func (x *CompleteAttachmentUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CompleteAttachmentUploadResponse) GetAttachment() *Attachment {
+	if x != nil {
+		return x.xxx_hidden_Attachment
+	}
+	return nil
+}
+
+func (x *CompleteAttachmentUploadResponse) SetAttachment(v *Attachment) {
+	x.xxx_hidden_Attachment = v
+}
+
+func (x *CompleteAttachmentUploadResponse) HasAttachment() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Attachment != nil
+}
+
+func (x *CompleteAttachmentUploadResponse) ClearAttachment() {
+	x.xxx_hidden_Attachment = nil
+}
+
+type CompleteAttachmentUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Attachment *Attachment
+}
+
+func (b0 CompleteAttachmentUploadResponse_builder) Build() *CompleteAttachmentUploadResponse {
+	m0 := &CompleteAttachmentUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Attachment = b.Attachment
+	return m0
+}
+
+// AbortAttachmentUploadRequest cancels an unpublished channel-scoped upload.
+type AbortAttachmentUploadRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_UploadId    int64                  `protobuf:"varint,3,opt,name=upload_id,json=uploadId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AbortAttachmentUploadRequest) Reset() {
+	*x = AbortAttachmentUploadRequest{}
+	mi := &file_message_v1_message_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AbortAttachmentUploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbortAttachmentUploadRequest) ProtoMessage() {}
+
+func (x *AbortAttachmentUploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AbortAttachmentUploadRequest) GetChannelId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelId
+	}
+	return 0
+}
+
+func (x *AbortAttachmentUploadRequest) GetActorUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ActorUserId
+	}
+	return 0
+}
+
+func (x *AbortAttachmentUploadRequest) GetUploadId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UploadId
+	}
+	return 0
+}
+
+func (x *AbortAttachmentUploadRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *AbortAttachmentUploadRequest) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *AbortAttachmentUploadRequest) SetUploadId(v int64) {
+	x.xxx_hidden_UploadId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *AbortAttachmentUploadRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AbortAttachmentUploadRequest) HasActorUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AbortAttachmentUploadRequest) HasUploadId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AbortAttachmentUploadRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *AbortAttachmentUploadRequest) ClearActorUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ActorUserId = 0
+}
+
+func (x *AbortAttachmentUploadRequest) ClearUploadId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_UploadId = 0
+}
+
+type AbortAttachmentUploadRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	ChannelId *int64
+	// actor_user_id must be the user that created the upload.
+	ActorUserId *int64
+	// upload_id is the opaque value returned by CreateAttachmentUpload.
+	UploadId *int64
+}
+
+func (b0 AbortAttachmentUploadRequest_builder) Build() *AbortAttachmentUploadRequest {
+	m0 := &AbortAttachmentUploadRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	if b.ActorUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
+	}
+	if b.UploadId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_UploadId = *b.UploadId
+	}
+	return m0
+}
+
+// AbortAttachmentUploadResponse is empty because abort has no mutable result.
+type AbortAttachmentUploadResponse struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AbortAttachmentUploadResponse) Reset() {
+	*x = AbortAttachmentUploadResponse{}
+	mi := &file_message_v1_message_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AbortAttachmentUploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AbortAttachmentUploadResponse) ProtoMessage() {}
+
+func (x *AbortAttachmentUploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_message_v1_message_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+type AbortAttachmentUploadResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 AbortAttachmentUploadResponse_builder) Build() *AbortAttachmentUploadResponse {
+	m0 := &AbortAttachmentUploadResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
 	return m0
 }
 
@@ -1020,7 +1839,7 @@ type AttachmentList struct {
 
 func (x *AttachmentList) Reset() {
 	*x = AttachmentList{}
-	mi := &file_message_v1_message_proto_msgTypes[3]
+	mi := &file_message_v1_message_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1032,7 +1851,7 @@ func (x *AttachmentList) String() string {
 func (*AttachmentList) ProtoMessage() {}
 
 func (x *AttachmentList) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[3]
+	mi := &file_message_v1_message_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1082,7 +1901,7 @@ type MentionList struct {
 
 func (x *MentionList) Reset() {
 	*x = MentionList{}
-	mi := &file_message_v1_message_proto_msgTypes[4]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1094,7 +1913,7 @@ func (x *MentionList) String() string {
 func (*MentionList) ProtoMessage() {}
 
 func (x *MentionList) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[4]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1150,7 +1969,7 @@ type CreateMessageRequest struct {
 
 func (x *CreateMessageRequest) Reset() {
 	*x = CreateMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[5]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1162,7 +1981,7 @@ func (x *CreateMessageRequest) String() string {
 func (*CreateMessageRequest) ProtoMessage() {}
 
 func (x *CreateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[5]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1434,7 +2253,7 @@ type CreateMessageResponse struct {
 
 func (x *CreateMessageResponse) Reset() {
 	*x = CreateMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[6]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1446,7 +2265,7 @@ func (x *CreateMessageResponse) String() string {
 func (*CreateMessageResponse) ProtoMessage() {}
 
 func (x *CreateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[6]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1509,7 +2328,7 @@ type UpdateMessageRequest struct {
 
 func (x *UpdateMessageRequest) Reset() {
 	*x = UpdateMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[7]
+	mi := &file_message_v1_message_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1521,7 +2340,7 @@ func (x *UpdateMessageRequest) String() string {
 func (*UpdateMessageRequest) ProtoMessage() {}
 
 func (x *UpdateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[7]
+	mi := &file_message_v1_message_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1726,7 +2545,7 @@ type UpdateMessageResponse struct {
 
 func (x *UpdateMessageResponse) Reset() {
 	*x = UpdateMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[8]
+	mi := &file_message_v1_message_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1738,7 +2557,7 @@ func (x *UpdateMessageResponse) String() string {
 func (*UpdateMessageResponse) ProtoMessage() {}
 
 func (x *UpdateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[8]
+	mi := &file_message_v1_message_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1797,7 +2616,7 @@ type DeleteMessageRequest struct {
 
 func (x *DeleteMessageRequest) Reset() {
 	*x = DeleteMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[9]
+	mi := &file_message_v1_message_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1809,7 +2628,7 @@ func (x *DeleteMessageRequest) String() string {
 func (*DeleteMessageRequest) ProtoMessage() {}
 
 func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[9]
+	mi := &file_message_v1_message_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1902,7 +2721,7 @@ type DeleteMessageResponse struct {
 
 func (x *DeleteMessageResponse) Reset() {
 	*x = DeleteMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[10]
+	mi := &file_message_v1_message_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1914,7 +2733,7 @@ func (x *DeleteMessageResponse) String() string {
 func (*DeleteMessageResponse) ProtoMessage() {}
 
 func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[10]
+	mi := &file_message_v1_message_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1978,7 +2797,7 @@ type GetMessageRequest struct {
 
 func (x *GetMessageRequest) Reset() {
 	*x = GetMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[11]
+	mi := &file_message_v1_message_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1990,7 +2809,7 @@ func (x *GetMessageRequest) String() string {
 func (*GetMessageRequest) ProtoMessage() {}
 
 func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[11]
+	mi := &file_message_v1_message_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2080,7 +2899,7 @@ type GetMessageResponse struct {
 
 func (x *GetMessageResponse) Reset() {
 	*x = GetMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[12]
+	mi := &file_message_v1_message_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2092,7 +2911,7 @@ func (x *GetMessageResponse) String() string {
 func (*GetMessageResponse) ProtoMessage() {}
 
 func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[12]
+	mi := &file_message_v1_message_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2153,7 +2972,7 @@ type ListMessagesRequest struct {
 
 func (x *ListMessagesRequest) Reset() {
 	*x = ListMessagesRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[13]
+	mi := &file_message_v1_message_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2165,7 +2984,7 @@ func (x *ListMessagesRequest) String() string {
 func (*ListMessagesRequest) ProtoMessage() {}
 
 func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[13]
+	mi := &file_message_v1_message_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2411,7 +3230,7 @@ func (b0 ListMessagesRequest_builder) Build() *ListMessagesRequest {
 type case_ListMessagesRequest_Cursor protoreflect.FieldNumber
 
 func (x case_ListMessagesRequest_Cursor) String() string {
-	md := file_message_v1_message_proto_msgTypes[13].Descriptor()
+	md := file_message_v1_message_proto_msgTypes[19].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -2456,7 +3275,7 @@ type ListMessagesResponse struct {
 
 func (x *ListMessagesResponse) Reset() {
 	*x = ListMessagesResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[14]
+	mi := &file_message_v1_message_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2468,7 +3287,7 @@ func (x *ListMessagesResponse) String() string {
 func (*ListMessagesResponse) ProtoMessage() {}
 
 func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[14]
+	mi := &file_message_v1_message_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2580,7 +3399,7 @@ type CreateDmChannelRequest struct {
 
 func (x *CreateDmChannelRequest) Reset() {
 	*x = CreateDmChannelRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[15]
+	mi := &file_message_v1_message_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2592,7 +3411,7 @@ func (x *CreateDmChannelRequest) String() string {
 func (*CreateDmChannelRequest) ProtoMessage() {}
 
 func (x *CreateDmChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[15]
+	mi := &file_message_v1_message_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2682,7 +3501,7 @@ type CreateDmChannelResponse struct {
 
 func (x *CreateDmChannelResponse) Reset() {
 	*x = CreateDmChannelResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[16]
+	mi := &file_message_v1_message_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2694,7 +3513,7 @@ func (x *CreateDmChannelResponse) String() string {
 func (*CreateDmChannelResponse) ProtoMessage() {}
 
 func (x *CreateDmChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[16]
+	mi := &file_message_v1_message_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2754,7 +3573,7 @@ type ListDmChannelsRequest struct {
 
 func (x *ListDmChannelsRequest) Reset() {
 	*x = ListDmChannelsRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[17]
+	mi := &file_message_v1_message_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2766,7 +3585,7 @@ func (x *ListDmChannelsRequest) String() string {
 func (*ListDmChannelsRequest) ProtoMessage() {}
 
 func (x *ListDmChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[17]
+	mi := &file_message_v1_message_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2889,7 +3708,7 @@ type ListDmChannelsResponse struct {
 
 func (x *ListDmChannelsResponse) Reset() {
 	*x = ListDmChannelsResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[18]
+	mi := &file_message_v1_message_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2901,7 +3720,7 @@ func (x *ListDmChannelsResponse) String() string {
 func (*ListDmChannelsResponse) ProtoMessage() {}
 
 func (x *ListDmChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[18]
+	mi := &file_message_v1_message_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2981,7 +3800,7 @@ type AckMessageRequest struct {
 
 func (x *AckMessageRequest) Reset() {
 	*x = AckMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[19]
+	mi := &file_message_v1_message_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2993,7 +3812,7 @@ func (x *AckMessageRequest) String() string {
 func (*AckMessageRequest) ProtoMessage() {}
 
 func (x *AckMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[19]
+	mi := &file_message_v1_message_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3114,7 +3933,7 @@ type AckMessageResponse struct {
 
 func (x *AckMessageResponse) Reset() {
 	*x = AckMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[20]
+	mi := &file_message_v1_message_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3126,7 +3945,7 @@ func (x *AckMessageResponse) String() string {
 func (*AckMessageResponse) ProtoMessage() {}
 
 func (x *AckMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[20]
+	mi := &file_message_v1_message_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3185,7 +4004,7 @@ type GetUserReadyStateRequest struct {
 
 func (x *GetUserReadyStateRequest) Reset() {
 	*x = GetUserReadyStateRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[21]
+	mi := &file_message_v1_message_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3197,7 +4016,7 @@ func (x *GetUserReadyStateRequest) String() string {
 func (*GetUserReadyStateRequest) ProtoMessage() {}
 
 func (x *GetUserReadyStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[21]
+	mi := &file_message_v1_message_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3278,7 +4097,7 @@ type ChannelReadState struct {
 
 func (x *ChannelReadState) Reset() {
 	*x = ChannelReadState{}
-	mi := &file_message_v1_message_proto_msgTypes[22]
+	mi := &file_message_v1_message_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3290,7 +4109,7 @@ func (x *ChannelReadState) String() string {
 func (*ChannelReadState) ProtoMessage() {}
 
 func (x *ChannelReadState) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[22]
+	mi := &file_message_v1_message_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3439,7 +4258,7 @@ type GetUserReadyStateResponse struct {
 
 func (x *GetUserReadyStateResponse) Reset() {
 	*x = GetUserReadyStateResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[23]
+	mi := &file_message_v1_message_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3451,7 +4270,7 @@ func (x *GetUserReadyStateResponse) String() string {
 func (*GetUserReadyStateResponse) ProtoMessage() {}
 
 func (x *GetUserReadyStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[23]
+	mi := &file_message_v1_message_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3517,7 +4336,7 @@ type GetReadStatesRequest struct {
 
 func (x *GetReadStatesRequest) Reset() {
 	*x = GetReadStatesRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[24]
+	mi := &file_message_v1_message_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3529,7 +4348,7 @@ func (x *GetReadStatesRequest) String() string {
 func (*GetReadStatesRequest) ProtoMessage() {}
 
 func (x *GetReadStatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[24]
+	mi := &file_message_v1_message_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3652,7 +4471,7 @@ type GetReadStatesResponse struct {
 
 func (x *GetReadStatesResponse) Reset() {
 	*x = GetReadStatesResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[25]
+	mi := &file_message_v1_message_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3664,7 +4483,7 @@ func (x *GetReadStatesResponse) String() string {
 func (*GetReadStatesResponse) ProtoMessage() {}
 
 func (x *GetReadStatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[25]
+	mi := &file_message_v1_message_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3747,15 +4566,48 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
 	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1a\n" +
-	"\brevision\x18\r \x01(\x03R\brevision\"\x9f\x01\n" +
+	"\brevision\x18\r \x01(\x03R\brevision\"\xe0\x01\n" +
 	"\n" +
-	"Attachment\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1a\n" +
+	"Attachment\x12\x19\n" +
+	"\basset_id\x18\x01 \x01(\x03R\aassetId\x12\x1a\n" +
 	"\bfilename\x18\x02 \x01(\tR\bfilename\x12\x12\n" +
 	"\x04size\x18\x03 \x01(\x03R\x04size\x12!\n" +
 	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x14\n" +
 	"\x05width\x18\x05 \x01(\x05R\x05width\x12\x16\n" +
-	"\x06height\x18\x06 \x01(\x05R\x06height\"J\n" +
+	"\x06height\x18\x06 \x01(\x05R\x06height\x12\x10\n" +
+	"\x03url\x18\a \x01(\tR\x03url\x12$\n" +
+	"\x0eurl_expires_at\x18\b \x01(\x03R\furlExpiresAt\"\xc6\x01\n" +
+	"\x1dCreateAttachmentUploadRequest\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12#\n" +
+	"\rexpected_size\x18\x03 \x01(\x03R\fexpectedSize\x12!\n" +
+	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12\x1a\n" +
+	"\bfilename\x18\x05 \x01(\tR\bfilename\"\xad\x02\n" +
+	"\x1eCreateAttachmentUploadResponse\x12\x1b\n" +
+	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
+	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12g\n" +
+	"\x0frequest_headers\x18\x04 \x03(\v2>.message.v1.CreateAttachmentUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x1aA\n" +
+	"\x13RequestHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x81\x01\n" +
+	"\x1fCompleteAttachmentUploadRequest\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x1b\n" +
+	"\tupload_id\x18\x03 \x01(\x03R\buploadId\"Z\n" +
+	" CompleteAttachmentUploadResponse\x126\n" +
+	"\n" +
+	"attachment\x18\x01 \x01(\v2\x16.message.v1.AttachmentR\n" +
+	"attachment\"~\n" +
+	"\x1cAbortAttachmentUploadRequest\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x1b\n" +
+	"\tupload_id\x18\x03 \x01(\x03R\buploadId\"\x1f\n" +
+	"\x1dAbortAttachmentUploadResponse\"J\n" +
 	"\x0eAttachmentList\x128\n" +
 	"\vattachments\x18\x01 \x03(\v2\x16.message.v1.AttachmentR\vattachments\"(\n" +
 	"\vMentionList\x12\x19\n" +
@@ -3864,14 +4716,17 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x12ReadStateScopeType\x12%\n" +
 	"!READ_STATE_SCOPE_TYPE_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bREAD_STATE_SCOPE_TYPE_GUILD\x10\x01\x12!\n" +
-	"\x1dREAD_STATE_SCOPE_TYPE_ALL_DMS\x10\x022\xec\x06\n" +
+	"\x1dREAD_STATE_SCOPE_TYPE_ALL_DMS\x10\x022\xc2\t\n" +
 	"\x0eMessageService\x12T\n" +
 	"\rCreateMessage\x12 .message.v1.CreateMessageRequest\x1a!.message.v1.CreateMessageResponse\x12T\n" +
 	"\rUpdateMessage\x12 .message.v1.UpdateMessageRequest\x1a!.message.v1.UpdateMessageResponse\x12T\n" +
 	"\rDeleteMessage\x12 .message.v1.DeleteMessageRequest\x1a!.message.v1.DeleteMessageResponse\x12K\n" +
 	"\n" +
 	"GetMessage\x12\x1d.message.v1.GetMessageRequest\x1a\x1e.message.v1.GetMessageResponse\x12Q\n" +
-	"\fListMessages\x12\x1f.message.v1.ListMessagesRequest\x1a .message.v1.ListMessagesResponse\x12Z\n" +
+	"\fListMessages\x12\x1f.message.v1.ListMessagesRequest\x1a .message.v1.ListMessagesResponse\x12o\n" +
+	"\x16CreateAttachmentUpload\x12).message.v1.CreateAttachmentUploadRequest\x1a*.message.v1.CreateAttachmentUploadResponse\x12u\n" +
+	"\x18CompleteAttachmentUpload\x12+.message.v1.CompleteAttachmentUploadRequest\x1a,.message.v1.CompleteAttachmentUploadResponse\x12l\n" +
+	"\x15AbortAttachmentUpload\x12(.message.v1.AbortAttachmentUploadRequest\x1a).message.v1.AbortAttachmentUploadResponse\x12Z\n" +
 	"\x0fCreateDmChannel\x12\".message.v1.CreateDmChannelRequest\x1a#.message.v1.CreateDmChannelResponse\x12W\n" +
 	"\x0eListDmChannels\x12!.message.v1.ListDmChannelsRequest\x1a\".message.v1.ListDmChannelsResponse\x12K\n" +
 	"\n" +
@@ -3883,85 +4738,100 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"Message\\V1\xe2\x02\x16Message\\V1\\GPBMetadata\xea\x02\vMessage::V1b\beditionsp\xe8\a"
 
 var file_message_v1_message_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_message_v1_message_proto_goTypes = []any{
-	(MessageType)(0),                  // 0: message.v1.MessageType
-	(MessageFlag)(0),                  // 1: message.v1.MessageFlag
-	(ReadStateScopeType)(0),           // 2: message.v1.ReadStateScopeType
-	(*DmChannel)(nil),                 // 3: message.v1.DmChannel
-	(*Message)(nil),                   // 4: message.v1.Message
-	(*Attachment)(nil),                // 5: message.v1.Attachment
-	(*AttachmentList)(nil),            // 6: message.v1.AttachmentList
-	(*MentionList)(nil),               // 7: message.v1.MentionList
-	(*CreateMessageRequest)(nil),      // 8: message.v1.CreateMessageRequest
-	(*CreateMessageResponse)(nil),     // 9: message.v1.CreateMessageResponse
-	(*UpdateMessageRequest)(nil),      // 10: message.v1.UpdateMessageRequest
-	(*UpdateMessageResponse)(nil),     // 11: message.v1.UpdateMessageResponse
-	(*DeleteMessageRequest)(nil),      // 12: message.v1.DeleteMessageRequest
-	(*DeleteMessageResponse)(nil),     // 13: message.v1.DeleteMessageResponse
-	(*GetMessageRequest)(nil),         // 14: message.v1.GetMessageRequest
-	(*GetMessageResponse)(nil),        // 15: message.v1.GetMessageResponse
-	(*ListMessagesRequest)(nil),       // 16: message.v1.ListMessagesRequest
-	(*ListMessagesResponse)(nil),      // 17: message.v1.ListMessagesResponse
-	(*CreateDmChannelRequest)(nil),    // 18: message.v1.CreateDmChannelRequest
-	(*CreateDmChannelResponse)(nil),   // 19: message.v1.CreateDmChannelResponse
-	(*ListDmChannelsRequest)(nil),     // 20: message.v1.ListDmChannelsRequest
-	(*ListDmChannelsResponse)(nil),    // 21: message.v1.ListDmChannelsResponse
-	(*AckMessageRequest)(nil),         // 22: message.v1.AckMessageRequest
-	(*AckMessageResponse)(nil),        // 23: message.v1.AckMessageResponse
-	(*GetUserReadyStateRequest)(nil),  // 24: message.v1.GetUserReadyStateRequest
-	(*ChannelReadState)(nil),          // 25: message.v1.ChannelReadState
-	(*GetUserReadyStateResponse)(nil), // 26: message.v1.GetUserReadyStateResponse
-	(*GetReadStatesRequest)(nil),      // 27: message.v1.GetReadStatesRequest
-	(*GetReadStatesResponse)(nil),     // 28: message.v1.GetReadStatesResponse
-	(*v1.UserProfile)(nil),            // 29: user.v1.UserProfile
+	(MessageType)(0),                         // 0: message.v1.MessageType
+	(MessageFlag)(0),                         // 1: message.v1.MessageFlag
+	(ReadStateScopeType)(0),                  // 2: message.v1.ReadStateScopeType
+	(*DmChannel)(nil),                        // 3: message.v1.DmChannel
+	(*Message)(nil),                          // 4: message.v1.Message
+	(*Attachment)(nil),                       // 5: message.v1.Attachment
+	(*CreateAttachmentUploadRequest)(nil),    // 6: message.v1.CreateAttachmentUploadRequest
+	(*CreateAttachmentUploadResponse)(nil),   // 7: message.v1.CreateAttachmentUploadResponse
+	(*CompleteAttachmentUploadRequest)(nil),  // 8: message.v1.CompleteAttachmentUploadRequest
+	(*CompleteAttachmentUploadResponse)(nil), // 9: message.v1.CompleteAttachmentUploadResponse
+	(*AbortAttachmentUploadRequest)(nil),     // 10: message.v1.AbortAttachmentUploadRequest
+	(*AbortAttachmentUploadResponse)(nil),    // 11: message.v1.AbortAttachmentUploadResponse
+	(*AttachmentList)(nil),                   // 12: message.v1.AttachmentList
+	(*MentionList)(nil),                      // 13: message.v1.MentionList
+	(*CreateMessageRequest)(nil),             // 14: message.v1.CreateMessageRequest
+	(*CreateMessageResponse)(nil),            // 15: message.v1.CreateMessageResponse
+	(*UpdateMessageRequest)(nil),             // 16: message.v1.UpdateMessageRequest
+	(*UpdateMessageResponse)(nil),            // 17: message.v1.UpdateMessageResponse
+	(*DeleteMessageRequest)(nil),             // 18: message.v1.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),            // 19: message.v1.DeleteMessageResponse
+	(*GetMessageRequest)(nil),                // 20: message.v1.GetMessageRequest
+	(*GetMessageResponse)(nil),               // 21: message.v1.GetMessageResponse
+	(*ListMessagesRequest)(nil),              // 22: message.v1.ListMessagesRequest
+	(*ListMessagesResponse)(nil),             // 23: message.v1.ListMessagesResponse
+	(*CreateDmChannelRequest)(nil),           // 24: message.v1.CreateDmChannelRequest
+	(*CreateDmChannelResponse)(nil),          // 25: message.v1.CreateDmChannelResponse
+	(*ListDmChannelsRequest)(nil),            // 26: message.v1.ListDmChannelsRequest
+	(*ListDmChannelsResponse)(nil),           // 27: message.v1.ListDmChannelsResponse
+	(*AckMessageRequest)(nil),                // 28: message.v1.AckMessageRequest
+	(*AckMessageResponse)(nil),               // 29: message.v1.AckMessageResponse
+	(*GetUserReadyStateRequest)(nil),         // 30: message.v1.GetUserReadyStateRequest
+	(*ChannelReadState)(nil),                 // 31: message.v1.ChannelReadState
+	(*GetUserReadyStateResponse)(nil),        // 32: message.v1.GetUserReadyStateResponse
+	(*GetReadStatesRequest)(nil),             // 33: message.v1.GetReadStatesRequest
+	(*GetReadStatesResponse)(nil),            // 34: message.v1.GetReadStatesResponse
+	nil,                                      // 35: message.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
+	(*v1.UserProfile)(nil),                   // 36: user.v1.UserProfile
 }
 var file_message_v1_message_proto_depIdxs = []int32{
-	29, // 0: message.v1.Message.author:type_name -> user.v1.UserProfile
+	36, // 0: message.v1.Message.author:type_name -> user.v1.UserProfile
 	0,  // 1: message.v1.Message.type:type_name -> message.v1.MessageType
 	5,  // 2: message.v1.Message.attachments:type_name -> message.v1.Attachment
-	5,  // 3: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
-	0,  // 4: message.v1.CreateMessageRequest.type:type_name -> message.v1.MessageType
-	5,  // 5: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment
-	4,  // 6: message.v1.CreateMessageResponse.message:type_name -> message.v1.Message
-	6,  // 7: message.v1.UpdateMessageRequest.attachments:type_name -> message.v1.AttachmentList
-	7,  // 8: message.v1.UpdateMessageRequest.mentions:type_name -> message.v1.MentionList
-	4,  // 9: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
-	4,  // 10: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
-	4,  // 11: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
-	3,  // 12: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
-	3,  // 13: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
-	25, // 14: message.v1.AckMessageResponse.read_state:type_name -> message.v1.ChannelReadState
-	3,  // 15: message.v1.GetUserReadyStateResponse.dm_channels:type_name -> message.v1.DmChannel
-	25, // 16: message.v1.GetUserReadyStateResponse.read_states:type_name -> message.v1.ChannelReadState
-	2,  // 17: message.v1.GetReadStatesRequest.scope:type_name -> message.v1.ReadStateScopeType
-	3,  // 18: message.v1.GetReadStatesResponse.dm_channels:type_name -> message.v1.DmChannel
-	25, // 19: message.v1.GetReadStatesResponse.read_states:type_name -> message.v1.ChannelReadState
-	8,  // 20: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
-	10, // 21: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
-	12, // 22: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
-	14, // 23: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
-	16, // 24: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
-	18, // 25: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
-	20, // 26: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
-	22, // 27: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
-	24, // 28: message.v1.MessageService.GetUserReadyState:input_type -> message.v1.GetUserReadyStateRequest
-	27, // 29: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
-	9,  // 30: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
-	11, // 31: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
-	13, // 32: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
-	15, // 33: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
-	17, // 34: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
-	19, // 35: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
-	21, // 36: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
-	23, // 37: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
-	26, // 38: message.v1.MessageService.GetUserReadyState:output_type -> message.v1.GetUserReadyStateResponse
-	28, // 39: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
-	30, // [30:40] is the sub-list for method output_type
-	20, // [20:30] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	35, // 3: message.v1.CreateAttachmentUploadResponse.request_headers:type_name -> message.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
+	5,  // 4: message.v1.CompleteAttachmentUploadResponse.attachment:type_name -> message.v1.Attachment
+	5,  // 5: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
+	0,  // 6: message.v1.CreateMessageRequest.type:type_name -> message.v1.MessageType
+	5,  // 7: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment
+	4,  // 8: message.v1.CreateMessageResponse.message:type_name -> message.v1.Message
+	12, // 9: message.v1.UpdateMessageRequest.attachments:type_name -> message.v1.AttachmentList
+	13, // 10: message.v1.UpdateMessageRequest.mentions:type_name -> message.v1.MentionList
+	4,  // 11: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
+	4,  // 12: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
+	4,  // 13: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
+	3,  // 14: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
+	3,  // 15: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
+	31, // 16: message.v1.AckMessageResponse.read_state:type_name -> message.v1.ChannelReadState
+	3,  // 17: message.v1.GetUserReadyStateResponse.dm_channels:type_name -> message.v1.DmChannel
+	31, // 18: message.v1.GetUserReadyStateResponse.read_states:type_name -> message.v1.ChannelReadState
+	2,  // 19: message.v1.GetReadStatesRequest.scope:type_name -> message.v1.ReadStateScopeType
+	3,  // 20: message.v1.GetReadStatesResponse.dm_channels:type_name -> message.v1.DmChannel
+	31, // 21: message.v1.GetReadStatesResponse.read_states:type_name -> message.v1.ChannelReadState
+	14, // 22: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
+	16, // 23: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
+	18, // 24: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
+	20, // 25: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
+	22, // 26: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
+	6,  // 27: message.v1.MessageService.CreateAttachmentUpload:input_type -> message.v1.CreateAttachmentUploadRequest
+	8,  // 28: message.v1.MessageService.CompleteAttachmentUpload:input_type -> message.v1.CompleteAttachmentUploadRequest
+	10, // 29: message.v1.MessageService.AbortAttachmentUpload:input_type -> message.v1.AbortAttachmentUploadRequest
+	24, // 30: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
+	26, // 31: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
+	28, // 32: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
+	30, // 33: message.v1.MessageService.GetUserReadyState:input_type -> message.v1.GetUserReadyStateRequest
+	33, // 34: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
+	15, // 35: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
+	17, // 36: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
+	19, // 37: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
+	21, // 38: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
+	23, // 39: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
+	7,  // 40: message.v1.MessageService.CreateAttachmentUpload:output_type -> message.v1.CreateAttachmentUploadResponse
+	9,  // 41: message.v1.MessageService.CompleteAttachmentUpload:output_type -> message.v1.CompleteAttachmentUploadResponse
+	11, // 42: message.v1.MessageService.AbortAttachmentUpload:output_type -> message.v1.AbortAttachmentUploadResponse
+	25, // 43: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
+	27, // 44: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
+	29, // 45: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
+	32, // 46: message.v1.MessageService.GetUserReadyState:output_type -> message.v1.GetUserReadyStateResponse
+	34, // 47: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
+	35, // [35:48] is the sub-list for method output_type
+	22, // [22:35] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_message_v1_message_proto_init() }
@@ -3969,7 +4839,7 @@ func file_message_v1_message_proto_init() {
 	if File_message_v1_message_proto != nil {
 		return
 	}
-	file_message_v1_message_proto_msgTypes[13].OneofWrappers = []any{
+	file_message_v1_message_proto_msgTypes[19].OneofWrappers = []any{
 		(*listMessagesRequest_Before)(nil),
 		(*listMessagesRequest_After)(nil),
 		(*listMessagesRequest_Around)(nil),
@@ -3980,7 +4850,7 @@ func file_message_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_message_v1_message_proto_rawDesc), len(file_message_v1_message_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   26,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

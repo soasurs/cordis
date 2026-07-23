@@ -4,7 +4,7 @@ type Guild struct {
 	ID             int64
 	OwnerID        int64
 	Name           string
-	IconURI        string
+	IconAssetID    int64
 	Revision       int64
 	AccessRevision int64
 	CreatedAt      int64

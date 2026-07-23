@@ -21,7 +21,7 @@ func userProfileToProto(profile *model.UserProfile) *userv1.UserProfile {
 	pbProfile.SetUserId(profile.UserID)
 	pbProfile.SetUsername(profile.Username)
 	pbProfile.SetName(profile.Name)
-	pbProfile.SetAvatarUri(profile.AvatarURI)
+	pbProfile.SetAvatarAssetId(profile.AvatarAssetID)
 	pbProfile.SetCreatedAt(profile.CreatedAt)
 	pbProfile.SetUpdatedAt(profile.UpdatedAt)
 	pbProfile.SetDeletedAt(profile.DeletedAt)

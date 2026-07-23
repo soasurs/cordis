@@ -13,6 +13,11 @@ type Config struct {
 	zrpc.RpcServerConf
 	Database database.Config
 	Kafka    KafkaConfig `json:",optional"`
+	Services ServiceConfig
+}
+
+type ServiceConfig struct {
+	Media zrpc.RpcClientConf
 }
 
 // KafkaConfig configures the optional relationship event stream.

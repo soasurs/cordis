@@ -8,6 +8,7 @@ import (
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/zrpc"
 
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
@@ -21,20 +22,22 @@ type EventPublisher interface {
 }
 
 type ServiceContext struct {
-	Cfg        config.Config
-	Store      store.Store
-	Snowflake  *sn.Node
-	Publisher  EventPublisher
-	UserClient userv1.UserServiceClient
+	Cfg         config.Config
+	Store       store.Store
+	Snowflake   *sn.Node
+	Publisher   EventPublisher
+	UserClient  userv1.UserServiceClient
+	MediaClient mediav1.MediaServiceClient
 }
 
 type Dependencies struct {
-	Store      store.Store
-	Snowflake  *sn.Node
-	Kafka      *kgo.Client
-	Publisher  EventPublisher
-	UserClient userv1.UserServiceClient
-	DB         *sqlx.DB
+	Store       store.Store
+	Snowflake   *sn.Node
+	Kafka       *kgo.Client
+	Publisher   EventPublisher
+	UserClient  userv1.UserServiceClient
+	MediaClient mediav1.MediaServiceClient
+	DB          *sqlx.DB
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -51,6 +54,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		db.Close()
 		return Dependencies{}, err
 	}
+	mediaRPCClient, err := zrpc.NewClient(cfg.Services.Media)
+	if err != nil {
+		db.Close()
+		return Dependencies{}, err
+	}
 
 	var kafkaClient *kgo.Client
 	if len(cfg.Kafka.Seeds) > 0 {
@@ -61,11 +69,12 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		}
 	}
 	return Dependencies{
-		Store:      store.New(db),
-		Snowflake:  node,
-		Kafka:      kafkaClient,
-		UserClient: userv1.NewUserServiceClient(userRPCClient.Conn()),
-		DB:         db,
+		Store:       store.New(db),
+		Snowflake:   node,
+		Kafka:       kafkaClient,
+		UserClient:  userv1.NewUserServiceClient(userRPCClient.Conn()),
+		MediaClient: mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
+		DB:          db,
 	}, nil
 }
 
@@ -87,15 +96,19 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.UserClient == nil {
 		panic("user client is required")
 	}
+	if deps.MediaClient == nil {
+		panic("media client is required")
+	}
 	publisher := deps.Publisher
 	if publisher == nil && deps.Kafka != nil {
 		publisher = kafka.NewPublisher(deps.Kafka, cfg.Kafka.Topic)
 	}
 	return &ServiceContext{
-		Cfg:        cfg,
-		Store:      deps.Store,
-		Snowflake:  deps.Snowflake,
-		Publisher:  publisher,
-		UserClient: deps.UserClient,
+		Cfg:         cfg,
+		Store:       deps.Store,
+		Snowflake:   deps.Snowflake,
+		Publisher:   publisher,
+		UserClient:  deps.UserClient,
+		MediaClient: deps.MediaClient,
 	}
 }

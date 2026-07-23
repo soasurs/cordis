@@ -23,7 +23,7 @@ type readyGuild struct {
 	ID                   string                     `json:"id"`
 	OwnerID              string                     `json:"owner_id"`
 	Name                 string                     `json:"name"`
-	IconURI              string                     `json:"icon_uri"`
+	IconAssetID          string                     `json:"icon_asset_id"`
 	Revision             int64                      `json:"revision"`
 	AccessRevision       int64                      `json:"access_revision"`
 	CreatedAt            int64                      `json:"created_at"`
@@ -137,7 +137,8 @@ func readyGuildValues(values []*guildv1.ReadyGuild) []readyGuild {
 		}
 		result = append(result, readyGuild{
 			ID: idString(guild.GetId()), OwnerID: idString(guild.GetOwnerId()), Name: guild.GetName(),
-			IconURI: guild.GetIconUri(), Revision: guild.GetRevision(), AccessRevision: value.GetAccessRevision(),
+			IconAssetID: strconv.FormatInt(guild.GetIconAssetId(), 10),
+			Revision:    guild.GetRevision(), AccessRevision: value.GetAccessRevision(),
 			CreatedAt: guild.GetCreatedAt(), UpdatedAt: guild.GetUpdatedAt(), Roles: roles,
 			MemberRoleIDs: stringifyIDs(value.GetMemberRoleIds()), Channels: channels,
 			PermissionOverwrites: overwrites,

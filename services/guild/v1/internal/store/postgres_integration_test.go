@@ -135,7 +135,7 @@ func testResourceQuotas(t *testing.T, store Store) {
 				}); err != nil {
 					return err
 				}
-				_, err := txStore.CreateGuild(ctx, guildID, ownerID, "quota", "", time.Now().UnixMilli())
+				_, err := txStore.CreateGuild(ctx, guildID, ownerID, "quota", time.Now().UnixMilli())
 				return err
 			})
 		}()
@@ -208,7 +208,7 @@ func testGuildCRUD(t *testing.T, store Store) {
 	ctx := t.Context()
 	now := time.Now().UnixMilli()
 
-	_, err := store.CreateGuild(ctx, guildID, ownerID, "Cordis", "icon", now)
+	_, err := store.CreateGuild(ctx, guildID, ownerID, "Cordis", now)
 	require.NoError(t, err)
 	_, err = store.CreateGuildMember(ctx, guildID, ownerID, now)
 	require.NoError(t, err)
@@ -217,7 +217,7 @@ func testGuildCRUD(t *testing.T, store Store) {
 	g, err := store.GetGuildForMember(ctx, guildID, ownerID)
 	require.NoError(t, err)
 	require.Equal(t, "Cordis", g.Name)
-	require.Equal(t, "icon", g.IconURI)
+	require.Zero(t, g.IconAssetID)
 	require.Equal(t, int64(1), g.Revision)
 
 	gu, err := store.UpdateGuild(ctx, UpdateGuildParams{GuildID: guildID, Name: ptr("Updated")})
@@ -225,9 +225,9 @@ func testGuildCRUD(t *testing.T, store Store) {
 	require.Equal(t, "Updated", gu.Name)
 	require.Equal(t, int64(2), gu.Revision)
 
-	gu, err = store.UpdateGuild(ctx, UpdateGuildParams{GuildID: guildID, IconURI: ptr("icon2")})
+	gu, err = store.UpdateGuildIcon(ctx, guildID, 9001)
 	require.NoError(t, err)
-	require.Equal(t, "icon2", gu.IconURI)
+	require.Equal(t, int64(9001), gu.IconAssetID)
 	require.Equal(t, int64(3), gu.Revision)
 
 	const guildID2 = 10101
@@ -656,7 +656,7 @@ func testTransactRollback(t *testing.T, store Store) {
 	now := time.Now().UnixMilli()
 
 	err := store.Transact(ctx, func(tx Store) error {
-		if _, err := tx.CreateGuild(ctx, guildID, ownerID, "G", "", now); err != nil {
+		if _, err := tx.CreateGuild(ctx, guildID, ownerID, "G", now); err != nil {
 			return err
 		}
 		if _, err := tx.CreateGuildMember(ctx, guildID, ownerID, now); err != nil {
@@ -683,10 +683,10 @@ func testConstraintEnforcement(t *testing.T, store Store) {
 	})
 	requireCheckViolation(t, err)
 
-	_, err = store.CreateGuild(ctx, 0, ownerID, "G", "", now)
+	_, err = store.CreateGuild(ctx, 0, ownerID, "G", now)
 	requireCheckViolation(t, err)
 
-	_, err = store.CreateGuild(ctx, 11002, ownerID, strings.Repeat("x", 101), "", now)
+	_, err = store.CreateGuild(ctx, 11002, ownerID, strings.Repeat("x", 101), now)
 	requireCheckViolation(t, err)
 
 	_, err = store.CreateGuildChannel(ctx, 11003, guildID, "ch", 9, 0, "", 0, now)
@@ -722,7 +722,7 @@ func seedGuild(t *testing.T, store Store, guildID, ownerID int64) {
 	t.Helper()
 	now := time.Now().UnixMilli()
 	require.NoError(t, store.Transact(t.Context(), func(tx Store) error {
-		if _, err := tx.CreateGuild(t.Context(), guildID, ownerID, "Guild", "", now); err != nil {
+		if _, err := tx.CreateGuild(t.Context(), guildID, ownerID, "Guild", now); err != nil {
 			return err
 		}
 		if _, err := tx.CreateGuildMember(t.Context(), guildID, ownerID, now); err != nil {

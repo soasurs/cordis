@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
@@ -38,7 +39,12 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	req.SetContent("hello")
 	req.SetType(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)
 	req.SetFlags(int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS))
-	req.SetAttachments([]*messagev1.Attachment{pbAttachment("attachments/1/a.png")})
+	attachment := pbAttachment(101)
+	attachment.SetSize(999)
+	attachment.SetContentType("application/x-untrusted")
+	attachment.SetWidth(999)
+	attachment.SetHeight(999)
+	req.SetAttachments([]*messagev1.Attachment{attachment})
 	req.SetMentionUserIds([]int64{30, 31})
 
 	resp, err := server.CreateMessage(t.Context(), req)
@@ -56,7 +62,15 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, "9001", envelope.Data.GuildID)
 	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), envelope.Data.MessageID)
 	require.Equal(t, int64(20), resp.GetMessage().GetAuthor().GetUserId())
+	require.Equal(t, int64(10), resp.GetMessage().GetAttachments()[0].GetSize())
+	require.Equal(t, "image/png", resp.GetMessage().GetAttachments()[0].GetContentType())
+	require.Equal(t, int32(1), resp.GetMessage().GetAttachments()[0].GetWidth())
+	require.Equal(t, int32(1), resp.GetMessage().GetAttachments()[0].GetHeight())
+	require.Equal(t, "https://download.example/101", resp.GetMessage().GetAttachments()[0].GetUrl())
+	require.Equal(t, int64(9001), resp.GetMessage().GetAttachments()[0].GetUrlExpiresAt())
 	require.Equal(t, "20", envelope.Data.Author.UserID)
+	require.Equal(t, "https://download.example/101", envelope.Data.Attachments[0].URL)
+	require.Equal(t, int64(9001), envelope.Data.Attachments[0].URLExpiresAt)
 	require.Equal(t, int64(1), envelope.Data.Revision)
 	var readEnvelope eventEnvelope[messageReadUpdatedPayload]
 	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &readEnvelope))
@@ -171,6 +185,68 @@ func TestMessageResourceLimits(t *testing.T) {
 	}
 	require.Equal(t, codes.ResourceExhausted, status.Code(validateMentionUserIDs(mentions, 100)))
 	require.Equal(t, codes.InvalidArgument, status.Code(validateMentionUserIDs([]int64{1, 1}, 100)))
+}
+
+func TestAttachmentUploadLifecycle(t *testing.T) {
+	fakeStore := newFakeStore()
+	mediaClient := &fakeMediaClient{asset: attachmentAsset(7001, 10, 20)}
+	server := newTestMessageServerWithMedia(
+		t,
+		fakeStore,
+		new(fakePublisher),
+		new(fakeGuildClient),
+		newFakeUserClient(),
+		mediaClient,
+	)
+
+	createReq := new(messagev1.CreateAttachmentUploadRequest)
+	createReq.SetChannelId(10)
+	createReq.SetActorUserId(20)
+	createReq.SetExpectedSize(123)
+	createReq.SetContentType("application/pdf")
+	createReq.SetFilename("report.pdf")
+	createResp, err := server.CreateAttachmentUpload(t.Context(), createReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(7001), createResp.GetUploadId())
+	require.Equal(t, map[string]string{"Content-Type": "application/pdf"}, createResp.GetRequestHeaders())
+	require.Equal(t, int64(20), mediaClient.createRequest.GetActorUserId())
+	require.Equal(t, int64(10), mediaClient.createRequest.GetMessageAttachment().GetChannelId())
+	require.Equal(t, "report.pdf", mediaClient.createRequest.GetMessageAttachment().GetFilename())
+
+	completeReq := new(messagev1.CompleteAttachmentUploadRequest)
+	completeReq.SetChannelId(10)
+	completeReq.SetActorUserId(20)
+	completeReq.SetUploadId(7001)
+	completeResp, err := server.CompleteAttachmentUpload(t.Context(), completeReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(7001), completeResp.GetAttachment().GetAssetId())
+	require.Equal(t, "report.pdf", completeResp.GetAttachment().GetFilename())
+	require.Equal(t, int64(123), completeResp.GetAttachment().GetSize())
+	require.Equal(t, "application/pdf", completeResp.GetAttachment().GetContentType())
+	require.Equal(t, "https://download.example/7001", completeResp.GetAttachment().GetUrl())
+	require.Equal(t, int64(9001), completeResp.GetAttachment().GetUrlExpiresAt())
+}
+
+func TestCreateMessageRejectsAttachmentOwnedByAnotherUser(t *testing.T) {
+	fakeStore := newFakeStore()
+	mediaClient := &fakeMediaClient{asset: attachmentAsset(101, 10, 21)}
+	server := newTestMessageServerWithMedia(
+		t,
+		fakeStore,
+		new(fakePublisher),
+		new(fakeGuildClient),
+		newFakeUserClient(),
+		mediaClient,
+	)
+	req := new(messagev1.CreateMessageRequest)
+	req.SetChannelId(10)
+	req.SetAuthorId(20)
+	req.SetContent("hello")
+	req.SetAttachments([]*messagev1.Attachment{pbAttachment(101)})
+
+	_, err := server.CreateMessage(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+	require.Empty(t, fakeStore.messages)
 }
 
 func TestCreateReplyValidatesReferencedChannel(t *testing.T) {
@@ -306,13 +382,26 @@ func TestGetAndListMessages(t *testing.T) {
 	fakeStore.messages[100] = &model.Message{
 		ID: 100, ChannelID: 10, AuthorID: 20, Content: "one",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
+		Attachments: []model.Attachment{{AssetID: 7001, Filename: "one.png"}},
 	}
 	fakeStore.messages[101] = &model.Message{
 		ID: 101, ChannelID: 10, AuthorID: 21, Content: "two",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 2,
+		Attachments: []model.Attachment{
+			{AssetID: 7002, Filename: "two.png"},
+			{AssetID: 7001, Filename: "one.png"},
+		},
 	}
 	userClient := newFakeUserClient()
-	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), new(fakeGuildClient), userClient)
+	mediaClient := new(fakeMediaClient)
+	server := newTestMessageServerWithMedia(
+		t,
+		fakeStore,
+		new(fakePublisher),
+		new(fakeGuildClient),
+		userClient,
+		mediaClient,
+	)
 
 	getReq := new(messagev1.GetMessageRequest)
 	getReq.SetMessageId(101)
@@ -321,6 +410,7 @@ func TestGetAndListMessages(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(2), getResp.GetMessage().GetRevision())
 	require.Equal(t, int64(21), getResp.GetMessage().GetAuthor().GetUserId())
+	require.Equal(t, "https://download.example/7002", getResp.GetMessage().GetAttachments()[0].GetUrl())
 
 	listReq := new(messagev1.ListMessagesRequest)
 	listReq.SetChannelId(10)
@@ -336,6 +426,9 @@ func TestGetAndListMessages(t *testing.T) {
 	require.Equal(t, int64(101), listResp.GetAfterCursor())
 	require.Equal(t, []int64{21}, userClient.profileRequests())
 	require.Equal(t, [][]int64{{21, 20}}, userClient.batchRequests(), "list must load distinct authors in one batch")
+	require.Len(t, mediaClient.batchRequests, 2)
+	require.Equal(t, []int64{7002, 7001}, mediaClient.batchRequests[0].GetAssetIds())
+	require.Equal(t, []int64{7002, 7001}, mediaClient.batchRequests[1].GetAssetIds())
 }
 
 func TestCreateMessageValidation(t *testing.T) {
@@ -412,6 +505,24 @@ func newTestMessageServerWithClients(
 	guildClient guildv1.GuildServiceClient,
 	userClient userv1.UserServiceClient,
 ) messagev1.MessageServiceServer {
+	return newTestMessageServerWithMedia(
+		t,
+		fakeStore,
+		publisher,
+		guildClient,
+		userClient,
+		&fakeMediaClient{},
+	)
+}
+
+func newTestMessageServerWithMedia(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	guildClient guildv1.GuildServiceClient,
+	userClient userv1.UserServiceClient,
+	mediaClient mediav1.MediaServiceClient,
+) messagev1.MessageServiceServer {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
@@ -427,6 +538,7 @@ func newTestMessageServerWithClients(
 		Publisher:   publisher,
 		GuildClient: guildClient,
 		UserClient:  userClient,
+		MediaClient: mediaClient,
 	})
 }
 
@@ -435,7 +547,7 @@ func testUserProfile(userID int64) *userv1.UserProfile {
 	profile.SetUserId(userID)
 	profile.SetName("User " + strconv.FormatInt(userID, 10))
 	profile.SetUsername("user_" + strconv.FormatInt(userID, 10))
-	profile.SetAvatarUri("avatar://" + strconv.FormatInt(userID, 10))
+	profile.SetAvatarAssetId(userID + 1000)
 	profile.SetCreatedAt(1)
 	profile.SetUpdatedAt(2)
 	return profile
@@ -449,6 +561,111 @@ type fakeGuildClient struct {
 	channelType           guildv1.GuildChannelType
 	authorizeRequests     []*guildv1.AuthorizeGuildChannelRequest
 	visibleTextChannelIDs []int64
+}
+
+type fakeMediaClient struct {
+	mediav1.MediaServiceClient
+	asset           *mediav1.Asset
+	createRequest   *mediav1.CreateUploadRequest
+	completeRequest *mediav1.CompleteUploadRequest
+	abortRequest    *mediav1.AbortUploadRequest
+	batchRequests   []*mediav1.BatchGetAssetURLsRequest
+	batchResponse   *mediav1.BatchGetAssetURLsResponse
+}
+
+func (f *fakeMediaClient) CreateUpload(
+	_ context.Context,
+	req *mediav1.CreateUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.CreateUploadResponse, error) {
+	f.createRequest = req
+	resp := new(mediav1.CreateUploadResponse)
+	resp.SetUploadId(7001)
+	resp.SetPresignedUrl("https://upload.example/7001")
+	resp.SetExpiresAt(9001)
+	resp.SetRequestHeaders(map[string]string{"Content-Type": req.GetContentType()})
+	return resp, nil
+}
+
+func (f *fakeMediaClient) GetAsset(
+	_ context.Context,
+	req *mediav1.GetAssetRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.GetAssetResponse, error) {
+	asset := f.asset
+	if asset == nil {
+		asset = attachmentAsset(req.GetAssetId(), 10, 20)
+		asset.SetStatus(mediav1.AssetStatus_ASSET_STATUS_READY)
+		asset.SetSize(10)
+		asset.SetContentType("image/png")
+		asset.SetFilename("file.png")
+		asset.SetWidth(1)
+		asset.SetHeight(1)
+		asset.SetUrl("https://download.example/" + strconv.FormatInt(req.GetAssetId(), 10))
+		asset.SetUrlExpiresAt(9001)
+	}
+	resp := new(mediav1.GetAssetResponse)
+	resp.SetAsset(asset)
+	return resp, nil
+}
+
+func (f *fakeMediaClient) CompleteUpload(
+	_ context.Context,
+	req *mediav1.CompleteUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.CompleteUploadResponse, error) {
+	f.completeRequest = req
+	resp := new(mediav1.CompleteUploadResponse)
+	resp.SetAssetId(req.GetUploadId())
+	metadata := new(mediav1.AssetMetadata)
+	metadata.SetSize(123)
+	metadata.SetContentType("application/pdf")
+	metadata.SetFilename("report.pdf")
+	metadata.SetUrl("https://download.example/" + strconv.FormatInt(req.GetUploadId(), 10))
+	metadata.SetUrlExpiresAt(9001)
+	resp.SetMetadata(metadata)
+	return resp, nil
+}
+
+func (f *fakeMediaClient) AbortUpload(
+	_ context.Context,
+	req *mediav1.AbortUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.AbortUploadResponse, error) {
+	f.abortRequest = req
+	return new(mediav1.AbortUploadResponse), nil
+}
+
+func (f *fakeMediaClient) BatchGetAssetURLs(
+	_ context.Context,
+	req *mediav1.BatchGetAssetURLsRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.BatchGetAssetURLsResponse, error) {
+	f.batchRequests = append(f.batchRequests, req)
+	if f.batchResponse != nil {
+		return f.batchResponse, nil
+	}
+	values := make([]*mediav1.AssetURL, 0, len(req.GetAssetIds()))
+	for _, assetID := range req.GetAssetIds() {
+		value := new(mediav1.AssetURL)
+		value.SetAssetId(assetID)
+		value.SetUrl("https://download.example/" + strconv.FormatInt(assetID, 10))
+		value.SetExpiresAt(9001)
+		values = append(values, value)
+	}
+	resp := new(mediav1.BatchGetAssetURLsResponse)
+	resp.SetAssets(values)
+	return resp, nil
+}
+
+func attachmentAsset(assetID, channelID, actorUserID int64) *mediav1.Asset {
+	asset := new(mediav1.Asset)
+	asset.SetId(assetID)
+	asset.SetCreatedByUserId(actorUserID)
+	asset.SetSubjectId(channelID)
+	asset.SetKind(mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT)
+	asset.SetStatus(mediav1.AssetStatus_ASSET_STATUS_CREATED)
+	return asset
 }
 
 func (f *fakeGuildClient) GetUserGuildChannelVisibility(
@@ -481,9 +698,9 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	return resp, nil
 }
 
-func pbAttachment(key string) *messagev1.Attachment {
+func pbAttachment(assetID int64) *messagev1.Attachment {
 	attachment := new(messagev1.Attachment)
-	attachment.SetKey(key)
+	attachment.SetAssetId(assetID)
 	attachment.SetFilename("file.png")
 	attachment.SetSize(10)
 	attachment.SetContentType("image/png")

@@ -12,21 +12,28 @@ import (
 func TestMarshalAttachmentsRoundTrip(t *testing.T) {
 	attachments := []model.Attachment{
 		{
-			Key:         "attachments/1/a.png",
-			Filename:    "a.png",
-			Size:        10,
-			ContentType: "image/png",
-			Width:       100,
-			Height:      200,
+			AssetID:      101,
+			Filename:     "a.png",
+			Size:         10,
+			ContentType:  "image/png",
+			Width:        100,
+			Height:       200,
+			URL:          "https://cdn.example.com/a.png",
+			URLExpiresAt: 9001,
 		},
 	}
 
 	value, err := marshalAttachments(attachments)
 	require.NoError(t, err)
+	require.NotContains(t, value, "https://cdn.example.com")
+	require.NotContains(t, value, "url_expires_at")
 
 	got, err := unmarshalAttachments(value)
 	require.NoError(t, err)
-	require.Equal(t, attachments, got)
+	expected := append([]model.Attachment(nil), attachments...)
+	expected[0].URL = ""
+	expected[0].URLExpiresAt = 0
+	require.Equal(t, expected, got)
 }
 
 func TestUniquePositiveIDs(t *testing.T) {
@@ -38,7 +45,7 @@ func TestBuildUpdateMessageQuery(t *testing.T) {
 	content := "updated'); DROP TABLE messages; --"
 	flags := int32(1)
 	attachments := []model.Attachment{
-		{Key: "attachments/1/a.png", Filename: "a.png", Size: 10},
+		{AssetID: 101, Filename: "a.png", Size: 10},
 	}
 
 	query, args, err := buildUpdateMessageQuery(UpdateMessageParams{
@@ -63,7 +70,7 @@ func TestBuildUpdateMessageQuery(t *testing.T) {
 		int64(1234),
 		content,
 		flags,
-		`[{"key":"attachments/1/a.png","filename":"a.png","size":10,"content_type":"","width":0,"height":0}]`,
+		`[{"asset_id":101,"filename":"a.png","size":10,"content_type":"","width":0,"height":0}]`,
 		int64(100),
 		int64(20),
 		int64(0),

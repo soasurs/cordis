@@ -30,7 +30,6 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *apiv1.CreateGuildReq
 	svcReq := new(guildv1.CreateGuildRequest)
 	svcReq.SetOwnerId(auth.GetUserId())
 	svcReq.SetName(req.GetName())
-	svcReq.SetIconUri(req.GetIconUri())
 	svcResp, err := s.svcCtx.GuildClient.CreateGuild(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -87,9 +86,6 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *apiv1.UpdateGuildReq
 	if req.HasName() {
 		svcReq.SetName(req.GetName())
 	}
-	if req.HasIconUri() {
-		svcReq.SetIconUri(req.GetIconUri())
-	}
 	svcResp, err := s.svcCtx.GuildClient.UpdateGuild(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -97,6 +93,70 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *apiv1.UpdateGuildReq
 	resp := new(apiv1.UpdateGuildResponse)
 	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
 	return resp, nil
+}
+
+func (s *guildServer) CreateGuildIconUpload(
+	ctx context.Context,
+	req *apiv1.CreateGuildIconUploadRequest,
+) (*apiv1.CreateGuildIconUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.CreateGuildIconUploadRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetExpectedSize(req.GetExpectedSize())
+	svcReq.SetContentType(req.GetContentType())
+	svcResp, err := s.svcCtx.GuildClient.CreateGuildIconUpload(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CreateGuildIconUploadResponse)
+	resp.SetUploadId(svcResp.GetUploadId())
+	resp.SetPresignedUrl(svcResp.GetPresignedUrl())
+	resp.SetExpiresAt(svcResp.GetExpiresAt())
+	resp.SetRequestHeaders(svcResp.GetRequestHeaders())
+	return resp, nil
+}
+
+func (s *guildServer) CompleteGuildIconUpload(
+	ctx context.Context,
+	req *apiv1.CompleteGuildIconUploadRequest,
+) (*apiv1.CompleteGuildIconUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.CompleteGuildIconUploadRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUploadId(req.GetUploadId())
+	svcResp, err := s.svcCtx.GuildClient.CompleteGuildIconUpload(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CompleteGuildIconUploadResponse)
+	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
+	return resp, nil
+}
+
+func (s *guildServer) AbortGuildIconUpload(
+	ctx context.Context,
+	req *apiv1.AbortGuildIconUploadRequest,
+) (*apiv1.AbortGuildIconUploadResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.AbortGuildIconUploadRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetUploadId(req.GetUploadId())
+	if _, err := s.svcCtx.GuildClient.AbortGuildIconUpload(ctx, svcReq); err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	return new(apiv1.AbortGuildIconUploadResponse), nil
 }
 
 func (s *guildServer) DeleteGuild(ctx context.Context, req *apiv1.DeleteGuildRequest) (*apiv1.DeleteGuildResponse, error) {
@@ -308,7 +368,7 @@ func guildToAPI(guild *guildv1.Guild) *apiv1.Guild {
 	resp.SetId(guild.GetId())
 	resp.SetOwnerId(guild.GetOwnerId())
 	resp.SetName(guild.GetName())
-	resp.SetIconUri(guild.GetIconUri())
+	resp.SetIconAssetId(guild.GetIconAssetId())
 	resp.SetRevision(guild.GetRevision())
 	resp.SetCreatedAt(guild.GetCreatedAt())
 	resp.SetUpdatedAt(guild.GetUpdatedAt())

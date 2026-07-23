@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/guild/v1/config"
@@ -33,7 +34,6 @@ func TestCreateGuildCreatesOwnerDefaultRoleAndEvent(t *testing.T) {
 	req := new(guildv1.CreateGuildRequest)
 	req.SetOwnerId(1001)
 	req.SetName(" Cordis ")
-	req.SetIconUri("icon://guild")
 	resp, err := server.CreateGuild(t.Context(), req)
 	require.NoError(t, err)
 
@@ -145,17 +145,65 @@ func TestUpdateGuildRequiresOwnerAndPreservesPresence(t *testing.T) {
 	updateReq := new(guildv1.UpdateGuildRequest)
 	updateReq.SetGuildId(10)
 	updateReq.SetActorUserId(1001)
-	updateReq.SetIconUri("")
+	updateReq.SetName("Still Guild")
 	resp, err := server.UpdateGuild(t.Context(), updateReq)
 	require.NoError(t, err)
-	require.Equal(t, "Guild", resp.GetGuild().GetName())
-	require.Empty(t, resp.GetGuild().GetIconUri())
+	require.Equal(t, "Still Guild", resp.GetGuild().GetName())
+	require.Equal(t, int64(77), resp.GetGuild().GetIconAssetId())
 	require.Equal(t, int64(2), resp.GetGuild().GetRevision())
 
 	var envelope eventEnvelope[guildPayload]
 	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
 	require.Equal(t, EventTypeGuildUpdated, envelope.Type)
 	require.Equal(t, int64(2), envelope.Data.Revision)
+}
+
+func TestGuildIconUploadLifecycle(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	mediaClient := &fakeMediaClient{asset: guildIconAsset(7001, 10, 1001)}
+	publisher := new(fakePublisher)
+	server := newTestGuildServerWithMedia(t, fakeStore, publisher, mediaClient)
+
+	createReq := new(guildv1.CreateGuildIconUploadRequest)
+	createReq.SetGuildId(10)
+	createReq.SetActorUserId(1001)
+	createReq.SetExpectedSize(123)
+	createReq.SetContentType("image/png")
+	createResp, err := server.CreateGuildIconUpload(t.Context(), createReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(7001), createResp.GetUploadId())
+	require.Equal(t, map[string]string{"Content-Type": "image/png"}, createResp.GetRequestHeaders())
+	require.Equal(t, int64(1001), mediaClient.createRequest.GetActorUserId())
+	require.Equal(t, int64(10), mediaClient.createRequest.GetGuildIcon().GetGuildId())
+
+	completeReq := new(guildv1.CompleteGuildIconUploadRequest)
+	completeReq.SetGuildId(10)
+	completeReq.SetActorUserId(1001)
+	completeReq.SetUploadId(7001)
+	completeResp, err := server.CompleteGuildIconUpload(t.Context(), completeReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(7001), completeResp.GetGuild().GetIconAssetId())
+	require.Equal(t, int64(7001), mediaClient.completeRequest.GetUploadId())
+	require.Len(t, publisher.records, 1)
+}
+
+func TestCompleteGuildIconUploadRejectsWrongSubject(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	mediaClient := &fakeMediaClient{asset: guildIconAsset(7001, 20, 1001)}
+	server := newTestGuildServerWithMedia(t, fakeStore, nil, mediaClient)
+
+	req := new(guildv1.CompleteGuildIconUploadRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetUploadId(7001)
+	_, err := server.CompleteGuildIconUpload(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+	require.Nil(t, mediaClient.completeRequest)
+	require.Equal(t, int64(77), fakeStore.guilds[10].IconAssetID)
 }
 
 func TestDeleteGuildSoftDeletesChildrenAndPublishesEvent(t *testing.T) {
@@ -203,13 +251,23 @@ func TestListUserGuildsUsesDescendingCursor(t *testing.T) {
 }
 
 func newTestGuildServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher) guildv1.GuildServiceServer {
+	return newTestGuildServerWithMedia(t, fakeStore, publisher, &fakeMediaClient{})
+}
+
+func newTestGuildServerWithMedia(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	mediaClient mediav1.MediaServiceClient,
+) guildv1.GuildServiceServer {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
 	return New(&svc.ServiceContext{
 		Cfg:   config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
 		Store: fakeStore, Snowflake: node, Publisher: publisher,
-		UserClient: &fakeUserClient{},
+		UserClient:  &fakeUserClient{},
+		MediaClient: mediaClient,
 	})
 }
 
@@ -229,6 +287,68 @@ func (f *fakeUserClient) GetUser(_ context.Context, req *userv1.GetUserRequest, 
 	resp := new(userv1.GetUserResponse)
 	resp.SetUser(user)
 	return resp, nil
+}
+
+type fakeMediaClient struct {
+	mediav1.MediaServiceClient
+	asset           *mediav1.Asset
+	createRequest   *mediav1.CreateUploadRequest
+	completeRequest *mediav1.CompleteUploadRequest
+	abortRequest    *mediav1.AbortUploadRequest
+}
+
+func (f *fakeMediaClient) CreateUpload(
+	_ context.Context,
+	req *mediav1.CreateUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.CreateUploadResponse, error) {
+	f.createRequest = req
+	resp := new(mediav1.CreateUploadResponse)
+	resp.SetUploadId(7001)
+	resp.SetPresignedUrl("https://upload.example/7001")
+	resp.SetExpiresAt(9001)
+	resp.SetRequestHeaders(map[string]string{"Content-Type": "image/png"})
+	return resp, nil
+}
+
+func (f *fakeMediaClient) GetAsset(
+	_ context.Context,
+	_ *mediav1.GetAssetRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.GetAssetResponse, error) {
+	resp := new(mediav1.GetAssetResponse)
+	resp.SetAsset(f.asset)
+	return resp, nil
+}
+
+func (f *fakeMediaClient) CompleteUpload(
+	_ context.Context,
+	req *mediav1.CompleteUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.CompleteUploadResponse, error) {
+	f.completeRequest = req
+	resp := new(mediav1.CompleteUploadResponse)
+	resp.SetAssetId(req.GetUploadId())
+	return resp, nil
+}
+
+func (f *fakeMediaClient) AbortUpload(
+	_ context.Context,
+	req *mediav1.AbortUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.AbortUploadResponse, error) {
+	f.abortRequest = req
+	return new(mediav1.AbortUploadResponse), nil
+}
+
+func guildIconAsset(assetID, guildID, actorUserID int64) *mediav1.Asset {
+	asset := new(mediav1.Asset)
+	asset.SetId(assetID)
+	asset.SetCreatedByUserId(actorUserID)
+	asset.SetSubjectId(guildID)
+	asset.SetKind(mediav1.AssetKind_ASSET_KIND_GUILD_ICON)
+	asset.SetStatus(mediav1.AssetStatus_ASSET_STATUS_CREATED)
+	return asset
 }
 
 type publishedRecord struct {
@@ -295,8 +415,8 @@ func (s *fakeStore) CheckResourceQuota(_ context.Context, quota store.ResourceQu
 	return s.quotaErr
 }
 
-func (s *fakeStore) CreateGuild(_ context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error) {
-	guild := &model.Guild{ID: guildID, OwnerID: ownerID, Name: name, IconURI: iconURI, Revision: 1, AccessRevision: 1, CreatedAt: createdAt}
+func (s *fakeStore) CreateGuild(_ context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error) {
+	guild := &model.Guild{ID: guildID, OwnerID: ownerID, Name: name, Revision: 1, AccessRevision: 1, CreatedAt: createdAt}
 	s.guilds[guildID] = guild
 	return cloneGuild(guild), nil
 }
@@ -371,9 +491,17 @@ func (s *fakeStore) UpdateGuild(_ context.Context, params store.UpdateGuildParam
 	if params.Name != nil {
 		guild.Name = *params.Name
 	}
-	if params.IconURI != nil {
-		guild.IconURI = *params.IconURI
+	guild.Revision++
+	guild.UpdatedAt = 2
+	return cloneGuild(guild), nil
+}
+
+func (s *fakeStore) UpdateGuildIcon(_ context.Context, guildID, assetID int64) (*model.Guild, error) {
+	guild, ok := s.guilds[guildID]
+	if !ok || guild.DeletedAt != 0 {
+		return nil, sql.ErrNoRows
 	}
+	guild.IconAssetID = assetID
 	guild.Revision++
 	guild.UpdatedAt = 2
 	return cloneGuild(guild), nil
@@ -990,7 +1118,7 @@ func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuilds(ctx context.Con
 }
 
 func testGuild(id, ownerID int64) *model.Guild {
-	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconURI: "icon://old", Revision: 1, AccessRevision: 1, CreatedAt: 1}
+	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconAssetID: 77, Revision: 1, AccessRevision: 1, CreatedAt: 1}
 }
 
 func cloneGuild(guild *model.Guild) *model.Guild {

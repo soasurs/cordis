@@ -64,7 +64,7 @@ func testCreateAndGetMessage(t *testing.T, store Store) {
 	withAttachments, err := store.CreateMessage(ctx, CreateMessageParams{
 		MessageID: 5003, ChannelID: channelID, AuthorID: 3001, Type: 1,
 		Attachments: []model.Attachment{{
-			Key: "k1", Filename: "a.png", Size: 42, ContentType: "image/png", Width: 10, Height: 20,
+			AssetID: 6001, Filename: "a.png", Size: 42, ContentType: "image/png", Width: 10, Height: 20,
 		}},
 	})
 	require.NoError(t, err)
@@ -73,7 +73,7 @@ func testCreateAndGetMessage(t *testing.T, store Store) {
 	loaded, err := store.GetMessage(ctx, 5003)
 	require.NoError(t, err)
 	require.Equal(t, []model.Attachment{{
-		Key: "k1", Filename: "a.png", Size: 42, ContentType: "image/png", Width: 10, Height: 20,
+		AssetID: 6001, Filename: "a.png", Size: 42, ContentType: "image/png", Width: 10, Height: 20,
 	}}, loaded.Attachments)
 
 	_, err = store.GetMessage(ctx, 9999)
@@ -155,7 +155,7 @@ func testUpdateMessage(t *testing.T, store Store) {
 
 	withAttachments, err := store.UpdateMessage(ctx, UpdateMessageParams{
 		MessageID: 5201, ActorUserID: authorID,
-		Attachments: ptr([]model.Attachment{{Key: "k2", Filename: "b.png", Size: 1, ContentType: "image/png"}}),
+		Attachments: ptr([]model.Attachment{{AssetID: 6002, Filename: "b.png", Size: 1, ContentType: "image/png"}}),
 	})
 	require.NoError(t, err)
 	require.Len(t, withAttachments.Attachments, 1)

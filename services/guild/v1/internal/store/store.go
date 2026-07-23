@@ -48,7 +48,6 @@ type ResourceQuota struct {
 type UpdateGuildParams struct {
 	GuildID int64
 	Name    *string
-	IconURI *string
 }
 
 type ListUserGuildsParams struct {
@@ -94,12 +93,13 @@ type UpdateGuildChannelParams struct {
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
 	CheckResourceQuota(ctx context.Context, quota ResourceQuota) error
-	CreateGuild(ctx context.Context, guildID, ownerID int64, name, iconURI string, createdAt int64) (*model.Guild, error)
+	CreateGuild(ctx context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error)
 	CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error)
 	CreateDefaultRole(ctx context.Context, guildID, createdAt int64) error
 	GetGuildForMember(ctx context.Context, guildID, userID int64) (*model.Guild, error)
 	ListUserGuilds(ctx context.Context, params ListUserGuildsParams) ([]*model.Guild, error)
 	UpdateGuild(ctx context.Context, params UpdateGuildParams) (*model.Guild, error)
+	UpdateGuildIcon(ctx context.Context, guildID, assetID int64) (*model.Guild, error)
 	DeleteGuild(ctx context.Context, guildID, deletedAt int64) (*model.Guild, error)
 	DeleteGuildMembers(ctx context.Context, guildID, deletedAt int64) error
 	DeleteGuildRoles(ctx context.Context, guildID, deletedAt int64) error

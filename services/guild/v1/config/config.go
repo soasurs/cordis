@@ -76,7 +76,8 @@ func (c ResourceLimitsConfig) Overwrites() int {
 }
 
 type ServiceConfig struct {
-	User zrpc.RpcClientConf
+	User  zrpc.RpcClientConf
+	Media zrpc.RpcClientConf
 }
 
 type KafkaConfig struct {

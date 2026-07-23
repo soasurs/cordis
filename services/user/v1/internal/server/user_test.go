@@ -9,9 +9,11 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	"github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -101,9 +103,9 @@ func TestGetUserWithEmail(t *testing.T) {
 func TestGetUserProfile(t *testing.T) {
 	store := newFakeStore()
 	store.profile = &model.UserProfile{
-		UserID:    1001,
-		Name:      "display name",
-		AvatarURI: "avatar://1",
+		UserID:        1001,
+		Name:          "display name",
+		AvatarAssetID: 77,
 	}
 	server := newTestUserServer(t, store)
 
@@ -114,7 +116,7 @@ func TestGetUserProfile(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), resp.GetProfile().GetUserId())
 	require.Equal(t, "display name", resp.GetProfile().GetName())
-	require.Equal(t, "avatar://1", resp.GetProfile().GetAvatarUri())
+	require.Equal(t, int64(77), resp.GetProfile().GetAvatarAssetId())
 }
 
 func TestBatchGetUserProfiles(t *testing.T) {
@@ -151,9 +153,9 @@ func TestBatchGetUserProfilesValidation(t *testing.T) {
 func TestUpdateUserProfile(t *testing.T) {
 	store := newFakeStore()
 	store.profile = &model.UserProfile{
-		UserID:    1001,
-		Name:      "old name",
-		AvatarURI: "avatar://1",
+		UserID:        1001,
+		Name:          "old name",
+		AvatarAssetID: 77,
 	}
 	server := newTestUserServer(t, store)
 
@@ -164,15 +166,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	resp, err := server.UpdateUserProfile(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "new name", resp.GetProfile().GetName())
-	require.Equal(t, "avatar://1", resp.GetProfile().GetAvatarUri())
-
-	req = new(userv1.UpdateUserProfileRequest)
-	req.SetUserId(1001)
-	req.SetAvatarUri("")
-	resp, err = server.UpdateUserProfile(context.Background(), req)
-	require.NoError(t, err)
-	require.Equal(t, "new name", resp.GetProfile().GetName())
-	require.Empty(t, resp.GetProfile().GetAvatarUri())
+	require.Equal(t, int64(77), resp.GetProfile().GetAvatarAssetId())
 }
 
 func TestUpdateUserProfileValidation(t *testing.T) {
@@ -277,16 +271,129 @@ func TestGetUserNotFound(t *testing.T) {
 	require.Equal(t, codes.NotFound, status.Code(err))
 }
 
+func TestAvatarUploadLifecycle(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.profile = &model.UserProfile{UserID: 1001, Name: "user"}
+	mediaClient := &fakeMediaClient{asset: avatarAsset(7001, 1001)}
+	server := newTestUserServerWithMedia(t, fakeStore, mediaClient)
+
+	createReq := new(userv1.CreateAvatarUploadRequest)
+	createReq.SetUserId(1001)
+	createReq.SetExpectedSize(123)
+	createReq.SetContentType("image/png")
+	createResp, err := server.CreateAvatarUpload(t.Context(), createReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(7001), createResp.GetUploadId())
+	require.Equal(t, map[string]string{"Content-Type": "image/png"}, createResp.GetRequestHeaders())
+	require.Equal(t, int64(1001), mediaClient.createRequest.GetActorUserId())
+	require.True(t, mediaClient.createRequest.HasUserAvatar())
+
+	completeReq := new(userv1.CompleteAvatarUploadRequest)
+	completeReq.SetUserId(1001)
+	completeReq.SetUploadId(7001)
+	completeResp, err := server.CompleteAvatarUpload(t.Context(), completeReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(7001), completeResp.GetProfile().GetAvatarAssetId())
+	require.Equal(t, int64(1001), mediaClient.completeRequest.GetActorUserId())
+	require.Equal(t, int64(7001), mediaClient.completeRequest.GetUploadId())
+}
+
+func TestCompleteAvatarUploadRejectsAnotherUsersAsset(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.profile = &model.UserProfile{UserID: 1001, AvatarAssetID: 99}
+	mediaClient := &fakeMediaClient{asset: avatarAsset(7001, 2002)}
+	server := newTestUserServerWithMedia(t, fakeStore, mediaClient)
+
+	req := new(userv1.CompleteAvatarUploadRequest)
+	req.SetUserId(1001)
+	req.SetUploadId(7001)
+	_, err := server.CompleteAvatarUpload(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+	require.Nil(t, mediaClient.completeRequest)
+	require.Equal(t, int64(99), fakeStore.profile.AvatarAssetID)
+}
+
 func newTestUserServer(t *testing.T, store store.Store) userv1.UserServiceServer {
+	return newTestUserServerWithMedia(t, store, &fakeMediaClient{})
+}
+
+func newTestUserServerWithMedia(
+	t *testing.T,
+	store store.Store,
+	mediaClient mediav1.MediaServiceClient,
+) userv1.UserServiceServer {
 	t.Helper()
 
 	node, err := snowflake.New()
 	require.NoError(t, err)
 
 	return New(&svc.ServiceContext{
-		Store:     store,
-		Snowflake: node,
+		Store:       store,
+		Snowflake:   node,
+		MediaClient: mediaClient,
 	})
+}
+
+type fakeMediaClient struct {
+	mediav1.MediaServiceClient
+	asset           *mediav1.Asset
+	createRequest   *mediav1.CreateUploadRequest
+	completeRequest *mediav1.CompleteUploadRequest
+	abortRequest    *mediav1.AbortUploadRequest
+}
+
+func (f *fakeMediaClient) CreateUpload(
+	_ context.Context,
+	req *mediav1.CreateUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.CreateUploadResponse, error) {
+	f.createRequest = req
+	resp := new(mediav1.CreateUploadResponse)
+	resp.SetUploadId(7001)
+	resp.SetPresignedUrl("https://upload.example/7001")
+	resp.SetExpiresAt(9001)
+	resp.SetRequestHeaders(map[string]string{"Content-Type": "image/png"})
+	return resp, nil
+}
+
+func (f *fakeMediaClient) GetAsset(
+	_ context.Context,
+	_ *mediav1.GetAssetRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.GetAssetResponse, error) {
+	resp := new(mediav1.GetAssetResponse)
+	resp.SetAsset(f.asset)
+	return resp, nil
+}
+
+func (f *fakeMediaClient) CompleteUpload(
+	_ context.Context,
+	req *mediav1.CompleteUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.CompleteUploadResponse, error) {
+	f.completeRequest = req
+	resp := new(mediav1.CompleteUploadResponse)
+	resp.SetAssetId(req.GetUploadId())
+	return resp, nil
+}
+
+func (f *fakeMediaClient) AbortUpload(
+	_ context.Context,
+	req *mediav1.AbortUploadRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.AbortUploadResponse, error) {
+	f.abortRequest = req
+	return new(mediav1.AbortUploadResponse), nil
+}
+
+func avatarAsset(assetID, userID int64) *mediav1.Asset {
+	asset := new(mediav1.Asset)
+	asset.SetId(assetID)
+	asset.SetCreatedByUserId(userID)
+	asset.SetSubjectId(userID)
+	asset.SetKind(mediav1.AssetKind_ASSET_KIND_USER_AVATAR)
+	asset.SetStatus(mediav1.AssetStatus_ASSET_STATUS_CREATED)
+	return asset
 }
 
 type fakeStore struct {
@@ -369,7 +476,7 @@ func (s *fakeStore) MarkUserEmailVerified(_ context.Context, userID int64, email
 	return nil
 }
 
-func (s *fakeStore) CreateUserProfile(_ context.Context, userID int64, username, name, avatarURI string) (*model.UserProfile, error) {
+func (s *fakeStore) CreateUserProfile(_ context.Context, userID int64, username, name string) (*model.UserProfile, error) {
 	if s.createProfileErr != nil {
 		return nil, s.createProfileErr
 	}
@@ -377,10 +484,9 @@ func (s *fakeStore) CreateUserProfile(_ context.Context, userID int64, username,
 		return nil, errors.New("missing user")
 	}
 	s.profile = &model.UserProfile{
-		UserID:    userID,
-		Username:  username,
-		Name:      name,
-		AvatarURI: avatarURI,
+		UserID:   userID,
+		Username: username,
+		Name:     name,
 	}
 	return s.profile, nil
 }
@@ -422,9 +528,14 @@ func (s *fakeStore) UpdateUserProfile(_ context.Context, params store.UpdateUser
 	if params.Name != nil {
 		s.profile.Name = *params.Name
 	}
-	if params.AvatarURI != nil {
-		s.profile.AvatarURI = *params.AvatarURI
+	return s.profile, nil
+}
+
+func (s *fakeStore) UpdateUserAvatar(_ context.Context, userID, assetID int64) (*model.UserProfile, error) {
+	if s.profile == nil || s.profile.UserID != userID {
+		return nil, sql.ErrNoRows
 	}
+	s.profile.AvatarAssetID = assetID
 	return s.profile, nil
 }
 

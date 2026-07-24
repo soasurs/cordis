@@ -44,6 +44,53 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("guild delete helpers", func(t *testing.T) { testGuildDeleteHelpers(t, store) })
 	t.Run("invites", func(t *testing.T) { testGuildInvites(t, store) })
 	t.Run("resource quotas", func(t *testing.T) { testResourceQuotas(t, store) })
+	t.Run("channel mutation lock", func(t *testing.T) { testGuildChannelMutationLock(t, store) })
+}
+
+func testGuildChannelMutationLock(t *testing.T, store Store) {
+	const guildID = int64(19300)
+	ctx := t.Context()
+	firstLocked := make(chan error)
+	releaseFirst := make(chan struct{})
+	firstResult := make(chan error)
+	go func() {
+		firstResult <- store.Transact(ctx, func(txStore Store) error {
+			err := txStore.LockGuildChannelMutations(ctx, guildID)
+			firstLocked <- err
+			if err != nil {
+				return err
+			}
+			<-releaseFirst
+			return nil
+		})
+	}()
+	require.NoError(t, <-firstLocked)
+
+	secondAcquired := make(chan error)
+	secondResult := make(chan error)
+	go func() {
+		secondResult <- store.Transact(ctx, func(txStore Store) error {
+			err := txStore.LockGuildChannelMutations(ctx, guildID)
+			secondAcquired <- err
+			return err
+		})
+	}()
+	var secondLockErr error
+	acquiredEarly := false
+	select {
+	case err := <-secondAcquired:
+		secondLockErr = err
+		acquiredEarly = true
+		require.Failf(t, "second lock acquired early", "error: %v", err)
+	case <-time.After(100 * time.Millisecond):
+	}
+	close(releaseFirst)
+	require.NoError(t, <-firstResult)
+	if !acquiredEarly {
+		secondLockErr = <-secondAcquired
+	}
+	require.NoError(t, secondLockErr)
+	require.NoError(t, <-secondResult)
 }
 
 func testGuildAccessRevision(t *testing.T, store Store) {
@@ -533,12 +580,18 @@ func testGuildChannels(t *testing.T, store Store) {
 	moved, err := store.UpdateGuildChannelPosition(ctx, guildID, 10702, 5, now)
 	require.NoError(t, err)
 	require.Equal(t, int32(5), moved.Position)
-	movedChannels, err := store.UpdateGuildChannelPositions(ctx, guildID+1, []int64{10702, 10703}, []int32{6, 7}, now)
+	updates := []GuildChannelPositionUpdate{
+		{ChannelID: 10702, Position: 6, ParentID: cat.ID},
+		{ChannelID: 10703, Position: 7, ParentID: cat.ID},
+	}
+	movedChannels, err := store.UpdateGuildChannelPositions(ctx, guildID+1, updates, now)
 	require.NoError(t, err)
 	require.Empty(t, movedChannels)
-	movedChannels, err = store.UpdateGuildChannelPositions(ctx, guildID, []int64{10702, 10703}, []int32{6, 7}, now)
+	movedChannels, err = store.UpdateGuildChannelPositions(ctx, guildID, updates, now)
 	require.NoError(t, err)
 	require.Len(t, movedChannels, 2)
+	require.Equal(t, cat.ID, movedChannels[0].ParentID)
+	require.Equal(t, cat.ID, movedChannels[1].ParentID)
 
 	deleted, err := store.DeleteGuildChannel(ctx, cat.ID, now)
 	require.NoError(t, err)

@@ -504,13 +504,14 @@ const deleteGuildChannelsStatement = `
 `
 
 const updateGuildChannelPositionsQuery = `
-    WITH requested(id, position) AS (
-        SELECT * FROM unnest($2::bigint[], $3::integer[])
+    WITH requested(id, position, parent_id) AS (
+        SELECT * FROM unnest($2::bigint[], $3::integer[], $4::bigint[])
     )
     UPDATE guild_channels AS c
     SET position = requested.position,
+        parent_id = requested.parent_id,
         revision = c.revision + 1,
-        updated_at = $4
+        updated_at = $5
     FROM requested
     WHERE c.guild_id = $1
       AND c.id = requested.id

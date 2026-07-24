@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
@@ -214,6 +215,45 @@ func TestCreateGuildChannel(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(4001), channel.ID)
 	require.Equal(t, int32(1), channel.Type)
+}
+
+func TestLockGuildChannelMutations(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	mock.ExpectExec(sqlPattern(lockQuotaScopeStatement)).
+		WithArgs(guildChannelMutationLockKey(1001)).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	require.NoError(t, store.LockGuildChannelMutations(context.Background(), 1001))
+}
+
+func TestUpdateGuildChannelPositions(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"id", "guild_id", "name", "type", "position", "topic",
+		"revision", "created_at", "updated_at", "deleted_at", "parent_id",
+	}).
+		AddRow(int64(4001), int64(1001), "first", int32(1), int32(2), "", int64(2), int64(10), int64(20), int64(0), int64(5002)).
+		AddRow(int64(4002), int64(1001), "second", int32(1), int32(1), "", int64(2), int64(10), int64(20), int64(0), int64(5001))
+	updates := []GuildChannelPositionUpdate{
+		{ChannelID: 4001, Position: 2, ParentID: 5002},
+		{ChannelID: 4002, Position: 1, ParentID: 5001},
+	}
+	mock.ExpectQuery(sqlPattern(updateGuildChannelPositionsQuery)).
+		WithArgs(
+			int64(1001), pq.Array([]int64{4001, 4002}), pq.Array([]int32{2, 1}),
+			pq.Array([]int64{5002, 5001}), int64(20),
+		).
+		WillReturnRows(rows)
+
+	channels, err := store.UpdateGuildChannelPositions(context.Background(), 1001, updates, 20)
+	require.NoError(t, err)
+	require.Len(t, channels, 2)
+	require.Equal(t, int64(5002), channels[0].ParentID)
+	require.Equal(t, int64(5001), channels[1].ParentID)
 }
 
 func TestUpsertGuildChannelPermissionOverwrite(t *testing.T) {

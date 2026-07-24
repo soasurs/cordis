@@ -21,6 +21,11 @@ type EventPublisher interface {
 	Publish(ctx context.Context, key, payload []byte) error
 }
 
+// BatchEventPublisher publishes multiple events with one bounded wait.
+type BatchEventPublisher interface {
+	PublishBatch(ctx context.Context, records []kafka.Record) error
+}
+
 type ServiceContext struct {
 	Cfg         config.Config
 	Store       store.Store

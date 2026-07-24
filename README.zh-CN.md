@@ -138,6 +138,17 @@ go run ./services/guild/v1/cmd/migrate -c services/guild/v1/etc/config.yaml
 go run ./services/message/v1/cmd/migrate -c services/message/v1/etc/config.yaml
 ```
 
+当 `registration.mode` 设为 `invite_only` 时，使用内部 CLI 创建和管理一次性注册邀请：
+
+```bash
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml create -count 10 -ttl 168h
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml create -email user@example.com -ttl 24h
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml list
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml revoke -id <invite-id>
+```
+
+原始邀请码只会由 `create` 输出一次，数据库中仅保存其 SHA-256 哈希。
+
 建议先启动领域服务和有状态服务，再启动边缘服务与分发服务：
 
 ```text

@@ -23,6 +23,8 @@ const (
 	CodeTwoFactorNotEnabled        = "auth.two_factor_not_enabled"
 	CodeTwoFactorAlreadyEnabled    = "auth.two_factor_already_enabled"
 	CodeTwoFactorEnrollmentPending = "auth.two_factor_enrollment_pending"
+	CodeInvalidRegistrationInvite  = "auth.invalid_registration_invite"
+	CodeRegistrationClosed         = "auth.registration_closed"
 	CodeInvalidArgument            = "request.invalid_argument"
 	CodeCanceled                   = "request.canceled"
 	CodeDeadlineExceeded           = "request.deadline_exceeded"
@@ -90,6 +92,16 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		connectCode: connect.CodeFailedPrecondition,
 		publicCode:  CodeTwoFactorEnrollmentPending,
 		message:     "Two-factor enrollment is already pending.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorInvalidRegistrationInvite}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidRegistrationInvite,
+		message:     "Invalid or unavailable registration invite.",
+	},
+	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorRegistrationClosed}: {
+		connectCode: connect.CodeFailedPrecondition,
+		publicCode:  CodeRegistrationClosed,
+		message:     "Registration is currently closed.",
 	},
 	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserEmailAlreadyExists}: {
 		connectCode: connect.CodeAlreadyExists,

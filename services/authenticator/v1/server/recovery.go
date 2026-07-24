@@ -57,6 +57,13 @@ func (s *authenticatorServer) RequestPasswordReset(ctx context.Context, req *aut
 	if user.GetUserId() <= 0 {
 		return resp, nil
 	}
+	if _, err := s.svcCtx.Store.GetUserCredential(ctx, user.GetUserId(), false); errors.Is(err, sql.ErrNoRows) {
+		// An account without a credential has not completed registration.
+		// It must resume through Register so an invitation cannot be bypassed.
+		return resp, nil
+	} else if err != nil {
+		return nil, err
+	}
 
 	rawToken, err := token.GenerateOpaqueToken()
 	if err != nil {
@@ -120,17 +127,16 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *aut
 		if reset.ConsumedAt != 0 || reset.ExpiresAt <= now {
 			return invalidPasswordResetTokenError()
 		}
-		if err := tx.ConsumePasswordResetToken(ctx, tokenHash, now); err != nil {
+		if err := tx.UpdateUserCredential(ctx, reset.UserID, hashedPassword, now); err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return invalidPasswordResetTokenError()
 			}
 			return err
 		}
-
-		// Upsert instead of update: proving control of the email is enough
-		// to finish a half-completed registration that never stored a
-		// credential.
-		if err := tx.UpsertUserCredential(ctx, reset.UserID, hashedPassword, now); err != nil {
+		if err := tx.ConsumePasswordResetToken(ctx, tokenHash, now); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return invalidPasswordResetTokenError()
+			}
 			return err
 		}
 

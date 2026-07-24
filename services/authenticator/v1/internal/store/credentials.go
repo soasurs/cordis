@@ -56,11 +56,3 @@ func (s *SQLStore) UpdateUserCredential(ctx context.Context, userID int64, hashe
 	}
 	return checkRowsAffected(res)
 }
-
-// UpsertUserCredential replaces the credential regardless of whether one
-// exists. The password reset flow uses it so a recovered half-registered
-// account (user row without credential) completes its registration.
-func (s *SQLStore) UpsertUserCredential(ctx context.Context, userID int64, hashedPassword string, now int64) error {
-	_, err := s.q.ExecContext(ctx, UpsertUserCredentialStatement, userID, hashedPassword, now)
-	return err
-}

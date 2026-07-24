@@ -3,6 +3,7 @@ package config
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/conf"
 )
@@ -28,5 +29,11 @@ func TestLoadConfig(t *testing.T) {
 	}
 	if cfg.Password.MaxConcurrency != 4 {
 		t.Fatalf("unexpected password max concurrency: %d", cfg.Password.MaxConcurrency)
+	}
+	if cfg.Registration.EffectiveMode() != RegistrationModeOpen {
+		t.Fatalf("unexpected registration mode: %s", cfg.Registration.EffectiveMode())
+	}
+	if cfg.Registration.EffectiveReservationTTL() != 15*time.Minute {
+		t.Fatalf("unexpected registration reservation ttl: %s", cfg.Registration.EffectiveReservationTTL())
 	}
 }

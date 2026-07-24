@@ -312,17 +312,18 @@ func (b0 Session_builder) Build() *Session {
 }
 
 type RegisterRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
-	xxx_hidden_Email       *string                `protobuf:"bytes,2,opt,name=email"`
-	xxx_hidden_Password    *string                `protobuf:"bytes,3,opt,name=password"`
-	xxx_hidden_UserAgent   *string                `protobuf:"bytes,4,opt,name=user_agent,json=userAgent"`
-	xxx_hidden_Ip          *string                `protobuf:"bytes,5,opt,name=ip"`
-	xxx_hidden_Username    *string                `protobuf:"bytes,6,opt,name=username"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name                   *string                `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Email                  *string                `protobuf:"bytes,2,opt,name=email"`
+	xxx_hidden_Password               *string                `protobuf:"bytes,3,opt,name=password"`
+	xxx_hidden_UserAgent              *string                `protobuf:"bytes,4,opt,name=user_agent,json=userAgent"`
+	xxx_hidden_Ip                     *string                `protobuf:"bytes,5,opt,name=ip"`
+	xxx_hidden_Username               *string                `protobuf:"bytes,6,opt,name=username"`
+	xxx_hidden_RegistrationInviteCode *string                `protobuf:"bytes,7,opt,name=registration_invite_code,json=registrationInviteCode"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *RegisterRequest) Reset() {
@@ -410,34 +411,49 @@ func (x *RegisterRequest) GetUsername() string {
 	return ""
 }
 
+func (x *RegisterRequest) GetRegistrationInviteCode() string {
+	if x != nil {
+		if x.xxx_hidden_RegistrationInviteCode != nil {
+			return *x.xxx_hidden_RegistrationInviteCode
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *RegisterRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
 }
 
 func (x *RegisterRequest) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *RegisterRequest) SetPassword(v string) {
 	x.xxx_hidden_Password = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
 }
 
 func (x *RegisterRequest) SetUserAgent(v string) {
 	x.xxx_hidden_UserAgent = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
 }
 
 func (x *RegisterRequest) SetIp(v string) {
 	x.xxx_hidden_Ip = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
 }
 
 func (x *RegisterRequest) SetUsername(v string) {
 	x.xxx_hidden_Username = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *RegisterRequest) SetRegistrationInviteCode(v string) {
+	x.xxx_hidden_RegistrationInviteCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
 }
 
 func (x *RegisterRequest) HasName() bool {
@@ -482,6 +498,13 @@ func (x *RegisterRequest) HasUsername() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
+func (x *RegisterRequest) HasRegistrationInviteCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
 func (x *RegisterRequest) ClearName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Name = nil
@@ -512,6 +535,11 @@ func (x *RegisterRequest) ClearUsername() {
 	x.xxx_hidden_Username = nil
 }
 
+func (x *RegisterRequest) ClearRegistrationInviteCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_RegistrationInviteCode = nil
+}
+
 type RegisterRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -522,6 +550,8 @@ type RegisterRequest_builder struct {
 	Ip        *string
 	// Globally unique lowercase handle.
 	Username *string
+	// One-time authorization to create an account when registration is invite-only.
+	RegistrationInviteCode *string
 }
 
 func (b0 RegisterRequest_builder) Build() *RegisterRequest {
@@ -529,28 +559,32 @@ func (b0 RegisterRequest_builder) Build() *RegisterRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_Email = b.Email
 	}
 	if b.Password != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
 		x.xxx_hidden_Password = b.Password
 	}
 	if b.UserAgent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
 		x.xxx_hidden_UserAgent = b.UserAgent
 	}
 	if b.Ip != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
 		x.xxx_hidden_Ip = b.Ip
 	}
 	if b.Username != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
 		x.xxx_hidden_Username = b.Username
+	}
+	if b.RegistrationInviteCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_RegistrationInviteCode = b.RegistrationInviteCode
 	}
 	return m0
 }
@@ -4812,7 +4846,7 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"revoked_at\x18\x06 \x01(\x03R\trevokedAt\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\a \x01(\tR\tuserAgent\x12\x0e\n" +
-	"\x02ip\x18\b \x01(\tR\x02ip\"\xa2\x01\n" +
+	"\x02ip\x18\b \x01(\tR\x02ip\"\xdc\x01\n" +
 	"\x0fRegisterRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -4820,7 +4854,8 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\n" +
 	"user_agent\x18\x04 \x01(\tR\tuserAgent\x12\x0e\n" +
 	"\x02ip\x18\x05 \x01(\tR\x02ip\x12\x1a\n" +
-	"\busername\x18\x06 \x01(\tR\busername\"R\n" +
+	"\busername\x18\x06 \x01(\tR\busername\x128\n" +
+	"\x18registration_invite_code\x18\a \x01(\tR\x16registrationInviteCode\"R\n" +
 	"\x10RegisterResponse\x12>\n" +
 	"\x06result\x18\x01 \x01(\v2&.authenticator.v1.AuthenticationResultR\x06result\"o\n" +
 	"\fLoginRequest\x12\x14\n" +

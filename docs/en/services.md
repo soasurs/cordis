@@ -28,6 +28,13 @@ PostgreSQL. User remains the authority for user identity, while Authenticator
 owns password credentials. Real startup requires access- and refresh-token
 secrets.
 
+Registration supports `open`, `invite_only`, and `closed` modes. Invite-only
+registration uses one-time, optionally email-bound invitations stored by
+Authenticator. An invitation is reserved before Argon2 and the User RPC, then
+redeemed atomically with the password credential and initial session. Password
+reset only applies to accounts that already have a credential; incomplete
+registrations must resume through `Register`.
+
 All Argon2 hashing and verification is protected by a process-local weighted
 semaphore. Its capacity comes from `password.maxConcurrency` (default 4), and
 each Argon2 operation currently consumes weight 1. The configured capacity is

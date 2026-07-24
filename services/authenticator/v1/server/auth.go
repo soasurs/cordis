@@ -14,6 +14,7 @@ import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	"github.com/soasurs/cordis/services/authenticator/v1/config"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
@@ -42,6 +43,12 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 		return nil, status.Error(codes.InvalidArgument, "username is required")
 	}
 
+	email := strings.ToLower(strings.TrimSpace(req.GetEmail()))
+	invite, err := s.reserveRegistrationInvite(ctx, req.GetRegistrationInviteCode(), email)
+	if err != nil {
+		return nil, err
+	}
+
 	hashedPassword, err := s.hashPassword(ctx, req.GetPassword())
 	if err != nil {
 		return nil, err
@@ -49,7 +56,7 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 
 	createReq := new(userv1.CreateUserRequest)
 	createReq.SetName(name)
-	createReq.SetEmail(req.GetEmail())
+	createReq.SetEmail(email)
 	createReq.SetUsername(req.GetUsername())
 
 	var userID int64
@@ -65,13 +72,14 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 		// insert-if-absent semantics arbitrate races: whoever lands the
 		// credential first wins, everyone else keeps the AlreadyExists.
 		getUserReq := new(userv1.GetUserRequest)
-		getUserReq.SetEmail(req.GetEmail())
+		getUserReq.SetEmail(email)
 		getUserResp, getUserErr := s.svcCtx.UserClient.GetUser(ctx, getUserReq)
 		if getUserErr != nil || getUserResp.GetUser().GetUserId() <= 0 {
 			return nil, err
 		}
 		userID = getUserResp.GetUser().GetUserId()
 		if _, credentialErr := s.svcCtx.Store.GetUserCredential(ctx, userID, false); credentialErr == nil {
+			s.releaseRegistrationInvite(ctx, invite, email)
 			return nil, err
 		} else if !errors.Is(credentialErr, sql.ErrNoRows) {
 			return nil, credentialErr
@@ -81,25 +89,83 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 	}
 
 	now := time.Now().UnixMilli()
-	if err := s.svcCtx.Store.CreateUserCredential(ctx, &model.UserCredential{
-		UserID:         userID,
-		HashedPassword: hashedPassword,
-		CreatedAt:      now,
-	}); err != nil {
+	var result *authenticatorv1.AuthenticationResult
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		if err := txStore.CreateUserCredential(ctx, &model.UserCredential{
+			UserID:         userID,
+			HashedPassword: hashedPassword,
+			CreatedAt:      now,
+		}); err != nil {
+			return err
+		}
+		if invite != nil {
+			if err := txStore.RedeemRegistrationInvite(ctx, invite.ID, email, userID, now); err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					return invalidRegistrationInviteError()
+				}
+				return err
+			}
+		}
+		var err error
+		result, err = s.createSessionWithStore(ctx, txStore, userID, req.GetUserAgent(), req.GetIp())
+		return err
+	})
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists, "email already exists")
 		}
 		return nil, err
 	}
 
-	result, err := s.createSession(ctx, userID, req.GetUserAgent(), req.GetIp())
-	if err != nil {
-		return nil, err
-	}
-
 	resp := new(authenticatorv1.RegisterResponse)
 	resp.SetResult(result)
 	return resp, nil
+}
+
+func (s *authenticatorServer) reserveRegistrationInvite(
+	ctx context.Context,
+	rawCode, email string,
+) (*model.RegistrationInvite, error) {
+	switch s.svcCtx.Cfg.Registration.EffectiveMode() {
+	case config.RegistrationModeOpen:
+		return nil, nil
+	case config.RegistrationModeClosed:
+		return nil, registrationClosedError()
+	case config.RegistrationModeInviteOnly:
+	default:
+		return nil, registrationClosedError()
+	}
+
+	code := strings.TrimSpace(rawCode)
+	if code == "" {
+		return nil, invalidRegistrationInviteError()
+	}
+	now := time.Now()
+	invite, err := s.svcCtx.Store.ReserveRegistrationInvite(
+		ctx,
+		token.Hash(code),
+		email,
+		now.UnixMilli(),
+		now.Add(s.svcCtx.Cfg.Registration.EffectiveReservationTTL()).UnixMilli(),
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, invalidRegistrationInviteError()
+	}
+	if err != nil {
+		return nil, err
+	}
+	return invite, nil
+}
+
+func (s *authenticatorServer) releaseRegistrationInvite(
+	ctx context.Context,
+	invite *model.RegistrationInvite,
+	email string,
+) {
+	if invite == nil {
+		return
+	}
+	_ = s.svcCtx.Store.ReleaseRegistrationInvite(ctx, invite.ID, email)
 }
 
 func (s *authenticatorServer) Login(ctx context.Context, req *authenticatorv1.LoginRequest) (*authenticatorv1.LoginResponse, error) {
@@ -271,6 +337,14 @@ func (s *authenticatorServer) createSessionWithStore(ctx context.Context, sessio
 
 func invalidTwoFactorCodeError() error {
 	return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidTwoFactorCode, "invalid two-factor code")
+}
+
+func invalidRegistrationInviteError() error {
+	return rpcerror.New(codes.InvalidArgument, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRegistrationInvite, "invalid or unavailable registration invite")
+}
+
+func registrationClosedError() error {
+	return rpcerror.New(codes.FailedPrecondition, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorRegistrationClosed, "registration is closed")
 }
 
 func twoFactorChallengeExpiredError() error {

@@ -126,7 +126,7 @@ func TestLoginUnknownEmail(t *testing.T) {
 	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials))
 }
 
-func TestConfirmPasswordResetCompletesHalfRegisteredAccount(t *testing.T) {
+func TestConfirmPasswordResetRejectsHalfRegisteredAccount(t *testing.T) {
 	sessionStore := newFakeSessionStore()
 	now := time.Now().UnixMilli()
 	sessionStore.passwordResets[token.Hash("claim-token")] = &model.PasswordResetToken{
@@ -141,13 +141,9 @@ func TestConfirmPasswordResetCompletesHalfRegisteredAccount(t *testing.T) {
 	req.SetToken("claim-token")
 	req.SetNewPassword("recovered-password")
 	resp, err := server.ConfirmPasswordReset(t.Context(), req)
-	require.NoError(t, err)
-	require.True(t, resp.GetOk())
-
-	// Proving control of the email finishes the registration: the upsert
-	// creates the credential that never existed.
-	require.NotNil(t, sessionStore.credentials[1001])
-	match, err := password.Verify(sessionStore.credentials[1001].HashedPassword, "recovered-password")
-	require.NoError(t, err)
-	require.True(t, match)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidPasswordResetToken))
+	require.Nil(t, resp)
+	require.Nil(t, sessionStore.credentials[1001])
+	require.Zero(t, sessionStore.passwordResets[token.Hash("claim-token")].ConsumedAt)
 }

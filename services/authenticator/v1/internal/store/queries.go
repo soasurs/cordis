@@ -200,6 +200,62 @@ const (
 	ConsumeEmailVerificationTokenStatement = `
 	UPDATE email_verification_tokens SET consumed_at = $1 WHERE token_hash = $2 AND consumed_at = 0`
 
+	CreateRegistrationInviteStatement = `
+	INSERT INTO registration_invites (
+		id, code_hash, bound_email, reserved_email, reserved_until,
+		redeemed_user_id, redeemed_at, expires_at, revoked_at, label, created_at
+	)
+	VALUES ($1, $2, $3, '', 0, 0, 0, $4, 0, $5, $6)`
+
+	ReserveRegistrationInviteQuery = `
+	UPDATE registration_invites
+	SET reserved_email = $1,
+	    reserved_until = CASE
+	        WHEN expires_at > 0 AND expires_at < $2 THEN expires_at
+	        ELSE $2
+	    END
+	WHERE code_hash = $3
+	  AND revoked_at = 0
+	  AND redeemed_at = 0
+	  AND (expires_at = 0 OR expires_at > $4)
+	  AND (bound_email = '' OR bound_email = $1)
+	  AND (reserved_until <= $4 OR reserved_email = $1)
+	RETURNING
+		id, code_hash, bound_email, reserved_email, reserved_until,
+		redeemed_user_id, redeemed_at, expires_at, revoked_at, label, created_at`
+
+	RedeemRegistrationInviteStatement = `
+	UPDATE registration_invites
+	SET redeemed_user_id = $1, redeemed_at = $2
+	WHERE id = $3
+	  AND reserved_email = $4
+	  AND reserved_until > $2
+	  AND revoked_at = 0
+	  AND redeemed_at = 0`
+
+	ReleaseRegistrationInviteStatement = `
+	UPDATE registration_invites
+	SET reserved_email = '', reserved_until = 0
+	WHERE id = $1
+	  AND reserved_email = $2
+	  AND redeemed_at = 0`
+
+	ListRegistrationInvitesQuery = `
+	SELECT
+		id, code_hash, bound_email, reserved_email, reserved_until,
+		redeemed_user_id, redeemed_at, expires_at, revoked_at, label, created_at
+	FROM registration_invites
+	WHERE ($1 = 0 OR id < $1)
+	ORDER BY id DESC
+	LIMIT $2`
+
+	RevokeRegistrationInviteStatement = `
+	UPDATE registration_invites
+	SET revoked_at = $1
+	WHERE id = $2
+	  AND revoked_at = 0
+	  AND redeemed_at = 0`
+
 	CreateUserCredentialStatement = `
 	INSERT INTO user_credentials (user_id, hashed_password, created_at, updated_at)
 	VALUES ($1, $2, $3, 0)
@@ -215,11 +271,4 @@ const (
 	UPDATE user_credentials
 	SET hashed_password = $1, updated_at = $2
 	WHERE user_id = $3`
-
-	UpsertUserCredentialStatement = `
-	INSERT INTO user_credentials (user_id, hashed_password, created_at, updated_at)
-	VALUES ($1, $2, $3, 0)
-	ON CONFLICT (user_id) DO UPDATE SET
-		hashed_password = EXCLUDED.hashed_password,
-		updated_at = EXCLUDED.created_at`
 )

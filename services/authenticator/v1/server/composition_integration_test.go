@@ -26,6 +26,7 @@ import (
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
 	authmigrations "github.com/soasurs/cordis/services/authenticator/v1/db/migrations"
+	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/twofactor"
@@ -85,6 +86,38 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		_, err := service.Register(ctx, req)
 		require.Equal(t, codes.AlreadyExists, status.Code(err))
 		require.True(t, rpcerror.Is(err, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists))
+	})
+
+	t.Run("invite-only registration redeems with credential and session", func(t *testing.T) {
+		const rawCode = "composition-registration-invite"
+		now := time.Now()
+		inviteStore := store.New(db)
+		require.NoError(t, inviteStore.CreateRegistrationInvite(ctx, &model.RegistrationInvite{
+			ID: 991001, CodeHash: token.Hash(rawCode), BoundEmail: "bob@example.com",
+			ExpiresAt: now.Add(time.Hour).UnixMilli(), Label: "composition", CreatedAt: now.UnixMilli(),
+		}))
+
+		inviteContext := newCompositionServiceContext(t, db, userClient, compositionMailer)
+		inviteContext.Cfg.Registration = config.RegistrationConfig{
+			Mode:           config.RegistrationModeInviteOnly,
+			ReservationTTL: time.Minute,
+		}
+		inviteService := New(inviteContext)
+		req := new(authenticatorv1.RegisterRequest)
+		req.SetName("Bob")
+		req.SetUsername("bob")
+		req.SetEmail("bob@example.com")
+		req.SetPassword("integration-password-bob")
+		req.SetRegistrationInviteCode(rawCode)
+		resp, err := inviteService.Register(ctx, req)
+		require.NoError(t, err)
+		require.NotEmpty(t, resp.GetResult().GetAccessToken())
+
+		invites, err := inviteStore.ListRegistrationInvites(ctx, 0, 10)
+		require.NoError(t, err)
+		require.Len(t, invites, 1)
+		require.Equal(t, resp.GetResult().GetUserId(), invites[0].RedeemedUserID)
+		require.NotZero(t, invites[0].RedeemedAt)
 	})
 
 	t.Run("login rejects wrong password", func(t *testing.T) {

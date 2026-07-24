@@ -277,6 +277,28 @@ func TestDedupRapidRotationsPreserveUnexpiredEntry(t *testing.T) {
 	}
 }
 
+func TestDedupIdleRotationsDoNotPreallocateEntryBuckets(t *testing.T) {
+	runtime.GC()
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
+
+	ds := newDedupStore()
+	for range dedupNumGens {
+		ds.rotateAll()
+	}
+
+	runtime.GC()
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+	runtime.KeepAlive(ds)
+
+	const maxIdleHeapGrowth = 8 << 20
+	if after.HeapAlloc > before.HeapAlloc+maxIdleHeapGrowth {
+		t.Fatalf("idle rotations grew heap by %s, want at most %s",
+			formatBytes(after.HeapAlloc-before.HeapAlloc), formatBytes(maxIdleHeapGrowth))
+	}
+}
+
 func TestDedupMemoryUsage(t *testing.T) {
 	sizes := []int{100, 1000, 10000, 100000, 500000, 1000000}
 	kinds := [3]uint8{routeKindGuild, routeKindGuildMsg, routeKindUser}

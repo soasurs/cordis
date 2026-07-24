@@ -178,6 +178,11 @@ go run ./services/gateway/v1 -c services/gateway/v1/etc/config.yaml
 Run each long-lived service in a separate process. Session's advertised address
 must be reachable by both Gateway and Dispatcher.
 
+For a complete frontend integration environment, use the separate
+[local Compose stack](deploy/compose/README.md). It includes every application
+service, infrastructure dependency, database migration, Kafka topic, MinIO
+bucket, and separate HTTP API and WebSocket endpoints.
+
 ## Documentation
 
 - [Architecture and design](docs/en/README.md)

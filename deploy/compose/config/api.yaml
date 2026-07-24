@@ -1,0 +1,126 @@
+name: api.v1
+listenOn: 0.0.0.0:8080
+
+probeServer:
+  listenOn: 0.0.0.0:6060
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+rateLimit:
+  redis:
+    host: redis:6379
+    type: node
+    nonBlock: true
+  keyPrefix: "cordis:api:rate_limit:"
+  fallbackMaxKeys: 10000
+  fallbackRetryInterval: 1s
+  trustedProxies:
+    - 172.30.0.0/24
+  policies:
+    source_ip_guard_ipv4:
+      limit: 20000
+      window: 1m
+    source_ip_guard_ipv6:
+      limit: 20000
+      window: 1m
+    authenticated_user:
+      limit: 300
+      window: 1m
+    register_ip_ipv4:
+      limit: 300
+      window: 10m
+    register_ip_ipv6:
+      limit: 30
+      window: 10m
+    register_email:
+      limit: 3
+      window: 1h
+    login_ip_ipv4:
+      limit: 1200
+      window: 5m
+    login_ip_ipv6:
+      limit: 600
+      window: 5m
+    login_email:
+      limit: 20
+      window: 5m
+    confirm_password_reset_ip_ipv4:
+      limit: 300
+      window: 10m
+    confirm_password_reset_ip_ipv6:
+      limit: 30
+      window: 10m
+    get_user_profile_ip_ipv4:
+      limit: 6000
+      window: 1m
+    get_user_profile_ip_ipv6:
+      limit: 600
+      window: 1m
+    check_email_availability_ip_ipv4:
+      limit: 600
+      window: 1m
+    check_email_availability_ip_ipv6:
+      limit: 60
+      window: 1m
+    recovery_request_ip_ipv4:
+      limit: 300
+      window: 10m
+    recovery_request_ip_ipv6:
+      limit: 30
+      window: 10m
+    create_message_user:
+      limit: 30
+      window: 10s
+    create_message_channel:
+      limit: 120
+      window: 10s
+    relationship_write:
+      limit: 60
+      window: 1m
+    send_friend_request_minute:
+      limit: 10
+      window: 1m
+    send_friend_request_day:
+      limit: 100
+      window: 24h
+    block_unblock_debounce:
+      limit: 1
+      window: 5s
+    create_guild_user:
+      limit: 5
+      window: 1h
+    guild_resource_create_actor:
+      limit: 30
+      window: 1m
+    guild_resource_create_guild:
+      limit: 100
+      window: 1h
+    join_guild_invite_user:
+      limit: 10
+      window: 10m
+    join_guild_invite_ip_ipv4:
+      limit: 300
+      window: 10m
+    join_guild_invite_ip_ipv6:
+      limit: 30
+      window: 10m
+
+readStates:
+  maxConcurrencyPerUser: 2
+
+services:
+  authenticator:
+    endpoints:
+      - authenticator:3001
+  user:
+    endpoints:
+      - user:3000
+  message:
+    endpoints:
+      - message:3002
+  guild:
+    endpoints:
+      - guild:3005

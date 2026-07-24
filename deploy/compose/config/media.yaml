@@ -1,0 +1,44 @@
+name: media.v1
+listenOn: 0.0.0.0:3008
+timeout: 0
+health: false
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+middlewares:
+  stat: false
+
+database:
+  dataSource: "${CORDIS_DATABASE_DSN}"
+  maxOpenConns: 10
+  maxIdleConns: 5
+
+objectStore:
+  backend: s3
+  endpoint: "${CORDIS_MEDIA_OBJECT_STORE_ENDPOINT}"
+  region: us-east-1
+  publicBucket: cordis-public
+  stagingBucket: cordis-staging
+  attachmentBucket: cordis-attachments
+  attachmentPublicBaseURL: ""
+  accessKey: "${CORDIS_MINIO_ROOT_USER}"
+  secretKey: "${CORDIS_MINIO_ROOT_PASSWORD}"
+  usePathStyle: true
+  secure: false
+
+media:
+  uploadSessionTTLSeconds: 900
+  presignedURLTTLSeconds: 900
+  maxUploadSizeBytes: 524288000
+  maxActiveUploadsPerUser: 5
+  stagingCleanupIntervalSeconds: 300
+  imageProcessingTimeoutMs: 30000
+  maxConcurrentImageProcessing: 4
+  maxImageSizeBytes: 10485760
+  maxImageDimension: 4096
+  maxImagePixels: 16777216
+  attachmentAccessMode: presigned
+  attachmentDownloadTTLSeconds: 86400

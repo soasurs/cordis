@@ -1,0 +1,408 @@
+name: cordis-local
+
+x-cordis-service: &cordis-service
+  image: cordis-local:dev
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  networks:
+    - cordis
+
+x-grpc-healthcheck: &grpc-healthcheck
+  interval: 5s
+  timeout: 3s
+  retries: 20
+  start_period: 5s
+
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    environment:
+      POSTGRES_USER: cordis
+      POSTGRES_PASSWORD: ${CORDIS_POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: cordis
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cordis -d cordis"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      - cordis
+
+  redis:
+    image: redis:7.4.2-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      - cordis
+
+  kafka:
+    image: apache/kafka:3.9.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:${CORDIS_KAFKA_PORT:-9092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "127.0.0.1:${CORDIS_KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka-data:/tmp/kraft-combined-logs
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      - cordis
+
+  kafka-init:
+    image: apache/kafka:3.9.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        for topic in cordis.guild.events.v1 cordis.message.events.v1 cordis.user.events.v1 cordis.presence.events.v1; do
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --create --if-not-exists --topic "$${topic}" --partitions 1 --replication-factor 1
+        done
+    restart: "no"
+    networks:
+      - cordis
+
+  etcd:
+    image: gcr.io/etcd-development/etcd:v3.5.21
+    command:
+      - /usr/local/bin/etcd
+      - --name=etcd-0
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=etcd-0=http://etcd:2380
+      - --initial-cluster-state=new
+    volumes:
+      - etcd-data:/etcd-data
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/etcdctl", "endpoint", "health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      - cordis
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${CORDIS_MINIO_ROOT_USER:?required}
+      MINIO_ROOT_PASSWORD: ${CORDIS_MINIO_ROOT_PASSWORD:?required}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${CORDIS_BROWSER_ORIGINS:-http://localhost:5173,http://localhost:4173}
+    ports:
+      - "127.0.0.1:${CORDIS_MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${CORDIS_MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/live >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    networks:
+      cordis:
+        aliases:
+          - storage.cordis.localhost
+
+  minio-init:
+    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      CORDIS_MINIO_ROOT_USER: ${CORDIS_MINIO_ROOT_USER:?required}
+      CORDIS_MINIO_ROOT_PASSWORD: ${CORDIS_MINIO_ROOT_PASSWORD:?required}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        mc alias set local http://minio:9000 "$${CORDIS_MINIO_ROOT_USER}" "$${CORDIS_MINIO_ROOT_PASSWORD}"
+        mc mb --ignore-existing local/cordis-public local/cordis-staging local/cordis-attachments
+        mc anonymous set download local/cordis-public
+        mc anonymous set none local/cordis-staging
+        mc anonymous set none local/cordis-attachments
+    restart: "no"
+    networks:
+      - cordis
+
+  migrate:
+    <<: *cordis-service
+    restart: "no"
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+    volumes:
+      - ./config/user.yaml:/etc/cordis/user.yaml:ro
+      - ./config/authenticator.yaml:/etc/cordis/authenticator.yaml:ro
+      - ./config/guild.yaml:/etc/cordis/guild.yaml:ro
+      - ./config/message.yaml:/etc/cordis/message.yaml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        /app/bin/migrate-user -c /etc/cordis/user.yaml
+        /app/bin/migrate-authenticator -c /etc/cordis/authenticator.yaml
+        /app/bin/migrate-guild -c /etc/cordis/guild.yaml
+        /app/bin/migrate-message -c /etc/cordis/message.yaml
+
+  mailer:
+    <<: *cordis-service
+    command: ["/app/bin/mailer", "-c", "/etc/cordis/config.yaml"]
+    volumes:
+      - ./config/mailer.yaml:/etc/cordis/config.yaml:ro
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3007"]
+
+  media:
+    <<: *cordis-service
+    command: ["/app/bin/media", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+      CORDIS_MINIO_ROOT_USER: ${CORDIS_MINIO_ROOT_USER:?required}
+      CORDIS_MINIO_ROOT_PASSWORD: ${CORDIS_MINIO_ROOT_PASSWORD:?required}
+      CORDIS_MEDIA_OBJECT_STORE_ENDPOINT: storage.cordis.localhost:${CORDIS_MINIO_PORT:-9000}
+    volumes:
+      - ./config/media.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3008"]
+
+  user:
+    <<: *cordis-service
+    command: ["/app/bin/user", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+    volumes:
+      - ./config/user.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      media:
+        condition: service_healthy
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3000"]
+
+  authenticator:
+    <<: *cordis-service
+    command: ["/app/bin/authenticator", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+      CORDIS_ACCESS_TOKEN_SECRET: ${CORDIS_ACCESS_TOKEN_SECRET:?required}
+      CORDIS_REFRESH_TOKEN_SECRET: ${CORDIS_REFRESH_TOKEN_SECRET:?required}
+      CORDIS_TOTP_ENCRYPTION_KEY: ${CORDIS_TOTP_ENCRYPTION_KEY:?required}
+    volumes:
+      - ./config/authenticator.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      user:
+        condition: service_healthy
+      mailer:
+        condition: service_healthy
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3001"]
+
+  guild:
+    <<: *cordis-service
+    command: ["/app/bin/guild", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+    volumes:
+      - ./config/guild.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      user:
+        condition: service_healthy
+      media:
+        condition: service_healthy
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3005"]
+
+  message:
+    <<: *cordis-service
+    command: ["/app/bin/message", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+    volumes:
+      - ./config/message.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      user:
+        condition: service_healthy
+      guild:
+        condition: service_healthy
+      media:
+        condition: service_healthy
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3002"]
+
+  presence:
+    <<: *cordis-service
+    command: ["/app/bin/presence", "-c", "/etc/cordis/config.yaml"]
+    volumes:
+      - ./config/presence.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3003"]
+
+  session:
+    <<: *cordis-service
+    command: ["/app/bin/session", "-c", "/etc/cordis/config.yaml"]
+    volumes:
+      - ./config/session.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      authenticator:
+        condition: service_healthy
+      presence:
+        condition: service_healthy
+      guild:
+        condition: service_healthy
+      message:
+        condition: service_healthy
+    healthcheck:
+      <<: *grpc-healthcheck
+      test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3006"]
+
+  api:
+    <<: *cordis-service
+    command: ["/app/bin/api", "-c", "/etc/cordis/config.yaml"]
+    ports:
+      - "127.0.0.1:${CORDIS_API_PORT:-8080}:8080"
+    volumes:
+      - ./config/api.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      authenticator:
+        condition: service_healthy
+      user:
+        condition: service_healthy
+      guild:
+        condition: service_healthy
+      message:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:6060/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  gateway:
+    <<: *cordis-service
+    command: ["/app/bin/gateway", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_GATEWAY_ORIGIN: ${CORDIS_GATEWAY_ORIGIN:-http://localhost:5173}
+    ports:
+      - "127.0.0.1:${CORDIS_GATEWAY_PORT:-8081}:8081"
+    volumes:
+      - ./config/gateway.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      session:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:6065/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  dispatcher:
+    <<: *cordis-service
+    command: ["/app/bin/dispatcher", "-c", "/etc/cordis/config.yaml"]
+    volumes:
+      - ./config/dispatcher.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      user:
+        condition: service_healthy
+      session:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:6069/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+networks:
+  cordis:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  etcd-data:
+  minio-data:

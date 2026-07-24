@@ -28,7 +28,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := migration.Apply(context.Background(), db, messagemigrations.Files); err != nil {
+	if err := migration.ApplyNamed(context.Background(), db, "message", messagemigrations.Files); err != nil {
 		panic(err)
 	}
 }

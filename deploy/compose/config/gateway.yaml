@@ -10,15 +10,10 @@ log:
   level: info
   stat: false
 
-telemetry:
-  endpoint: "${CORDIS_OTEL_ENDPOINT}"
-  sampler: 1.0
-  batcher: otlpgrpc
-
 gateway:
   websocketPath: /
   originPatterns:
-    - http://localhost:5173
+    - "${CORDIS_GATEWAY_ORIGIN}"
   heartbeatIntervalMs: 45000
   identifyTimeoutSeconds: 10
   maxMessageBytes: 65536
@@ -36,7 +31,8 @@ rateLimit:
   keyPrefix: "cordis:gateway:rate_limit:"
   fallbackMaxKeys: 10000
   fallbackRetryInterval: 1s
-  trustedProxies: []
+  trustedProxies:
+    - 172.30.0.0/24
   policies:
     upgrade_ip_ipv4:
       limit: 1200
@@ -61,11 +57,11 @@ rateLimit:
       window: 1m
 
 redis:
-  host: 127.0.0.1:6379
+  host: redis:6379
   type: node
 
 sessionRegistry:
   hosts:
-    - 127.0.0.1:2379
+    - etcd:2379
   prefix: /cordis/session/nodes
   dialTimeoutSeconds: 5

@@ -167,6 +167,10 @@ go run ./services/gateway/v1 -c services/gateway/v1/etc/config.yaml
 每个常驻服务需要运行在独立进程中。Session 的 advertised address 必须能被 Gateway 和
 Dispatcher 访问。
 
+需要一次启动完整的前端联调环境时，使用独立的
+[本地 Compose 编排](deploy/compose/README.zh-CN.md)。它包含全部业务服务、基础设施、
+数据库迁移、Kafka topic、MinIO bucket，以及独立的 HTTP API 和 WebSocket 入口。
+
 ## 文档
 
 - [架构与设计](docs/zh-CN/README.md)

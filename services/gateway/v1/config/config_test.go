@@ -18,6 +18,8 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "info", cfg.Log.Level)
 	require.Equal(t, 1.0, cfg.Telemetry.Sampler)
 	require.Equal(t, "otlpgrpc", cfg.Telemetry.Batcher)
+	require.Equal(t, "/", cfg.Gateway.WebSocketRoute())
+	require.Equal(t, []string{"http://localhost:5173"}, cfg.Gateway.OriginPatterns)
 	require.Equal(t, 45000, cfg.Gateway.HeartbeatIntervalMs)
 	require.Equal(t, int64(1200), cfg.RateLimit.Policies["upgrade_ip_ipv4"].Limit)
 	require.Equal(t, time.Minute, cfg.RateLimit.Policies["upgrade_ip_ipv4"].Window)

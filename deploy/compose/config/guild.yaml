@@ -1,0 +1,39 @@
+name: guild.v1
+listenOn: 0.0.0.0:3005
+timeout: 0
+health: false
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+middlewares:
+  stat: false
+
+database:
+  dataSource: "${CORDIS_DATABASE_DSN}"
+  maxOpenConns: 10
+  maxIdleConns: 5
+
+kafka:
+  seeds:
+    - kafka:29092
+  topic: cordis.guild.events.v1
+  publishTimeoutMs: 1000
+
+limits:
+  ownedGuildsPerUser: 10
+  joinedGuildsPerUser: 100
+  rolesPerGuild: 250
+  channelsPerGuild: 500
+  activeInvitesPerGuild: 100
+  overwritesPerChannel: 100
+
+services:
+  user:
+    endpoints:
+      - user:3000
+  media:
+    endpoints:
+      - media:3008

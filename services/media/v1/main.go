@@ -36,7 +36,7 @@ func main() {
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 
 	ctx := context.Background()
-	if err := migration.Apply(ctx, deps.DB, migrations.FS); err != nil {
+	if err := migration.ApplyNamed(ctx, deps.DB, "media", migrations.FS); err != nil {
 		panic(err)
 	}
 

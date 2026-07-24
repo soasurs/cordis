@@ -104,11 +104,14 @@ on a best-effort basis; failures are logged. Guild message records carry
 
 ## Gateway
 
-HTTP/WebSocket on `:8081`, exposing `/ws` and `/health`. It sends `HELLO`,
-requires `IDENTIFY` or `RESUME` as the first client message, discovers Session
-nodes through etcd, reads resume ownership from Redis, and proxies the WebSocket
-over a `SessionService.Connect` bidirectional stream. It owns no logical routing
-state and consumes no Kafka events.
+HTTP/WebSocket on `:8081`, exposing the WebSocket at `/`; operational probes are
+served by a separate probe server. It sends `HELLO`, requires `IDENTIFY` or
+`RESUME` as the first client message, discovers Session nodes through etcd,
+reads resume ownership from Redis, and proxies the WebSocket over a
+`SessionService.Connect` bidirectional stream. It owns no logical routing state
+and consumes no Kafka events. WebSocket handshakes validate cross-origin
+requests against the configured `originPatterns`; production deployments should
+list the frontend application's origin.
 
 Before accepting a WebSocket, Gateway applies trusted-proxy-aware source limits
 using an IPv4 `/32` or IPv6 `/64`. Connection capacity is process-local: each

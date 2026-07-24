@@ -1,0 +1,70 @@
+name: session.v1
+listenOn: 0.0.0.0:3006
+timeout: 0
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+middlewares:
+  stat: false
+
+redis:
+  host: redis:6379
+  type: node
+
+sessionRegistry:
+  hosts:
+    - etcd:2379
+  prefix: /cordis/session/nodes
+  dialTimeoutSeconds: 5
+
+node:
+  id: session-local
+  advertiseAddress: session:3006
+  heartbeatSeconds: 15
+  nodeTTLSeconds: 30
+  sessionResumeSeconds: 120
+  maxReplayEvents: 2048
+  maxPendingDispatches: 1024
+  maxPendingDispatchBytes: 16777216
+  routeRefreshSeconds: 15
+  routeTTLSeconds: 30
+  bindingQueueSize: 4096
+  drainSeconds: 5
+  maxVisibilityGuilds: 100
+  maxVisibilityChannels: 500
+  maxSnapshotReloads: 16
+  snapshotReloadSeconds: 2
+  maxPresenceUpdates: 5
+  presenceWindowSeconds: 20
+
+rateLimit:
+  keyPrefix: "cordis:session:rate_limit:"
+  fallbackMaxKeys: 10000
+  fallbackRetryInterval: 1s
+  policies:
+    identify_user:
+      limit: 20
+      window: 5m
+    identify_auth_session:
+      limit: 5
+      window: 5m
+    presence_user:
+      limit: 10
+      window: 20s
+
+services:
+  authenticator:
+    endpoints:
+      - authenticator:3001
+  presence:
+    endpoints:
+      - presence:3003
+  guild:
+    endpoints:
+      - guild:3005
+  message:
+    endpoints:
+      - message:3002

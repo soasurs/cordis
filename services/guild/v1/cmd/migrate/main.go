@@ -27,7 +27,7 @@ func main() {
 	}
 	defer db.Close()
 
-	if err := migration.Apply(context.Background(), db, guildmigrations.Files); err != nil {
+	if err := migration.ApplyNamed(context.Background(), db, "guild", guildmigrations.Files); err != nil {
 		panic(err)
 	}
 }

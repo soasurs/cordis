@@ -38,6 +38,9 @@ func (s *mailerServer) SendEmail(ctx context.Context, req *mailerv1.SendEmailReq
 	if !knownTemplates[req.GetTemplate()] {
 		return nil, status.Error(codes.InvalidArgument, "unknown template")
 	}
+	if strings.TrimSpace(req.GetVariables()[mail.VariableToken]) == "" {
+		return nil, status.Error(codes.InvalidArgument, "template token is required")
+	}
 
 	if err := s.svcCtx.Provider.Send(ctx, to, req.GetTemplate(), req.GetVariables()); err != nil {
 		// The provider error stays server-side: callers only learn that

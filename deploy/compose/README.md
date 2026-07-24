@@ -15,6 +15,7 @@ The main endpoints are:
 
 - API: `http://localhost:8080`
 - WebSocket: `ws://localhost:8081/`
+- Mailpit inbox: `http://localhost:8025`
 - MinIO S3 API: `http://storage.cordis.localhost:9000`
 - MinIO console: `http://localhost:9001`
 
@@ -24,5 +25,9 @@ Stop the stack while retaining its named volumes with:
 make compose-local-down
 ```
 
+Registration verification and password-reset messages are captured by Mailpit
+instead of being delivered externally. Configure their frontend destinations
+with `CORDIS_EMAIL_VERIFICATION_URL` and `CORDIS_PASSWORD_RESET_URL`.
+
 See [README.zh-CN.md](README.zh-CN.md) for configuration, Vite proxy, local DNS,
-object storage, and current mail-delivery limitations.
+object storage, and mail testing details.

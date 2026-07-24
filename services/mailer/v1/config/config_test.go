@@ -14,4 +14,5 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "mailer.v1", cfg.Name)
 	require.False(t, cfg.Health)
 	require.True(t, cfg.DevServer.EnableMetrics)
+	require.Equal(t, "noop", cfg.Mailer.Provider)
 }

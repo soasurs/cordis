@@ -357,10 +357,6 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 		for _, channel := range current {
 			currentByID[channel.ID] = channel
 		}
-		if err := validateChannelPositions(current, positions); err != nil {
-			return err
-		}
-		updates := make([]store.GuildChannelPositionUpdate, 0, len(positions))
 		parentIDs := make(map[int64]int64, len(positions))
 		for _, item := range req.GetPositions() {
 			channel := currentByID[item.GetChannelId()]
@@ -375,14 +371,9 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 				}
 			}
 			parentIDs[item.GetChannelId()] = parentID
-			if channel.Position == item.GetPosition() && channel.ParentID == parentID {
-				continue
-			}
-			updates = append(updates, store.GuildChannelPositionUpdate{
-				ChannelID: item.GetChannelId(), Position: item.GetPosition(), ParentID: parentID,
-			})
 		}
-		if err := validateUncategorizedChannelsFirst(current, positions, parentIDs); err != nil {
+		updates, err := normalizeGuildChannelPlacements(current, positions, parentIDs)
+		if err != nil {
 			return err
 		}
 		if len(updates) == 0 {
@@ -689,51 +680,76 @@ func validateChannelParent(
 	return nil
 }
 
-func validateChannelPositions(channels []*model.Channel, positions map[int64]int32) error {
-	final := make(map[int32]int64, len(channels))
+func normalizeGuildChannelPlacements(
+	channels []*model.Channel,
+	positions map[int64]int32,
+	parentIDs map[int64]int64,
+) ([]store.GuildChannelPositionUpdate, error) {
+	byID := make(map[int64]*model.Channel, len(channels))
 	for _, channel := range channels {
-		position := channel.Position
-		if requested, ok := positions[channel.ID]; ok {
-			position = requested
-		}
-		if existing, exists := final[position]; exists && existing != channel.ID {
-			return invalidRequest("channel positions conflict")
-		}
-		final[position] = channel.ID
+		byID[channel.ID] = channel
 	}
-	return nil
-}
 
-func validateUncategorizedChannelsFirst(channels []*model.Channel, positions map[int64]int32, parentIDs map[int64]int64) error {
-	var highestUncategorized int32
-	var lowestOther int32
-	hasUncategorized := false
-	hasOther := false
+	ordered := make([]*model.Channel, len(channels))
+	requested := make(map[int64]struct{}, len(positions))
+	for channelID, position := range positions {
+		if position >= int32(len(ordered)) {
+			return nil, invalidRequest("channel position is out of range")
+		}
+		channel := byID[channelID]
+		if channel == nil {
+			return nil, notFound()
+		}
+		if ordered[position] != nil {
+			return nil, invalidRequest("channel positions conflict")
+		}
+		ordered[position] = channel
+		requested[channelID] = struct{}{}
+	}
+
+	next := 0
 	for _, channel := range channels {
-		position := channel.Position
-		if requested, ok := positions[channel.ID]; ok {
-			position = requested
-		}
-		parentID := channel.ParentID
-		if requested, ok := parentIDs[channel.ID]; ok {
-			parentID = requested
-		}
-		if isUncategorizedChannel(channel.Type, parentID) {
-			if !hasUncategorized || position > highestUncategorized {
-				highestUncategorized = position
-			}
-			hasUncategorized = true
+		if _, ok := requested[channel.ID]; ok {
 			continue
 		}
-		if !hasOther || position < lowestOther {
-			lowestOther = position
+		for ordered[next] != nil {
+			next++
 		}
-		hasOther = true
+		ordered[next] = channel
 	}
-	if hasUncategorized && hasOther && highestUncategorized >= lowestOther {
-		return invalidRequest("uncategorized channels must precede categories")
+
+	uncategorized := make([]*model.Channel, 0, len(ordered))
+	other := make([]*model.Channel, 0, len(ordered))
+	for _, channel := range ordered {
+		if isUncategorizedChannel(channel.Type, resolvedChannelParentID(channel, parentIDs)) {
+			uncategorized = append(uncategorized, channel)
+		} else {
+			other = append(other, channel)
+		}
 	}
-	return nil
+	ordered = append(uncategorized, other...)
+
+	updates := make([]store.GuildChannelPositionUpdate, 0, len(ordered))
+	for i, channel := range ordered {
+		parentID := resolvedChannelParentID(channel, parentIDs)
+		position := int32(i)
+		if channel.Position == position && channel.ParentID == parentID {
+			continue
+		}
+		updates = append(updates, store.GuildChannelPositionUpdate{
+			ChannelID: channel.ID,
+			Position:  position,
+			ParentID:  parentID,
+		})
+	}
+	return updates, nil
+}
+
+func resolvedChannelParentID(channel *model.Channel, parentIDs map[int64]int64) int64 {
+	if parentID, ok := parentIDs[channel.ID]; ok {
+		return parentID
+	}
+	return channel.ParentID
 }
 
 func uncategorizedChannelInsertPosition(channels []*model.Channel) int32 {

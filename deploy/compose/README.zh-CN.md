@@ -55,6 +55,7 @@ MinIO 命名卷。
 | --- | --- |
 | API | `http://localhost:8080` |
 | WebSocket | `ws://localhost:8081/` |
+| Mailpit 收件箱 | `http://localhost:8025` |
 | MinIO S3 API | `http://storage.cordis.localhost:9000` |
 | MinIO Console | `http://localhost:9001` |
 
@@ -106,7 +107,9 @@ http://storage.cordis.localhost:9000/cordis-public
 `localhost:4173`；前端使用其他端口时需要同步更新 `.env` 中的
 `CORDIS_BROWSER_ORIGINS`。
 
-## 当前限制
+## 本地邮件
 
-Mailer 仍使用 `noop` provider。注册、登录和其他业务流程可联调，但邮件验证与密码找回
-暂时无法取得真实邮件中的 token。后续可增加 SMTP provider 和 Mailpit。
+本地 Mailer 使用 SMTP 将邮件投递到 Mailpit，不会向外部邮箱发送。注册或请求密码重置后，
+在 `http://localhost:8025` 打开邮件即可取得验证链接。链接目标分别由
+`CORDIS_EMAIL_VERIFICATION_URL` 和 `CORDIS_PASSWORD_RESET_URL` 配置；前端页面从 `token`
+查询参数取值后调用对应的确认 RPC。Mailpit 数据未挂载命名卷，重建容器会清空本地邮件。

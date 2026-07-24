@@ -70,6 +70,10 @@ func TestSendEmailValidation(t *testing.T) {
 	req.SetTemplate("unknown_template")
 	_, err = server.SendEmail(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	req.SetTemplate(mail.TemplateEmailVerification)
+	_, err = server.SendEmail(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestSendEmailProviderFailure(t *testing.T) {
@@ -78,6 +82,7 @@ func TestSendEmailProviderFailure(t *testing.T) {
 	req := new(mailerv1.SendEmailRequest)
 	req.SetTo("user@example.com")
 	req.SetTemplate(mail.TemplateEmailVerification)
+	req.SetVariables(map[string]string{mail.VariableToken: "raw-token"})
 	_, err := server.SendEmail(t.Context(), req)
 	require.Equal(t, codes.Internal, status.Code(err))
 }

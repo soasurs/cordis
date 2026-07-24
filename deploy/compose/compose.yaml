@@ -178,11 +178,31 @@ services:
         /app/bin/migrate-guild -c /etc/cordis/guild.yaml
         /app/bin/migrate-message -c /etc/cordis/message.yaml
 
+  mailpit:
+    image: axllent/mailpit:v1.30.5
+    ports:
+      - "127.0.0.1:${CORDIS_MAILPIT_HTTP_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - cordis
+
   mailer:
     <<: *cordis-service
     command: ["/app/bin/mailer", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_EMAIL_VERIFICATION_URL: ${CORDIS_EMAIL_VERIFICATION_URL:-http://localhost:5173/verify-email}
+      CORDIS_PASSWORD_RESET_URL: ${CORDIS_PASSWORD_RESET_URL:-http://localhost:5173/reset-password}
     volumes:
       - ./config/mailer.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      mailpit:
+        condition: service_healthy
     healthcheck:
       <<: *grpc-healthcheck
       test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3007"]

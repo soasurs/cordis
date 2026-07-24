@@ -29,6 +29,8 @@ func TestServiceConfigsLoad(t *testing.T) {
 	t.Setenv("CORDIS_MINIO_ROOT_PASSWORD", "cordislocalpass")
 	t.Setenv("CORDIS_MEDIA_OBJECT_STORE_ENDPOINT", "storage.cordis.localhost:9000")
 	t.Setenv("CORDIS_GATEWAY_ORIGIN", "http://localhost:5173")
+	t.Setenv("CORDIS_EMAIL_VERIFICATION_URL", "http://localhost:5173/verify-email")
+	t.Setenv("CORDIS_PASSWORD_RESET_URL", "http://localhost:5173/reset-password")
 
 	loadConfig(t, "api.yaml", new(apiconfig.Config))
 	loadConfig(t, "dispatcher.yaml", new(dispatcherconfig.Config))
@@ -63,6 +65,10 @@ func TestServiceConfigsLoad(t *testing.T) {
 		loadConfig(t, cfg.name, cfg.target)
 		require.False(t, cfg.statEnabled(), cfg.name)
 	}
+	require.Equal(t, "smtp", mailer.Mailer.Provider)
+	require.Equal(t, "mailpit:1025", mailer.Mailer.SMTP.Address)
+	require.False(t, mailer.Mailer.SMTP.RequireTLS)
+	require.Equal(t, "http://localhost:5173/verify-email", mailer.Mailer.EmailVerificationURL)
 	require.NoError(t, media.Validate())
 }
 

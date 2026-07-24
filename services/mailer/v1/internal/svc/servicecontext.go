@@ -20,6 +20,21 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	switch cfg.Mailer.Provider {
 	case "", "noop":
 		return Dependencies{Provider: provider.NewNoop()}, nil
+	case "smtp":
+		smtpProvider, err := provider.NewSMTP(provider.SMTPConfig{
+			Address:              cfg.Mailer.SMTP.Address,
+			From:                 cfg.Mailer.From,
+			Username:             cfg.Mailer.SMTP.Username,
+			Password:             cfg.Mailer.SMTP.Password,
+			RequireTLS:           cfg.Mailer.SMTP.RequireTLS,
+			Timeout:              cfg.Mailer.SMTP.Timeout,
+			PasswordResetURL:     cfg.Mailer.PasswordResetURL,
+			EmailVerificationURL: cfg.Mailer.EmailVerificationURL,
+		})
+		if err != nil {
+			return Dependencies{}, err
+		}
+		return Dependencies{Provider: smtpProvider}, nil
 	default:
 		return Dependencies{}, errors.New("unsupported mailer provider")
 	}

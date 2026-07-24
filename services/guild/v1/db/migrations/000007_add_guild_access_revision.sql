@@ -25,6 +25,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS guild_members_access_revision ON guild_members;
+DROP TRIGGER IF EXISTS roles_access_revision ON roles;
+DROP TRIGGER IF EXISTS guild_member_roles_access_revision ON guild_member_roles;
+DROP TRIGGER IF EXISTS guild_channels_access_revision ON guild_channels;
+DROP TRIGGER IF EXISTS guild_channel_overwrites_access_revision ON guild_channel_permission_overwrites;
+DROP TRIGGER IF EXISTS guild_owner_access_revision ON guilds;
+
 CREATE TRIGGER guild_members_access_revision
 AFTER INSERT OR DELETE OR UPDATE OF deleted_at ON guild_members
 FOR EACH ROW EXECUTE FUNCTION bump_guild_access_revision();

@@ -1,0 +1,41 @@
+name: message.v1
+listenOn: 0.0.0.0:3002
+timeout: 0
+health: false
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+middlewares:
+  stat: false
+
+database:
+  dataSource: "${CORDIS_DATABASE_DSN}"
+  maxOpenConns: 10
+  maxIdleConns: 5
+
+kafka:
+  seeds:
+    - kafka:29092
+  topic: cordis.message.events.v1
+  publishTimeoutMs: 1000
+
+readStates:
+  maxConcurrentChannels: 800
+
+limits:
+  attachmentsPerMessage: 10
+  mentionsPerMessage: 100
+
+services:
+  guild:
+    endpoints:
+      - guild:3005
+  user:
+    endpoints:
+      - user:3000
+  media:
+    endpoints:
+      - media:3008

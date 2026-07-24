@@ -29,7 +29,7 @@ func TestWebSocketUpgradeRateLimitRunsBeforeAccept(t *testing.T) {
 		RateLimiter:   limiter,
 		SocketLimiter: &gatewayFakeSocketLimiter{allowed: true},
 	}))
-	req := httptest.NewRequest("GET", "/ws", nil)
+	req := httptest.NewRequest("GET", "/", nil)
 	req.RemoteAddr = "198.51.100.7:4321"
 	response := httptest.NewRecorder()
 
@@ -53,7 +53,7 @@ func TestWebSocketUsesIPv6PrefixAndIPv6SocketLimit(t *testing.T) {
 		RateLimiter:   limiter,
 		SocketLimiter: socketLimiter,
 	}))
-	req := httptest.NewRequest("GET", "/ws", nil)
+	req := httptest.NewRequest("GET", "/", nil)
 	req.RemoteAddr = "[2001:db8:1234:5678:abcd::1]:4321"
 	response := httptest.NewRecorder()
 

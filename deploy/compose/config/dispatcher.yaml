@@ -1,0 +1,38 @@
+name: dispatcher.v1
+
+probeServer:
+  listenOn: 0.0.0.0:6069
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+kafka:
+  seeds:
+    - kafka:29092
+  guildTopic: cordis.guild.events.v1
+  messageTopic: cordis.message.events.v1
+  userTopic: cordis.user.events.v1
+  presenceTopic: cordis.presence.events.v1
+  consumerGroup: cordis.dispatcher.v1
+
+redis:
+  host: redis:6379
+  type: node
+
+sessionRegistry:
+  hosts:
+    - etcd:2379
+  prefix: /cordis/session/nodes
+  dialTimeoutSeconds: 5
+
+dispatcher:
+  dispatchTimeoutSeconds: 5
+  retryMinMilliseconds: 100
+  retryMaxSeconds: 5
+
+services:
+  user:
+    endpoints:
+      - user:3000

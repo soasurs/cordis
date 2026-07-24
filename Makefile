@@ -1,11 +1,12 @@
 GO ?= go
 BUF := $(GO) tool buf
+LOCAL_COMPOSE := docker compose --env-file deploy/compose/.env -f deploy/compose/compose.yaml
 
 EXTERNAL_PROTO_FILES := $(shell find proto/api -type f -name '*.proto')
 INTERNAL_PROTO_DIRS := proto/authenticator proto/user proto/message proto/guild proto/presence proto/session proto/mailer proto/media
 INTERNAL_PROTO_FILES := $(shell find $(INTERNAL_PROTO_DIRS) -type f -name '*.proto')
 
-.PHONY: all generate generate-external generate-internal gen lint test test-integration compose-up compose-down
+.PHONY: all generate generate-external generate-internal gen lint test test-integration compose-up compose-down compose-local-config compose-local-up compose-local-down
 
 all: generate
 
@@ -33,3 +34,12 @@ compose-up:
 
 compose-down:
 	docker compose down
+
+compose-local-config:
+	$(LOCAL_COMPOSE) config --quiet
+
+compose-local-up:
+	$(LOCAL_COMPOSE) up -d --build
+
+compose-local-down:
+	$(LOCAL_COMPOSE) down

@@ -1,0 +1,64 @@
+name: authenticator.v1
+listenOn: 0.0.0.0:3001
+timeout: 0
+health: false
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+middlewares:
+  stat: false
+
+database:
+  dataSource: "${CORDIS_DATABASE_DSN}"
+  maxOpenConns: 10
+  maxIdleConns: 5
+
+tokens:
+  issuer: cordis.authenticator.v1
+  access:
+    secret: "${CORDIS_ACCESS_TOKEN_SECRET}"
+    ttl: 15m
+  refresh:
+    secret: "${CORDIS_REFRESH_TOKEN_SECRET}"
+    ttl: 720h
+
+sessions:
+  ttl: 720h
+
+password:
+  maxConcurrency: 4
+
+registration:
+  mode: open
+  reservationTTL: 15m
+
+recovery:
+  passwordResetTTL: 30m
+  emailVerificationTTL: 24h
+  requestIntervalSeconds: 60
+  redis:
+    host: redis:6379
+    type: node
+
+twoFactor:
+  issuer: Cordis Local
+  enrollmentTTL: 10m
+  loginChallengeTTL: 5m
+  maxAttempts: 5
+  recoveryCodeCount: 10
+  encryption:
+    primaryKeyID: totp-current
+    keys:
+      - id: totp-current
+        secret: "${CORDIS_TOTP_ENCRYPTION_KEY}"
+
+services:
+  user:
+    endpoints:
+      - user:3000
+  mailer:
+    endpoints:
+      - mailer:3007

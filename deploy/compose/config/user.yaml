@@ -1,0 +1,28 @@
+name: user.v1
+listenOn: 0.0.0.0:3000
+timeout: 0
+health: false
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+middlewares:
+  stat: false
+
+database:
+  dataSource: "${CORDIS_DATABASE_DSN}"
+  maxOpenConns: 10
+  maxIdleConns: 5
+
+kafka:
+  seeds:
+    - kafka:29092
+  topic: cordis.user.events.v1
+  publishTimeoutMs: 1000
+
+services:
+  media:
+    endpoints:
+      - media:3008

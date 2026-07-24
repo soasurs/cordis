@@ -37,24 +37,25 @@ type RateLimitPolicy struct {
 }
 
 type GatewayConfig struct {
-	WebSocketPath                    string `json:",default=/ws"`
-	HeartbeatIntervalMs              int    `json:",default=45000"`
-	IdentifyTimeoutSeconds           int    `json:",default=10"`
-	MaxMessageBytes                  int64  `json:",default=65536"`
-	MaxConnectionsPerInstance        int64  `json:",default=50000"`
-	MaxPendingHandshakesPerInstance  int64  `json:",default=5000"`
-	MaxPendingHandshakesPerIPv4Scope int64  `json:",default=100"`
-	MaxPendingHandshakesPerIPv6Scope int64  `json:",default=20"`
-	MaxClientEventsPerMinute         int    `json:",default=120"`
-	HeartbeatTimeoutIntervals        int    `json:",default=2"`
-	HeartbeatEarlyTolerancePercent   int    `json:",default=10"`
-	CheckpointIntervalMs             int    `json:",default=5000"`
-	CheckpointBatchSize              int    `json:",default=500"`
+	WebSocketPath                    string   `json:",default=/"`
+	OriginPatterns                   []string `json:",optional"`
+	HeartbeatIntervalMs              int      `json:",default=45000"`
+	IdentifyTimeoutSeconds           int      `json:",default=10"`
+	MaxMessageBytes                  int64    `json:",default=65536"`
+	MaxConnectionsPerInstance        int64    `json:",default=50000"`
+	MaxPendingHandshakesPerInstance  int64    `json:",default=5000"`
+	MaxPendingHandshakesPerIPv4Scope int64    `json:",default=100"`
+	MaxPendingHandshakesPerIPv6Scope int64    `json:",default=20"`
+	MaxClientEventsPerMinute         int      `json:",default=120"`
+	HeartbeatTimeoutIntervals        int      `json:",default=2"`
+	HeartbeatEarlyTolerancePercent   int      `json:",default=10"`
+	CheckpointIntervalMs             int      `json:",default=5000"`
+	CheckpointBatchSize              int      `json:",default=500"`
 }
 
 func (c GatewayConfig) WebSocketRoute() string {
 	if c.WebSocketPath == "" {
-		return "/ws"
+		return "/"
 	}
 	return c.WebSocketPath
 }

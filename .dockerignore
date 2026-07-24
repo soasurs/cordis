@@ -1,0 +1,10 @@
+.git
+.github
+.vscode
+.env
+.env.*
+!.env.example
+coverage.*
+*.out
+*.test
+deploy/compose/.env

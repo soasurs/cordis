@@ -175,7 +175,11 @@ func (s *Server) Drain(ctx context.Context) error {
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc(s.svcCtx.Cfg.Gateway.WebSocketRoute(), s.handleWebSocket)
+	route := s.svcCtx.Cfg.Gateway.WebSocketRoute()
+	if route == "/" {
+		route = "/{$}"
+	}
+	mux.HandleFunc(http.MethodGet+" "+route, s.handleWebSocket)
 	return mux
 }
 
@@ -218,6 +222,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
 		CompressionMode: websocket.CompressionDisabled,
+		OriginPatterns:  s.svcCtx.Cfg.Gateway.OriginPatterns,
 	})
 	if err != nil {
 		return

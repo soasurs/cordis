@@ -1,0 +1,23 @@
+name: presence.v1
+listenOn: 0.0.0.0:3003
+
+log:
+  mode: console
+  level: info
+  stat: false
+
+middlewares:
+  stat: false
+
+redis:
+  host: redis:6379
+  type: node
+
+presence:
+  userSessionTTLSeconds: 60
+
+kafka:
+  seeds:
+    - kafka:29092
+  topic: cordis.presence.events.v1
+  publishTimeoutMs: 1000

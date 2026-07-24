@@ -130,7 +130,7 @@ func (ds *dedupStore) rotateAll() {
 			shard.len++
 		}
 		shard.gens[shard.head] = dedupGen{
-			entries: make(map[dedupKey]int64, 1024),
+			entries: make(map[dedupKey]int64),
 		}
 
 		shard.mu.Unlock()

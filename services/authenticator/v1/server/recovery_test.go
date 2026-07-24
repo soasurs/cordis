@@ -288,13 +288,14 @@ func TestConfirmPasswordResetRejectsUnknownAndExpired(t *testing.T) {
 
 func TestRequestEmailVerificationStoresTokenAndSendsMail(t *testing.T) {
 	sessionStore := newFakeSessionStore()
+	seedCredential(t, sessionStore, 1001, "password")
 	mailerClient := new(fakeMailerClient)
 	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{
 		getUserResponse: recoveryTestUser(1001, "user@example.com", 0),
 	}, mailerClient)
 
 	req := new(authenticatorv1.RequestEmailVerificationRequest)
-	req.SetUserId(1001)
+	req.SetEmail(" User@Example.COM ")
 	resp, err := server.RequestEmailVerification(t.Context(), req)
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
@@ -308,13 +309,30 @@ func TestRequestEmailVerificationStoresTokenAndSendsMail(t *testing.T) {
 
 func TestRequestEmailVerificationAlreadyVerifiedSkipsMail(t *testing.T) {
 	sessionStore := newFakeSessionStore()
+	seedCredential(t, sessionStore, 1001, "password")
 	mailerClient := new(fakeMailerClient)
 	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{
 		getUserResponse: recoveryTestUser(1001, "user@example.com", 4001),
 	}, mailerClient)
 
 	req := new(authenticatorv1.RequestEmailVerificationRequest)
-	req.SetUserId(1001)
+	req.SetEmail("user@example.com")
+	resp, err := server.RequestEmailVerification(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Empty(t, mailerClient.sent)
+	require.Empty(t, sessionStore.emailVerifications)
+}
+
+func TestRequestEmailVerificationUnknownEmailStaysSilent(t *testing.T) {
+	sessionStore := newFakeSessionStore()
+	mailerClient := new(fakeMailerClient)
+	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{
+		getUserErr: status.Error(codes.NotFound, "resource not found"),
+	}, mailerClient)
+
+	req := new(authenticatorv1.RequestEmailVerificationRequest)
+	req.SetEmail("unknown@example.com")
 	resp, err := server.RequestEmailVerification(t.Context(), req)
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
@@ -416,13 +434,13 @@ func TestRequestEmailVerificationThrottledStaysSilent(t *testing.T) {
 	}, mailerClient, limiter)
 
 	req := new(authenticatorv1.RequestEmailVerificationRequest)
-	req.SetUserId(1001)
+	req.SetEmail("User@Example.com")
 	resp, err := server.RequestEmailVerification(t.Context(), req)
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.Empty(t, sessionStore.emailVerifications)
 	require.Empty(t, mailerClient.sent)
-	require.Equal(t, []string{"emailverify:1001"}, limiter.keys)
+	require.Equal(t, []string{"emailverify:" + token.Hash("user@example.com")}, limiter.keys)
 }
 
 func TestRecoveryLimiterFailsOpen(t *testing.T) {

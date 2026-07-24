@@ -316,10 +316,8 @@ type RegisterRequest struct {
 	xxx_hidden_Name                   *string                `protobuf:"bytes,1,opt,name=name"`
 	xxx_hidden_Email                  *string                `protobuf:"bytes,2,opt,name=email"`
 	xxx_hidden_Password               *string                `protobuf:"bytes,3,opt,name=password"`
-	xxx_hidden_UserAgent              *string                `protobuf:"bytes,4,opt,name=user_agent,json=userAgent"`
-	xxx_hidden_Ip                     *string                `protobuf:"bytes,5,opt,name=ip"`
-	xxx_hidden_Username               *string                `protobuf:"bytes,6,opt,name=username"`
-	xxx_hidden_RegistrationInviteCode *string                `protobuf:"bytes,7,opt,name=registration_invite_code,json=registrationInviteCode"`
+	xxx_hidden_Username               *string                `protobuf:"bytes,4,opt,name=username"`
+	xxx_hidden_RegistrationInviteCode *string                `protobuf:"bytes,5,opt,name=registration_invite_code,json=registrationInviteCode"`
 	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
 	XXX_presence                      [1]uint32
 	unknownFields                     protoimpl.UnknownFields
@@ -381,26 +379,6 @@ func (x *RegisterRequest) GetPassword() string {
 	return ""
 }
 
-func (x *RegisterRequest) GetUserAgent() string {
-	if x != nil {
-		if x.xxx_hidden_UserAgent != nil {
-			return *x.xxx_hidden_UserAgent
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *RegisterRequest) GetIp() string {
-	if x != nil {
-		if x.xxx_hidden_Ip != nil {
-			return *x.xxx_hidden_Ip
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *RegisterRequest) GetUsername() string {
 	if x != nil {
 		if x.xxx_hidden_Username != nil {
@@ -423,37 +401,27 @@ func (x *RegisterRequest) GetRegistrationInviteCode() string {
 
 func (x *RegisterRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *RegisterRequest) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *RegisterRequest) SetPassword(v string) {
 	x.xxx_hidden_Password = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
-}
-
-func (x *RegisterRequest) SetUserAgent(v string) {
-	x.xxx_hidden_UserAgent = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
-}
-
-func (x *RegisterRequest) SetIp(v string) {
-	x.xxx_hidden_Ip = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *RegisterRequest) SetUsername(v string) {
 	x.xxx_hidden_Username = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
 }
 
 func (x *RegisterRequest) SetRegistrationInviteCode(v string) {
 	x.xxx_hidden_RegistrationInviteCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *RegisterRequest) HasName() bool {
@@ -477,32 +445,18 @@ func (x *RegisterRequest) HasPassword() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *RegisterRequest) HasUserAgent() bool {
+func (x *RegisterRequest) HasUsername() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *RegisterRequest) HasIp() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *RegisterRequest) HasUsername() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
-}
-
 func (x *RegisterRequest) HasRegistrationInviteCode() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
 func (x *RegisterRequest) ClearName() {
@@ -520,34 +474,22 @@ func (x *RegisterRequest) ClearPassword() {
 	x.xxx_hidden_Password = nil
 }
 
-func (x *RegisterRequest) ClearUserAgent() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_UserAgent = nil
-}
-
-func (x *RegisterRequest) ClearIp() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Ip = nil
-}
-
 func (x *RegisterRequest) ClearUsername() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_Username = nil
 }
 
 func (x *RegisterRequest) ClearRegistrationInviteCode() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
 	x.xxx_hidden_RegistrationInviteCode = nil
 }
 
 type RegisterRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Name      *string
-	Email     *string
-	Password  *string
-	UserAgent *string
-	Ip        *string
+	Name     *string
+	Email    *string
+	Password *string
 	// Globally unique lowercase handle.
 	Username *string
 	// One-time authorization to create an account when registration is invite-only.
@@ -559,41 +501,35 @@ func (b0 RegisterRequest_builder) Build() *RegisterRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_Email = b.Email
 	}
 	if b.Password != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_Password = b.Password
 	}
-	if b.UserAgent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
-		x.xxx_hidden_UserAgent = b.UserAgent
-	}
-	if b.Ip != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
-		x.xxx_hidden_Ip = b.Ip
-	}
 	if b.Username != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_Username = b.Username
 	}
 	if b.RegistrationInviteCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
 		x.xxx_hidden_RegistrationInviteCode = b.RegistrationInviteCode
 	}
 	return m0
 }
 
 type RegisterResponse struct {
-	state             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *RegisterResponse) Reset() {
@@ -621,39 +557,44 @@ func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *RegisterResponse) GetResult() *AuthenticationResult {
+func (x *RegisterResponse) GetOk() bool {
 	if x != nil {
-		return x.xxx_hidden_Result
+		return x.xxx_hidden_Ok
 	}
-	return nil
+	return false
 }
 
-func (x *RegisterResponse) SetResult(v *AuthenticationResult) {
-	x.xxx_hidden_Result = v
+func (x *RegisterResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
 }
 
-func (x *RegisterResponse) HasResult() bool {
+func (x *RegisterResponse) HasOk() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Result != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *RegisterResponse) ClearResult() {
-	x.xxx_hidden_Result = nil
+func (x *RegisterResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
 }
 
 type RegisterResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Result *AuthenticationResult
+	Ok *bool
 }
 
 func (b0 RegisterResponse_builder) Build() *RegisterResponse {
 	m0 := &RegisterResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.xxx_hidden_Result = b.Result
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_Ok = *b.Ok
+	}
 	return m0
 }
 
@@ -4277,7 +4218,7 @@ func (b0 ConfirmPasswordResetResponse_builder) Build() *ConfirmPasswordResetResp
 
 type RequestEmailVerificationRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -4309,43 +4250,46 @@ func (x *RequestEmailVerificationRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *RequestEmailVerificationRequest) GetUserId() int64 {
+func (x *RequestEmailVerificationRequest) GetEmail() string {
 	if x != nil {
-		return x.xxx_hidden_UserId
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
-func (x *RequestEmailVerificationRequest) SetUserId(v int64) {
-	x.xxx_hidden_UserId = v
+func (x *RequestEmailVerificationRequest) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
 }
 
-func (x *RequestEmailVerificationRequest) HasUserId() bool {
+func (x *RequestEmailVerificationRequest) HasEmail() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *RequestEmailVerificationRequest) ClearUserId() {
+func (x *RequestEmailVerificationRequest) ClearEmail() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_UserId = 0
+	x.xxx_hidden_Email = nil
 }
 
 type RequestEmailVerificationRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId *int64
+	Email *string
 }
 
 func (b0 RequestEmailVerificationRequest_builder) Build() *RequestEmailVerificationRequest {
 	m0 := &RequestEmailVerificationRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
-	if b.UserId != nil {
+	if b.Email != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_UserId = *b.UserId
+		x.xxx_hidden_Email = b.Email
 	}
 	return m0
 }
@@ -4846,18 +4790,15 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"revoked_at\x18\x06 \x01(\x03R\trevokedAt\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\a \x01(\tR\tuserAgent\x12\x0e\n" +
-	"\x02ip\x18\b \x01(\tR\x02ip\"\xdc\x01\n" +
+	"\x02ip\x18\b \x01(\tR\x02ip\"\xad\x01\n" +
 	"\x0fRegisterRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x1d\n" +
-	"\n" +
-	"user_agent\x18\x04 \x01(\tR\tuserAgent\x12\x0e\n" +
-	"\x02ip\x18\x05 \x01(\tR\x02ip\x12\x1a\n" +
-	"\busername\x18\x06 \x01(\tR\busername\x128\n" +
-	"\x18registration_invite_code\x18\a \x01(\tR\x16registrationInviteCode\"R\n" +
-	"\x10RegisterResponse\x12>\n" +
-	"\x06result\x18\x01 \x01(\v2&.authenticator.v1.AuthenticationResultR\x06result\"o\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x12\x1a\n" +
+	"\busername\x18\x04 \x01(\tR\busername\x128\n" +
+	"\x18registration_invite_code\x18\x05 \x01(\tR\x16registrationInviteCode\"\"\n" +
+	"\x10RegisterResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"o\n" +
 	"\fLoginRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x1d\n" +
@@ -4968,9 +4909,9 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\".\n" +
 	"\x1cConfirmPasswordResetResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\":\n" +
-	"\x1fRequestEmailVerificationRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\"2\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"7\n" +
+	"\x1fRequestEmailVerificationRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"2\n" +
 	" RequestEmailVerificationResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"7\n" +
 	"\x1fConfirmEmailVerificationRequest\x12\x14\n" +
@@ -5051,55 +4992,54 @@ var file_authenticator_v1_authenticator_proto_goTypes = []any{
 	(*ChangePasswordResponse)(nil),                   // 40: authenticator.v1.ChangePasswordResponse
 }
 var file_authenticator_v1_authenticator_proto_depIdxs = []int32{
-	8,  // 0: authenticator.v1.RegisterResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	8,  // 1: authenticator.v1.LoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	5,  // 2: authenticator.v1.LoginResponse.two_factor_challenge:type_name -> authenticator.v1.TwoFactorLoginChallenge
-	8,  // 3: authenticator.v1.CompleteTwoFactorLoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	8,  // 4: authenticator.v1.RefreshResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	0,  // 5: authenticator.v1.ListSessionsResponse.sessions:type_name -> authenticator.v1.Session
-	1,  // 6: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
-	3,  // 7: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
-	6,  // 8: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:input_type -> authenticator.v1.CompleteTwoFactorLoginRequest
-	9,  // 9: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
-	11, // 10: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
-	13, // 11: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
-	39, // 12: authenticator.v1.AuthenticatorService.ChangePassword:input_type -> authenticator.v1.ChangePasswordRequest
-	31, // 13: authenticator.v1.AuthenticatorService.RequestPasswordReset:input_type -> authenticator.v1.RequestPasswordResetRequest
-	33, // 14: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:input_type -> authenticator.v1.ConfirmPasswordResetRequest
-	35, // 15: authenticator.v1.AuthenticatorService.RequestEmailVerification:input_type -> authenticator.v1.RequestEmailVerificationRequest
-	37, // 16: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:input_type -> authenticator.v1.ConfirmEmailVerificationRequest
-	15, // 17: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
-	17, // 18: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
-	19, // 19: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
-	21, // 20: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> authenticator.v1.GetTwoFactorStatusRequest
-	23, // 21: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> authenticator.v1.BeginTwoFactorEnrollmentRequest
-	25, // 22: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> authenticator.v1.ConfirmTwoFactorEnrollmentRequest
-	27, // 23: authenticator.v1.AuthenticatorService.DisableTwoFactor:input_type -> authenticator.v1.DisableTwoFactorRequest
-	29, // 24: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
-	2,  // 25: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
-	4,  // 26: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
-	7,  // 27: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> authenticator.v1.CompleteTwoFactorLoginResponse
-	10, // 28: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
-	12, // 29: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
-	14, // 30: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
-	40, // 31: authenticator.v1.AuthenticatorService.ChangePassword:output_type -> authenticator.v1.ChangePasswordResponse
-	32, // 32: authenticator.v1.AuthenticatorService.RequestPasswordReset:output_type -> authenticator.v1.RequestPasswordResetResponse
-	34, // 33: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:output_type -> authenticator.v1.ConfirmPasswordResetResponse
-	36, // 34: authenticator.v1.AuthenticatorService.RequestEmailVerification:output_type -> authenticator.v1.RequestEmailVerificationResponse
-	38, // 35: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:output_type -> authenticator.v1.ConfirmEmailVerificationResponse
-	16, // 36: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
-	18, // 37: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
-	20, // 38: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
-	22, // 39: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> authenticator.v1.GetTwoFactorStatusResponse
-	24, // 40: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> authenticator.v1.BeginTwoFactorEnrollmentResponse
-	26, // 41: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> authenticator.v1.ConfirmTwoFactorEnrollmentResponse
-	28, // 42: authenticator.v1.AuthenticatorService.DisableTwoFactor:output_type -> authenticator.v1.DisableTwoFactorResponse
-	30, // 43: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
-	25, // [25:44] is the sub-list for method output_type
-	6,  // [6:25] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	8,  // 0: authenticator.v1.LoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
+	5,  // 1: authenticator.v1.LoginResponse.two_factor_challenge:type_name -> authenticator.v1.TwoFactorLoginChallenge
+	8,  // 2: authenticator.v1.CompleteTwoFactorLoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
+	8,  // 3: authenticator.v1.RefreshResponse.result:type_name -> authenticator.v1.AuthenticationResult
+	0,  // 4: authenticator.v1.ListSessionsResponse.sessions:type_name -> authenticator.v1.Session
+	1,  // 5: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
+	3,  // 6: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
+	6,  // 7: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:input_type -> authenticator.v1.CompleteTwoFactorLoginRequest
+	9,  // 8: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
+	11, // 9: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
+	13, // 10: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
+	39, // 11: authenticator.v1.AuthenticatorService.ChangePassword:input_type -> authenticator.v1.ChangePasswordRequest
+	31, // 12: authenticator.v1.AuthenticatorService.RequestPasswordReset:input_type -> authenticator.v1.RequestPasswordResetRequest
+	33, // 13: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:input_type -> authenticator.v1.ConfirmPasswordResetRequest
+	35, // 14: authenticator.v1.AuthenticatorService.RequestEmailVerification:input_type -> authenticator.v1.RequestEmailVerificationRequest
+	37, // 15: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:input_type -> authenticator.v1.ConfirmEmailVerificationRequest
+	15, // 16: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
+	17, // 17: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
+	19, // 18: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
+	21, // 19: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> authenticator.v1.GetTwoFactorStatusRequest
+	23, // 20: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> authenticator.v1.BeginTwoFactorEnrollmentRequest
+	25, // 21: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> authenticator.v1.ConfirmTwoFactorEnrollmentRequest
+	27, // 22: authenticator.v1.AuthenticatorService.DisableTwoFactor:input_type -> authenticator.v1.DisableTwoFactorRequest
+	29, // 23: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
+	2,  // 24: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
+	4,  // 25: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
+	7,  // 26: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> authenticator.v1.CompleteTwoFactorLoginResponse
+	10, // 27: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
+	12, // 28: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
+	14, // 29: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
+	40, // 30: authenticator.v1.AuthenticatorService.ChangePassword:output_type -> authenticator.v1.ChangePasswordResponse
+	32, // 31: authenticator.v1.AuthenticatorService.RequestPasswordReset:output_type -> authenticator.v1.RequestPasswordResetResponse
+	34, // 32: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:output_type -> authenticator.v1.ConfirmPasswordResetResponse
+	36, // 33: authenticator.v1.AuthenticatorService.RequestEmailVerification:output_type -> authenticator.v1.RequestEmailVerificationResponse
+	38, // 34: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:output_type -> authenticator.v1.ConfirmEmailVerificationResponse
+	16, // 35: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
+	18, // 36: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
+	20, // 37: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
+	22, // 38: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> authenticator.v1.GetTwoFactorStatusResponse
+	24, // 39: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> authenticator.v1.BeginTwoFactorEnrollmentResponse
+	26, // 40: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> authenticator.v1.ConfirmTwoFactorEnrollmentResponse
+	28, // 41: authenticator.v1.AuthenticatorService.DisableTwoFactor:output_type -> authenticator.v1.DisableTwoFactorResponse
+	30, // 42: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
+	24, // [24:43] is the sub-list for method output_type
+	5,  // [5:24] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_authenticator_v1_authenticator_proto_init() }

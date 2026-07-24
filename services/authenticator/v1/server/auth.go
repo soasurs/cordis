@@ -13,6 +13,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/mail"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
@@ -53,6 +54,10 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 	if err != nil {
 		return nil, err
 	}
+	rawVerificationToken, err := token.GenerateOpaqueToken()
+	if err != nil {
+		return nil, err
+	}
 
 	createReq := new(userv1.CreateUserRequest)
 	createReq.SetName(name)
@@ -89,7 +94,6 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 	}
 
 	now := time.Now().UnixMilli()
-	var result *authenticatorv1.AuthenticationResult
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		if err := txStore.CreateUserCredential(ctx, &model.UserCredential{
 			UserID:         userID,
@@ -106,9 +110,13 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 				return err
 			}
 		}
-		var err error
-		result, err = s.createSessionWithStore(ctx, txStore, userID, req.GetUserAgent(), req.GetIp())
-		return err
+		return txStore.UpsertEmailVerificationToken(ctx, &model.EmailVerificationToken{
+			UserID:    userID,
+			TokenHash: token.Hash(rawVerificationToken),
+			Email:     email,
+			CreatedAt: now,
+			ExpiresAt: time.UnixMilli(now).Add(s.svcCtx.Cfg.Recovery.EmailVerificationTTL).UnixMilli(),
+		})
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -117,8 +125,9 @@ func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1
 		return nil, err
 	}
 
+	s.sendRecoveryMail(ctx, email, mail.TemplateEmailVerification, rawVerificationToken)
 	resp := new(authenticatorv1.RegisterResponse)
-	resp.SetResult(result)
+	resp.SetOk(true)
 	return resp, nil
 }
 
@@ -200,6 +209,9 @@ func (s *authenticatorServer) Login(ctx context.Context, req *authenticatorv1.Lo
 		return nil, err
 	}
 	if !ok {
+		return nil, invalidCredentialsError()
+	}
+	if getUserResp.GetUser().GetEmailVerifiedAt() == 0 {
 		return nil, invalidCredentialsError()
 	}
 

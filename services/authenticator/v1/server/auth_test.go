@@ -19,6 +19,7 @@ import (
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/mail"
 	"github.com/soasurs/cordis/pkg/password"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -37,6 +38,8 @@ func TestRegister(t *testing.T) {
 		createUserResponse: createUserResponse(1001, "user@example.com"),
 	}
 	server := newTestAuthenticatorServer(t, store, tokens, userClient)
+	mailerClient := new(fakeMailerClient)
+	server.(*authenticatorServer).svcCtx.MailerClient = mailerClient
 	limiter := new(recordingPasswordLimiter)
 	server.(*authenticatorServer).svcCtx.PasswordLimiter = limiter
 
@@ -45,8 +48,6 @@ func TestRegister(t *testing.T) {
 	req.SetUsername("tester")
 	req.SetEmail("user@example.com")
 	req.SetPassword("password")
-	req.SetUserAgent("test-agent")
-	req.SetIp("127.0.0.1")
 
 	resp, err := server.Register(context.Background(), req)
 	require.NoError(t, err)
@@ -56,14 +57,14 @@ func TestRegister(t *testing.T) {
 	match, err := password.Verify(store.credentials[1001].HashedPassword, "password")
 	require.NoError(t, err)
 	require.True(t, match)
-	result := resp.GetResult()
-	require.True(t, result.GetOk())
-	require.Equal(t, int64(1001), result.GetUserId())
-	require.NotEmpty(t, result.GetAccessToken())
-	require.NotEmpty(t, result.GetRefreshToken())
-	require.NotNil(t, store.createdSession)
-	require.Equal(t, "test-agent", store.createdSession.UserAgent)
-	require.Equal(t, "127.0.0.1", store.createdSession.IP)
+	require.True(t, resp.GetOk())
+	require.Nil(t, store.createdSession)
+	delivered := mailerClient.onlyMail(t)
+	require.Equal(t, mail.TemplateEmailVerification, delivered.template)
+	verification := store.emailVerifications[token.Hash(delivered.token)]
+	require.NotNil(t, verification)
+	require.Equal(t, int64(1001), verification.UserID)
+	require.Equal(t, "user@example.com", verification.Email)
 	calls, releases := limiter.snapshot()
 	require.Equal(t, 1, calls)
 	require.Equal(t, 1, releases)
@@ -97,7 +98,7 @@ func TestRegisterInviteOnlyRedeemsInvite(t *testing.T) {
 
 	resp, err := server.Register(t.Context(), req)
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), resp.GetResult().GetUserId())
+	require.True(t, resp.GetOk())
 	invite := sessionStore.registrationInvites[token.Hash(rawCode)]
 	require.Equal(t, "user@example.com", invite.ReservedEmail)
 	require.Equal(t, int64(1001), invite.RedeemedUserID)
@@ -241,6 +242,25 @@ func TestLoginInvalidCredentials(t *testing.T) {
 	_, err := server.Login(context.Background(), req)
 	require.Equal(t, codes.Unauthenticated, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials))
+}
+
+func TestLoginUnverifiedEmailUsesInvalidCredentials(t *testing.T) {
+	store := newFakeSessionStore()
+	seedCredential(t, store, 1001, "password")
+	user := userResponse(1001, "user@example.com")
+	user.GetUser().SetEmailVerifiedAt(0)
+	server := newTestAuthenticatorServer(t, store, newTestTokenManager(t), &fakeUserClient{
+		getUserResponse: user,
+	})
+
+	req := new(authenticatorv1.LoginRequest)
+	req.SetEmail("user@example.com")
+	req.SetPassword("password")
+
+	_, err := server.Login(t.Context(), req)
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials))
+	require.Nil(t, store.createdSession)
 }
 
 func TestLoginRequiresAndCompletesTwoFactor(t *testing.T) {
@@ -643,6 +663,7 @@ func userResponse(userID int64, email string) *userv1.GetUserResponse {
 	user := new(userv1.User)
 	user.SetUserId(userID)
 	user.SetEmail(email)
+	user.SetEmailVerifiedAt(1)
 	resp := new(userv1.GetUserResponse)
 	resp.SetUser(user)
 	return resp

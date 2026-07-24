@@ -25,7 +25,6 @@ func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterR
 	svcReq.SetPassword(req.GetPassword())
 	svcReq.SetUsername(req.GetUsername())
 	svcReq.SetRegistrationInviteCode(req.GetRegistrationInviteCode())
-	setClientMetadata(ctx, svcReq.SetUserAgent, svcReq.SetIp)
 
 	svcResp, err := s.svcCtx.AuthenticatorClient.Register(ctx, svcReq)
 	if err != nil {
@@ -33,7 +32,7 @@ func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterR
 	}
 
 	resp := new(apiv1.RegisterResponse)
-	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+	resp.SetOk(svcResp.GetOk())
 	return resp, nil
 }
 

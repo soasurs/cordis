@@ -27,7 +27,7 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/svc"
 )
 
-func TestCreateGuildCreatesOwnerDefaultRoleAndEvent(t *testing.T) {
+func TestCreateGuildCreatesOwnerDefaultRoleChannelsAndEvent(t *testing.T) {
 	fakeStore := newFakeStore()
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher)
@@ -45,6 +45,20 @@ func TestCreateGuildCreatesOwnerDefaultRoleAndEvent(t *testing.T) {
 	require.Contains(t, fakeStore.members[guild.GetId()], int64(1001))
 	require.True(t, fakeStore.defaultRoles[guild.GetId()])
 
+	channels, err := fakeStore.ListGuildChannels(t.Context(), guild.GetId())
+	require.NoError(t, err)
+	require.Len(t, channels, 4)
+	require.Equal(t, defaultTextCategoryName, channels[0].Name)
+	require.Equal(t, int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY), channels[0].Type)
+	require.Equal(t, defaultTextChannelName, channels[1].Name)
+	require.Equal(t, int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT), channels[1].Type)
+	require.Equal(t, channels[0].ID, channels[1].ParentID)
+	require.Equal(t, defaultVoiceCategoryName, channels[2].Name)
+	require.Equal(t, int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY), channels[2].Type)
+	require.Equal(t, defaultVoiceChannelName, channels[3].Name)
+	require.Equal(t, int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE), channels[3].Type)
+	require.Equal(t, channels[2].ID, channels[3].ParentID)
+
 	record := publisher.onlyRecord(t)
 	require.Equal(t, string(record.key), guildIDString(guild.GetId()))
 	var envelope eventEnvelope[guildPayload]
@@ -52,6 +66,7 @@ func TestCreateGuildCreatesOwnerDefaultRoleAndEvent(t *testing.T) {
 	require.Equal(t, EventTypeGuildCreated, envelope.Type)
 	require.Equal(t, guildIDString(guild.GetId()), envelope.Data.ID)
 	require.Equal(t, "1001", envelope.Data.OwnerID)
+	require.NotEmpty(t, envelope.IdempotencyKey)
 }
 
 func TestCreateGuildCommitFailureDoesNotPublish(t *testing.T) {

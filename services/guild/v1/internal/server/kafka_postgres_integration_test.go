@@ -52,10 +52,11 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 
 	node, err := snowflake.New()
 	require.NoError(t, err)
+	guildStore := store.New(db)
 	service := New(svc.NewServiceContextWithDependencies(config.Config{
 		Kafka: config.KafkaConfig{Topic: topic, PublishTimeoutMs: 5000},
 	}, svc.Dependencies{
-		Store:       store.New(db),
+		Store:       guildStore,
 		Snowflake:   node,
 		Kafka:       producer,
 		UserClient:  &fakeUserClient{},
@@ -67,6 +68,13 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	req.SetName("Cordis")
 	created, err := service.CreateGuild(t.Context(), req)
 	require.NoError(t, err)
+	channels, err := guildStore.ListGuildChannels(t.Context(), created.GetGuild().GetId())
+	require.NoError(t, err)
+	require.Len(t, channels, 4)
+	require.Equal(t, defaultTextCategoryName, channels[0].Name)
+	require.Equal(t, channels[0].ID, channels[1].ParentID)
+	require.Equal(t, defaultVoiceCategoryName, channels[2].Name)
+	require.Equal(t, channels[2].ID, channels[3].ParentID)
 
 	readCtx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
@@ -89,5 +97,5 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 		} `json:"d"`
 	}
 	require.NoError(t, json.Unmarshal(record.Value, &revisionEnvelope))
-	require.GreaterOrEqual(t, revisionEnvelope.Data.AccessRevision, int64(3))
+	require.GreaterOrEqual(t, revisionEnvelope.Data.AccessRevision, int64(7))
 }

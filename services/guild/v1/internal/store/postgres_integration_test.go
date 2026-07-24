@@ -769,8 +769,7 @@ func testGuildDeleteHelpers(t *testing.T, store Store) {
 	require.Empty(t, roles)
 }
 
-// seedGuild creates a guild with its owner membership and @everyone default
-// role, mirroring the CreateGuild RPC transaction.
+// seedGuild creates the minimum guild ownership records needed by store tests.
 func seedGuild(t *testing.T, store Store, guildID, ownerID int64) {
 	t.Helper()
 	now := time.Now().UnixMilli()

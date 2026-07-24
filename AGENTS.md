@@ -100,7 +100,7 @@ go build ./services/guild/v1/...
 
 ## Guild Service
 
-- Guild metadata RPCs cover create/get/list/update/delete. Creating a guild transactionally creates the owner membership and the `@everyone` default role; the default role ID equals the guild ID.
+- Guild metadata RPCs cover create/get/list/update/delete. Creating a guild transactionally creates the owner membership, the `@everyone` default role, and `Text Channels`/`Voice Channels` categories containing `general` text and `General` voice channels; the default role ID equals the guild ID.
 - Guild metadata uses soft deletion and a `revision` starting at 1. Updates and deletion increment the revision.
 - Guild reads require active membership. Non-members and deleted guilds are returned as not found. Metadata updates require `MANAGE_GUILD`; deletion and ownership transfer remain owner-only.
 - `ListUserGuilds` uses descending Snowflake IDs and a `before` cursor.

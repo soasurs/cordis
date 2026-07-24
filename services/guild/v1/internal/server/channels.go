@@ -6,6 +6,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/zeromicro/go-zero/core/logx"
+
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
@@ -33,7 +35,8 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	}
 
 	var channel *model.Channel
-	createdAt := time.Now().UnixMilli()
+	var shifted []*model.Channel
+	var createdAt int64
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
@@ -42,11 +45,15 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
 		}
+		if err := txStore.LockGuildChannelMutations(ctx, req.GetGuildId()); err != nil {
+			return err
+		}
 		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
 			Kind: store.QuotaGuildChannels, ScopeID: req.GetGuildId(), Limit: s.svcCtx.Cfg.Limits.Channels(),
 		}); err != nil {
 			return err
 		}
+		createdAt = time.Now().UnixMilli()
 		channels, err := txStore.ListGuildChannels(ctx, req.GetGuildId())
 		if err != nil {
 			return err
@@ -54,17 +61,51 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		if err := validateChannelParent(ctx, txStore, req.GetGuildId(), channelType, req.GetParentId()); err != nil {
 			return err
 		}
+		position := nextGuildChannelPosition(channels)
+		if channelType != guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY && req.GetParentId() == 0 {
+			position = uncategorizedChannelInsertPosition(channels)
+			updates := make([]store.GuildChannelPositionUpdate, 0, len(channels))
+			for _, existing := range channels {
+				if existing.Position < position {
+					continue
+				}
+				updates = append(updates, store.GuildChannelPositionUpdate{
+					ChannelID: existing.ID, Position: existing.Position + 1, ParentID: existing.ParentID,
+				})
+			}
+			shifted, err = txStore.UpdateGuildChannelPositions(ctx, req.GetGuildId(), updates, createdAt)
+			if err != nil {
+				return err
+			}
+			if len(shifted) != len(updates) {
+				return notFound()
+			}
+		}
 		channel, err = txStore.CreateGuildChannel(
 			ctx, s.svcCtx.Snowflake.Generate().Int64(), req.GetGuildId(), name,
-			int32(channelType), int32(len(channels)), req.GetTopic(), req.GetParentId(), createdAt,
+			int32(channelType), position, req.GetTopic(), req.GetParentId(), createdAt,
 		)
 		return err
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	events := make([]guildEvent, 0, len(shifted)+1)
+	for _, existing := range shifted {
+		event, eventErr := newGuildChannelUpdatedEvent(existing, s.svcCtx.Snowflake.Generate().Int64())
+		if eventErr != nil {
+			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
+			continue
+		}
+		events = append(events, event)
+	}
 	event, eventErr := newGuildChannelCreatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
+	if eventErr != nil {
+		logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
+	} else {
+		events = append(events, event)
+	}
+	s.publishEvents(ctx, events)
 	resp := new(guildv1.CreateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(channel))
 	return resp, nil
@@ -208,7 +249,7 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 	}
 	var deleted *model.Channel
 	var movedChildren []*model.Channel
-	deletedAt := time.Now().UnixMilli()
+	var deletedAt int64
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		channel, err := txStore.GetGuildChannel(ctx, req.GetChannelId())
 		if err != nil {
@@ -221,6 +262,14 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
 		}
+		if err := txStore.LockGuildChannelMutations(ctx, channel.GuildID); err != nil {
+			return err
+		}
+		channel, err = txStore.GetGuildChannel(ctx, req.GetChannelId())
+		if err != nil {
+			return err
+		}
+		deletedAt = time.Now().UnixMilli()
 		if channel.Type == int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY) {
 			// Deleting a category keeps its children and moves them to the
 			// guild root instead of cascading content deletion.
@@ -276,7 +325,7 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 	}
 	positions := make(map[int64]int32, len(req.GetPositions()))
 	for _, item := range req.GetPositions() {
-		if item.GetChannelId() <= 0 || item.GetPosition() < 0 {
+		if item.GetChannelId() <= 0 || item.GetPosition() < 0 || item.HasParentId() && item.GetParentId() < 0 {
 			return nil, invalidRequest("channel id and position are invalid")
 		}
 		if _, exists := positions[item.GetChannelId()]; exists {
@@ -287,7 +336,7 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 
 	var channels []*model.Channel
 	var updated []*model.Channel
-	updatedAt := time.Now().UnixMilli()
+	var updatedAt int64
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
@@ -296,31 +345,55 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
 		}
-		current, err := txStore.ListGuildChannels(ctx, req.GetGuildId())
-		if err != nil {
+		if err := txStore.LockGuildChannelMutations(ctx, req.GetGuildId()); err != nil {
 			return err
 		}
-		if err := validateChannelPositions(current, positions); err != nil {
+		updatedAt = time.Now().UnixMilli()
+		current, err := txStore.ListGuildChannels(ctx, req.GetGuildId())
+		if err != nil {
 			return err
 		}
 		currentByID := make(map[int64]*model.Channel, len(current))
 		for _, channel := range current {
 			currentByID[channel.ID] = channel
 		}
-		channelIDs := make([]int64, 0, len(positions))
-		channelPositions := make([]int32, 0, len(positions))
-		for channelID, position := range positions {
-			if currentByID[channelID] == nil {
+		if err := validateChannelPositions(current, positions); err != nil {
+			return err
+		}
+		updates := make([]store.GuildChannelPositionUpdate, 0, len(positions))
+		parentIDs := make(map[int64]int64, len(positions))
+		for _, item := range req.GetPositions() {
+			channel := currentByID[item.GetChannelId()]
+			if channel == nil {
 				return notFound()
 			}
-			channelIDs = append(channelIDs, channelID)
-			channelPositions = append(channelPositions, position)
+			parentID := channel.ParentID
+			if item.HasParentId() {
+				parentID = item.GetParentId()
+				if err := validateChannelParent(ctx, txStore, req.GetGuildId(), guildv1.GuildChannelType(channel.Type), parentID); err != nil {
+					return err
+				}
+			}
+			parentIDs[item.GetChannelId()] = parentID
+			if channel.Position == item.GetPosition() && channel.ParentID == parentID {
+				continue
+			}
+			updates = append(updates, store.GuildChannelPositionUpdate{
+				ChannelID: item.GetChannelId(), Position: item.GetPosition(), ParentID: parentID,
+			})
 		}
-		updated, err = txStore.UpdateGuildChannelPositions(ctx, req.GetGuildId(), channelIDs, channelPositions, updatedAt)
+		if err := validateUncategorizedChannelsFirst(current, positions, parentIDs); err != nil {
+			return err
+		}
+		if len(updates) == 0 {
+			channels = current
+			return nil
+		}
+		updated, err = txStore.UpdateGuildChannelPositions(ctx, req.GetGuildId(), updates, updatedAt)
 		if err != nil {
 			return err
 		}
-		if len(updated) != len(channelIDs) {
+		if len(updated) != len(updates) {
 			return notFound()
 		}
 		channels, err = txStore.ListGuildChannels(ctx, req.GetGuildId())
@@ -329,10 +402,16 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	events := make([]guildEvent, 0, len(updated))
 	for _, channel := range updated {
 		event, eventErr := newGuildChannelUpdatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
-		s.publishEvent(ctx, event, eventErr)
+		if eventErr != nil {
+			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
+			continue
+		}
+		events = append(events, event)
 	}
+	s.publishEvents(ctx, events)
 	resp := new(guildv1.ReorderGuildChannelsResponse)
 	resp.SetChannels(guildChannelsToProto(channels))
 	return resp, nil
@@ -623,6 +702,65 @@ func validateChannelPositions(channels []*model.Channel, positions map[int64]int
 		final[position] = channel.ID
 	}
 	return nil
+}
+
+func validateUncategorizedChannelsFirst(channels []*model.Channel, positions map[int64]int32, parentIDs map[int64]int64) error {
+	var highestUncategorized int32
+	var lowestOther int32
+	hasUncategorized := false
+	hasOther := false
+	for _, channel := range channels {
+		position := channel.Position
+		if requested, ok := positions[channel.ID]; ok {
+			position = requested
+		}
+		parentID := channel.ParentID
+		if requested, ok := parentIDs[channel.ID]; ok {
+			parentID = requested
+		}
+		if isUncategorizedChannel(channel.Type, parentID) {
+			if !hasUncategorized || position > highestUncategorized {
+				highestUncategorized = position
+			}
+			hasUncategorized = true
+			continue
+		}
+		if !hasOther || position < lowestOther {
+			lowestOther = position
+		}
+		hasOther = true
+	}
+	if hasUncategorized && hasOther && highestUncategorized >= lowestOther {
+		return invalidRequest("uncategorized channels must precede categories")
+	}
+	return nil
+}
+
+func uncategorizedChannelInsertPosition(channels []*model.Channel) int32 {
+	position := nextGuildChannelPosition(channels)
+	for _, channel := range channels {
+		if isUncategorizedChannel(channel.Type, channel.ParentID) {
+			continue
+		}
+		if channel.Position < position {
+			position = channel.Position
+		}
+	}
+	return position
+}
+
+func nextGuildChannelPosition(channels []*model.Channel) int32 {
+	var position int32
+	for _, channel := range channels {
+		if channel.Position >= position {
+			position = channel.Position + 1
+		}
+	}
+	return position
+}
+
+func isUncategorizedChannel(channelType int32, parentID int64) bool {
+	return parentID == 0 && channelType != int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY)
 }
 
 func guildChannelToProto(channel *model.Channel) *guildv1.GuildChannel {

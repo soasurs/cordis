@@ -117,12 +117,22 @@ func (s *SQLStore) UpdateGuildChannelPosition(ctx context.Context, guildID, chan
 	return channelFromRow(row), nil
 }
 
-func (s *SQLStore) UpdateGuildChannelPositions(ctx context.Context, guildID int64, channelIDs []int64, positions []int32, updatedAt int64) ([]*model.Channel, error) {
-	if len(channelIDs) == 0 || len(channelIDs) != len(positions) {
+func (s *SQLStore) UpdateGuildChannelPositions(ctx context.Context, guildID int64, updates []GuildChannelPositionUpdate, updatedAt int64) ([]*model.Channel, error) {
+	if len(updates) == 0 {
 		return nil, nil
 	}
+	channelIDs := make([]int64, 0, len(updates))
+	positions := make([]int32, 0, len(updates))
+	parentIDs := make([]int64, 0, len(updates))
+	for _, update := range updates {
+		channelIDs = append(channelIDs, update.ChannelID)
+		positions = append(positions, update.Position)
+		parentIDs = append(parentIDs, update.ParentID)
+	}
 	var rows []*channelRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildChannelPositionsQuery, guildID, pq.Array(channelIDs), pq.Array(positions), updatedAt); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildChannelPositionsQuery,
+		guildID, pq.Array(channelIDs), pq.Array(positions), pq.Array(parentIDs), updatedAt,
+	); err != nil {
 		return nil, err
 	}
 	channels := make([]*model.Channel, 0, len(rows))

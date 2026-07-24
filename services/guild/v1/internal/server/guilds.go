@@ -9,8 +9,10 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
+	"github.com/soasurs/cordis/services/guild/v1/internal/svc"
 )
 
 func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildRequest) (*guildv1.CreateGuildResponse, error) {
@@ -203,42 +205,82 @@ func (s *guildServer) publishEvent(ctx context.Context, event guildEvent, buildE
 		logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", buildErr))
 		return
 	}
-	if s.svcCtx.Publisher == nil {
+	s.publishEvents(ctx, []guildEvent{event})
+}
+
+func (s *guildServer) publishEvents(ctx context.Context, events []guildEvent) {
+	if s.svcCtx.Publisher == nil || len(events) == 0 {
 		return
 	}
-	if event.Type != EventTypeGuildDeleted {
-		guild, err := s.svcCtx.Store.GetGuild(ctx, event.GuildID)
-		if err != nil {
-			logx.WithContext(ctx).Errorw("load guild access revision for event",
-				logx.Field("guild_id", event.GuildID),
-				logx.Field("event_type", event.Type),
-				logx.Field("error", err),
-			)
-		} else if payload, err := addEventAccessRevision(event.Payload, guild.AccessRevision); err != nil {
-			logx.WithContext(ctx).Errorw("add guild access revision to event",
-				logx.Field("guild_id", event.GuildID),
-				logx.Field("event_type", event.Type),
-				logx.Field("error", err),
-			)
-		} else {
-			event.Payload = payload
-		}
+
+	type accessRevisionResult struct {
+		value int64
+		ok    bool
 	}
+	accessRevisions := make(map[int64]accessRevisionResult)
+	prepared := make([]kafka.Record, 0, len(events))
+	for _, event := range events {
+		if event.Type != EventTypeGuildDeleted {
+			result, loaded := accessRevisions[event.GuildID]
+			if !loaded {
+				guild, err := s.svcCtx.Store.GetGuild(ctx, event.GuildID)
+				if err != nil {
+					logx.WithContext(ctx).Errorw("load guild access revision for event",
+						logx.Field("guild_id", event.GuildID),
+						logx.Field("event_type", event.Type),
+						logx.Field("error", err),
+					)
+				} else {
+					result = accessRevisionResult{value: guild.AccessRevision, ok: true}
+				}
+				accessRevisions[event.GuildID] = result
+			}
+			if result.ok {
+				payload, err := addEventAccessRevision(event.Payload, result.value)
+				if err != nil {
+					logx.WithContext(ctx).Errorw("add guild access revision to event",
+						logx.Field("guild_id", event.GuildID),
+						logx.Field("event_type", event.Type),
+						logx.Field("error", err),
+					)
+				} else {
+					event.Payload = payload
+				}
+			}
+		}
+		prepared = append(prepared, kafka.Record{Key: event.Key, Payload: event.Payload})
+	}
+
 	publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.svcCtx.Cfg.Kafka.PublishTimeout())
 	defer cancel()
-	if err := s.svcCtx.Publisher.Publish(publishCtx, event.Key, event.Payload); err != nil {
-		logx.WithContext(ctx).Errorw(
-			"publish guild event",
-			logx.Field("key", string(event.Key)),
-			logx.Field("error", err),
-		)
+	if publisher, ok := s.svcCtx.Publisher.(svc.BatchEventPublisher); ok {
+		if err := publisher.PublishBatch(publishCtx, prepared); err != nil {
+			logx.WithContext(ctx).Errorw(
+				"publish guild events",
+				logx.Field("count", len(prepared)),
+				logx.Field("error", err),
+			)
+		}
+		return
+	}
+	for _, record := range prepared {
+		if err := s.svcCtx.Publisher.Publish(publishCtx, record.Key, record.Payload); err == nil {
+			continue
+		} else {
+			logx.WithContext(ctx).Errorw(
+				"publish guild event",
+				logx.Field("key", string(record.Key)),
+				logx.Field("error", err),
+			)
+		}
 	}
 }
 
 func addEventAccessRevision(payload []byte, accessRevision int64) ([]byte, error) {
 	var envelope struct {
-		Type string                     `json:"t"`
-		Data map[string]json.RawMessage `json:"d"`
+		Type           string                     `json:"t"`
+		Data           map[string]json.RawMessage `json:"d"`
+		IdempotencyKey string                     `json:"idempotency_key"`
 	}
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return nil, fmt.Errorf("unmarshal guild event: %w", err)

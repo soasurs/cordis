@@ -69,13 +69,40 @@ func TestPublisherInjectsTraceContextWithoutProducerSpan(t *testing.T) {
 	require.Len(t, exporter.GetSpans(), 1)
 }
 
+func TestPublisherPublishesBatchInOneProducerCall(t *testing.T) {
+	producer := new(capturingProducer)
+	publisher := &Publisher{producer: producer, topic: "events"}
+	records := []Record{
+		{Key: []byte("first"), Payload: []byte("one")},
+		{Key: []byte("second"), Payload: []byte("two")},
+	}
+
+	require.NoError(t, publisher.PublishBatch(t.Context(), records))
+	require.Equal(t, 1, producer.calls)
+	require.Len(t, producer.records, 2)
+	require.Equal(t, "events", producer.records[0].Topic)
+	require.Equal(t, []byte("first"), producer.records[0].Key)
+	require.Equal(t, []byte("one"), producer.records[0].Value)
+	require.Equal(t, "events", producer.records[1].Topic)
+	require.Equal(t, []byte("second"), producer.records[1].Key)
+	require.Equal(t, []byte("two"), producer.records[1].Value)
+}
+
 type capturingProducer struct {
-	record *kgo.Record
+	record  *kgo.Record
+	records []*kgo.Record
+	calls   int
 }
 
 func (p *capturingProducer) ProduceSync(_ context.Context, records ...*kgo.Record) kgo.ProduceResults {
+	p.calls++
 	p.record = records[0]
-	return kgo.ProduceResults{{Record: records[0]}}
+	p.records = append([]*kgo.Record(nil), records...)
+	results := make(kgo.ProduceResults, 0, len(records))
+	for _, record := range records {
+		results = append(results, kgo.ProduceResult{Record: record})
+	}
+	return results
 }
 
 func countHeader(headers []kgo.RecordHeader, key string) int {

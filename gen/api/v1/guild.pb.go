@@ -9486,6 +9486,7 @@ type GuildChannelPosition struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
 	xxx_hidden_Position    int32                  `protobuf:"varint,2,opt,name=position"`
+	xxx_hidden_ParentId    int64                  `protobuf:"varint,3,opt,name=parent_id,json=parentId"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -9531,14 +9532,26 @@ func (x *GuildChannelPosition) GetPosition() int32 {
 	return 0
 }
 
+func (x *GuildChannelPosition) GetParentId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ParentId
+	}
+	return 0
+}
+
 func (x *GuildChannelPosition) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *GuildChannelPosition) SetPosition(v int32) {
 	x.xxx_hidden_Position = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *GuildChannelPosition) SetParentId(v int64) {
+	x.xxx_hidden_ParentId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *GuildChannelPosition) HasChannelId() bool {
@@ -9555,6 +9568,13 @@ func (x *GuildChannelPosition) HasPosition() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *GuildChannelPosition) HasParentId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *GuildChannelPosition) ClearChannelId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChannelId = 0
@@ -9565,11 +9585,19 @@ func (x *GuildChannelPosition) ClearPosition() {
 	x.xxx_hidden_Position = 0
 }
 
+func (x *GuildChannelPosition) ClearParentId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ParentId = 0
+}
+
 type GuildChannelPosition_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	ChannelId *int64
 	Position  *int32
+	// parent_id moves the channel to a category; zero moves it to the Guild root.
+	// When omitted, the current parent is preserved.
+	ParentId *int64
 }
 
 func (b0 GuildChannelPosition_builder) Build() *GuildChannelPosition {
@@ -9577,12 +9605,16 @@ func (b0 GuildChannelPosition_builder) Build() *GuildChannelPosition {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.Position != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_Position = *b.Position
+	}
+	if b.ParentId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ParentId = *b.ParentId
 	}
 	return m0
 }
@@ -10651,11 +10683,12 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\",\n" +
 	"\x1aDeleteGuildChannelResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"Q\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"n\n" +
 	"\x14GuildChannelPosition\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x1a\n" +
-	"\bposition\x18\x02 \x01(\x05R\bposition\"t\n" +
+	"\bposition\x18\x02 \x01(\x05R\bposition\x12\x1b\n" +
+	"\tparent_id\x18\x03 \x01(\x03R\bparentId\"t\n" +
 	"\x1bReorderGuildChannelsRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12:\n" +
 	"\tpositions\x18\x02 \x03(\v2\x1c.api.v1.GuildChannelPositionR\tpositions\"P\n" +

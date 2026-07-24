@@ -19,6 +19,7 @@ import (
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/guild/v1/config"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
@@ -74,17 +75,19 @@ func TestPublishEventAddsCommittedAccessRevision(t *testing.T) {
 	fakeStore.guilds[10] = guild
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher).(*guildServer)
-	event, err := newGuildRoleUpdatedEvent(&model.Role{ID: 20, GuildID: 10, Revision: 2}, 0)
+	event, err := newGuildRoleUpdatedEvent(&model.Role{ID: 20, GuildID: 10, Revision: 2}, 41)
 	require.NoError(t, err)
 
 	server.publishEvent(t.Context(), event, nil)
 
 	var envelope struct {
-		Data struct {
+		IdempotencyKey string `json:"idempotency_key"`
+		Data           struct {
 			AccessRevision int64 `json:"access_revision"`
 		} `json:"d"`
 	}
 	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
+	require.Equal(t, "41", envelope.IdempotencyKey)
 	require.Equal(t, int64(37), envelope.Data.AccessRevision)
 }
 
@@ -357,14 +360,25 @@ type publishedRecord struct {
 }
 
 type fakePublisher struct {
-	records []publishedRecord
-	err     error
+	records    []publishedRecord
+	err        error
+	batchCalls int
 }
 
 func (p *fakePublisher) Publish(_ context.Context, key, payload []byte) error {
 	p.records = append(p.records, publishedRecord{
 		key: append([]byte(nil), key...), payload: append([]byte(nil), payload...),
 	})
+	return p.err
+}
+
+func (p *fakePublisher) PublishBatch(_ context.Context, records []kafka.Record) error {
+	p.batchCalls++
+	for _, record := range records {
+		p.records = append(p.records, publishedRecord{
+			key: append([]byte(nil), record.Key...), payload: append([]byte(nil), record.Payload...),
+		})
+	}
 	return p.err
 }
 
@@ -387,6 +401,7 @@ type fakeStore struct {
 	transactErr  error
 	quotaErr     error
 	quotas       []store.ResourceQuota
+	channelLocks []int64
 
 	listOverwritesByChannelCalls int
 	listOverwritesByGuildCalls   int
@@ -413,6 +428,11 @@ func (s *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) err
 func (s *fakeStore) CheckResourceQuota(_ context.Context, quota store.ResourceQuota) error {
 	s.quotas = append(s.quotas, quota)
 	return s.quotaErr
+}
+
+func (s *fakeStore) LockGuildChannelMutations(_ context.Context, guildID int64) error {
+	s.channelLocks = append(s.channelLocks, guildID)
+	return nil
 }
 
 func (s *fakeStore) CreateGuild(_ context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error) {
@@ -966,14 +986,18 @@ func (s *fakeStore) UpdateGuildChannelPosition(_ context.Context, guildID, chann
 	return cloneChannel(channel), nil
 }
 
-func (s *fakeStore) UpdateGuildChannelPositions(ctx context.Context, guildID int64, channelIDs []int64, positions []int32, updatedAt int64) ([]*model.Channel, error) {
-	channels := make([]*model.Channel, 0, len(channelIDs))
-	for i, channelID := range channelIDs {
-		channel, err := s.UpdateGuildChannelPosition(ctx, guildID, channelID, positions[i], updatedAt)
-		if err != nil {
-			return nil, err
+func (s *fakeStore) UpdateGuildChannelPositions(_ context.Context, guildID int64, updates []store.GuildChannelPositionUpdate, updatedAt int64) ([]*model.Channel, error) {
+	channels := make([]*model.Channel, 0, len(updates))
+	for _, update := range updates {
+		channel := s.channels[update.ChannelID]
+		if channel == nil || channel.GuildID != guildID || channel.DeletedAt != 0 {
+			return nil, sql.ErrNoRows
 		}
-		channels = append(channels, channel)
+		channel.Position = update.Position
+		channel.ParentID = update.ParentID
+		channel.Revision++
+		channel.UpdatedAt = updatedAt
+		channels = append(channels, cloneChannel(channel))
 	}
 	return channels, nil
 }

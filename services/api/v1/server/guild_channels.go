@@ -119,6 +119,9 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *apiv1.Reord
 		position := new(guildv1.GuildChannelPosition)
 		position.SetChannelId(item.GetChannelId())
 		position.SetPosition(item.GetPosition())
+		if item.HasParentId() {
+			position.SetParentId(item.GetParentId())
+		}
 		positions = append(positions, position)
 	}
 	svcReq := new(guildv1.ReorderGuildChannelsRequest)

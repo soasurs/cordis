@@ -73,6 +73,166 @@ func TestCreateAndAuthorizeGuildChannel(t *testing.T) {
 	require.True(t, authResp.GetAllowed())
 }
 
+func TestCreateUncategorizedChannelInsertsBeforeCategories(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[20] = &model.Channel{
+		ID: 20, GuildID: 10, Name: "category",
+		Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY), Position: 0, Revision: 1,
+	}
+	fakeStore.channels[30] = &model.Channel{
+		ID: 30, GuildID: 10, Name: "child", Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT),
+		ParentID: 20, Position: 1, Revision: 1,
+	}
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
+
+	req := new(guildv1.CreateGuildChannelRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetName("uncategorized")
+	resp, err := server.CreateGuildChannel(t.Context(), req)
+	require.NoError(t, err)
+	require.Zero(t, resp.GetChannel().GetParentId())
+	require.Zero(t, resp.GetChannel().GetPosition())
+	require.Equal(t, int32(1), fakeStore.channels[20].Position)
+	require.Equal(t, int32(2), fakeStore.channels[30].Position)
+	require.Equal(t, []int64{10}, fakeStore.channelLocks)
+	require.Equal(t, 1, publisher.batchCalls)
+	require.Len(t, publisher.records, 3)
+}
+
+func TestReorderGuildChannelsPublishesChangedChannelsAsBatch(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[30] = &model.Channel{ID: 30, GuildID: 10, Name: "first", Position: 0, Revision: 1}
+	fakeStore.channels[31] = &model.Channel{ID: 31, GuildID: 10, Name: "second", Position: 1, Revision: 1}
+	fakeStore.channels[32] = &model.Channel{ID: 32, GuildID: 10, Name: "third", Position: 2, Revision: 1}
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
+
+	req := new(guildv1.ReorderGuildChannelsRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	positions := make([]*guildv1.GuildChannelPosition, 0, 3)
+	for channelID, position := range map[int64]int32{30: 1, 31: 0, 32: 2} {
+		item := new(guildv1.GuildChannelPosition)
+		item.SetChannelId(channelID)
+		item.SetPosition(position)
+		positions = append(positions, item)
+	}
+	req.SetPositions(positions)
+
+	resp, err := server.ReorderGuildChannels(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []int64{31, 30, 32}, channelIDs(resp.GetChannels()))
+	require.Equal(t, int32(1), fakeStore.channels[30].Position)
+	require.Equal(t, int32(0), fakeStore.channels[31].Position)
+	require.Equal(t, int64(2), fakeStore.channels[30].Revision)
+	require.Equal(t, int64(2), fakeStore.channels[31].Revision)
+	require.Equal(t, int64(1), fakeStore.channels[32].Revision)
+	require.Equal(t, []int64{10}, fakeStore.channelLocks)
+	require.Equal(t, 1, publisher.batchCalls)
+	require.Len(t, publisher.records, 2)
+}
+
+func TestReorderGuildChannelsSkipsUnchangedPositions(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[30] = &model.Channel{ID: 30, GuildID: 10, Name: "first", Position: 0, Revision: 1}
+	fakeStore.channels[31] = &model.Channel{ID: 31, GuildID: 10, Name: "second", Position: 1, Revision: 1}
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
+
+	req := new(guildv1.ReorderGuildChannelsRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	first := new(guildv1.GuildChannelPosition)
+	first.SetChannelId(30)
+	first.SetPosition(0)
+	second := new(guildv1.GuildChannelPosition)
+	second.SetChannelId(31)
+	second.SetPosition(1)
+	req.SetPositions([]*guildv1.GuildChannelPosition{first, second})
+
+	resp, err := server.ReorderGuildChannels(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []int64{30, 31}, channelIDs(resp.GetChannels()))
+	require.Equal(t, int64(1), fakeStore.channels[30].Revision)
+	require.Equal(t, int64(1), fakeStore.channels[31].Revision)
+	require.Zero(t, publisher.batchCalls)
+	require.Empty(t, publisher.records)
+}
+
+func TestReorderGuildChannelsUpdatesParentAndPositionAtomically(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[20] = &model.Channel{
+		ID: 20, GuildID: 10, Name: "first category",
+		Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY), Position: 0, Revision: 1,
+	}
+	fakeStore.channels[21] = &model.Channel{
+		ID: 21, GuildID: 10, Name: "second category",
+		Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY), Position: 1, Revision: 1,
+	}
+	fakeStore.channels[30] = &model.Channel{
+		ID: 30, GuildID: 10, Name: "first", Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT),
+		ParentID: 20, Position: 2, Revision: 1,
+	}
+	fakeStore.channels[31] = &model.Channel{
+		ID: 31, GuildID: 10, Name: "second", Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT),
+		ParentID: 21, Position: 3, Revision: 1,
+	}
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
+
+	req := new(guildv1.ReorderGuildChannelsRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	first := new(guildv1.GuildChannelPosition)
+	first.SetChannelId(30)
+	first.SetPosition(3)
+	first.SetParentId(21)
+	second := new(guildv1.GuildChannelPosition)
+	second.SetChannelId(31)
+	second.SetPosition(2)
+	second.SetParentId(20)
+	req.SetPositions([]*guildv1.GuildChannelPosition{first, second})
+
+	resp, err := server.ReorderGuildChannels(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []int64{20, 21, 31, 30}, channelIDs(resp.GetChannels()))
+	require.Equal(t, int64(21), fakeStore.channels[30].ParentID)
+	require.Equal(t, int32(3), fakeStore.channels[30].Position)
+	require.Equal(t, int64(20), fakeStore.channels[31].ParentID)
+	require.Equal(t, int32(2), fakeStore.channels[31].Position)
+	require.Equal(t, []int64{10}, fakeStore.channelLocks)
+	require.Equal(t, 1, publisher.batchCalls)
+	require.Len(t, publisher.records, 2)
+}
+
+func TestReorderGuildChannelsRejectsUncategorizedChannelBelowCategory(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[20] = &model.Channel{
+		ID: 20, GuildID: 10, Name: "category",
+		Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY), Position: 0, Revision: 1,
+	}
+	fakeStore.channels[30] = &model.Channel{
+		ID: 30, GuildID: 10, Name: "child", Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT),
+		ParentID: 20, Position: 1, Revision: 1,
+	}
+	server := newTestGuildServer(t, fakeStore, new(fakePublisher))
+
+	req := new(guildv1.ReorderGuildChannelsRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	item := new(guildv1.GuildChannelPosition)
+	item.SetChannelId(30)
+	item.SetPosition(1)
+	item.SetParentId(0)
+	req.SetPositions([]*guildv1.GuildChannelPosition{item})
+
+	_, err := server.ReorderGuildChannels(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Equal(t, int64(20), fakeStore.channels[30].ParentID)
+}
+
 func TestCategoryAndVoiceChannelMetadata(t *testing.T) {
 	fakeStore := roleTestStore()
 	server := newTestGuildServer(t, fakeStore, nil)

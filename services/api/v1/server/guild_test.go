@@ -1015,6 +1015,7 @@ func TestReorderGuildChannelsMapsPositions(t *testing.T) {
 	pos := new(apiv1.GuildChannelPosition)
 	pos.SetChannelId(5001)
 	pos.SetPosition(0)
+	pos.SetParentId(0)
 	reorderChannelsReq := new(apiv1.ReorderGuildChannelsRequest)
 	reorderChannelsReq.SetGuildId(3001)
 	reorderChannelsReq.SetPositions([]*apiv1.GuildChannelPosition{pos})
@@ -1024,6 +1025,8 @@ func TestReorderGuildChannelsMapsPositions(t *testing.T) {
 	require.Equal(t, int64(1001), guildClient.reorderChannelsReq.GetActorUserId())
 	require.Len(t, guildClient.reorderChannelsReq.GetPositions(), 1)
 	require.Equal(t, int64(5001), guildClient.reorderChannelsReq.GetPositions()[0].GetChannelId())
+	require.True(t, guildClient.reorderChannelsReq.GetPositions()[0].HasParentId())
+	require.Zero(t, guildClient.reorderChannelsReq.GetPositions()[0].GetParentId())
 }
 
 func TestUpsertGuildChannelPermissionOverwriteMapsRequestAndResponse(t *testing.T) {

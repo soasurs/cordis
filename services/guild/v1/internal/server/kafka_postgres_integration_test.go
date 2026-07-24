@@ -80,6 +80,9 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	require.NoError(t, json.Unmarshal(record.Value, &envelope))
 	require.Equal(t, EventTypeGuildCreated, envelope.Type)
 	require.Equal(t, strconv.FormatInt(created.GetGuild().GetId(), 10), envelope.Data.ID)
+	idempotencyKey, err := strconv.ParseInt(envelope.IdempotencyKey, 10, 64)
+	require.NoError(t, err)
+	require.Positive(t, idempotencyKey)
 	var revisionEnvelope struct {
 		Data struct {
 			AccessRevision int64 `json:"access_revision"`

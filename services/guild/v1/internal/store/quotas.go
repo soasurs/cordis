@@ -8,6 +8,19 @@ import (
 
 const lockQuotaScopeStatement = `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`
 
+// LockGuildChannelMutations serializes structural channel changes in one Guild.
+func (s *SQLStore) LockGuildChannelMutations(ctx context.Context, guildID int64) error {
+	if guildID <= 0 {
+		return errors.New("guild id must be positive")
+	}
+	_, err := s.q.ExecContext(ctx, lockQuotaScopeStatement, guildChannelMutationLockKey(guildID))
+	return err
+}
+
+func guildChannelMutationLockKey(guildID int64) string {
+	return fmt.Sprintf("cordis:guild:quota:%s:%d", QuotaGuildChannels, guildID)
+}
+
 func (s *SQLStore) CheckResourceQuota(ctx context.Context, quota ResourceQuota) error {
 	if quota.ScopeID <= 0 {
 		return errors.New("quota scope id must be positive")
@@ -17,6 +30,9 @@ func (s *SQLStore) CheckResourceQuota(ctx context.Context, quota ResourceQuota) 
 	}
 
 	lockKey := fmt.Sprintf("cordis:guild:quota:%s:%d", quota.Kind, quota.ScopeID)
+	if quota.Kind == QuotaGuildChannels {
+		lockKey = guildChannelMutationLockKey(quota.ScopeID)
+	}
 	if _, err := s.q.ExecContext(ctx, lockQuotaScopeStatement, lockKey); err != nil {
 		return err
 	}

@@ -90,8 +90,16 @@ type UpdateGuildChannelParams struct {
 	UpdatedAt int64
 }
 
+// GuildChannelPositionUpdate contains one resolved atomic placement update.
+type GuildChannelPositionUpdate struct {
+	ChannelID int64
+	Position  int32
+	ParentID  int64
+}
+
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
+	LockGuildChannelMutations(ctx context.Context, guildID int64) error
 	CheckResourceQuota(ctx context.Context, quota ResourceQuota) error
 	CreateGuild(ctx context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error)
 	CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error)
@@ -142,7 +150,7 @@ type Store interface {
 	ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error)
 	UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error)
 	UpdateGuildChannelPosition(ctx context.Context, guildID, channelID int64, position int32, updatedAt int64) (*model.Channel, error)
-	UpdateGuildChannelPositions(ctx context.Context, guildID int64, channelIDs []int64, positions []int32, updatedAt int64) ([]*model.Channel, error)
+	UpdateGuildChannelPositions(ctx context.Context, guildID int64, updates []GuildChannelPositionUpdate, updatedAt int64) ([]*model.Channel, error)
 	DeleteGuildChannel(ctx context.Context, channelID, deletedAt int64) (*model.Channel, error)
 	DeleteGuildChannels(ctx context.Context, guildID, deletedAt int64) error
 	ClearGuildChannelParent(ctx context.Context, guildID, parentID, updatedAt int64) error

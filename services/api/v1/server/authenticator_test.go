@@ -203,12 +203,14 @@ func TestRegisterOverConnectHTTP(t *testing.T) {
 	req.SetName("display name")
 	req.SetEmail("user@example.com")
 	req.SetPassword("password")
+	req.SetRegistrationInviteCode("invite-code")
 	resp, err := client.Register(context.Background(), req)
 	require.NoError(t, err)
 
 	require.Equal(t, "display name", internalClient.registerRequest.GetName())
 	require.Equal(t, "user@example.com", internalClient.registerRequest.GetEmail())
 	require.Equal(t, "password", internalClient.registerRequest.GetPassword())
+	require.Equal(t, "invite-code", internalClient.registerRequest.GetRegistrationInviteCode())
 	require.Equal(t, "cordis-test-client", internalClient.registerRequest.GetUserAgent())
 	require.NotEmpty(t, internalClient.registerRequest.GetIp())
 

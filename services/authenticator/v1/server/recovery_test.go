@@ -117,6 +117,7 @@ func recoveryTestUser(userID int64, email string, verifiedAt int64) *userv1.GetU
 
 func TestRequestPasswordResetStoresTokenAndSendsMail(t *testing.T) {
 	sessionStore := newFakeSessionStore()
+	seedCredential(t, sessionStore, 1001, "old-password")
 	mailerClient := new(fakeMailerClient)
 	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{
 		getUserResponse: recoveryTestUser(1001, "user@example.com", 0),
@@ -161,6 +162,22 @@ func TestRequestPasswordResetUnknownEmailReturnsOk(t *testing.T) {
 	require.Empty(t, sessionStore.passwordResets)
 }
 
+func TestRequestPasswordResetHalfRegisteredAccountReturnsOkWithoutToken(t *testing.T) {
+	sessionStore := newFakeSessionStore()
+	mailerClient := new(fakeMailerClient)
+	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{
+		getUserResponse: recoveryTestUser(1001, "user@example.com", 0),
+	}, mailerClient)
+
+	req := new(authenticatorv1.RequestPasswordResetRequest)
+	req.SetEmail("user@example.com")
+	resp, err := server.RequestPasswordReset(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Empty(t, mailerClient.sent)
+	require.Empty(t, sessionStore.passwordResets)
+}
+
 func TestRequestPasswordResetValidation(t *testing.T) {
 	server := newRecoveryTestServer(t, newFakeSessionStore(), &fakeUserClient{}, new(fakeMailerClient))
 
@@ -175,6 +192,7 @@ func TestRequestPasswordResetValidation(t *testing.T) {
 
 func TestRequestPasswordResetWithoutMailerStillSucceeds(t *testing.T) {
 	sessionStore := newFakeSessionStore()
+	seedCredential(t, sessionStore, 1001, "old-password")
 	server := newRecoveryTestServer(t, sessionStore, &fakeUserClient{
 		getUserResponse: recoveryTestUser(1001, "user@example.com", 0),
 	}, nil)
@@ -189,6 +207,7 @@ func TestRequestPasswordResetWithoutMailerStillSucceeds(t *testing.T) {
 
 func TestConfirmPasswordResetSuccess(t *testing.T) {
 	sessionStore := newFakeSessionStore()
+	seedCredential(t, sessionStore, 1001, "old-password")
 	now := time.Now().UnixMilli()
 	sessionStore.passwordResets[token.Hash("raw-reset-token")] = &model.PasswordResetToken{
 		UserID:    1001,
@@ -408,6 +427,7 @@ func TestRequestEmailVerificationThrottledStaysSilent(t *testing.T) {
 
 func TestRecoveryLimiterFailsOpen(t *testing.T) {
 	sessionStore := newFakeSessionStore()
+	seedCredential(t, sessionStore, 1001, "old-password")
 	mailerClient := new(fakeMailerClient)
 	limiter := &fakeRecoveryLimiter{err: errors.New("redis down")}
 	server := newThrottledRecoveryTestServer(t, sessionStore, &fakeUserClient{

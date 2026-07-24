@@ -14,6 +14,11 @@
 
 监听 `:3001`，负责注册编排、登录、访问令牌与刷新令牌、令牌校验以及登录 Session 管理。用户身份由 User 提供；密码凭据和认证 Session 存储在 PostgreSQL。访问令牌默认短期有效，刷新令牌和认证 Session 默认 30 天。真实启动需要访问令牌和刷新令牌密钥环境变量。
 
+注册支持 `open`、`invite_only` 和 `closed` 三种模式。邀请制使用由 Authenticator
+保存的一次性邀请码，也可以将邀请码绑定到指定邮箱。邀请码会在 Argon2 和 User RPC
+之前被短暂预留，并与密码凭据及初始 Session 在同一事务中核销。密码重置只适用于已经
+拥有 credential 的账号；未完成的注册必须通过 `Register` 继续。
+
 所有 Argon2 哈希和校验都受进程内 weighted semaphore 保护。容量由 `password.maxConcurrency` 配置（默认 4），当前每项 Argon2 工作使用一个权重，因此等同于每个 Authenticator 实例固定数量的并发 slot，而不是全集群共享上限。slot 满时请求等待，context 超时或取消时退出等待；semaphore 本身不提供独立的有界请求队列，外层 API rate limiter 负责限制进入量。
 
 ## Guild

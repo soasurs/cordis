@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -66,6 +67,84 @@ func TestRegister(t *testing.T) {
 	calls, releases := limiter.snapshot()
 	require.Equal(t, 1, calls)
 	require.Equal(t, 1, releases)
+}
+
+func TestRegisterInviteOnlyRedeemsInvite(t *testing.T) {
+	sessionStore := newFakeSessionStore()
+	const rawCode = "registration-invite"
+	sessionStore.registrationInvites[token.Hash(rawCode)] = &model.RegistrationInvite{
+		ID:         3001,
+		CodeHash:   token.Hash(rawCode),
+		BoundEmail: "user@example.com",
+		CreatedAt:  time.Now().UnixMilli(),
+		ExpiresAt:  time.Now().Add(time.Hour).UnixMilli(),
+	}
+	userClient := &fakeUserClient{
+		createUserResponse: createUserResponse(1001, "user@example.com"),
+	}
+	server := newTestAuthenticatorServer(t, sessionStore, newTestTokenManager(t), userClient)
+	server.(*authenticatorServer).svcCtx.Cfg.Registration = config.RegistrationConfig{
+		Mode:           config.RegistrationModeInviteOnly,
+		ReservationTTL: time.Minute,
+	}
+
+	req := new(authenticatorv1.RegisterRequest)
+	req.SetName("display name")
+	req.SetUsername("tester")
+	req.SetEmail(" User@Example.COM ")
+	req.SetPassword("password")
+	req.SetRegistrationInviteCode(rawCode)
+
+	resp, err := server.Register(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), resp.GetResult().GetUserId())
+	invite := sessionStore.registrationInvites[token.Hash(rawCode)]
+	require.Equal(t, "user@example.com", invite.ReservedEmail)
+	require.Equal(t, int64(1001), invite.RedeemedUserID)
+	require.NotZero(t, invite.RedeemedAt)
+	require.Equal(t, "user@example.com", userClient.createUserRequest.GetEmail())
+}
+
+func TestRegisterInviteOnlyRejectsUnavailableInvite(t *testing.T) {
+	userClient := new(fakeUserClient)
+	server := newTestAuthenticatorServer(t, newFakeSessionStore(), newTestTokenManager(t), userClient)
+	server.(*authenticatorServer).svcCtx.Cfg.Registration = config.RegistrationConfig{
+		Mode:           config.RegistrationModeInviteOnly,
+		ReservationTTL: time.Minute,
+	}
+
+	req := new(authenticatorv1.RegisterRequest)
+	req.SetName("display name")
+	req.SetUsername("tester")
+	req.SetEmail("user@example.com")
+	req.SetPassword("password")
+	req.SetRegistrationInviteCode("missing")
+
+	_, err := server.Register(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRegistrationInvite))
+	require.Nil(t, userClient.createUserRequest)
+}
+
+func TestRegisterClosedStopsBeforePasswordHashAndUserRPC(t *testing.T) {
+	userClient := new(fakeUserClient)
+	server := newTestAuthenticatorServer(t, newFakeSessionStore(), newTestTokenManager(t), userClient)
+	limiter := new(recordingPasswordLimiter)
+	server.(*authenticatorServer).svcCtx.PasswordLimiter = limiter
+	server.(*authenticatorServer).svcCtx.Cfg.Registration.Mode = config.RegistrationModeClosed
+
+	req := new(authenticatorv1.RegisterRequest)
+	req.SetName("display name")
+	req.SetUsername("tester")
+	req.SetEmail("user@example.com")
+	req.SetPassword("password")
+
+	_, err := server.Register(t.Context(), req)
+	require.Equal(t, codes.FailedPrecondition, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorRegistrationClosed))
+	require.Nil(t, userClient.createUserRequest)
+	calls, _ := limiter.snapshot()
+	require.Zero(t, calls)
 }
 
 func TestRegisterUserError(t *testing.T) {
@@ -618,33 +697,35 @@ func (c *fakeUserClient) CreateUser(_ context.Context, req *userv1.CreateUserReq
 }
 
 type fakeSessionStore struct {
-	sessions           map[int64]*model.Session
-	createdSession     *model.Session
-	rotatedOldHash     string
-	rotatedNewHash     string
-	revokedSessionID   int64
-	revokedOtherUserID int64
-	currentSessionID   int64
-	factors            map[int64]*model.TOTPFactor
-	enrollments        map[int64]*model.TOTPEnrollment
-	challenges         map[string]*model.TwoFactorLoginChallenge
-	recoveryCodes      map[int64]map[string]int64
-	passwordResets     map[string]*model.PasswordResetToken
-	passwordResetReads []bool
-	emailVerifications map[string]*model.EmailVerificationToken
-	credentials        map[int64]*model.UserCredential
+	sessions            map[int64]*model.Session
+	createdSession      *model.Session
+	rotatedOldHash      string
+	rotatedNewHash      string
+	revokedSessionID    int64
+	revokedOtherUserID  int64
+	currentSessionID    int64
+	factors             map[int64]*model.TOTPFactor
+	enrollments         map[int64]*model.TOTPEnrollment
+	challenges          map[string]*model.TwoFactorLoginChallenge
+	recoveryCodes       map[int64]map[string]int64
+	passwordResets      map[string]*model.PasswordResetToken
+	passwordResetReads  []bool
+	emailVerifications  map[string]*model.EmailVerificationToken
+	registrationInvites map[string]*model.RegistrationInvite
+	credentials         map[int64]*model.UserCredential
 }
 
 func newFakeSessionStore() *fakeSessionStore {
 	return &fakeSessionStore{
-		sessions:           make(map[int64]*model.Session),
-		factors:            make(map[int64]*model.TOTPFactor),
-		enrollments:        make(map[int64]*model.TOTPEnrollment),
-		challenges:         make(map[string]*model.TwoFactorLoginChallenge),
-		recoveryCodes:      make(map[int64]map[string]int64),
-		passwordResets:     make(map[string]*model.PasswordResetToken),
-		emailVerifications: make(map[string]*model.EmailVerificationToken),
-		credentials:        make(map[int64]*model.UserCredential),
+		sessions:            make(map[int64]*model.Session),
+		factors:             make(map[int64]*model.TOTPFactor),
+		enrollments:         make(map[int64]*model.TOTPEnrollment),
+		challenges:          make(map[string]*model.TwoFactorLoginChallenge),
+		recoveryCodes:       make(map[int64]map[string]int64),
+		passwordResets:      make(map[string]*model.PasswordResetToken),
+		emailVerifications:  make(map[string]*model.EmailVerificationToken),
+		registrationInvites: make(map[string]*model.RegistrationInvite),
+		credentials:         make(map[int64]*model.UserCredential),
 	}
 }
 
@@ -925,6 +1006,97 @@ func (s *fakeSessionStore) ConsumeEmailVerificationToken(_ context.Context, toke
 	return nil
 }
 
+func (s *fakeSessionStore) CreateRegistrationInvite(_ context.Context, invite *model.RegistrationInvite) error {
+	if _, ok := s.registrationInvites[invite.CodeHash]; ok {
+		return errors.New("registration invite already exists")
+	}
+	value := *invite
+	s.registrationInvites[invite.CodeHash] = &value
+	return nil
+}
+
+func (s *fakeSessionStore) ReserveRegistrationInvite(
+	_ context.Context,
+	codeHash, email string,
+	now, reservedUntil int64,
+) (*model.RegistrationInvite, error) {
+	invite, ok := s.registrationInvites[codeHash]
+	if !ok ||
+		invite.RevokedAt != 0 ||
+		invite.RedeemedAt != 0 ||
+		(invite.ExpiresAt != 0 && invite.ExpiresAt <= now) ||
+		(invite.BoundEmail != "" && invite.BoundEmail != email) ||
+		(invite.ReservedUntil > now && invite.ReservedEmail != email) {
+		return nil, sql.ErrNoRows
+	}
+	invite.ReservedEmail = email
+	invite.ReservedUntil = reservedUntil
+	if invite.ExpiresAt != 0 && invite.ExpiresAt < invite.ReservedUntil {
+		invite.ReservedUntil = invite.ExpiresAt
+	}
+	value := *invite
+	return &value, nil
+}
+
+func (s *fakeSessionStore) RedeemRegistrationInvite(
+	_ context.Context,
+	inviteID int64,
+	email string,
+	userID, redeemedAt int64,
+) error {
+	for _, invite := range s.registrationInvites {
+		if invite.ID == inviteID &&
+			invite.ReservedEmail == email &&
+			invite.ReservedUntil > redeemedAt &&
+			invite.RevokedAt == 0 &&
+			invite.RedeemedAt == 0 {
+			invite.RedeemedUserID = userID
+			invite.RedeemedAt = redeemedAt
+			return nil
+		}
+	}
+	return sql.ErrNoRows
+}
+
+func (s *fakeSessionStore) ReleaseRegistrationInvite(_ context.Context, inviteID int64, email string) error {
+	for _, invite := range s.registrationInvites {
+		if invite.ID == inviteID && invite.ReservedEmail == email && invite.RedeemedAt == 0 {
+			invite.ReservedEmail = ""
+			invite.ReservedUntil = 0
+			return nil
+		}
+	}
+	return sql.ErrNoRows
+}
+
+func (s *fakeSessionStore) ListRegistrationInvites(
+	_ context.Context,
+	beforeID int64,
+	limit int,
+) ([]*model.RegistrationInvite, error) {
+	invites := make([]*model.RegistrationInvite, 0, len(s.registrationInvites))
+	for _, invite := range s.registrationInvites {
+		if beforeID == 0 || invite.ID < beforeID {
+			value := *invite
+			invites = append(invites, &value)
+		}
+	}
+	if len(invites) > limit {
+		invites = invites[:limit]
+	}
+	return invites, nil
+}
+
+func (s *fakeSessionStore) RevokeRegistrationInvite(_ context.Context, inviteID, revokedAt int64) error {
+	for _, invite := range s.registrationInvites {
+		if invite.ID == inviteID && invite.RevokedAt == 0 && invite.RedeemedAt == 0 {
+			invite.RevokedAt = revokedAt
+			return nil
+		}
+	}
+	return sql.ErrNoRows
+}
+
 func (s *fakeSessionStore) CreateUserCredential(_ context.Context, credential *model.UserCredential) error {
 	if _, ok := s.credentials[credential.UserID]; ok {
 		return sql.ErrNoRows
@@ -950,16 +1122,6 @@ func (s *fakeSessionStore) UpdateUserCredential(_ context.Context, userID int64,
 	}
 	credential.HashedPassword = hashedPassword
 	credential.UpdatedAt = updatedAt
-	return nil
-}
-
-func (s *fakeSessionStore) UpsertUserCredential(_ context.Context, userID int64, hashedPassword string, now int64) error {
-	if credential, ok := s.credentials[userID]; ok {
-		credential.HashedPassword = hashedPassword
-		credential.UpdatedAt = now
-		return nil
-	}
-	s.credentials[userID] = &model.UserCredential{UserID: userID, HashedPassword: hashedPassword, CreatedAt: now}
 	return nil
 }
 

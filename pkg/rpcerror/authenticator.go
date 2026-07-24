@@ -13,6 +13,8 @@ const (
 	AuthenticatorTwoFactorNotEnabled        = "two_factor_not_enabled"
 	AuthenticatorTwoFactorAlreadyEnabled    = "two_factor_already_enabled"
 	AuthenticatorTwoFactorEnrollmentPending = "two_factor_enrollment_pending"
+	AuthenticatorInvalidRegistrationInvite  = "invalid_registration_invite"
+	AuthenticatorRegistrationClosed         = "registration_closed"
 
 	AuthenticatorInvalidPasswordResetToken     = "invalid_password_reset_token"
 	AuthenticatorInvalidEmailVerificationToken = "invalid_email_verification_token"

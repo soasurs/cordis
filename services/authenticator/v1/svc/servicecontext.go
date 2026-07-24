@@ -72,6 +72,9 @@ type Dependencies struct {
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
+	if err := validateRegistrationConfig(cfg.Registration); err != nil {
+		return Dependencies{}, err
+	}
 	if cfg.Sessions.TTL <= 0 {
 		return Dependencies{}, errors.New("session ttl must be positive")
 	}
@@ -179,6 +182,9 @@ func NewServiceContext(cfg config.Config) *ServiceContext {
 }
 
 func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *ServiceContext {
+	if err := validateRegistrationConfig(cfg.Registration); err != nil {
+		panic(err)
+	}
 	if cfg.Sessions.TTL <= 0 {
 		panic("session ttl must be positive")
 	}
@@ -211,4 +217,16 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		RecoveryLimiter: deps.RecoveryLimiter,
 		PasswordLimiter: deps.PasswordLimiter,
 	}
+}
+
+func validateRegistrationConfig(cfg config.RegistrationConfig) error {
+	switch cfg.EffectiveMode() {
+	case config.RegistrationModeOpen, config.RegistrationModeInviteOnly, config.RegistrationModeClosed:
+	default:
+		return errors.New("registration mode must be open, invite_only, or closed")
+	}
+	if cfg.EffectiveReservationTTL() <= 0 {
+		return errors.New("registration reservation ttl must be positive")
+	}
+	return nil
 }

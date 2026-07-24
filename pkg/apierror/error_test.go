@@ -20,6 +20,30 @@ func TestFromRPCReason(t *testing.T) {
 	require.Equal(t, CodeEmailAlreadyExists, publicErrorInfo(t, connectErr).GetCode())
 }
 
+func TestFromRPCRegistrationReasons(t *testing.T) {
+	tests := []struct {
+		code        codes.Code
+		reason      string
+		connectCode connect.Code
+		publicCode  string
+	}{
+		{
+			code: codes.InvalidArgument, reason: rpcerror.AuthenticatorInvalidRegistrationInvite,
+			connectCode: connect.CodeInvalidArgument, publicCode: CodeInvalidRegistrationInvite,
+		},
+		{
+			code: codes.FailedPrecondition, reason: rpcerror.AuthenticatorRegistrationClosed,
+			connectCode: connect.CodeFailedPrecondition, publicCode: CodeRegistrationClosed,
+		},
+	}
+	for _, tc := range tests {
+		err := rpcerror.New(tc.code, rpcerror.AuthenticatorDomain, tc.reason, "registration error")
+		connectErr := FromRPC(err)
+		require.Equal(t, tc.connectCode, connect.CodeOf(connectErr))
+		require.Equal(t, tc.publicCode, publicErrorInfo(t, connectErr).GetCode())
+	}
+}
+
 func TestFromRPCGuildMemberAlreadyExists(t *testing.T) {
 	err := rpcerror.New(
 		codes.AlreadyExists,

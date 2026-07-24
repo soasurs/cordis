@@ -11,13 +11,49 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database  database.Config
-	Tokens    TokenConfig
-	Sessions  SessionConfig
-	Password  PasswordConfig
-	TwoFactor TwoFactorConfig
-	Recovery  RecoveryConfig
-	Services  ServiceConfig
+	Database     database.Config
+	Tokens       TokenConfig
+	Sessions     SessionConfig
+	Password     PasswordConfig
+	Registration RegistrationConfig
+	TwoFactor    TwoFactorConfig
+	Recovery     RecoveryConfig
+	Services     ServiceConfig
+}
+
+const (
+	// RegistrationModeOpen allows registrations without an invitation.
+	RegistrationModeOpen = "open"
+	// RegistrationModeInviteOnly requires a valid one-time invitation.
+	RegistrationModeInviteOnly = "invite_only"
+	// RegistrationModeClosed rejects all registrations.
+	RegistrationModeClosed = "closed"
+)
+
+const defaultRegistrationReservationTTL = 15 * time.Minute
+
+// RegistrationConfig controls whether new accounts may be created.
+type RegistrationConfig struct {
+	Mode           string        `json:",default=open"`
+	ReservationTTL time.Duration `json:",default=15m"`
+}
+
+// EffectiveMode returns the configured mode, defaulting to open for
+// programmatically constructed configurations.
+func (c RegistrationConfig) EffectiveMode() string {
+	if c.Mode == "" {
+		return RegistrationModeOpen
+	}
+	return c.Mode
+}
+
+// EffectiveReservationTTL returns the configured invitation reservation
+// lifetime, defaulting to fifteen minutes for programmatic configurations.
+func (c RegistrationConfig) EffectiveReservationTTL() time.Duration {
+	if c.ReservationTTL == 0 {
+		return defaultRegistrationReservationTTL
+	}
+	return c.ReservationTTL
 }
 
 // PasswordConfig controls process-local protection for Argon2 work.

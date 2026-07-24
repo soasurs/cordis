@@ -38,6 +38,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("password reset tokens", func(t *testing.T) { testPasswordResetTokens(t, store) })
 	t.Run("email verification tokens", func(t *testing.T) { testEmailVerificationTokens(t, store) })
+	t.Run("registration invites", func(t *testing.T) { testRegistrationInvites(t, store) })
 	t.Run("user credentials", func(t *testing.T) { testUserCredentials(t, store) })
 }
 
@@ -395,18 +396,90 @@ func testUserCredentials(t *testing.T, store Store) {
 	require.Equal(t, now+2, loaded.UpdatedAt)
 	require.ErrorIs(t, store.UpdateUserCredential(ctx, userID+1, "hash-x", now+3), sql.ErrNoRows)
 
-	// Upsert covers both the replace and the create-on-recovery paths.
-	require.NoError(t, store.UpsertUserCredential(ctx, userID, "hash-d", now+4))
-	loaded, err = store.GetUserCredential(ctx, userID, false)
-	require.NoError(t, err)
-	require.Equal(t, "hash-d", loaded.HashedPassword)
-
-	require.NoError(t, store.UpsertUserCredential(ctx, userID+1, "hash-e", now+5))
-	loaded, err = store.GetUserCredential(ctx, userID+1, false)
-	require.NoError(t, err)
-	require.Equal(t, "hash-e", loaded.HashedPassword)
-	require.Zero(t, loaded.UpdatedAt)
-
 	_, err = store.GetUserCredential(ctx, userID+99, false)
 	require.ErrorIs(t, err, sql.ErrNoRows)
+}
+
+func testRegistrationInvites(t *testing.T, store Store) {
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+
+	require.NoError(t, store.CreateRegistrationInvite(ctx, &model.RegistrationInvite{
+		ID: 9301, CodeHash: "registration-hash-a", BoundEmail: "user@example.com",
+		ExpiresAt: now + 60_000, Label: "bound", CreatedAt: now,
+	}))
+	require.NoError(t, store.CreateRegistrationInvite(ctx, &model.RegistrationInvite{
+		ID: 9302, CodeHash: "registration-hash-b", ExpiresAt: now - 1,
+		Label: "expired", CreatedAt: now,
+	}))
+	require.NoError(t, store.CreateRegistrationInvite(ctx, &model.RegistrationInvite{
+		ID: 9303, CodeHash: "registration-hash-c", Label: "revoked", CreatedAt: now,
+	}))
+
+	_, err := store.ReserveRegistrationInvite(ctx, "registration-hash-a", "wrong@example.com", now, now+30_000)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+	reserved, err := store.ReserveRegistrationInvite(ctx, "registration-hash-a", "user@example.com", now, now+30_000)
+	require.NoError(t, err)
+	require.Equal(t, "user@example.com", reserved.ReservedEmail)
+
+	// The same email may retry while another email cannot steal the reservation.
+	reserved, err = store.ReserveRegistrationInvite(ctx, "registration-hash-a", "user@example.com", now+1, now+40_000)
+	require.NoError(t, err)
+	require.Equal(t, now+40_000, reserved.ReservedUntil)
+	_, err = store.ReserveRegistrationInvite(ctx, "registration-hash-a", "other@example.com", now+1, now+40_000)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	require.NoError(t, store.RedeemRegistrationInvite(ctx, 9301, "user@example.com", 9401, now+2))
+	require.ErrorIs(t, store.RedeemRegistrationInvite(ctx, 9301, "user@example.com", 9402, now+3), sql.ErrNoRows)
+	_, err = store.ReserveRegistrationInvite(ctx, "registration-hash-a", "user@example.com", now+3, now+50_000)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	_, err = store.ReserveRegistrationInvite(ctx, "registration-hash-b", "user@example.com", now, now+30_000)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+	require.NoError(t, store.RevokeRegistrationInvite(ctx, 9303, now))
+	require.ErrorIs(t, store.RevokeRegistrationInvite(ctx, 9303, now+1), sql.ErrNoRows)
+	_, err = store.ReserveRegistrationInvite(ctx, "registration-hash-c", "user@example.com", now, now+30_000)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	invites, err := store.ListRegistrationInvites(ctx, 0, 10)
+	require.NoError(t, err)
+	require.Len(t, invites, 3)
+	require.Equal(t, []int64{9303, 9302, 9301}, []int64{invites[0].ID, invites[1].ID, invites[2].ID})
+	require.Equal(t, int64(9401), invites[2].RedeemedUserID)
+
+	require.NoError(t, store.CreateRegistrationInvite(ctx, &model.RegistrationInvite{
+		ID: 9304, CodeHash: "registration-hash-d", Label: "release", CreatedAt: now,
+	}))
+	_, err = store.ReserveRegistrationInvite(ctx, "registration-hash-d", "user@example.com", now, now+30_000)
+	require.NoError(t, err)
+	require.NoError(t, store.ReleaseRegistrationInvite(ctx, 9304, "user@example.com"))
+	_, err = store.ReserveRegistrationInvite(ctx, "registration-hash-d", "other@example.com", now+1, now+30_000)
+	require.NoError(t, err)
+
+	require.NoError(t, store.CreateRegistrationInvite(ctx, &model.RegistrationInvite{
+		ID: 9305, CodeHash: "registration-hash-e", Label: "concurrent", CreatedAt: now,
+	}))
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	for _, email := range []string{"first@example.com", "second@example.com"} {
+		go func() {
+			<-start
+			_, err := store.ReserveRegistrationInvite(ctx, "registration-hash-e", email, now, now+30_000)
+			results <- err
+		}()
+	}
+	close(start)
+	var reservedCount, rejectedCount int
+	for range 2 {
+		switch err := <-results; {
+		case err == nil:
+			reservedCount++
+		case errors.Is(err, sql.ErrNoRows):
+			rejectedCount++
+		default:
+			require.NoError(t, err)
+		}
+	}
+	require.Equal(t, 1, reservedCount)
+	require.Equal(t, 1, rejectedCount)
 }

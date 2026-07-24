@@ -51,6 +51,8 @@ message RegisterRequest {
   string ip = 5;
   // Globally unique lowercase handle.
   string username = 6;
+  // One-time authorization to create an account when registration is invite-only.
+  string registration_invite_code = 7;
 }
 
 message RegisterResponse {

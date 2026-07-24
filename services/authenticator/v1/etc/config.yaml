@@ -46,6 +46,11 @@ sessions:
 password:
   maxConcurrency: 4
 
+registration:
+  # open, invite_only, or closed
+  mode: open
+  reservationTTL: 15m
+
 recovery:
   passwordResetTTL: 30m
   emailVerificationTTL: 24h

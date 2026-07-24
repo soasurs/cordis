@@ -146,6 +146,19 @@ go run ./services/guild/v1/cmd/migrate -c services/guild/v1/etc/config.yaml
 go run ./services/message/v1/cmd/migrate -c services/message/v1/etc/config.yaml
 ```
 
+When `registration.mode` is `invite_only`, create and manage one-time
+registration invitations with the internal CLI:
+
+```bash
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml create -count 10 -ttl 168h
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml create -email user@example.com -ttl 24h
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml list
+go run ./services/authenticator/v1/cmd/invite -c services/authenticator/v1/etc/config.yaml revoke -id <invite-id>
+```
+
+Raw invitation codes are printed only by `create`; the database stores their
+SHA-256 hashes.
+
 Start the domain and state services first, followed by the edge and dispatch
 services:
 

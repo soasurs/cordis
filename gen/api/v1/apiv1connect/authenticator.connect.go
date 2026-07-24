@@ -85,7 +85,7 @@ const (
 
 // AuthenticatorServiceClient is a client for the api.v1.AuthenticatorService service.
 type AuthenticatorServiceClient interface {
-	// Register creates an account and returns a new authenticated session.
+	// Register creates an unverified account and sends an email verification link.
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
 	// Login verifies credentials and returns either a new authenticated session or a two-factor challenge.
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)
@@ -394,7 +394,7 @@ func (c *authenticatorServiceClient) RegenerateTwoFactorRecoveryCodes(ctx contex
 
 // AuthenticatorServiceHandler is an implementation of the api.v1.AuthenticatorService service.
 type AuthenticatorServiceHandler interface {
-	// Register creates an account and returns a new authenticated session.
+	// Register creates an unverified account and sends an email verification link.
 	Register(context.Context, *v1.RegisterRequest) (*v1.RegisterResponse, error)
 	// Login verifies credentials and returns either a new authenticated session or a two-factor challenge.
 	Login(context.Context, *v1.LoginRequest) (*v1.LoginResponse, error)

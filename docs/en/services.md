@@ -31,9 +31,14 @@ secrets.
 Registration supports `open`, `invite_only`, and `closed` modes. Invite-only
 registration uses one-time, optionally email-bound invitations stored by
 Authenticator. An invitation is reserved before Argon2 and the User RPC, then
-redeemed atomically with the password credential and initial session. Password
-reset only applies to accounts that already have a credential; incomplete
-registrations must resume through `Register`.
+redeemed atomically with the password credential and email-verification token.
+Registration sends the verification email but does not create a session. Login
+creates a session only after the password is valid and the current email has
+been verified; unknown accounts, wrong passwords, and unverified accounts share
+the same public invalid-credentials response. Verification-email resend accepts
+an email without authentication and always reports success for syntactically
+valid addresses. Password reset only applies to accounts that already have a
+credential; incomplete registrations must resume through `Register`.
 
 All Argon2 hashing and verification is protected by a process-local weighted
 semaphore. Its capacity comes from `password.maxConcurrency` (default 4), and

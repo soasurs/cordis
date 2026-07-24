@@ -4,7 +4,7 @@ package api.v1;
 
 // AuthenticatorService manages public authentication and session lifecycle operations.
 service AuthenticatorService {
-  // Register creates an account and returns a new authenticated session.
+  // Register creates an unverified account and sends an email verification link.
   rpc Register(RegisterRequest) returns (RegisterResponse);
   // Login verifies credentials and returns either a new authenticated session or a two-factor challenge.
   rpc Login(LoginRequest) returns (LoginResponse);
@@ -60,7 +60,7 @@ message RegisterRequest {
 }
 
 message RegisterResponse {
-  AuthenticationResult result = 1;
+  bool ok = 1;
 }
 
 message LoginRequest {
@@ -196,7 +196,9 @@ message ConfirmPasswordResetResponse {
   bool ok = 1;
 }
 
-message RequestEmailVerificationRequest {}
+message RequestEmailVerificationRequest {
+  string email = 1;
+}
 
 message RequestEmailVerificationResponse {
   bool ok = 1;

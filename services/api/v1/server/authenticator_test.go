@@ -179,7 +179,7 @@ func (f *fakeAuthenticatorClient) RegenerateTwoFactorRecoveryCodes(_ context.Con
 
 func TestRegisterOverConnectHTTP(t *testing.T) {
 	internalClient := &fakeAuthenticatorClient{
-		registerResponse: registerResponse(authenticationResult()),
+		registerResponse: registerResponse(),
 	}
 	svcCtx := &svc.ServiceContext{
 		AuthenticatorClient: internalClient,
@@ -211,15 +211,8 @@ func TestRegisterOverConnectHTTP(t *testing.T) {
 	require.Equal(t, "user@example.com", internalClient.registerRequest.GetEmail())
 	require.Equal(t, "password", internalClient.registerRequest.GetPassword())
 	require.Equal(t, "invite-code", internalClient.registerRequest.GetRegistrationInviteCode())
-	require.Equal(t, "cordis-test-client", internalClient.registerRequest.GetUserAgent())
-	require.NotEmpty(t, internalClient.registerRequest.GetIp())
 
-	result := resp.GetResult()
-	require.True(t, result.GetOk())
-	require.Equal(t, int64(1001), result.GetUserId())
-	require.Equal(t, int64(2001), result.GetSessionId())
-	require.Equal(t, "access-token", result.GetAccessToken())
-	require.Equal(t, "refresh-token", result.GetRefreshToken())
+	require.True(t, resp.GetOk())
 }
 
 func TestLoginMapsRequestAndResponse(t *testing.T) {
@@ -415,9 +408,9 @@ func authenticationResult() *authenticatorv1.AuthenticationResult {
 	return result
 }
 
-func registerResponse(result *authenticatorv1.AuthenticationResult) *authenticatorv1.RegisterResponse {
+func registerResponse() *authenticatorv1.RegisterResponse {
 	resp := new(authenticatorv1.RegisterResponse)
-	resp.SetResult(result)
+	resp.SetOk(true)
 	return resp
 }
 

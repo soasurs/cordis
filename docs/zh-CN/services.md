@@ -16,8 +16,11 @@
 
 注册支持 `open`、`invite_only` 和 `closed` 三种模式。邀请制使用由 Authenticator
 保存的一次性邀请码，也可以将邀请码绑定到指定邮箱。邀请码会在 Argon2 和 User RPC
-之前被短暂预留，并与密码凭据及初始 Session 在同一事务中核销。密码重置只适用于已经
-拥有 credential 的账号；未完成的注册必须通过 `Register` 继续。
+之前被短暂预留，并与密码凭据及邮箱验证 token 在同一事务中核销。注册会发送验证邮件，
+但不会创建 Session；只有密码正确且当前邮箱已经验证时，登录才会创建 Session。未知账号、
+密码错误和邮箱未验证对外统一返回凭据无效。重新发送验证邮件无需登录，语法有效的邮箱请求
+始终返回成功。密码重置只适用于已经拥有 credential 的账号；未完成的注册必须通过
+`Register` 继续。
 
 所有 Argon2 哈希和校验都受进程内 weighted semaphore 保护。容量由 `password.maxConcurrency` 配置（默认 4），当前每项 Argon2 工作使用一个权重，因此等同于每个 Authenticator 实例固定数量的并发 slot，而不是全集群共享上限。slot 满时请求等待，context 超时或取消时退出等待；semaphore 本身不提供独立的有界请求队列，外层 API rate limiter 负责限制进入量。
 

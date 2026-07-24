@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -155,25 +154,37 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *aut
 }
 
 func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, req *authenticatorv1.RequestEmailVerificationRequest) (*authenticatorv1.RequestEmailVerificationResponse, error) {
-	if req.GetUserId() <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "user id is required")
+	email := strings.ToLower(strings.TrimSpace(req.GetEmail()))
+	if email == "" {
+		return nil, status.Error(codes.InvalidArgument, "email is required")
+	}
+	if !isValidEmail(email) {
+		return nil, status.Error(codes.InvalidArgument, "invalid email format")
 	}
 
 	resp := new(authenticatorv1.RequestEmailVerificationResponse)
 	resp.SetOk(true)
-	if !s.allowRecoveryRequest(ctx, "emailverify:"+strconv.FormatInt(req.GetUserId(), 10)) {
+	if !s.allowRecoveryRequest(ctx, "emailverify:"+token.Hash(email)) {
 		return resp, nil
 	}
 
 	getUserReq := new(userv1.GetUserRequest)
-	getUserReq.SetUserId(req.GetUserId())
+	getUserReq.SetEmail(email)
 	getUserResp, err := s.svcCtx.UserClient.GetUser(ctx, getUserReq)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return resp, nil
+		}
 		return nil, err
 	}
 	user := getUserResp.GetUser()
-	if user.GetUserId() != req.GetUserId() || user.GetEmail() == "" {
-		return nil, status.Error(codes.NotFound, "user not found")
+	if user.GetUserId() <= 0 || strings.ToLower(user.GetEmail()) != email {
+		return resp, nil
+	}
+	if _, err := s.svcCtx.Store.GetUserCredential(ctx, user.GetUserId(), false); errors.Is(err, sql.ErrNoRows) {
+		return resp, nil
+	} else if err != nil {
+		return nil, err
 	}
 
 	// Requesting verification for an already-verified email is a no-op.

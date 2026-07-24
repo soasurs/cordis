@@ -47,16 +47,14 @@ message RegisterRequest {
   string name = 1;
   string email = 2;
   string password = 3;
-  string user_agent = 4;
-  string ip = 5;
   // Globally unique lowercase handle.
-  string username = 6;
+  string username = 4;
   // One-time authorization to create an account when registration is invite-only.
-  string registration_invite_code = 7;
+  string registration_invite_code = 5;
 }
 
 message RegisterResponse {
-  AuthenticationResult result = 1;
+  bool ok = 1;
 }
 
 message LoginRequest {
@@ -228,7 +226,7 @@ message ConfirmPasswordResetResponse {
 }
 
 message RequestEmailVerificationRequest {
-  int64 user_id = 1;
+  string email = 1;
 }
 
 message RequestEmailVerificationResponse {

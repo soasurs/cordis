@@ -81,11 +81,10 @@ func (l *recordingAPILimiter) snapshot() []apiRateLimitCall {
 
 func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 	internalClient := &fakeAuthenticatorClient{
-		registerResponse:                 registerResponse(authenticationResult()),
+		registerResponse:                 registerResponse(),
 		loginResponse:                    loginResponse(authenticationResult()),
 		requestPasswordResetResponse:     okBoolResponse(new(authenticatorv1.RequestPasswordResetResponse)),
 		confirmPasswordResetResponse:     okBoolResponse(new(authenticatorv1.ConfirmPasswordResetResponse)),
-		verifyResponse:                   verifyAccessTokenResponse(1001),
 		requestEmailVerificationResponse: okBoolResponse(new(authenticatorv1.RequestEmailVerificationResponse)),
 	}
 	limiter := new(recordingAPILimiter)
@@ -104,7 +103,6 @@ func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 		{policy: apiratelimit.PolicyRegisterIP, key: "127.0.0.1"},
 		{policy: apiratelimit.PolicyRegisterEmail, key: apiratelimit.EmailKey("user@example.com")},
 	}, limiter.snapshot())
-	require.Equal(t, "127.0.0.1", internalClient.registerRequest.GetIp())
 
 	limiter.reset()
 	loginReq := new(apiv1.LoginRequest)
@@ -140,11 +138,12 @@ func TestAuthenticationEndpointsApplyNamedPolicies(t *testing.T) {
 	}, limiter.snapshot())
 
 	limiter.reset()
-	_, err = client.RequestEmailVerification(t.Context(), new(apiv1.RequestEmailVerificationRequest))
+	requestVerificationReq := new(apiv1.RequestEmailVerificationRequest)
+	requestVerificationReq.SetEmail("user@example.com")
+	_, err = client.RequestEmailVerification(t.Context(), requestVerificationReq)
 	require.NoError(t, err)
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
-		{policy: apiratelimit.PolicyAuthenticatedUser, key: "1001"},
 		{policy: apiratelimit.PolicyRecoveryRequestIP, key: "127.0.0.1"},
 	}, limiter.snapshot())
 }

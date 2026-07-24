@@ -83,7 +83,7 @@ func TestRegisterClaimsHalfRegisteredAccount(t *testing.T) {
 	req.SetPassword("password")
 	resp, err := server.Register(context.Background(), req)
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), resp.GetResult().GetUserId())
+	require.True(t, resp.GetOk())
 
 	match, err := password.Verify(store.credentials[1001].HashedPassword, "password")
 	require.NoError(t, err)

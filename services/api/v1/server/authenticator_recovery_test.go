@@ -94,28 +94,19 @@ func TestConfirmPasswordResetForwardsTokenAndMapsError(t *testing.T) {
 	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-func TestRequestEmailVerificationUsesAuthenticatedUser(t *testing.T) {
+func TestRequestEmailVerificationForwardsEmailWithoutAuthentication(t *testing.T) {
 	internalClient := &fakeAuthenticatorClient{
-		verifyResponse:                   verifyAccessTokenResponse(1001),
 		requestEmailVerificationResponse: okBoolResponse(new(authenticatorv1.RequestEmailVerificationResponse)),
 	}
-	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "access-token")
-	defer closeServer()
-
-	resp, err := client.RequestEmailVerification(context.Background(), new(apiv1.RequestEmailVerificationRequest))
-	require.NoError(t, err)
-	require.True(t, resp.GetOk())
-	require.Equal(t, int64(1001), internalClient.requestEmailVerificationRequest.GetUserId())
-}
-
-func TestRequestEmailVerificationRequiresAccessToken(t *testing.T) {
-	internalClient := &fakeAuthenticatorClient{}
 	client, closeServer := newAuthenticatorHTTPClient(t, internalClient, "")
 	defer closeServer()
 
-	_, err := client.RequestEmailVerification(context.Background(), new(apiv1.RequestEmailVerificationRequest))
-	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
-	require.Nil(t, internalClient.requestEmailVerificationRequest)
+	req := new(apiv1.RequestEmailVerificationRequest)
+	req.SetEmail("user@example.com")
+	resp, err := client.RequestEmailVerification(context.Background(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.Equal(t, "user@example.com", internalClient.requestEmailVerificationRequest.GetEmail())
 }
 
 func TestConfirmEmailVerificationForwardsToken(t *testing.T) {

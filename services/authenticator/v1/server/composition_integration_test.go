@@ -61,8 +61,9 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 	service := New(newCompositionServiceContext(t, db, userClient, compositionMailer))
 	ctx := t.Context()
 
+	var aliceID int64
 	var refreshToken string
-	t.Run("register creates user and session", func(t *testing.T) {
+	t.Run("register creates unverified user and sends verification", func(t *testing.T) {
 		req := new(authenticatorv1.RegisterRequest)
 		req.SetName("Alice")
 		req.SetUsername("alice")
@@ -70,11 +71,35 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		req.SetPassword("integration-password-1")
 		resp, err := service.Register(ctx, req)
 		require.NoError(t, err)
-		result := resp.GetResult()
-		require.True(t, result.GetOk())
-		require.Positive(t, result.GetUserId())
-		require.NotEmpty(t, result.GetAccessToken())
-		require.NotEmpty(t, result.GetRefreshToken())
+		require.True(t, resp.GetOk())
+		delivered := compositionMailer.sent[len(compositionMailer.sent)-1]
+		require.Equal(t, mail.TemplateEmailVerification, delivered.template)
+
+		getUserReq := new(userv1.GetUserRequest)
+		getUserReq.SetEmail("alice@example.com")
+		getUserResp, err := userClient.GetUser(ctx, getUserReq)
+		require.NoError(t, err)
+		aliceID = getUserResp.GetUser().GetUserId()
+		require.Positive(t, aliceID)
+		require.Zero(t, getUserResp.GetUser().GetEmailVerifiedAt())
+	})
+
+	t.Run("login hides unverified account", func(t *testing.T) {
+		req := new(authenticatorv1.LoginRequest)
+		req.SetEmail("alice@example.com")
+		req.SetPassword("integration-password-1")
+		_, err := service.Login(ctx, req)
+		require.Equal(t, codes.Unauthenticated, status.Code(err))
+		require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidCredentials))
+	})
+
+	t.Run("confirm registration email", func(t *testing.T) {
+		delivered := compositionMailer.sent[len(compositionMailer.sent)-1]
+		req := new(authenticatorv1.ConfirmEmailVerificationRequest)
+		req.SetToken(delivered.token)
+		resp, err := service.ConfirmEmailVerification(ctx, req)
+		require.NoError(t, err)
+		require.True(t, resp.GetOk())
 	})
 
 	t.Run("duplicate email propagates already exists", func(t *testing.T) {
@@ -88,7 +113,7 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		require.True(t, rpcerror.Is(err, rpcerror.UserDomain, rpcerror.UserEmailAlreadyExists))
 	})
 
-	t.Run("invite-only registration redeems with credential and session", func(t *testing.T) {
+	t.Run("invite-only registration redeems with credential", func(t *testing.T) {
 		const rawCode = "composition-registration-invite"
 		now := time.Now()
 		inviteStore := store.New(db)
@@ -111,12 +136,17 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		req.SetRegistrationInviteCode(rawCode)
 		resp, err := inviteService.Register(ctx, req)
 		require.NoError(t, err)
-		require.NotEmpty(t, resp.GetResult().GetAccessToken())
+		require.True(t, resp.GetOk())
+
+		getBobReq := new(userv1.GetUserRequest)
+		getBobReq.SetEmail("bob@example.com")
+		getBobResp, err := userClient.GetUser(ctx, getBobReq)
+		require.NoError(t, err)
 
 		invites, err := inviteStore.ListRegistrationInvites(ctx, 0, 10)
 		require.NoError(t, err)
 		require.Len(t, invites, 1)
-		require.Equal(t, resp.GetResult().GetUserId(), invites[0].RedeemedUserID)
+		require.Equal(t, getBobResp.GetUser().GetUserId(), invites[0].RedeemedUserID)
 		require.NotZero(t, invites[0].RedeemedAt)
 	})
 
@@ -216,18 +246,36 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 	})
 
 	t.Run("email verification marks user and rejects stale tokens", func(t *testing.T) {
-		loginReq := new(authenticatorv1.LoginRequest)
-		loginReq.SetEmail("alice@example.com")
-		loginReq.SetPassword("integration-password-3")
-		loginResp, err := service.Login(ctx, loginReq)
+		updateEmailReq := new(userv1.UpdateEmailRequest)
+		updateEmailReq.SetUserId(aliceID)
+		updateEmailReq.SetEmail("alice-pending@example.com")
+		updateEmailResp, err := userClient.UpdateEmail(ctx, updateEmailReq)
 		require.NoError(t, err)
-		aliceID := loginResp.GetResult().GetUserId()
+		require.Zero(t, updateEmailResp.GetUser().GetEmailVerifiedAt())
 
 		requestReq := new(authenticatorv1.RequestEmailVerificationRequest)
-		requestReq.SetUserId(aliceID)
+		requestReq.SetEmail("alice-pending@example.com")
 		_, err = service.RequestEmailVerification(ctx, requestReq)
 		require.NoError(t, err)
 		delivered := compositionMailer.sent[len(compositionMailer.sent)-1]
+		require.Equal(t, mail.TemplateEmailVerification, delivered.template)
+		staleToken := delivered.token
+
+		updateEmailReq.SetEmail("alice-changed@example.com")
+		updateEmailResp, err = userClient.UpdateEmail(ctx, updateEmailReq)
+		require.NoError(t, err)
+		require.Zero(t, updateEmailResp.GetUser().GetEmailVerifiedAt())
+
+		staleConfirm := new(authenticatorv1.ConfirmEmailVerificationRequest)
+		staleConfirm.SetToken(staleToken)
+		_, err = service.ConfirmEmailVerification(ctx, staleConfirm)
+		require.Equal(t, codes.InvalidArgument, status.Code(err))
+		require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidEmailVerificationToken))
+
+		requestReq.SetEmail("alice-changed@example.com")
+		_, err = service.RequestEmailVerification(ctx, requestReq)
+		require.NoError(t, err)
+		delivered = compositionMailer.sent[len(compositionMailer.sent)-1]
 		require.Equal(t, mail.TemplateEmailVerification, delivered.template)
 
 		confirmReq := new(authenticatorv1.ConfirmEmailVerificationRequest)
@@ -241,30 +289,6 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 		getUserResp, err := userClient.GetUser(ctx, getUserReq)
 		require.NoError(t, err)
 		require.NotZero(t, getUserResp.GetUser().GetEmailVerifiedAt())
-
-		// A pending token issued before an email change must not verify the
-		// replacement address.
-		_, err = service.RequestEmailVerification(ctx, requestReq)
-		require.NoError(t, err)
-		require.Equal(t, mail.TemplateEmailVerification, compositionMailer.sent[len(compositionMailer.sent)-1].template)
-		staleToken := compositionMailer.sent[len(compositionMailer.sent)-1].token
-
-		updateEmailReq := new(userv1.UpdateEmailRequest)
-		updateEmailReq.SetUserId(aliceID)
-		updateEmailReq.SetEmail("alice-changed@example.com")
-		updateEmailResp, err := userClient.UpdateEmail(ctx, updateEmailReq)
-		require.NoError(t, err)
-		require.Zero(t, updateEmailResp.GetUser().GetEmailVerifiedAt())
-
-		staleConfirm := new(authenticatorv1.ConfirmEmailVerificationRequest)
-		staleConfirm.SetToken(staleToken)
-		_, err = service.ConfirmEmailVerification(ctx, staleConfirm)
-		require.Equal(t, codes.InvalidArgument, status.Code(err))
-		require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidEmailVerificationToken))
-
-		getUserResp, err = userClient.GetUser(ctx, getUserReq)
-		require.NoError(t, err)
-		require.Zero(t, getUserResp.GetUser().GetEmailVerifiedAt())
 	})
 
 	t.Run("change password rotates credential and revokes other sessions", func(t *testing.T) {

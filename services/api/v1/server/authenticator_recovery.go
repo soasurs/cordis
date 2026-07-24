@@ -44,17 +44,13 @@ func (s *authenticatorServer) ConfirmPasswordReset(ctx context.Context, req *api
 	return resp, nil
 }
 
-func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, _ *apiv1.RequestEmailVerificationRequest) (*apiv1.RequestEmailVerificationResponse, error) {
-	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
-	if err != nil {
-		return nil, err
-	}
+func (s *authenticatorServer) RequestEmailVerification(ctx context.Context, req *apiv1.RequestEmailVerificationRequest) (*apiv1.RequestEmailVerificationResponse, error) {
 	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyRecoveryRequestIP); err != nil {
 		return nil, err
 	}
 
 	svcReq := new(authenticatorv1.RequestEmailVerificationRequest)
-	svcReq.SetUserId(auth.GetUserId())
+	svcReq.SetEmail(req.GetEmail())
 
 	svcResp, err := s.svcCtx.AuthenticatorClient.RequestEmailVerification(ctx, svcReq)
 	if err != nil {

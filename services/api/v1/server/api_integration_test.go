@@ -65,9 +65,10 @@ func TestAPIIntegration(t *testing.T) {
 	guildConn := dialGRPC(t, guildAddr)
 	messageConn := dialGRPC(t, messageAddr)
 
+	internalUserClient := userv1.NewUserServiceClient(userConn)
 	apiCtx := &svc.ServiceContext{
 		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(authConn),
-		UserClient:          userv1.NewUserServiceClient(userConn),
+		UserClient:          internalUserClient,
 		GuildClient:         guildv1.NewGuildServiceClient(guildConn),
 		MessageClient:       messagev1.NewMessageServiceClient(messageConn),
 	}
@@ -90,6 +91,23 @@ func TestAPIIntegration(t *testing.T) {
 
 	ctx := t.Context()
 	email := "test@integration.example"
+	verifyEmail := func(t *testing.T, email string) int64 {
+		t.Helper()
+		getReq := new(userv1.GetUserRequest)
+		getReq.SetEmail(email)
+		getResp, err := internalUserClient.GetUser(ctx, getReq)
+		require.NoError(t, err)
+		userID := getResp.GetUser().GetUserId()
+		require.Positive(t, userID)
+
+		markReq := new(userv1.MarkEmailVerifiedRequest)
+		markReq.SetUserId(userID)
+		markReq.SetEmail(email)
+		markReq.SetVerifiedAt(time.Now().UnixMilli())
+		_, err = internalUserClient.MarkEmailVerified(ctx, markReq)
+		require.NoError(t, err)
+		return userID
+	}
 
 	t.Run("register", func(t *testing.T) {
 		req := new(apiv1.RegisterRequest)
@@ -99,10 +117,18 @@ func TestAPIIntegration(t *testing.T) {
 		req.SetPassword("integration-password-1")
 		resp, err := authClient.Register(ctx, req)
 		require.NoError(t, err)
-		require.True(t, resp.GetResult().GetOk())
-		require.Positive(t, resp.GetResult().GetUserId())
-		require.NotEmpty(t, resp.GetResult().GetAccessToken())
+		require.True(t, resp.GetOk())
 	})
+
+	t.Run("login hides unverified account", func(t *testing.T) {
+		req := new(apiv1.LoginRequest)
+		req.SetEmail(email)
+		req.SetPassword("integration-password-1")
+		_, err := authClient.Login(ctx, req)
+		require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+	})
+
+	verifyEmail(t, email)
 
 	t.Run("password reset request reaches mailer", func(t *testing.T) {
 		// End-to-end wiring check for authenticator -> mailer: the noop
@@ -117,6 +143,19 @@ func TestAPIIntegration(t *testing.T) {
 		req2 := new(apiv1.RequestPasswordResetRequest)
 		req2.SetEmail("unknown@integration.example")
 		resp, err = authClient.RequestPasswordReset(ctx, req2)
+		require.NoError(t, err)
+		require.True(t, resp.GetOk())
+	})
+
+	t.Run("email verification resend is anonymous and silent", func(t *testing.T) {
+		req := new(apiv1.RequestEmailVerificationRequest)
+		req.SetEmail(email)
+		resp, err := authClient.RequestEmailVerification(ctx, req)
+		require.NoError(t, err)
+		require.True(t, resp.GetOk())
+
+		req.SetEmail("unknown@integration.example")
+		resp, err = authClient.RequestEmailVerification(ctx, req)
 		require.NoError(t, err)
 		require.True(t, resp.GetOk())
 	})
@@ -266,7 +305,8 @@ func TestAPIIntegration(t *testing.T) {
 			regReq.SetPassword("stranger-password")
 			regResp, regErr := authClient.Register(ctx, regReq)
 			require.NoError(t, regErr)
-			require.True(t, regResp.GetResult().GetOk())
+			require.True(t, regResp.GetOk())
+			verifyEmail(t, "stranger@example.com")
 			loginReq2 := new(apiv1.LoginRequest)
 			loginReq2.SetEmail("stranger@example.com")
 			loginReq2.SetPassword("stranger-password")
@@ -315,7 +355,8 @@ func TestAPIIntegration(t *testing.T) {
 			regReq.SetPassword("stranger-password")
 			regResp, regErr := authClient.Register(ctx, regReq)
 			require.NoError(t, regErr)
-			require.True(t, regResp.GetResult().GetOk())
+			require.True(t, regResp.GetOk())
+			verifyEmail(t, "stranger@example.com")
 			loginReq2 := new(apiv1.LoginRequest)
 			loginReq2.SetEmail("stranger@example.com")
 			loginReq2.SetPassword("stranger-password")

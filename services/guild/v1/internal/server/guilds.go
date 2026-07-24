@@ -15,6 +15,13 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/svc"
 )
 
+const (
+	defaultTextCategoryName  = "Text Channels"
+	defaultTextChannelName   = "general"
+	defaultVoiceCategoryName = "Voice Channels"
+	defaultVoiceChannelName  = "General"
+)
+
 func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildRequest) (*guildv1.CreateGuildResponse, error) {
 	if req.GetOwnerId() <= 0 {
 		return nil, invalidRequest("owner id is required")
@@ -45,7 +52,10 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 		if _, err := txStore.CreateGuildMember(ctx, guildID, req.GetOwnerId(), createdAt); err != nil {
 			return err
 		}
-		return txStore.CreateDefaultRole(ctx, guildID, createdAt)
+		if err := txStore.CreateDefaultRole(ctx, guildID, createdAt); err != nil {
+			return err
+		}
+		return s.createDefaultChannels(ctx, txStore, guildID, createdAt)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
@@ -57,6 +67,35 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 	resp := new(guildv1.CreateGuildResponse)
 	resp.SetGuild(guildToProto(created))
 	return resp, nil
+}
+
+func (s *guildServer) createDefaultChannels(ctx context.Context, txStore store.Store, guildID, createdAt int64) error {
+	textCategoryID := s.svcCtx.Snowflake.Generate().Int64()
+	voiceCategoryID := s.svcCtx.Snowflake.Generate().Int64()
+	channels := []struct {
+		id       int64
+		name     string
+		typeID   guildv1.GuildChannelType
+		parentID int64
+	}{
+		{id: textCategoryID, name: defaultTextCategoryName, typeID: guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY},
+		{id: s.svcCtx.Snowflake.Generate().Int64(), name: defaultTextChannelName, typeID: guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT, parentID: textCategoryID},
+		{id: voiceCategoryID, name: defaultVoiceCategoryName, typeID: guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY},
+		{id: s.svcCtx.Snowflake.Generate().Int64(), name: defaultVoiceChannelName, typeID: guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE, parentID: voiceCategoryID},
+	}
+	for position, channel := range channels {
+		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+			Kind: store.QuotaGuildChannels, ScopeID: guildID, Limit: s.svcCtx.Cfg.Limits.Channels(),
+		}); err != nil {
+			return err
+		}
+		if _, err := txStore.CreateGuildChannel(
+			ctx, channel.id, guildID, channel.name, int32(channel.typeID), int32(position), "", channel.parentID, createdAt,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *guildServer) GetGuild(ctx context.Context, req *guildv1.GetGuildRequest) (*guildv1.GetGuildResponse, error) {

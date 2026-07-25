@@ -61,11 +61,11 @@ rateLimit:
   fallbackRetryInterval: 1s
   policies:
     identify_user:
-      limit: 20
-      window: 5m
+      limit: 120
+      window: 1m
     identify_auth_session:
-      limit: 5
-      window: 5m
+      limit: 60
+      window: 1m
     presence_user:
       limit: 10
       window: 20s

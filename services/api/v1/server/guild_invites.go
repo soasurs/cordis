@@ -176,6 +176,7 @@ func guildInvitePreviewToAPI(preview *guildv1.GuildInvitePreview) *apiv1.GuildIn
 	resp.SetCode(preview.GetCode())
 	resp.SetGuildId(preview.GetGuildId())
 	resp.SetGuildName(preview.GetGuildName())
+	resp.SetGuildDescription(preview.GetGuildDescription())
 	resp.SetGuildIconAssetId(preview.GetGuildIconAssetId())
 	resp.SetMemberCount(preview.GetMemberCount())
 	resp.SetExpiresAt(preview.GetExpiresAt())

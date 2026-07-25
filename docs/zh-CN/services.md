@@ -38,6 +38,8 @@ Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事�
 - 文本、分类、语音频道的元数据与排序；
 - 角色/成员频道权限覆盖和频道授权检查。
 
+Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和描述通过具备字段 presence 语义的 `UpdateGuild` 修改，显式传入空描述会清除它；图标使用独立的直传流程，仅在 `CompleteGuildIconUpload` 成功时才与 Guild 关联。
+
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 
 按角色列出成员与 Guild 成员列表使用相同的用户 ID 游标分页；普通角色返回显式分配且有效的成员，默认角色返回全部有效 Guild 成员。公开 Guild member 响应始终嵌入成员 profile；封禁响应同时嵌入被封用户和操作者 profile，邀请响应嵌入创建者 profile。成员与封禁事件不经过 API，因此 Guild 自行加载事件需要的 profile。

@@ -132,6 +132,8 @@ message Guild {
   int64 revision = 5;
   int64 created_at = 6;
   int64 updated_at = 7;
+  // Optional Guild description. Empty means no description.
+  string description = 8;
 }
 
 // GuildMember is one user's active or historical membership in a Guild.
@@ -293,6 +295,8 @@ message UpdateGuildRequest {
   int64 actor_user_id = 2;
   // Optional replacement name.
   string name = 3;
+  // Optional replacement description. Set to empty to clear it.
+  string description = 4;
 }
 
 message UpdateGuildResponse {
@@ -506,6 +510,8 @@ message GuildInvitePreview {
   int64 guild_icon_asset_id = 4;
   int64 member_count = 5;
   int64 expires_at = 6;
+  // Optional description of the Guild being previewed.
+  string guild_description = 7;
 }
 
 message CreateGuildInviteRequest {

@@ -76,6 +76,7 @@ func TestCreateGuildInviteValidation(t *testing.T) {
 
 func TestGetGuildInvitePreview(t *testing.T) {
 	fakeStore := roleTestStore()
+	fakeStore.guilds[10].Description = "Community description"
 	fakeStore.invites["preview-ok"] = &model.GuildInvite{
 		ID: 501, Code: "preview-ok", GuildID: 10, CreatorUserID: 1001, CreatedAt: 1,
 	}
@@ -89,6 +90,7 @@ func TestGetGuildInvitePreview(t *testing.T) {
 	require.Equal(t, "preview-ok", preview.GetCode())
 	require.Equal(t, int64(10), preview.GetGuildId())
 	require.Equal(t, "Guild", preview.GetGuildName())
+	require.Equal(t, "Community description", preview.GetGuildDescription())
 	require.Equal(t, int64(4), preview.GetMemberCount())
 
 	req.SetCode("unknown")

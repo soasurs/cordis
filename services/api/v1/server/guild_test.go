@@ -442,6 +442,7 @@ func TestCreateGuildUsesAuthenticatedOwner(t *testing.T) {
 	require.Equal(t, int64(1001), guildClient.createRequest.GetOwnerId())
 	require.Equal(t, "Cordis", guildClient.createRequest.GetName())
 	require.Equal(t, int64(3001), resp.GetGuild().GetId())
+	require.Equal(t, "Community description", resp.GetGuild().GetDescription())
 }
 
 func TestUpdateGuildUsesAuthenticatedActorAndFieldPresence(t *testing.T) {
@@ -454,11 +455,14 @@ func TestUpdateGuildUsesAuthenticatedActorAndFieldPresence(t *testing.T) {
 	updateReq := new(apiv1.UpdateGuildRequest)
 	updateReq.SetGuildId(3001)
 	updateReq.SetName("")
+	updateReq.SetDescription("Community description")
 	_, err := client.UpdateGuild(context.Background(), updateReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateRequest.GetActorUserId())
 	require.True(t, guildClient.updateRequest.HasName())
 	require.Empty(t, guildClient.updateRequest.GetName())
+	require.True(t, guildClient.updateRequest.HasDescription())
+	require.Equal(t, "Community description", guildClient.updateRequest.GetDescription())
 }
 
 func TestCreateGuildIconUploadUsesAuthenticatedActor(t *testing.T) {
@@ -1255,6 +1259,7 @@ func internalGuild() *guildv1.Guild {
 	guild.SetId(3001)
 	guild.SetOwnerId(1001)
 	guild.SetName("Cordis")
+	guild.SetDescription("Community description")
 	guild.SetIconAssetId(6001)
 	guild.SetRevision(1)
 	guild.SetCreatedAt(4001)

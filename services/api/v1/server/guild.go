@@ -90,6 +90,9 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *apiv1.UpdateGuildReq
 	if req.HasName() {
 		svcReq.SetName(req.GetName())
 	}
+	if req.HasDescription() {
+		svcReq.SetDescription(req.GetDescription())
+	}
 	svcResp, err := s.svcCtx.GuildClient.UpdateGuild(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -448,6 +451,7 @@ func guildToAPI(guild *guildv1.Guild) *apiv1.Guild {
 	resp.SetId(guild.GetId())
 	resp.SetOwnerId(guild.GetOwnerId())
 	resp.SetName(guild.GetName())
+	resp.SetDescription(guild.GetDescription())
 	resp.SetIconAssetId(guild.GetIconAssetId())
 	resp.SetRevision(guild.GetRevision())
 	resp.SetCreatedAt(guild.GetCreatedAt())

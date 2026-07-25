@@ -39,8 +39,8 @@ func TestCreateGuild(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{
-		"id", "owner_id", "name", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
-	}).AddRow(int64(1001), int64(2001), "Cordis", int64(0), int64(1), int64(10), int64(0), int64(0))
+		"id", "owner_id", "name", "description", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "Cordis", "", int64(0), int64(1), int64(10), int64(0), int64(0))
 	mock.ExpectQuery(sqlPattern(createGuildQuery)).
 		WithArgs(int64(1001), int64(2001), "Cordis", int64(10)).
 		WillReturnRows(rows)
@@ -57,8 +57,8 @@ func TestGetGuildForMember(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{
-		"id", "owner_id", "name", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
-	}).AddRow(int64(1001), int64(2001), "Cordis", int64(0), int64(1), int64(10), int64(0), int64(0))
+		"id", "owner_id", "name", "description", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "Cordis", "Community", int64(0), int64(1), int64(10), int64(0), int64(0))
 	mock.ExpectQuery(sqlPattern(getGuildForMemberQuery)).
 		WithArgs(int64(1001), int64(2001)).
 		WillReturnRows(rows)
@@ -66,6 +66,28 @@ func TestGetGuildForMember(t *testing.T) {
 	guild, err := store.GetGuildForMember(context.Background(), 1001, 2001)
 	require.NoError(t, err)
 	require.Equal(t, "Cordis", guild.Name)
+	require.Equal(t, "Community", guild.Description)
+}
+
+func TestUpdateGuildDescriptionPreservesName(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"id", "owner_id", "name", "description", "icon_asset_id", "revision", "created_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "Cordis", "Community", int64(0), int64(2), int64(10), int64(20), int64(0))
+	mock.ExpectQuery(sqlPattern(updateGuildQuery)).
+		WithArgs(int64(1001), false, "", true, "Community", sqlmock.AnyArg()).
+		WillReturnRows(rows)
+
+	description := "Community"
+	guild, err := store.UpdateGuild(context.Background(), UpdateGuildParams{
+		GuildID: 1001, Description: &description,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "Cordis", guild.Name)
+	require.Equal(t, "Community", guild.Description)
+	require.Equal(t, int64(2), guild.Revision)
 }
 
 func TestCreateGuildMember(t *testing.T) {

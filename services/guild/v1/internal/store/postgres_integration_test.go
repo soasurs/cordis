@@ -267,9 +267,12 @@ func testGuildCRUD(t *testing.T, store Store) {
 	require.Zero(t, g.IconAssetID)
 	require.Equal(t, int64(1), g.Revision)
 
-	gu, err := store.UpdateGuild(ctx, UpdateGuildParams{GuildID: guildID, Name: ptr("Updated")})
+	gu, err := store.UpdateGuild(ctx, UpdateGuildParams{
+		GuildID: guildID, Name: ptr("Updated"), Description: ptr("Community"),
+	})
 	require.NoError(t, err)
 	require.Equal(t, "Updated", gu.Name)
+	require.Equal(t, "Community", gu.Description)
 	require.Equal(t, int64(2), gu.Revision)
 
 	gu, err = store.UpdateGuildIcon(ctx, guildID, 9001)

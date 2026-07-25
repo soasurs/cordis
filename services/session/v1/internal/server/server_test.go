@@ -111,6 +111,7 @@ func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	server := newTestServer()
 	readyGuild := readyVisibility(9001, 7, 7001)
 	readyGuild.GetGuild().SetOwnerId(1001)
+	readyGuild.GetGuild().SetDescription("Community description")
 	role := new(guildv1.GuildRole)
 	role.SetId(9001)
 	role.SetGuildId(9001)
@@ -150,6 +151,7 @@ func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	var payload readyPayload
 	require.NoError(t, json.Unmarshal([]byte(session.replay[0].frame.GetJsonPayload()), &payload))
 	require.Equal(t, "9001", payload.Guilds[0].ID)
+	require.Equal(t, "Community description", payload.Guilds[0].Description)
 	require.Equal(t, "42", payload.Guilds[0].Roles[0].Permissions)
 	require.Equal(t, []string{"9002"}, payload.Guilds[0].MemberRoleIDs)
 	require.Equal(t, "7001", payload.Guilds[0].Channels[0].ID)

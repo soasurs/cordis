@@ -7,6 +7,7 @@ import (
 	"errors"
 	"sort"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -163,17 +164,46 @@ func TestUpdateGuildRequiresOwnerAndPreservesPresence(t *testing.T) {
 	updateReq := new(guildv1.UpdateGuildRequest)
 	updateReq.SetGuildId(10)
 	updateReq.SetActorUserId(1001)
-	updateReq.SetName("Still Guild")
+	updateReq.SetDescription(" Community description ")
 	resp, err := server.UpdateGuild(t.Context(), updateReq)
 	require.NoError(t, err)
-	require.Equal(t, "Still Guild", resp.GetGuild().GetName())
+	require.Equal(t, "Guild", resp.GetGuild().GetName())
+	require.Equal(t, "Community description", resp.GetGuild().GetDescription())
 	require.Equal(t, int64(77), resp.GetGuild().GetIconAssetId())
 	require.Equal(t, int64(2), resp.GetGuild().GetRevision())
 
 	var envelope eventEnvelope[guildPayload]
 	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
 	require.Equal(t, EventTypeGuildUpdated, envelope.Type)
+	require.Equal(t, "Community description", envelope.Data.Description)
 	require.Equal(t, int64(2), envelope.Data.Revision)
+}
+
+func TestUpdateGuildCanClearDescription(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.guilds[10].Description = "old description"
+	fakeStore.members[10] = testMembers(10, 1001)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	req := new(guildv1.UpdateGuildRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetDescription("")
+	resp, err := server.UpdateGuild(t.Context(), req)
+	require.NoError(t, err)
+	require.Empty(t, resp.GetGuild().GetDescription())
+}
+
+func TestUpdateGuildRejectsLongDescription(t *testing.T) {
+	server := newTestGuildServer(t, newFakeStore(), nil)
+	req := new(guildv1.UpdateGuildRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetDescription(strings.Repeat("界", maxGuildDescriptionRunes+1))
+
+	_, err := server.UpdateGuild(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestGuildIconUploadLifecycle(t *testing.T) {
@@ -547,6 +577,9 @@ func (s *fakeStore) UpdateGuild(_ context.Context, params store.UpdateGuildParam
 	}
 	if params.Name != nil {
 		guild.Name = *params.Name
+	}
+	if params.Description != nil {
+		guild.Description = *params.Description
 	}
 	guild.Revision++
 	guild.UpdatedAt = 2

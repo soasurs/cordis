@@ -15,6 +15,7 @@ type guildRow struct {
 	ID             int64  `db:"id"`
 	OwnerID        int64  `db:"owner_id"`
 	Name           string `db:"name"`
+	Description    string `db:"description"`
 	IconAssetID    int64  `db:"icon_asset_id"`
 	Revision       int64  `db:"revision"`
 	AccessRevision int64  `db:"access_revision"`
@@ -238,9 +239,12 @@ func (s *SQLStore) ListUserGuilds(ctx context.Context, params ListUserGuildsPara
 
 func (s *SQLStore) UpdateGuild(ctx context.Context, params UpdateGuildParams) (*model.Guild, error) {
 	row := new(guildRow)
-	var name string
+	var name, description string
 	if params.Name != nil {
 		name = *params.Name
+	}
+	if params.Description != nil {
+		description = *params.Description
 	}
 	err := sqlx.GetContext(
 		ctx,
@@ -250,6 +254,8 @@ func (s *SQLStore) UpdateGuild(ctx context.Context, params UpdateGuildParams) (*
 		params.GuildID,
 		params.Name != nil,
 		name,
+		params.Description != nil,
+		description,
 		time.Now().UnixMilli(),
 	)
 	if err != nil {
@@ -297,6 +303,7 @@ func guildFromRow(row *guildRow) *model.Guild {
 		ID:             row.ID,
 		OwnerID:        row.OwnerID,
 		Name:           row.Name,
+		Description:    row.Description,
 		IconAssetID:    row.IconAssetID,
 		Revision:       row.Revision,
 		AccessRevision: row.AccessRevision,

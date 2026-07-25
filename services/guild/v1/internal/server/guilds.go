@@ -149,7 +149,7 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *guildv1.UpdateGuildR
 	if req.GetActorUserId() <= 0 {
 		return nil, invalidRequest("actor user id is required")
 	}
-	if !req.HasName() {
+	if !req.HasName() && !req.HasDescription() {
 		return nil, invalidRequest("at least one field must be updated")
 	}
 
@@ -160,6 +160,13 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *guildv1.UpdateGuildR
 			return nil, err
 		}
 		params.Name = &name
+	}
+	if req.HasDescription() {
+		description, err := normalizeGuildDescription(req.GetDescription())
+		if err != nil {
+			return nil, err
+		}
+		params.Description = &description
 	}
 	var updated *model.Guild
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
@@ -347,6 +354,7 @@ func guildToProto(guild *model.Guild) *guildv1.Guild {
 	value.SetId(guild.ID)
 	value.SetOwnerId(guild.OwnerID)
 	value.SetName(guild.Name)
+	value.SetDescription(guild.Description)
 	value.SetIconAssetId(guild.IconAssetID)
 	value.SetRevision(guild.Revision)
 	value.SetCreatedAt(guild.CreatedAt)

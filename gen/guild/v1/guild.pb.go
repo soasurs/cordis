@@ -204,6 +204,7 @@ type Guild struct {
 	xxx_hidden_Revision    int64                  `protobuf:"varint,5,opt,name=revision"`
 	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,6,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,7,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Description *string                `protobuf:"bytes,8,opt,name=description"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -287,39 +288,54 @@ func (x *Guild) GetUpdatedAt() int64 {
 	return 0
 }
 
+func (x *Guild) GetDescription() string {
+	if x != nil {
+		if x.xxx_hidden_Description != nil {
+			return *x.xxx_hidden_Description
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *Guild) SetId(v int64) {
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *Guild) SetOwnerId(v int64) {
 	x.xxx_hidden_OwnerId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *Guild) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *Guild) SetIconAssetId(v int64) {
 	x.xxx_hidden_IconAssetId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *Guild) SetRevision(v int64) {
 	x.xxx_hidden_Revision = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *Guild) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
 func (x *Guild) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *Guild) SetDescription(v string) {
+	x.xxx_hidden_Description = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *Guild) HasId() bool {
@@ -371,6 +387,13 @@ func (x *Guild) HasUpdatedAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
+func (x *Guild) HasDescription() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *Guild) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = 0
@@ -406,6 +429,11 @@ func (x *Guild) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = 0
 }
 
+func (x *Guild) ClearDescription() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_Description = nil
+}
+
 type Guild_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -419,6 +447,8 @@ type Guild_builder struct {
 	Revision  *int64
 	CreatedAt *int64
 	UpdatedAt *int64
+	// Optional Guild description. Empty means no description.
+	Description *string
 }
 
 func (b0 Guild_builder) Build() *Guild {
@@ -426,32 +456,36 @@ func (b0 Guild_builder) Build() *Guild {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_Id = *b.Id
 	}
 	if b.OwnerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_OwnerId = *b.OwnerId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.IconAssetId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_IconAssetId = *b.IconAssetId
 	}
 	if b.Revision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_Revision = *b.Revision
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
+	}
+	if b.Description != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_Description = b.Description
 	}
 	return m0
 }
@@ -3085,6 +3119,7 @@ type UpdateGuildRequest struct {
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
 	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Description *string                `protobuf:"bytes,4,opt,name=description"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -3140,19 +3175,34 @@ func (x *UpdateGuildRequest) GetName() string {
 	return ""
 }
 
+func (x *UpdateGuildRequest) GetDescription() string {
+	if x != nil {
+		if x.xxx_hidden_Description != nil {
+			return *x.xxx_hidden_Description
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *UpdateGuildRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *UpdateGuildRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *UpdateGuildRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *UpdateGuildRequest) SetDescription(v string) {
+	x.xxx_hidden_Description = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *UpdateGuildRequest) HasGuildId() bool {
@@ -3176,6 +3226,13 @@ func (x *UpdateGuildRequest) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *UpdateGuildRequest) HasDescription() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *UpdateGuildRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -3191,6 +3248,11 @@ func (x *UpdateGuildRequest) ClearName() {
 	x.xxx_hidden_Name = nil
 }
 
+func (x *UpdateGuildRequest) ClearDescription() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Description = nil
+}
+
 type UpdateGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -3198,6 +3260,8 @@ type UpdateGuildRequest_builder struct {
 	ActorUserId *int64
 	// Optional replacement name.
 	Name *string
+	// Optional replacement description. Set to empty to clear it.
+	Description *string
 }
 
 func (b0 UpdateGuildRequest_builder) Build() *UpdateGuildRequest {
@@ -3205,16 +3269,20 @@ func (b0 UpdateGuildRequest_builder) Build() *UpdateGuildRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_Name = b.Name
+	}
+	if b.Description != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Description = b.Description
 	}
 	return m0
 }
@@ -6661,6 +6729,7 @@ type GuildInvitePreview struct {
 	xxx_hidden_GuildIconAssetId int64                  `protobuf:"varint,4,opt,name=guild_icon_asset_id,json=guildIconAssetId"`
 	xxx_hidden_MemberCount      int64                  `protobuf:"varint,5,opt,name=member_count,json=memberCount"`
 	xxx_hidden_ExpiresAt        int64                  `protobuf:"varint,6,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_GuildDescription *string                `protobuf:"bytes,7,opt,name=guild_description,json=guildDescription"`
 	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
 	XXX_presence                [1]uint32
 	unknownFields               protoimpl.UnknownFields
@@ -6740,34 +6809,49 @@ func (x *GuildInvitePreview) GetExpiresAt() int64 {
 	return 0
 }
 
+func (x *GuildInvitePreview) GetGuildDescription() string {
+	if x != nil {
+		if x.xxx_hidden_GuildDescription != nil {
+			return *x.xxx_hidden_GuildDescription
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *GuildInvitePreview) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
 }
 
 func (x *GuildInvitePreview) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *GuildInvitePreview) SetGuildName(v string) {
 	x.xxx_hidden_GuildName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
 }
 
 func (x *GuildInvitePreview) SetGuildIconAssetId(v int64) {
 	x.xxx_hidden_GuildIconAssetId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
 }
 
 func (x *GuildInvitePreview) SetMemberCount(v int64) {
 	x.xxx_hidden_MemberCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
 }
 
 func (x *GuildInvitePreview) SetExpiresAt(v int64) {
 	x.xxx_hidden_ExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *GuildInvitePreview) SetGuildDescription(v string) {
+	x.xxx_hidden_GuildDescription = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
 }
 
 func (x *GuildInvitePreview) HasCode() bool {
@@ -6812,6 +6896,13 @@ func (x *GuildInvitePreview) HasExpiresAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
+func (x *GuildInvitePreview) HasGuildDescription() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
 func (x *GuildInvitePreview) ClearCode() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Code = nil
@@ -6842,6 +6933,11 @@ func (x *GuildInvitePreview) ClearExpiresAt() {
 	x.xxx_hidden_ExpiresAt = 0
 }
 
+func (x *GuildInvitePreview) ClearGuildDescription() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_GuildDescription = nil
+}
+
 type GuildInvitePreview_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -6853,6 +6949,8 @@ type GuildInvitePreview_builder struct {
 	GuildIconAssetId *int64
 	MemberCount      *int64
 	ExpiresAt        *int64
+	// Optional description of the Guild being previewed.
+	GuildDescription *string
 }
 
 func (b0 GuildInvitePreview_builder) Build() *GuildInvitePreview {
@@ -6860,28 +6958,32 @@ func (b0 GuildInvitePreview_builder) Build() *GuildInvitePreview {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.GuildName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
 		x.xxx_hidden_GuildName = b.GuildName
 	}
 	if b.GuildIconAssetId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
 		x.xxx_hidden_GuildIconAssetId = *b.GuildIconAssetId
 	}
 	if b.MemberCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
 		x.xxx_hidden_MemberCount = *b.MemberCount
 	}
 	if b.ExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
 		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	if b.GuildDescription != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_GuildDescription = b.GuildDescription
 	}
 	return m0
 }
@@ -12880,7 +12982,7 @@ var File_guild_v1_guild_proto protoreflect.FileDescriptor
 
 const file_guild_v1_guild_proto_rawDesc = "" +
 	"\n" +
-	"\x14guild/v1/guild.proto\x12\bguild.v1\"\xc4\x01\n" +
+	"\x14guild/v1/guild.proto\x12\bguild.v1\"\xe6\x01\n" +
 	"\x05Guild\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x19\n" +
 	"\bowner_id\x18\x02 \x01(\x03R\aownerId\x12\x12\n" +
@@ -12890,7 +12992,8 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\x03R\tupdatedAt\"\xb5\x01\n" +
+	"updated_at\x18\a \x01(\x03R\tupdatedAt\x12 \n" +
+	"\vdescription\x18\b \x01(\tR\vdescription\"\xb5\x01\n" +
 	"\vGuildMember\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1a\n" +
@@ -12987,11 +13090,12 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"%GetUserGuildChannelVisibilityResponse\x12@\n" +
 	"\n" +
 	"visibility\x18\x01 \x01(\v2 .guild.v1.GuildChannelVisibilityR\n" +
-	"visibility\"g\n" +
+	"visibility\"\x89\x01\n" +
 	"\x12UpdateGuildRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x12\n" +
-	"\x04name\x18\x03 \x01(\tR\x04name\"<\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\"<\n" +
 	"\x13UpdateGuildResponse\x12%\n" +
 	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\"\xa5\x01\n" +
 	"\x1cCreateGuildIconUploadRequest\x12\x19\n" +
@@ -13099,7 +13203,7 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\a \x01(\x03R\texpiresAt\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\b \x01(\x03R\tcreatedAt\"\xd3\x01\n" +
+	"created_at\x18\b \x01(\x03R\tcreatedAt\"\x80\x02\n" +
 	"\x12GuildInvitePreview\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\x19\n" +
 	"\bguild_id\x18\x02 \x01(\x03R\aguildId\x12\x1d\n" +
@@ -13108,7 +13212,8 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x13guild_icon_asset_id\x18\x04 \x01(\x03R\x10guildIconAssetId\x12!\n" +
 	"\fmember_count\x18\x05 \x01(\x03R\vmemberCount\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x06 \x01(\x03R\texpiresAt\"\x98\x01\n" +
+	"expires_at\x18\x06 \x01(\x03R\texpiresAt\x12+\n" +
+	"\x11guild_description\x18\a \x01(\tR\x10guildDescription\"\x98\x01\n" +
 	"\x18CreateGuildInviteRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x19\n" +

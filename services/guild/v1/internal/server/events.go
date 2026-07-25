@@ -51,6 +51,7 @@ type guildPayload struct {
 	ID          string `json:"id"`
 	OwnerID     string `json:"owner_id"`
 	Name        string `json:"name"`
+	Description string `json:"description"`
 	IconAssetID string `json:"icon_asset_id"`
 	Revision    int64  `json:"revision"`
 	CreatedAt   int64  `json:"created_at"`
@@ -383,6 +384,7 @@ func guildPayloadFromModel(guild *model.Guild) guildPayload {
 		ID:          strconv.FormatInt(guild.ID, 10),
 		OwnerID:     strconv.FormatInt(guild.OwnerID, 10),
 		Name:        guild.Name,
+		Description: guild.Description,
 		IconAssetID: strconv.FormatInt(guild.IconAssetID, 10),
 		Revision:    guild.Revision,
 		CreatedAt:   guild.CreatedAt,

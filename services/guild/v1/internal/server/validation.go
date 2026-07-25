@@ -6,11 +6,12 @@ import (
 )
 
 const (
-	defaultGuildLimit = 50
-	maxGuildLimit     = 100
-	maxGuildNameRunes = 100
-	maxRoleNameRunes  = 100
-	maxNicknameRunes  = 32
+	defaultGuildLimit        = 50
+	maxGuildLimit            = 100
+	maxGuildNameRunes        = 100
+	maxGuildDescriptionRunes = 1024
+	maxRoleNameRunes         = 100
+	maxNicknameRunes         = 32
 )
 
 func normalizeGuildName(name string) (string, error) {
@@ -22,6 +23,14 @@ func normalizeGuildName(name string) (string, error) {
 		return "", invalidRequest("guild name is too long")
 	}
 	return name, nil
+}
+
+func normalizeGuildDescription(description string) (string, error) {
+	description = strings.TrimSpace(description)
+	if utf8.RuneCountInString(description) > maxGuildDescriptionRunes {
+		return "", invalidRequest("guild description is too long")
+	}
+	return description, nil
 }
 
 func normalizeRoleName(name string) (string, error) {

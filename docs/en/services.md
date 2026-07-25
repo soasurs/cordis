@@ -63,6 +63,10 @@ gRPC on `:3005`. Owns guilds, members, bans, roles, member-role assignments,
 channels, and channel permission overwrites. It supports guild lifecycle,
 membership and bans, role management, ordering, and member listing by role,
 text/category/voice channel metadata and ordering, and channel authorization.
+Guild metadata includes an optional description of up to 1024 Unicode
+characters. Name and description use the presence-aware `UpdateGuild` RPC;
+an empty description clears it. Icons use the separate direct-upload flow and
+are associated with the Guild only when `CompleteGuildIconUpload` succeeds.
 
 Permissions are a `uint64` bit set. Owners and administrators receive all
 permissions. Channel evaluation applies the default role, member roles, and

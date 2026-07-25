@@ -46,8 +46,9 @@ type ResourceQuota struct {
 }
 
 type UpdateGuildParams struct {
-	GuildID int64
-	Name    *string
+	GuildID     int64
+	Name        *string
+	Description *string
 }
 
 type ListUserGuildsParams struct {

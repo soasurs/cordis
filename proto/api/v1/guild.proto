@@ -94,6 +94,10 @@ service GuildService {
   rpc ReorderGuildRoles(ReorderGuildRolesRequest) returns (ReorderGuildRolesResponse);
   rpc AddGuildMemberRole(AddGuildMemberRoleRequest) returns (AddGuildMemberRoleResponse);
   rpc RemoveGuildMemberRole(RemoveGuildMemberRoleRequest) returns (RemoveGuildMemberRoleResponse);
+  // AddGuildRoleMembers assigns one non-default role to many members.
+  rpc AddGuildRoleMembers(AddGuildRoleMembersRequest) returns (AddGuildRoleMembersResponse);
+  // RemoveGuildRoleMembers removes one non-default role from many members.
+  rpc RemoveGuildRoleMembers(RemoveGuildRoleMembersRequest) returns (RemoveGuildRoleMembersResponse);
   // ListGuildMemberRoles includes the implicit default role.
   rpc ListGuildMemberRoles(ListGuildMemberRolesRequest) returns (ListGuildMemberRolesResponse);
   // ListGuildRoleMembers returns explicitly assigned members, or every member
@@ -617,6 +621,28 @@ message RemoveGuildMemberRoleRequest {
 }
 
 message RemoveGuildMemberRoleResponse {
+  bool ok = 1;
+}
+
+message AddGuildRoleMembersRequest {
+  int64 guild_id = 1;
+  int64 role_id = 2;
+  // Distinct positive member user IDs. At most 100 values.
+  repeated int64 user_ids = 3;
+}
+
+message AddGuildRoleMembersResponse {
+  bool ok = 1;
+}
+
+message RemoveGuildRoleMembersRequest {
+  int64 guild_id = 1;
+  int64 role_id = 2;
+  // Distinct positive member user IDs. At most 100 values.
+  repeated int64 user_ids = 3;
+}
+
+message RemoveGuildRoleMembersResponse {
   bool ok = 1;
 }
 

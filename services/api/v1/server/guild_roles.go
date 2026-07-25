@@ -170,6 +170,44 @@ func (s *guildServer) RemoveGuildMemberRole(ctx context.Context, req *apiv1.Remo
 	return resp, nil
 }
 
+func (s *guildServer) AddGuildRoleMembers(ctx context.Context, req *apiv1.AddGuildRoleMembersRequest) (*apiv1.AddGuildRoleMembersResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.AddGuildRoleMembersRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetRoleId(req.GetRoleId())
+	svcReq.SetUserIds(req.GetUserIds())
+	svcResp, err := s.svcCtx.GuildClient.AddGuildRoleMembers(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.AddGuildRoleMembersResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
+}
+
+func (s *guildServer) RemoveGuildRoleMembers(ctx context.Context, req *apiv1.RemoveGuildRoleMembersRequest) (*apiv1.RemoveGuildRoleMembersResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.RemoveGuildRoleMembersRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetRoleId(req.GetRoleId())
+	svcReq.SetUserIds(req.GetUserIds())
+	svcResp, err := s.svcCtx.GuildClient.RemoveGuildRoleMembers(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.RemoveGuildRoleMembersResponse)
+	resp.SetOk(svcResp.GetOk())
+	return resp, nil
+}
+
 func (s *guildServer) ListGuildMemberRoles(ctx context.Context, req *apiv1.ListGuildMemberRolesRequest) (*apiv1.ListGuildMemberRolesResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {

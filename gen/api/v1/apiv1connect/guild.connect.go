@@ -123,6 +123,12 @@ const (
 	// GuildServiceRemoveGuildMemberRoleProcedure is the fully-qualified name of the GuildService's
 	// RemoveGuildMemberRole RPC.
 	GuildServiceRemoveGuildMemberRoleProcedure = "/api.v1.GuildService/RemoveGuildMemberRole"
+	// GuildServiceAddGuildRoleMembersProcedure is the fully-qualified name of the GuildService's
+	// AddGuildRoleMembers RPC.
+	GuildServiceAddGuildRoleMembersProcedure = "/api.v1.GuildService/AddGuildRoleMembers"
+	// GuildServiceRemoveGuildRoleMembersProcedure is the fully-qualified name of the GuildService's
+	// RemoveGuildRoleMembers RPC.
+	GuildServiceRemoveGuildRoleMembersProcedure = "/api.v1.GuildService/RemoveGuildRoleMembers"
 	// GuildServiceListGuildMemberRolesProcedure is the fully-qualified name of the GuildService's
 	// ListGuildMemberRoles RPC.
 	GuildServiceListGuildMemberRolesProcedure = "/api.v1.GuildService/ListGuildMemberRoles"
@@ -205,6 +211,10 @@ type GuildServiceClient interface {
 	ReorderGuildRoles(context.Context, *v1.ReorderGuildRolesRequest) (*v1.ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *v1.AddGuildMemberRoleRequest) (*v1.AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(context.Context, *v1.RemoveGuildMemberRoleRequest) (*v1.RemoveGuildMemberRoleResponse, error)
+	// AddGuildRoleMembers assigns one non-default role to many members.
+	AddGuildRoleMembers(context.Context, *v1.AddGuildRoleMembersRequest) (*v1.AddGuildRoleMembersResponse, error)
+	// RemoveGuildRoleMembers removes one non-default role from many members.
+	RemoveGuildRoleMembers(context.Context, *v1.RemoveGuildRoleMembersRequest) (*v1.RemoveGuildRoleMembersResponse, error)
 	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error)
 	// ListGuildRoleMembers returns explicitly assigned members, or every member
@@ -421,6 +431,18 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(guildServiceMethods.ByName("RemoveGuildMemberRole")),
 			connect.WithClientOptions(opts...),
 		),
+		addGuildRoleMembers: connect.NewClient[v1.AddGuildRoleMembersRequest, v1.AddGuildRoleMembersResponse](
+			httpClient,
+			baseURL+GuildServiceAddGuildRoleMembersProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("AddGuildRoleMembers")),
+			connect.WithClientOptions(opts...),
+		),
+		removeGuildRoleMembers: connect.NewClient[v1.RemoveGuildRoleMembersRequest, v1.RemoveGuildRoleMembersResponse](
+			httpClient,
+			baseURL+GuildServiceRemoveGuildRoleMembersProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("RemoveGuildRoleMembers")),
+			connect.WithClientOptions(opts...),
+		),
 		listGuildMemberRoles: connect.NewClient[v1.ListGuildMemberRolesRequest, v1.ListGuildMemberRolesResponse](
 			httpClient,
 			baseURL+GuildServiceListGuildMemberRolesProcedure,
@@ -529,6 +551,8 @@ type guildServiceClient struct {
 	reorderGuildRoles                     *connect.Client[v1.ReorderGuildRolesRequest, v1.ReorderGuildRolesResponse]
 	addGuildMemberRole                    *connect.Client[v1.AddGuildMemberRoleRequest, v1.AddGuildMemberRoleResponse]
 	removeGuildMemberRole                 *connect.Client[v1.RemoveGuildMemberRoleRequest, v1.RemoveGuildMemberRoleResponse]
+	addGuildRoleMembers                   *connect.Client[v1.AddGuildRoleMembersRequest, v1.AddGuildRoleMembersResponse]
+	removeGuildRoleMembers                *connect.Client[v1.RemoveGuildRoleMembersRequest, v1.RemoveGuildRoleMembersResponse]
 	listGuildMemberRoles                  *connect.Client[v1.ListGuildMemberRolesRequest, v1.ListGuildMemberRolesResponse]
 	listGuildRoleMembers                  *connect.Client[v1.ListGuildRoleMembersRequest, v1.ListGuildRoleMembersResponse]
 	getGuildMemberPermissions             *connect.Client[v1.GetGuildMemberPermissionsRequest, v1.GetGuildMemberPermissionsResponse]
@@ -822,6 +846,24 @@ func (c *guildServiceClient) RemoveGuildMemberRole(ctx context.Context, req *v1.
 	return nil, err
 }
 
+// AddGuildRoleMembers calls api.v1.GuildService.AddGuildRoleMembers.
+func (c *guildServiceClient) AddGuildRoleMembers(ctx context.Context, req *v1.AddGuildRoleMembersRequest) (*v1.AddGuildRoleMembersResponse, error) {
+	response, err := c.addGuildRoleMembers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// RemoveGuildRoleMembers calls api.v1.GuildService.RemoveGuildRoleMembers.
+func (c *guildServiceClient) RemoveGuildRoleMembers(ctx context.Context, req *v1.RemoveGuildRoleMembersRequest) (*v1.RemoveGuildRoleMembersResponse, error) {
+	response, err := c.removeGuildRoleMembers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // ListGuildMemberRoles calls api.v1.GuildService.ListGuildMemberRoles.
 func (c *guildServiceClient) ListGuildMemberRoles(ctx context.Context, req *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error) {
 	response, err := c.listGuildMemberRoles.CallUnary(ctx, connect.NewRequest(req))
@@ -977,6 +1019,10 @@ type GuildServiceHandler interface {
 	ReorderGuildRoles(context.Context, *v1.ReorderGuildRolesRequest) (*v1.ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *v1.AddGuildMemberRoleRequest) (*v1.AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(context.Context, *v1.RemoveGuildMemberRoleRequest) (*v1.RemoveGuildMemberRoleResponse, error)
+	// AddGuildRoleMembers assigns one non-default role to many members.
+	AddGuildRoleMembers(context.Context, *v1.AddGuildRoleMembersRequest) (*v1.AddGuildRoleMembersResponse, error)
+	// RemoveGuildRoleMembers removes one non-default role from many members.
+	RemoveGuildRoleMembers(context.Context, *v1.RemoveGuildRoleMembersRequest) (*v1.RemoveGuildRoleMembersResponse, error)
 	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error)
 	// ListGuildRoleMembers returns explicitly assigned members, or every member
@@ -1189,6 +1235,18 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(guildServiceMethods.ByName("RemoveGuildMemberRole")),
 		connect.WithHandlerOptions(opts...),
 	)
+	guildServiceAddGuildRoleMembersHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceAddGuildRoleMembersProcedure,
+		svc.AddGuildRoleMembers,
+		connect.WithSchema(guildServiceMethods.ByName("AddGuildRoleMembers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceRemoveGuildRoleMembersHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceRemoveGuildRoleMembersProcedure,
+		svc.RemoveGuildRoleMembers,
+		connect.WithSchema(guildServiceMethods.ByName("RemoveGuildRoleMembers")),
+		connect.WithHandlerOptions(opts...),
+	)
 	guildServiceListGuildMemberRolesHandler := connect.NewUnaryHandlerSimple(
 		GuildServiceListGuildMemberRolesProcedure,
 		svc.ListGuildMemberRoles,
@@ -1325,6 +1383,10 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceAddGuildMemberRoleHandler.ServeHTTP(w, r)
 		case GuildServiceRemoveGuildMemberRoleProcedure:
 			guildServiceRemoveGuildMemberRoleHandler.ServeHTTP(w, r)
+		case GuildServiceAddGuildRoleMembersProcedure:
+			guildServiceAddGuildRoleMembersHandler.ServeHTTP(w, r)
+		case GuildServiceRemoveGuildRoleMembersProcedure:
+			guildServiceRemoveGuildRoleMembersHandler.ServeHTTP(w, r)
 		case GuildServiceListGuildMemberRolesProcedure:
 			guildServiceListGuildMemberRolesHandler.ServeHTTP(w, r)
 		case GuildServiceListGuildRoleMembersProcedure:
@@ -1480,6 +1542,14 @@ func (UnimplementedGuildServiceHandler) AddGuildMemberRole(context.Context, *v1.
 
 func (UnimplementedGuildServiceHandler) RemoveGuildMemberRole(context.Context, *v1.RemoveGuildMemberRoleRequest) (*v1.RemoveGuildMemberRoleResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.RemoveGuildMemberRole is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) AddGuildRoleMembers(context.Context, *v1.AddGuildRoleMembersRequest) (*v1.AddGuildRoleMembersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.AddGuildRoleMembers is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) RemoveGuildRoleMembers(context.Context, *v1.RemoveGuildRoleMembersRequest) (*v1.RemoveGuildRoleMembersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.RemoveGuildRoleMembers is not implemented"))
 }
 
 func (UnimplementedGuildServiceHandler) ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error) {

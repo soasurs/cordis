@@ -83,8 +83,10 @@ role cannot be deleted. Guild publishes dot-separated events directly to
 Role member listing uses the same opaque `cursor` / `next_cursor` pagination as
 Guild member listing (ordered by `joined_at`, then `user_id` descending; omit
 `next_cursor` when there is no next page). Explicit roles return assigned active
-members, while the default role returns every active Guild member. Public Guild
-member responses always embed the member profile. Ban responses
+members, while the default role returns every active Guild member. Assigning or
+removing members for one role can use `AddGuildRoleMembers` /
+`RemoveGuildRoleMembers` with up to 100 user IDs; single-member RPCs remain.
+Public Guild member responses always embed the member profile. Ban responses
 also embed the banned user and moderator profiles, while invite responses embed
 the creator profile. Guild loads the profiles required by member and moderation
 events itself because those events do not pass through the API.

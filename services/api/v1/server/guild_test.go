@@ -61,26 +61,30 @@ type fakeGuildClient struct {
 	listBansReq    *guildv1.ListGuildBansRequest
 	listBansFn     func(*guildv1.ListGuildBansRequest) (*guildv1.ListGuildBansResponse, error)
 
-	getRoleReq          *guildv1.GetGuildRoleRequest
-	getRoleFn           func(*guildv1.GetGuildRoleRequest) (*guildv1.GetGuildRoleResponse, error)
-	listRolesReq        *guildv1.ListGuildRolesRequest
-	listRolesFn         func(*guildv1.ListGuildRolesRequest) (*guildv1.ListGuildRolesResponse, error)
-	updateRoleReq       *guildv1.UpdateGuildRoleRequest
-	updateRoleFn        func(*guildv1.UpdateGuildRoleRequest) (*guildv1.UpdateGuildRoleResponse, error)
-	deleteRoleReq       *guildv1.DeleteGuildRoleRequest
-	deleteRoleFn        func(*guildv1.DeleteGuildRoleRequest) (*guildv1.DeleteGuildRoleResponse, error)
-	reorderRolesReq     *guildv1.ReorderGuildRolesRequest
-	reorderRolesFn      func(*guildv1.ReorderGuildRolesRequest) (*guildv1.ReorderGuildRolesResponse, error)
-	addMemberRoleReq    *guildv1.AddGuildMemberRoleRequest
-	addMemberRoleFn     func(*guildv1.AddGuildMemberRoleRequest) (*guildv1.AddGuildMemberRoleResponse, error)
-	removeMemberRoleReq *guildv1.RemoveGuildMemberRoleRequest
-	removeMemberRoleFn  func(*guildv1.RemoveGuildMemberRoleRequest) (*guildv1.RemoveGuildMemberRoleResponse, error)
-	listMemberRolesReq  *guildv1.ListGuildMemberRolesRequest
-	listMemberRolesFn   func(*guildv1.ListGuildMemberRolesRequest) (*guildv1.ListGuildMemberRolesResponse, error)
-	listRoleMembersReq  *guildv1.ListGuildRoleMembersRequest
-	listRoleMembersFn   func(*guildv1.ListGuildRoleMembersRequest) (*guildv1.ListGuildRoleMembersResponse, error)
-	permissionsReq      *guildv1.GetGuildMemberPermissionsRequest
-	permissionsFn       func(*guildv1.GetGuildMemberPermissionsRequest) (*guildv1.GetGuildMemberPermissionsResponse, error)
+	getRoleReq           *guildv1.GetGuildRoleRequest
+	getRoleFn            func(*guildv1.GetGuildRoleRequest) (*guildv1.GetGuildRoleResponse, error)
+	listRolesReq         *guildv1.ListGuildRolesRequest
+	listRolesFn          func(*guildv1.ListGuildRolesRequest) (*guildv1.ListGuildRolesResponse, error)
+	updateRoleReq        *guildv1.UpdateGuildRoleRequest
+	updateRoleFn         func(*guildv1.UpdateGuildRoleRequest) (*guildv1.UpdateGuildRoleResponse, error)
+	deleteRoleReq        *guildv1.DeleteGuildRoleRequest
+	deleteRoleFn         func(*guildv1.DeleteGuildRoleRequest) (*guildv1.DeleteGuildRoleResponse, error)
+	reorderRolesReq      *guildv1.ReorderGuildRolesRequest
+	reorderRolesFn       func(*guildv1.ReorderGuildRolesRequest) (*guildv1.ReorderGuildRolesResponse, error)
+	addMemberRoleReq     *guildv1.AddGuildMemberRoleRequest
+	addMemberRoleFn      func(*guildv1.AddGuildMemberRoleRequest) (*guildv1.AddGuildMemberRoleResponse, error)
+	removeMemberRoleReq  *guildv1.RemoveGuildMemberRoleRequest
+	removeMemberRoleFn   func(*guildv1.RemoveGuildMemberRoleRequest) (*guildv1.RemoveGuildMemberRoleResponse, error)
+	addRoleMembersReq    *guildv1.AddGuildRoleMembersRequest
+	addRoleMembersFn     func(*guildv1.AddGuildRoleMembersRequest) (*guildv1.AddGuildRoleMembersResponse, error)
+	removeRoleMembersReq *guildv1.RemoveGuildRoleMembersRequest
+	removeRoleMembersFn  func(*guildv1.RemoveGuildRoleMembersRequest) (*guildv1.RemoveGuildRoleMembersResponse, error)
+	listMemberRolesReq   *guildv1.ListGuildMemberRolesRequest
+	listMemberRolesFn    func(*guildv1.ListGuildMemberRolesRequest) (*guildv1.ListGuildMemberRolesResponse, error)
+	listRoleMembersReq   *guildv1.ListGuildRoleMembersRequest
+	listRoleMembersFn    func(*guildv1.ListGuildRoleMembersRequest) (*guildv1.ListGuildRoleMembersResponse, error)
+	permissionsReq       *guildv1.GetGuildMemberPermissionsRequest
+	permissionsFn        func(*guildv1.GetGuildMemberPermissionsRequest) (*guildv1.GetGuildMemberPermissionsResponse, error)
 
 	getChannelReq      *guildv1.GetGuildChannelRequest
 	getChannelFn       func(*guildv1.GetGuildChannelRequest) (*guildv1.GetGuildChannelResponse, error)
@@ -265,6 +269,22 @@ func (f *fakeGuildClient) RemoveGuildMemberRole(_ context.Context, req *guildv1.
 	f.removeMemberRoleReq = req
 	if f.removeMemberRoleFn != nil {
 		return f.removeMemberRoleFn(req)
+	}
+	return nil, nil
+}
+
+func (f *fakeGuildClient) AddGuildRoleMembers(_ context.Context, req *guildv1.AddGuildRoleMembersRequest, _ ...grpc.CallOption) (*guildv1.AddGuildRoleMembersResponse, error) {
+	f.addRoleMembersReq = req
+	if f.addRoleMembersFn != nil {
+		return f.addRoleMembersFn(req)
+	}
+	return nil, nil
+}
+
+func (f *fakeGuildClient) RemoveGuildRoleMembers(_ context.Context, req *guildv1.RemoveGuildRoleMembersRequest, _ ...grpc.CallOption) (*guildv1.RemoveGuildRoleMembersResponse, error) {
+	f.removeRoleMembersReq = req
+	if f.removeRoleMembersFn != nil {
+		return f.removeRoleMembersFn(req)
 	}
 	return nil, nil
 }
@@ -926,6 +946,51 @@ func TestRemoveGuildMemberRoleUsesAuthenticatedActor(t *testing.T) {
 	resp, err := client.RemoveGuildMemberRole(context.Background(), removeMemberRoleReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.removeMemberRoleReq.GetActorUserId())
+	require.True(t, resp.GetOk())
+}
+
+func TestAddGuildRoleMembersUsesAuthenticatedActor(t *testing.T) {
+	guildClient := &fakeGuildClient{
+		addRoleMembersFn: func(*guildv1.AddGuildRoleMembersRequest) (*guildv1.AddGuildRoleMembersResponse, error) {
+			resp := new(guildv1.AddGuildRoleMembersResponse)
+			resp.SetOk(true)
+			return resp, nil
+		},
+	}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	req := new(apiv1.AddGuildRoleMembersRequest)
+	req.SetGuildId(3001)
+	req.SetRoleId(4001)
+	req.SetUserIds([]int64{1002, 1003})
+	resp, err := client.AddGuildRoleMembers(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.addRoleMembersReq.GetActorUserId())
+	require.Equal(t, int64(4001), guildClient.addRoleMembersReq.GetRoleId())
+	require.Equal(t, []int64{1002, 1003}, guildClient.addRoleMembersReq.GetUserIds())
+	require.True(t, resp.GetOk())
+}
+
+func TestRemoveGuildRoleMembersUsesAuthenticatedActor(t *testing.T) {
+	guildClient := &fakeGuildClient{
+		removeRoleMembersFn: func(*guildv1.RemoveGuildRoleMembersRequest) (*guildv1.RemoveGuildRoleMembersResponse, error) {
+			resp := new(guildv1.RemoveGuildRoleMembersResponse)
+			resp.SetOk(true)
+			return resp, nil
+		},
+	}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	req := new(apiv1.RemoveGuildRoleMembersRequest)
+	req.SetGuildId(3001)
+	req.SetRoleId(4001)
+	req.SetUserIds([]int64{1002, 1003})
+	resp, err := client.RemoveGuildRoleMembers(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.removeRoleMembersReq.GetActorUserId())
+	require.Equal(t, []int64{1002, 1003}, guildClient.removeRoleMembersReq.GetUserIds())
 	require.True(t, resp.GetOk())
 }
 

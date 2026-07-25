@@ -52,6 +52,8 @@ const (
 	GuildService_ReorderGuildRoles_FullMethodName                     = "/guild.v1.GuildService/ReorderGuildRoles"
 	GuildService_AddGuildMemberRole_FullMethodName                    = "/guild.v1.GuildService/AddGuildMemberRole"
 	GuildService_RemoveGuildMemberRole_FullMethodName                 = "/guild.v1.GuildService/RemoveGuildMemberRole"
+	GuildService_AddGuildRoleMembers_FullMethodName                   = "/guild.v1.GuildService/AddGuildRoleMembers"
+	GuildService_RemoveGuildRoleMembers_FullMethodName                = "/guild.v1.GuildService/RemoveGuildRoleMembers"
 	GuildService_ListGuildMemberRoles_FullMethodName                  = "/guild.v1.GuildService/ListGuildMemberRoles"
 	GuildService_ListGuildRoleMembers_FullMethodName                  = "/guild.v1.GuildService/ListGuildRoleMembers"
 	GuildService_GetGuildMemberPermissions_FullMethodName             = "/guild.v1.GuildService/GetGuildMemberPermissions"
@@ -117,6 +119,10 @@ type GuildServiceClient interface {
 	ReorderGuildRoles(ctx context.Context, in *ReorderGuildRolesRequest, opts ...grpc.CallOption) (*ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(ctx context.Context, in *AddGuildMemberRoleRequest, opts ...grpc.CallOption) (*AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(ctx context.Context, in *RemoveGuildMemberRoleRequest, opts ...grpc.CallOption) (*RemoveGuildMemberRoleResponse, error)
+	// AddGuildRoleMembers assigns one non-default role to many members.
+	AddGuildRoleMembers(ctx context.Context, in *AddGuildRoleMembersRequest, opts ...grpc.CallOption) (*AddGuildRoleMembersResponse, error)
+	// RemoveGuildRoleMembers removes one non-default role from many members.
+	RemoveGuildRoleMembers(ctx context.Context, in *RemoveGuildRoleMembersRequest, opts ...grpc.CallOption) (*RemoveGuildRoleMembersResponse, error)
 	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(ctx context.Context, in *ListGuildMemberRolesRequest, opts ...grpc.CallOption) (*ListGuildMemberRolesResponse, error)
 	// ListGuildRoleMembers returns explicitly assigned members, or every member
@@ -477,6 +483,26 @@ func (c *guildServiceClient) RemoveGuildMemberRole(ctx context.Context, in *Remo
 	return out, nil
 }
 
+func (c *guildServiceClient) AddGuildRoleMembers(ctx context.Context, in *AddGuildRoleMembersRequest, opts ...grpc.CallOption) (*AddGuildRoleMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddGuildRoleMembersResponse)
+	err := c.cc.Invoke(ctx, GuildService_AddGuildRoleMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) RemoveGuildRoleMembers(ctx context.Context, in *RemoveGuildRoleMembersRequest, opts ...grpc.CallOption) (*RemoveGuildRoleMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveGuildRoleMembersResponse)
+	err := c.cc.Invoke(ctx, GuildService_RemoveGuildRoleMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *guildServiceClient) ListGuildMemberRoles(ctx context.Context, in *ListGuildMemberRolesRequest, opts ...grpc.CallOption) (*ListGuildMemberRolesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListGuildMemberRolesResponse)
@@ -657,6 +683,10 @@ type GuildServiceServer interface {
 	ReorderGuildRoles(context.Context, *ReorderGuildRolesRequest) (*ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *AddGuildMemberRoleRequest) (*AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(context.Context, *RemoveGuildMemberRoleRequest) (*RemoveGuildMemberRoleResponse, error)
+	// AddGuildRoleMembers assigns one non-default role to many members.
+	AddGuildRoleMembers(context.Context, *AddGuildRoleMembersRequest) (*AddGuildRoleMembersResponse, error)
+	// RemoveGuildRoleMembers removes one non-default role from many members.
+	RemoveGuildRoleMembers(context.Context, *RemoveGuildRoleMembersRequest) (*RemoveGuildRoleMembersResponse, error)
 	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(context.Context, *ListGuildMemberRolesRequest) (*ListGuildMemberRolesResponse, error)
 	// ListGuildRoleMembers returns explicitly assigned members, or every member
@@ -784,6 +814,12 @@ func (UnimplementedGuildServiceServer) AddGuildMemberRole(context.Context, *AddG
 }
 func (UnimplementedGuildServiceServer) RemoveGuildMemberRole(context.Context, *RemoveGuildMemberRoleRequest) (*RemoveGuildMemberRoleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveGuildMemberRole not implemented")
+}
+func (UnimplementedGuildServiceServer) AddGuildRoleMembers(context.Context, *AddGuildRoleMembersRequest) (*AddGuildRoleMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddGuildRoleMembers not implemented")
+}
+func (UnimplementedGuildServiceServer) RemoveGuildRoleMembers(context.Context, *RemoveGuildRoleMembersRequest) (*RemoveGuildRoleMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveGuildRoleMembers not implemented")
 }
 func (UnimplementedGuildServiceServer) ListGuildMemberRoles(context.Context, *ListGuildMemberRolesRequest) (*ListGuildMemberRolesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListGuildMemberRoles not implemented")
@@ -1438,6 +1474,42 @@ func _GuildService_RemoveGuildMemberRole_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GuildService_AddGuildRoleMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddGuildRoleMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).AddGuildRoleMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_AddGuildRoleMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).AddGuildRoleMembers(ctx, req.(*AddGuildRoleMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_RemoveGuildRoleMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveGuildRoleMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).RemoveGuildRoleMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_RemoveGuildRoleMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).RemoveGuildRoleMembers(ctx, req.(*RemoveGuildRoleMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GuildService_ListGuildMemberRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListGuildMemberRolesRequest)
 	if err := dec(in); err != nil {
@@ -1810,6 +1882,14 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveGuildMemberRole",
 			Handler:    _GuildService_RemoveGuildMemberRole_Handler,
+		},
+		{
+			MethodName: "AddGuildRoleMembers",
+			Handler:    _GuildService_AddGuildRoleMembers_Handler,
+		},
+		{
+			MethodName: "RemoveGuildRoleMembers",
+			Handler:    _GuildService_RemoveGuildRoleMembers_Handler,
 		},
 		{
 			MethodName: "ListGuildMemberRoles",

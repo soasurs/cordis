@@ -95,6 +95,11 @@ func (s *guildServer) createDefaultChannels(ctx context.Context, txStore store.S
 		); err != nil {
 			return err
 		}
+		if _, err := upsertDefaultEveryoneOverwrite(
+			ctx, txStore, channel.id, guildID, createdAt, s.svcCtx.Cfg.Limits.Overwrites(),
+		); err != nil {
+			return err
+		}
 	}
 	return nil
 }

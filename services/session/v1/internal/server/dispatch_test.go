@@ -36,7 +36,7 @@ func TestMemberOverwriteInvalidatesOnlyAffectedVisibilitySnapshot(t *testing.T) 
 	server.addSession(unaffected, map[int64]*visibilitySnapshot{9001: {accessRevision: 7, channelIDs: []int64{7001}}})
 
 	req := guildEventRequest(9001, realtime.EventGuildChannelOverwriteUpdated,
-		`{"guild_id":"9001","channel_id":"7001","target_type":2,"target_id":"1001","access_revision":8}`)
+		`{"guild_id":"9001","channel_id":"7001","applies_to":2,"applies_to_id":"1001","access_revision":8}`)
 	_, err := server.DispatchGuildEvent(t.Context(), req)
 
 	require.NoError(t, err)

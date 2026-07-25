@@ -24,15 +24,15 @@ type channelRow struct {
 }
 
 type channelOverwriteRow struct {
-	ChannelID  int64 `db:"channel_id"`
-	GuildID    int64 `db:"guild_id"`
-	TargetType int32 `db:"target_type"`
-	TargetID   int64 `db:"target_id"`
-	Allow      int64 `db:"allow_bits"`
-	Deny       int64 `db:"deny_bits"`
-	Revision   int64 `db:"revision"`
-	CreatedAt  int64 `db:"created_at"`
-	UpdatedAt  int64 `db:"updated_at"`
+	ChannelID   int64 `db:"channel_id"`
+	GuildID     int64 `db:"guild_id"`
+	AppliesTo   int32 `db:"applies_to"`
+	AppliesToID int64 `db:"applies_to_id"`
+	Allow       int64 `db:"allow_bits"`
+	Deny        int64 `db:"deny_bits"`
+	Revision    int64 `db:"revision"`
+	CreatedAt   int64 `db:"created_at"`
+	UpdatedAt   int64 `db:"updated_at"`
 }
 
 func (s *SQLStore) CreateGuildChannel(
@@ -167,7 +167,7 @@ func (s *SQLStore) UpsertGuildChannelPermissionOverwrite(
 	row := new(channelOverwriteRow)
 	if err := sqlx.GetContext(
 		ctx, s.q, row, upsertGuildChannelPermissionOverwriteQuery,
-		overwrite.ChannelID, overwrite.GuildID, overwrite.TargetType, overwrite.TargetID,
+		overwrite.ChannelID, overwrite.GuildID, overwrite.AppliesTo, overwrite.AppliesToID,
 		int64(overwrite.Allow), int64(overwrite.Deny), overwrite.CreatedAt,
 	); err != nil {
 		return nil, err
@@ -175,8 +175,8 @@ func (s *SQLStore) UpsertGuildChannelPermissionOverwrite(
 	return channelOverwriteFromRow(row), nil
 }
 
-func (s *SQLStore) DeleteGuildChannelPermissionOverwrite(ctx context.Context, channelID int64, targetType int32, targetID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildChannelPermissionOverwriteStatement, channelID, targetType, targetID)
+func (s *SQLStore) DeleteGuildChannelPermissionOverwrite(ctx context.Context, channelID int64, appliesTo int32, appliesToID int64) error {
+	_, err := s.q.ExecContext(ctx, deleteGuildChannelPermissionOverwriteStatement, channelID, appliesTo, appliesToID)
 	return err
 }
 
@@ -190,8 +190,8 @@ func (s *SQLStore) DeleteAllGuildChannelPermissionOverwrites(ctx context.Context
 	return err
 }
 
-func (s *SQLStore) DeleteGuildChannelPermissionOverwritesForTarget(ctx context.Context, guildID int64, targetType int32, targetID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildChannelPermissionOverwritesForTargetStatement, guildID, targetType, targetID)
+func (s *SQLStore) DeleteGuildChannelPermissionOverwritesForAppliesTo(ctx context.Context, guildID int64, appliesTo int32, appliesToID int64) error {
+	_, err := s.q.ExecContext(ctx, deleteGuildChannelPermissionOverwritesForAppliesToStatement, guildID, appliesTo, appliesToID)
 	return err
 }
 
@@ -260,8 +260,8 @@ func channelFromRow(row *channelRow) *model.Channel {
 
 func channelOverwriteFromRow(row *channelOverwriteRow) *model.ChannelPermissionOverwrite {
 	return &model.ChannelPermissionOverwrite{
-		ChannelID: row.ChannelID, GuildID: row.GuildID, TargetType: row.TargetType,
-		TargetID: row.TargetID, Allow: uint64(row.Allow), Deny: uint64(row.Deny),
+		ChannelID: row.ChannelID, GuildID: row.GuildID, AppliesTo: row.AppliesTo,
+		AppliesToID: row.AppliesToID, Allow: uint64(row.Allow), Deny: uint64(row.Deny),
 		Revision: row.Revision, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
 }

@@ -61,6 +61,14 @@ func TestCreateGuildCreatesOwnerDefaultRoleChannelsAndEvent(t *testing.T) {
 	require.Equal(t, int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE), channels[3].Type)
 	require.Equal(t, channels[2].ID, channels[3].ParentID)
 
+	for _, channel := range channels {
+		overwrites, err := fakeStore.ListGuildChannelPermissionOverwrites(t.Context(), channel.ID)
+		require.NoError(t, err)
+		require.Len(t, overwrites, 1)
+		require.Equal(t, int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), overwrites[0].AppliesTo)
+		require.Equal(t, guild.GetId(), overwrites[0].AppliesToID)
+	}
+
 	record := publisher.onlyRecord(t)
 	require.Equal(t, string(record.key), guildIDString(guild.GetId()))
 	var envelope eventEnvelope[guildPayload]
@@ -1248,7 +1256,7 @@ func (s *fakeStore) UpsertGuildChannelPermissionOverwrite(_ context.Context, ove
 	if s.overwrites[overwrite.ChannelID] == nil {
 		s.overwrites[overwrite.ChannelID] = make(map[string]*model.ChannelPermissionOverwrite)
 	}
-	key := overwriteKey(overwrite.TargetType, overwrite.TargetID)
+	key := overwriteKey(overwrite.AppliesTo, overwrite.AppliesToID)
 	if existing := s.overwrites[overwrite.ChannelID][key]; existing != nil {
 		overwrite.Revision = existing.Revision + 1
 		overwrite.CreatedAt = existing.CreatedAt
@@ -1261,8 +1269,8 @@ func (s *fakeStore) UpsertGuildChannelPermissionOverwrite(_ context.Context, ove
 	return cloneOverwrite(&clone), nil
 }
 
-func (s *fakeStore) DeleteGuildChannelPermissionOverwrite(_ context.Context, channelID int64, targetType int32, targetID int64) error {
-	delete(s.overwrites[channelID], overwriteKey(targetType, targetID))
+func (s *fakeStore) DeleteGuildChannelPermissionOverwrite(_ context.Context, channelID int64, appliesTo int32, appliesToID int64) error {
+	delete(s.overwrites[channelID], overwriteKey(appliesTo, appliesToID))
 	return nil
 }
 
@@ -1280,8 +1288,8 @@ func (s *fakeStore) DeleteAllGuildChannelPermissionOverwrites(_ context.Context,
 	return nil
 }
 
-func (s *fakeStore) DeleteGuildChannelPermissionOverwritesForTarget(_ context.Context, guildID int64, targetType int32, targetID int64) error {
-	key := overwriteKey(targetType, targetID)
+func (s *fakeStore) DeleteGuildChannelPermissionOverwritesForAppliesTo(_ context.Context, guildID int64, appliesTo int32, appliesToID int64) error {
+	key := overwriteKey(appliesTo, appliesToID)
 	for channelID, channel := range s.channels {
 		if channel.GuildID == guildID {
 			delete(s.overwrites[channelID], key)
@@ -1297,10 +1305,10 @@ func (s *fakeStore) ListGuildChannelPermissionOverwrites(_ context.Context, chan
 		values = append(values, cloneOverwrite(overwrite))
 	}
 	sort.Slice(values, func(i, j int) bool {
-		if values[i].TargetType == values[j].TargetType {
-			return values[i].TargetID < values[j].TargetID
+		if values[i].AppliesTo == values[j].AppliesTo {
+			return values[i].AppliesToID < values[j].AppliesToID
 		}
-		return values[i].TargetType < values[j].TargetType
+		return values[i].AppliesTo < values[j].AppliesTo
 	})
 	return values, nil
 }
@@ -1332,10 +1340,10 @@ func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuild(_ context.Contex
 		if values[i].ChannelID != values[j].ChannelID {
 			return values[i].ChannelID < values[j].ChannelID
 		}
-		if values[i].TargetType != values[j].TargetType {
-			return values[i].TargetType < values[j].TargetType
+		if values[i].AppliesTo != values[j].AppliesTo {
+			return values[i].AppliesTo < values[j].AppliesTo
 		}
-		return values[i].TargetID < values[j].TargetID
+		return values[i].AppliesToID < values[j].AppliesToID
 	})
 	return values, nil
 }
@@ -1381,8 +1389,8 @@ func cloneOverwrite(overwrite *model.ChannelPermissionOverwrite) *model.ChannelP
 	return &clone
 }
 
-func overwriteKey(targetType int32, targetID int64) string {
-	return strconv.FormatInt(int64(targetType), 10) + ":" + strconv.FormatInt(targetID, 10)
+func overwriteKey(appliesTo int32, appliesToID int64) string {
+	return strconv.FormatInt(int64(appliesTo), 10) + ":" + strconv.FormatInt(appliesToID, 10)
 }
 
 func testMembers(guildID int64, userIDs ...int64) map[int64]*model.GuildMember {

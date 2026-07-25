@@ -22,9 +22,9 @@ func TestChannelPermissionsApplyOverwritePrecedence(t *testing.T) {
 	require.NoError(t, err)
 
 	overwrites := []*model.ChannelPermissionOverwrite{
-		{TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), TargetID: 10, Deny: PermissionViewChannel},
-		{TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), TargetID: 20, Allow: PermissionViewChannel},
-		{TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER), TargetID: 1002, Deny: PermissionSendMessages},
+		{AppliesTo: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), AppliesToID: 10, Deny: PermissionViewChannel},
+		{AppliesTo: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), AppliesToID: 20, Allow: PermissionViewChannel},
+		{AppliesTo: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER), AppliesToID: 1002, Deny: PermissionSendMessages},
 	}
 	permissions := channelPermissions(authority, roles, overwrites, 1002)
 	require.NotZero(t, permissions&PermissionViewChannel)
@@ -38,8 +38,8 @@ func TestChannelPermissionsRemoveSendWhenViewDenied(t *testing.T) {
 	roles, err := fakeStore.ListGuildMemberRoles(t.Context(), 10, 1002)
 	require.NoError(t, err)
 	permissions := channelPermissions(authority, roles, []*model.ChannelPermissionOverwrite{{
-		TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
-		TargetID:   1002, Deny: PermissionViewChannel,
+		AppliesTo:   int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+		AppliesToID: 1002, Deny: PermissionViewChannel,
 	}}, 1002)
 	require.Zero(t, permissions&PermissionViewChannel)
 	require.Zero(t, permissions&PermissionSendMessages)
@@ -59,10 +59,24 @@ func TestCreateAndAuthorizeGuildChannel(t *testing.T) {
 	require.Equal(t, "general", resp.GetChannel().GetName())
 	require.Equal(t, guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT, resp.GetChannel().GetType())
 
-	var envelope eventEnvelope[guildChannelPayload]
-	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
-	require.Equal(t, EventTypeGuildChannelCreated, envelope.Type)
-	require.Equal(t, "10", envelope.Data.GuildID)
+	overwrites, err := fakeStore.ListGuildChannelPermissionOverwrites(t.Context(), resp.GetChannel().GetId())
+	require.NoError(t, err)
+	require.Len(t, overwrites, 1)
+	require.Equal(t, int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), overwrites[0].AppliesTo)
+	require.Equal(t, int64(10), overwrites[0].AppliesToID)
+	require.Zero(t, overwrites[0].Allow)
+	require.Zero(t, overwrites[0].Deny)
+
+	require.Len(t, publisher.records, 2)
+	var created eventEnvelope[guildChannelPayload]
+	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &created))
+	require.Equal(t, EventTypeGuildChannelCreated, created.Type)
+	require.Equal(t, "10", created.Data.GuildID)
+	var overwriteEvent eventEnvelope[guildChannelOverwritePayload]
+	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &overwriteEvent))
+	require.Equal(t, EventTypeGuildChannelOverwriteUpdated, overwriteEvent.Type)
+	require.Equal(t, int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), overwriteEvent.Data.AppliesTo)
+	require.Equal(t, "10", overwriteEvent.Data.AppliesToID)
 
 	authorize := new(guildv1.AuthorizeGuildChannelRequest)
 	authorize.SetChannelId(resp.GetChannel().GetId())
@@ -98,7 +112,7 @@ func TestCreateUncategorizedChannelInsertsBeforeCategories(t *testing.T) {
 	require.Equal(t, int32(2), fakeStore.channels[30].Position)
 	require.Equal(t, []int64{10}, fakeStore.channelLocks)
 	require.Equal(t, 1, publisher.batchCalls)
-	require.Len(t, publisher.records, 3)
+	require.Len(t, publisher.records, 4)
 }
 
 func TestReorderGuildChannelsPublishesChangedChannelsAsBatch(t *testing.T) {
@@ -320,8 +334,8 @@ func TestChannelOverwriteCanHideChannel(t *testing.T) {
 	upsert := new(guildv1.UpsertGuildChannelPermissionOverwriteRequest)
 	upsert.SetChannelId(30)
 	upsert.SetActorUserId(1001)
-	upsert.SetTargetType(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER)
-	upsert.SetTargetId(1002)
+	upsert.SetAppliesTo(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER)
+	upsert.SetAppliesToId(1002)
 	upsert.SetDeny(PermissionViewChannel)
 	_, err := server.UpsertGuildChannelPermissionOverwrite(t.Context(), upsert)
 	require.NoError(t, err)
@@ -343,11 +357,11 @@ func TestListGuildChannelsLoadsOverwritesOnce(t *testing.T) {
 	}
 	fakeStore.overwrites[30] = map[string]*model.ChannelPermissionOverwrite{
 		overwriteKey(int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER), 1002): {
-			ChannelID:  30,
-			GuildID:    10,
-			TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
-			TargetID:   1002,
-			Deny:       PermissionViewChannel,
+			ChannelID:   30,
+			GuildID:     10,
+			AppliesTo:   int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+			AppliesToID: 1002,
+			Deny:        PermissionViewChannel,
 		},
 	}
 	server := newTestGuildServer(t, fakeStore, nil)
@@ -367,10 +381,37 @@ func TestChannelOverwriteRejectsGuildOnlyPermission(t *testing.T) {
 	req := new(guildv1.UpsertGuildChannelPermissionOverwriteRequest)
 	req.SetChannelId(30)
 	req.SetActorUserId(1001)
-	req.SetTargetType(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER)
-	req.SetTargetId(1002)
+	req.SetAppliesTo(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER)
+	req.SetAppliesToId(1002)
 	req.SetAllow(PermissionManageGuild)
 	server := newTestGuildServer(t, roleTestStore(), nil)
 	_, err := server.UpsertGuildChannelPermissionOverwrite(t.Context(), req)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestDefaultEveryoneOverwriteCannotBeDeleted(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[30] = &model.Channel{
+		ID: 30, GuildID: 10, Name: "general", Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT), Revision: 1,
+	}
+	fakeStore.overwrites[30] = map[string]*model.ChannelPermissionOverwrite{
+		overwriteKey(int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), 10): {
+			ChannelID: 30, GuildID: 10,
+			AppliesTo:   int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE),
+			AppliesToID: 10,
+		},
+	}
+	server := newTestGuildServer(t, fakeStore, new(fakePublisher))
+
+	req := new(guildv1.DeleteGuildChannelPermissionOverwriteRequest)
+	req.SetChannelId(30)
+	req.SetActorUserId(1001)
+	req.SetAppliesTo(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
+	req.SetAppliesToId(10)
+	_, err := server.DeleteGuildChannelPermissionOverwrite(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Contains(t, err.Error(), "default role overwrite cannot be deleted")
+	require.Contains(t, fakeStore.overwrites[30], overwriteKey(
+		int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE), 10,
+	))
 }

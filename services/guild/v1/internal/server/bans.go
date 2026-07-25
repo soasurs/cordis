@@ -78,7 +78,7 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *guildv1.BanGuildM
 			if err := txStore.DeleteGuildMemberRoleAssignments(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
 				return err
 			}
-			if err := txStore.DeleteGuildChannelPermissionOverwritesForTarget(
+			if err := txStore.DeleteGuildChannelPermissionOverwritesForAppliesTo(
 				ctx,
 				req.GetGuildId(),
 				int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),

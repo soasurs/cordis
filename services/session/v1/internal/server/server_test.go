@@ -121,8 +121,8 @@ func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	overwrite := new(guildv1.GuildChannelPermissionOverwrite)
 	overwrite.SetChannelId(7001)
 	overwrite.SetGuildId(9001)
-	overwrite.SetTargetType(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
-	overwrite.SetTargetId(9001)
+	overwrite.SetAppliesTo(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
+	overwrite.SetAppliesToId(9001)
 	overwrite.SetAllow(1024)
 	readyGuild.SetPermissionOverwrites([]*guildv1.GuildChannelPermissionOverwrite{overwrite})
 	server.svcCtx.GuildClient = &visibilityGuild{response: readyVisibilityResponse(readyGuild)}

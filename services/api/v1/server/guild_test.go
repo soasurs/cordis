@@ -1113,8 +1113,8 @@ func TestUpsertGuildChannelPermissionOverwriteMapsRequestAndResponse(t *testing.
 	overwrite := new(guildv1.GuildChannelPermissionOverwrite)
 	overwrite.SetChannelId(5001)
 	overwrite.SetGuildId(3001)
-	overwrite.SetTargetType(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
-	overwrite.SetTargetId(4001)
+	overwrite.SetAppliesTo(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
+	overwrite.SetAppliesToId(4001)
 	overwrite.SetAllow(8)
 	overwrite.SetDeny(4)
 	guildClient := &fakeGuildClient{
@@ -1129,8 +1129,8 @@ func TestUpsertGuildChannelPermissionOverwriteMapsRequestAndResponse(t *testing.
 
 	upsertOverwriteReq := new(apiv1.UpsertGuildChannelPermissionOverwriteRequest)
 	upsertOverwriteReq.SetChannelId(5001)
-	upsertOverwriteReq.SetTargetType(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
-	upsertOverwriteReq.SetTargetId(4001)
+	upsertOverwriteReq.SetAppliesTo(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
+	upsertOverwriteReq.SetAppliesToId(4001)
 	upsertOverwriteReq.SetAllow(8)
 	upsertOverwriteReq.SetDeny(4)
 	resp, err := client.UpsertGuildChannelPermissionOverwrite(context.Background(), upsertOverwriteReq)
@@ -1153,8 +1153,8 @@ func TestDeleteGuildChannelPermissionOverwriteMapsRequest(t *testing.T) {
 
 	deleteOverwriteReq := new(apiv1.DeleteGuildChannelPermissionOverwriteRequest)
 	deleteOverwriteReq.SetChannelId(5001)
-	deleteOverwriteReq.SetTargetType(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER)
-	deleteOverwriteReq.SetTargetId(1002)
+	deleteOverwriteReq.SetAppliesTo(apiv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER)
+	deleteOverwriteReq.SetAppliesToId(1002)
 	resp, err := client.DeleteGuildChannelPermissionOverwrite(context.Background(), deleteOverwriteReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.deleteOverwriteReq.GetActorUserId())
@@ -1165,7 +1165,7 @@ func TestListGuildChannelPermissionOverwritesMapsResponse(t *testing.T) {
 	overwrite := new(guildv1.GuildChannelPermissionOverwrite)
 	overwrite.SetChannelId(5001)
 	overwrite.SetGuildId(3001)
-	overwrite.SetTargetId(4001)
+	overwrite.SetAppliesToId(4001)
 	guildClient := &fakeGuildClient{
 		listOverwritesFn: func(*guildv1.ListGuildChannelPermissionOverwritesRequest) (*guildv1.ListGuildChannelPermissionOverwritesResponse, error) {
 			resp := new(guildv1.ListGuildChannelPermissionOverwritesResponse)

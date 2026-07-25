@@ -67,15 +67,15 @@ type readyChannel struct {
 }
 
 type readyPermissionOverwrite struct {
-	ChannelID  string `json:"channel_id"`
-	GuildID    string `json:"guild_id"`
-	TargetType int32  `json:"target_type"`
-	TargetID   string `json:"target_id"`
-	Allow      string `json:"allow"`
-	Deny       string `json:"deny"`
-	Revision   int64  `json:"revision"`
-	CreatedAt  int64  `json:"created_at"`
-	UpdatedAt  int64  `json:"updated_at"`
+	ChannelID   string `json:"channel_id"`
+	GuildID     string `json:"guild_id"`
+	AppliesTo   int32  `json:"applies_to"`
+	AppliesToID string `json:"applies_to_id"`
+	Allow       string `json:"allow"`
+	Deny        string `json:"deny"`
+	Revision    int64  `json:"revision"`
+	CreatedAt   int64  `json:"created_at"`
+	UpdatedAt   int64  `json:"updated_at"`
 }
 
 type readyDmChannel struct {
@@ -148,7 +148,7 @@ func readyGuildValues(values []*guildv1.ReadyGuild) []readyGuild {
 		for _, overwrite := range value.GetPermissionOverwrites() {
 			overwrites = append(overwrites, readyPermissionOverwrite{
 				ChannelID: idString(overwrite.GetChannelId()), GuildID: idString(overwrite.GetGuildId()),
-				TargetType: int32(overwrite.GetTargetType()), TargetID: idString(overwrite.GetTargetId()),
+				AppliesTo: int32(overwrite.GetAppliesTo()), AppliesToID: idString(overwrite.GetAppliesToId()),
 				Allow: strconv.FormatUint(overwrite.GetAllow(), 10), Deny: strconv.FormatUint(overwrite.GetDeny(), 10),
 				Revision: overwrite.GetRevision(), CreatedAt: overwrite.GetCreatedAt(), UpdatedAt: overwrite.GetUpdatedAt(),
 			})

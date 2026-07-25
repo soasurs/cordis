@@ -35,6 +35,7 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	}
 
 	var channel *model.Channel
+	var everyoneOverwrite *model.ChannelPermissionOverwrite
 	var shifted []*model.Channel
 	var createdAt int64
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
@@ -85,12 +86,18 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 			ctx, s.svcCtx.Snowflake.Generate().Int64(), req.GetGuildId(), name,
 			int32(channelType), position, req.GetTopic(), req.GetParentId(), createdAt,
 		)
+		if err != nil {
+			return err
+		}
+		everyoneOverwrite, err = upsertDefaultEveryoneOverwrite(
+			ctx, txStore, channel.ID, channel.GuildID, createdAt, s.svcCtx.Cfg.Limits.Overwrites(),
+		)
 		return err
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	events := make([]guildEvent, 0, len(shifted)+1)
+	events := make([]guildEvent, 0, len(shifted)+2)
 	for _, existing := range shifted {
 		event, eventErr := newGuildChannelUpdatedEvent(existing, s.svcCtx.Snowflake.Generate().Int64())
 		if eventErr != nil {
@@ -104,6 +111,14 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
 	} else {
 		events = append(events, event)
+	}
+	if everyoneOverwrite != nil {
+		event, eventErr = newGuildChannelOverwriteUpdatedEvent(everyoneOverwrite, s.svcCtx.Snowflake.Generate().Int64())
+		if eventErr != nil {
+			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
+		} else {
+			events = append(events, event)
+		}
 	}
 	s.publishEvents(ctx, events)
 	resp := new(guildv1.CreateGuildChannelResponse)
@@ -412,7 +427,7 @@ func (s *guildServer) UpsertGuildChannelPermissionOverwrite(
 	ctx context.Context,
 	req *guildv1.UpsertGuildChannelPermissionOverwriteRequest,
 ) (*guildv1.UpsertGuildChannelPermissionOverwriteResponse, error) {
-	if err := validateOverwriteRequest(req.GetChannelId(), req.GetActorUserId(), req.GetTargetType(), req.GetTargetId(), req.GetAllow(), req.GetDeny()); err != nil {
+	if err := validateOverwriteRequest(req.GetChannelId(), req.GetActorUserId(), req.GetAppliesTo(), req.GetAppliesToId(), req.GetAllow(), req.GetDeny()); err != nil {
 		return nil, err
 	}
 	var overwrite *model.ChannelPermissionOverwrite
@@ -429,18 +444,18 @@ func (s *guildServer) UpsertGuildChannelPermissionOverwrite(
 		if !authority.has(PermissionManageChannels) || !authority.canGrantPermissions(req.GetAllow()) {
 			return permissionDenied()
 		}
-		if err := validateOverwriteTarget(ctx, txStore, authority, channel.GuildID, req.GetTargetType(), req.GetTargetId()); err != nil {
+		if err := validateOverwriteAppliesTo(ctx, txStore, authority, channel.GuildID, req.GetAppliesTo(), req.GetAppliesToId()); err != nil {
 			return err
 		}
 		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
 			Kind: store.QuotaChannelOverwrites, ScopeID: channel.ID, Limit: s.svcCtx.Cfg.Limits.Overwrites(),
-			TargetType: int32(req.GetTargetType()), TargetID: req.GetTargetId(),
+			AppliesTo: int32(req.GetAppliesTo()), AppliesToID: req.GetAppliesToId(),
 		}); err != nil {
 			return err
 		}
 		overwrite, err = txStore.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-			ChannelID: channel.ID, GuildID: channel.GuildID, TargetType: int32(req.GetTargetType()),
-			TargetID: req.GetTargetId(), Allow: req.GetAllow(), Deny: req.GetDeny(), CreatedAt: changedAt,
+			ChannelID: channel.ID, GuildID: channel.GuildID, AppliesTo: int32(req.GetAppliesTo()),
+			AppliesToID: req.GetAppliesToId(), Allow: req.GetAllow(), Deny: req.GetDeny(), CreatedAt: changedAt,
 		})
 		return err
 	})
@@ -458,7 +473,7 @@ func (s *guildServer) DeleteGuildChannelPermissionOverwrite(
 	ctx context.Context,
 	req *guildv1.DeleteGuildChannelPermissionOverwriteRequest,
 ) (*guildv1.DeleteGuildChannelPermissionOverwriteResponse, error) {
-	if err := validateOverwriteRequest(req.GetChannelId(), req.GetActorUserId(), req.GetTargetType(), req.GetTargetId(), 0, 0); err != nil {
+	if err := validateOverwriteRequest(req.GetChannelId(), req.GetActorUserId(), req.GetAppliesTo(), req.GetAppliesToId(), 0, 0); err != nil {
 		return nil, err
 	}
 	var guildID int64
@@ -475,15 +490,18 @@ func (s *guildServer) DeleteGuildChannelPermissionOverwrite(
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
 		}
-		if err := validateOverwriteTarget(ctx, txStore, authority, channel.GuildID, req.GetTargetType(), req.GetTargetId()); err != nil {
+		if isDefaultEveryoneOverwrite(req.GetAppliesTo(), req.GetAppliesToId(), channel.GuildID) {
+			return invalidRequest("default role overwrite cannot be deleted")
+		}
+		if err := validateOverwriteAppliesTo(ctx, txStore, authority, channel.GuildID, req.GetAppliesTo(), req.GetAppliesToId()); err != nil {
 			return err
 		}
-		return txStore.DeleteGuildChannelPermissionOverwrite(ctx, channel.ID, int32(req.GetTargetType()), req.GetTargetId())
+		return txStore.DeleteGuildChannelPermissionOverwrite(ctx, channel.ID, int32(req.GetAppliesTo()), req.GetAppliesToId())
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelOverwriteDeletedEvent(guildID, req.GetChannelId(), int32(req.GetTargetType()), req.GetTargetId(), s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildChannelOverwriteDeletedEvent(guildID, req.GetChannelId(), int32(req.GetAppliesTo()), req.GetAppliesToId(), s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.DeleteGuildChannelPermissionOverwriteResponse)
 	resp.SetOk(true)
@@ -558,17 +576,44 @@ func (s *guildServer) loadAuthorizedChannel(ctx context.Context, channelID, user
 	return channel, channelPermissions(authority, roles, overwrites, userID), nil
 }
 
-func validateOverwriteTarget(
+func upsertDefaultEveryoneOverwrite(
+	ctx context.Context,
+	txStore store.Store,
+	channelID, guildID, createdAt int64,
+	limit int,
+) (*model.ChannelPermissionOverwrite, error) {
+	appliesTo := int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE)
+	if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
+		Kind: store.QuotaChannelOverwrites, ScopeID: channelID, Limit: limit,
+		AppliesTo: appliesTo, AppliesToID: guildID,
+	}); err != nil {
+		return nil, err
+	}
+	// Empty allow/deny keeps channel permissions equal to the guild baseline until
+	// an explicit overwrite change is upserted. The row still exists so clients
+	// always receive the @everyone entry without synthesizing it.
+	return txStore.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
+		ChannelID: channelID, GuildID: guildID, AppliesTo: appliesTo, AppliesToID: guildID,
+		CreatedAt: createdAt,
+	})
+}
+
+func isDefaultEveryoneOverwrite(appliesTo guildv1.GuildPermissionOverwriteType, appliesToID, guildID int64) bool {
+	return appliesTo == guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE &&
+		appliesToID == guildID
+}
+
+func validateOverwriteAppliesTo(
 	ctx context.Context,
 	guildStore store.Store,
 	authority memberAuthority,
 	guildID int64,
-	targetType guildv1.GuildPermissionOverwriteType,
-	targetID int64,
+	appliesTo guildv1.GuildPermissionOverwriteType,
+	appliesToID int64,
 ) error {
-	switch targetType {
+	switch appliesTo {
 	case guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE:
-		role, err := guildStore.GetGuildRole(ctx, guildID, targetID)
+		role, err := guildStore.GetGuildRole(ctx, guildID, appliesToID)
 		if err != nil {
 			return err
 		}
@@ -576,7 +621,7 @@ func validateOverwriteTarget(
 			return permissionDenied()
 		}
 	case guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER:
-		target, err := loadMemberAuthority(ctx, guildStore, guildID, targetID)
+		target, err := loadMemberAuthority(ctx, guildStore, guildID, appliesToID)
 		if err != nil {
 			return err
 		}
@@ -584,26 +629,26 @@ func validateOverwriteTarget(
 			return permissionDenied()
 		}
 	default:
-		return invalidRequest("invalid overwrite target type")
+		return invalidRequest("invalid overwrite applies_to")
 	}
 	return nil
 }
 
 func validateOverwriteRequest(
 	channelID, actorUserID int64,
-	targetType guildv1.GuildPermissionOverwriteType,
-	targetID int64,
+	appliesTo guildv1.GuildPermissionOverwriteType,
+	appliesToID int64,
 	allow, deny uint64,
 ) error {
 	if err := validateChannelActorRequest(channelID, actorUserID); err != nil {
 		return err
 	}
-	if targetID <= 0 {
-		return invalidRequest("overwrite target id is required")
+	if appliesToID <= 0 {
+		return invalidRequest("overwrite applies_to_id is required")
 	}
-	if targetType != guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE &&
-		targetType != guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER {
-		return invalidRequest("invalid overwrite target type")
+	if appliesTo != guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE &&
+		appliesTo != guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER {
+		return invalidRequest("invalid overwrite applies_to")
 	}
 	if allow&deny != 0 {
 		return invalidRequest("overwrite allow and deny must not overlap")
@@ -812,8 +857,8 @@ func guildChannelOverwriteToProto(overwrite *model.ChannelPermissionOverwrite) *
 	value := new(guildv1.GuildChannelPermissionOverwrite)
 	value.SetChannelId(overwrite.ChannelID)
 	value.SetGuildId(overwrite.GuildID)
-	value.SetTargetType(guildv1.GuildPermissionOverwriteType(overwrite.TargetType))
-	value.SetTargetId(overwrite.TargetID)
+	value.SetAppliesTo(guildv1.GuildPermissionOverwriteType(overwrite.AppliesTo))
+	value.SetAppliesToId(overwrite.AppliesToID)
 	value.SetAllow(overwrite.Allow)
 	value.SetDeny(overwrite.Deny)
 	value.SetRevision(overwrite.Revision)

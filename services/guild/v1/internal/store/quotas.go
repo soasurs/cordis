@@ -88,10 +88,10 @@ func (s *SQLStore) CheckResourceQuota(ctx context.Context, quota ResourceQuota) 
 			SELECT
 				EXISTS (
 					SELECT 1 FROM guild_channel_permission_overwrites
-					WHERE channel_id = $1 AND target_type = $2 AND target_id = $3
+					WHERE channel_id = $1 AND applies_to = $2 AND applies_to_id = $3
 				),
 				(SELECT COUNT(*) FROM guild_channel_permission_overwrites WHERE channel_id = $1)
-		`, quota.ScopeID, quota.TargetType, quota.TargetID).Scan(&exists, &count)
+		`, quota.ScopeID, quota.AppliesTo, quota.AppliesToID).Scan(&exists, &count)
 		if err == nil && exists {
 			return nil
 		}

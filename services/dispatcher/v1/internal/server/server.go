@@ -127,9 +127,7 @@ func (s *Server) Run(ctx context.Context) {
 		}
 		var wg sync.WaitGroup
 		fetches.EachPartition(func(ftp kgo.FetchTopicPartition) {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				ftp.EachRecord(func(record *kgo.Record) {
 					permanent, err := s.dispatchRecord(ctx, record)
 					if err != nil && !permanent {
@@ -148,7 +146,7 @@ func (s *Server) Run(ctx context.Context) {
 						logx.WithContext(ctx).Errorw("commit dispatcher event", logx.Field("error", err))
 					}
 				})
-			}()
+			})
 		})
 		wg.Wait()
 	}

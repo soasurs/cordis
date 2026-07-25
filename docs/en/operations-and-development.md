@@ -28,12 +28,22 @@ and must not be reused for JWT signing.
 Common commands:
 
 ```bash
+go fix ./...
+go build ./...
+go vet ./...
+go tool staticcheck -checks=inherit,-SA5008 ./...
 make generate
 make lint
 make test
-go build ./...
-go vet ./...
 ```
+
+Run `go fix ./...` after each round of Go edits and before the relevant build
+and test commands. Staticcheck is pinned in `go.mod` and is invoked through
+`go tool`; no separately installed binary is required. `SA5008` is excluded
+because go-zero's extended `json` configuration tags (`default`, `optional`,
+`options`, and `range`) are false positives and must retain their extensions.
+Configuration-tag changes still require a manual syntax review. Other
+actionable diagnostics in changed code should be resolved.
 
 Tests use `testify/require`; SQL stores use `sqlmock`. Day-to-day development
 does not require Docker:

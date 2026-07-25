@@ -14,8 +14,7 @@ const testEventType = "guild.updated"
 
 func BenchmarkDedupCheckAndAdd_Single(b *testing.B) {
 	ds := newDedupStore()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		ds.checkAndAdd(routeKindGuild, int64(i), int64(i), testEventType, dedupTTL)
 	}
 }
@@ -41,11 +40,11 @@ func benchmarkDedupConcurrent(b *testing.B, goroutines int) {
 	b.ResetTimer()
 	var wg sync.WaitGroup
 	opsPerG := b.N / goroutines
-	for g := 0; g < goroutines; g++ {
+	for g := range goroutines {
 		wg.Add(1)
 		go func(base int) {
 			defer wg.Done()
-			for i := 0; i < opsPerG; i++ {
+			for i := range opsPerG {
 				id := int64(base*opsPerG + i)
 				ds.checkAndAdd(routeKindGuild, id, id, testEventType, dedupTTL)
 			}
@@ -57,8 +56,7 @@ func benchmarkDedupConcurrent(b *testing.B, goroutines int) {
 func BenchmarkDedupCheckAndAdd_Duplicate(b *testing.B) {
 	ds := newDedupStore()
 	id := int64(1)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ds.checkAndAdd(routeKindGuild, id, id, testEventType, dedupTTL)
 	}
 }
@@ -67,8 +65,7 @@ func BenchmarkDedupCheckAndAdd_MixedRoutes(b *testing.B) {
 	ds := newDedupStore()
 	kinds := []uint8{routeKindGuild, routeKindGuildMsg, routeKindUser}
 	types := []string{"guild.updated", "message.created", "relationship.updated"}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		slot := i % 3
 		id := int64(i)
 		ds.checkAndAdd(kinds[slot], id, id, types[slot], dedupTTL)
@@ -77,8 +74,7 @@ func BenchmarkDedupCheckAndAdd_MixedRoutes(b *testing.B) {
 
 func BenchmarkDedupRotateAll_Empty(b *testing.B) {
 	ds := newDedupStore()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ds.rotateAll()
 	}
 }
@@ -86,12 +82,11 @@ func BenchmarkDedupRotateAll_Empty(b *testing.B) {
 func BenchmarkDedupRotateAll_Populated(b *testing.B) {
 	const entries = 1000000
 	ds := newDedupStore()
-	for i := 0; i < entries; i++ {
+	for i := range entries {
 		id := int64(i)
 		ds.checkAndAdd(routeKindGuild, id, id, testEventType, dedupTTL)
 	}
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ds.rotateAll()
 	}
 }
@@ -108,8 +103,7 @@ func BenchmarkDedupRealistic(b *testing.B) {
 		rotateOps = 1
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		slot := i % 3
 		idBase[slot]++
 		kind := kinds[slot]
@@ -135,14 +129,12 @@ func BenchmarkDedupHighContention_SameKey(b *testing.B) {
 	goroutines := 64
 	opsPerG := b.N / goroutines
 	b.ResetTimer()
-	for g := 0; g < goroutines; g++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for i := 0; i < opsPerG; i++ {
+	for range goroutines {
+		wg.Go(func() {
+			for range opsPerG {
 				ds.checkAndAdd(routeKindGuild, 42, 42, testEventType, dedupTTL)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -155,11 +147,11 @@ func TestDedupCorrectnessUnderConcurrency(t *testing.T) {
 	)
 
 	var wg sync.WaitGroup
-	for g := 0; g < goroutines; g++ {
+	for g := range goroutines {
 		wg.Add(1)
 		go func(base int64) {
 			defer wg.Done()
-			for i := int64(0); i < opsPerRoutine; i++ {
+			for i := range int64(opsPerRoutine) {
 				id := base*opsPerRoutine + i
 				allowed := ds.checkAndAdd(routeKindGuild, id, id, testEventType, dedupTTL)
 				if !allowed {
@@ -211,7 +203,7 @@ func TestDedupCrossServiceNamespaceIsolation(t *testing.T) {
 
 func TestDedupZeroEventIDSkipsDedup(t *testing.T) {
 	ds := newDedupStore()
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		if !ds.checkAndAdd(routeKindGuild, 1, 0, testEventType, dedupTTL) {
 			t.Fatal("eventID=0 should always pass")
 		}
@@ -309,7 +301,7 @@ func TestDedupMemoryUsage(t *testing.T) {
 		var m1 runtime.MemStats
 		runtime.ReadMemStats(&m1)
 
-		for i := 0; i < n; i++ {
+		for i := range n {
 			id := int64(i)
 			slot := i % 3
 			ds.checkAndAdd(kinds[slot], id, id, types[slot], dedupTTL)
@@ -328,7 +320,7 @@ func TestDedupMemoryUsage(t *testing.T) {
 func BenchmarkDedupMemoryAndFree(b *testing.B) {
 	const entries = 200000
 	ds := newDedupStore()
-	for i := 0; i < entries; i++ {
+	for i := range entries {
 		id := int64(i)
 		ds.checkAndAdd(routeKindGuild, id, id, testEventType, dedupTTL)
 	}
@@ -337,11 +329,9 @@ func BenchmarkDedupMemoryAndFree(b *testing.B) {
 	var beforeRotate runtime.MemStats
 	runtime.ReadMemStats(&beforeRotate)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		ds.rotateAll()
 	}
-	b.StopTimer()
 
 	runtime.GC()
 	var afterRotate runtime.MemStats
@@ -355,8 +345,7 @@ func BenchmarkDedupMemoryAndFree(b *testing.B) {
 func BenchmarkDedupAllocsPerOp(b *testing.B) {
 	ds := newDedupStore()
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := 0; b.Loop(); i++ {
 		id := int64(i)
 		ds.checkAndAdd(routeKindGuild, id, id, testEventType, dedupTTL)
 	}
@@ -400,10 +389,8 @@ func TestDedupAtomicReservationPreventsConcurrentDuplicates(t *testing.T) {
 	var started sync.WaitGroup
 	started.Add(goroutines)
 
-	for g := 0; g < goroutines; g++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range goroutines {
+		wg.Go(func() {
 			started.Done()
 			started.Wait()
 			if ds.checkAndAdd(routeKindGuild, 1, 999, testEventType, dedupTTL) {
@@ -411,7 +398,7 @@ func TestDedupAtomicReservationPreventsConcurrentDuplicates(t *testing.T) {
 			} else {
 				rejected.Add(1)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 

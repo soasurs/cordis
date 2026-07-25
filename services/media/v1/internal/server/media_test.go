@@ -541,16 +541,14 @@ func TestCreateUploadQuotaIsAtomic(t *testing.T) {
 	var wg sync.WaitGroup
 	results := make(chan error, 12)
 	for range 12 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, err := srv.CreateUpload(t.Context(), newCreateRequest(
 				mediav1.AssetKind_ASSET_KIND_USER_AVATAR,
 				1024,
 				"image/png",
 			))
 			results <- err
-		}()
+		})
 	}
 	wg.Wait()
 	close(results)

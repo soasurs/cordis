@@ -19,10 +19,7 @@ type Key struct {
 }
 
 func (i Info) Key() Key {
-	return Key{
-		Domain: i.Domain,
-		Reason: i.Reason,
-	}
+	return Key(i)
 }
 
 func New(code codes.Code, domain, reason, message string) error {

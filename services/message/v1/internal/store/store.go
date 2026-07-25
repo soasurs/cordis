@@ -100,14 +100,3 @@ func (s *SQLStore) Transact(ctx context.Context, fn func(txStore Store) error) (
 	err = tx.Commit()
 	return
 }
-
-func checkRowsAffected(res sql.Result) error {
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return sql.ErrNoRows
-	}
-	return nil
-}

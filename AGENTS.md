@@ -2,7 +2,53 @@
 
 ## Git
 
+### Branches
+
+- New working branches must use `<type>/<description>`.
+- Use one of these branch types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `ci`, `build`, `chore`, `style`, or `revert`.
+- Choose the type from the branch's primary intent:
+  - `feat`: add or materially extend user-visible behavior.
+  - `fix`: correct defective behavior.
+  - `docs`: change documentation only.
+  - `refactor`: restructure code without changing intended behavior.
+  - `test`: add or correct tests without changing production behavior.
+  - `perf`: improve performance without changing intended behavior.
+  - `ci`: change CI configuration or automation.
+  - `build`: change the build system, code generation, packaging, or dependencies.
+  - `chore`: perform repository maintenance not covered by another type.
+  - `style`: change formatting only, with no behavior change.
+  - `revert`: revert an earlier change.
+- Write `<description>` in concise lowercase kebab-case. Describe the outcome, not the implementation process.
+- Do not prefix branches with tool names, agent names, usernames, or ownership markers such as `codex/`, `agent/`, or `user/`.
+- Examples: `feat/api-guild-member-profiles`, `fix/session-resume-owner`, `test/guild-store-pagination`, `docs/git-conventions`.
+- The default branch and explicitly requested release branches are exempt from this working-branch format.
+
+### Commits
+
+- Commits must use Conventional Commits with a required scope:
+
+  ```text
+  <type>(<scope>): <subject>
+  ```
+
+- Commit types use the same set and meanings as branch types. Choose each commit's type from that commit's contents; it does not have to match the branch type when a branch legitimately contains multiple kinds of commits.
+- Use the smallest affected module, package, or subsystem as the scope, such as `api`, `guild`, `message`, `session`, or `proto`.
+- Write the subject in the imperative present tense, start it with lowercase unless it begins with an identifier, and do not add a trailing period.
+- Keep the subject concise. Add a body when the motivation, prior behavior, or impact is not obvious from the header. Explain why the change is needed rather than narrating the diff.
+- Put issue references, deprecation notes, and `BREAKING CHANGE:` details in the footer when applicable.
+- Revert commits must identify the reverted commit SHA and explain why the revert is needed.
 - Commits in this repo must use `git commit -s` for sign-off. Do not add co-author trailers.
+
+Examples:
+
+```text
+feat(api): embed profiles in guild member list
+fix(session): reject stale resume owners
+test(guild): cover member pagination cursor
+docs(repo): document git conventions
+```
+
+These rules follow the type and header semantics of the [Angular commit message guidelines](https://github.com/angular/angular/blob/main/contributing-docs/commit-message-guidelines.md), extended with the repository's `chore`, `style`, and `revert` types and applied to branch naming.
 
 ## Commands
 

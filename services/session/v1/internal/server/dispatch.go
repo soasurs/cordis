@@ -21,8 +21,8 @@ type eventRouting struct {
 	ChannelID      string `json:"channel_id"`
 	UserID         string `json:"user_id"`
 	OwnerID        string `json:"owner_id"`
-	TargetID       string `json:"target_id"`
-	TargetType     int32  `json:"target_type"`
+	AppliesToID    string `json:"applies_to_id"`
+	AppliesTo      int32  `json:"applies_to"`
 	AccessRevision int64  `json:"access_revision"`
 }
 
@@ -85,8 +85,8 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 
 func (s *Server) invalidateChannelEventVisibility(guildID int64, eventType string, routing eventRouting) {
 	if eventType == realtime.EventGuildChannelOverwriteUpdated || eventType == realtime.EventGuildChannelOverwriteDeleted {
-		if routing.TargetType == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER) {
-			s.invalidateGuildVisibility(guildID, parseID(routing.TargetID), routing.AccessRevision)
+		if routing.AppliesTo == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER) {
+			s.invalidateGuildVisibility(guildID, parseID(routing.AppliesToID), routing.AccessRevision)
 			return
 		}
 	}

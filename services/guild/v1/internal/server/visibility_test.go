@@ -32,14 +32,14 @@ func TestGetUserReadyStateReturnsCompleteVisibleGuildState(t *testing.T) {
 	fake.memberRoles[30] = map[int64]map[int64]bool{1002: {31: true}}
 	fake.overwrites[302] = map[string]*model.ChannelPermissionOverwrite{
 		"member": {
-			ChannelID: 302, GuildID: 30, TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
-			TargetID: 1002, Deny: PermissionViewChannel,
+			ChannelID: 302, GuildID: 30, AppliesTo: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+			AppliesToID: 1002, Deny: PermissionViewChannel,
 		},
 	}
 	fake.overwrites[301] = map[string]*model.ChannelPermissionOverwrite{
 		"everyone": {
-			ChannelID: 301, GuildID: 30, TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE),
-			TargetID: 30, Allow: PermissionViewChannel,
+			ChannelID: 301, GuildID: 30, AppliesTo: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE),
+			AppliesToID: 30, Allow: PermissionViewChannel,
 		},
 	}
 

@@ -154,21 +154,21 @@ type guildChannelDeletedPayload struct {
 }
 
 type guildChannelOverwritePayload struct {
-	ChannelID  string `json:"channel_id"`
-	GuildID    string `json:"guild_id"`
-	TargetType int32  `json:"target_type"`
-	TargetID   string `json:"target_id"`
-	Allow      string `json:"allow"`
-	Deny       string `json:"deny"`
-	Revision   int64  `json:"revision"`
-	UpdatedAt  int64  `json:"updated_at"`
+	ChannelID   string `json:"channel_id"`
+	GuildID     string `json:"guild_id"`
+	AppliesTo   int32  `json:"applies_to"`
+	AppliesToID string `json:"applies_to_id"`
+	Allow       string `json:"allow"`
+	Deny        string `json:"deny"`
+	Revision    int64  `json:"revision"`
+	UpdatedAt   int64  `json:"updated_at"`
 }
 
 type guildChannelOverwriteDeletedPayload struct {
-	ChannelID  string `json:"channel_id"`
-	GuildID    string `json:"guild_id"`
-	TargetType int32  `json:"target_type"`
-	TargetID   string `json:"target_id"`
+	ChannelID   string `json:"channel_id"`
+	GuildID     string `json:"guild_id"`
+	AppliesTo   int32  `json:"applies_to"`
+	AppliesToID string `json:"applies_to_id"`
 }
 
 func newGuildCreatedEvent(guild *model.Guild, idempotencyKey int64) (guildEvent, error) {
@@ -340,21 +340,21 @@ func newGuildChannelDeletedEvent(channel *model.Channel, idempotencyKey int64) (
 
 func newGuildChannelOverwriteUpdatedEvent(overwrite *model.ChannelPermissionOverwrite, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildChannelOverwriteUpdated, overwrite.GuildID, guildChannelOverwritePayload{
-		ChannelID:  strconv.FormatInt(overwrite.ChannelID, 10),
-		GuildID:    strconv.FormatInt(overwrite.GuildID, 10),
-		TargetType: overwrite.TargetType,
-		TargetID:   strconv.FormatInt(overwrite.TargetID, 10),
-		Allow:      strconv.FormatUint(overwrite.Allow, 10),
-		Deny:       strconv.FormatUint(overwrite.Deny, 10),
-		Revision:   overwrite.Revision,
-		UpdatedAt:  overwrite.UpdatedAt,
+		ChannelID:   strconv.FormatInt(overwrite.ChannelID, 10),
+		GuildID:     strconv.FormatInt(overwrite.GuildID, 10),
+		AppliesTo:   overwrite.AppliesTo,
+		AppliesToID: strconv.FormatInt(overwrite.AppliesToID, 10),
+		Allow:       strconv.FormatUint(overwrite.Allow, 10),
+		Deny:        strconv.FormatUint(overwrite.Deny, 10),
+		Revision:    overwrite.Revision,
+		UpdatedAt:   overwrite.UpdatedAt,
 	}, idempotencyKey)
 }
 
-func newGuildChannelOverwriteDeletedEvent(guildID, channelID int64, targetType int32, targetID int64, idempotencyKey int64) (guildEvent, error) {
+func newGuildChannelOverwriteDeletedEvent(guildID, channelID int64, appliesTo int32, appliesToID int64, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildChannelOverwriteDeleted, guildID, guildChannelOverwriteDeletedPayload{
 		ChannelID: strconv.FormatInt(channelID, 10), GuildID: strconv.FormatInt(guildID, 10),
-		TargetType: targetType, TargetID: strconv.FormatInt(targetID, 10),
+		AppliesTo: appliesTo, AppliesToID: strconv.FormatInt(appliesToID, 10),
 	}, idempotencyKey)
 }
 

@@ -36,10 +36,10 @@ enum GuildChannelType {
   GUILD_CHANNEL_TYPE_VOICE = 3;
 }
 
-// GuildPermissionOverwriteType selects whether an overwrite targets a role or
-// one member.
+// GuildPermissionOverwriteType selects whether an overwrite applies to a role
+// or one member.
 enum GuildPermissionOverwriteType {
-  // No target type. This value is invalid in overwrite requests.
+  // No applies_to. This value is invalid in overwrite requests.
   GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED = 0;
   GUILD_PERMISSION_OVERWRITE_TYPE_ROLE = 1;
   GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER = 2;
@@ -89,6 +89,7 @@ service GuildService {
   rpc GetGuildRole(GetGuildRoleRequest) returns (GetGuildRoleResponse);
   rpc ListGuildRoles(ListGuildRolesRequest) returns (ListGuildRolesResponse);
   rpc UpdateGuildRole(UpdateGuildRoleRequest) returns (UpdateGuildRoleResponse);
+  // DeleteGuildRole rejects the default @everyone role.
   rpc DeleteGuildRole(DeleteGuildRoleRequest) returns (DeleteGuildRoleResponse);
   rpc ReorderGuildRoles(ReorderGuildRolesRequest) returns (ReorderGuildRolesResponse);
   rpc AddGuildMemberRole(AddGuildMemberRoleRequest) returns (AddGuildMemberRoleResponse);
@@ -108,6 +109,7 @@ service GuildService {
   rpc DeleteGuildChannel(DeleteGuildChannelRequest) returns (DeleteGuildChannelResponse);
   rpc ReorderGuildChannels(ReorderGuildChannelsRequest) returns (ReorderGuildChannelsResponse);
   rpc UpsertGuildChannelPermissionOverwrite(UpsertGuildChannelPermissionOverwriteRequest) returns (UpsertGuildChannelPermissionOverwriteResponse);
+  // DeleteGuildChannelPermissionOverwrite rejects the default @everyone overwrite.
   rpc DeleteGuildChannelPermissionOverwrite(DeleteGuildChannelPermissionOverwriteRequest) returns (DeleteGuildChannelPermissionOverwriteResponse);
   rpc ListGuildChannelPermissionOverwrites(ListGuildChannelPermissionOverwritesRequest) returns (ListGuildChannelPermissionOverwritesResponse);
   // AuthorizeGuildChannel evaluates one permission for Message or another
@@ -198,9 +200,10 @@ message GuildChannel {
 message GuildChannelPermissionOverwrite {
   int64 channel_id = 1;
   int64 guild_id = 2;
-  GuildPermissionOverwriteType target_type = 3;
-  // Role ID or user ID according to target_type.
-  int64 target_id = 4;
+  // Whether this overwrite applies to a role or a member.
+  GuildPermissionOverwriteType applies_to = 3;
+  // Role ID or user ID according to applies_to.
+  int64 applies_to_id = 4;
   // Permission bits granted in this channel.
   uint64 allow = 5;
   // Permission bits denied in this channel.
@@ -818,9 +821,9 @@ message ReorderGuildChannelsResponse {
 message UpsertGuildChannelPermissionOverwriteRequest {
   int64 channel_id = 1;
   int64 actor_user_id = 2;
-  GuildPermissionOverwriteType target_type = 3;
-  // Role ID or user ID according to target_type.
-  int64 target_id = 4;
+  GuildPermissionOverwriteType applies_to = 3;
+  // Role ID or user ID according to applies_to.
+  int64 applies_to_id = 4;
   // Permission bits to grant and deny. The same bit cannot appear in both.
   uint64 allow = 5;
   uint64 deny = 6;
@@ -833,8 +836,8 @@ message UpsertGuildChannelPermissionOverwriteResponse {
 message DeleteGuildChannelPermissionOverwriteRequest {
   int64 channel_id = 1;
   int64 actor_user_id = 2;
-  GuildPermissionOverwriteType target_type = 3;
-  int64 target_id = 4;
+  GuildPermissionOverwriteType applies_to = 3;
+  int64 applies_to_id = 4;
 }
 
 message DeleteGuildChannelPermissionOverwriteResponse {

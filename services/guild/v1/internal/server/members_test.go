@@ -93,8 +93,8 @@ func TestKickAndLeaveEnforceOwnerRules(t *testing.T) {
 	fakeStore.overwrites[20] = map[string]*model.ChannelPermissionOverwrite{
 		overwriteKey(int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER), 1002): {
 			ChannelID: 20, GuildID: 10,
-			TargetType: int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
-			TargetID:   1002, Deny: PermissionViewChannel,
+			AppliesTo:   int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
+			AppliesToID: 1002, Deny: PermissionViewChannel,
 		},
 	}
 	server := newTestGuildServer(t, fakeStore, new(fakePublisher))

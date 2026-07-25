@@ -37,12 +37,15 @@ const (
 
 // ResourceQuota describes a quota check performed inside a store transaction.
 type ResourceQuota struct {
-	Kind       QuotaKind
-	ScopeID    int64
-	Limit      int
-	Now        int64
-	TargetType int32
-	TargetID   int64
+	Kind    QuotaKind
+	ScopeID int64
+	Limit   int
+	Now     int64
+	// AppliesTo/AppliesToID identify an overwrite being upserted.
+	AppliesTo   int32
+	AppliesToID int64
+	// TargetID is the guild being joined (QuotaJoinedGuilds).
+	TargetID int64
 }
 
 type UpdateGuildParams struct {
@@ -167,10 +170,10 @@ type Store interface {
 	DeleteGuildChannels(ctx context.Context, guildID, deletedAt int64) error
 	ClearGuildChannelParent(ctx context.Context, guildID, parentID, updatedAt int64) error
 	UpsertGuildChannelPermissionOverwrite(ctx context.Context, overwrite *model.ChannelPermissionOverwrite) (*model.ChannelPermissionOverwrite, error)
-	DeleteGuildChannelPermissionOverwrite(ctx context.Context, channelID int64, targetType int32, targetID int64) error
+	DeleteGuildChannelPermissionOverwrite(ctx context.Context, channelID int64, appliesTo int32, appliesToID int64) error
 	DeleteGuildChannelPermissionOverwrites(ctx context.Context, channelID int64) error
 	DeleteAllGuildChannelPermissionOverwrites(ctx context.Context, guildID int64) error
-	DeleteGuildChannelPermissionOverwritesForTarget(ctx context.Context, guildID int64, targetType int32, targetID int64) error
+	DeleteGuildChannelPermissionOverwritesForAppliesTo(ctx context.Context, guildID int64, appliesTo int32, appliesToID int64) error
 	ListGuildChannelPermissionOverwrites(ctx context.Context, channelID int64) ([]*model.ChannelPermissionOverwrite, error)
 	ListGuildChannelPermissionOverwritesByChannels(ctx context.Context, channelIDs []int64) ([]*model.ChannelPermissionOverwrite, error)
 	ListGuildChannelPermissionOverwritesByGuild(ctx context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error)

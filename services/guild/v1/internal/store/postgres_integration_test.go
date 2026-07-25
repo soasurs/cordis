@@ -149,7 +149,7 @@ func testGuildAccessRevision(t *testing.T, store Store) {
 	require.Equal(t, current, revision(), "channel metadata does not affect access")
 
 	_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-		ChannelID: channelID, GuildID: guildID, TargetType: 2, TargetID: memberID,
+		ChannelID: channelID, GuildID: guildID, AppliesTo: 2, AppliesToID: memberID,
 		Deny: 64, CreatedAt: now,
 	})
 	require.NoError(t, err)
@@ -225,7 +225,7 @@ func testResourceQuotas(t *testing.T, store Store) {
 	_, err = store.ConsumeGuildInvite(ctx, "quota-exhausted", now)
 	require.NoError(t, err)
 	_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-		ChannelID: channelID, GuildID: guildID, TargetType: 1, TargetID: guildID, CreatedAt: now,
+		ChannelID: channelID, GuildID: guildID, AppliesTo: 1, AppliesToID: guildID, CreatedAt: now,
 	})
 	require.NoError(t, err)
 
@@ -243,10 +243,10 @@ func testResourceQuotas(t *testing.T, store Store) {
 	require.ErrorIs(t, check(ResourceQuota{Kind: QuotaGuildChannels, ScopeID: guildID, Limit: 1}), ErrResourceLimitExceeded)
 	require.ErrorIs(t, check(ResourceQuota{Kind: QuotaActiveInvites, ScopeID: guildID, Limit: 1, Now: now}), ErrResourceLimitExceeded)
 	require.NoError(t, check(ResourceQuota{
-		Kind: QuotaChannelOverwrites, ScopeID: channelID, Limit: 1, TargetType: 1, TargetID: guildID,
+		Kind: QuotaChannelOverwrites, ScopeID: channelID, Limit: 1, AppliesTo: 1, AppliesToID: guildID,
 	}))
 	require.ErrorIs(t, check(ResourceQuota{
-		Kind: QuotaChannelOverwrites, ScopeID: channelID, Limit: 1, TargetType: 2, TargetID: memberID,
+		Kind: QuotaChannelOverwrites, ScopeID: channelID, Limit: 1, AppliesTo: 2, AppliesToID: memberID,
 	}), ErrResourceLimitExceeded)
 }
 
@@ -646,7 +646,7 @@ func testGuildChannelOverwrites(t *testing.T, store Store) {
 	require.NoError(t, err)
 
 	ow, err := store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-		ChannelID: channelID, GuildID: guildID, TargetType: 1, TargetID: 20801,
+		ChannelID: channelID, GuildID: guildID, AppliesTo: 1, AppliesToID: 20801,
 		Allow: 1024, Deny: 0, CreatedAt: now,
 	})
 	require.NoError(t, err)
@@ -654,13 +654,13 @@ func testGuildChannelOverwrites(t *testing.T, store Store) {
 	require.Equal(t, int64(1), ow.Revision)
 
 	_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-		ChannelID: channelID, GuildID: guildID, TargetType: 2, TargetID: 20802,
+		ChannelID: channelID, GuildID: guildID, AppliesTo: 2, AppliesToID: 20802,
 		Allow: 0, Deny: 2048, CreatedAt: now,
 	})
 	require.NoError(t, err)
 
 	ow2, err := store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-		ChannelID: channelID, GuildID: guildID, TargetType: 1, TargetID: 20801,
+		ChannelID: channelID, GuildID: guildID, AppliesTo: 1, AppliesToID: 20801,
 		Allow: 4096, Deny: 0, CreatedAt: now,
 	})
 	require.NoError(t, err)
@@ -670,8 +670,8 @@ func testGuildChannelOverwrites(t *testing.T, store Store) {
 	ows, err := store.ListGuildChannelPermissionOverwrites(ctx, channelID)
 	require.NoError(t, err)
 	require.Len(t, ows, 2)
-	require.Equal(t, int32(1), ows[0].TargetType)
-	require.Equal(t, int32(2), ows[1].TargetType)
+	require.Equal(t, int32(1), ows[0].AppliesTo)
+	require.Equal(t, int32(2), ows[1].AppliesTo)
 
 	require.NoError(t, store.DeleteGuildChannelPermissionOverwrite(ctx, channelID, 1, 20801))
 	ows, err = store.ListGuildChannelPermissionOverwrites(ctx, channelID)
@@ -687,12 +687,12 @@ func testGuildChannelOverwrites(t *testing.T, store Store) {
 	require.NoError(t, err)
 	for _, ch := range []int64{channelID, channel2ID} {
 		_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-			ChannelID: ch, GuildID: guildID, TargetType: 1, TargetID: 20899,
+			ChannelID: ch, GuildID: guildID, AppliesTo: 1, AppliesToID: 20899,
 			Allow: 1, Deny: 0, CreatedAt: now,
 		})
 		require.NoError(t, err)
 		_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-			ChannelID: ch, GuildID: guildID, TargetType: 2, TargetID: 20898,
+			ChannelID: ch, GuildID: guildID, AppliesTo: 2, AppliesToID: 20898,
 			Allow: 2, Deny: 0, CreatedAt: now,
 		})
 		require.NoError(t, err)
@@ -710,12 +710,12 @@ func testGuildChannelOverwrites(t *testing.T, store Store) {
 	ows, err = store.ListGuildChannelPermissionOverwritesByGuilds(ctx, []int64{guildID}, 20898)
 	require.NoError(t, err)
 	require.Len(t, ows, 2)
-	require.NoError(t, store.DeleteGuildChannelPermissionOverwritesForTarget(ctx, guildID, 1, 20899))
+	require.NoError(t, store.DeleteGuildChannelPermissionOverwritesForAppliesTo(ctx, guildID, 1, 20899))
 	for _, ch := range []int64{channelID, channel2ID} {
 		ows, err = store.ListGuildChannelPermissionOverwrites(ctx, ch)
 		require.NoError(t, err)
 		require.Len(t, ows, 1)
-		require.Equal(t, int64(20898), ows[0].TargetID)
+		require.Equal(t, int64(20898), ows[0].AppliesToID)
 	}
 
 	require.NoError(t, store.DeleteAllGuildChannelPermissionOverwrites(ctx, guildID))
@@ -754,7 +754,7 @@ func testConstraintEnforcement(t *testing.T, store Store) {
 	require.NoError(t, err)
 
 	_, err = store.UpsertGuildChannelPermissionOverwrite(ctx, &model.ChannelPermissionOverwrite{
-		ChannelID: channelID, GuildID: guildID, TargetType: 1, TargetID: 21001,
+		ChannelID: channelID, GuildID: guildID, AppliesTo: 1, AppliesToID: 21001,
 		Allow: 3, Deny: 1, CreatedAt: now,
 	})
 	requireCheckViolation(t, err)

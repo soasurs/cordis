@@ -158,26 +158,26 @@ func channelPermissions(authority memberAuthority, roles []*model.Role, overwrit
 	// Aggregating role denies/allows before applying them makes the result
 	// independent from role ordering.
 	for _, overwrite := range overwrites {
-		if overwrite.TargetType == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE) &&
-			overwrite.TargetID == authority.Guild.ID {
+		if overwrite.AppliesTo == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE) &&
+			overwrite.AppliesToID == authority.Guild.ID {
 			permissions = applyOverwrite(permissions, overwrite.Deny, overwrite.Allow)
 			break
 		}
 	}
 	var roleDeny, roleAllow uint64
 	for _, overwrite := range overwrites {
-		if overwrite.TargetType != int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE) {
+		if overwrite.AppliesTo != int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE) {
 			continue
 		}
-		if _, assigned := roleIDs[overwrite.TargetID]; assigned && overwrite.TargetID != authority.Guild.ID {
+		if _, assigned := roleIDs[overwrite.AppliesToID]; assigned && overwrite.AppliesToID != authority.Guild.ID {
 			roleDeny |= overwrite.Deny
 			roleAllow |= overwrite.Allow
 		}
 	}
 	permissions = applyOverwrite(permissions, roleDeny, roleAllow)
 	for _, overwrite := range overwrites {
-		if overwrite.TargetType == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER) &&
-			overwrite.TargetID == userID {
+		if overwrite.AppliesTo == int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER) &&
+			overwrite.AppliesToID == userID {
 			permissions = applyOverwrite(permissions, overwrite.Deny, overwrite.Allow)
 			break
 		}

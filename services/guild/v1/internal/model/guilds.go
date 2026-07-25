@@ -70,13 +70,13 @@ type Channel struct {
 }
 
 type ChannelPermissionOverwrite struct {
-	ChannelID  int64
-	GuildID    int64
-	TargetType int32
-	TargetID   int64
-	Allow      uint64
-	Deny       uint64
-	Revision   int64
-	CreatedAt  int64
-	UpdatedAt  int64
+	ChannelID   int64
+	GuildID     int64
+	AppliesTo   int32
+	AppliesToID int64
+	Allow       uint64
+	Deny        uint64
+	Revision    int64
+	CreatedAt   int64
+	UpdatedAt   int64
 }

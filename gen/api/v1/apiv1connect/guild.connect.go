@@ -200,6 +200,7 @@ type GuildServiceClient interface {
 	GetGuildRole(context.Context, *v1.GetGuildRoleRequest) (*v1.GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *v1.ListGuildRolesRequest) (*v1.ListGuildRolesResponse, error)
 	UpdateGuildRole(context.Context, *v1.UpdateGuildRoleRequest) (*v1.UpdateGuildRoleResponse, error)
+	// DeleteGuildRole rejects the default @everyone role.
 	DeleteGuildRole(context.Context, *v1.DeleteGuildRoleRequest) (*v1.DeleteGuildRoleResponse, error)
 	ReorderGuildRoles(context.Context, *v1.ReorderGuildRolesRequest) (*v1.ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *v1.AddGuildMemberRoleRequest) (*v1.AddGuildMemberRoleResponse, error)
@@ -218,6 +219,7 @@ type GuildServiceClient interface {
 	DeleteGuildChannel(context.Context, *v1.DeleteGuildChannelRequest) (*v1.DeleteGuildChannelResponse, error)
 	ReorderGuildChannels(context.Context, *v1.ReorderGuildChannelsRequest) (*v1.ReorderGuildChannelsResponse, error)
 	UpsertGuildChannelPermissionOverwrite(context.Context, *v1.UpsertGuildChannelPermissionOverwriteRequest) (*v1.UpsertGuildChannelPermissionOverwriteResponse, error)
+	// DeleteGuildChannelPermissionOverwrite rejects the default @everyone overwrite.
 	DeleteGuildChannelPermissionOverwrite(context.Context, *v1.DeleteGuildChannelPermissionOverwriteRequest) (*v1.DeleteGuildChannelPermissionOverwriteResponse, error)
 	ListGuildChannelPermissionOverwrites(context.Context, *v1.ListGuildChannelPermissionOverwritesRequest) (*v1.ListGuildChannelPermissionOverwritesResponse, error)
 }
@@ -970,6 +972,7 @@ type GuildServiceHandler interface {
 	GetGuildRole(context.Context, *v1.GetGuildRoleRequest) (*v1.GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *v1.ListGuildRolesRequest) (*v1.ListGuildRolesResponse, error)
 	UpdateGuildRole(context.Context, *v1.UpdateGuildRoleRequest) (*v1.UpdateGuildRoleResponse, error)
+	// DeleteGuildRole rejects the default @everyone role.
 	DeleteGuildRole(context.Context, *v1.DeleteGuildRoleRequest) (*v1.DeleteGuildRoleResponse, error)
 	ReorderGuildRoles(context.Context, *v1.ReorderGuildRolesRequest) (*v1.ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *v1.AddGuildMemberRoleRequest) (*v1.AddGuildMemberRoleResponse, error)
@@ -988,6 +991,7 @@ type GuildServiceHandler interface {
 	DeleteGuildChannel(context.Context, *v1.DeleteGuildChannelRequest) (*v1.DeleteGuildChannelResponse, error)
 	ReorderGuildChannels(context.Context, *v1.ReorderGuildChannelsRequest) (*v1.ReorderGuildChannelsResponse, error)
 	UpsertGuildChannelPermissionOverwrite(context.Context, *v1.UpsertGuildChannelPermissionOverwriteRequest) (*v1.UpsertGuildChannelPermissionOverwriteResponse, error)
+	// DeleteGuildChannelPermissionOverwrite rejects the default @everyone overwrite.
 	DeleteGuildChannelPermissionOverwrite(context.Context, *v1.DeleteGuildChannelPermissionOverwriteRequest) (*v1.DeleteGuildChannelPermissionOverwriteResponse, error)
 	ListGuildChannelPermissionOverwrites(context.Context, *v1.ListGuildChannelPermissionOverwritesRequest) (*v1.ListGuildChannelPermissionOverwritesResponse, error)
 }

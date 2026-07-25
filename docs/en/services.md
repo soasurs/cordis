@@ -74,7 +74,10 @@ are associated with the Guild only when `CompleteGuildIconUpload` succeeds.
 
 Permissions are a `uint64` bit set. Owners and administrators receive all
 permissions. Channel evaluation applies the default role, member roles, and
-member overwrites. Guild publishes dot-separated events directly to
+member overwrites. Creating a channel always inserts an empty `@everyone`
+overwrite (`applies_to=ROLE`, `applies_to_id=guild_id`, allow/deny zero) so
+clients receive it without synthesizing one; that overwrite and the default
+role cannot be deleted. Guild publishes dot-separated events directly to
 `cordis.guild.events.v1`.
 
 Role member listing uses the same opaque `cursor` / `next_cursor` pagination as

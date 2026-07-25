@@ -198,7 +198,7 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *guildv1.KickGuil
 		if err := txStore.DeleteGuildMemberRoleAssignments(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
 			return err
 		}
-		if err := txStore.DeleteGuildChannelPermissionOverwritesForTarget(
+		if err := txStore.DeleteGuildChannelPermissionOverwritesForAppliesTo(
 			ctx,
 			req.GetGuildId(),
 			int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),
@@ -239,7 +239,7 @@ func (s *guildServer) LeaveGuild(ctx context.Context, req *guildv1.LeaveGuildReq
 		if err := txStore.DeleteGuildMemberRoleAssignments(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
 			return err
 		}
-		if err := txStore.DeleteGuildChannelPermissionOverwritesForTarget(
+		if err := txStore.DeleteGuildChannelPermissionOverwritesForAppliesTo(
 			ctx,
 			req.GetGuildId(),
 			int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER),

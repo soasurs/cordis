@@ -270,6 +270,23 @@ func TestGuildAndKickPermissionsUseRoleHierarchy(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
+func TestDeleteDefaultGuildRoleRejected(t *testing.T) {
+	fakeStore := roleTestStore()
+	server := newTestGuildServer(t, fakeStore, new(fakePublisher))
+
+	req := new(guildv1.DeleteGuildRoleRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetRoleId(10)
+	_, err := server.DeleteGuildRole(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Contains(t, err.Error(), "default role cannot be deleted")
+	role, err := fakeStore.GetGuildRole(t.Context(), 10, 10)
+	require.NoError(t, err)
+	require.True(t, role.IsDefault)
+	require.Zero(t, role.DeletedAt)
+}
+
 func roleTestStore() *fakeStore {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)

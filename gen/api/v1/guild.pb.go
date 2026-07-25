@@ -146,12 +146,12 @@ func (x GuildChannelType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// GuildPermissionOverwriteType selects whether an overwrite targets a role or
-// one member.
+// GuildPermissionOverwriteType selects whether an overwrite applies to a role
+// or one member.
 type GuildPermissionOverwriteType int32
 
 const (
-	// No target type. This value is invalid in overwrite requests.
+	// No applies_to. This value is invalid in overwrite requests.
 	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED GuildPermissionOverwriteType = 0
 	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE        GuildPermissionOverwriteType = 1
 	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER      GuildPermissionOverwriteType = 2
@@ -1686,8 +1686,8 @@ type GuildChannelPermissionOverwrite struct {
 	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
 	xxx_hidden_GuildId     int64                        `protobuf:"varint,2,opt,name=guild_id,json=guildId"`
-	xxx_hidden_TargetType  GuildPermissionOverwriteType `protobuf:"varint,3,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType"`
-	xxx_hidden_TargetId    int64                        `protobuf:"varint,4,opt,name=target_id,json=targetId"`
+	xxx_hidden_AppliesTo   GuildPermissionOverwriteType `protobuf:"varint,3,opt,name=applies_to,json=appliesTo,enum=api.v1.GuildPermissionOverwriteType"`
+	xxx_hidden_AppliesToId int64                        `protobuf:"varint,4,opt,name=applies_to_id,json=appliesToId"`
 	xxx_hidden_Allow       uint64                       `protobuf:"varint,5,opt,name=allow"`
 	xxx_hidden_Deny        uint64                       `protobuf:"varint,6,opt,name=deny"`
 	xxx_hidden_Revision    int64                        `protobuf:"varint,7,opt,name=revision"`
@@ -1738,18 +1738,18 @@ func (x *GuildChannelPermissionOverwrite) GetGuildId() int64 {
 	return 0
 }
 
-func (x *GuildChannelPermissionOverwrite) GetTargetType() GuildPermissionOverwriteType {
+func (x *GuildChannelPermissionOverwrite) GetAppliesTo() GuildPermissionOverwriteType {
 	if x != nil {
 		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
-			return x.xxx_hidden_TargetType
+			return x.xxx_hidden_AppliesTo
 		}
 	}
 	return GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
-func (x *GuildChannelPermissionOverwrite) GetTargetId() int64 {
+func (x *GuildChannelPermissionOverwrite) GetAppliesToId() int64 {
 	if x != nil {
-		return x.xxx_hidden_TargetId
+		return x.xxx_hidden_AppliesToId
 	}
 	return 0
 }
@@ -1799,13 +1799,13 @@ func (x *GuildChannelPermissionOverwrite) SetGuildId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
-func (x *GuildChannelPermissionOverwrite) SetTargetType(v GuildPermissionOverwriteType) {
-	x.xxx_hidden_TargetType = v
+func (x *GuildChannelPermissionOverwrite) SetAppliesTo(v GuildPermissionOverwriteType) {
+	x.xxx_hidden_AppliesTo = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
-func (x *GuildChannelPermissionOverwrite) SetTargetId(v int64) {
-	x.xxx_hidden_TargetId = v
+func (x *GuildChannelPermissionOverwrite) SetAppliesToId(v int64) {
+	x.xxx_hidden_AppliesToId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
@@ -1848,14 +1848,14 @@ func (x *GuildChannelPermissionOverwrite) HasGuildId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *GuildChannelPermissionOverwrite) HasTargetType() bool {
+func (x *GuildChannelPermissionOverwrite) HasAppliesTo() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *GuildChannelPermissionOverwrite) HasTargetId() bool {
+func (x *GuildChannelPermissionOverwrite) HasAppliesToId() bool {
 	if x == nil {
 		return false
 	}
@@ -1907,14 +1907,14 @@ func (x *GuildChannelPermissionOverwrite) ClearGuildId() {
 	x.xxx_hidden_GuildId = 0
 }
 
-func (x *GuildChannelPermissionOverwrite) ClearTargetType() {
+func (x *GuildChannelPermissionOverwrite) ClearAppliesTo() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_TargetType = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
+	x.xxx_hidden_AppliesTo = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
-func (x *GuildChannelPermissionOverwrite) ClearTargetId() {
+func (x *GuildChannelPermissionOverwrite) ClearAppliesToId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_TargetId = 0
+	x.xxx_hidden_AppliesToId = 0
 }
 
 func (x *GuildChannelPermissionOverwrite) ClearAllow() {
@@ -1945,11 +1945,12 @@ func (x *GuildChannelPermissionOverwrite) ClearUpdatedAt() {
 type GuildChannelPermissionOverwrite_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId  *int64
-	GuildId    *int64
-	TargetType *GuildPermissionOverwriteType
-	// Role ID or user ID according to target_type.
-	TargetId *int64
+	ChannelId *int64
+	GuildId   *int64
+	// Whether this overwrite applies to a role or a member.
+	AppliesTo *GuildPermissionOverwriteType
+	// Role ID or user ID according to applies_to.
+	AppliesToId *int64
 	// Permission bits granted in this channel.
 	Allow *uint64
 	// Permission bits denied in this channel.
@@ -1972,13 +1973,13 @@ func (b0 GuildChannelPermissionOverwrite_builder) Build() *GuildChannelPermissio
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
-	if b.TargetType != nil {
+	if b.AppliesTo != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
-		x.xxx_hidden_TargetType = *b.TargetType
+		x.xxx_hidden_AppliesTo = *b.AppliesTo
 	}
-	if b.TargetId != nil {
+	if b.AppliesToId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
-		x.xxx_hidden_TargetId = *b.TargetId
+		x.xxx_hidden_AppliesToId = *b.AppliesToId
 	}
 	if b.Allow != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
@@ -10348,8 +10349,8 @@ func (b0 ReorderGuildChannelsResponse_builder) Build() *ReorderGuildChannelsResp
 type UpsertGuildChannelPermissionOverwriteRequest struct {
 	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	xxx_hidden_TargetType  GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType"`
-	xxx_hidden_TargetId    int64                        `protobuf:"varint,3,opt,name=target_id,json=targetId"`
+	xxx_hidden_AppliesTo   GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=applies_to,json=appliesTo,enum=api.v1.GuildPermissionOverwriteType"`
+	xxx_hidden_AppliesToId int64                        `protobuf:"varint,3,opt,name=applies_to_id,json=appliesToId"`
 	xxx_hidden_Allow       uint64                       `protobuf:"varint,4,opt,name=allow"`
 	xxx_hidden_Deny        uint64                       `protobuf:"varint,5,opt,name=deny"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
@@ -10390,18 +10391,18 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) GetChannelId() int64 {
 	return 0
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) GetTargetType() GuildPermissionOverwriteType {
+func (x *UpsertGuildChannelPermissionOverwriteRequest) GetAppliesTo() GuildPermissionOverwriteType {
 	if x != nil {
 		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
-			return x.xxx_hidden_TargetType
+			return x.xxx_hidden_AppliesTo
 		}
 	}
 	return GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) GetTargetId() int64 {
+func (x *UpsertGuildChannelPermissionOverwriteRequest) GetAppliesToId() int64 {
 	if x != nil {
-		return x.xxx_hidden_TargetId
+		return x.xxx_hidden_AppliesToId
 	}
 	return 0
 }
@@ -10425,13 +10426,13 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) SetChannelId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) SetTargetType(v GuildPermissionOverwriteType) {
-	x.xxx_hidden_TargetType = v
+func (x *UpsertGuildChannelPermissionOverwriteRequest) SetAppliesTo(v GuildPermissionOverwriteType) {
+	x.xxx_hidden_AppliesTo = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) SetTargetId(v int64) {
-	x.xxx_hidden_TargetId = v
+func (x *UpsertGuildChannelPermissionOverwriteRequest) SetAppliesToId(v int64) {
+	x.xxx_hidden_AppliesToId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
@@ -10452,14 +10453,14 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) HasChannelId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) HasTargetType() bool {
+func (x *UpsertGuildChannelPermissionOverwriteRequest) HasAppliesTo() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) HasTargetId() bool {
+func (x *UpsertGuildChannelPermissionOverwriteRequest) HasAppliesToId() bool {
 	if x == nil {
 		return false
 	}
@@ -10485,14 +10486,14 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearChannelId() {
 	x.xxx_hidden_ChannelId = 0
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearTargetType() {
+func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearAppliesTo() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_TargetType = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
+	x.xxx_hidden_AppliesTo = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
-func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearTargetId() {
+func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearAppliesToId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_TargetId = 0
+	x.xxx_hidden_AppliesToId = 0
 }
 
 func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearAllow() {
@@ -10508,10 +10509,10 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearDeny() {
 type UpsertGuildChannelPermissionOverwriteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId  *int64
-	TargetType *GuildPermissionOverwriteType
-	// Role ID or user ID according to target_type.
-	TargetId *int64
+	ChannelId *int64
+	AppliesTo *GuildPermissionOverwriteType
+	// Role ID or user ID according to applies_to.
+	AppliesToId *int64
 	// Permission bits to grant and deny. The same bit cannot appear in both.
 	Allow *uint64
 	Deny  *uint64
@@ -10525,13 +10526,13 @@ func (b0 UpsertGuildChannelPermissionOverwriteRequest_builder) Build() *UpsertGu
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
-	if b.TargetType != nil {
+	if b.AppliesTo != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
-		x.xxx_hidden_TargetType = *b.TargetType
+		x.xxx_hidden_AppliesTo = *b.AppliesTo
 	}
-	if b.TargetId != nil {
+	if b.AppliesToId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
-		x.xxx_hidden_TargetId = *b.TargetId
+		x.xxx_hidden_AppliesToId = *b.AppliesToId
 	}
 	if b.Allow != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
@@ -10615,8 +10616,8 @@ func (b0 UpsertGuildChannelPermissionOverwriteResponse_builder) Build() *UpsertG
 type DeleteGuildChannelPermissionOverwriteRequest struct {
 	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	xxx_hidden_TargetType  GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=target_type,json=targetType,enum=api.v1.GuildPermissionOverwriteType"`
-	xxx_hidden_TargetId    int64                        `protobuf:"varint,3,opt,name=target_id,json=targetId"`
+	xxx_hidden_AppliesTo   GuildPermissionOverwriteType `protobuf:"varint,2,opt,name=applies_to,json=appliesTo,enum=api.v1.GuildPermissionOverwriteType"`
+	xxx_hidden_AppliesToId int64                        `protobuf:"varint,3,opt,name=applies_to_id,json=appliesToId"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -10655,18 +10656,18 @@ func (x *DeleteGuildChannelPermissionOverwriteRequest) GetChannelId() int64 {
 	return 0
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) GetTargetType() GuildPermissionOverwriteType {
+func (x *DeleteGuildChannelPermissionOverwriteRequest) GetAppliesTo() GuildPermissionOverwriteType {
 	if x != nil {
 		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
-			return x.xxx_hidden_TargetType
+			return x.xxx_hidden_AppliesTo
 		}
 	}
 	return GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) GetTargetId() int64 {
+func (x *DeleteGuildChannelPermissionOverwriteRequest) GetAppliesToId() int64 {
 	if x != nil {
-		return x.xxx_hidden_TargetId
+		return x.xxx_hidden_AppliesToId
 	}
 	return 0
 }
@@ -10676,13 +10677,13 @@ func (x *DeleteGuildChannelPermissionOverwriteRequest) SetChannelId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) SetTargetType(v GuildPermissionOverwriteType) {
-	x.xxx_hidden_TargetType = v
+func (x *DeleteGuildChannelPermissionOverwriteRequest) SetAppliesTo(v GuildPermissionOverwriteType) {
+	x.xxx_hidden_AppliesTo = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) SetTargetId(v int64) {
-	x.xxx_hidden_TargetId = v
+func (x *DeleteGuildChannelPermissionOverwriteRequest) SetAppliesToId(v int64) {
+	x.xxx_hidden_AppliesToId = v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
@@ -10693,14 +10694,14 @@ func (x *DeleteGuildChannelPermissionOverwriteRequest) HasChannelId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) HasTargetType() bool {
+func (x *DeleteGuildChannelPermissionOverwriteRequest) HasAppliesTo() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) HasTargetId() bool {
+func (x *DeleteGuildChannelPermissionOverwriteRequest) HasAppliesToId() bool {
 	if x == nil {
 		return false
 	}
@@ -10712,22 +10713,22 @@ func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearChannelId() {
 	x.xxx_hidden_ChannelId = 0
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearTargetType() {
+func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearAppliesTo() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_TargetType = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
+	x.xxx_hidden_AppliesTo = GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED
 }
 
-func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearTargetId() {
+func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearAppliesToId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_TargetId = 0
+	x.xxx_hidden_AppliesToId = 0
 }
 
 type DeleteGuildChannelPermissionOverwriteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId  *int64
-	TargetType *GuildPermissionOverwriteType
-	TargetId   *int64
+	ChannelId   *int64
+	AppliesTo   *GuildPermissionOverwriteType
+	AppliesToId *int64
 }
 
 func (b0 DeleteGuildChannelPermissionOverwriteRequest_builder) Build() *DeleteGuildChannelPermissionOverwriteRequest {
@@ -10738,13 +10739,13 @@ func (b0 DeleteGuildChannelPermissionOverwriteRequest_builder) Build() *DeleteGu
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
-	if b.TargetType != nil {
+	if b.AppliesTo != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_TargetType = *b.TargetType
+		x.xxx_hidden_AppliesTo = *b.AppliesTo
 	}
-	if b.TargetId != nil {
+	if b.AppliesToId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_TargetId = *b.TargetId
+		x.xxx_hidden_AppliesToId = *b.AppliesToId
 	}
 	return m0
 }
@@ -11018,14 +11019,14 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\t \x01(\x03R\tupdatedAt\x12\x1b\n" +
 	"\tparent_id\x18\n" +
-	" \x01(\x03R\bparentId\"\xc3\x02\n" +
+	" \x01(\x03R\bparentId\"\xc8\x02\n" +
 	"\x1fGuildChannelPermissionOverwrite\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x19\n" +
-	"\bguild_id\x18\x02 \x01(\x03R\aguildId\x12E\n" +
-	"\vtarget_type\x18\x03 \x01(\x0e2$.api.v1.GuildPermissionOverwriteTypeR\n" +
-	"targetType\x12\x1b\n" +
-	"\ttarget_id\x18\x04 \x01(\x03R\btargetId\x12\x14\n" +
+	"\bguild_id\x18\x02 \x01(\x03R\aguildId\x12C\n" +
+	"\n" +
+	"applies_to\x18\x03 \x01(\x0e2$.api.v1.GuildPermissionOverwriteTypeR\tappliesTo\x12\"\n" +
+	"\rapplies_to_id\x18\x04 \x01(\x03R\vappliesToId\x12\x14\n" +
 	"\x05allow\x18\x05 \x01(\x04R\x05allow\x12\x12\n" +
 	"\x04deny\x18\x06 \x01(\x04R\x04deny\x12\x1a\n" +
 	"\brevision\x18\a \x01(\x03R\brevision\x12\x1d\n" +
@@ -11291,23 +11292,23 @@ const file_api_v1_guild_proto_rawDesc = "" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12:\n" +
 	"\tpositions\x18\x02 \x03(\v2\x1c.api.v1.GuildChannelPositionR\tpositions\"P\n" +
 	"\x1cReorderGuildChannelsResponse\x120\n" +
-	"\bchannels\x18\x01 \x03(\v2\x14.api.v1.GuildChannelR\bchannels\"\xdb\x01\n" +
+	"\bchannels\x18\x01 \x03(\v2\x14.api.v1.GuildChannelR\bchannels\"\xe0\x01\n" +
 	",UpsertGuildChannelPermissionOverwriteRequest\x12\x1d\n" +
 	"\n" +
-	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12E\n" +
-	"\vtarget_type\x18\x02 \x01(\x0e2$.api.v1.GuildPermissionOverwriteTypeR\n" +
-	"targetType\x12\x1b\n" +
-	"\ttarget_id\x18\x03 \x01(\x03R\btargetId\x12\x14\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12C\n" +
+	"\n" +
+	"applies_to\x18\x02 \x01(\x0e2$.api.v1.GuildPermissionOverwriteTypeR\tappliesTo\x12\"\n" +
+	"\rapplies_to_id\x18\x03 \x01(\x03R\vappliesToId\x12\x14\n" +
 	"\x05allow\x18\x04 \x01(\x04R\x05allow\x12\x12\n" +
 	"\x04deny\x18\x05 \x01(\x04R\x04deny\"v\n" +
 	"-UpsertGuildChannelPermissionOverwriteResponse\x12E\n" +
-	"\toverwrite\x18\x01 \x01(\v2'.api.v1.GuildChannelPermissionOverwriteR\toverwrite\"\xb1\x01\n" +
+	"\toverwrite\x18\x01 \x01(\v2'.api.v1.GuildChannelPermissionOverwriteR\toverwrite\"\xb6\x01\n" +
 	",DeleteGuildChannelPermissionOverwriteRequest\x12\x1d\n" +
 	"\n" +
-	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12E\n" +
-	"\vtarget_type\x18\x02 \x01(\x0e2$.api.v1.GuildPermissionOverwriteTypeR\n" +
-	"targetType\x12\x1b\n" +
-	"\ttarget_id\x18\x03 \x01(\x03R\btargetId\"?\n" +
+	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12C\n" +
+	"\n" +
+	"applies_to\x18\x02 \x01(\x0e2$.api.v1.GuildPermissionOverwriteTypeR\tappliesTo\x12\"\n" +
+	"\rapplies_to_id\x18\x03 \x01(\x03R\vappliesToId\"?\n" +
 	"-DeleteGuildChannelPermissionOverwriteResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\"L\n" +
 	"+ListGuildChannelPermissionOverwritesRequest\x12\x1d\n" +
@@ -11499,7 +11500,7 @@ var file_api_v1_guild_proto_depIdxs = []int32{
 	100, // 1: api.v1.GuildBan.profile:type_name -> api.v1.UserProfile
 	100, // 2: api.v1.GuildBan.actor_profile:type_name -> api.v1.UserProfile
 	1,   // 3: api.v1.GuildChannel.type:type_name -> api.v1.GuildChannelType
-	2,   // 4: api.v1.GuildChannelPermissionOverwrite.target_type:type_name -> api.v1.GuildPermissionOverwriteType
+	2,   // 4: api.v1.GuildChannelPermissionOverwrite.applies_to:type_name -> api.v1.GuildPermissionOverwriteType
 	3,   // 5: api.v1.CreateGuildResponse.guild:type_name -> api.v1.Guild
 	3,   // 6: api.v1.GetGuildResponse.guild:type_name -> api.v1.Guild
 	3,   // 7: api.v1.ListGuildsResponse.guilds:type_name -> api.v1.Guild
@@ -11534,9 +11535,9 @@ var file_api_v1_guild_proto_depIdxs = []int32{
 	7,   // 36: api.v1.UpdateGuildChannelResponse.channel:type_name -> api.v1.GuildChannel
 	90,  // 37: api.v1.ReorderGuildChannelsRequest.positions:type_name -> api.v1.GuildChannelPosition
 	7,   // 38: api.v1.ReorderGuildChannelsResponse.channels:type_name -> api.v1.GuildChannel
-	2,   // 39: api.v1.UpsertGuildChannelPermissionOverwriteRequest.target_type:type_name -> api.v1.GuildPermissionOverwriteType
+	2,   // 39: api.v1.UpsertGuildChannelPermissionOverwriteRequest.applies_to:type_name -> api.v1.GuildPermissionOverwriteType
 	8,   // 40: api.v1.UpsertGuildChannelPermissionOverwriteResponse.overwrite:type_name -> api.v1.GuildChannelPermissionOverwrite
-	2,   // 41: api.v1.DeleteGuildChannelPermissionOverwriteRequest.target_type:type_name -> api.v1.GuildPermissionOverwriteType
+	2,   // 41: api.v1.DeleteGuildChannelPermissionOverwriteRequest.applies_to:type_name -> api.v1.GuildPermissionOverwriteType
 	8,   // 42: api.v1.ListGuildChannelPermissionOverwritesResponse.overwrites:type_name -> api.v1.GuildChannelPermissionOverwrite
 	9,   // 43: api.v1.GuildService.CreateGuild:input_type -> api.v1.CreateGuildRequest
 	11,  // 44: api.v1.GuildService.GetGuild:input_type -> api.v1.GetGuildRequest

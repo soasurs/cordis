@@ -302,7 +302,7 @@ func TestUpsertGuildChannelPermissionOverwrite(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{
-		"channel_id", "guild_id", "target_type", "target_id", "allow_bits", "deny_bits",
+		"channel_id", "guild_id", "applies_to", "applies_to_id", "allow_bits", "deny_bits",
 		"revision", "created_at", "updated_at",
 	}).AddRow(int64(4001), int64(1001), int32(2), int64(2001), int64(0), int64(32), int64(1), int64(10), int64(0))
 	mock.ExpectQuery(sqlPattern(upsertGuildChannelPermissionOverwriteQuery)).
@@ -310,7 +310,7 @@ func TestUpsertGuildChannelPermissionOverwrite(t *testing.T) {
 		WillReturnRows(rows)
 
 	overwrite, err := store.UpsertGuildChannelPermissionOverwrite(context.Background(), &model.ChannelPermissionOverwrite{
-		ChannelID: 4001, GuildID: 1001, TargetType: 2, TargetID: 2001, Deny: 32, CreatedAt: 10,
+		ChannelID: 4001, GuildID: 1001, AppliesTo: 2, AppliesToID: 2001, Deny: 32, CreatedAt: 10,
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(32), overwrite.Deny)
@@ -322,7 +322,7 @@ func TestListGuildChannelPermissionOverwritesByGuild(t *testing.T) {
 	defer cleanup()
 
 	rows := sqlmock.NewRows([]string{
-		"channel_id", "guild_id", "target_type", "target_id", "allow_bits", "deny_bits",
+		"channel_id", "guild_id", "applies_to", "applies_to_id", "allow_bits", "deny_bits",
 		"revision", "created_at", "updated_at",
 	}).
 		AddRow(int64(4001), int64(1001), int32(1), int64(1001), int64(32), int64(0), int64(1), int64(10), int64(0)).

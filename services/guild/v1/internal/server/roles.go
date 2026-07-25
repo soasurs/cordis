@@ -193,7 +193,7 @@ func (s *guildServer) DeleteGuildRole(ctx context.Context, req *guildv1.DeleteGu
 		if err := txStore.DeleteGuildRoleAssignments(ctx, req.GetGuildId(), req.GetRoleId()); err != nil {
 			return err
 		}
-		if err := txStore.DeleteGuildChannelPermissionOverwritesForTarget(
+		if err := txStore.DeleteGuildChannelPermissionOverwritesForAppliesTo(
 			ctx,
 			req.GetGuildId(),
 			int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE),

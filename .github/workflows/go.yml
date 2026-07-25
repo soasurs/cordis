@@ -1,36 +1,8 @@
 name: Go
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - ".github/workflows/go.yml"
-      - "services/**"
-      - "pkg/**"
-      - "internal/**"
-      - "gen/**"
-      - "proto/**"
-      - "buf.yaml"
-      - "buf.gen.external.yaml"
-      - "buf.gen.internal.yaml"
-      - "Makefile"
-      - "go.mod"
-      - "go.sum"
   pull_request:
     branches: [master]
-    paths:
-      - ".github/workflows/go.yml"
-      - "services/**"
-      - "pkg/**"
-      - "internal/**"
-      - "gen/**"
-      - "proto/**"
-      - "buf.yaml"
-      - "buf.gen.external.yaml"
-      - "buf.gen.internal.yaml"
-      - "Makefile"
-      - "go.mod"
-      - "go.sum"
 
 permissions:
   contents: read

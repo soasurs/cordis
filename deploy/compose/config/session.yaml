@@ -68,3 +68,6 @@ services:
   message:
     endpoints:
       - message:3002
+  user:
+    endpoints:
+      - user:3000

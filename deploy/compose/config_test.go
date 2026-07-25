@@ -1,11 +1,18 @@
 package compose_test
 
 import (
+	"fmt"
+	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/zrpc"
+	"go.yaml.in/yaml/v3"
 
 	apiconfig "github.com/soasurs/cordis/services/api/v1/config"
 	authenticatorconfig "github.com/soasurs/cordis/services/authenticator/v1/config"
@@ -19,6 +26,46 @@ import (
 	sessionconfig "github.com/soasurs/cordis/services/session/v1/config"
 	userconfig "github.com/soasurs/cordis/services/user/v1/config"
 )
+
+var serviceConfigNames = []string{
+	"api",
+	"authenticator",
+	"dispatcher",
+	"gateway",
+	"guild",
+	"mailer",
+	"media",
+	"message",
+	"presence",
+	"session",
+	"user",
+}
+
+func TestComposeConfigsCoverLocalFields(t *testing.T) {
+	for _, name := range serviceConfigNames {
+		t.Run(name, func(t *testing.T) {
+			local := loadConfigMap(t, filepath.Join("..", "..", "services", name, "v1", "etc", "config.yaml"))
+			compose := loadConfigMap(t, filepath.Join("config", name+".yaml"))
+
+			composePaths := make(map[string]struct{})
+			for _, path := range configLeafPaths(compose) {
+				composePaths[path] = struct{}{}
+			}
+
+			var missing []string
+			for _, path := range configLeafPaths(local) {
+				if isEnvironmentSpecificPath(path) {
+					continue
+				}
+				if _, ok := composePaths[path]; !ok {
+					missing = append(missing, path)
+				}
+			}
+			sort.Strings(missing)
+			require.Empty(t, missing, "fields configured for local startup must also be configured for Compose")
+		})
+	}
+}
 
 func TestServiceConfigsLoad(t *testing.T) {
 	t.Setenv("CORDIS_DATABASE_DSN", "postgres://cordis:test@postgres:5432/cordis?sslmode=disable")
@@ -75,4 +122,88 @@ func TestServiceConfigsLoad(t *testing.T) {
 func loadConfig(t *testing.T, name string, target any) {
 	t.Helper()
 	require.NoError(t, conf.LoadConfig(filepath.Join("config", name), target, conf.UseEnv()))
+	require.NoError(t, validateRPCClients(target), name)
+}
+
+func loadConfigMap(t *testing.T, path string) map[string]any {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	var target map[string]any
+	require.NoError(t, yaml.Unmarshal(data, &target))
+	return target
+}
+
+func configLeafPaths(config map[string]any) []string {
+	var paths []string
+	collectLeafPaths(config, "", &paths)
+	return paths
+}
+
+func collectLeafPaths(value any, prefix string, paths *[]string) {
+	switch current := value.(type) {
+	case map[string]any:
+		if len(current) == 0 && prefix != "" {
+			*paths = append(*paths, prefix)
+			return
+		}
+		for key, child := range current {
+			path := strings.ToLower(key)
+			if prefix != "" {
+				path = prefix + "." + path
+			}
+			collectLeafPaths(child, path, paths)
+		}
+	case []any:
+		if len(current) == 0 {
+			*paths = append(*paths, prefix)
+			return
+		}
+		for _, child := range current {
+			if _, ok := child.(map[string]any); ok {
+				collectLeafPaths(child, prefix+"[]", paths)
+				continue
+			}
+			*paths = append(*paths, prefix)
+			break
+		}
+	default:
+		*paths = append(*paths, prefix)
+	}
+}
+
+func isEnvironmentSpecificPath(path string) bool {
+	for part := range strings.SplitSeq(path, ".") {
+		part = strings.TrimSuffix(part, "[]")
+		switch part {
+		case "devserver", "middlewares", "observability", "telemetry":
+			return true
+		}
+	}
+	return false
+}
+
+func validateRPCClients(target any) error {
+	value := reflect.Indirect(reflect.ValueOf(target))
+	services := value.FieldByName("Services")
+	if !services.IsValid() {
+		return nil
+	}
+
+	rpcClientType := reflect.TypeFor[zrpc.RpcClientConf]()
+	servicesType := services.Type()
+	for i := range services.NumField() {
+		clientValue := services.Field(i)
+		if clientValue.Type() != rpcClientType {
+			continue
+		}
+
+		client := clientValue.Interface().(zrpc.RpcClientConf)
+		if _, err := client.BuildTarget(); err != nil {
+			return fmt.Errorf("services.%s: %w", servicesType.Field(i).Name, err)
+		}
+	}
+
+	return nil
 }

@@ -1,7 +1,9 @@
 # Cordis Architecture and Design
 
 These documents describe the repository as implemented today. Unimplemented
-or incomplete behavior is listed explicitly under limitations.
+or incomplete behavior is listed explicitly under limitations. They are the
+canonical home for architecture and design details; `AGENTS.md` contains only
+repository contribution constraints and links back here.
 
 - [System overview](overview.md)
 - [Service catalog](services.md)

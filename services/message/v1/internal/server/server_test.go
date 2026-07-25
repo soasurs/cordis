@@ -970,11 +970,8 @@ func (s *fakeStore) ListReadyChannelReadStates(_ context.Context, userID int64, 
 			if message.ID <= lastReadID {
 				continue
 			}
-			for _, mentionedID := range s.mentions[message.ID] {
-				if mentionedID == userID {
-					state.MentionCount++
-					break
-				}
+			if slices.Contains(s.mentions[message.ID], userID) {
+				state.MentionCount++
 			}
 		}
 		states = append(states, state)

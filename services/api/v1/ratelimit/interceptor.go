@@ -205,9 +205,9 @@ func limiterError(ctx context.Context, err error) error {
 
 func exhaustedError(decision coreratelimit.Decision) error {
 	retryAfter := max(decision.RetryAfter, time.Second)
-	retryAfterSeconds := (retryAfter + time.Second - 1) / time.Second
+	retryAfterSeconds := int64((retryAfter + time.Second - 1) / time.Second)
 	err := connect.NewError(connect.CodeResourceExhausted, errors.New("rate limit exceeded"))
-	err.Meta().Set("Retry-After", strconv.FormatInt(int64(retryAfterSeconds), 10))
+	err.Meta().Set("Retry-After", strconv.FormatInt(retryAfterSeconds, 10))
 	err.Meta().Set("X-RateLimit-Limit", strconv.FormatInt(decision.Limit, 10))
 	err.Meta().Set("X-RateLimit-Remaining", strconv.FormatInt(decision.Remaining, 10))
 	return err

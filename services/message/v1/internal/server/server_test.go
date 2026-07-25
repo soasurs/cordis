@@ -20,6 +20,7 @@ import (
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/config"
@@ -528,6 +529,8 @@ func newTestMessageServerWithMedia(
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
 			Kafka: config.KafkaConfig{
@@ -537,6 +540,7 @@ func newTestMessageServerWithMedia(
 		},
 		Store:       fakeStore,
 		Snowflake:   node,
+		Cursors:     codec,
 		Publisher:   publisher,
 		GuildClient: guildClient,
 		UserClient:  userClient,

@@ -8,6 +8,7 @@ import (
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
@@ -104,8 +105,13 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *guildv1.ListGui
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err
 	}
-	if req.GetBeforeUserId() < 0 {
-		return nil, invalidRequest("before user id must not be negative")
+	token, err := readCursor(req.HasCursor(), req.GetCursor())
+	if err != nil {
+		return nil, err
+	}
+	beforeJoinedAt, beforeUserID, _, err := decodeGuildTimeIDCursor(s.svcCtx.Cursors, cursor.KindGuildMembers, token, req.GetGuildId())
+	if err != nil {
+		return nil, err
 	}
 	limit, err := normalizeLimit(req.GetLimit())
 	if err != nil {
@@ -115,15 +121,19 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *guildv1.ListGui
 		return nil, mapStoreError(err)
 	}
 	members, err := s.svcCtx.Store.ListGuildMembers(ctx, store.ListGuildMembersParams{
-		GuildID: req.GetGuildId(), BeforeUserID: req.GetBeforeUserId(), Limit: limit,
+		GuildID:        req.GetGuildId(),
+		BeforeJoinedAt: beforeJoinedAt,
+		BeforeUserID:   beforeUserID,
+		Limit:          limit + 1,
 	})
 	if err != nil {
 		return nil, err
 	}
+	page, hasMore := cursor.Trim(members, limit)
 	resp := new(guildv1.ListGuildMembersResponse)
-	resp.SetMembers(guildMembersToProto(members))
-	if len(members) > 0 {
-		resp.SetBeforeUserId(members[len(members)-1].UserID)
+	resp.SetMembers(guildMembersToProto(page))
+	if err := setNextMemberCursor(s.svcCtx.Cursors, cursor.KindGuildMembers, resp.SetNextCursor, hasMore, page, req.GetGuildId()); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }

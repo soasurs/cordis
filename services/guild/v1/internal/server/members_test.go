@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
@@ -156,14 +157,90 @@ func TestListGuildMembersRequiresMembershipAndUsesCursor(t *testing.T) {
 	fakeStore.members[10] = testMembers(10, 1001, 1002, 1003)
 	server := newTestGuildServer(t, fakeStore, nil)
 
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindGuildMembers, guildTimeIDPayload{GuildID: 10, Time: 1, ID: 1003})
+	require.NoError(t, err)
 	req := new(guildv1.ListGuildMembersRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
-	req.SetBeforeUserId(1003)
+	req.SetCursor(token)
 	req.SetLimit(1)
 	resp, err := server.ListGuildMembers(t.Context(), req)
 	require.NoError(t, err)
 	require.Len(t, resp.GetMembers(), 1)
 	require.Equal(t, int64(1002), resp.GetMembers()[0].GetUserId())
-	require.Equal(t, int64(1002), resp.GetBeforeUserId())
+	next, err := codec.Encode(cursor.KindGuildMembers, guildTimeIDPayload{GuildID: 10, Time: 1, ID: 1002})
+	require.NoError(t, err)
+	require.Equal(t, next, resp.GetNextCursor())
+}
+
+func TestListGuildMembersPagesWithServerCursors(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001, 1002, 1003, 1004)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	seen := make([]int64, 0, 4)
+	req := new(guildv1.ListGuildMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetLimit(1)
+	for {
+		resp, err := server.ListGuildMembers(t.Context(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetMembers(), 1)
+		seen = append(seen, resp.GetMembers()[0].GetUserId())
+		if !resp.HasNextCursor() {
+			break
+		}
+		req.SetCursor(resp.GetNextCursor())
+	}
+	require.Equal(t, []int64{1004, 1003, 1002, 1001}, seen)
+}
+
+func TestListGuildMembersRejectsEmptyCursor(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	req := new(guildv1.ListGuildMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetCursor("")
+	_, err := server.ListGuildMembers(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestListGuildMembersRejectsBadCursors(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	assertRejectsBadCursors(t, cursor.KindGuildMembers, guildTimeIDPayload{GuildID: 10, Time: 1, ID: 1001}, func(token string) error {
+		req := new(guildv1.ListGuildMembersRequest)
+		req.SetGuildId(10)
+		req.SetActorUserId(1001)
+		req.SetCursor(token)
+		_, err := server.ListGuildMembers(t.Context(), req)
+		return err
+	})
+}
+
+func TestListGuildMembersRejectsCrossGuildCursor(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindGuildMembers, guildTimeIDPayload{GuildID: 99, Time: 1, ID: 1001})
+	require.NoError(t, err)
+	req := new(guildv1.ListGuildMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetCursor(token)
+	_, err = server.ListGuildMembers(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }

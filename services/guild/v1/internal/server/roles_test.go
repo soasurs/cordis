@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
@@ -109,30 +110,100 @@ func TestManageRolesCannotGrantPermissionsActorDoesNotHold(t *testing.T) {
 func TestListGuildRoleMembersUsesCursorAndIncludesDefaultRoleMembers(t *testing.T) {
 	fakeStore := roleTestStore()
 	fakeStore.roles[10][20] = testRole(20, 10, "moderator", 0, 1)
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1001, 20, 1))
 	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1002, 20, 1))
 	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1003, 20, 1))
 	server := newTestGuildServer(t, fakeStore, nil)
 
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindGuildRoleMembers, guildRoleTimeIDPayload{GuildID: 10, RoleID: 20, Time: 1, ID: 1003})
+	require.NoError(t, err)
 	req := new(guildv1.ListGuildRoleMembersRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
 	req.SetRoleId(20)
-	req.SetBeforeUserId(1003)
+	req.SetCursor(token)
 	req.SetLimit(1)
 	resp, err := server.ListGuildRoleMembers(t.Context(), req)
 	require.NoError(t, err)
 	require.Len(t, resp.GetMembers(), 1)
 	require.Equal(t, int64(1002), resp.GetMembers()[0].GetUserId())
-	require.Equal(t, int64(1002), resp.GetBeforeUserId())
+	next, err := codec.Encode(cursor.KindGuildRoleMembers, guildRoleTimeIDPayload{GuildID: 10, RoleID: 20, Time: 1, ID: 1002})
+	require.NoError(t, err)
+	require.Equal(t, next, resp.GetNextCursor())
 
 	req.SetRoleId(10)
-	req.SetBeforeUserId(0)
+	req.ClearCursor()
 	req.SetLimit(2)
 	resp, err = server.ListGuildRoleMembers(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, []int64{1004, 1003}, []int64{
 		resp.GetMembers()[0].GetUserId(), resp.GetMembers()[1].GetUserId(),
 	})
+	require.True(t, resp.HasNextCursor())
+}
+
+func TestListGuildRoleMembersPagesWithServerCursors(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.roles[10][20] = testRole(20, 10, "moderator", 0, 1)
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1001, 20, 1))
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1002, 20, 1))
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1003, 20, 1))
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	seen := make([]int64, 0, 3)
+	req := new(guildv1.ListGuildRoleMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetRoleId(20)
+	req.SetLimit(1)
+	for {
+		resp, err := server.ListGuildRoleMembers(t.Context(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetMembers(), 1)
+		seen = append(seen, resp.GetMembers()[0].GetUserId())
+		if !resp.HasNextCursor() {
+			break
+		}
+		req.SetCursor(resp.GetNextCursor())
+	}
+	require.Equal(t, []int64{1003, 1002, 1001}, seen)
+}
+
+func TestListGuildRoleMembersRejectsBadCursors(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.roles[10][20] = testRole(20, 10, "moderator", 0, 1)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	assertRejectsBadCursors(t, cursor.KindGuildRoleMembers, guildRoleTimeIDPayload{GuildID: 10, RoleID: 20, Time: 1, ID: 1001}, func(token string) error {
+		req := new(guildv1.ListGuildRoleMembersRequest)
+		req.SetGuildId(10)
+		req.SetActorUserId(1001)
+		req.SetRoleId(20)
+		req.SetCursor(token)
+		_, err := server.ListGuildRoleMembers(t.Context(), req)
+		return err
+	})
+}
+
+func TestListGuildRoleMembersRejectsCrossRoleCursor(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.roles[10][20] = testRole(20, 10, "moderator", 0, 1)
+	fakeStore.roles[10][21] = testRole(21, 10, "other", 0, 2)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindGuildRoleMembers, guildRoleTimeIDPayload{
+		GuildID: 10, RoleID: 21, Time: 1, ID: 1001,
+	})
+	require.NoError(t, err)
+	req := new(guildv1.ListGuildRoleMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetRoleId(20)
+	req.SetCursor(token)
+	_, err = server.ListGuildRoleMembers(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestListGuildRoleMembersRejectsUnknownRole(t *testing.T) {

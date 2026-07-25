@@ -22,6 +22,9 @@ kafka:
   topic: cordis.user.events.v1
   publishTimeoutMs: 1000
 
+cursor:
+  secret: "${CORDIS_CURSOR_SECRET}"
+
 services:
   media:
     endpoints:

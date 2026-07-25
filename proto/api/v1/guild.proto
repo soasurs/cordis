@@ -235,16 +235,21 @@ message GetGuildResponse {
 }
 
 message ListGuildsRequest {
-  // Return Guilds with IDs smaller than this cursor. Zero starts from newest.
-  int64 before = 1;
+  // Opaque continuation from ListGuildsResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 1;
   // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 2;
 }
 
 message ListGuildsResponse {
   repeated Guild guilds = 1;
-  // Smallest Guild ID in this page, or zero when the page is empty.
-  int64 before_cursor = 2;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
 }
 
 message UpdateGuildRequest {
@@ -338,17 +343,21 @@ message GetGuildMemberResponse {
 
 message ListGuildMembersRequest {
   int64 guild_id = 1;
-  // Return members with user IDs smaller than this cursor. Zero starts from
-  // the greatest user ID.
-  int64 before_user_id = 2;
+  // Opaque continuation from ListGuildMembersResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 2;
   // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
 message ListGuildMembersResponse {
   repeated GuildMember members = 1;
-  // Smallest user ID in this page, or zero when the page is empty.
-  int64 before_user_id = 2;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
 }
 
 message UpdateCurrentGuildMemberRequest {
@@ -391,16 +400,21 @@ message UnbanGuildMemberResponse {
 
 message ListGuildBansRequest {
   int64 guild_id = 1;
-  // Return bans with user IDs smaller than this cursor.
-  int64 before_user_id = 2;
+  // Opaque continuation from ListGuildBansResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 2;
   // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
 message ListGuildBansResponse {
   repeated GuildBan bans = 1;
-  // Smallest user ID in this page, or zero when the page is empty.
-  int64 before_user_id = 2;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
 }
 
 message LeaveGuildRequest {
@@ -477,16 +491,21 @@ message GetGuildInviteResponse {
 
 message ListGuildInvitesRequest {
   int64 guild_id = 1;
-  // Return invites with IDs smaller than this cursor.
-  int64 before_id = 2;
+  // Opaque continuation from ListGuildInvitesResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 2;
   // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
 message ListGuildInvitesResponse {
   repeated GuildInvite invites = 1;
-  // Smallest invite ID in this page, or zero when the page is empty.
-  int64 before_id = 2;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
 }
 
 message DeleteGuildInviteRequest {
@@ -613,16 +632,21 @@ message ListGuildRoleMembersRequest {
   // The default role matches every active Guild member; other roles match
   // explicit assignments only.
   int64 role_id = 2;
-  // Return members with user IDs smaller than this cursor.
-  int64 before_user_id = 3;
+  // Opaque continuation from ListGuildRoleMembersResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 3;
   // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 4;
 }
 
 message ListGuildRoleMembersResponse {
   repeated GuildMember members = 1;
-  // Smallest user ID in this page, or zero when the page is empty.
-  int64 before_user_id = 2;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
 }
 
 message GetGuildMemberPermissionsRequest {

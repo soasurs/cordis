@@ -219,7 +219,7 @@ const listDmChannelsQuery = `
 	SELECT id, user_lo, user_hi, created_at
 	FROM dm_channels
 	WHERE (user_lo = $1 OR user_hi = $1)
-	  AND ($2 = 0 OR id < $2)
+	  AND ($2::BIGINT = 0 OR id < $2::BIGINT)
 	ORDER BY id DESC
 	LIMIT $3
 `

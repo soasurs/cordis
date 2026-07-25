@@ -28,6 +28,10 @@ Argon2id. User does not issue tokens.
 Relationship HTTP responses embed the target profile. `relationship.updated`
 events load the target profile from the User store before the relationship
 transaction so committed updates and their event payloads stay self-contained.
+Relationship listing uses opaque `cursor` / `next_cursor` pagination ordered by
+`created_at`, then `target_id` descending (omit `next_cursor` when there is no
+next page). Optional `type` filters are part of the cursor scope and must stay
+unchanged across pages.
 
 ## Authenticator
 
@@ -73,10 +77,11 @@ permissions. Channel evaluation applies the default role, member roles, and
 member overwrites. Guild publishes dot-separated events directly to
 `cordis.guild.events.v1`.
 
-Role member listing uses the same user-ID cursor pagination as Guild member
-listing. Explicit roles return assigned active members, while the default role
-returns every active Guild member. Public Guild member responses always embed
-the member profile. Ban responses
+Role member listing uses the same opaque `cursor` / `next_cursor` pagination as
+Guild member listing (ordered by `joined_at`, then `user_id` descending; omit
+`next_cursor` when there is no next page). Explicit roles return assigned active
+members, while the default role returns every active Guild member. Public Guild
+member responses always embed the member profile. Ban responses
 also embed the banned user and moderator profiles, while invite responses embed
 the creator profile. Guild loads the profiles required by member and moderation
 events itself because those events do not pass through the API.
@@ -98,8 +103,9 @@ the Guild still exists.
 
 gRPC on `:3002`. Owns messages, attachments, mentions, and replies. Create,
 read, update, and delete operations ask Guild for authorization. Listing uses
-`before`, `after`, or `around` cursor pagination. Reaction and custom emoji RPCs
-are not currently implemented.
+`before`, `after`, or `around` message-ID cursor pagination. DM channel listing
+uses opaque `cursor` / `next_cursor` (channel id descending). Reaction and
+custom emoji RPCs are not currently implemented.
 
 Internal message objects carry `author_id` rather than embedding a User
 profile. The API batch-loads distinct profiles when composing public

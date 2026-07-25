@@ -329,7 +329,9 @@ func testGuildMemberLifecycle(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Equal(t, []int64{memberID2, ownerID}, idsOf(members, func(m *model.GuildMember) int64 { return m.UserID }))
 
-	members, err = store.ListGuildMembers(ctx, ListGuildMembersParams{GuildID: guildID, BeforeUserID: memberID2, Limit: 1})
+	members, err = store.ListGuildMembers(ctx, ListGuildMembersParams{
+		GuildID: guildID, BeforeJoinedAt: members[0].JoinedAt, BeforeUserID: memberID2, Limit: 1,
+	})
 	require.NoError(t, err)
 	require.Len(t, members, 1)
 	require.Equal(t, int64(ownerID), members[0].UserID)
@@ -386,7 +388,9 @@ func testGuildBans(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Len(t, bans, 1)
 
-	bans, err = store.ListGuildBans(ctx, ListGuildBansParams{GuildID: guildID, BeforeUserID: bannedID, Limit: 1})
+	bans, err = store.ListGuildBans(ctx, ListGuildBansParams{
+		GuildID: guildID, BeforeCreatedAt: bans[0].CreatedAt, BeforeUserID: bannedID, Limit: 1,
+	})
 	require.NoError(t, err)
 	require.Empty(t, bans)
 
@@ -526,7 +530,8 @@ func testGuildMemberRoles(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Equal(t, []int64{memberID, ownerID}, idsOf(roleMembers, func(m *model.GuildMember) int64 { return m.UserID }))
 	roleMembers, err = store.ListGuildRoleMembers(ctx, ListGuildRoleMembersParams{
-		GuildID: guildID, RoleID: 10601, BeforeUserID: memberID, Limit: 1,
+		GuildID: guildID, RoleID: 10601,
+		BeforeJoinedAt: roleMembers[0].JoinedAt, BeforeUserID: memberID, Limit: 1,
 	})
 	require.NoError(t, err)
 	require.Equal(t, []int64{ownerID}, idsOf(roleMembers, func(m *model.GuildMember) int64 { return m.UserID }))

@@ -3181,14 +3181,14 @@ func (b0 UnblockUserResponse_builder) Build() *UnblockUserResponse {
 }
 
 type ListRelationshipsRequest struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Type           RelationshipType       `protobuf:"varint,1,opt,name=type,enum=api.v1.RelationshipType"`
-	xxx_hidden_BeforeTargetId int64                  `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId"`
-	xxx_hidden_Limit          int32                  `protobuf:"varint,3,opt,name=limit"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Type        RelationshipType       `protobuf:"varint,1,opt,name=type,enum=api.v1.RelationshipType"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,2,opt,name=cursor"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,3,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListRelationshipsRequest) Reset() {
@@ -3225,11 +3225,14 @@ func (x *ListRelationshipsRequest) GetType() RelationshipType {
 	return RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
 }
 
-func (x *ListRelationshipsRequest) GetBeforeTargetId() int64 {
+func (x *ListRelationshipsRequest) GetCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeTargetId
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListRelationshipsRequest) GetLimit() int32 {
@@ -3244,8 +3247,8 @@ func (x *ListRelationshipsRequest) SetType(v RelationshipType) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
-func (x *ListRelationshipsRequest) SetBeforeTargetId(v int64) {
-	x.xxx_hidden_BeforeTargetId = v
+func (x *ListRelationshipsRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
 }
 
@@ -3261,7 +3264,7 @@ func (x *ListRelationshipsRequest) HasType() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *ListRelationshipsRequest) HasBeforeTargetId() bool {
+func (x *ListRelationshipsRequest) HasCursor() bool {
 	if x == nil {
 		return false
 	}
@@ -3280,9 +3283,9 @@ func (x *ListRelationshipsRequest) ClearType() {
 	x.xxx_hidden_Type = RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED
 }
 
-func (x *ListRelationshipsRequest) ClearBeforeTargetId() {
+func (x *ListRelationshipsRequest) ClearCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeTargetId = 0
+	x.xxx_hidden_Cursor = nil
 }
 
 func (x *ListRelationshipsRequest) ClearLimit() {
@@ -3295,9 +3298,11 @@ type ListRelationshipsRequest_builder struct {
 
 	// Optional filter; unspecified returns every type.
 	Type *RelationshipType
-	// Return relationships with target IDs smaller than this cursor.
-	BeforeTargetId *int64
-	Limit          *int32
+	// Opaque continuation from ListRelationshipsResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
+	Limit  *int32
 }
 
 func (b0 ListRelationshipsRequest_builder) Build() *ListRelationshipsRequest {
@@ -3308,9 +3313,9 @@ func (b0 ListRelationshipsRequest_builder) Build() *ListRelationshipsRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_Type = *b.Type
 	}
-	if b.BeforeTargetId != nil {
+	if b.Cursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_BeforeTargetId = *b.BeforeTargetId
+		x.xxx_hidden_Cursor = b.Cursor
 	}
 	if b.Limit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
@@ -3320,13 +3325,13 @@ func (b0 ListRelationshipsRequest_builder) Build() *ListRelationshipsRequest {
 }
 
 type ListRelationshipsResponse struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Relationships  *[]*Relationship       `protobuf:"bytes,1,rep,name=relationships"`
-	xxx_hidden_BeforeTargetId int64                  `protobuf:"varint,2,opt,name=before_target_id,json=beforeTargetId"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Relationships *[]*Relationship       `protobuf:"bytes,1,rep,name=relationships"`
+	xxx_hidden_NextCursor    *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ListRelationshipsResponse) Reset() {
@@ -3363,39 +3368,46 @@ func (x *ListRelationshipsResponse) GetRelationships() []*Relationship {
 	return nil
 }
 
-func (x *ListRelationshipsResponse) GetBeforeTargetId() int64 {
+func (x *ListRelationshipsResponse) GetNextCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeTargetId
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListRelationshipsResponse) SetRelationships(v []*Relationship) {
 	x.xxx_hidden_Relationships = &v
 }
 
-func (x *ListRelationshipsResponse) SetBeforeTargetId(v int64) {
-	x.xxx_hidden_BeforeTargetId = v
+func (x *ListRelationshipsResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
-func (x *ListRelationshipsResponse) HasBeforeTargetId() bool {
+func (x *ListRelationshipsResponse) HasNextCursor() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListRelationshipsResponse) ClearBeforeTargetId() {
+func (x *ListRelationshipsResponse) ClearNextCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeTargetId = 0
+	x.xxx_hidden_NextCursor = nil
 }
 
 type ListRelationshipsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Relationships  []*Relationship
-	BeforeTargetId *int64
+	Relationships []*Relationship
+	// Opaque cursor for the next page. Leave unset when there is no next
+	// page; do not set an empty string. Pass through unchanged as the next
+	// request's cursor. End of list is field absence (Go: !HasNextCursor();
+	// TypeScript: undefined / omitted from JSON, not null).
+	NextCursor *string
 }
 
 func (b0 ListRelationshipsResponse_builder) Build() *ListRelationshipsResponse {
@@ -3403,9 +3415,9 @@ func (b0 ListRelationshipsResponse_builder) Build() *ListRelationshipsResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Relationships = &b.Relationships
-	if b.BeforeTargetId != nil {
+	if b.NextCursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_BeforeTargetId = *b.BeforeTargetId
+		x.xxx_hidden_NextCursor = b.NextCursor
 	}
 	return m0
 }
@@ -3657,14 +3669,15 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"\x12UnblockUserRequest\x12\x1b\n" +
 	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\"%\n" +
 	"\x13UnblockUserResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x88\x01\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"v\n" +
 	"\x18ListRelationshipsRequest\x12,\n" +
-	"\x04type\x18\x01 \x01(\x0e2\x18.api.v1.RelationshipTypeR\x04type\x12(\n" +
-	"\x10before_target_id\x18\x02 \x01(\x03R\x0ebeforeTargetId\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"\x81\x01\n" +
+	"\x04type\x18\x01 \x01(\x0e2\x18.api.v1.RelationshipTypeR\x04type\x12\x16\n" +
+	"\x06cursor\x18\x02 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"x\n" +
 	"\x19ListRelationshipsResponse\x12:\n" +
-	"\rrelationships\x18\x01 \x03(\v2\x14.api.v1.RelationshipR\rrelationships\x12(\n" +
-	"\x10before_target_id\x18\x02 \x01(\x03R\x0ebeforeTargetId\"3\n" +
+	"\rrelationships\x18\x01 \x03(\v2\x14.api.v1.RelationshipR\rrelationships\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"3\n" +
 	"\x15UpdateUsernameRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\"G\n" +
 	"\x16UpdateUsernameResponse\x12-\n" +

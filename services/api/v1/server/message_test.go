@@ -550,7 +550,7 @@ func TestListDmChannelsMapsPerspective(t *testing.T) {
 	channel.SetUserHi(1001)
 	svcResp := new(messagev1.ListDmChannelsResponse)
 	svcResp.SetChannels([]*messagev1.DmChannel{channel})
-	svcResp.SetBeforeId(500)
+	svcResp.SetNextCursor("cursor-token")
 
 	messageClient := &fakeMessageClient{listDmChannelsResponse: svcResp}
 	client, closeServer := newMessageHTTPClient(t, &fakeAuthenticatorClient{
@@ -559,17 +559,17 @@ func TestListDmChannelsMapsPerspective(t *testing.T) {
 	defer closeServer()
 
 	req := new(apiv1.ListDmChannelsRequest)
-	req.SetBeforeId(600)
+	req.SetCursor("cursor-token")
 	req.SetLimit(10)
 	resp, err := client.ListDmChannels(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), messageClient.listDmChannelsRequest.GetUserId())
-	require.Equal(t, int64(600), messageClient.listDmChannelsRequest.GetBeforeId())
+	require.Equal(t, "cursor-token", messageClient.listDmChannelsRequest.GetCursor())
 	require.Len(t, resp.GetChannels(), 1)
 	// The caller is user_hi here, so the recipient is user_lo.
 	require.Equal(t, int64(42), resp.GetChannels()[0].GetRecipientId())
 	require.Equal(t, int64(42), resp.GetChannels()[0].GetRecipient().GetUserId())
-	require.Equal(t, int64(500), resp.GetBeforeId())
+	require.Equal(t, "cursor-token", resp.GetNextCursor())
 }
 
 func TestAckMessageUsesAuthenticatedUser(t *testing.T) {

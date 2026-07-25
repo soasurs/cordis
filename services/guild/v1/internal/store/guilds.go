@@ -85,7 +85,16 @@ func (s *SQLStore) GetGuildBan(ctx context.Context, guildID, userID int64) (*mod
 
 func (s *SQLStore) ListGuildBans(ctx context.Context, params ListGuildBansParams) ([]*model.GuildBan, error) {
 	var rows []*guildBanRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildBansQuery, params.GuildID, params.BeforeUserID, params.Limit); err != nil {
+	if err := sqlx.SelectContext(
+		ctx,
+		s.q,
+		&rows,
+		listGuildBansQuery,
+		params.GuildID,
+		params.BeforeCreatedAt,
+		params.BeforeUserID,
+		params.Limit,
+	); err != nil {
 		return nil, err
 	}
 	bans := make([]*model.GuildBan, 0, len(rows))
@@ -117,7 +126,16 @@ func (s *SQLStore) GetGuildMember(ctx context.Context, guildID, userID int64) (*
 
 func (s *SQLStore) ListGuildMembers(ctx context.Context, params ListGuildMembersParams) ([]*model.GuildMember, error) {
 	var rows []*guildMemberRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMembersQuery, params.GuildID, params.BeforeUserID, params.Limit); err != nil {
+	if err := sqlx.SelectContext(
+		ctx,
+		s.q,
+		&rows,
+		listGuildMembersQuery,
+		params.GuildID,
+		params.BeforeJoinedAt,
+		params.BeforeUserID,
+		params.Limit,
+	); err != nil {
 		return nil, err
 	}
 	members := make([]*model.GuildMember, 0, len(rows))
@@ -136,6 +154,7 @@ func (s *SQLStore) ListGuildRoleMembers(ctx context.Context, params ListGuildRol
 		listGuildRoleMembersQuery,
 		params.GuildID,
 		params.RoleID,
+		params.BeforeJoinedAt,
 		params.BeforeUserID,
 		params.Limit,
 	); err != nil {

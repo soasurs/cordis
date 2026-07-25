@@ -355,6 +355,8 @@ log:
   stat: false
 database:
   dataSource: %s
+cursor:
+  secret: test-cursor-secret-at-least-32-bytes!
 services:
   media:
     endpoints:

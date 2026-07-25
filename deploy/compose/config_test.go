@@ -71,6 +71,7 @@ func TestServiceConfigsLoad(t *testing.T) {
 	t.Setenv("CORDIS_DATABASE_DSN", "postgres://cordis:test@postgres:5432/cordis?sslmode=disable")
 	t.Setenv("CORDIS_ACCESS_TOKEN_SECRET", "test-access-secret")
 	t.Setenv("CORDIS_REFRESH_TOKEN_SECRET", "test-refresh-secret")
+	t.Setenv("CORDIS_CURSOR_SECRET", "test-cursor-secret-at-least-32-bytes!")
 	t.Setenv("CORDIS_TOTP_ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 	t.Setenv("CORDIS_MINIO_ROOT_USER", "cordislocal")
 	t.Setenv("CORDIS_MINIO_ROOT_PASSWORD", "cordislocalpass")

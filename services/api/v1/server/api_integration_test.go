@@ -532,6 +532,8 @@ log:
   stat: false
 database:
   dataSource: %s
+cursor:
+  secret: test-cursor-secret-at-least-32-bytes!
 services:
   media:
     endpoints:
@@ -631,6 +633,8 @@ log:
   stat: false
 database:
   dataSource: %s
+cursor:
+  secret: test-cursor-secret-at-least-32-bytes!
 services:
   user:
     endpoints:
@@ -655,6 +659,8 @@ log:
   stat: false
 database:
   dataSource: %s
+cursor:
+  secret: test-cursor-secret-at-least-32-bytes!
 services:
   guild:
     endpoints:

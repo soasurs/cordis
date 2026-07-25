@@ -10,10 +10,11 @@ import (
 )
 
 type ListRelationshipsParams struct {
-	UserID         int64
-	Type           int16
-	BeforeTargetID int64
-	Limit          int
+	UserID          int64
+	Type            int16
+	BeforeCreatedAt int64
+	BeforeTargetID  int64
+	Limit           int
 }
 
 type UpdateUserProfileParams struct {

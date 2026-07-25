@@ -195,9 +195,13 @@ const (
 	FROM user_relationships
 	WHERE user_id = $1
 	  AND ($2 = 0 OR type = $2)
-	  AND ($3 = 0 OR target_id < $3)
-	ORDER BY target_id DESC
-	LIMIT $4
+	  AND (
+	      $3::BIGINT = 0
+	      OR created_at < $3::BIGINT
+	      OR (created_at = $3::BIGINT AND target_id < $4::BIGINT)
+	  )
+	ORDER BY created_at DESC, target_id DESC
+	LIMIT $5
 	`
 
 	ListRelationshipsByTargetsQuery = `

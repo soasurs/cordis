@@ -12,7 +12,7 @@
 
 监听 `:3000`，拥有用户和资料数据。负责注册所需的用户创建、用户查询、邮箱可用性、邮箱更新、资料更新、密码校验和修改。密码使用 Argon2id 哈希。User 不签发令牌。
 
-Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事件在关系事务前从 User store 加载目标 profile，使提交后的更新事件可以独立渲染。
+Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事件在关系事务前从 User store 加载目标 profile，使提交后的更新事件可以独立渲染。关系列表使用 opaque `cursor` / `next_cursor` 分页（按 `created_at`、`target_id` 降序；没有下一页时省略 `next_cursor`）。可选的 `type` 过滤属于 cursor 作用域，翻页时必须保持不变。
 
 ## Authenticator
 
@@ -42,7 +42,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 
-按角色列出成员与 Guild 成员列表使用相同的用户 ID 游标分页；普通角色返回显式分配且有效的成员，默认角色返回全部有效 Guild 成员。公开 Guild member 响应始终嵌入成员 profile；封禁响应同时嵌入被封用户和操作者 profile，邀请响应嵌入创建者 profile。成员与封禁事件不经过 API，因此 Guild 自行加载事件需要的 profile。
+按角色列出成员与 Guild 成员列表使用相同的 opaque `cursor` / `next_cursor` 分页（按 `joined_at`、`user_id` 降序；没有下一页时省略 `next_cursor`）。普通角色返回显式分配且有效的成员，默认角色返回全部有效 Guild 成员。公开 Guild member 响应始终嵌入成员 profile；封禁响应同时嵌入被封用户和操作者 profile，邀请响应嵌入创建者 profile。成员与封禁事件不经过 API，因此 Guild 自行加载事件需要的 profile。
 
 持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
 
@@ -50,7 +50,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 ## Message
 
-监听 `:3002`，拥有消息、附件、提及和回复关系。创建、读取、更新和删除操作先调用 Guild 授权。列表使用 `before`、`after` 或 `around` 游标分页。当前没有反应或自定义 emoji RPC。
+监听 `:3002`，拥有消息、附件、提及和回复关系。创建、读取、更新和删除操作先调用 Guild 授权。列表使用 `before`、`after` 或 `around` 消息 ID 游标分页。DM 频道列表使用 opaque `cursor` / `next_cursor`（按 channel id 降序）。当前没有反应或自定义 emoji RPC。
 
 内部消息对象只携带 `author_id`，不嵌入 User profile。API 在组装公开
 `ListMessages` 响应时批量加载去重后的作者资料。单条消息 RPC 将 profile 作为响应附加数据返回，

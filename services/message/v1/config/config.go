@@ -13,9 +13,15 @@ type Config struct {
 	zrpc.RpcServerConf
 	Database   database.Config `json:",optional"`
 	Kafka      KafkaConfig     `json:",optional"`
+	Cursor     CursorConfig
 	ReadStates ReadStatesConfig
 	Limits     ResourceLimitsConfig
 	Services   ServiceConfig
+}
+
+// CursorConfig holds the HMAC secret for opaque list continuation tokens.
+type CursorConfig struct {
+	Secret string
 }
 
 // ResourceLimitsConfig controls per-message collection limits.

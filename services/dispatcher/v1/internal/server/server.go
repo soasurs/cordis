@@ -411,12 +411,14 @@ func (s *Server) dispatchPresence(ctx context.Context, userID int64, event event
 // friendIDs pages through the user's friendships.
 func (s *Server) friendIDs(ctx context.Context, userID int64) ([]int64, error) {
 	var friends []int64
-	var before int64
+	var cursor string
 	for {
 		req := new(userv1.ListRelationshipsRequest)
 		req.SetUserId(userID)
 		req.SetType(userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)
-		req.SetBeforeTargetId(before)
+		if cursor != "" {
+			req.SetCursor(cursor)
+		}
 		req.SetLimit(200)
 		resp, err := s.userClient.ListRelationships(ctx, req)
 		if err != nil {
@@ -429,7 +431,10 @@ func (s *Server) friendIDs(ctx context.Context, userID int64) ([]int64, error) {
 		for _, relationship := range relationships {
 			friends = append(friends, relationship.GetTargetId())
 		}
-		before = resp.GetBeforeTargetId()
+		if !resp.HasNextCursor() {
+			return friends, nil
+		}
+		cursor = resp.GetNextCursor()
 	}
 }
 

@@ -31,7 +31,7 @@ var (
 	errInvalidUsername      = status.Error(codes.InvalidArgument, "username must be 2-32 lowercase letters, digits, or underscores")
 	errTargetIDRequired     = status.Error(codes.InvalidArgument, "target id is required")
 	errSelfRelationship     = status.Error(codes.InvalidArgument, "cannot form a relationship with yourself")
-	errInvalidCursor        = status.Error(codes.InvalidArgument, "cursor must not be negative")
+	errInvalidCursor        = status.Error(codes.InvalidArgument, "cursor is invalid")
 	errBatchTooLarge        = status.Error(codes.InvalidArgument, "too many target ids")
 	errProfileBatchTooLarge = status.Error(codes.InvalidArgument, "too many user ids")
 	errInvalidLimit         = status.Error(codes.InvalidArgument, "limit is out of range")

@@ -221,7 +221,7 @@ func TestRelationshipMutationsUseAuthenticatedUser(t *testing.T) {
 func TestListRelationshipsMapsRequestAndResponse(t *testing.T) {
 	svcResp := new(userv1.ListRelationshipsResponse)
 	svcResp.SetRelationships([]*userv1.Relationship{internalRelationship()})
-	svcResp.SetBeforeTargetId(1002)
+	svcResp.SetNextCursor("cursor-token")
 
 	authenticatorClient := &fakeAuthenticatorClient{
 		verifyResponse: verifyAccessTokenResponse(1001),
@@ -234,18 +234,18 @@ func TestListRelationshipsMapsRequestAndResponse(t *testing.T) {
 
 	req := new(apiv1.ListRelationshipsRequest)
 	req.SetType(apiv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)
-	req.SetBeforeTargetId(9999)
+	req.SetCursor("cursor-token")
 	req.SetLimit(50)
 	resp, err := client.ListRelationships(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), userClient.listRelationshipsRequest.GetUserId())
 	require.Equal(t, userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND, userClient.listRelationshipsRequest.GetType())
-	require.Equal(t, int64(9999), userClient.listRelationshipsRequest.GetBeforeTargetId())
+	require.Equal(t, "cursor-token", userClient.listRelationshipsRequest.GetCursor())
 	require.Equal(t, int32(50), userClient.listRelationshipsRequest.GetLimit())
 	require.Len(t, resp.GetRelationships(), 1)
 	require.Equal(t, int64(1002), resp.GetRelationships()[0].GetTargetId())
 	require.Equal(t, int64(1002), resp.GetRelationships()[0].GetProfile().GetUserId())
-	require.Equal(t, int64(1002), resp.GetBeforeTargetId())
+	require.Equal(t, "cursor-token", resp.GetNextCursor())
 }
 
 func TestRelationshipErrorMappings(t *testing.T) {

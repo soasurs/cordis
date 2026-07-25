@@ -67,7 +67,9 @@ func (s *guildServer) ListGuilds(ctx context.Context, req *apiv1.ListGuildsReque
 	}
 	svcReq := new(guildv1.ListUserGuildsRequest)
 	svcReq.SetUserId(auth.GetUserId())
-	svcReq.SetBefore(req.GetBefore())
+	if req.HasCursor() {
+		svcReq.SetCursor(req.GetCursor())
+	}
 	svcReq.SetLimit(req.GetLimit())
 	svcResp, err := s.svcCtx.GuildClient.ListUserGuilds(ctx, svcReq)
 	if err != nil {
@@ -75,7 +77,9 @@ func (s *guildServer) ListGuilds(ctx context.Context, req *apiv1.ListGuildsReque
 	}
 	resp := new(apiv1.ListGuildsResponse)
 	resp.SetGuilds(guildsToAPI(svcResp.GetGuilds()))
-	resp.SetBeforeCursor(svcResp.GetBeforeCursor())
+	if svcResp.HasNextCursor() {
+		resp.SetNextCursor(svcResp.GetNextCursor())
+	}
 	return resp, nil
 }
 
@@ -235,7 +239,9 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuild
 	svcReq := new(guildv1.ListGuildMembersRequest)
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())
-	svcReq.SetBeforeUserId(req.GetBeforeUserId())
+	if req.HasCursor() {
+		svcReq.SetCursor(req.GetCursor())
+	}
 	svcReq.SetLimit(req.GetLimit())
 	svcResp, err := s.svcCtx.GuildClient.ListGuildMembers(ctx, svcReq)
 	if err != nil {
@@ -247,7 +253,9 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuild
 	}
 	resp := new(apiv1.ListGuildMembersResponse)
 	resp.SetMembers(members)
-	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
+	if svcResp.HasNextCursor() {
+		resp.SetNextCursor(svcResp.GetNextCursor())
+	}
 	return resp, nil
 }
 
@@ -369,7 +377,9 @@ func (s *guildServer) ListGuildBans(ctx context.Context, req *apiv1.ListGuildBan
 	svcReq := new(guildv1.ListGuildBansRequest)
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())
-	svcReq.SetBeforeUserId(req.GetBeforeUserId())
+	if req.HasCursor() {
+		svcReq.SetCursor(req.GetCursor())
+	}
 	svcReq.SetLimit(req.GetLimit())
 	svcResp, err := s.svcCtx.GuildClient.ListGuildBans(ctx, svcReq)
 	if err != nil {
@@ -381,7 +391,9 @@ func (s *guildServer) ListGuildBans(ctx context.Context, req *apiv1.ListGuildBan
 	}
 	resp := new(apiv1.ListGuildBansResponse)
 	resp.SetBans(bans)
-	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
+	if svcResp.HasNextCursor() {
+		resp.SetNextCursor(svcResp.GetNextCursor())
+	}
 	return resp, nil
 }
 

@@ -58,22 +58,25 @@ type ListUserGuildsParams struct {
 }
 
 type ListGuildMembersParams struct {
-	GuildID      int64
-	BeforeUserID int64
-	Limit        int
+	GuildID        int64
+	BeforeJoinedAt int64
+	BeforeUserID   int64
+	Limit          int
 }
 
 type ListGuildRoleMembersParams struct {
-	GuildID      int64
-	RoleID       int64
-	BeforeUserID int64
-	Limit        int
+	GuildID        int64
+	RoleID         int64
+	BeforeJoinedAt int64
+	BeforeUserID   int64
+	Limit          int
 }
 
 type ListGuildBansParams struct {
-	GuildID      int64
-	BeforeUserID int64
-	Limit        int
+	GuildID         int64
+	BeforeCreatedAt int64
+	BeforeUserID    int64
+	Limit           int
 }
 
 type ListGuildInvitesParams struct {

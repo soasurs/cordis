@@ -10,6 +10,7 @@ import (
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
@@ -156,8 +157,13 @@ func (s *guildServer) ListGuildBans(ctx context.Context, req *guildv1.ListGuildB
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err
 	}
-	if req.GetBeforeUserId() < 0 {
-		return nil, invalidRequest("before user id must not be negative")
+	token, err := readCursor(req.HasCursor(), req.GetCursor())
+	if err != nil {
+		return nil, err
+	}
+	beforeCreatedAt, beforeUserID, _, err := decodeGuildTimeIDCursor(s.svcCtx.Cursors, cursor.KindGuildBans, token, req.GetGuildId())
+	if err != nil {
+		return nil, err
 	}
 	limit, err := normalizeLimit(req.GetLimit())
 	if err != nil {
@@ -171,15 +177,19 @@ func (s *guildServer) ListGuildBans(ctx context.Context, req *guildv1.ListGuildB
 		return nil, permissionDenied()
 	}
 	bans, err := s.svcCtx.Store.ListGuildBans(ctx, store.ListGuildBansParams{
-		GuildID: req.GetGuildId(), BeforeUserID: req.GetBeforeUserId(), Limit: limit,
+		GuildID:         req.GetGuildId(),
+		BeforeCreatedAt: beforeCreatedAt,
+		BeforeUserID:    beforeUserID,
+		Limit:           limit + 1,
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	page, hasMore := cursor.Trim(bans, limit)
 	resp := new(guildv1.ListGuildBansResponse)
-	resp.SetBans(guildBansToProto(bans))
-	if len(bans) > 0 {
-		resp.SetBeforeUserId(bans[len(bans)-1].UserID)
+	resp.SetBans(guildBansToProto(page))
+	if err := setNextBanCursor(s.svcCtx.Cursors, resp.SetNextCursor, hasMore, page, req.GetGuildId()); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }

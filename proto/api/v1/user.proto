@@ -241,14 +241,20 @@ message UnblockUserResponse {
 message ListRelationshipsRequest {
   // Optional filter; unspecified returns every type.
   RelationshipType type = 1;
-  // Return relationships with target IDs smaller than this cursor.
-  int64 before_target_id = 2;
+  // Opaque continuation from ListRelationshipsResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 2;
   int32 limit = 3;
 }
 
 message ListRelationshipsResponse {
   repeated Relationship relationships = 1;
-  int64 before_target_id = 2;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
 }
 
 message UpdateUsernameRequest {

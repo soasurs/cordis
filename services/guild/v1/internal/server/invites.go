@@ -12,6 +12,7 @@ import (
 	"github.com/lib/pq"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
@@ -127,8 +128,13 @@ func (s *guildServer) ListGuildInvites(ctx context.Context, req *guildv1.ListGui
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err
 	}
-	if req.GetBeforeId() < 0 {
-		return nil, invalidRequest("before id must not be negative")
+	token, err := readCursor(req.HasCursor(), req.GetCursor())
+	if err != nil {
+		return nil, err
+	}
+	beforeID, _, err := decodeGuildIDCursor(s.svcCtx.Cursors, cursor.KindGuildInvites, token, req.GetGuildId())
+	if err != nil {
+		return nil, err
 	}
 	limit, err := normalizeLimit(req.GetLimit())
 	if err != nil {
@@ -142,15 +148,18 @@ func (s *guildServer) ListGuildInvites(ctx context.Context, req *guildv1.ListGui
 		return nil, permissionDenied()
 	}
 	invites, err := s.svcCtx.Store.ListGuildInvites(ctx, store.ListGuildInvitesParams{
-		GuildID: req.GetGuildId(), BeforeID: req.GetBeforeId(), Limit: limit,
+		GuildID:  req.GetGuildId(),
+		BeforeID: beforeID,
+		Limit:    limit + 1,
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	page, hasMore := cursor.Trim(invites, limit)
 	resp := new(guildv1.ListGuildInvitesResponse)
-	resp.SetInvites(guildInvitesToProto(invites))
-	if len(invites) > 0 {
-		resp.SetBeforeId(invites[len(invites)-1].ID)
+	resp.SetInvites(guildInvitesToProto(page))
+	if err := setNextGuildIDCursor(s.svcCtx.Cursors, cursor.KindGuildInvites, resp.SetNextCursor, hasMore, page, req.GetGuildId(), func(inv *model.GuildInvite) int64 { return inv.ID }); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }

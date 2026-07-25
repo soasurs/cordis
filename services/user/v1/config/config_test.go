@@ -8,6 +8,7 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
+	t.Setenv("CORDIS_CURSOR_SECRET", "test-cursor-secret-at-least-32-bytes!")
 	var cfg Config
 	err := conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv())
 	if err != nil {
@@ -22,5 +23,8 @@ func TestLoadConfig(t *testing.T) {
 	}
 	if cfg.Health {
 		t.Fatal("built-in gRPC health service should be disabled")
+	}
+	if cfg.Cursor.Secret != "test-cursor-secret-at-least-32-bytes!" {
+		t.Fatalf("unexpected cursor secret: %q", cfg.Cursor.Secret)
 	}
 }

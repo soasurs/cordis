@@ -2277,7 +2277,7 @@ func (b0 GetGuildResponse_builder) Build() *GetGuildResponse {
 type ListUserGuildsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_Before      int64                  `protobuf:"varint,2,opt,name=before"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,2,opt,name=cursor"`
 	xxx_hidden_Limit       int32                  `protobuf:"varint,3,opt,name=limit"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
@@ -2317,11 +2317,14 @@ func (x *ListUserGuildsRequest) GetUserId() int64 {
 	return 0
 }
 
-func (x *ListUserGuildsRequest) GetBefore() int64 {
+func (x *ListUserGuildsRequest) GetCursor() string {
 	if x != nil {
-		return x.xxx_hidden_Before
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListUserGuildsRequest) GetLimit() int32 {
@@ -2336,8 +2339,8 @@ func (x *ListUserGuildsRequest) SetUserId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
-func (x *ListUserGuildsRequest) SetBefore(v int64) {
-	x.xxx_hidden_Before = v
+func (x *ListUserGuildsRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
 }
 
@@ -2353,7 +2356,7 @@ func (x *ListUserGuildsRequest) HasUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *ListUserGuildsRequest) HasBefore() bool {
+func (x *ListUserGuildsRequest) HasCursor() bool {
 	if x == nil {
 		return false
 	}
@@ -2372,9 +2375,9 @@ func (x *ListUserGuildsRequest) ClearUserId() {
 	x.xxx_hidden_UserId = 0
 }
 
-func (x *ListUserGuildsRequest) ClearBefore() {
+func (x *ListUserGuildsRequest) ClearCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Before = 0
+	x.xxx_hidden_Cursor = nil
 }
 
 func (x *ListUserGuildsRequest) ClearLimit() {
@@ -2386,8 +2389,10 @@ type ListUserGuildsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	UserId *int64
-	// Return guilds with IDs smaller than this cursor.
-	Before *int64
+	// Opaque continuation from ListUserGuildsResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
 	// Maximum results per page. Zero uses the default of 50; maximum is 100.
 	Limit *int32
 }
@@ -2400,9 +2405,9 @@ func (b0 ListUserGuildsRequest_builder) Build() *ListUserGuildsRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_UserId = *b.UserId
 	}
-	if b.Before != nil {
+	if b.Cursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_Before = *b.Before
+		x.xxx_hidden_Cursor = b.Cursor
 	}
 	if b.Limit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
@@ -2412,13 +2417,13 @@ func (b0 ListUserGuildsRequest_builder) Build() *ListUserGuildsRequest {
 }
 
 type ListUserGuildsResponse struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Guilds       *[]*Guild              `protobuf:"bytes,1,rep,name=guilds"`
-	xxx_hidden_BeforeCursor int64                  `protobuf:"varint,2,opt,name=before_cursor,json=beforeCursor"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Guilds      *[]*Guild              `protobuf:"bytes,1,rep,name=guilds"`
+	xxx_hidden_NextCursor  *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListUserGuildsResponse) Reset() {
@@ -2455,40 +2460,46 @@ func (x *ListUserGuildsResponse) GetGuilds() []*Guild {
 	return nil
 }
 
-func (x *ListUserGuildsResponse) GetBeforeCursor() int64 {
+func (x *ListUserGuildsResponse) GetNextCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeCursor
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListUserGuildsResponse) SetGuilds(v []*Guild) {
 	x.xxx_hidden_Guilds = &v
 }
 
-func (x *ListUserGuildsResponse) SetBeforeCursor(v int64) {
-	x.xxx_hidden_BeforeCursor = v
+func (x *ListUserGuildsResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
-func (x *ListUserGuildsResponse) HasBeforeCursor() bool {
+func (x *ListUserGuildsResponse) HasNextCursor() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListUserGuildsResponse) ClearBeforeCursor() {
+func (x *ListUserGuildsResponse) ClearNextCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeCursor = 0
+	x.xxx_hidden_NextCursor = nil
 }
 
 type ListUserGuildsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Guilds []*Guild
-	// Smallest guild ID in this page, or zero when this page is empty.
-	BeforeCursor *int64
+	// Opaque cursor for the next page. Leave unset when there is no next
+	// page; do not set an empty string. Pass through unchanged as the next
+	// request's cursor. End of list is field absence (Go: !HasNextCursor();
+	// TypeScript: undefined / omitted from JSON, not null).
+	NextCursor *string
 }
 
 func (b0 ListUserGuildsResponse_builder) Build() *ListUserGuildsResponse {
@@ -2496,9 +2507,9 @@ func (b0 ListUserGuildsResponse_builder) Build() *ListUserGuildsResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Guilds = &b.Guilds
-	if b.BeforeCursor != nil {
+	if b.NextCursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_BeforeCursor = *b.BeforeCursor
+		x.xxx_hidden_NextCursor = b.NextCursor
 	}
 	return m0
 }
@@ -4665,15 +4676,15 @@ func (b0 GetGuildMemberResponse_builder) Build() *GetGuildMemberResponse {
 }
 
 type ListGuildMembersRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GuildId      int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId  int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,3,opt,name=before_user_id,json=beforeUserId"`
-	xxx_hidden_Limit        int32                  `protobuf:"varint,4,opt,name=limit"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,3,opt,name=cursor"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,4,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildMembersRequest) Reset() {
@@ -4715,11 +4726,14 @@ func (x *ListGuildMembersRequest) GetActorUserId() int64 {
 	return 0
 }
 
-func (x *ListGuildMembersRequest) GetBeforeUserId() int64 {
+func (x *ListGuildMembersRequest) GetCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeUserId
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildMembersRequest) GetLimit() int32 {
@@ -4739,8 +4753,8 @@ func (x *ListGuildMembersRequest) SetActorUserId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
-func (x *ListGuildMembersRequest) SetBeforeUserId(v int64) {
-	x.xxx_hidden_BeforeUserId = v
+func (x *ListGuildMembersRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
 }
 
@@ -4763,7 +4777,7 @@ func (x *ListGuildMembersRequest) HasActorUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListGuildMembersRequest) HasBeforeUserId() bool {
+func (x *ListGuildMembersRequest) HasCursor() bool {
 	if x == nil {
 		return false
 	}
@@ -4787,9 +4801,9 @@ func (x *ListGuildMembersRequest) ClearActorUserId() {
 	x.xxx_hidden_ActorUserId = 0
 }
 
-func (x *ListGuildMembersRequest) ClearBeforeUserId() {
+func (x *ListGuildMembersRequest) ClearCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_BeforeUserId = 0
+	x.xxx_hidden_Cursor = nil
 }
 
 func (x *ListGuildMembersRequest) ClearLimit() {
@@ -4802,8 +4816,10 @@ type ListGuildMembersRequest_builder struct {
 
 	GuildId     *int64
 	ActorUserId *int64
-	// Return members with user IDs smaller than this cursor.
-	BeforeUserId *int64
+	// Opaque continuation from ListGuildMembersResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
 	// Maximum results per page. Zero uses the default of 50; maximum is 100.
 	Limit *int32
 }
@@ -4820,9 +4836,9 @@ func (b0 ListGuildMembersRequest_builder) Build() *ListGuildMembersRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
-	if b.BeforeUserId != nil {
+	if b.Cursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+		x.xxx_hidden_Cursor = b.Cursor
 	}
 	if b.Limit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
@@ -4832,13 +4848,13 @@ func (b0 ListGuildMembersRequest_builder) Build() *ListGuildMembersRequest {
 }
 
 type ListGuildMembersResponse struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Members      *[]*GuildMember        `protobuf:"bytes,1,rep,name=members"`
-	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Members     *[]*GuildMember        `protobuf:"bytes,1,rep,name=members"`
+	xxx_hidden_NextCursor  *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildMembersResponse) Reset() {
@@ -4875,40 +4891,46 @@ func (x *ListGuildMembersResponse) GetMembers() []*GuildMember {
 	return nil
 }
 
-func (x *ListGuildMembersResponse) GetBeforeUserId() int64 {
+func (x *ListGuildMembersResponse) GetNextCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeUserId
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildMembersResponse) SetMembers(v []*GuildMember) {
 	x.xxx_hidden_Members = &v
 }
 
-func (x *ListGuildMembersResponse) SetBeforeUserId(v int64) {
-	x.xxx_hidden_BeforeUserId = v
+func (x *ListGuildMembersResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
-func (x *ListGuildMembersResponse) HasBeforeUserId() bool {
+func (x *ListGuildMembersResponse) HasNextCursor() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListGuildMembersResponse) ClearBeforeUserId() {
+func (x *ListGuildMembersResponse) ClearNextCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeUserId = 0
+	x.xxx_hidden_NextCursor = nil
 }
 
 type ListGuildMembersResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Members []*GuildMember
-	// Smallest user ID in this page, or zero when the page is empty.
-	BeforeUserId *int64
+	// Opaque cursor for the next page. Leave unset when there is no next
+	// page; do not set an empty string. Pass through unchanged as the next
+	// request's cursor. End of list is field absence (Go: !HasNextCursor();
+	// TypeScript: undefined / omitted from JSON, not null).
+	NextCursor *string
 }
 
 func (b0 ListGuildMembersResponse_builder) Build() *ListGuildMembersResponse {
@@ -4916,9 +4938,9 @@ func (b0 ListGuildMembersResponse_builder) Build() *ListGuildMembersResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Members = &b.Members
-	if b.BeforeUserId != nil {
+	if b.NextCursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+		x.xxx_hidden_NextCursor = b.NextCursor
 	}
 	return m0
 }
@@ -5787,15 +5809,15 @@ func (b0 UnbanGuildMemberResponse_builder) Build() *UnbanGuildMemberResponse {
 }
 
 type ListGuildBansRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GuildId      int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId  int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,3,opt,name=before_user_id,json=beforeUserId"`
-	xxx_hidden_Limit        int32                  `protobuf:"varint,4,opt,name=limit"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,3,opt,name=cursor"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,4,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildBansRequest) Reset() {
@@ -5837,11 +5859,14 @@ func (x *ListGuildBansRequest) GetActorUserId() int64 {
 	return 0
 }
 
-func (x *ListGuildBansRequest) GetBeforeUserId() int64 {
+func (x *ListGuildBansRequest) GetCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeUserId
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildBansRequest) GetLimit() int32 {
@@ -5861,8 +5886,8 @@ func (x *ListGuildBansRequest) SetActorUserId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
-func (x *ListGuildBansRequest) SetBeforeUserId(v int64) {
-	x.xxx_hidden_BeforeUserId = v
+func (x *ListGuildBansRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
 }
 
@@ -5885,7 +5910,7 @@ func (x *ListGuildBansRequest) HasActorUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListGuildBansRequest) HasBeforeUserId() bool {
+func (x *ListGuildBansRequest) HasCursor() bool {
 	if x == nil {
 		return false
 	}
@@ -5909,9 +5934,9 @@ func (x *ListGuildBansRequest) ClearActorUserId() {
 	x.xxx_hidden_ActorUserId = 0
 }
 
-func (x *ListGuildBansRequest) ClearBeforeUserId() {
+func (x *ListGuildBansRequest) ClearCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_BeforeUserId = 0
+	x.xxx_hidden_Cursor = nil
 }
 
 func (x *ListGuildBansRequest) ClearLimit() {
@@ -5924,8 +5949,10 @@ type ListGuildBansRequest_builder struct {
 
 	GuildId     *int64
 	ActorUserId *int64
-	// Return bans with user IDs smaller than this cursor.
-	BeforeUserId *int64
+	// Opaque continuation from ListGuildBansResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
 	// Maximum results per page. Zero uses the default of 50; maximum is 100.
 	Limit *int32
 }
@@ -5942,9 +5969,9 @@ func (b0 ListGuildBansRequest_builder) Build() *ListGuildBansRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
-	if b.BeforeUserId != nil {
+	if b.Cursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+		x.xxx_hidden_Cursor = b.Cursor
 	}
 	if b.Limit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
@@ -5954,13 +5981,13 @@ func (b0 ListGuildBansRequest_builder) Build() *ListGuildBansRequest {
 }
 
 type ListGuildBansResponse struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Bans         *[]*GuildBan           `protobuf:"bytes,1,rep,name=bans"`
-	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Bans        *[]*GuildBan           `protobuf:"bytes,1,rep,name=bans"`
+	xxx_hidden_NextCursor  *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildBansResponse) Reset() {
@@ -5997,40 +6024,46 @@ func (x *ListGuildBansResponse) GetBans() []*GuildBan {
 	return nil
 }
 
-func (x *ListGuildBansResponse) GetBeforeUserId() int64 {
+func (x *ListGuildBansResponse) GetNextCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeUserId
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildBansResponse) SetBans(v []*GuildBan) {
 	x.xxx_hidden_Bans = &v
 }
 
-func (x *ListGuildBansResponse) SetBeforeUserId(v int64) {
-	x.xxx_hidden_BeforeUserId = v
+func (x *ListGuildBansResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
-func (x *ListGuildBansResponse) HasBeforeUserId() bool {
+func (x *ListGuildBansResponse) HasNextCursor() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListGuildBansResponse) ClearBeforeUserId() {
+func (x *ListGuildBansResponse) ClearNextCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeUserId = 0
+	x.xxx_hidden_NextCursor = nil
 }
 
 type ListGuildBansResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Bans []*GuildBan
-	// Smallest user ID in this page, or zero when the page is empty.
-	BeforeUserId *int64
+	// Opaque cursor for the next page. Leave unset when there is no next
+	// page; do not set an empty string. Pass through unchanged as the next
+	// request's cursor. End of list is field absence (Go: !HasNextCursor();
+	// TypeScript: undefined / omitted from JSON, not null).
+	NextCursor *string
 }
 
 func (b0 ListGuildBansResponse_builder) Build() *ListGuildBansResponse {
@@ -6038,9 +6071,9 @@ func (b0 ListGuildBansResponse_builder) Build() *ListGuildBansResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Bans = &b.Bans
-	if b.BeforeUserId != nil {
+	if b.NextCursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+		x.xxx_hidden_NextCursor = b.NextCursor
 	}
 	return m0
 }
@@ -7373,7 +7406,7 @@ type ListGuildInvitesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
 	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_BeforeId    int64                  `protobuf:"varint,3,opt,name=before_id,json=beforeId"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,3,opt,name=cursor"`
 	xxx_hidden_Limit       int32                  `protobuf:"varint,4,opt,name=limit"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
@@ -7420,11 +7453,14 @@ func (x *ListGuildInvitesRequest) GetActorUserId() int64 {
 	return 0
 }
 
-func (x *ListGuildInvitesRequest) GetBeforeId() int64 {
+func (x *ListGuildInvitesRequest) GetCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeId
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildInvitesRequest) GetLimit() int32 {
@@ -7444,8 +7480,8 @@ func (x *ListGuildInvitesRequest) SetActorUserId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
-func (x *ListGuildInvitesRequest) SetBeforeId(v int64) {
-	x.xxx_hidden_BeforeId = v
+func (x *ListGuildInvitesRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
 }
 
@@ -7468,7 +7504,7 @@ func (x *ListGuildInvitesRequest) HasActorUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListGuildInvitesRequest) HasBeforeId() bool {
+func (x *ListGuildInvitesRequest) HasCursor() bool {
 	if x == nil {
 		return false
 	}
@@ -7492,9 +7528,9 @@ func (x *ListGuildInvitesRequest) ClearActorUserId() {
 	x.xxx_hidden_ActorUserId = 0
 }
 
-func (x *ListGuildInvitesRequest) ClearBeforeId() {
+func (x *ListGuildInvitesRequest) ClearCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_BeforeId = 0
+	x.xxx_hidden_Cursor = nil
 }
 
 func (x *ListGuildInvitesRequest) ClearLimit() {
@@ -7507,8 +7543,10 @@ type ListGuildInvitesRequest_builder struct {
 
 	GuildId     *int64
 	ActorUserId *int64
-	// Return invites with IDs smaller than this cursor.
-	BeforeId *int64
+	// Opaque continuation from ListGuildInvitesResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
 	// Maximum results per page. Zero uses the default of 50; maximum is 100.
 	Limit *int32
 }
@@ -7525,9 +7563,9 @@ func (b0 ListGuildInvitesRequest_builder) Build() *ListGuildInvitesRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
-	if b.BeforeId != nil {
+	if b.Cursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_BeforeId = *b.BeforeId
+		x.xxx_hidden_Cursor = b.Cursor
 	}
 	if b.Limit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
@@ -7539,7 +7577,7 @@ func (b0 ListGuildInvitesRequest_builder) Build() *ListGuildInvitesRequest {
 type ListGuildInvitesResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Invites     *[]*GuildInvite        `protobuf:"bytes,1,rep,name=invites"`
-	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	xxx_hidden_NextCursor  *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -7580,40 +7618,46 @@ func (x *ListGuildInvitesResponse) GetInvites() []*GuildInvite {
 	return nil
 }
 
-func (x *ListGuildInvitesResponse) GetBeforeId() int64 {
+func (x *ListGuildInvitesResponse) GetNextCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeId
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildInvitesResponse) SetInvites(v []*GuildInvite) {
 	x.xxx_hidden_Invites = &v
 }
 
-func (x *ListGuildInvitesResponse) SetBeforeId(v int64) {
-	x.xxx_hidden_BeforeId = v
+func (x *ListGuildInvitesResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
-func (x *ListGuildInvitesResponse) HasBeforeId() bool {
+func (x *ListGuildInvitesResponse) HasNextCursor() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListGuildInvitesResponse) ClearBeforeId() {
+func (x *ListGuildInvitesResponse) ClearNextCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeId = 0
+	x.xxx_hidden_NextCursor = nil
 }
 
 type ListGuildInvitesResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Invites []*GuildInvite
-	// Smallest invite ID in this page, or zero when the page is empty.
-	BeforeId *int64
+	// Opaque cursor for the next page. Leave unset when there is no next
+	// page; do not set an empty string. Pass through unchanged as the next
+	// request's cursor. End of list is field absence (Go: !HasNextCursor();
+	// TypeScript: undefined / omitted from JSON, not null).
+	NextCursor *string
 }
 
 func (b0 ListGuildInvitesResponse_builder) Build() *ListGuildInvitesResponse {
@@ -7621,9 +7665,9 @@ func (b0 ListGuildInvitesResponse_builder) Build() *ListGuildInvitesResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Invites = &b.Invites
-	if b.BeforeId != nil {
+	if b.NextCursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_BeforeId = *b.BeforeId
+		x.xxx_hidden_NextCursor = b.NextCursor
 	}
 	return m0
 }
@@ -10059,16 +10103,16 @@ func (b0 ListGuildMemberRolesResponse_builder) Build() *ListGuildMemberRolesResp
 }
 
 type ListGuildRoleMembersRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GuildId      int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId  int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_RoleId       int64                  `protobuf:"varint,3,opt,name=role_id,json=roleId"`
-	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,4,opt,name=before_user_id,json=beforeUserId"`
-	xxx_hidden_Limit        int32                  `protobuf:"varint,5,opt,name=limit"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_RoleId      int64                  `protobuf:"varint,3,opt,name=role_id,json=roleId"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,4,opt,name=cursor"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,5,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildRoleMembersRequest) Reset() {
@@ -10117,11 +10161,14 @@ func (x *ListGuildRoleMembersRequest) GetRoleId() int64 {
 	return 0
 }
 
-func (x *ListGuildRoleMembersRequest) GetBeforeUserId() int64 {
+func (x *ListGuildRoleMembersRequest) GetCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeUserId
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildRoleMembersRequest) GetLimit() int32 {
@@ -10146,8 +10193,8 @@ func (x *ListGuildRoleMembersRequest) SetRoleId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
-func (x *ListGuildRoleMembersRequest) SetBeforeUserId(v int64) {
-	x.xxx_hidden_BeforeUserId = v
+func (x *ListGuildRoleMembersRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
 }
 
@@ -10177,7 +10224,7 @@ func (x *ListGuildRoleMembersRequest) HasRoleId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *ListGuildRoleMembersRequest) HasBeforeUserId() bool {
+func (x *ListGuildRoleMembersRequest) HasCursor() bool {
 	if x == nil {
 		return false
 	}
@@ -10206,9 +10253,9 @@ func (x *ListGuildRoleMembersRequest) ClearRoleId() {
 	x.xxx_hidden_RoleId = 0
 }
 
-func (x *ListGuildRoleMembersRequest) ClearBeforeUserId() {
+func (x *ListGuildRoleMembersRequest) ClearCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_BeforeUserId = 0
+	x.xxx_hidden_Cursor = nil
 }
 
 func (x *ListGuildRoleMembersRequest) ClearLimit() {
@@ -10224,8 +10271,10 @@ type ListGuildRoleMembersRequest_builder struct {
 	// The default role matches every active Guild member; other roles match
 	// explicit assignments only.
 	RoleId *int64
-	// Return members with user IDs smaller than this cursor.
-	BeforeUserId *int64
+	// Opaque continuation from ListGuildRoleMembersResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
 	// Maximum results per page. Zero uses the default of 50; maximum is 100.
 	Limit *int32
 }
@@ -10246,9 +10295,9 @@ func (b0 ListGuildRoleMembersRequest_builder) Build() *ListGuildRoleMembersReque
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_RoleId = *b.RoleId
 	}
-	if b.BeforeUserId != nil {
+	if b.Cursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
-		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+		x.xxx_hidden_Cursor = b.Cursor
 	}
 	if b.Limit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
@@ -10258,13 +10307,13 @@ func (b0 ListGuildRoleMembersRequest_builder) Build() *ListGuildRoleMembersReque
 }
 
 type ListGuildRoleMembersResponse struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Members      *[]*GuildMember        `protobuf:"bytes,1,rep,name=members"`
-	xxx_hidden_BeforeUserId int64                  `protobuf:"varint,2,opt,name=before_user_id,json=beforeUserId"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Members     *[]*GuildMember        `protobuf:"bytes,1,rep,name=members"`
+	xxx_hidden_NextCursor  *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListGuildRoleMembersResponse) Reset() {
@@ -10301,40 +10350,46 @@ func (x *ListGuildRoleMembersResponse) GetMembers() []*GuildMember {
 	return nil
 }
 
-func (x *ListGuildRoleMembersResponse) GetBeforeUserId() int64 {
+func (x *ListGuildRoleMembersResponse) GetNextCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeUserId
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListGuildRoleMembersResponse) SetMembers(v []*GuildMember) {
 	x.xxx_hidden_Members = &v
 }
 
-func (x *ListGuildRoleMembersResponse) SetBeforeUserId(v int64) {
-	x.xxx_hidden_BeforeUserId = v
+func (x *ListGuildRoleMembersResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
-func (x *ListGuildRoleMembersResponse) HasBeforeUserId() bool {
+func (x *ListGuildRoleMembersResponse) HasNextCursor() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListGuildRoleMembersResponse) ClearBeforeUserId() {
+func (x *ListGuildRoleMembersResponse) ClearNextCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeUserId = 0
+	x.xxx_hidden_NextCursor = nil
 }
 
 type ListGuildRoleMembersResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Members []*GuildMember
-	// Smallest user ID in this page, or zero when the page is empty.
-	BeforeUserId *int64
+	// Opaque cursor for the next page. Leave unset when there is no next
+	// page; do not set an empty string. Pass through unchanged as the next
+	// request's cursor. End of list is field absence (Go: !HasNextCursor();
+	// TypeScript: undefined / omitted from JSON, not null).
+	NextCursor *string
 }
 
 func (b0 ListGuildRoleMembersResponse_builder) Build() *ListGuildRoleMembersResponse {
@@ -10342,9 +10397,9 @@ func (b0 ListGuildRoleMembersResponse_builder) Build() *ListGuildRoleMembersResp
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Members = &b.Members
-	if b.BeforeUserId != nil {
+	if b.NextCursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_BeforeUserId = *b.BeforeUserId
+		x.xxx_hidden_NextCursor = b.NextCursor
 	}
 	return m0
 }
@@ -13062,11 +13117,12 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\"^\n" +
 	"\x15ListUserGuildsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x16\n" +
-	"\x06before\x18\x02 \x01(\x03R\x06before\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"f\n" +
+	"\x06cursor\x18\x02 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"b\n" +
 	"\x16ListUserGuildsResponse\x12'\n" +
-	"\x06guilds\x18\x01 \x03(\v2\x0f.guild.v1.GuildR\x06guilds\x12#\n" +
-	"\rbefore_cursor\x18\x02 \x01(\x03R\fbeforeCursor\"\xc5\x01\n" +
+	"\x06guilds\x18\x01 \x03(\v2\x0f.guild.v1.GuildR\x06guilds\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"\xc5\x01\n" +
 	"\x16GuildChannelVisibility\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12'\n" +
 	"\x0faccess_revision\x18\x02 \x01(\x03R\x0eaccessRevision\x12.\n" +
@@ -13139,15 +13195,16 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\x03R\x06userId\"G\n" +
 	"\x16GetGuildMemberResponse\x12-\n" +
-	"\x06member\x18\x01 \x01(\v2\x15.guild.v1.GuildMemberR\x06member\"\x94\x01\n" +
+	"\x06member\x18\x01 \x01(\v2\x15.guild.v1.GuildMemberR\x06member\"\x86\x01\n" +
 	"\x17ListGuildMembersRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
-	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12$\n" +
-	"\x0ebefore_user_id\x18\x03 \x01(\x03R\fbeforeUserId\x12\x14\n" +
-	"\x05limit\x18\x04 \x01(\x05R\x05limit\"q\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x16\n" +
+	"\x06cursor\x18\x03 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\"l\n" +
 	"\x18ListGuildMembersResponse\x12/\n" +
-	"\amembers\x18\x01 \x03(\v2\x15.guild.v1.GuildMemberR\amembers\x12$\n" +
-	"\x0ebefore_user_id\x18\x02 \x01(\x03R\fbeforeUserId\"u\n" +
+	"\amembers\x18\x01 \x03(\v2\x15.guild.v1.GuildMemberR\amembers\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"u\n" +
 	"\x18UpdateGuildMemberRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x1a\n" +
@@ -13172,15 +13229,16 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\x03R\x06userId\"*\n" +
 	"\x18UnbanGuildMemberResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x91\x01\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x83\x01\n" +
 	"\x14ListGuildBansRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
-	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12$\n" +
-	"\x0ebefore_user_id\x18\x03 \x01(\x03R\fbeforeUserId\x12\x14\n" +
-	"\x05limit\x18\x04 \x01(\x05R\x05limit\"e\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x16\n" +
+	"\x06cursor\x18\x03 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\"`\n" +
 	"\x15ListGuildBansResponse\x12&\n" +
-	"\x04bans\x18\x01 \x03(\v2\x12.guild.v1.GuildBanR\x04bans\x12$\n" +
-	"\x0ebefore_user_id\x18\x02 \x01(\x03R\fbeforeUserId\"G\n" +
+	"\x04bans\x18\x01 \x03(\v2\x12.guild.v1.GuildBanR\x04bans\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"G\n" +
 	"\x11LeaveGuildRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x03R\x06userId\"$\n" +
@@ -13224,15 +13282,16 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x15GetGuildInviteRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\"P\n" +
 	"\x16GetGuildInviteResponse\x126\n" +
-	"\apreview\x18\x01 \x01(\v2\x1c.guild.v1.GuildInvitePreviewR\apreview\"\x8b\x01\n" +
+	"\apreview\x18\x01 \x01(\v2\x1c.guild.v1.GuildInvitePreviewR\apreview\"\x86\x01\n" +
 	"\x17ListGuildInvitesRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
-	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x1b\n" +
-	"\tbefore_id\x18\x03 \x01(\x03R\bbeforeId\x12\x14\n" +
-	"\x05limit\x18\x04 \x01(\x05R\x05limit\"h\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x16\n" +
+	"\x06cursor\x18\x03 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\"l\n" +
 	"\x18ListGuildInvitesResponse\x12/\n" +
-	"\ainvites\x18\x01 \x03(\v2\x15.guild.v1.GuildInviteR\ainvites\x12\x1b\n" +
-	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\"R\n" +
+	"\ainvites\x18\x01 \x03(\v2\x15.guild.v1.GuildInviteR\ainvites\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"R\n" +
 	"\x18DeleteGuildInviteRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"+\n" +
@@ -13304,16 +13363,17 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\x03R\x06userId\"I\n" +
 	"\x1cListGuildMemberRolesResponse\x12)\n" +
-	"\x05roles\x18\x01 \x03(\v2\x13.guild.v1.GuildRoleR\x05roles\"\xb1\x01\n" +
+	"\x05roles\x18\x01 \x03(\v2\x13.guild.v1.GuildRoleR\x05roles\"\xa3\x01\n" +
 	"\x1bListGuildRoleMembersRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x17\n" +
-	"\arole_id\x18\x03 \x01(\x03R\x06roleId\x12$\n" +
-	"\x0ebefore_user_id\x18\x04 \x01(\x03R\fbeforeUserId\x12\x14\n" +
-	"\x05limit\x18\x05 \x01(\x05R\x05limit\"u\n" +
+	"\arole_id\x18\x03 \x01(\x03R\x06roleId\x12\x16\n" +
+	"\x06cursor\x18\x04 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x05 \x01(\x05R\x05limit\"p\n" +
 	"\x1cListGuildRoleMembersResponse\x12/\n" +
-	"\amembers\x18\x01 \x03(\v2\x15.guild.v1.GuildMemberR\amembers\x12$\n" +
-	"\x0ebefore_user_id\x18\x02 \x01(\x03R\fbeforeUserId\"z\n" +
+	"\amembers\x18\x01 \x03(\v2\x15.guild.v1.GuildMemberR\amembers\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"z\n" +
 	" GetGuildMemberPermissionsRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x17\n" +

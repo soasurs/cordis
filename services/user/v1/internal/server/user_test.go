@@ -15,6 +15,7 @@ import (
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	"github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
@@ -330,8 +331,16 @@ func newTestUserServerWithMedia(
 	return New(&svc.ServiceContext{
 		Store:       store,
 		Snowflake:   node,
+		Cursors:     mustTestCursorCodec(t),
 		MediaClient: mediaClient,
 	})
+}
+
+func mustTestCursorCodec(t *testing.T) *cursor.Codec {
+	t.Helper()
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+	return codec
 }
 
 type fakeMediaClient struct {
@@ -595,12 +604,18 @@ func (s *fakeStore) ListRelationships(_ context.Context, params store.ListRelati
 		if params.Type != 0 && rel.Type != params.Type {
 			continue
 		}
-		if params.BeforeTargetID != 0 && rel.TargetID >= params.BeforeTargetID {
-			continue
+		if params.BeforeCreatedAt != 0 {
+			if rel.CreatedAt > params.BeforeCreatedAt ||
+				(rel.CreatedAt == params.BeforeCreatedAt && rel.TargetID >= params.BeforeTargetID) {
+				continue
+			}
 		}
 		result = append(result, rel)
 	}
 	sort.Slice(result, func(i, j int) bool {
+		if result[i].CreatedAt != result[j].CreatedAt {
+			return result[i].CreatedAt > result[j].CreatedAt
+		}
 		return result[i].TargetID > result[j].TargetID
 	})
 	if len(result) > params.Limit {

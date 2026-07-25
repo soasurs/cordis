@@ -82,6 +82,7 @@ func (s *SQLStore) ListRelationships(ctx context.Context, params ListRelationshi
 		ListRelationshipsQuery,
 		params.UserID,
 		params.Type,
+		params.BeforeCreatedAt,
 		params.BeforeTargetID,
 		params.Limit,
 	); err != nil {

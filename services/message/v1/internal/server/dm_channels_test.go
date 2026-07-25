@@ -13,6 +13,7 @@ import (
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/config"
@@ -113,10 +114,13 @@ func newDmTestServer(t *testing.T, fakeStore store.Store, publisher svc.EventPub
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
 	return New(&svc.ServiceContext{
 		Cfg:         config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
 		Store:       fakeStore,
 		Snowflake:   node,
+		Cursors:     codec,
 		Publisher:   publisher,
 		GuildClient: &fakeGuildClient{},
 		UserClient:  userClient,
@@ -325,12 +329,86 @@ func TestListDmChannelsPaginates(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.GetChannels(), 2)
 	require.Equal(t, int64(502), resp.GetChannels()[0].GetId())
-	require.Equal(t, int64(501), resp.GetBeforeId())
+	require.False(t, resp.HasNextCursor())
 
-	req.SetBeforeId(502)
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+	token, err := codec.Encode(cursor.KindDmChannels, dmChannelsPayload{UserID: 1001, ID: 502})
+	require.NoError(t, err)
+	req.SetCursor(token)
 	req.SetLimit(1)
 	resp, err = server.ListDmChannels(context.Background(), req)
 	require.NoError(t, err)
 	require.Len(t, resp.GetChannels(), 1)
 	require.Equal(t, int64(501), resp.GetChannels()[0].GetId())
+	require.False(t, resp.HasNextCursor())
+}
+
+func TestListDmChannelsPagesWithServerCursors(t *testing.T) {
+	fake := newFakeStore()
+	seedDmChannel(fake, 501, 1001, 2002)
+	seedDmChannel(fake, 502, 1001, 2003)
+	seedDmChannel(fake, 503, 1001, 2004)
+	server := newDmTestServer(t, fake, nil, newFakeUserClient())
+
+	seen := make([]int64, 0, 3)
+	req := new(messagev1.ListDmChannelsRequest)
+	req.SetUserId(1001)
+	req.SetLimit(1)
+	for {
+		resp, err := server.ListDmChannels(context.Background(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetChannels(), 1)
+		seen = append(seen, resp.GetChannels()[0].GetId())
+		if !resp.HasNextCursor() {
+			break
+		}
+		req.SetCursor(resp.GetNextCursor())
+	}
+	require.Equal(t, []int64{503, 502, 501}, seen)
+}
+
+func TestListDmChannelsRejectsBadCursors(t *testing.T) {
+	fake := newFakeStore()
+	seedDmChannel(fake, 501, 1001, 2002)
+	server := newDmTestServer(t, fake, nil, newFakeUserClient())
+
+	assertRejectsBadCursors(t, cursor.KindDmChannels, dmChannelsPayload{UserID: 1001, ID: 501}, func(token string) error {
+		req := new(messagev1.ListDmChannelsRequest)
+		req.SetUserId(1001)
+		req.SetCursor(token)
+		_, err := server.ListDmChannels(context.Background(), req)
+		return err
+	})
+}
+
+func TestListDmChannelsRejectsCrossUserCursor(t *testing.T) {
+	fake := newFakeStore()
+	seedDmChannel(fake, 501, 1001, 2002)
+	server := newDmTestServer(t, fake, nil, newFakeUserClient())
+
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+	token, err := codec.Encode(cursor.KindDmChannels, dmChannelsPayload{UserID: 2002, ID: 501})
+	require.NoError(t, err)
+	req := new(messagev1.ListDmChannelsRequest)
+	req.SetUserId(1001)
+	req.SetCursor(token)
+	_, err = server.ListDmChannels(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func assertRejectsBadCursors(t *testing.T, expectKind string, payload any, call func(token string) error) {
+	t.Helper()
+	require.Equal(t, codes.InvalidArgument, status.Code(call("")))
+
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+	wrong, err := codec.Encode(cursor.KindUserGuilds, payload)
+	require.NoError(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(call(wrong)))
+
+	good, err := codec.Encode(expectKind, payload)
+	require.NoError(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(call(good+"x")))
 }

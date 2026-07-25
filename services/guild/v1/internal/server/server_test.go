@@ -20,6 +20,7 @@ import (
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/guild/v1/config"
@@ -287,15 +288,102 @@ func TestListUserGuildsUsesDescendingCursor(t *testing.T) {
 		fakeStore.members[id] = testMembers(id, 1001)
 	}
 	server := newTestGuildServer(t, fakeStore, nil)
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindUserGuilds, userGuildsPayload{UserID: 1001, ID: 30})
+	require.NoError(t, err)
 	req := new(guildv1.ListUserGuildsRequest)
 	req.SetUserId(1001)
-	req.SetBefore(30)
+	req.SetCursor(token)
 	req.SetLimit(1)
 	resp, err := server.ListUserGuilds(t.Context(), req)
 	require.NoError(t, err)
 	require.Len(t, resp.GetGuilds(), 1)
 	require.Equal(t, int64(20), resp.GetGuilds()[0].GetId())
-	require.Equal(t, int64(20), resp.GetBeforeCursor())
+	next, err := codec.Encode(cursor.KindUserGuilds, userGuildsPayload{UserID: 1001, ID: 20})
+	require.NoError(t, err)
+	require.Equal(t, next, resp.GetNextCursor())
+}
+
+func TestListUserGuildsPagesWithServerCursors(t *testing.T) {
+	fakeStore := newFakeStore()
+	for _, id := range []int64{10, 20, 30, 40} {
+		fakeStore.guilds[id] = testGuild(id, 1001)
+		fakeStore.members[id] = testMembers(id, 1001)
+	}
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	seen := make([]int64, 0, 4)
+	req := new(guildv1.ListUserGuildsRequest)
+	req.SetUserId(1001)
+	req.SetLimit(1)
+	for {
+		resp, err := server.ListUserGuilds(t.Context(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetGuilds(), 1)
+		seen = append(seen, resp.GetGuilds()[0].GetId())
+		if !resp.HasNextCursor() {
+			break
+		}
+		req.SetCursor(resp.GetNextCursor())
+	}
+	require.Equal(t, []int64{40, 30, 20, 10}, seen)
+}
+
+func TestListUserGuildsRejectsBadCursors(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	assertRejectsBadCursors(t, cursor.KindUserGuilds, userGuildsPayload{UserID: 1001, ID: 10}, func(token string) error {
+		req := new(guildv1.ListUserGuildsRequest)
+		req.SetUserId(1001)
+		req.SetCursor(token)
+		_, err := server.ListUserGuilds(t.Context(), req)
+		return err
+	})
+}
+
+func TestListUserGuildsRejectsCrossUserCursor(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindUserGuilds, userGuildsPayload{UserID: 2002, ID: 10})
+	require.NoError(t, err)
+	req := new(guildv1.ListUserGuildsRequest)
+	req.SetUserId(1001)
+	req.SetCursor(token)
+	_, err = server.ListUserGuilds(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func testCursorCodec(t *testing.T) *cursor.Codec {
+	t.Helper()
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+	return codec
+}
+
+// assertRejectsBadCursors checks empty, wrong-kind, and tampered tokens.
+func assertRejectsBadCursors(t *testing.T, expectKind string, payload any, call func(token string) error) {
+	t.Helper()
+	require.Equal(t, codes.InvalidArgument, status.Code(call("")))
+
+	codec := testCursorCodec(t)
+	wrongKind := cursor.KindRelationships
+	if expectKind == wrongKind {
+		wrongKind = cursor.KindUserGuilds
+	}
+	wrong, err := codec.Encode(wrongKind, payload)
+	require.NoError(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(call(wrong)))
+
+	good, err := codec.Encode(expectKind, payload)
+	require.NoError(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(call(good+"x")))
 }
 
 func newTestGuildServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher) guildv1.GuildServiceServer {
@@ -313,7 +401,7 @@ func newTestGuildServerWithMedia(
 	require.NoError(t, err)
 	return New(&svc.ServiceContext{
 		Cfg:   config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
-		Store: fakeStore, Snowflake: node, Publisher: publisher,
+		Store: fakeStore, Snowflake: node, Cursors: testCursorCodec(t), Publisher: publisher,
 		UserClient:  &fakeUserClient{},
 		MediaClient: mediaClient,
 	})
@@ -629,13 +717,24 @@ func (s *fakeStore) GetGuildMember(_ context.Context, guildID, userID int64) (*m
 
 func (s *fakeStore) ListGuildMembers(_ context.Context, params store.ListGuildMembersParams) ([]*model.GuildMember, error) {
 	var members []*model.GuildMember
-	for userID, member := range s.members[params.GuildID] {
-		if member.DeletedAt != 0 || (params.BeforeUserID != 0 && userID >= params.BeforeUserID) {
+	for _, member := range s.members[params.GuildID] {
+		if member.DeletedAt != 0 {
 			continue
+		}
+		if params.BeforeJoinedAt != 0 {
+			if member.JoinedAt > params.BeforeJoinedAt ||
+				(member.JoinedAt == params.BeforeJoinedAt && member.UserID >= params.BeforeUserID) {
+				continue
+			}
 		}
 		members = append(members, cloneMember(member))
 	}
-	sort.Slice(members, func(i, j int) bool { return members[i].UserID > members[j].UserID })
+	sort.Slice(members, func(i, j int) bool {
+		if members[i].JoinedAt != members[j].JoinedAt {
+			return members[i].JoinedAt > members[j].JoinedAt
+		}
+		return members[i].UserID > members[j].UserID
+	})
 	if len(members) > params.Limit {
 		members = members[:params.Limit]
 	}
@@ -649,15 +748,26 @@ func (s *fakeStore) ListGuildRoleMembers(_ context.Context, params store.ListGui
 	}
 	var members []*model.GuildMember
 	for userID, member := range s.members[params.GuildID] {
-		if member.DeletedAt != 0 || (params.BeforeUserID != 0 && userID >= params.BeforeUserID) {
+		if member.DeletedAt != 0 {
 			continue
+		}
+		if params.BeforeJoinedAt != 0 {
+			if member.JoinedAt > params.BeforeJoinedAt ||
+				(member.JoinedAt == params.BeforeJoinedAt && member.UserID >= params.BeforeUserID) {
+				continue
+			}
 		}
 		if !role.IsDefault && !s.memberRoles[params.GuildID][userID][params.RoleID] {
 			continue
 		}
 		members = append(members, cloneMember(member))
 	}
-	sort.Slice(members, func(i, j int) bool { return members[i].UserID > members[j].UserID })
+	sort.Slice(members, func(i, j int) bool {
+		if members[i].JoinedAt != members[j].JoinedAt {
+			return members[i].JoinedAt > members[j].JoinedAt
+		}
+		return members[i].UserID > members[j].UserID
+	})
 	if len(members) > params.Limit {
 		members = members[:params.Limit]
 	}
@@ -715,12 +825,21 @@ func (s *fakeStore) GetGuildBan(_ context.Context, guildID, userID int64) (*mode
 func (s *fakeStore) ListGuildBans(_ context.Context, params store.ListGuildBansParams) ([]*model.GuildBan, error) {
 	var bans []*model.GuildBan
 	for _, ban := range s.bans[params.GuildID] {
-		if params.BeforeUserID == 0 || ban.UserID < params.BeforeUserID {
-			value := *ban
-			bans = append(bans, &value)
+		if params.BeforeCreatedAt != 0 {
+			if ban.CreatedAt > params.BeforeCreatedAt ||
+				(ban.CreatedAt == params.BeforeCreatedAt && ban.UserID >= params.BeforeUserID) {
+				continue
+			}
 		}
+		value := *ban
+		bans = append(bans, &value)
 	}
-	sort.Slice(bans, func(i, j int) bool { return bans[i].UserID > bans[j].UserID })
+	sort.Slice(bans, func(i, j int) bool {
+		if bans[i].CreatedAt != bans[j].CreatedAt {
+			return bans[i].CreatedAt > bans[j].CreatedAt
+		}
+		return bans[i].UserID > bans[j].UserID
+	})
 	if len(bans) > params.Limit {
 		bans = bans[:params.Limit]
 	}

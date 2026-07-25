@@ -9,8 +9,8 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
-	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/cursor"
+	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 	"github.com/soasurs/cordis/services/guild/v1/internal/svc"

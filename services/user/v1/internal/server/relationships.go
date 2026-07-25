@@ -21,11 +21,12 @@ const maxRelationshipBatch = 100
 type relationshipMutation struct {
 	events         []userEvent
 	result         *model.Relationship
+	profiles       map[int64]*model.UserProfile
 	idempotencyKey int64
 }
 
 func (m *relationshipMutation) updated(relationship *model.Relationship) {
-	event, err := newRelationshipUpdatedEvent(relationship, m.idempotencyKey)
+	event, err := newRelationshipUpdatedEvent(relationship, m.profiles[relationship.TargetID], m.idempotencyKey)
 	if err == nil {
 		m.events = append(m.events, event)
 	}
@@ -45,10 +46,14 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *userv1.SendFrie
 	if err := s.requireUserExists(ctx, req.GetTargetId()); err != nil {
 		return nil, err
 	}
+	profiles, err := s.getRelationshipEventProfiles(ctx, req.GetUserId(), req.GetTargetId())
+	if err != nil {
+		return nil, err
+	}
 
 	now := time.Now().UnixMilli()
-	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
-	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+	mutation := &relationshipMutation{profiles: profiles, idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
+	err = s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
 		}
@@ -100,10 +105,21 @@ func (s *userServer) AcceptFriendRequest(ctx context.Context, req *userv1.Accept
 	if err := validateRelationshipPair(req.GetUserId(), req.GetTargetId()); err != nil {
 		return nil, err
 	}
+	current, err := getRelationship(ctx, s.svcCtx.Store, req.GetUserId(), req.GetTargetId())
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	if relationshipType(current) != model.RelationshipIncoming {
+		return nil, relationshipNotFound()
+	}
+	profiles, err := s.getRelationshipEventProfiles(ctx, req.GetUserId(), req.GetTargetId())
+	if err != nil {
+		return nil, err
+	}
 
 	now := time.Now().UnixMilli()
-	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
-	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+	mutation := &relationshipMutation{profiles: profiles, idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
+	err = s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
 		}
@@ -194,10 +210,14 @@ func (s *userServer) BlockUser(ctx context.Context, req *userv1.BlockUserRequest
 	if err := s.requireUserExists(ctx, req.GetTargetId()); err != nil {
 		return nil, err
 	}
+	profiles, err := s.getRelationshipEventProfiles(ctx, req.GetUserId(), req.GetTargetId())
+	if err != nil {
+		return nil, err
+	}
 
 	now := time.Now().UnixMilli()
-	mutation := &relationshipMutation{idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
-	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+	mutation := &relationshipMutation{profiles: profiles, idempotencyKey: s.svcCtx.Snowflake.Generate().Int64()}
+	err = s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
 		if err := tx.LockRelationshipPair(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
 		}
@@ -420,6 +440,24 @@ func (s *userServer) requireUserExists(ctx context.Context, userID int64) error 
 		return mapStoreError(err)
 	}
 	return nil
+}
+
+func (s *userServer) getRelationshipEventProfiles(
+	ctx context.Context,
+	userIDs ...int64,
+) (map[int64]*model.UserProfile, error) {
+	profiles := make(map[int64]*model.UserProfile, len(userIDs))
+	for _, userID := range userIDs {
+		if profiles[userID] != nil {
+			continue
+		}
+		profile, err := s.svcCtx.Store.GetUserProfile(ctx, userID)
+		if err != nil {
+			return nil, mapStoreError(err)
+		}
+		profiles[userID] = profile
+	}
+	return profiles, nil
 }
 
 func validateRelationshipPair(userID, targetID int64) error {

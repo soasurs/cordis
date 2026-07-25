@@ -176,6 +176,8 @@ message Relationship {
   RelationshipType type = 2;
   int64 created_at = 3;
   int64 updated_at = 4;
+  // Current public profile of the target user.
+  UserProfile profile = 5;
 }
 
 message LookupUserRequest {

@@ -51,6 +51,8 @@ message DmChannel {
   // The other participant.
   int64 recipient_id = 2;
   int64 created_at = 3;
+  // Current public profile of the other participant.
+  UserProfile recipient = 4;
 }
 
 // MessageType identifies the semantic kind of a message.

@@ -1966,6 +1966,7 @@ type Relationship struct {
 	xxx_hidden_Type        RelationshipType       `protobuf:"varint,2,opt,name=type,enum=api.v1.RelationshipType"`
 	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,4,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Profile     *UserProfile           `protobuf:"bytes,5,opt,name=profile"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2027,24 +2028,35 @@ func (x *Relationship) GetUpdatedAt() int64 {
 	return 0
 }
 
+func (x *Relationship) GetProfile() *UserProfile {
+	if x != nil {
+		return x.xxx_hidden_Profile
+	}
+	return nil
+}
+
 func (x *Relationship) SetTargetId(v int64) {
 	x.xxx_hidden_TargetId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *Relationship) SetType(v RelationshipType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *Relationship) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *Relationship) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *Relationship) SetProfile(v *UserProfile) {
+	x.xxx_hidden_Profile = v
 }
 
 func (x *Relationship) HasTargetId() bool {
@@ -2075,6 +2087,13 @@ func (x *Relationship) HasUpdatedAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *Relationship) HasProfile() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Profile != nil
+}
+
 func (x *Relationship) ClearTargetId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_TargetId = 0
@@ -2095,6 +2114,10 @@ func (x *Relationship) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = 0
 }
 
+func (x *Relationship) ClearProfile() {
+	x.xxx_hidden_Profile = nil
+}
+
 type Relationship_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2102,6 +2125,8 @@ type Relationship_builder struct {
 	Type      *RelationshipType
 	CreatedAt *int64
 	UpdatedAt *int64
+	// Current public profile of the target user.
+	Profile *UserProfile
 }
 
 func (b0 Relationship_builder) Build() *Relationship {
@@ -2109,21 +2134,22 @@ func (b0 Relationship_builder) Build() *Relationship {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.TargetId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_TargetId = *b.TargetId
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
+	x.xxx_hidden_Profile = b.Profile
 	return m0
 }
 
@@ -3595,14 +3621,15 @@ const file_api_v1_user_proto_rawDesc = "" +
 	"\fold_password\x18\x01 \x01(\tR\voldPassword\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"(\n" +
 	"\x16ChangePasswordResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x97\x01\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\xc6\x01\n" +
 	"\fRelationship\x12\x1b\n" +
 	"\ttarget_id\x18\x01 \x01(\x03R\btargetId\x12,\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x18.api.v1.RelationshipTypeR\x04type\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x03 \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\"/\n" +
+	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\x12-\n" +
+	"\aprofile\x18\x05 \x01(\v2\x13.api.v1.UserProfileR\aprofile\"/\n" +
 	"\x11LookupUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\"C\n" +
 	"\x12LookupUserResponse\x12-\n" +
@@ -3725,54 +3752,55 @@ var file_api_v1_user_proto_depIdxs = []int32{
 	40, // 5: api.v1.CreateAvatarUploadResponse.request_headers:type_name -> api.v1.CreateAvatarUploadResponse.RequestHeadersEntry
 	2,  // 6: api.v1.CompleteAvatarUploadResponse.profile:type_name -> api.v1.UserProfile
 	0,  // 7: api.v1.Relationship.type:type_name -> api.v1.RelationshipType
-	2,  // 8: api.v1.LookupUserResponse.profile:type_name -> api.v1.UserProfile
-	21, // 9: api.v1.SendFriendRequestResponse.relationship:type_name -> api.v1.Relationship
-	21, // 10: api.v1.AcceptFriendRequestResponse.relationship:type_name -> api.v1.Relationship
-	21, // 11: api.v1.BlockUserResponse.relationship:type_name -> api.v1.Relationship
-	0,  // 12: api.v1.ListRelationshipsRequest.type:type_name -> api.v1.RelationshipType
-	21, // 13: api.v1.ListRelationshipsResponse.relationships:type_name -> api.v1.Relationship
-	2,  // 14: api.v1.UpdateUsernameResponse.profile:type_name -> api.v1.UserProfile
-	3,  // 15: api.v1.UserService.GetCurrentUser:input_type -> api.v1.GetCurrentUserRequest
-	5,  // 16: api.v1.UserService.GetUserProfile:input_type -> api.v1.GetUserProfileRequest
-	7,  // 17: api.v1.UserService.CheckEmailAvailability:input_type -> api.v1.CheckEmailAvailabilityRequest
-	9,  // 18: api.v1.UserService.UpdateEmail:input_type -> api.v1.UpdateEmailRequest
-	11, // 19: api.v1.UserService.UpdateUserProfile:input_type -> api.v1.UpdateUserProfileRequest
-	13, // 20: api.v1.UserService.CreateAvatarUpload:input_type -> api.v1.CreateAvatarUploadRequest
-	15, // 21: api.v1.UserService.CompleteAvatarUpload:input_type -> api.v1.CompleteAvatarUploadRequest
-	17, // 22: api.v1.UserService.AbortAvatarUpload:input_type -> api.v1.AbortAvatarUploadRequest
-	19, // 23: api.v1.UserService.ChangePassword:input_type -> api.v1.ChangePasswordRequest
-	22, // 24: api.v1.UserService.LookupUser:input_type -> api.v1.LookupUserRequest
-	38, // 25: api.v1.UserService.UpdateUsername:input_type -> api.v1.UpdateUsernameRequest
-	24, // 26: api.v1.UserService.SendFriendRequest:input_type -> api.v1.SendFriendRequestRequest
-	26, // 27: api.v1.UserService.AcceptFriendRequest:input_type -> api.v1.AcceptFriendRequestRequest
-	28, // 28: api.v1.UserService.DeclineFriendRequest:input_type -> api.v1.DeclineFriendRequestRequest
-	30, // 29: api.v1.UserService.RemoveFriend:input_type -> api.v1.RemoveFriendRequest
-	32, // 30: api.v1.UserService.BlockUser:input_type -> api.v1.BlockUserRequest
-	34, // 31: api.v1.UserService.UnblockUser:input_type -> api.v1.UnblockUserRequest
-	36, // 32: api.v1.UserService.ListRelationships:input_type -> api.v1.ListRelationshipsRequest
-	4,  // 33: api.v1.UserService.GetCurrentUser:output_type -> api.v1.GetCurrentUserResponse
-	6,  // 34: api.v1.UserService.GetUserProfile:output_type -> api.v1.GetUserProfileResponse
-	8,  // 35: api.v1.UserService.CheckEmailAvailability:output_type -> api.v1.CheckEmailAvailabilityResponse
-	10, // 36: api.v1.UserService.UpdateEmail:output_type -> api.v1.UpdateEmailResponse
-	12, // 37: api.v1.UserService.UpdateUserProfile:output_type -> api.v1.UpdateUserProfileResponse
-	14, // 38: api.v1.UserService.CreateAvatarUpload:output_type -> api.v1.CreateAvatarUploadResponse
-	16, // 39: api.v1.UserService.CompleteAvatarUpload:output_type -> api.v1.CompleteAvatarUploadResponse
-	18, // 40: api.v1.UserService.AbortAvatarUpload:output_type -> api.v1.AbortAvatarUploadResponse
-	20, // 41: api.v1.UserService.ChangePassword:output_type -> api.v1.ChangePasswordResponse
-	23, // 42: api.v1.UserService.LookupUser:output_type -> api.v1.LookupUserResponse
-	39, // 43: api.v1.UserService.UpdateUsername:output_type -> api.v1.UpdateUsernameResponse
-	25, // 44: api.v1.UserService.SendFriendRequest:output_type -> api.v1.SendFriendRequestResponse
-	27, // 45: api.v1.UserService.AcceptFriendRequest:output_type -> api.v1.AcceptFriendRequestResponse
-	29, // 46: api.v1.UserService.DeclineFriendRequest:output_type -> api.v1.DeclineFriendRequestResponse
-	31, // 47: api.v1.UserService.RemoveFriend:output_type -> api.v1.RemoveFriendResponse
-	33, // 48: api.v1.UserService.BlockUser:output_type -> api.v1.BlockUserResponse
-	35, // 49: api.v1.UserService.UnblockUser:output_type -> api.v1.UnblockUserResponse
-	37, // 50: api.v1.UserService.ListRelationships:output_type -> api.v1.ListRelationshipsResponse
-	33, // [33:51] is the sub-list for method output_type
-	15, // [15:33] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	2,  // 8: api.v1.Relationship.profile:type_name -> api.v1.UserProfile
+	2,  // 9: api.v1.LookupUserResponse.profile:type_name -> api.v1.UserProfile
+	21, // 10: api.v1.SendFriendRequestResponse.relationship:type_name -> api.v1.Relationship
+	21, // 11: api.v1.AcceptFriendRequestResponse.relationship:type_name -> api.v1.Relationship
+	21, // 12: api.v1.BlockUserResponse.relationship:type_name -> api.v1.Relationship
+	0,  // 13: api.v1.ListRelationshipsRequest.type:type_name -> api.v1.RelationshipType
+	21, // 14: api.v1.ListRelationshipsResponse.relationships:type_name -> api.v1.Relationship
+	2,  // 15: api.v1.UpdateUsernameResponse.profile:type_name -> api.v1.UserProfile
+	3,  // 16: api.v1.UserService.GetCurrentUser:input_type -> api.v1.GetCurrentUserRequest
+	5,  // 17: api.v1.UserService.GetUserProfile:input_type -> api.v1.GetUserProfileRequest
+	7,  // 18: api.v1.UserService.CheckEmailAvailability:input_type -> api.v1.CheckEmailAvailabilityRequest
+	9,  // 19: api.v1.UserService.UpdateEmail:input_type -> api.v1.UpdateEmailRequest
+	11, // 20: api.v1.UserService.UpdateUserProfile:input_type -> api.v1.UpdateUserProfileRequest
+	13, // 21: api.v1.UserService.CreateAvatarUpload:input_type -> api.v1.CreateAvatarUploadRequest
+	15, // 22: api.v1.UserService.CompleteAvatarUpload:input_type -> api.v1.CompleteAvatarUploadRequest
+	17, // 23: api.v1.UserService.AbortAvatarUpload:input_type -> api.v1.AbortAvatarUploadRequest
+	19, // 24: api.v1.UserService.ChangePassword:input_type -> api.v1.ChangePasswordRequest
+	22, // 25: api.v1.UserService.LookupUser:input_type -> api.v1.LookupUserRequest
+	38, // 26: api.v1.UserService.UpdateUsername:input_type -> api.v1.UpdateUsernameRequest
+	24, // 27: api.v1.UserService.SendFriendRequest:input_type -> api.v1.SendFriendRequestRequest
+	26, // 28: api.v1.UserService.AcceptFriendRequest:input_type -> api.v1.AcceptFriendRequestRequest
+	28, // 29: api.v1.UserService.DeclineFriendRequest:input_type -> api.v1.DeclineFriendRequestRequest
+	30, // 30: api.v1.UserService.RemoveFriend:input_type -> api.v1.RemoveFriendRequest
+	32, // 31: api.v1.UserService.BlockUser:input_type -> api.v1.BlockUserRequest
+	34, // 32: api.v1.UserService.UnblockUser:input_type -> api.v1.UnblockUserRequest
+	36, // 33: api.v1.UserService.ListRelationships:input_type -> api.v1.ListRelationshipsRequest
+	4,  // 34: api.v1.UserService.GetCurrentUser:output_type -> api.v1.GetCurrentUserResponse
+	6,  // 35: api.v1.UserService.GetUserProfile:output_type -> api.v1.GetUserProfileResponse
+	8,  // 36: api.v1.UserService.CheckEmailAvailability:output_type -> api.v1.CheckEmailAvailabilityResponse
+	10, // 37: api.v1.UserService.UpdateEmail:output_type -> api.v1.UpdateEmailResponse
+	12, // 38: api.v1.UserService.UpdateUserProfile:output_type -> api.v1.UpdateUserProfileResponse
+	14, // 39: api.v1.UserService.CreateAvatarUpload:output_type -> api.v1.CreateAvatarUploadResponse
+	16, // 40: api.v1.UserService.CompleteAvatarUpload:output_type -> api.v1.CompleteAvatarUploadResponse
+	18, // 41: api.v1.UserService.AbortAvatarUpload:output_type -> api.v1.AbortAvatarUploadResponse
+	20, // 42: api.v1.UserService.ChangePassword:output_type -> api.v1.ChangePasswordResponse
+	23, // 43: api.v1.UserService.LookupUser:output_type -> api.v1.LookupUserResponse
+	39, // 44: api.v1.UserService.UpdateUsername:output_type -> api.v1.UpdateUsernameResponse
+	25, // 45: api.v1.UserService.SendFriendRequest:output_type -> api.v1.SendFriendRequestResponse
+	27, // 46: api.v1.UserService.AcceptFriendRequest:output_type -> api.v1.AcceptFriendRequestResponse
+	29, // 47: api.v1.UserService.DeclineFriendRequest:output_type -> api.v1.DeclineFriendRequestResponse
+	31, // 48: api.v1.UserService.RemoveFriend:output_type -> api.v1.RemoveFriendResponse
+	33, // 49: api.v1.UserService.BlockUser:output_type -> api.v1.BlockUserResponse
+	35, // 50: api.v1.UserService.UnblockUser:output_type -> api.v1.UnblockUserResponse
+	37, // 51: api.v1.UserService.ListRelationships:output_type -> api.v1.ListRelationshipsResponse
+	34, // [34:52] is the sub-list for method output_type
+	16, // [16:34] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_user_proto_init() }

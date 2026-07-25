@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"errors"
+
+	"connectrpc.com/connect"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
@@ -26,8 +29,12 @@ func (s *guildServer) CreateGuildInvite(ctx context.Context, req *apiv1.CreateGu
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	invites, err := s.guildInvitesToAPIWithProfiles(ctx, []*guildv1.GuildInvite{svcResp.GetInvite()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.CreateGuildInviteResponse)
-	resp.SetInvite(guildInviteToAPI(svcResp.GetInvite()))
+	resp.SetInvite(invites[0])
 	return resp, nil
 }
 
@@ -60,8 +67,12 @@ func (s *guildServer) ListGuildInvites(ctx context.Context, req *apiv1.ListGuild
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	invites, err := s.guildInvitesToAPIWithProfiles(ctx, svcResp.GetInvites())
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.ListGuildInvitesResponse)
-	resp.SetInvites(guildInvitesToAPI(svcResp.GetInvites()))
+	resp.SetInvites(invites)
 	resp.SetBeforeId(svcResp.GetBeforeId())
 	return resp, nil
 }
@@ -101,10 +112,36 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *apiv1.JoinGuil
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	members, err := s.guildMembersToAPIWithProfiles(ctx, []*guildv1.GuildMember{svcResp.GetMember()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.JoinGuildByInviteResponse)
 	resp.SetGuild(guildToAPI(svcResp.GetGuild()))
-	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	resp.SetMember(members[0])
 	return resp, nil
+}
+
+func (s *guildServer) guildInvitesToAPIWithProfiles(
+	ctx context.Context,
+	invites []*guildv1.GuildInvite,
+) ([]*apiv1.GuildInvite, error) {
+	userIDs := make([]int64, 0, len(invites))
+	for _, invite := range invites {
+		if invite == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("guild service returned an invalid invite"))
+		}
+		userIDs = append(userIDs, invite.GetCreatorUserId())
+	}
+	profiles, err := getUserProfiles(ctx, s.svcCtx.UserClient, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	values := guildInvitesToAPI(invites)
+	for i, invite := range invites {
+		values[i].SetCreator(userProfileToAPI(profiles[invite.GetCreatorUserId()]))
+	}
+	return values, nil
 }
 
 func guildInviteToAPI(invite *guildv1.GuildInvite) *apiv1.GuildInvite {

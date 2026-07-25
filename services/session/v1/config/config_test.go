@@ -35,5 +35,6 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, []string{"127.0.0.1:2379"}, cfg.SessionRegistry.Hosts)
 	require.Equal(t, "/cordis/session/nodes", cfg.SessionRegistry.Prefix)
 	require.Equal(t, []string{"127.0.0.1:3001"}, cfg.Services.Authenticator.Endpoints)
+	require.Equal(t, []string{"127.0.0.1:3000"}, cfg.Services.User.Endpoints)
 	require.Equal(t, []string{"127.0.0.1:3002"}, cfg.Services.Message.Endpoints)
 }

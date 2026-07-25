@@ -13,6 +13,7 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -53,6 +54,10 @@ func (s *messageServer) CreateDmChannel(ctx context.Context, req *messagev1.Crea
 	if !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
+	profiles, err := s.getDmParticipantProfiles(ctx, userLo, userHi)
+	if err != nil {
+		return nil, err
+	}
 
 	channel := &model.DmChannel{
 		ID:        s.svcCtx.Snowflake.Generate().Int64(),
@@ -75,7 +80,12 @@ func (s *messageServer) CreateDmChannel(ctx context.Context, req *messagev1.Crea
 	}
 
 	for _, recipientID := range []int64{channel.UserLo, channel.UserHi} {
-		event, eventErr := newDmChannelCreatedEvent(channel, recipientID, s.svcCtx.Snowflake.Generate().Int64())
+		event, eventErr := newDmChannelCreatedEvent(
+			channel,
+			recipientID,
+			profiles[channel.OtherParticipant(recipientID)],
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
 		s.publishEvent(ctx, event, eventErr)
 	}
 
@@ -188,19 +198,62 @@ type dmChannelCreatedPayload struct {
 	ChannelID   string `json:"channel_id"`
 	UserID      string `json:"user_id"`
 	RecipientID string `json:"recipient_id"`
+	Recipient   userProfilePayload `json:"recipient"`
 	CreatedAt   int64  `json:"created_at"`
 }
 
 // newDmChannelCreatedEvent builds one user-routed record; the key is the
 // decimal recipient user ID so the dispatcher reaches every recipient Session.
-func newDmChannelCreatedEvent(channel *model.DmChannel, recipientID int64, idempotencyKey int64) (messageEvent, error) {
+func newDmChannelCreatedEvent(
+	channel *model.DmChannel,
+	recipientID int64,
+	recipient *userv1.UserProfile,
+	idempotencyKey int64,
+) (messageEvent, error) {
 	payload := dmChannelCreatedPayload{
 		ChannelID:   strconv.FormatInt(channel.ID, 10),
 		UserID:      strconv.FormatInt(recipientID, 10),
 		RecipientID: strconv.FormatInt(channel.OtherParticipant(recipientID), 10),
+		Recipient:   userProfilePayloadFromProto(recipient),
 		CreatedAt:   channel.CreatedAt,
 	}
 	return newUserRoutedEvent(EventTypeDmChannelCreated, recipientID, payload, idempotencyKey)
+}
+
+func (s *messageServer) getDmParticipantProfiles(
+	ctx context.Context,
+	userIDs ...int64,
+) (map[int64]*userv1.UserProfile, error) {
+	req := new(userv1.BatchGetUserProfilesRequest)
+	req.SetUserIds(userIDs)
+	resp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, status.Error(codes.Internal, "user service returned an invalid response")
+	}
+	expected := make(map[int64]struct{}, len(userIDs))
+	for _, userID := range userIDs {
+		expected[userID] = struct{}{}
+	}
+	profiles := make(map[int64]*userv1.UserProfile, len(expected))
+	for _, profile := range resp.GetProfiles() {
+		if profile == nil {
+			return nil, status.Error(codes.Internal, "user service returned an invalid profile")
+		}
+		userID := profile.GetUserId()
+		if _, ok := expected[userID]; !ok || profiles[userID] != nil {
+			return nil, status.Error(codes.Internal, "user service returned unexpected profiles")
+		}
+		profiles[userID] = profile
+	}
+	for userID := range expected {
+		if profiles[userID] == nil {
+			return nil, status.Error(codes.Internal, "user service did not return all profiles")
+		}
+	}
+	return profiles, nil
 }
 
 func dmRequiresFriendship() error {

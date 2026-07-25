@@ -173,6 +173,7 @@ func TestCreateDmChannelIsIdempotentAndPublishesOnce(t *testing.T) {
 	require.Equal(t, EventTypeDmChannelCreated, envelope.Type)
 	require.Equal(t, "1001", envelope.Data.UserID)
 	require.Equal(t, "2002", envelope.Data.RecipientID)
+	require.Equal(t, "2002", envelope.Data.Recipient.UserID)
 
 	// Reopening returns the same channel without new events.
 	again, err := server.CreateDmChannel(context.Background(), req)

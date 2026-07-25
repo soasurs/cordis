@@ -1,11 +1,17 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"slices"
 	"strconv"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 )
 
 type readyPayload struct {
@@ -74,7 +80,17 @@ type readyPermissionOverwrite struct {
 type readyDmChannel struct {
 	ID          string `json:"id"`
 	RecipientID string `json:"recipient_id"`
+	Recipient   readyUserProfile `json:"recipient"`
 	CreatedAt   int64  `json:"created_at"`
+}
+
+type readyUserProfile struct {
+	UserID        string `json:"user_id"`
+	Name          string `json:"name"`
+	AvatarAssetID string `json:"avatar_asset_id"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     int64  `json:"updated_at"`
+	Username      string `json:"username"`
 }
 
 type readyReadState struct {
@@ -89,6 +105,7 @@ func marshalReady(
 	accessTokenExpiresAt int64,
 	guilds []*guildv1.ReadyGuild,
 	messages *messagev1.GetUserReadyStateResponse,
+	profiles map[int64]*userv1.UserProfile,
 	nodeID string,
 ) ([]byte, error) {
 	payload := readyPayload{
@@ -98,7 +115,7 @@ func marshalReady(
 		SessionNodeID:        nodeID,
 		AccessTokenExpiresAt: accessTokenExpiresAt,
 		Guilds:               readyGuildValues(guilds),
-		DmChannels:           readyDmChannelValues(session.userID, messages.GetDmChannels()),
+		DmChannels:           readyDmChannelValues(session.userID, messages.GetDmChannels(), profiles),
 		ReadStates:           readyReadStateValues(messages.GetReadStates()),
 	}
 	return json.Marshal(payload)
@@ -147,7 +164,11 @@ func readyGuildValues(values []*guildv1.ReadyGuild) []readyGuild {
 	return result
 }
 
-func readyDmChannelValues(userID int64, values []*messagev1.DmChannel) []readyDmChannel {
+func readyDmChannelValues(
+	userID int64,
+	values []*messagev1.DmChannel,
+	profiles map[int64]*userv1.UserProfile,
+) []readyDmChannel {
 	result := make([]readyDmChannel, 0, len(values))
 	for _, value := range values {
 		recipientID := value.GetUserLo()
@@ -155,10 +176,75 @@ func readyDmChannelValues(userID int64, values []*messagev1.DmChannel) []readyDm
 			recipientID = value.GetUserHi()
 		}
 		result = append(result, readyDmChannel{
-			ID: idString(value.GetId()), RecipientID: idString(recipientID), CreatedAt: value.GetCreatedAt(),
+			ID: idString(value.GetId()), RecipientID: idString(recipientID),
+			Recipient: readyUserProfileFromProto(profiles[recipientID]), CreatedAt: value.GetCreatedAt(),
 		})
 	}
 	return result
+}
+
+func readyUserProfileFromProto(profile *userv1.UserProfile) readyUserProfile {
+	return readyUserProfile{
+		UserID: idString(profile.GetUserId()), Name: profile.GetName(),
+		AvatarAssetID: idString(profile.GetAvatarAssetId()), CreatedAt: profile.GetCreatedAt(),
+		UpdatedAt: profile.GetUpdatedAt(), Username: profile.GetUsername(),
+	}
+}
+
+func (s *Server) getReadyUserProfiles(
+	ctx context.Context,
+	userID int64,
+	channels []*messagev1.DmChannel,
+) (map[int64]*userv1.UserProfile, error) {
+	const batchSize = 100
+	userIDs := make([]int64, 0, len(channels))
+	expected := make(map[int64]struct{}, len(channels))
+	for _, channel := range channels {
+		if channel == nil {
+			return nil, status.Error(codes.Internal, "message service returned an invalid dm channel")
+		}
+		recipientID := channel.GetUserLo()
+		if recipientID == userID {
+			recipientID = channel.GetUserHi()
+		}
+		if recipientID <= 0 {
+			return nil, status.Error(codes.Internal, "message service returned an invalid dm recipient")
+		}
+		if _, ok := expected[recipientID]; ok {
+			continue
+		}
+		expected[recipientID] = struct{}{}
+		userIDs = append(userIDs, recipientID)
+	}
+
+	profiles := make(map[int64]*userv1.UserProfile, len(userIDs))
+	for chunk := range slices.Chunk(userIDs, batchSize) {
+		req := new(userv1.BatchGetUserProfilesRequest)
+		req.SetUserIds(chunk)
+		resp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if resp == nil {
+			return nil, status.Error(codes.Internal, "user service returned an invalid response")
+		}
+		for _, profile := range resp.GetProfiles() {
+			if profile == nil {
+				return nil, status.Error(codes.Internal, "user service returned an invalid profile")
+			}
+			profileUserID := profile.GetUserId()
+			if _, ok := expected[profileUserID]; !ok || profiles[profileUserID] != nil {
+				return nil, status.Error(codes.Internal, "user service returned unexpected profiles")
+			}
+			profiles[profileUserID] = profile
+		}
+	}
+	for _, profileUserID := range userIDs {
+		if profiles[profileUserID] == nil {
+			return nil, status.Error(codes.Internal, "user service did not return all profiles")
+		}
+	}
+	return profiles, nil
 }
 
 func readyReadStateValues(values []*messagev1.ChannelReadState) []readyReadState {

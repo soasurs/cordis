@@ -479,6 +479,7 @@ func newRateLimitedMessageClient(
 	path, handler := apiv1connect.NewMessageServiceHandler(
 		NewMessage(&svc.ServiceContext{
 			AuthenticatorClient: &fakeAuthenticatorClient{verifyResponse: verifyAccessTokenResponse(1001)},
+			UserClient:          new(fakeUserClient),
 			MessageClient:       internalClient,
 			ReadStatesLimiter:   concurrencyLimiter,
 		}),
@@ -505,6 +506,7 @@ func newRateLimitedGuildClient(
 	path, handler := apiv1connect.NewGuildServiceHandler(
 		NewGuild(&svc.ServiceContext{
 			AuthenticatorClient: &fakeAuthenticatorClient{verifyResponse: verifyAccessTokenResponse(1001)},
+			UserClient:          new(fakeUserClient),
 			GuildClient:         internalClient,
 		}),
 		connect.WithInterceptors(apiratelimit.UnaryInterceptor(limiter, resolver)),

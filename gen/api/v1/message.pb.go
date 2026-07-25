@@ -333,6 +333,7 @@ type DmChannel struct {
 	xxx_hidden_Id          int64                  `protobuf:"varint,1,opt,name=id"`
 	xxx_hidden_RecipientId int64                  `protobuf:"varint,2,opt,name=recipient_id,json=recipientId"`
 	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
+	xxx_hidden_Recipient   *UserProfile           `protobuf:"bytes,4,opt,name=recipient"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -385,19 +386,30 @@ func (x *DmChannel) GetCreatedAt() int64 {
 	return 0
 }
 
+func (x *DmChannel) GetRecipient() *UserProfile {
+	if x != nil {
+		return x.xxx_hidden_Recipient
+	}
+	return nil
+}
+
 func (x *DmChannel) SetId(v int64) {
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *DmChannel) SetRecipientId(v int64) {
 	x.xxx_hidden_RecipientId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *DmChannel) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *DmChannel) SetRecipient(v *UserProfile) {
+	x.xxx_hidden_Recipient = v
 }
 
 func (x *DmChannel) HasId() bool {
@@ -421,6 +433,13 @@ func (x *DmChannel) HasCreatedAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *DmChannel) HasRecipient() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Recipient != nil
+}
+
 func (x *DmChannel) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = 0
@@ -436,6 +455,10 @@ func (x *DmChannel) ClearCreatedAt() {
 	x.xxx_hidden_CreatedAt = 0
 }
 
+func (x *DmChannel) ClearRecipient() {
+	x.xxx_hidden_Recipient = nil
+}
+
 type DmChannel_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -443,6 +466,8 @@ type DmChannel_builder struct {
 	// The other participant.
 	RecipientId *int64
 	CreatedAt   *int64
+	// Current public profile of the other participant.
+	Recipient *UserProfile
 }
 
 func (b0 DmChannel_builder) Build() *DmChannel {
@@ -450,17 +475,18 @@ func (b0 DmChannel_builder) Build() *DmChannel {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_Id = *b.Id
 	}
 	if b.RecipientId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_RecipientId = *b.RecipientId
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
+	x.xxx_hidden_Recipient = b.Recipient
 	return m0
 }
 
@@ -3964,12 +3990,13 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12&\n" +
 	"\x0flast_message_id\x18\x02 \x01(\x03R\rlastMessageId\x12/\n" +
 	"\x14last_read_message_id\x18\x03 \x01(\x03R\x11lastReadMessageId\x12#\n" +
-	"\rmention_count\x18\x04 \x01(\x05R\fmentionCount\"]\n" +
+	"\rmention_count\x18\x04 \x01(\x05R\fmentionCount\"\x90\x01\n" +
 	"\tDmChannel\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
 	"\frecipient_id\x18\x02 \x01(\x03R\vrecipientId\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\x03R\tcreatedAt\"\xd3\x03\n" +
+	"created_at\x18\x03 \x01(\x03R\tcreatedAt\x121\n" +
+	"\trecipient\x18\x04 \x01(\v2\x13.api.v1.UserProfileR\trecipient\"\xd3\x03\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
@@ -4170,55 +4197,56 @@ var file_api_v1_message_proto_goTypes = []any{
 	(*UserProfile)(nil),                      // 34: api.v1.UserProfile
 }
 var file_api_v1_message_proto_depIdxs = []int32{
-	34, // 0: api.v1.Message.author:type_name -> api.v1.UserProfile
-	0,  // 1: api.v1.Message.type:type_name -> api.v1.MessageType
-	6,  // 2: api.v1.Message.attachments:type_name -> api.v1.Attachment
-	33, // 3: api.v1.CreateAttachmentUploadResponse.request_headers:type_name -> api.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
-	6,  // 4: api.v1.CompleteAttachmentUploadResponse.attachment:type_name -> api.v1.Attachment
-	6,  // 5: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
-	0,  // 6: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
-	6,  // 7: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
-	5,  // 8: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
-	13, // 9: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
-	14, // 10: api.v1.UpdateMessageRequest.mentions:type_name -> api.v1.MentionList
-	5,  // 11: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
-	5,  // 12: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
-	5,  // 13: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
-	4,  // 14: api.v1.CreateDmChannelResponse.channel:type_name -> api.v1.DmChannel
-	4,  // 15: api.v1.ListDmChannelsResponse.channels:type_name -> api.v1.DmChannel
-	3,  // 16: api.v1.AckMessageResponse.read_state:type_name -> api.v1.ChannelReadState
-	2,  // 17: api.v1.GetReadStatesRequest.scope:type_name -> api.v1.ReadStateScopeType
-	4,  // 18: api.v1.GetReadStatesResponse.dm_channels:type_name -> api.v1.DmChannel
-	3,  // 19: api.v1.GetReadStatesResponse.read_states:type_name -> api.v1.ChannelReadState
-	15, // 20: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
-	17, // 21: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
-	19, // 22: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
-	21, // 23: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
-	23, // 24: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
-	7,  // 25: api.v1.MessageService.CreateAttachmentUpload:input_type -> api.v1.CreateAttachmentUploadRequest
-	9,  // 26: api.v1.MessageService.CompleteAttachmentUpload:input_type -> api.v1.CompleteAttachmentUploadRequest
-	11, // 27: api.v1.MessageService.AbortAttachmentUpload:input_type -> api.v1.AbortAttachmentUploadRequest
-	25, // 28: api.v1.MessageService.CreateDmChannel:input_type -> api.v1.CreateDmChannelRequest
-	27, // 29: api.v1.MessageService.ListDmChannels:input_type -> api.v1.ListDmChannelsRequest
-	29, // 30: api.v1.MessageService.AckMessage:input_type -> api.v1.AckMessageRequest
-	31, // 31: api.v1.MessageService.GetReadStates:input_type -> api.v1.GetReadStatesRequest
-	16, // 32: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
-	18, // 33: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
-	20, // 34: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
-	22, // 35: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
-	24, // 36: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
-	8,  // 37: api.v1.MessageService.CreateAttachmentUpload:output_type -> api.v1.CreateAttachmentUploadResponse
-	10, // 38: api.v1.MessageService.CompleteAttachmentUpload:output_type -> api.v1.CompleteAttachmentUploadResponse
-	12, // 39: api.v1.MessageService.AbortAttachmentUpload:output_type -> api.v1.AbortAttachmentUploadResponse
-	26, // 40: api.v1.MessageService.CreateDmChannel:output_type -> api.v1.CreateDmChannelResponse
-	28, // 41: api.v1.MessageService.ListDmChannels:output_type -> api.v1.ListDmChannelsResponse
-	30, // 42: api.v1.MessageService.AckMessage:output_type -> api.v1.AckMessageResponse
-	32, // 43: api.v1.MessageService.GetReadStates:output_type -> api.v1.GetReadStatesResponse
-	32, // [32:44] is the sub-list for method output_type
-	20, // [20:32] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	34, // 0: api.v1.DmChannel.recipient:type_name -> api.v1.UserProfile
+	34, // 1: api.v1.Message.author:type_name -> api.v1.UserProfile
+	0,  // 2: api.v1.Message.type:type_name -> api.v1.MessageType
+	6,  // 3: api.v1.Message.attachments:type_name -> api.v1.Attachment
+	33, // 4: api.v1.CreateAttachmentUploadResponse.request_headers:type_name -> api.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
+	6,  // 5: api.v1.CompleteAttachmentUploadResponse.attachment:type_name -> api.v1.Attachment
+	6,  // 6: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
+	0,  // 7: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
+	6,  // 8: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
+	5,  // 9: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
+	13, // 10: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
+	14, // 11: api.v1.UpdateMessageRequest.mentions:type_name -> api.v1.MentionList
+	5,  // 12: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
+	5,  // 13: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
+	5,  // 14: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
+	4,  // 15: api.v1.CreateDmChannelResponse.channel:type_name -> api.v1.DmChannel
+	4,  // 16: api.v1.ListDmChannelsResponse.channels:type_name -> api.v1.DmChannel
+	3,  // 17: api.v1.AckMessageResponse.read_state:type_name -> api.v1.ChannelReadState
+	2,  // 18: api.v1.GetReadStatesRequest.scope:type_name -> api.v1.ReadStateScopeType
+	4,  // 19: api.v1.GetReadStatesResponse.dm_channels:type_name -> api.v1.DmChannel
+	3,  // 20: api.v1.GetReadStatesResponse.read_states:type_name -> api.v1.ChannelReadState
+	15, // 21: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
+	17, // 22: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
+	19, // 23: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
+	21, // 24: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
+	23, // 25: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
+	7,  // 26: api.v1.MessageService.CreateAttachmentUpload:input_type -> api.v1.CreateAttachmentUploadRequest
+	9,  // 27: api.v1.MessageService.CompleteAttachmentUpload:input_type -> api.v1.CompleteAttachmentUploadRequest
+	11, // 28: api.v1.MessageService.AbortAttachmentUpload:input_type -> api.v1.AbortAttachmentUploadRequest
+	25, // 29: api.v1.MessageService.CreateDmChannel:input_type -> api.v1.CreateDmChannelRequest
+	27, // 30: api.v1.MessageService.ListDmChannels:input_type -> api.v1.ListDmChannelsRequest
+	29, // 31: api.v1.MessageService.AckMessage:input_type -> api.v1.AckMessageRequest
+	31, // 32: api.v1.MessageService.GetReadStates:input_type -> api.v1.GetReadStatesRequest
+	16, // 33: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
+	18, // 34: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
+	20, // 35: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
+	22, // 36: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
+	24, // 37: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
+	8,  // 38: api.v1.MessageService.CreateAttachmentUpload:output_type -> api.v1.CreateAttachmentUploadResponse
+	10, // 39: api.v1.MessageService.CompleteAttachmentUpload:output_type -> api.v1.CompleteAttachmentUploadResponse
+	12, // 40: api.v1.MessageService.AbortAttachmentUpload:output_type -> api.v1.AbortAttachmentUploadResponse
+	26, // 41: api.v1.MessageService.CreateDmChannel:output_type -> api.v1.CreateDmChannelResponse
+	28, // 42: api.v1.MessageService.ListDmChannels:output_type -> api.v1.ListDmChannelsResponse
+	30, // 43: api.v1.MessageService.AckMessage:output_type -> api.v1.AckMessageResponse
+	32, // 44: api.v1.MessageService.GetReadStates:output_type -> api.v1.GetReadStatesResponse
+	33, // [33:45] is the sub-list for method output_type
+	21, // [21:33] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_message_proto_init() }

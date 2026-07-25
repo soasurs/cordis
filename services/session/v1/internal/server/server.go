@@ -434,7 +434,12 @@ func (s *Server) identify(
 		s.removeSession(ctx, session)
 		return nil, err
 	}
-	ready, err := marshalReady(session, auth.GetExpiresAt(), readyGuilds, messageReady, s.nodeID)
+	profiles, err := s.getReadyUserProfiles(ctx, session.userID, messageReady.GetDmChannels())
+	if err != nil {
+		s.removeSession(ctx, session)
+		return nil, err
+	}
+	ready, err := marshalReady(session, auth.GetExpiresAt(), readyGuilds, messageReady, profiles, s.nodeID)
 	if err != nil {
 		s.removeSession(ctx, session)
 		return nil, status.Error(codes.Internal, "marshal ready payload")

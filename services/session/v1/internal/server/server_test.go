@@ -17,6 +17,7 @@ import (
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
@@ -155,6 +156,8 @@ func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	require.Equal(t, "7001", payload.Guilds[0].PermissionOverwrites[0].ChannelID)
 	require.Equal(t, "1024", payload.Guilds[0].PermissionOverwrites[0].Allow)
 	require.Equal(t, "1002", payload.DmChannels[0].RecipientID)
+	require.Equal(t, "1002", payload.DmChannels[0].Recipient.UserID)
+	require.Equal(t, "User 1002", payload.DmChannels[0].Recipient.Name)
 	require.Equal(t, "7100", payload.ReadStates[0].LastMessageID)
 	require.Equal(t, "7099", payload.ReadStates[0].LastReadMessageID)
 	require.Equal(t, int32(2), payload.ReadStates[0].MentionCount)
@@ -481,6 +484,7 @@ func newTestServerWithRegistry(registry *fakeRegistry) *Server {
 		Store:               &fakeStore{},
 		SessionRegistry:     registry,
 		AuthenticatorClient: fakeAuthenticator{},
+		UserClient:          fakeUser{},
 		PresenceClient:      fakePresence{},
 		GuildClient:         fakeGuild{},
 		MessageClient:       new(fakeMessage),
@@ -493,6 +497,29 @@ type fakeStore struct {
 	batchOwners   []store.Owner
 	batchOwnerTTL time.Duration
 	ownerBatches  [][]store.Owner
+}
+
+type fakeUser struct {
+	userv1.UserServiceClient
+}
+
+func (fakeUser) BatchGetUserProfiles(
+	_ context.Context,
+	req *userv1.BatchGetUserProfilesRequest,
+	_ ...grpc.CallOption,
+) (*userv1.BatchGetUserProfilesResponse, error) {
+	profiles := make([]*userv1.UserProfile, 0, len(req.GetUserIds()))
+	for _, userID := range req.GetUserIds() {
+		profile := new(userv1.UserProfile)
+		profile.SetUserId(userID)
+		profile.SetUsername("user_" + strconv.FormatInt(userID, 10))
+		profile.SetName("User " + strconv.FormatInt(userID, 10))
+		profile.SetAvatarAssetId(userID + 1000)
+		profiles = append(profiles, profile)
+	}
+	resp := new(userv1.BatchGetUserProfilesResponse)
+	resp.SetProfiles(profiles)
+	return resp, nil
 }
 
 func (*fakeStore) SetOwner(context.Context, store.Owner, time.Duration) error { return nil }

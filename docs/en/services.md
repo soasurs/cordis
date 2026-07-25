@@ -6,6 +6,11 @@ Public Connect-RPC server on `:8080`. It proxies Authenticator, User, Guild, and
 Message, converts public/internal protobuf models, and maps domain errors with
 `pkg/apierror`. It does not access domain databases.
 
+Public resource models embed the current User profiles needed to render them.
+The API batch-loads and validates those profiles while composing Guild members,
+bans, invites, relationships, messages, and DM channels; internal domain models
+continue to carry stable user IDs.
+
 Public requests use Redis-backed named rate-limit policies with a bounded local
 fallback during Redis failures. IP-based buckets use an IPv4 `/32` or IPv6
 `/64`; IPv4 policies have looser CGNAT-aware thresholds. Every request first consumes a source-IP guard;
@@ -19,6 +24,10 @@ also uses a process-local keyed limiter to bound concurrent requests per user.
 gRPC on `:3000`. Owns users and profiles, email availability and updates,
 profile updates, password verification, and password changes. Passwords use
 Argon2id. User does not issue tokens.
+
+Relationship HTTP responses embed the target profile. `relationship.updated`
+events load the target profile from the User store before the relationship
+transaction so committed updates and their event payloads stay self-contained.
 
 ## Authenticator
 
@@ -60,6 +69,11 @@ permissions. Channel evaluation applies the default role, member roles, and
 member overwrites. Guild publishes dot-separated events directly to
 `cordis.guild.events.v1`.
 
+Public Guild member responses always embed the member profile. Ban responses
+also embed the banned user and moderator profiles, while invite responses embed
+the creator profile. Guild loads the profiles required by member and moderation
+events itself because those events do not pass through the API.
+
 Persistent Guild resources have configuration-driven hard limits. The defaults
 are 10 owned and 100 joined guilds per user, 250 roles and 500 channels per
 guild, 100 active invites per guild, and 100 permission overwrites per channel.
@@ -97,6 +111,10 @@ channel is unread when `last_message_id > last_read_message_id`; no unread
 message count is computed. `AckMessage` advances the watermark monotonically
 and publishes user-routed `message.read.updated` events for the user's other
 devices.
+
+Public DM channel responses embed the other participant's profile. Message
+loads recipient profiles for `dm.channel.created` events; Session independently
+batch-loads them when composing the `ready` event.
 
 The authenticated HTTP `GetReadStates` endpoint is retained for reconciliation.
 It accepts a server-defined scope rather than channel IDs: one Guild, or all
@@ -151,7 +169,8 @@ creates or resumes logical sessions, loads Guild visibility, owns local
 user/Guild indexes, assigns sequence numbers, and keeps up to 2048 replay
 events in memory.
 
-IDENTIFY loads one complete Guild READY response and one Message READY response:
+IDENTIFY loads one complete Guild READY response and one Message READY response,
+then batch-loads DM recipient profiles from User:
 Guild metadata, roles, member role IDs, visible channels and permission overwrites, all DMs, and four-field
 read states. Realtime events received while these responses are assembled are
 buffered and sequenced after READY. Visibility snapshots are shared by the

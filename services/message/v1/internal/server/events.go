@@ -35,7 +35,7 @@ type messagePayload struct {
 	GuildID                string           `json:"guild_id,omitempty"`
 	ChannelID              string           `json:"channel_id"`
 	UserID                 string           `json:"user_id,omitempty"`
-	Author                 authorPayload    `json:"author"`
+	Author                 userProfilePayload `json:"author"`
 	Content                string           `json:"content"`
 	Type                   int32            `json:"type"`
 	Flags                  int32            `json:"flags"`
@@ -50,7 +50,7 @@ type messagePayload struct {
 	Revision               int64            `json:"revision"`
 }
 
-type authorPayload struct {
+type userProfilePayload struct {
 	UserID        string `json:"user_id"`
 	Name          string `json:"name"`
 	AvatarAssetID string `json:"avatar_asset_id"`
@@ -185,7 +185,7 @@ func messagePayloadFromModel(message *model.Message, author *userv1.UserProfile,
 	return messagePayload{
 		MessageID:           strconv.FormatInt(message.ID, 10),
 		ChannelID:           strconv.FormatInt(message.ChannelID, 10),
-		Author:              authorPayloadFromProto(author),
+		Author:              userProfilePayloadFromProto(author),
 		Content:             message.Content,
 		Type:                message.Type,
 		Flags:               message.Flags,
@@ -200,17 +200,17 @@ func messagePayloadFromModel(message *model.Message, author *userv1.UserProfile,
 	}
 }
 
-func authorPayloadFromProto(author *userv1.UserProfile) authorPayload {
-	if author == nil {
-		return authorPayload{}
+func userProfilePayloadFromProto(profile *userv1.UserProfile) userProfilePayload {
+	if profile == nil {
+		return userProfilePayload{}
 	}
-	return authorPayload{
-		UserID:        strconv.FormatInt(author.GetUserId(), 10),
-		Name:          author.GetName(),
-		AvatarAssetID: strconv.FormatInt(author.GetAvatarAssetId(), 10),
-		CreatedAt:     author.GetCreatedAt(),
-		UpdatedAt:     author.GetUpdatedAt(),
-		Username:      author.GetUsername(),
+	return userProfilePayload{
+		UserID:        strconv.FormatInt(profile.GetUserId(), 10),
+		Name:          profile.GetName(),
+		AvatarAssetID: strconv.FormatInt(profile.GetAvatarAssetId(), 10),
+		CreatedAt:     profile.GetCreatedAt(),
+		UpdatedAt:     profile.GetUpdatedAt(),
+		Username:      profile.GetUsername(),
 	}
 }
 

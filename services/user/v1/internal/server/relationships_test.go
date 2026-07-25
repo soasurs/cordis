@@ -61,6 +61,8 @@ func newRelationshipTestServer(t *testing.T, fake *fakeStore, publisher svc.Even
 func relationshipTestStore() *fakeStore {
 	fake := newFakeStore()
 	fake.user = &model.User{UserID: 2002, Email: "target@example.com"}
+	fake.eventProfiles[1001] = &model.UserProfile{UserID: 1001, Username: "requester", Name: "Requester"}
+	fake.eventProfiles[2002] = &model.UserProfile{UserID: 2002, Username: "target", Name: "Target"}
 	return fake
 }
 
@@ -90,6 +92,7 @@ func TestSendFriendRequestCreatesPendingPair(t *testing.T) {
 	require.Equal(t, EventTypeRelationshipUpdated, eventType)
 	require.Equal(t, "1001", payload.UserID)
 	require.Equal(t, "2002", payload.TargetID)
+	require.Equal(t, "2002", payload.Profile.UserID)
 	require.Equal(t, model.RelationshipOutgoing, payload.Type)
 
 	require.Equal(t, "2002", publisher.records[1].key)

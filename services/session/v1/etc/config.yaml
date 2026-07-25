@@ -80,6 +80,15 @@ services:
       prometheus: true
       breaker: true
       timeout: true
+  user:
+    endpoints:
+      - 127.0.0.1:3000
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true
   presence:
     endpoints:
       - 127.0.0.1:3003

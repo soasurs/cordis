@@ -90,6 +90,7 @@ func TestCreateGuildInviteUsesAuthenticatedActor(t *testing.T) {
 	require.Equal(t, int64(60_000), guildClient.createInviteReq.GetExpiresInMs())
 	require.Equal(t, "invite-code", resp.GetInvite().GetCode())
 	require.Equal(t, int64(5001), resp.GetInvite().GetId())
+	require.Equal(t, int64(1001), resp.GetInvite().GetCreator().GetUserId())
 }
 
 func TestGetGuildInviteMapsPreview(t *testing.T) {
@@ -157,6 +158,7 @@ func TestListGuildInvitesMapsRequestAndResponse(t *testing.T) {
 	require.Equal(t, int64(6000), guildClient.listInvitesReq.GetBeforeId())
 	require.Equal(t, int32(20), guildClient.listInvitesReq.GetLimit())
 	require.Len(t, resp.GetInvites(), 1)
+	require.Equal(t, int64(1001), resp.GetInvites()[0].GetCreator().GetUserId())
 	require.Equal(t, int64(5001), resp.GetBeforeId())
 }
 
@@ -200,4 +202,5 @@ func TestJoinGuildByInviteUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, int64(1001), guildClient.joinInviteReq.GetUserId())
 	require.Equal(t, int64(3001), resp.GetGuild().GetId())
 	require.NotNil(t, resp.GetMember())
+	require.Equal(t, int64(1001), resp.GetMember().GetProfile().GetUserId())
 }

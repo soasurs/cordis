@@ -235,51 +235,13 @@ func (s *messageServer) getMessageAuthorProfiles(
 	messages []*messagev1.Message,
 ) (map[int64]*userv1.UserProfile, error) {
 	userIDs := make([]int64, 0, len(messages))
-	expected := make(map[int64]struct{}, len(messages))
 	for _, message := range messages {
 		if message == nil || message.GetAuthorId() <= 0 {
 			return nil, connect.NewError(connect.CodeInternal, errors.New("message service returned an invalid message"))
 		}
-		userID := message.GetAuthorId()
-		if _, ok := expected[userID]; ok {
-			continue
-		}
-		expected[userID] = struct{}{}
-		userIDs = append(userIDs, userID)
+		userIDs = append(userIDs, message.GetAuthorId())
 	}
-
-	profiles := make(map[int64]*userv1.UserProfile, len(userIDs))
-	if len(userIDs) == 0 {
-		return profiles, nil
-	}
-	req := new(userv1.BatchGetUserProfilesRequest)
-	req.SetUserIds(userIDs)
-	userResp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
-	if err != nil {
-		return nil, apierror.FromRPC(err)
-	}
-	if userResp == nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid response"))
-	}
-	for _, profile := range userResp.GetProfiles() {
-		if profile == nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid profile"))
-		}
-		userID := profile.GetUserId()
-		if _, ok := expected[userID]; !ok {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an unexpected profile"))
-		}
-		if profiles[userID] != nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned a duplicate profile"))
-		}
-		profiles[userID] = profile
-	}
-	for _, userID := range userIDs {
-		if profiles[userID] == nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service did not return all profiles"))
-		}
-	}
-	return profiles, nil
+	return getUserProfiles(ctx, s.svcCtx.UserClient, userIDs)
 }
 
 func messageToAPI(message *messagev1.Message, author *userv1.UserProfile) *apiv1.Message {
@@ -360,8 +322,12 @@ func (s *messageServer) CreateDmChannel(ctx context.Context, req *apiv1.CreateDm
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	channels, err := s.dmChannelsToAPIWithProfiles(ctx, []*messagev1.DmChannel{svcResp.GetChannel()}, auth.GetUserId())
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.CreateDmChannelResponse)
-	resp.SetChannel(dmChannelToAPI(svcResp.GetChannel(), auth.GetUserId()))
+	resp.SetChannel(channels[0])
 	return resp, nil
 }
 
@@ -380,14 +346,39 @@ func (s *messageServer) ListDmChannels(ctx context.Context, req *apiv1.ListDmCha
 		return nil, apierror.FromRPC(err)
 	}
 
-	channels := make([]*apiv1.DmChannel, 0, len(svcResp.GetChannels()))
-	for _, channel := range svcResp.GetChannels() {
-		channels = append(channels, dmChannelToAPI(channel, auth.GetUserId()))
+	channels, err := s.dmChannelsToAPIWithProfiles(ctx, svcResp.GetChannels(), auth.GetUserId())
+	if err != nil {
+		return nil, err
 	}
 	resp := new(apiv1.ListDmChannelsResponse)
 	resp.SetChannels(channels)
 	resp.SetBeforeId(svcResp.GetBeforeId())
 	return resp, nil
+}
+
+func (s *messageServer) dmChannelsToAPIWithProfiles(
+	ctx context.Context,
+	channels []*messagev1.DmChannel,
+	viewerID int64,
+) ([]*apiv1.DmChannel, error) {
+	values := make([]*apiv1.DmChannel, 0, len(channels))
+	userIDs := make([]int64, 0, len(channels))
+	for _, channel := range channels {
+		value := dmChannelToAPI(channel, viewerID)
+		if value == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("message service returned an invalid dm channel"))
+		}
+		values = append(values, value)
+		userIDs = append(userIDs, value.GetRecipientId())
+	}
+	profiles, err := getUserProfiles(ctx, s.svcCtx.UserClient, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range values {
+		value.SetRecipient(userProfileToAPI(profiles[value.GetRecipientId()]))
+	}
+	return values, nil
 }
 
 // dmChannelToAPI converts the stored pair into the caller's perspective.
@@ -444,9 +435,9 @@ func (s *messageServer) GetReadStates(ctx context.Context, req *apiv1.GetReadSta
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	dmChannels := make([]*apiv1.DmChannel, 0, len(svcResp.GetDmChannels()))
-	for _, channel := range svcResp.GetDmChannels() {
-		dmChannels = append(dmChannels, dmChannelToAPI(channel, auth.GetUserId()))
+	dmChannels, err := s.dmChannelsToAPIWithProfiles(ctx, svcResp.GetDmChannels(), auth.GetUserId())
+	if err != nil {
+		return nil, err
 	}
 	readStates := make([]*apiv1.ChannelReadState, 0, len(svcResp.GetReadStates()))
 	for _, state := range svcResp.GetReadStates() {

@@ -2,10 +2,14 @@ package server
 
 import (
 	"context"
+	"errors"
+
+	"connectrpc.com/connect"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/svc"
@@ -47,7 +51,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *apiv1.CreateMess
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.CreateMessageResponse)
-	resp.SetMessage(messageToAPI(svcResp.GetMessage()))
+	resp.SetMessage(messageToAPI(svcResp.GetMessage(), svcResp.GetAuthor()))
 	return resp, nil
 }
 
@@ -147,7 +151,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMess
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.UpdateMessageResponse)
-	resp.SetMessage(messageToAPI(svcResp.GetMessage()))
+	resp.SetMessage(messageToAPI(svcResp.GetMessage(), svcResp.GetAuthor()))
 	return resp, nil
 }
 
@@ -183,7 +187,7 @@ func (s *messageServer) GetMessage(ctx context.Context, req *apiv1.GetMessageReq
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.GetMessageResponse)
-	resp.SetMessage(messageToAPI(svcResp.GetMessage()))
+	resp.SetMessage(messageToAPI(svcResp.GetMessage(), svcResp.GetAuthor()))
 	return resp, nil
 }
 
@@ -211,9 +215,13 @@ func (s *messageServer) ListMessages(ctx context.Context, req *apiv1.ListMessage
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	authors, err := s.getMessageAuthorProfiles(ctx, svcResp.GetMessages())
+	if err != nil {
+		return nil, err
+	}
 	messages := make([]*apiv1.Message, 0, len(svcResp.GetMessages()))
 	for _, message := range svcResp.GetMessages() {
-		messages = append(messages, messageToAPI(message))
+		messages = append(messages, messageToAPI(message, authors[message.GetAuthorId()]))
 	}
 	resp := new(apiv1.ListMessagesResponse)
 	resp.SetMessages(messages)
@@ -222,14 +230,66 @@ func (s *messageServer) ListMessages(ctx context.Context, req *apiv1.ListMessage
 	return resp, nil
 }
 
-func messageToAPI(message *messagev1.Message) *apiv1.Message {
+func (s *messageServer) getMessageAuthorProfiles(
+	ctx context.Context,
+	messages []*messagev1.Message,
+) (map[int64]*userv1.UserProfile, error) {
+	userIDs := make([]int64, 0, len(messages))
+	expected := make(map[int64]struct{}, len(messages))
+	for _, message := range messages {
+		if message == nil || message.GetAuthorId() <= 0 {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("message service returned an invalid message"))
+		}
+		userID := message.GetAuthorId()
+		if _, ok := expected[userID]; ok {
+			continue
+		}
+		expected[userID] = struct{}{}
+		userIDs = append(userIDs, userID)
+	}
+
+	profiles := make(map[int64]*userv1.UserProfile, len(userIDs))
+	if len(userIDs) == 0 {
+		return profiles, nil
+	}
+	req := new(userv1.BatchGetUserProfilesRequest)
+	req.SetUserIds(userIDs)
+	userResp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	if userResp == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid response"))
+	}
+	for _, profile := range userResp.GetProfiles() {
+		if profile == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid profile"))
+		}
+		userID := profile.GetUserId()
+		if _, ok := expected[userID]; !ok {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an unexpected profile"))
+		}
+		if profiles[userID] != nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned a duplicate profile"))
+		}
+		profiles[userID] = profile
+	}
+	for _, userID := range userIDs {
+		if profiles[userID] == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service did not return all profiles"))
+		}
+	}
+	return profiles, nil
+}
+
+func messageToAPI(message *messagev1.Message, author *userv1.UserProfile) *apiv1.Message {
 	if message == nil {
 		return nil
 	}
 	resp := new(apiv1.Message)
 	resp.SetId(message.GetId())
 	resp.SetChannelId(message.GetChannelId())
-	resp.SetAuthor(userProfileToAPI(message.GetAuthor()))
+	resp.SetAuthor(userProfileToAPI(author))
 	resp.SetContent(message.GetContent())
 	resp.SetType(apiv1.MessageType(message.GetType()))
 	resp.SetFlags(message.GetFlags())

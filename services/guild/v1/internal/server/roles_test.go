@@ -83,6 +83,63 @@ func TestManageRolesEnforcesRoleAndMemberHierarchy(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
+func TestAddGuildRoleMembersAssignsManyAndRejectsPartialFailure(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.roles[10][20] = testRole(20, 10, "manager", PermissionManageRoles, 5)
+	fakeStore.roles[10][21] = testRole(21, 10, "member", 0, 2)
+	fakeStore.roles[10][22] = testRole(22, 10, "peer", 0, 5)
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1002, 20, 1))
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1003, 22, 1))
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
+
+	req := new(guildv1.AddGuildRoleMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1002)
+	req.SetRoleId(21)
+	req.SetUserIds([]int64{1001, 1004})
+	_, err := server.AddGuildRoleMembers(t.Context(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+	require.False(t, fakeStore.memberRoles[10][1004][21])
+	require.Empty(t, publisher.records)
+
+	req.SetUserIds([]int64{1004, 1004})
+	resp, err := server.AddGuildRoleMembers(t.Context(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetOk())
+	require.True(t, fakeStore.memberRoles[10][1004][21])
+	require.Len(t, publisher.records, 1)
+
+	remove := new(guildv1.RemoveGuildRoleMembersRequest)
+	remove.SetGuildId(10)
+	remove.SetActorUserId(1002)
+	remove.SetRoleId(21)
+	remove.SetUserIds([]int64{1004})
+	removeResp, err := server.RemoveGuildRoleMembers(t.Context(), remove)
+	require.NoError(t, err)
+	require.True(t, removeResp.GetOk())
+	require.False(t, fakeStore.memberRoles[10][1004][21])
+}
+
+func TestAddGuildRoleMembersValidation(t *testing.T) {
+	server := newTestGuildServer(t, roleTestStore(), nil)
+	req := new(guildv1.AddGuildRoleMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetRoleId(10)
+	_, err := server.AddGuildRoleMembers(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	req.SetUserIds(make([]int64, maxGuildRoleMemberBatch+1))
+	_, err = server.AddGuildRoleMembers(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	req.SetUserIds([]int64{1002})
+	_, err = server.AddGuildRoleMembers(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Contains(t, err.Error(), "default role is assigned implicitly")
+}
+
 func TestManageRolesCannotGrantPermissionsActorDoesNotHold(t *testing.T) {
 	fakeStore := roleTestStore()
 	fakeStore.roles[10][20] = testRole(20, 10, "manager", PermissionManageRoles, 5)

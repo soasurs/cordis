@@ -330,13 +330,58 @@ func (s *guildServer) RemoveGuildMemberRole(ctx context.Context, req *guildv1.Re
 	return resp, nil
 }
 
+func (s *guildServer) AddGuildRoleMembers(ctx context.Context, req *guildv1.AddGuildRoleMembersRequest) (*guildv1.AddGuildRoleMembersResponse, error) {
+	userIDs, err := normalizeRoleMemberUserIDs(req.GetUserIds())
+	if err != nil {
+		return nil, err
+	}
+	if err := validateRoleRequest(req.GetGuildId(), req.GetActorUserId(), req.GetRoleId()); err != nil {
+		return nil, err
+	}
+	if err := s.changeGuildRoleMembers(ctx, req.GetGuildId(), req.GetActorUserId(), req.GetRoleId(), userIDs, true); err != nil {
+		return nil, err
+	}
+	resp := new(guildv1.AddGuildRoleMembersResponse)
+	resp.SetOk(true)
+	return resp, nil
+}
+
+func (s *guildServer) RemoveGuildRoleMembers(ctx context.Context, req *guildv1.RemoveGuildRoleMembersRequest) (*guildv1.RemoveGuildRoleMembersResponse, error) {
+	userIDs, err := normalizeRoleMemberUserIDs(req.GetUserIds())
+	if err != nil {
+		return nil, err
+	}
+	if err := validateRoleRequest(req.GetGuildId(), req.GetActorUserId(), req.GetRoleId()); err != nil {
+		return nil, err
+	}
+	if err := s.changeGuildRoleMembers(ctx, req.GetGuildId(), req.GetActorUserId(), req.GetRoleId(), userIDs, false); err != nil {
+		return nil, err
+	}
+	resp := new(guildv1.RemoveGuildRoleMembersResponse)
+	resp.SetOk(true)
+	return resp, nil
+}
+
 func (s *guildServer) changeGuildMemberRole(
 	ctx context.Context,
 	guildID, actorUserID, userID, roleID int64,
 	add bool,
 ) error {
+	return s.changeGuildRoleMembers(ctx, guildID, actorUserID, roleID, []int64{userID}, add)
+}
+
+func (s *guildServer) changeGuildRoleMembers(
+	ctx context.Context,
+	guildID, actorUserID, roleID int64,
+	userIDs []int64,
+	add bool,
+) error {
 	changedAt := time.Now().UnixMilli()
-	var roles []*model.Role
+	type memberRolesUpdate struct {
+		userID int64
+		roles  []*model.Role
+	}
+	updates := make([]memberRolesUpdate, 0, len(userIDs))
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		actor, err := loadMemberAuthority(ctx, txStore, guildID, actorUserID)
 		if err != nil {
@@ -345,10 +390,6 @@ func (s *guildServer) changeGuildMemberRole(
 		if !actor.has(PermissionManageRoles) {
 			return permissionDenied()
 		}
-		target, err := loadMemberAuthority(ctx, txStore, guildID, userID)
-		if err != nil {
-			return err
-		}
 		role, err := txStore.GetGuildRole(ctx, guildID, roleID)
 		if err != nil {
 			return err
@@ -356,27 +397,44 @@ func (s *guildServer) changeGuildMemberRole(
 		if role.IsDefault {
 			return invalidRequest("default role is assigned implicitly")
 		}
-		if !actor.canManageRole(role) || !canManageMember(actor, target) {
+		if !actor.canManageRole(role) {
 			return permissionDenied()
 		}
-		if add {
-			if !actor.canGrantPermissions(role.Permissions) {
-				return permissionDenied()
-			}
-			if err := txStore.AddGuildMemberRole(ctx, guildID, userID, roleID, changedAt); err != nil {
+		if add && !actor.canGrantPermissions(role.Permissions) {
+			return permissionDenied()
+		}
+		for _, userID := range userIDs {
+			target, err := loadMemberAuthority(ctx, txStore, guildID, userID)
+			if err != nil {
 				return err
 			}
-		} else if err := txStore.RemoveGuildMemberRole(ctx, guildID, userID, roleID); err != nil {
-			return err
+			if !canManageMember(actor, target) {
+				return permissionDenied()
+			}
+			if add {
+				if err := txStore.AddGuildMemberRole(ctx, guildID, userID, roleID, changedAt); err != nil {
+					return err
+				}
+			} else if err := txStore.RemoveGuildMemberRole(ctx, guildID, userID, roleID); err != nil {
+				return err
+			}
+			roles, err := txStore.ListGuildMemberRoles(ctx, guildID, userID)
+			if err != nil {
+				return err
+			}
+			updates = append(updates, memberRolesUpdate{userID: userID, roles: roles})
 		}
-		roles, err = txStore.ListGuildMemberRoles(ctx, guildID, userID)
-		return err
+		return nil
 	})
 	if err != nil {
 		return mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberRolesUpdatedEvent(guildID, userID, roles, changedAt, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
+	for _, update := range updates {
+		event, eventErr := newGuildMemberRolesUpdatedEvent(
+			guildID, update.userID, update.roles, changedAt, s.svcCtx.Snowflake.Generate().Int64(),
+		)
+		s.publishEvent(ctx, event, eventErr)
+	}
 	return nil
 }
 
@@ -474,6 +532,30 @@ func validateMemberRoleRequest(guildID, actorUserID, userID, roleID int64) error
 		return invalidRequest("user id is required")
 	}
 	return nil
+}
+
+const maxGuildRoleMemberBatch = 100
+
+func normalizeRoleMemberUserIDs(userIDs []int64) ([]int64, error) {
+	if len(userIDs) == 0 {
+		return nil, invalidRequest("user ids are required")
+	}
+	if len(userIDs) > maxGuildRoleMemberBatch {
+		return nil, invalidRequest("too many user ids")
+	}
+	unique := make([]int64, 0, len(userIDs))
+	seen := make(map[int64]struct{}, len(userIDs))
+	for _, userID := range userIDs {
+		if userID <= 0 {
+			return nil, invalidRequest("user id is required")
+		}
+		if _, ok := seen[userID]; ok {
+			continue
+		}
+		seen[userID] = struct{}{}
+		unique = append(unique, userID)
+	}
+	return unique, nil
 }
 
 func validatePermissions(permissions uint64) error {

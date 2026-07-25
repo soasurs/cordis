@@ -3,15 +3,17 @@
 ## Connection lifecycle
 
 1. The client opens a Gateway WebSocket.
-2. Gateway sends `HELLO` with a 45-second heartbeat interval.
-3. The client sends `IDENTIFY`, or `RESUME` with a session ID and sequence.
+2. Gateway sends `hello` with a 45-second heartbeat interval.
+3. The client sends `identify`, or `resume` with a session ID
+   and sequence.
 4. Gateway selects a ready Session node from etcd. For resume, it reads the
    owner from Redis and validates the node generation through etcd.
 5. Gateway opens `SessionService.Connect` and forwards the first request.
-6. Session returns a sequenced `READY`, or replays missing events followed by
-   `RESUMED`.
+6. Session returns a sequenced `ready`, or replays missing events followed by
+   `resumed`.
 7. Presence updates, detach, and server events use the same stream; Gateway
-   handles heartbeat frames locally and batches sequence checkpoints to Session.
+   handles `heartbeat` frames locally and batches sequence checkpoints
+   to Session.
 
 A WebSocket connection and a logical Session are separate objects. Gateway IDs
 include a generation so stale instances can be rejected.

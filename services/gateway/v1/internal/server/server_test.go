@@ -23,6 +23,7 @@ import (
 
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	"github.com/soasurs/cordis/pkg/clientip"
+	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/gateway/v1/config"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/discovery"
 	"github.com/soasurs/cordis/services/gateway/v1/internal/svc"
@@ -323,6 +324,7 @@ func TestRealWebSocketClientLifecycle(t *testing.T) {
 
 	require.NoError(t, wsjson.Write(ctx, conn, envelope{
 		Op: opIdentify,
+		T:  realtime.GatewayEventIdentify,
 		D:  json.RawMessage(`{"token":"access-token"}`),
 	}))
 	var ready envelope
@@ -334,6 +336,7 @@ func TestRealWebSocketClientLifecycle(t *testing.T) {
 	time.Sleep(gateway.svcCtx.Cfg.Gateway.HeartbeatMinimumInterval())
 	require.NoError(t, wsjson.Write(ctx, conn, envelope{
 		Op: opHeartbeat,
+		T:  realtime.GatewayEventHeartbeat,
 		D:  json.RawMessage(`1`),
 	}))
 	var ack envelope
@@ -460,7 +463,10 @@ func TestWebSocketResumeLifecycle(t *testing.T) {
 	hello := readEnvelope(t, reader)
 	require.Equal(t, opHello, hello.Op)
 
-	writeClientText(t, conn, `{"op":6,"d":{"token":"access-token","session_id":"sess-1","seq":42}}`)
+	writeClientText(t, conn, fmt.Sprintf(
+		`{"op":6,"t":%q,"d":{"token":"access-token","session_id":"sess-1","seq":42}}`,
+		realtime.GatewayEventResume,
+	))
 	resumed := readEnvelope(t, reader)
 	require.Equal(t, opDispatch, resumed.Op)
 	require.Equal(t, eventResumed, resumed.T)

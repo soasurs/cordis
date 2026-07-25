@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,7 +13,8 @@ import (
 
 func TestBanGuildMemberRemovesMemberAndBlocksRejoin(t *testing.T) {
 	fakeStore := roleTestStore()
-	server := newTestGuildServer(t, fakeStore, nil)
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
 
 	banReq := new(guildv1.BanGuildMemberRequest)
 	banReq.SetGuildId(10)
@@ -23,6 +25,10 @@ func TestBanGuildMemberRemovesMemberAndBlocksRejoin(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "spam", resp.GetBan().GetReason())
 	require.NotZero(t, fakeStore.members[10][1002].DeletedAt)
+	var envelope eventEnvelope[guildMemberBannedPayload]
+	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
+	require.Equal(t, "1002", envelope.Data.Profile.UserID)
+	require.Equal(t, "1001", envelope.Data.ActorProfile.UserID)
 
 	addReq := new(guildv1.AddGuildMemberRequest)
 	addReq.SetGuildId(10)

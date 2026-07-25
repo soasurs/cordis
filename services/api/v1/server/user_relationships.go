@@ -2,6 +2,9 @@ package server
 
 import (
 	"context"
+	"errors"
+
+	"connectrpc.com/connect"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
@@ -47,8 +50,12 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *apiv1.SendFrien
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	relationships, err := s.relationshipsToAPIWithProfiles(ctx, []*userv1.Relationship{svcResp.GetRelationship()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.SendFriendRequestResponse)
-	resp.SetRelationship(relationshipToAPI(svcResp.GetRelationship()))
+	resp.SetRelationship(relationships[0])
 	return resp, nil
 }
 
@@ -68,8 +75,12 @@ func (s *userServer) AcceptFriendRequest(ctx context.Context, req *apiv1.AcceptF
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	relationships, err := s.relationshipsToAPIWithProfiles(ctx, []*userv1.Relationship{svcResp.GetRelationship()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.AcceptFriendRequestResponse)
-	resp.SetRelationship(relationshipToAPI(svcResp.GetRelationship()))
+	resp.SetRelationship(relationships[0])
 	return resp, nil
 }
 
@@ -134,8 +145,12 @@ func (s *userServer) BlockUser(ctx context.Context, req *apiv1.BlockUserRequest)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	relationships, err := s.relationshipsToAPIWithProfiles(ctx, []*userv1.Relationship{svcResp.GetRelationship()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.BlockUserResponse)
-	resp.SetRelationship(relationshipToAPI(svcResp.GetRelationship()))
+	resp.SetRelationship(relationships[0])
 	return resp, nil
 }
 
@@ -178,10 +193,36 @@ func (s *userServer) ListRelationships(ctx context.Context, req *apiv1.ListRelat
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	relationships, err := s.relationshipsToAPIWithProfiles(ctx, svcResp.GetRelationships())
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.ListRelationshipsResponse)
-	resp.SetRelationships(relationshipsToAPI(svcResp.GetRelationships()))
+	resp.SetRelationships(relationships)
 	resp.SetBeforeTargetId(svcResp.GetBeforeTargetId())
 	return resp, nil
+}
+
+func (s *userServer) relationshipsToAPIWithProfiles(
+	ctx context.Context,
+	relationships []*userv1.Relationship,
+) ([]*apiv1.Relationship, error) {
+	userIDs := make([]int64, 0, len(relationships))
+	for _, relationship := range relationships {
+		if relationship == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid relationship"))
+		}
+		userIDs = append(userIDs, relationship.GetTargetId())
+	}
+	profiles, err := getUserProfiles(ctx, s.svcCtx.UserClient, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	values := relationshipsToAPI(relationships)
+	for i, relationship := range relationships {
+		values[i].SetProfile(userProfileToAPI(profiles[relationship.GetTargetId()]))
+	}
+	return values, nil
 }
 
 func relationshipToAPI(relationship *userv1.Relationship) *apiv1.Relationship {

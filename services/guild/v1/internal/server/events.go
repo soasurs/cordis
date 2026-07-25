@@ -1,10 +1,15 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -59,12 +64,13 @@ type guildDeletedPayload struct {
 }
 
 type guildMemberPayload struct {
-	GuildID   string `json:"guild_id"`
-	UserID    string `json:"user_id"`
-	Nickname  string `json:"nickname"`
-	Revision  int64  `json:"revision"`
-	JoinedAt  int64  `json:"joined_at"`
-	UpdatedAt int64  `json:"updated_at"`
+	GuildID   string             `json:"guild_id"`
+	UserID    string             `json:"user_id"`
+	Profile   userProfilePayload `json:"profile"`
+	Nickname  string             `json:"nickname"`
+	Revision  int64              `json:"revision"`
+	JoinedAt  int64              `json:"joined_at"`
+	UpdatedAt int64              `json:"updated_at"`
 }
 
 type guildMemberRemovedPayload struct {
@@ -75,17 +81,29 @@ type guildMemberRemovedPayload struct {
 }
 
 type guildMemberBannedPayload struct {
-	GuildID     string `json:"guild_id"`
-	UserID      string `json:"user_id"`
-	ActorUserID string `json:"actor_user_id"`
-	Reason      string `json:"reason"`
-	BannedAt    int64  `json:"banned_at"`
+	GuildID      string             `json:"guild_id"`
+	UserID       string             `json:"user_id"`
+	ActorUserID  string             `json:"actor_user_id"`
+	Profile      userProfilePayload `json:"profile"`
+	ActorProfile userProfilePayload `json:"actor_profile"`
+	Reason       string             `json:"reason"`
+	BannedAt     int64              `json:"banned_at"`
 }
 
 type guildMemberUnbannedPayload struct {
-	GuildID    string `json:"guild_id"`
-	UserID     string `json:"user_id"`
-	UnbannedAt int64  `json:"unbanned_at"`
+	GuildID    string             `json:"guild_id"`
+	UserID     string             `json:"user_id"`
+	Profile    userProfilePayload `json:"profile"`
+	UnbannedAt int64              `json:"unbanned_at"`
+}
+
+type userProfilePayload struct {
+	UserID        string `json:"user_id"`
+	Name          string `json:"name"`
+	AvatarAssetID string `json:"avatar_asset_id"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     int64  `json:"updated_at"`
+	Username      string `json:"username"`
 }
 
 type guildRolePayload struct {
@@ -156,12 +174,12 @@ func newGuildCreatedEvent(guild *model.Guild, idempotencyKey int64) (guildEvent,
 	return newGuildEvent(EventTypeGuildCreated, guild.ID, guildPayloadFromModel(guild), idempotencyKey)
 }
 
-func newGuildMemberJoinedEvent(member *model.GuildMember, idempotencyKey int64) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildMemberJoined, member.GuildID, guildMemberPayloadFromModel(member), idempotencyKey)
+func newGuildMemberJoinedEvent(member *model.GuildMember, profile *userv1.UserProfile, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildMemberJoined, member.GuildID, guildMemberPayloadFromModel(member, profile), idempotencyKey)
 }
 
-func newGuildMemberUpdatedEvent(member *model.GuildMember, idempotencyKey int64) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildMemberUpdated, member.GuildID, guildMemberPayloadFromModel(member), idempotencyKey)
+func newGuildMemberUpdatedEvent(member *model.GuildMember, profile *userv1.UserProfile, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(EventTypeGuildMemberUpdated, member.GuildID, guildMemberPayloadFromModel(member, profile), idempotencyKey)
 }
 
 func newGuildMemberRemovedEvent(member *model.GuildMember, idempotencyKey int64) (guildEvent, error) {
@@ -173,28 +191,89 @@ func newGuildMemberRemovedEvent(member *model.GuildMember, idempotencyKey int64)
 	}, idempotencyKey)
 }
 
-func newGuildMemberBannedEvent(ban *model.GuildBan, idempotencyKey int64) (guildEvent, error) {
+func newGuildMemberBannedEvent(
+	ban *model.GuildBan,
+	profile, actorProfile *userv1.UserProfile,
+	idempotencyKey int64,
+) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildMemberBanned, ban.GuildID, guildMemberBannedPayload{
 		GuildID: strconv.FormatInt(ban.GuildID, 10), UserID: strconv.FormatInt(ban.UserID, 10),
-		ActorUserID: strconv.FormatInt(ban.ActorUserID, 10), Reason: ban.Reason, BannedAt: ban.CreatedAt,
+		ActorUserID: strconv.FormatInt(ban.ActorUserID, 10), Profile: userProfilePayloadFromProto(profile),
+		ActorProfile: userProfilePayloadFromProto(actorProfile), Reason: ban.Reason, BannedAt: ban.CreatedAt,
 	}, idempotencyKey)
 }
 
-func newGuildMemberUnbannedEvent(guildID, userID, unbannedAt int64, idempotencyKey int64) (guildEvent, error) {
+func newGuildMemberUnbannedEvent(
+	guildID, userID, unbannedAt int64,
+	profile *userv1.UserProfile,
+	idempotencyKey int64,
+) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildMemberUnbanned, guildID, guildMemberUnbannedPayload{
-		GuildID: strconv.FormatInt(guildID, 10), UserID: strconv.FormatInt(userID, 10), UnbannedAt: unbannedAt,
+		GuildID: strconv.FormatInt(guildID, 10), UserID: strconv.FormatInt(userID, 10),
+		Profile: userProfilePayloadFromProto(profile), UnbannedAt: unbannedAt,
 	}, idempotencyKey)
 }
 
-func guildMemberPayloadFromModel(member *model.GuildMember) guildMemberPayload {
+func guildMemberPayloadFromModel(member *model.GuildMember, profile *userv1.UserProfile) guildMemberPayload {
 	return guildMemberPayload{
 		GuildID:   strconv.FormatInt(member.GuildID, 10),
 		UserID:    strconv.FormatInt(member.UserID, 10),
+		Profile:   userProfilePayloadFromProto(profile),
 		Nickname:  member.Nickname,
 		Revision:  member.Revision,
 		JoinedAt:  member.JoinedAt,
 		UpdatedAt: member.UpdatedAt,
 	}
+}
+
+func userProfilePayloadFromProto(profile *userv1.UserProfile) userProfilePayload {
+	if profile == nil {
+		return userProfilePayload{}
+	}
+	return userProfilePayload{
+		UserID:        strconv.FormatInt(profile.GetUserId(), 10),
+		Name:          profile.GetName(),
+		AvatarAssetID: strconv.FormatInt(profile.GetAvatarAssetId(), 10),
+		CreatedAt:     profile.GetCreatedAt(),
+		UpdatedAt:     profile.GetUpdatedAt(),
+		Username:      profile.GetUsername(),
+	}
+}
+
+func (s *guildServer) getEventUserProfiles(
+	ctx context.Context,
+	userIDs ...int64,
+) (map[int64]*userv1.UserProfile, error) {
+	req := new(userv1.BatchGetUserProfilesRequest)
+	req.SetUserIds(userIDs)
+	resp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, status.Error(codes.Internal, "user service returned an invalid response")
+	}
+	expected := make(map[int64]struct{}, len(userIDs))
+	for _, userID := range userIDs {
+		expected[userID] = struct{}{}
+	}
+	profiles := make(map[int64]*userv1.UserProfile, len(expected))
+	for _, profile := range resp.GetProfiles() {
+		if profile == nil {
+			return nil, status.Error(codes.Internal, "user service returned an invalid profile")
+		}
+		userID := profile.GetUserId()
+		if _, ok := expected[userID]; !ok || profiles[userID] != nil {
+			return nil, status.Error(codes.Internal, "user service returned unexpected profiles")
+		}
+		profiles[userID] = profile
+	}
+	for userID := range expected {
+		if profiles[userID] == nil {
+			return nil, status.Error(codes.Internal, "user service did not return all profiles")
+		}
+	}
+	return profiles, nil
 }
 
 func newGuildRoleCreatedEvent(role *model.Role, idempotencyKey int64) (guildEvent, error) {

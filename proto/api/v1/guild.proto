@@ -106,7 +106,7 @@ message GuildMember {
   int64 revision = 4;
   int64 joined_at = 5;
   int64 updated_at = 6;
-  // Current public profile of this member. ListGuildMembers populates this field.
+  // Current public profile of this member.
   UserProfile profile = 7;
 }
 
@@ -116,6 +116,10 @@ message GuildBan {
   int64 actor_user_id = 3;
   string reason = 4;
   int64 created_at = 5;
+  // Current public profile of the banned user.
+  UserProfile profile = 6;
+  // Current public profile of the moderator who created the ban.
+  UserProfile actor_profile = 7;
 }
 
 // GuildRole grants guild-level permissions to assigned members.
@@ -356,6 +360,8 @@ message GuildInvite {
   // Zero means the invite never expires.
   int64 expires_at = 7;
   int64 created_at = 8;
+  // Current public profile of the member who created this invite.
+  UserProfile creator = 9;
 }
 
 // GuildInvitePreview is the guild summary shown to a user before joining.

@@ -110,6 +110,7 @@ func (c NodeConfig) SnapshotReloadTimeout() time.Duration {
 
 type ServiceConfig struct {
 	Authenticator zrpc.RpcClientConf
+	User          zrpc.RpcClientConf
 	Presence      zrpc.RpcClientConf
 	Guild         zrpc.RpcClientConf
 	Message       zrpc.RpcClientConf

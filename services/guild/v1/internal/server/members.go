@@ -37,6 +37,10 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 	if userResp.GetUser().GetUserId() != req.GetUserId() {
 		return nil, notFound()
 	}
+	profiles, err := s.getEventUserProfiles(ctx, req.GetUserId())
+	if err != nil {
+		return nil, err
+	}
 
 	var member *model.GuildMember
 	joinedAt := time.Now().UnixMilli()
@@ -70,7 +74,7 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberJoinedEvent(member, s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildMemberJoinedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.AddGuildMemberResponse)
 	resp.SetMember(guildMemberToProto(member))
@@ -132,6 +136,10 @@ func (s *guildServer) UpdateGuildMember(ctx context.Context, req *guildv1.Update
 	if err != nil {
 		return nil, err
 	}
+	profiles, err := s.getEventUserProfiles(ctx, req.GetActorUserId())
+	if err != nil {
+		return nil, err
+	}
 	var member *model.GuildMember
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		if _, err := txStore.GetGuildForMember(ctx, req.GetGuildId(), req.GetActorUserId()); err != nil {
@@ -143,7 +151,7 @@ func (s *guildServer) UpdateGuildMember(ctx context.Context, req *guildv1.Update
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberUpdatedEvent(member, s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildMemberUpdatedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpdateGuildMemberResponse)
 	resp.SetMember(guildMemberToProto(member))

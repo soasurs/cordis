@@ -399,6 +399,7 @@ func avatarAsset(assetID, userID int64) *mediav1.Asset {
 type fakeStore struct {
 	user                *model.User
 	profile             *model.UserProfile
+	eventProfiles       map[int64]*model.UserProfile
 	batchProfiles       []*model.UserProfile
 	listProfileIDs      []int64
 	createUserErr       error
@@ -418,6 +419,7 @@ func (s *fakeStore) LockRelationshipPair(_ context.Context, userID, targetID int
 func newFakeStore() *fakeStore {
 	return &fakeStore{
 		relationships: make(map[[2]int64]*model.Relationship),
+		eventProfiles: make(map[int64]*model.UserProfile),
 	}
 }
 
@@ -492,6 +494,9 @@ func (s *fakeStore) CreateUserProfile(_ context.Context, userID int64, username,
 }
 
 func (s *fakeStore) GetUserProfile(_ context.Context, userID int64) (*model.UserProfile, error) {
+	if profile := s.eventProfiles[userID]; profile != nil {
+		return profile, nil
+	}
 	if s.profile == nil || s.profile.UserID != userID {
 		return nil, sql.ErrNoRows
 	}

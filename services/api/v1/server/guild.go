@@ -193,8 +193,12 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *apiv1.AddGuildMem
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	members, err := s.guildMembersToAPIWithProfiles(ctx, []*guildv1.GuildMember{svcResp.GetMember()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.AddGuildMemberResponse)
-	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	resp.SetMember(members[0])
 	return resp, nil
 }
 
@@ -211,8 +215,12 @@ func (s *guildServer) GetGuildMember(ctx context.Context, req *apiv1.GetGuildMem
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	members, err := s.guildMembersToAPIWithProfiles(ctx, []*guildv1.GuildMember{svcResp.GetMember()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.GetGuildMemberResponse)
-	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	resp.SetMember(members[0])
 	return resp, nil
 }
 
@@ -230,13 +238,9 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuild
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
-	profiles, err := s.getGuildMemberProfiles(ctx, svcResp.GetMembers())
+	members, err := s.guildMembersToAPIWithProfiles(ctx, svcResp.GetMembers())
 	if err != nil {
 		return nil, err
-	}
-	members := guildMembersToAPI(svcResp.GetMembers())
-	for i, member := range svcResp.GetMembers() {
-		members[i].SetProfile(userProfileToAPI(profiles[member.GetUserId()]))
 	}
 	resp := new(apiv1.ListGuildMembersResponse)
 	resp.SetMembers(members)
@@ -244,56 +248,33 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuild
 	return resp, nil
 }
 
+func (s *guildServer) guildMembersToAPIWithProfiles(
+	ctx context.Context,
+	members []*guildv1.GuildMember,
+) ([]*apiv1.GuildMember, error) {
+	profiles, err := s.getGuildMemberProfiles(ctx, members)
+	if err != nil {
+		return nil, err
+	}
+	values := guildMembersToAPI(members)
+	for i, member := range members {
+		values[i].SetProfile(userProfileToAPI(profiles[member.GetUserId()]))
+	}
+	return values, nil
+}
+
 func (s *guildServer) getGuildMemberProfiles(
 	ctx context.Context,
 	members []*guildv1.GuildMember,
 ) (map[int64]*userv1.UserProfile, error) {
 	userIDs := make([]int64, 0, len(members))
-	expected := make(map[int64]struct{}, len(members))
 	for _, member := range members {
 		if member == nil || member.GetUserId() <= 0 {
 			return nil, connect.NewError(connect.CodeInternal, errors.New("guild service returned an invalid member"))
 		}
-		userID := member.GetUserId()
-		if _, ok := expected[userID]; ok {
-			continue
-		}
-		expected[userID] = struct{}{}
-		userIDs = append(userIDs, userID)
+		userIDs = append(userIDs, member.GetUserId())
 	}
-
-	profiles := make(map[int64]*userv1.UserProfile, len(userIDs))
-	if len(userIDs) == 0 {
-		return profiles, nil
-	}
-	req := new(userv1.BatchGetUserProfilesRequest)
-	req.SetUserIds(userIDs)
-	userResp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
-	if err != nil {
-		return nil, apierror.FromRPC(err)
-	}
-	if userResp == nil {
-		return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid response"))
-	}
-	for _, profile := range userResp.GetProfiles() {
-		if profile == nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid profile"))
-		}
-		userID := profile.GetUserId()
-		if _, ok := expected[userID]; !ok {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an unexpected profile"))
-		}
-		if profiles[userID] != nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned a duplicate profile"))
-		}
-		profiles[userID] = profile
-	}
-	for _, userID := range userIDs {
-		if profiles[userID] == nil {
-			return nil, connect.NewError(connect.CodeInternal, errors.New("user service did not return all profiles"))
-		}
-	}
-	return profiles, nil
+	return getUserProfiles(ctx, s.svcCtx.UserClient, userIDs)
 }
 
 func (s *guildServer) UpdateCurrentGuildMember(ctx context.Context, req *apiv1.UpdateCurrentGuildMemberRequest) (*apiv1.UpdateCurrentGuildMemberResponse, error) {
@@ -309,8 +290,12 @@ func (s *guildServer) UpdateCurrentGuildMember(ctx context.Context, req *apiv1.U
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	members, err := s.guildMembersToAPIWithProfiles(ctx, []*guildv1.GuildMember{svcResp.GetMember()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.UpdateCurrentGuildMemberResponse)
-	resp.SetMember(guildMemberToAPI(svcResp.GetMember()))
+	resp.SetMember(members[0])
 	return resp, nil
 }
 
@@ -346,8 +331,12 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *apiv1.BanGuildMem
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	bans, err := s.guildBansToAPIWithProfiles(ctx, []*guildv1.GuildBan{svcResp.GetBan()})
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.BanGuildMemberResponse)
-	resp.SetBan(guildBanToAPI(svcResp.GetBan()))
+	resp.SetBan(bans[0])
 	return resp, nil
 }
 
@@ -383,10 +372,37 @@ func (s *guildServer) ListGuildBans(ctx context.Context, req *apiv1.ListGuildBan
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	bans, err := s.guildBansToAPIWithProfiles(ctx, svcResp.GetBans())
+	if err != nil {
+		return nil, err
+	}
 	resp := new(apiv1.ListGuildBansResponse)
-	resp.SetBans(guildBansToAPI(svcResp.GetBans()))
+	resp.SetBans(bans)
 	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
 	return resp, nil
+}
+
+func (s *guildServer) guildBansToAPIWithProfiles(
+	ctx context.Context,
+	bans []*guildv1.GuildBan,
+) ([]*apiv1.GuildBan, error) {
+	userIDs := make([]int64, 0, len(bans)*2)
+	for _, ban := range bans {
+		if ban == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("guild service returned an invalid ban"))
+		}
+		userIDs = append(userIDs, ban.GetUserId(), ban.GetActorUserId())
+	}
+	profiles, err := getUserProfiles(ctx, s.svcCtx.UserClient, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	values := guildBansToAPI(bans)
+	for i, ban := range bans {
+		values[i].SetProfile(userProfileToAPI(profiles[ban.GetUserId()]))
+		values[i].SetActorProfile(userProfileToAPI(profiles[ban.GetActorUserId()]))
+	}
+	return values, nil
 }
 
 func (s *guildServer) LeaveGuild(ctx context.Context, req *apiv1.LeaveGuildRequest) (*apiv1.LeaveGuildResponse, error) {

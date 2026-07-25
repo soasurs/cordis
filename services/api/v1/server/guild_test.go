@@ -374,17 +374,19 @@ func TestGuildMemberMutationsUseAuthenticatedActor(t *testing.T) {
 	addMemberReq := new(apiv1.AddGuildMemberRequest)
 	addMemberReq.SetGuildId(3001)
 	addMemberReq.SetUserId(1002)
-	_, err := client.AddGuildMember(context.Background(), addMemberReq)
+	addMemberResp, err := client.AddGuildMember(context.Background(), addMemberReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.addMemberRequest.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.addMemberRequest.GetUserId())
+	require.Equal(t, int64(1001), addMemberResp.GetMember().GetProfile().GetUserId())
 
 	updateCurrentMemberReq := new(apiv1.UpdateCurrentGuildMemberRequest)
 	updateCurrentMemberReq.SetGuildId(3001)
 	updateCurrentMemberReq.SetNickname("member")
-	_, err = client.UpdateCurrentGuildMember(context.Background(), updateCurrentMemberReq)
+	updateMemberResp, err := client.UpdateCurrentGuildMember(context.Background(), updateCurrentMemberReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateMemberRequest.GetActorUserId())
+	require.Equal(t, int64(1001), updateMemberResp.GetMember().GetProfile().GetUserId())
 
 	leaveReq := new(apiv1.LeaveGuildRequest)
 	leaveReq.SetGuildId(3001)
@@ -600,6 +602,7 @@ func TestGetGuildMemberUsesAuthenticatedActor(t *testing.T) {
 	require.Equal(t, int64(1001), guildClient.getMemberReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.getMemberReq.GetUserId())
 	require.Equal(t, int64(1001), resp.GetMember().GetUserId()) // returns internalGuildMember which has UserId=1001
+	require.Equal(t, "display name", resp.GetMember().GetProfile().GetName())
 }
 
 func TestListGuildMembersMapsRequestAndResponse(t *testing.T) {
@@ -701,6 +704,8 @@ func TestBanGuildMemberMapsRequestAndResponse(t *testing.T) {
 	require.Equal(t, int64(1002), guildClient.banReq.GetUserId())
 	require.Equal(t, "spam", guildClient.banReq.GetReason())
 	require.Equal(t, int64(1002), resp.GetBan().GetUserId())
+	require.Equal(t, int64(1002), resp.GetBan().GetProfile().GetUserId())
+	require.Equal(t, int64(1001), resp.GetBan().GetActorProfile().GetUserId())
 }
 
 func TestUnbanGuildMemberUsesAuthenticatedActor(t *testing.T) {
@@ -727,6 +732,7 @@ func TestListGuildBansMapsRequestAndResponse(t *testing.T) {
 	ban := new(guildv1.GuildBan)
 	ban.SetGuildId(3001)
 	ban.SetUserId(1002)
+	ban.SetActorUserId(1001)
 	ban.SetCreatedAt(4001)
 	guildClient := &fakeGuildClient{
 		listBansFn: func(*guildv1.ListGuildBansRequest) (*guildv1.ListGuildBansResponse, error) {
@@ -747,6 +753,8 @@ func TestListGuildBansMapsRequestAndResponse(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listBansReq.GetActorUserId())
 	require.Len(t, resp.GetBans(), 1)
+	require.Equal(t, int64(1002), resp.GetBans()[0].GetProfile().GetUserId())
+	require.Equal(t, int64(1001), resp.GetBans()[0].GetActorProfile().GetUserId())
 	require.Equal(t, int64(1003), resp.GetBeforeUserId())
 }
 

@@ -119,6 +119,7 @@ func TestSendFriendRequestUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, int64(1002), resp.GetRelationship().GetTargetId())
 	require.Equal(t, apiv1.RelationshipType_RELATIONSHIP_TYPE_OUTGOING, resp.GetRelationship().GetType())
 	require.Equal(t, int64(2001), resp.GetRelationship().GetCreatedAt())
+	require.Equal(t, int64(1002), resp.GetRelationship().GetProfile().GetUserId())
 }
 
 func TestRelationshipMutationsUseAuthenticatedUser(t *testing.T) {
@@ -243,6 +244,7 @@ func TestListRelationshipsMapsRequestAndResponse(t *testing.T) {
 	require.Equal(t, int32(50), userClient.listRelationshipsRequest.GetLimit())
 	require.Len(t, resp.GetRelationships(), 1)
 	require.Equal(t, int64(1002), resp.GetRelationships()[0].GetTargetId())
+	require.Equal(t, int64(1002), resp.GetRelationships()[0].GetProfile().GetUserId())
 	require.Equal(t, int64(1002), resp.GetBeforeTargetId())
 }
 

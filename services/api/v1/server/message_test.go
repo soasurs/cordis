@@ -402,12 +402,10 @@ func newMessageHTTPClient(
 	accessToken string,
 ) (apiv1connect.MessageServiceClient, func()) {
 	t.Helper()
-	profilesResp := new(userv1.BatchGetUserProfilesResponse)
-	profilesResp.SetProfiles([]*userv1.UserProfile{internalUserProfile()})
 	return newMessageHTTPClientWithUser(
 		t,
 		authenticatorClient,
-		&fakeUserClient{batchGetUserProfilesResponse: profilesResp},
+		new(fakeUserClient),
 		messageClient,
 		accessToken,
 	)
@@ -541,6 +539,7 @@ func TestCreateDmChannelUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, int64(2002), messageClient.createDmChannelRequest.GetTargetId())
 	// The stored pair is translated into the caller's perspective.
 	require.Equal(t, int64(2002), resp.GetChannel().GetRecipientId())
+	require.Equal(t, int64(2002), resp.GetChannel().GetRecipient().GetUserId())
 	require.Equal(t, int64(500), resp.GetChannel().GetId())
 }
 
@@ -569,6 +568,7 @@ func TestListDmChannelsMapsPerspective(t *testing.T) {
 	require.Len(t, resp.GetChannels(), 1)
 	// The caller is user_hi here, so the recipient is user_lo.
 	require.Equal(t, int64(42), resp.GetChannels()[0].GetRecipientId())
+	require.Equal(t, int64(42), resp.GetChannels()[0].GetRecipient().GetUserId())
 	require.Equal(t, int64(500), resp.GetBeforeId())
 }
 
@@ -624,5 +624,6 @@ func TestGetReadStatesUsesAuthenticatedScopedRequest(t *testing.T) {
 	require.Equal(t, int64(1001), messageClient.getReadStatesRequest.GetUserId())
 	require.Equal(t, messagev1.ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS, messageClient.getReadStatesRequest.GetScope())
 	require.Equal(t, int64(2002), resp.GetDmChannels()[0].GetRecipientId())
+	require.Equal(t, int64(2002), resp.GetDmChannels()[0].GetRecipient().GetUserId())
 	require.Equal(t, int64(600), resp.GetReadStates()[0].GetLastMessageId())
 }

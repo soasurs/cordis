@@ -307,6 +307,28 @@ func (f *fakeUserClient) GetUser(_ context.Context, req *userv1.GetUserRequest, 
 	return resp, nil
 }
 
+func (f *fakeUserClient) BatchGetUserProfiles(
+	_ context.Context,
+	req *userv1.BatchGetUserProfilesRequest,
+	_ ...grpc.CallOption,
+) (*userv1.BatchGetUserProfilesResponse, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	profiles := make([]*userv1.UserProfile, 0, len(req.GetUserIds()))
+	for _, userID := range req.GetUserIds() {
+		profile := new(userv1.UserProfile)
+		profile.SetUserId(userID)
+		profile.SetUsername("user_" + strconv.FormatInt(userID, 10))
+		profile.SetName("User " + strconv.FormatInt(userID, 10))
+		profile.SetAvatarAssetId(userID + 1000)
+		profiles = append(profiles, profile)
+	}
+	resp := new(userv1.BatchGetUserProfilesResponse)
+	resp.SetProfiles(profiles)
+	return resp, nil
+}
+
 type fakeMediaClient struct {
 	mediav1.MediaServiceClient
 	asset           *mediav1.Asset

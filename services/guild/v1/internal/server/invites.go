@@ -195,6 +195,10 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *guildv1.JoinGu
 	if req.GetUserId() <= 0 {
 		return nil, invalidRequest("user id is required")
 	}
+	profiles, err := s.getEventUserProfiles(ctx, req.GetUserId())
+	if err != nil {
+		return nil, err
+	}
 
 	joinedAt := time.Now().UnixMilli()
 	var guild *model.Guild
@@ -245,7 +249,7 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *guildv1.JoinGu
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberJoinedEvent(member, s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildMemberJoinedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(guildv1.JoinGuildByInviteResponse)

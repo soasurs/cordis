@@ -29,11 +29,21 @@ type userEvent struct {
 }
 
 type relationshipPayload struct {
-	UserID    string `json:"user_id"`
-	TargetID  string `json:"target_id"`
-	Type      int16  `json:"type"`
-	CreatedAt int64  `json:"created_at"`
-	UpdatedAt int64  `json:"updated_at"`
+	UserID    string             `json:"user_id"`
+	TargetID  string             `json:"target_id"`
+	Profile   userProfilePayload `json:"profile"`
+	Type      int16              `json:"type"`
+	CreatedAt int64              `json:"created_at"`
+	UpdatedAt int64              `json:"updated_at"`
+}
+
+type userProfilePayload struct {
+	UserID        string `json:"user_id"`
+	Name          string `json:"name"`
+	AvatarAssetID string `json:"avatar_asset_id"`
+	CreatedAt     int64  `json:"created_at"`
+	UpdatedAt     int64  `json:"updated_at"`
+	Username      string `json:"username"`
 }
 
 type relationshipRemovedPayload struct {
@@ -41,14 +51,33 @@ type relationshipRemovedPayload struct {
 	TargetID string `json:"target_id"`
 }
 
-func newRelationshipUpdatedEvent(relationship *model.Relationship, idempotencyKey int64) (userEvent, error) {
+func newRelationshipUpdatedEvent(
+	relationship *model.Relationship,
+	profile *model.UserProfile,
+	idempotencyKey int64,
+) (userEvent, error) {
 	return newUserEvent(EventTypeRelationshipUpdated, relationship.UserID, relationshipPayload{
 		UserID:    strconv.FormatInt(relationship.UserID, 10),
 		TargetID:  strconv.FormatInt(relationship.TargetID, 10),
+		Profile:   userProfilePayloadFromModel(profile),
 		Type:      relationship.Type,
 		CreatedAt: relationship.CreatedAt,
 		UpdatedAt: relationship.UpdatedAt,
 	}, idempotencyKey)
+}
+
+func userProfilePayloadFromModel(profile *model.UserProfile) userProfilePayload {
+	if profile == nil {
+		return userProfilePayload{}
+	}
+	return userProfilePayload{
+		UserID:        strconv.FormatInt(profile.UserID, 10),
+		Name:          profile.Name,
+		AvatarAssetID: strconv.FormatInt(profile.AvatarAssetID, 10),
+		CreatedAt:     profile.CreatedAt,
+		UpdatedAt:     profile.UpdatedAt,
+		Username:      profile.Username,
+	}
 }
 
 func newRelationshipRemovedEvent(userID, targetID int64, idempotencyKey int64) (userEvent, error) {

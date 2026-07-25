@@ -49,6 +49,10 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *guildv1.BanGuildM
 	if userResp.GetUser().GetUserId() != req.GetUserId() {
 		return nil, notFound()
 	}
+	profiles, err := s.getEventUserProfiles(ctx, req.GetUserId(), req.GetActorUserId())
+	if err != nil {
+		return nil, err
+	}
 
 	var ban *model.GuildBan
 	createdAt := time.Now().UnixMilli()
@@ -98,7 +102,12 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *guildv1.BanGuildM
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberBannedEvent(ban, s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildMemberBannedEvent(
+		ban,
+		profiles[ban.UserID],
+		profiles[ban.ActorUserID],
+		s.svcCtx.Snowflake.Generate().Int64(),
+	)
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.BanGuildMemberResponse)
 	resp.SetBan(guildBanToProto(ban))
@@ -112,7 +121,11 @@ func (s *guildServer) UnbanGuildMember(ctx context.Context, req *guildv1.UnbanGu
 	if req.GetUserId() <= 0 {
 		return nil, invalidRequest("user id is required")
 	}
-	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+	profiles, err := s.getEventUserProfiles(ctx, req.GetUserId())
+	if err != nil {
+		return nil, err
+	}
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		actor, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
 			return err
@@ -126,7 +139,13 @@ func (s *guildServer) UnbanGuildMember(ctx context.Context, req *guildv1.UnbanGu
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberUnbannedEvent(req.GetGuildId(), req.GetUserId(), time.Now().UnixMilli(), s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildMemberUnbannedEvent(
+		req.GetGuildId(),
+		req.GetUserId(),
+		time.Now().UnixMilli(),
+		profiles[req.GetUserId()],
+		s.svcCtx.Snowflake.Generate().Int64(),
+	)
 	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UnbanGuildMemberResponse)
 	resp.SetOk(true)

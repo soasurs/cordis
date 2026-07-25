@@ -9,6 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -25,6 +26,7 @@ type ServiceContext struct {
 	Cfg       config.Config
 	Store     store.Store
 	Snowflake *sn.Node
+	Cursors   *cursor.Codec
 	// Publisher is optional; events are skipped when nil.
 	Publisher   EventPublisher
 	MediaClient mediav1.MediaServiceClient
@@ -33,6 +35,7 @@ type ServiceContext struct {
 type Dependencies struct {
 	Store       store.Store
 	Snowflake   *sn.Node
+	Cursors     *cursor.Codec
 	Kafka       *kgo.Client
 	Publisher   EventPublisher
 	MediaClient mediav1.MediaServiceClient
@@ -41,6 +44,10 @@ type Dependencies struct {
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
 	node, err := snowflake.New()
+	if err != nil {
+		return Dependencies{}, err
+	}
+	cursors, err := cursor.NewCodec(cfg.Cursor.Secret)
 	if err != nil {
 		return Dependencies{}, err
 	}
@@ -67,6 +74,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	return Dependencies{
 		Store:       store.New(db),
 		Snowflake:   node,
+		Cursors:     cursors,
 		Kafka:       kafkaClient,
 		DB:          db,
 		MediaClient: mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
@@ -88,6 +96,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.Snowflake == nil {
 		panic("snowflake node is required")
 	}
+	if deps.Cursors == nil {
+		panic("cursor codec is required")
+	}
 	if deps.MediaClient == nil {
 		panic("media client is required")
 	}
@@ -99,6 +110,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		Cfg:         cfg,
 		Store:       deps.Store,
 		Snowflake:   deps.Snowflake,
+		Cursors:     deps.Cursors,
 		Publisher:   publisher,
 		MediaClient: deps.MediaClient,
 	}

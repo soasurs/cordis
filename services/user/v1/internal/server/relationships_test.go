@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/user/v1/config"
@@ -49,12 +50,34 @@ func newRelationshipTestServer(t *testing.T, fake *fakeStore, publisher svc.Even
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
 	return New(&svc.ServiceContext{
 		Cfg:       config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
 		Store:     fake,
 		Snowflake: node,
+		Cursors:   codec,
 		Publisher: publisher,
 	})
+}
+
+func assertRejectsBadCursors(t *testing.T, expectKind string, payload any, call func(token string) error) {
+	t.Helper()
+	require.Equal(t, codes.InvalidArgument, status.Code(call("")))
+
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+	wrongKind := cursor.KindUserGuilds
+	if expectKind == wrongKind {
+		wrongKind = cursor.KindDmChannels
+	}
+	wrong, err := codec.Encode(wrongKind, payload)
+	require.NoError(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(call(wrong)))
+
+	good, err := codec.Encode(expectKind, payload)
+	require.NoError(t, err)
+	require.Equal(t, codes.InvalidArgument, status.Code(call(good+"x")))
 }
 
 // relationshipTestStore seeds the target user so existence checks pass.
@@ -326,7 +349,7 @@ func TestListRelationshipsFiltersAndPaginates(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.GetRelationships(), 3)
 	require.Equal(t, int64(2004), resp.GetRelationships()[0].GetTargetId())
-	require.Equal(t, int64(2002), resp.GetBeforeTargetId())
+	require.False(t, resp.HasNextCursor())
 
 	req.SetType(userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND)
 	resp, err = server.ListRelationships(context.Background(), req)
@@ -334,12 +357,81 @@ func TestListRelationshipsFiltersAndPaginates(t *testing.T) {
 	require.Len(t, resp.GetRelationships(), 2)
 
 	req.SetType(userv1.RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED)
-	req.SetBeforeTargetId(2004)
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+	token, err := codec.Encode(cursor.KindRelationships, relationshipCursorPayload{UserID: 1001, Type: 0, Time: 1, ID: 2004})
+	require.NoError(t, err)
+	req.SetCursor(token)
 	req.SetLimit(1)
 	resp, err = server.ListRelationships(context.Background(), req)
 	require.NoError(t, err)
 	require.Len(t, resp.GetRelationships(), 1)
 	require.Equal(t, int64(2003), resp.GetRelationships()[0].GetTargetId())
+	next, err := codec.Encode(cursor.KindRelationships, relationshipCursorPayload{UserID: 1001, Type: 0, Time: 1, ID: 2003})
+	require.NoError(t, err)
+	require.Equal(t, next, resp.GetNextCursor())
+}
+
+func TestListRelationshipsPagesWithServerCursors(t *testing.T) {
+	fake := relationshipTestStore()
+	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipFriend, CreatedAt: 1}
+	fake.relationships[pairKey(1001, 2003)] = &model.Relationship{UserID: 1001, TargetID: 2003, Type: model.RelationshipFriend, CreatedAt: 1}
+	fake.relationships[pairKey(1001, 2004)] = &model.Relationship{UserID: 1001, TargetID: 2004, Type: model.RelationshipFriend, CreatedAt: 1}
+	server := newRelationshipTestServer(t, fake, nil)
+
+	seen := make([]int64, 0, 3)
+	req := new(userv1.ListRelationshipsRequest)
+	req.SetUserId(1001)
+	req.SetLimit(1)
+	for {
+		resp, err := server.ListRelationships(context.Background(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetRelationships(), 1)
+		seen = append(seen, resp.GetRelationships()[0].GetTargetId())
+		if !resp.HasNextCursor() {
+			break
+		}
+		req.SetCursor(resp.GetNextCursor())
+	}
+	require.Equal(t, []int64{2004, 2003, 2002}, seen)
+}
+
+func TestListRelationshipsRejectsBadCursors(t *testing.T) {
+	fake := relationshipTestStore()
+	server := newRelationshipTestServer(t, fake, nil)
+
+	assertRejectsBadCursors(t, cursor.KindRelationships, relationshipCursorPayload{UserID: 1001, Type: 0, Time: 1, ID: 2002}, func(token string) error {
+		req := new(userv1.ListRelationshipsRequest)
+		req.SetUserId(1001)
+		req.SetCursor(token)
+		_, err := server.ListRelationships(context.Background(), req)
+		return err
+	})
+}
+
+func TestListRelationshipsRejectsCrossScopeCursor(t *testing.T) {
+	fake := relationshipTestStore()
+	server := newRelationshipTestServer(t, fake, nil)
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
+
+	wrongUser, err := codec.Encode(cursor.KindRelationships, relationshipCursorPayload{
+		UserID: 2002, Type: 0, Time: 1, ID: 2003,
+	})
+	require.NoError(t, err)
+	req := new(userv1.ListRelationshipsRequest)
+	req.SetUserId(1001)
+	req.SetCursor(wrongUser)
+	_, err = server.ListRelationships(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	wrongType, err := codec.Encode(cursor.KindRelationships, relationshipCursorPayload{
+		UserID: 1001, Type: int32(userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND), Time: 1, ID: 2003,
+	})
+	require.NoError(t, err)
+	req.SetCursor(wrongType)
+	_, err = server.ListRelationships(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestCheckRelationships(t *testing.T) {

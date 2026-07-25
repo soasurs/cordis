@@ -187,7 +187,9 @@ func (s *userServer) ListRelationships(ctx context.Context, req *apiv1.ListRelat
 	svcReq := new(userv1.ListRelationshipsRequest)
 	svcReq.SetUserId(auth.GetUserId())
 	svcReq.SetType(userv1.RelationshipType(req.GetType()))
-	svcReq.SetBeforeTargetId(req.GetBeforeTargetId())
+	if req.HasCursor() {
+		svcReq.SetCursor(req.GetCursor())
+	}
 	svcReq.SetLimit(req.GetLimit())
 	svcResp, err := s.svcCtx.UserClient.ListRelationships(ctx, svcReq)
 	if err != nil {
@@ -199,7 +201,9 @@ func (s *userServer) ListRelationships(ctx context.Context, req *apiv1.ListRelat
 	}
 	resp := new(apiv1.ListRelationshipsResponse)
 	resp.SetRelationships(relationships)
-	resp.SetBeforeTargetId(svcResp.GetBeforeTargetId())
+	if svcResp.HasNextCursor() {
+		resp.SetNextCursor(svcResp.GetNextCursor())
+	}
 	return resp, nil
 }
 

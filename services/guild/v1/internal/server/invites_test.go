@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
@@ -131,19 +132,77 @@ func TestListGuildInvitesRequiresManageGuild(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.GetInvites(), 2)
 	require.Equal(t, int64(602), resp.GetInvites()[0].GetId())
-	require.Equal(t, int64(601), resp.GetBeforeId())
+	require.False(t, resp.HasNextCursor())
 
-	req.SetBeforeId(602)
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindGuildInvites, guildIDPayload{GuildID: 10, ID: 602})
+	require.NoError(t, err)
+	req.SetCursor(token)
 	req.SetLimit(1)
 	resp, err = server.ListGuildInvites(t.Context(), req)
 	require.NoError(t, err)
 	require.Len(t, resp.GetInvites(), 1)
 	require.Equal(t, int64(601), resp.GetInvites()[0].GetId())
+	require.False(t, resp.HasNextCursor())
 
 	// A plain member holds CREATE_INVITE but not MANAGE_GUILD.
 	req.SetActorUserId(1002)
 	_, err = server.ListGuildInvites(t.Context(), req)
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
+}
+
+func TestListGuildInvitesPagesWithServerCursors(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.invites["a"] = &model.GuildInvite{ID: 601, Code: "a", GuildID: 10, CreatorUserID: 1001, CreatedAt: 1}
+	fakeStore.invites["b"] = &model.GuildInvite{ID: 602, Code: "b", GuildID: 10, CreatorUserID: 1001, CreatedAt: 1}
+	fakeStore.invites["c"] = &model.GuildInvite{ID: 603, Code: "c", GuildID: 10, CreatorUserID: 1001, CreatedAt: 1}
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	seen := make([]int64, 0, 3)
+	req := new(guildv1.ListGuildInvitesRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetLimit(1)
+	for {
+		resp, err := server.ListGuildInvites(t.Context(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.GetInvites(), 1)
+		seen = append(seen, resp.GetInvites()[0].GetId())
+		if !resp.HasNextCursor() {
+			break
+		}
+		req.SetCursor(resp.GetNextCursor())
+	}
+	require.Equal(t, []int64{603, 602, 601}, seen)
+}
+
+func TestListGuildInvitesRejectsBadCursors(t *testing.T) {
+	fakeStore := roleTestStore()
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	assertRejectsBadCursors(t, cursor.KindGuildInvites, guildIDPayload{GuildID: 10, ID: 601}, func(token string) error {
+		req := new(guildv1.ListGuildInvitesRequest)
+		req.SetGuildId(10)
+		req.SetActorUserId(1001)
+		req.SetCursor(token)
+		_, err := server.ListGuildInvites(t.Context(), req)
+		return err
+	})
+}
+
+func TestListGuildInvitesRejectsCrossGuildCursor(t *testing.T) {
+	fakeStore := roleTestStore()
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	codec := testCursorCodec(t)
+	token, err := codec.Encode(cursor.KindGuildInvites, guildIDPayload{GuildID: 99, ID: 601})
+	require.NoError(t, err)
+	req := new(guildv1.ListGuildInvitesRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetCursor(token)
+	_, err = server.ListGuildInvites(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestDeleteGuildInviteCreatorAndManager(t *testing.T) {

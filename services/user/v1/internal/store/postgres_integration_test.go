@@ -270,7 +270,7 @@ func testRelationships(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Equal(t, []int64{userC}, idsOfRelationships(relationships))
 
-	relationships, err = store.ListRelationships(ctx, ListRelationshipsParams{UserID: userA, BeforeTargetID: userC, Limit: 10})
+	relationships, err = store.ListRelationships(ctx, ListRelationshipsParams{UserID: userA, BeforeCreatedAt: now, BeforeTargetID: userC, Limit: 10})
 	require.NoError(t, err)
 	require.Equal(t, []int64{userB}, idsOfRelationships(relationships))
 

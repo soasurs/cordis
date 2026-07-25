@@ -31,6 +31,9 @@ database:
   maxOpenConns: 10
   maxIdleConns: 5
 
+cursor:
+  secret: "${CORDIS_CURSOR_SECRET}"
+
 services:
   media:
     endpoints:

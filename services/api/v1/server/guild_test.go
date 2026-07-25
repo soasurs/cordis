@@ -558,7 +558,7 @@ func TestListGuildsUsesAuthenticatedUser(t *testing.T) {
 		listGuildsFn: func(*guildv1.ListUserGuildsRequest) (*guildv1.ListUserGuildsResponse, error) {
 			resp := new(guildv1.ListUserGuildsResponse)
 			resp.SetGuilds([]*guildv1.Guild{internalGuild()})
-			resp.SetBeforeCursor(3000)
+			resp.SetNextCursor("cursor-token")
 			return resp, nil
 		},
 	}
@@ -566,15 +566,15 @@ func TestListGuildsUsesAuthenticatedUser(t *testing.T) {
 	defer closeServer()
 
 	listGuildsReq := new(apiv1.ListGuildsRequest)
-	listGuildsReq.SetBefore(3000)
+	listGuildsReq.SetCursor("cursor-token")
 	listGuildsReq.SetLimit(25)
 	resp, err := client.ListGuilds(context.Background(), listGuildsReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listGuildsReq.GetUserId())
-	require.Equal(t, int64(3000), guildClient.listGuildsReq.GetBefore())
+	require.Equal(t, "cursor-token", guildClient.listGuildsReq.GetCursor())
 	require.Equal(t, int32(25), guildClient.listGuildsReq.GetLimit())
 	require.Len(t, resp.GetGuilds(), 1)
-	require.Equal(t, int64(3000), resp.GetBeforeCursor())
+	require.Equal(t, "cursor-token", resp.GetNextCursor())
 }
 
 func TestDeleteGuildUsesAuthenticatedActor(t *testing.T) {
@@ -625,7 +625,7 @@ func TestListGuildMembersMapsRequestAndResponse(t *testing.T) {
 		listMembersFn: func(*guildv1.ListGuildMembersRequest) (*guildv1.ListGuildMembersResponse, error) {
 			resp := new(guildv1.ListGuildMembersResponse)
 			resp.SetMembers([]*guildv1.GuildMember{member})
-			resp.SetBeforeUserId(1000)
+			resp.SetNextCursor("cursor-token")
 			return resp, nil
 		},
 	}
@@ -637,18 +637,18 @@ func TestListGuildMembersMapsRequestAndResponse(t *testing.T) {
 
 	listMembersReq := new(apiv1.ListGuildMembersRequest)
 	listMembersReq.SetGuildId(3001)
-	listMembersReq.SetBeforeUserId(1002)
+	listMembersReq.SetCursor("cursor-token")
 	listMembersReq.SetLimit(50)
 	resp, err := client.ListGuildMembers(context.Background(), listMembersReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listMembersReq.GetActorUserId())
-	require.Equal(t, int64(1002), guildClient.listMembersReq.GetBeforeUserId())
+	require.Equal(t, "cursor-token", guildClient.listMembersReq.GetCursor())
 	require.Equal(t, int32(50), guildClient.listMembersReq.GetLimit())
 	require.Equal(t, []int64{1001}, userClient.batchGetUserProfilesRequest.GetUserIds())
 	require.Len(t, resp.GetMembers(), 1)
 	require.Equal(t, "display name", resp.GetMembers()[0].GetProfile().GetName())
 	require.Equal(t, int64(6001), resp.GetMembers()[0].GetProfile().GetAvatarAssetId())
-	require.Equal(t, int64(1000), resp.GetBeforeUserId())
+	require.Equal(t, "cursor-token", resp.GetNextCursor())
 }
 
 func TestListGuildMembersRejectsMissingProfile(t *testing.T) {
@@ -752,7 +752,7 @@ func TestListGuildBansMapsRequestAndResponse(t *testing.T) {
 		listBansFn: func(*guildv1.ListGuildBansRequest) (*guildv1.ListGuildBansResponse, error) {
 			resp := new(guildv1.ListGuildBansResponse)
 			resp.SetBans([]*guildv1.GuildBan{ban})
-			resp.SetBeforeUserId(1003)
+			resp.SetNextCursor("cursor-token")
 			return resp, nil
 		},
 	}
@@ -761,15 +761,16 @@ func TestListGuildBansMapsRequestAndResponse(t *testing.T) {
 
 	listBansReq := new(apiv1.ListGuildBansRequest)
 	listBansReq.SetGuildId(3001)
-	listBansReq.SetBeforeUserId(1003)
+	listBansReq.SetCursor("cursor-token")
 	listBansReq.SetLimit(20)
 	resp, err := client.ListGuildBans(context.Background(), listBansReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listBansReq.GetActorUserId())
+	require.Equal(t, "cursor-token", guildClient.listBansReq.GetCursor())
 	require.Len(t, resp.GetBans(), 1)
 	require.Equal(t, int64(1002), resp.GetBans()[0].GetProfile().GetUserId())
 	require.Equal(t, int64(1001), resp.GetBans()[0].GetActorProfile().GetUserId())
-	require.Equal(t, int64(1003), resp.GetBeforeUserId())
+	require.Equal(t, "cursor-token", resp.GetNextCursor())
 }
 
 func TestGetGuildRoleMapsRequestAndResponse(t *testing.T) {
@@ -953,7 +954,7 @@ func TestListGuildRoleMembersMapsRequestProfilesAndCursor(t *testing.T) {
 		listRoleMembersFn: func(*guildv1.ListGuildRoleMembersRequest) (*guildv1.ListGuildRoleMembersResponse, error) {
 			resp := new(guildv1.ListGuildRoleMembersResponse)
 			resp.SetMembers([]*guildv1.GuildMember{internalGuildMember()})
-			resp.SetBeforeUserId(1000)
+			resp.SetNextCursor("cursor-token")
 			return resp, nil
 		},
 	}
@@ -966,17 +967,17 @@ func TestListGuildRoleMembersMapsRequestProfilesAndCursor(t *testing.T) {
 	req := new(apiv1.ListGuildRoleMembersRequest)
 	req.SetGuildId(3001)
 	req.SetRoleId(4001)
-	req.SetBeforeUserId(1002)
+	req.SetCursor("cursor-token")
 	req.SetLimit(25)
 	resp, err := client.ListGuildRoleMembers(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listRoleMembersReq.GetActorUserId())
 	require.Equal(t, int64(4001), guildClient.listRoleMembersReq.GetRoleId())
-	require.Equal(t, int64(1002), guildClient.listRoleMembersReq.GetBeforeUserId())
+	require.Equal(t, "cursor-token", guildClient.listRoleMembersReq.GetCursor())
 	require.Equal(t, int32(25), guildClient.listRoleMembersReq.GetLimit())
 	require.Len(t, resp.GetMembers(), 1)
 	require.Equal(t, "display name", resp.GetMembers()[0].GetProfile().GetName())
-	require.Equal(t, int64(1000), resp.GetBeforeUserId())
+	require.Equal(t, "cursor-token", resp.GetNextCursor())
 }
 
 func TestGetGuildMemberPermissionsMapsResponse(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
@@ -99,8 +100,20 @@ func (s *messageServer) ListDmChannels(ctx context.Context, req *messagev1.ListD
 	if req.GetUserId() <= 0 {
 		return nil, invalidRequest("user id is required")
 	}
-	if req.GetBeforeId() < 0 {
-		return nil, invalidRequest("before id must not be negative")
+	token, err := readCursor(req.HasCursor(), req.GetCursor())
+	if err != nil {
+		return nil, err
+	}
+	payload, ok, err := cursor.Decode[dmChannelsPayload](s.svcCtx.Cursors, cursor.KindDmChannels, token)
+	if err != nil {
+		return nil, invalidRequest("cursor is invalid")
+	}
+	var beforeID int64
+	if ok {
+		if payload.UserID != req.GetUserId() || payload.ID <= 0 {
+			return nil, invalidRequest("cursor is invalid")
+		}
+		beforeID = payload.ID
 	}
 	limit, err := normalizeLimit(req.GetLimit(), defaultMessageLimit, maxMessageLimit)
 	if err != nil {
@@ -109,21 +122,30 @@ func (s *messageServer) ListDmChannels(ctx context.Context, req *messagev1.ListD
 
 	channels, err := s.svcCtx.Store.ListDmChannels(ctx, store.ListDmChannelsParams{
 		UserID:   req.GetUserId(),
-		BeforeID: req.GetBeforeId(),
-		Limit:    limit,
+		BeforeID: beforeID,
+		Limit:    limit + 1,
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	page, hasMore := cursor.Trim(channels, limit)
 
 	resp := new(messagev1.ListDmChannelsResponse)
-	values := make([]*messagev1.DmChannel, 0, len(channels))
-	for _, channel := range channels {
+	values := make([]*messagev1.DmChannel, 0, len(page))
+	for _, channel := range page {
 		values = append(values, dmChannelToProto(channel))
 	}
 	resp.SetChannels(values)
-	if len(channels) > 0 {
-		resp.SetBeforeId(channels[len(channels)-1].ID)
+	if hasMore && len(page) > 0 {
+		id := page[len(page)-1].ID
+		if id <= 0 {
+			return nil, status.Error(codes.Internal, "failed to encode cursor")
+		}
+		next, err := s.svcCtx.Cursors.Encode(cursor.KindDmChannels, dmChannelsPayload{UserID: req.GetUserId(), ID: id})
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to encode cursor")
+		}
+		resp.SetNextCursor(next)
 	}
 	return resp, nil
 }

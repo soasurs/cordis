@@ -20,6 +20,7 @@ import (
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/internal/testkit"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/migration"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -54,9 +55,12 @@ func TestMessageGuildUserComposition(t *testing.T) {
 
 	node, err := snowflake.New()
 	require.NoError(t, err)
+	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
+	require.NoError(t, err)
 	messageService := New(svc.NewServiceContextWithDependencies(config.Config{}, svc.Dependencies{
 		Store:       store.New(db),
 		Snowflake:   node,
+		Cursors:     codec,
 		GuildClient: guildClient,
 		UserClient:  userClient,
 		MediaClient: &unusedMediaClient{},
@@ -291,6 +295,8 @@ log:
   stat: false
 database:
   dataSource: %s
+cursor:
+  secret: test-cursor-secret-at-least-32-bytes!
 services:
   media:
     endpoints:
@@ -313,6 +319,8 @@ log:
   stat: false
 database:
   dataSource: %s
+cursor:
+  secret: test-cursor-secret-at-least-32-bytes!
 services:
   user:
     endpoints:

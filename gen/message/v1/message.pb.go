@@ -3645,7 +3645,7 @@ func (b0 CreateDmChannelResponse_builder) Build() *CreateDmChannelResponse {
 type ListDmChannelsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,2,opt,name=cursor"`
 	xxx_hidden_Limit       int32                  `protobuf:"varint,3,opt,name=limit"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
@@ -3685,11 +3685,14 @@ func (x *ListDmChannelsRequest) GetUserId() int64 {
 	return 0
 }
 
-func (x *ListDmChannelsRequest) GetBeforeId() int64 {
+func (x *ListDmChannelsRequest) GetCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeId
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListDmChannelsRequest) GetLimit() int32 {
@@ -3704,8 +3707,8 @@ func (x *ListDmChannelsRequest) SetUserId(v int64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
-func (x *ListDmChannelsRequest) SetBeforeId(v int64) {
-	x.xxx_hidden_BeforeId = v
+func (x *ListDmChannelsRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
 }
 
@@ -3721,7 +3724,7 @@ func (x *ListDmChannelsRequest) HasUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *ListDmChannelsRequest) HasBeforeId() bool {
+func (x *ListDmChannelsRequest) HasCursor() bool {
 	if x == nil {
 		return false
 	}
@@ -3740,9 +3743,9 @@ func (x *ListDmChannelsRequest) ClearUserId() {
 	x.xxx_hidden_UserId = 0
 }
 
-func (x *ListDmChannelsRequest) ClearBeforeId() {
+func (x *ListDmChannelsRequest) ClearCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeId = 0
+	x.xxx_hidden_Cursor = nil
 }
 
 func (x *ListDmChannelsRequest) ClearLimit() {
@@ -3754,9 +3757,11 @@ type ListDmChannelsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	UserId *int64
-	// Return channels with IDs smaller than this cursor.
-	BeforeId *int64
-	Limit    *int32
+	// Opaque continuation from ListDmChannelsResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
+	Limit  *int32
 }
 
 func (b0 ListDmChannelsRequest_builder) Build() *ListDmChannelsRequest {
@@ -3767,9 +3772,9 @@ func (b0 ListDmChannelsRequest_builder) Build() *ListDmChannelsRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_UserId = *b.UserId
 	}
-	if b.BeforeId != nil {
+	if b.Cursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_BeforeId = *b.BeforeId
+		x.xxx_hidden_Cursor = b.Cursor
 	}
 	if b.Limit != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
@@ -3781,7 +3786,7 @@ func (b0 ListDmChannelsRequest_builder) Build() *ListDmChannelsRequest {
 type ListDmChannelsResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channels    *[]*DmChannel          `protobuf:"bytes,1,rep,name=channels"`
-	xxx_hidden_BeforeId    int64                  `protobuf:"varint,2,opt,name=before_id,json=beforeId"`
+	xxx_hidden_NextCursor  *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -3822,39 +3827,46 @@ func (x *ListDmChannelsResponse) GetChannels() []*DmChannel {
 	return nil
 }
 
-func (x *ListDmChannelsResponse) GetBeforeId() int64 {
+func (x *ListDmChannelsResponse) GetNextCursor() string {
 	if x != nil {
-		return x.xxx_hidden_BeforeId
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
 	}
-	return 0
+	return ""
 }
 
 func (x *ListDmChannelsResponse) SetChannels(v []*DmChannel) {
 	x.xxx_hidden_Channels = &v
 }
 
-func (x *ListDmChannelsResponse) SetBeforeId(v int64) {
-	x.xxx_hidden_BeforeId = v
+func (x *ListDmChannelsResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
-func (x *ListDmChannelsResponse) HasBeforeId() bool {
+func (x *ListDmChannelsResponse) HasNextCursor() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *ListDmChannelsResponse) ClearBeforeId() {
+func (x *ListDmChannelsResponse) ClearNextCursor() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BeforeId = 0
+	x.xxx_hidden_NextCursor = nil
 }
 
 type ListDmChannelsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Channels []*DmChannel
-	BeforeId *int64
+	// Opaque cursor for the next page. Leave unset when there is no next
+	// page; do not set an empty string. Pass through unchanged as the next
+	// request's cursor. End of list is field absence (Go: !HasNextCursor();
+	// TypeScript: undefined / omitted from JSON, not null).
+	NextCursor *string
 }
 
 func (b0 ListDmChannelsResponse_builder) Build() *ListDmChannelsResponse {
@@ -3862,9 +3874,9 @@ func (b0 ListDmChannelsResponse_builder) Build() *ListDmChannelsResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Channels = &b.Channels
-	if b.BeforeId != nil {
+	if b.NextCursor != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_BeforeId = *b.BeforeId
+		x.xxx_hidden_NextCursor = b.NextCursor
 	}
 	return m0
 }
@@ -4749,14 +4761,15 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
 	"\ttarget_id\x18\x02 \x01(\x03R\btargetId\"J\n" +
 	"\x17CreateDmChannelResponse\x12/\n" +
-	"\achannel\x18\x01 \x01(\v2\x15.message.v1.DmChannelR\achannel\"c\n" +
+	"\achannel\x18\x01 \x01(\v2\x15.message.v1.DmChannelR\achannel\"^\n" +
 	"\x15ListDmChannelsRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1b\n" +
-	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"h\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x16\n" +
+	"\x06cursor\x18\x02 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"l\n" +
 	"\x16ListDmChannelsResponse\x121\n" +
-	"\bchannels\x18\x01 \x03(\v2\x15.message.v1.DmChannelR\bchannels\x12\x1b\n" +
-	"\tbefore_id\x18\x02 \x01(\x03R\bbeforeId\"j\n" +
+	"\bchannels\x18\x01 \x03(\v2\x15.message.v1.DmChannelR\bchannels\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor\"j\n" +
 	"\x11AckMessageRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +

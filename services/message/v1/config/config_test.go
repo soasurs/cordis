@@ -8,6 +8,7 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
+	t.Setenv("CORDIS_CURSOR_SECRET", "test-cursor-secret-at-least-32-bytes!")
 	var cfg Config
 	err := conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv())
 	if err != nil {
@@ -28,6 +29,9 @@ func TestLoadConfig(t *testing.T) {
 	}
 	if cfg.Kafka.Topic != "cordis.message.events.v1" {
 		t.Fatalf("unexpected Kafka topic: %q", cfg.Kafka.Topic)
+	}
+	if cfg.Cursor.Secret != "test-cursor-secret-at-least-32-bytes!" {
+		t.Fatalf("unexpected cursor secret: %q", cfg.Cursor.Secret)
 	}
 	if cfg.ReadStates.MaxConcurrentChannels != 800 {
 		t.Fatalf("unexpected read state concurrency: %+v", cfg.ReadStates)

@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
@@ -315,8 +317,20 @@ func (s *userServer) ListRelationships(ctx context.Context, req *userv1.ListRela
 	if req.GetUserId() <= 0 {
 		return nil, errUserIDRequired
 	}
-	if req.GetBeforeTargetId() < 0 {
+	token, err := readCursor(req.HasCursor(), req.GetCursor())
+	if err != nil {
+		return nil, err
+	}
+	payload, ok, err := cursor.Decode[relationshipCursorPayload](s.svcCtx.Cursors, cursor.KindRelationships, token)
+	if err != nil {
 		return nil, errInvalidCursor
+	}
+	var beforeCreatedAt, beforeTargetID int64
+	if ok {
+		if payload.UserID != req.GetUserId() || payload.Type != int32(req.GetType()) || payload.Time <= 0 || payload.ID <= 0 {
+			return nil, errInvalidCursor
+		}
+		beforeCreatedAt, beforeTargetID = payload.Time, payload.ID
 	}
 	limit, err := normalizeRelationshipLimit(req.GetLimit())
 	if err != nil {
@@ -324,19 +338,34 @@ func (s *userServer) ListRelationships(ctx context.Context, req *userv1.ListRela
 	}
 
 	relationships, err := s.svcCtx.Store.ListRelationships(ctx, store.ListRelationshipsParams{
-		UserID:         req.GetUserId(),
-		Type:           int16(req.GetType()),
-		BeforeTargetID: req.GetBeforeTargetId(),
-		Limit:          limit,
+		UserID:          req.GetUserId(),
+		Type:            int16(req.GetType()),
+		BeforeCreatedAt: beforeCreatedAt,
+		BeforeTargetID:  beforeTargetID,
+		Limit:           limit + 1,
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	page, hasMore := cursor.Trim(relationships, limit)
 
 	resp := new(userv1.ListRelationshipsResponse)
-	resp.SetRelationships(relationshipsToProto(relationships))
-	if len(relationships) > 0 {
-		resp.SetBeforeTargetId(relationships[len(relationships)-1].TargetID)
+	resp.SetRelationships(relationshipsToProto(page))
+	if hasMore && len(page) > 0 {
+		last := page[len(page)-1]
+		if last.CreatedAt <= 0 || last.TargetID <= 0 {
+			return nil, status.Error(codes.Internal, "failed to encode cursor")
+		}
+		next, err := s.svcCtx.Cursors.Encode(cursor.KindRelationships, relationshipCursorPayload{
+			UserID: req.GetUserId(),
+			Type:   int32(req.GetType()),
+			Time:   last.CreatedAt,
+			ID:     last.TargetID,
+		})
+		if err != nil {
+			return nil, status.Error(codes.Internal, "failed to encode cursor")
+		}
+		resp.SetNextCursor(next)
 	}
 	return resp, nil
 }

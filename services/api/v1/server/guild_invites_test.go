@@ -143,7 +143,7 @@ func TestListGuildInvitesMapsRequestAndResponse(t *testing.T) {
 		listInvitesFn: func(*guildv1.ListGuildInvitesRequest) (*guildv1.ListGuildInvitesResponse, error) {
 			resp := new(guildv1.ListGuildInvitesResponse)
 			resp.SetInvites([]*guildv1.GuildInvite{internalGuildInvite()})
-			resp.SetBeforeId(5001)
+			resp.SetNextCursor("cursor-token")
 			return resp, nil
 		},
 	}
@@ -152,16 +152,16 @@ func TestListGuildInvitesMapsRequestAndResponse(t *testing.T) {
 
 	listInvitesReq := new(apiv1.ListGuildInvitesRequest)
 	listInvitesReq.SetGuildId(3001)
-	listInvitesReq.SetBeforeId(6000)
+	listInvitesReq.SetCursor("cursor-token")
 	listInvitesReq.SetLimit(20)
 	resp, err := client.ListGuildInvites(context.Background(), listInvitesReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listInvitesReq.GetActorUserId())
-	require.Equal(t, int64(6000), guildClient.listInvitesReq.GetBeforeId())
+	require.Equal(t, "cursor-token", guildClient.listInvitesReq.GetCursor())
 	require.Equal(t, int32(20), guildClient.listInvitesReq.GetLimit())
 	require.Len(t, resp.GetInvites(), 1)
 	require.Equal(t, int64(1001), resp.GetInvites()[0].GetCreator().GetUserId())
-	require.Equal(t, int64(5001), resp.GetBeforeId())
+	require.Equal(t, "cursor-token", resp.GetNextCursor())
 }
 
 func TestDeleteGuildInviteUsesAuthenticatedActor(t *testing.T) {

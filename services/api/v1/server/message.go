@@ -339,7 +339,9 @@ func (s *messageServer) ListDmChannels(ctx context.Context, req *apiv1.ListDmCha
 
 	svcReq := new(messagev1.ListDmChannelsRequest)
 	svcReq.SetUserId(auth.GetUserId())
-	svcReq.SetBeforeId(req.GetBeforeId())
+	if req.HasCursor() {
+		svcReq.SetCursor(req.GetCursor())
+	}
 	svcReq.SetLimit(req.GetLimit())
 	svcResp, err := s.svcCtx.MessageClient.ListDmChannels(ctx, svcReq)
 	if err != nil {
@@ -352,7 +354,9 @@ func (s *messageServer) ListDmChannels(ctx context.Context, req *apiv1.ListDmCha
 	}
 	resp := new(apiv1.ListDmChannelsResponse)
 	resp.SetChannels(channels)
-	resp.SetBeforeId(svcResp.GetBeforeId())
+	if svcResp.HasNextCursor() {
+		resp.SetNextCursor(svcResp.GetNextCursor())
+	}
 	return resp, nil
 }
 

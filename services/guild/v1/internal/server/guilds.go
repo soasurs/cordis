@@ -9,6 +9,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
@@ -118,8 +119,13 @@ func (s *guildServer) ListUserGuilds(ctx context.Context, req *guildv1.ListUserG
 	if req.GetUserId() <= 0 {
 		return nil, invalidRequest("user id is required")
 	}
-	if req.GetBefore() < 0 {
-		return nil, invalidRequest("before cursor must not be negative")
+	token, err := readCursor(req.HasCursor(), req.GetCursor())
+	if err != nil {
+		return nil, err
+	}
+	beforeID, _, err := decodeUserGuildsCursor(s.svcCtx.Cursors, token, req.GetUserId())
+	if err != nil {
+		return nil, err
 	}
 	limit, err := normalizeLimit(req.GetLimit())
 	if err != nil {
@@ -127,17 +133,18 @@ func (s *guildServer) ListUserGuilds(ctx context.Context, req *guildv1.ListUserG
 	}
 	guilds, err := s.svcCtx.Store.ListUserGuilds(ctx, store.ListUserGuildsParams{
 		UserID: req.GetUserId(),
-		Before: req.GetBefore(),
-		Limit:  limit,
+		Before: beforeID,
+		Limit:  limit + 1,
 	})
 	if err != nil {
 		return nil, err
 	}
+	page, hasMore := cursor.Trim(guilds, limit)
 
 	resp := new(guildv1.ListUserGuildsResponse)
-	resp.SetGuilds(guildsToProto(guilds))
-	if len(guilds) > 0 {
-		resp.SetBeforeCursor(guilds[len(guilds)-1].ID)
+	resp.SetGuilds(guildsToProto(page))
+	if err := setNextUserGuildsCursor(s.svcCtx.Cursors, resp.SetNextCursor, hasMore, page, req.GetUserId()); err != nil {
+		return nil, err
 	}
 	return resp, nil
 }

@@ -10,6 +10,7 @@ import (
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -30,6 +31,7 @@ type ServiceContext struct {
 	Cfg         config.Config
 	Store       store.Store
 	Snowflake   *sn.Node
+	Cursors     *cursor.Codec
 	Publisher   EventPublisher
 	UserClient  userv1.UserServiceClient
 	MediaClient mediav1.MediaServiceClient
@@ -38,6 +40,7 @@ type ServiceContext struct {
 type Dependencies struct {
 	Store       store.Store
 	Snowflake   *sn.Node
+	Cursors     *cursor.Codec
 	Kafka       *kgo.Client
 	Publisher   EventPublisher
 	UserClient  userv1.UserServiceClient
@@ -47,6 +50,10 @@ type Dependencies struct {
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
 	node, err := snowflake.New()
+	if err != nil {
+		return Dependencies{}, err
+	}
+	cursors, err := cursor.NewCodec(cfg.Cursor.Secret)
 	if err != nil {
 		return Dependencies{}, err
 	}
@@ -76,6 +83,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	return Dependencies{
 		Store:       store.New(db),
 		Snowflake:   node,
+		Cursors:     cursors,
 		Kafka:       kafkaClient,
 		UserClient:  userv1.NewUserServiceClient(userRPCClient.Conn()),
 		MediaClient: mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
@@ -98,6 +106,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.Snowflake == nil {
 		panic("snowflake node is required")
 	}
+	if deps.Cursors == nil {
+		panic("cursor codec is required")
+	}
 	if deps.UserClient == nil {
 		panic("user client is required")
 	}
@@ -112,6 +123,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		Cfg:         cfg,
 		Store:       deps.Store,
 		Snowflake:   deps.Snowflake,
+		Cursors:     deps.Cursors,
 		Publisher:   publisher,
 		UserClient:  deps.UserClient,
 		MediaClient: deps.MediaClient,

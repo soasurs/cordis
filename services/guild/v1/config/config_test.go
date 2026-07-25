@@ -9,6 +9,7 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
+	t.Setenv("CORDIS_CURSOR_SECRET", "test-cursor-secret-at-least-32-bytes!")
 	var cfg Config
 	require.NoError(t, conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv()))
 	require.Equal(t, "guild.v1", cfg.Name)
@@ -16,6 +17,7 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "cordis.guild.events.v1", cfg.Kafka.Topic)
 	require.Empty(t, cfg.Kafka.Seeds)
 	require.NotEmpty(t, cfg.Database.DataSource)
+	require.Equal(t, "test-cursor-secret-at-least-32-bytes!", cfg.Cursor.Secret)
 	require.False(t, cfg.Services.User.Middlewares.Duration)
 	require.Equal(t, 10, cfg.Limits.OwnedGuilds())
 	require.Equal(t, 100, cfg.Limits.JoinedGuilds())

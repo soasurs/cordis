@@ -61,7 +61,9 @@ func (s *guildServer) ListGuildInvites(ctx context.Context, req *apiv1.ListGuild
 	svcReq := new(guildv1.ListGuildInvitesRequest)
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())
-	svcReq.SetBeforeId(req.GetBeforeId())
+	if req.HasCursor() {
+		svcReq.SetCursor(req.GetCursor())
+	}
 	svcReq.SetLimit(req.GetLimit())
 	svcResp, err := s.svcCtx.GuildClient.ListGuildInvites(ctx, svcReq)
 	if err != nil {
@@ -73,7 +75,9 @@ func (s *guildServer) ListGuildInvites(ctx context.Context, req *apiv1.ListGuild
 	}
 	resp := new(apiv1.ListGuildInvitesResponse)
 	resp.SetInvites(invites)
-	resp.SetBeforeId(svcResp.GetBeforeId())
+	if svcResp.HasNextCursor() {
+		resp.SetNextCursor(svcResp.GetNextCursor())
+	}
 	return resp, nil
 }
 

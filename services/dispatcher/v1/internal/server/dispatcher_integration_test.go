@@ -604,7 +604,7 @@ func (f *fakeDispatcherUserClient) ListRelationships(_ context.Context, req *use
 		return nil, f.err
 	}
 	resp := new(userv1.ListRelationshipsResponse)
-	if req.GetBeforeTargetId() != 0 {
+	if req.GetCursor() != "" {
 		// Single page is enough for the harness.
 		return resp, nil
 	}
@@ -617,8 +617,5 @@ func (f *fakeDispatcherUserClient) ListRelationships(_ context.Context, req *use
 		values = append(values, row)
 	}
 	resp.SetRelationships(values)
-	if len(values) > 0 {
-		resp.SetBeforeTargetId(values[len(values)-1].GetTargetId())
-	}
 	return resp, nil
 }

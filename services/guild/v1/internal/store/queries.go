@@ -84,7 +84,7 @@ const listUserGuildsQuery = `
     SELECT ` + guildColumns + `
     FROM guilds
     WHERE deleted_at = 0
-      AND ($2 = 0 OR id < $2)
+      AND ($2::BIGINT = 0 OR id < $2::BIGINT)
       AND EXISTS (
           SELECT 1
           FROM guild_members
@@ -156,9 +156,13 @@ const listGuildMembersQuery = `
     FROM guild_members
     WHERE guild_id = $1
       AND deleted_at = 0
-      AND ($2 = 0 OR user_id < $2)
-    ORDER BY user_id DESC
-    LIMIT $3
+      AND (
+          $2::BIGINT = 0
+          OR joined_at < $2::BIGINT
+          OR (joined_at = $2::BIGINT AND user_id < $3::BIGINT)
+      )
+    ORDER BY joined_at DESC, user_id DESC
+    LIMIT $4
 `
 
 const listGuildRoleMembersQuery = `
@@ -167,7 +171,11 @@ const listGuildRoleMembersQuery = `
     FROM guild_members AS gm
     WHERE gm.guild_id = $1
       AND gm.deleted_at = 0
-      AND ($3 = 0 OR gm.user_id < $3)
+      AND (
+          $3::BIGINT = 0
+          OR gm.joined_at < $3::BIGINT
+          OR (gm.joined_at = $3::BIGINT AND gm.user_id < $4::BIGINT)
+      )
       AND EXISTS (
           SELECT 1
           FROM roles AS r
@@ -185,8 +193,8 @@ const listGuildRoleMembersQuery = `
                 )
             )
       )
-    ORDER BY gm.user_id DESC
-    LIMIT $4
+    ORDER BY gm.joined_at DESC, gm.user_id DESC
+    LIMIT $5
 `
 
 const updateGuildMemberNicknameQuery = `
@@ -236,9 +244,13 @@ const listGuildBansQuery = `
     SELECT ` + guildBanColumns + `
     FROM guild_bans
     WHERE guild_id = $1
-      AND ($2 = 0 OR user_id < $2)
-    ORDER BY user_id DESC
-    LIMIT $3
+      AND (
+          $2::BIGINT = 0
+          OR created_at < $2::BIGINT
+          OR (created_at = $2::BIGINT AND user_id < $3::BIGINT)
+      )
+    ORDER BY created_at DESC, user_id DESC
+    LIMIT $4
 `
 
 const deleteGuildBansStatement = `
@@ -267,7 +279,7 @@ const listGuildInvitesQuery = `
     SELECT ` + guildInviteColumns + `
     FROM guild_invites
     WHERE guild_id = $1
-      AND ($2 = 0 OR id < $2)
+      AND ($2::BIGINT = 0 OR id < $2::BIGINT)
     ORDER BY id DESC
     LIMIT $3
 `

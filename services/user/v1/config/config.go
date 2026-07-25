@@ -13,7 +13,13 @@ type Config struct {
 	zrpc.RpcServerConf
 	Database database.Config
 	Kafka    KafkaConfig `json:",optional"`
+	Cursor   CursorConfig
 	Services ServiceConfig
+}
+
+// CursorConfig holds the HMAC secret for opaque list continuation tokens.
+type CursorConfig struct {
+	Secret string
 }
 
 type ServiceConfig struct {

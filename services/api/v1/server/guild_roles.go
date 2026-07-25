@@ -197,7 +197,9 @@ func (s *guildServer) ListGuildRoleMembers(ctx context.Context, req *apiv1.ListG
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetRoleId(req.GetRoleId())
-	svcReq.SetBeforeUserId(req.GetBeforeUserId())
+	if req.HasCursor() {
+		svcReq.SetCursor(req.GetCursor())
+	}
 	svcReq.SetLimit(req.GetLimit())
 	svcResp, err := s.svcCtx.GuildClient.ListGuildRoleMembers(ctx, svcReq)
 	if err != nil {
@@ -209,7 +211,9 @@ func (s *guildServer) ListGuildRoleMembers(ctx context.Context, req *apiv1.ListG
 	}
 	resp := new(apiv1.ListGuildRoleMembersResponse)
 	resp.SetMembers(members)
-	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
+	if svcResp.HasNextCursor() {
+		resp.SetNextCursor(svcResp.GetNextCursor())
+	}
 	return resp, nil
 }
 

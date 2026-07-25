@@ -231,6 +231,7 @@ services:
     command: ["/app/bin/user", "-c", "/etc/cordis/config.yaml"]
     environment:
       CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+      CORDIS_CURSOR_SECRET: ${CORDIS_CURSOR_SECRET:?required}
     volumes:
       - ./config/user.yaml:/etc/cordis/config.yaml:ro
     depends_on:
@@ -270,6 +271,7 @@ services:
     command: ["/app/bin/guild", "-c", "/etc/cordis/config.yaml"]
     environment:
       CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+      CORDIS_CURSOR_SECRET: ${CORDIS_CURSOR_SECRET:?required}
     volumes:
       - ./config/guild.yaml:/etc/cordis/config.yaml:ro
     depends_on:
@@ -290,6 +292,7 @@ services:
     command: ["/app/bin/message", "-c", "/etc/cordis/config.yaml"]
     environment:
       CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+      CORDIS_CURSOR_SECRET: ${CORDIS_CURSOR_SECRET:?required}
     volumes:
       - ./config/message.yaml:/etc/cordis/config.yaml:ro
     depends_on:

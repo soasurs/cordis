@@ -58,6 +58,7 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	}, svc.Dependencies{
 		Store:       guildStore,
 		Snowflake:   node,
+		Cursors:     testCursorCodec(t),
 		Kafka:       producer,
 		UserClient:  &fakeUserClient{},
 		MediaClient: &unusedMediaClient{},

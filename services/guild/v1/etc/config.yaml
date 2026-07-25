@@ -36,6 +36,9 @@ kafka:
   topic: cordis.guild.events.v1
   publishTimeoutMs: 1000
 
+cursor:
+  secret: "${CORDIS_CURSOR_SECRET}"
+
 limits:
   ownedGuildsPerUser: 10
   joinedGuildsPerUser: 100

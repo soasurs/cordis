@@ -7,13 +7,14 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const (
@@ -195,11 +196,11 @@ func dmChannelToProto(channel *model.DmChannel) *messagev1.DmChannel {
 }
 
 type dmChannelCreatedPayload struct {
-	ChannelID   string `json:"channel_id"`
-	UserID      string `json:"user_id"`
-	RecipientID string `json:"recipient_id"`
+	ChannelID   string             `json:"channel_id"`
+	UserID      string             `json:"user_id"`
+	RecipientID string             `json:"recipient_id"`
 	Recipient   userProfilePayload `json:"recipient"`
-	CreatedAt   int64  `json:"created_at"`
+	CreatedAt   int64              `json:"created_at"`
 }
 
 // newDmChannelCreatedEvent builds one user-routed record; the key is the

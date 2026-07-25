@@ -106,6 +106,46 @@ func TestManageRolesCannotGrantPermissionsActorDoesNotHold(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
+func TestListGuildRoleMembersUsesCursorAndIncludesDefaultRoleMembers(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.roles[10][20] = testRole(20, 10, "moderator", 0, 1)
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1002, 20, 1))
+	require.NoError(t, fakeStore.AddGuildMemberRole(t.Context(), 10, 1003, 20, 1))
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	req := new(guildv1.ListGuildRoleMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetRoleId(20)
+	req.SetBeforeUserId(1003)
+	req.SetLimit(1)
+	resp, err := server.ListGuildRoleMembers(t.Context(), req)
+	require.NoError(t, err)
+	require.Len(t, resp.GetMembers(), 1)
+	require.Equal(t, int64(1002), resp.GetMembers()[0].GetUserId())
+	require.Equal(t, int64(1002), resp.GetBeforeUserId())
+
+	req.SetRoleId(10)
+	req.SetBeforeUserId(0)
+	req.SetLimit(2)
+	resp, err = server.ListGuildRoleMembers(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []int64{1004, 1003}, []int64{
+		resp.GetMembers()[0].GetUserId(), resp.GetMembers()[1].GetUserId(),
+	})
+}
+
+func TestListGuildRoleMembersRejectsUnknownRole(t *testing.T) {
+	server := newTestGuildServer(t, roleTestStore(), nil)
+	req := new(guildv1.ListGuildRoleMembersRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetRoleId(99)
+
+	_, err := server.ListGuildRoleMembers(t.Context(), req)
+	require.Equal(t, codes.NotFound, status.Code(err))
+}
+
 func TestReorderGuildRolesRejectsPositionCollision(t *testing.T) {
 	fakeStore := roleTestStore()
 	fakeStore.roles[10][20] = testRole(20, 10, "one", 0, 1)

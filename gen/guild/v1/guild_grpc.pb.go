@@ -53,6 +53,7 @@ const (
 	GuildService_AddGuildMemberRole_FullMethodName                    = "/guild.v1.GuildService/AddGuildMemberRole"
 	GuildService_RemoveGuildMemberRole_FullMethodName                 = "/guild.v1.GuildService/RemoveGuildMemberRole"
 	GuildService_ListGuildMemberRoles_FullMethodName                  = "/guild.v1.GuildService/ListGuildMemberRoles"
+	GuildService_ListGuildRoleMembers_FullMethodName                  = "/guild.v1.GuildService/ListGuildRoleMembers"
 	GuildService_GetGuildMemberPermissions_FullMethodName             = "/guild.v1.GuildService/GetGuildMemberPermissions"
 	GuildService_CreateGuildChannel_FullMethodName                    = "/guild.v1.GuildService/CreateGuildChannel"
 	GuildService_GetGuildChannel_FullMethodName                       = "/guild.v1.GuildService/GetGuildChannel"
@@ -70,8 +71,11 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// GuildService owns guild metadata and membership boundaries.
+// GuildService owns Guild metadata, membership, roles, channels, and
+// authorization. actor_user_id values are trusted only when forwarded from an
+// authenticated internal caller and are still checked against Guild state.
 type GuildServiceClient interface {
+	// Guild lifecycle and authorization snapshots.
 	CreateGuild(ctx context.Context, in *CreateGuildRequest, opts ...grpc.CallOption) (*CreateGuildResponse, error)
 	GetGuild(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*GetGuildResponse, error)
 	ListUserGuilds(ctx context.Context, in *ListUserGuildsRequest, opts ...grpc.CallOption) (*ListUserGuildsResponse, error)
@@ -85,6 +89,7 @@ type GuildServiceClient interface {
 	CompleteGuildIconUpload(ctx context.Context, in *CompleteGuildIconUploadRequest, opts ...grpc.CallOption) (*CompleteGuildIconUploadResponse, error)
 	AbortGuildIconUpload(ctx context.Context, in *AbortGuildIconUploadRequest, opts ...grpc.CallOption) (*AbortGuildIconUploadResponse, error)
 	DeleteGuild(ctx context.Context, in *DeleteGuildRequest, opts ...grpc.CallOption) (*DeleteGuildResponse, error)
+	// Membership and moderation.
 	AddGuildMember(ctx context.Context, in *AddGuildMemberRequest, opts ...grpc.CallOption) (*AddGuildMemberResponse, error)
 	GetGuildMember(ctx context.Context, in *GetGuildMemberRequest, opts ...grpc.CallOption) (*GetGuildMemberResponse, error)
 	ListGuildMembers(ctx context.Context, in *ListGuildMembersRequest, opts ...grpc.CallOption) (*ListGuildMembersResponse, error)
@@ -95,11 +100,14 @@ type GuildServiceClient interface {
 	ListGuildBans(ctx context.Context, in *ListGuildBansRequest, opts ...grpc.CallOption) (*ListGuildBansResponse, error)
 	LeaveGuild(ctx context.Context, in *LeaveGuildRequest, opts ...grpc.CallOption) (*LeaveGuildResponse, error)
 	TransferGuildOwnership(ctx context.Context, in *TransferGuildOwnershipRequest, opts ...grpc.CallOption) (*TransferGuildOwnershipResponse, error)
+	// Invites.
 	CreateGuildInvite(ctx context.Context, in *CreateGuildInviteRequest, opts ...grpc.CallOption) (*CreateGuildInviteResponse, error)
+	// GetGuildInvite returns a public preview and does not require membership.
 	GetGuildInvite(ctx context.Context, in *GetGuildInviteRequest, opts ...grpc.CallOption) (*GetGuildInviteResponse, error)
 	ListGuildInvites(ctx context.Context, in *ListGuildInvitesRequest, opts ...grpc.CallOption) (*ListGuildInvitesResponse, error)
 	DeleteGuildInvite(ctx context.Context, in *DeleteGuildInviteRequest, opts ...grpc.CallOption) (*DeleteGuildInviteResponse, error)
 	JoinGuildByInvite(ctx context.Context, in *JoinGuildByInviteRequest, opts ...grpc.CallOption) (*JoinGuildByInviteResponse, error)
+	// Roles and effective Guild permissions.
 	CreateGuildRole(ctx context.Context, in *CreateGuildRoleRequest, opts ...grpc.CallOption) (*CreateGuildRoleResponse, error)
 	GetGuildRole(ctx context.Context, in *GetGuildRoleRequest, opts ...grpc.CallOption) (*GetGuildRoleResponse, error)
 	ListGuildRoles(ctx context.Context, in *ListGuildRolesRequest, opts ...grpc.CallOption) (*ListGuildRolesResponse, error)
@@ -108,8 +116,13 @@ type GuildServiceClient interface {
 	ReorderGuildRoles(ctx context.Context, in *ReorderGuildRolesRequest, opts ...grpc.CallOption) (*ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(ctx context.Context, in *AddGuildMemberRoleRequest, opts ...grpc.CallOption) (*AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(ctx context.Context, in *RemoveGuildMemberRoleRequest, opts ...grpc.CallOption) (*RemoveGuildMemberRoleResponse, error)
+	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(ctx context.Context, in *ListGuildMemberRolesRequest, opts ...grpc.CallOption) (*ListGuildMemberRolesResponse, error)
+	// ListGuildRoleMembers returns explicitly assigned members, or every member
+	// when role_id identifies the default role.
+	ListGuildRoleMembers(ctx context.Context, in *ListGuildRoleMembersRequest, opts ...grpc.CallOption) (*ListGuildRoleMembersResponse, error)
 	GetGuildMemberPermissions(ctx context.Context, in *GetGuildMemberPermissionsRequest, opts ...grpc.CallOption) (*GetGuildMemberPermissionsResponse, error)
+	// Channels and permission overwrites.
 	CreateGuildChannel(ctx context.Context, in *CreateGuildChannelRequest, opts ...grpc.CallOption) (*CreateGuildChannelResponse, error)
 	GetGuildChannel(ctx context.Context, in *GetGuildChannelRequest, opts ...grpc.CallOption) (*GetGuildChannelResponse, error)
 	ListGuildChannels(ctx context.Context, in *ListGuildChannelsRequest, opts ...grpc.CallOption) (*ListGuildChannelsResponse, error)
@@ -119,6 +132,8 @@ type GuildServiceClient interface {
 	UpsertGuildChannelPermissionOverwrite(ctx context.Context, in *UpsertGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*UpsertGuildChannelPermissionOverwriteResponse, error)
 	DeleteGuildChannelPermissionOverwrite(ctx context.Context, in *DeleteGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*DeleteGuildChannelPermissionOverwriteResponse, error)
 	ListGuildChannelPermissionOverwrites(ctx context.Context, in *ListGuildChannelPermissionOverwritesRequest, opts ...grpc.CallOption) (*ListGuildChannelPermissionOverwritesResponse, error)
+	// AuthorizeGuildChannel evaluates one permission for Message or another
+	// internal service and returns the full effective permission set.
 	AuthorizeGuildChannel(ctx context.Context, in *AuthorizeGuildChannelRequest, opts ...grpc.CallOption) (*AuthorizeGuildChannelResponse, error)
 }
 
@@ -470,6 +485,16 @@ func (c *guildServiceClient) ListGuildMemberRoles(ctx context.Context, in *ListG
 	return out, nil
 }
 
+func (c *guildServiceClient) ListGuildRoleMembers(ctx context.Context, in *ListGuildRoleMembersRequest, opts ...grpc.CallOption) (*ListGuildRoleMembersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuildRoleMembersResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListGuildRoleMembers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *guildServiceClient) GetGuildMemberPermissions(ctx context.Context, in *GetGuildMemberPermissionsRequest, opts ...grpc.CallOption) (*GetGuildMemberPermissionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetGuildMemberPermissionsResponse)
@@ -584,8 +609,11 @@ func (c *guildServiceClient) AuthorizeGuildChannel(ctx context.Context, in *Auth
 // All implementations should embed UnimplementedGuildServiceServer
 // for forward compatibility.
 //
-// GuildService owns guild metadata and membership boundaries.
+// GuildService owns Guild metadata, membership, roles, channels, and
+// authorization. actor_user_id values are trusted only when forwarded from an
+// authenticated internal caller and are still checked against Guild state.
 type GuildServiceServer interface {
+	// Guild lifecycle and authorization snapshots.
 	CreateGuild(context.Context, *CreateGuildRequest) (*CreateGuildResponse, error)
 	GetGuild(context.Context, *GetGuildRequest) (*GetGuildResponse, error)
 	ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error)
@@ -599,6 +627,7 @@ type GuildServiceServer interface {
 	CompleteGuildIconUpload(context.Context, *CompleteGuildIconUploadRequest) (*CompleteGuildIconUploadResponse, error)
 	AbortGuildIconUpload(context.Context, *AbortGuildIconUploadRequest) (*AbortGuildIconUploadResponse, error)
 	DeleteGuild(context.Context, *DeleteGuildRequest) (*DeleteGuildResponse, error)
+	// Membership and moderation.
 	AddGuildMember(context.Context, *AddGuildMemberRequest) (*AddGuildMemberResponse, error)
 	GetGuildMember(context.Context, *GetGuildMemberRequest) (*GetGuildMemberResponse, error)
 	ListGuildMembers(context.Context, *ListGuildMembersRequest) (*ListGuildMembersResponse, error)
@@ -609,11 +638,14 @@ type GuildServiceServer interface {
 	ListGuildBans(context.Context, *ListGuildBansRequest) (*ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *LeaveGuildRequest) (*LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *TransferGuildOwnershipRequest) (*TransferGuildOwnershipResponse, error)
+	// Invites.
 	CreateGuildInvite(context.Context, *CreateGuildInviteRequest) (*CreateGuildInviteResponse, error)
+	// GetGuildInvite returns a public preview and does not require membership.
 	GetGuildInvite(context.Context, *GetGuildInviteRequest) (*GetGuildInviteResponse, error)
 	ListGuildInvites(context.Context, *ListGuildInvitesRequest) (*ListGuildInvitesResponse, error)
 	DeleteGuildInvite(context.Context, *DeleteGuildInviteRequest) (*DeleteGuildInviteResponse, error)
 	JoinGuildByInvite(context.Context, *JoinGuildByInviteRequest) (*JoinGuildByInviteResponse, error)
+	// Roles and effective Guild permissions.
 	CreateGuildRole(context.Context, *CreateGuildRoleRequest) (*CreateGuildRoleResponse, error)
 	GetGuildRole(context.Context, *GetGuildRoleRequest) (*GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *ListGuildRolesRequest) (*ListGuildRolesResponse, error)
@@ -622,8 +654,13 @@ type GuildServiceServer interface {
 	ReorderGuildRoles(context.Context, *ReorderGuildRolesRequest) (*ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *AddGuildMemberRoleRequest) (*AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(context.Context, *RemoveGuildMemberRoleRequest) (*RemoveGuildMemberRoleResponse, error)
+	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(context.Context, *ListGuildMemberRolesRequest) (*ListGuildMemberRolesResponse, error)
+	// ListGuildRoleMembers returns explicitly assigned members, or every member
+	// when role_id identifies the default role.
+	ListGuildRoleMembers(context.Context, *ListGuildRoleMembersRequest) (*ListGuildRoleMembersResponse, error)
 	GetGuildMemberPermissions(context.Context, *GetGuildMemberPermissionsRequest) (*GetGuildMemberPermissionsResponse, error)
+	// Channels and permission overwrites.
 	CreateGuildChannel(context.Context, *CreateGuildChannelRequest) (*CreateGuildChannelResponse, error)
 	GetGuildChannel(context.Context, *GetGuildChannelRequest) (*GetGuildChannelResponse, error)
 	ListGuildChannels(context.Context, *ListGuildChannelsRequest) (*ListGuildChannelsResponse, error)
@@ -633,6 +670,8 @@ type GuildServiceServer interface {
 	UpsertGuildChannelPermissionOverwrite(context.Context, *UpsertGuildChannelPermissionOverwriteRequest) (*UpsertGuildChannelPermissionOverwriteResponse, error)
 	DeleteGuildChannelPermissionOverwrite(context.Context, *DeleteGuildChannelPermissionOverwriteRequest) (*DeleteGuildChannelPermissionOverwriteResponse, error)
 	ListGuildChannelPermissionOverwrites(context.Context, *ListGuildChannelPermissionOverwritesRequest) (*ListGuildChannelPermissionOverwritesResponse, error)
+	// AuthorizeGuildChannel evaluates one permission for Message or another
+	// internal service and returns the full effective permission set.
 	AuthorizeGuildChannel(context.Context, *AuthorizeGuildChannelRequest) (*AuthorizeGuildChannelResponse, error)
 }
 
@@ -744,6 +783,9 @@ func (UnimplementedGuildServiceServer) RemoveGuildMemberRole(context.Context, *R
 }
 func (UnimplementedGuildServiceServer) ListGuildMemberRoles(context.Context, *ListGuildMemberRolesRequest) (*ListGuildMemberRolesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListGuildMemberRoles not implemented")
+}
+func (UnimplementedGuildServiceServer) ListGuildRoleMembers(context.Context, *ListGuildRoleMembersRequest) (*ListGuildRoleMembersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGuildRoleMembers not implemented")
 }
 func (UnimplementedGuildServiceServer) GetGuildMemberPermissions(context.Context, *GetGuildMemberPermissionsRequest) (*GetGuildMemberPermissionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGuildMemberPermissions not implemented")
@@ -1410,6 +1452,24 @@ func _GuildService_ListGuildMemberRoles_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GuildService_ListGuildRoleMembers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGuildRoleMembersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListGuildRoleMembers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListGuildRoleMembers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListGuildRoleMembers(ctx, req.(*ListGuildRoleMembersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GuildService_GetGuildMemberPermissions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetGuildMemberPermissionsRequest)
 	if err := dec(in); err != nil {
@@ -1750,6 +1810,10 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListGuildMemberRoles",
 			Handler:    _GuildService_ListGuildMemberRoles_Handler,
+		},
+		{
+			MethodName: "ListGuildRoleMembers",
+			Handler:    _GuildService_ListGuildRoleMembers_Handler,
 		},
 		{
 			MethodName: "GetGuildMemberPermissions",

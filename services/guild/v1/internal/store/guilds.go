@@ -126,6 +126,27 @@ func (s *SQLStore) ListGuildMembers(ctx context.Context, params ListGuildMembers
 	return members, nil
 }
 
+func (s *SQLStore) ListGuildRoleMembers(ctx context.Context, params ListGuildRoleMembersParams) ([]*model.GuildMember, error) {
+	var rows []*guildMemberRow
+	if err := sqlx.SelectContext(
+		ctx,
+		s.q,
+		&rows,
+		listGuildRoleMembersQuery,
+		params.GuildID,
+		params.RoleID,
+		params.BeforeUserID,
+		params.Limit,
+	); err != nil {
+		return nil, err
+	}
+	members := make([]*model.GuildMember, 0, len(rows))
+	for _, row := range rows {
+		members = append(members, guildMemberFromRow(row))
+	}
+	return members, nil
+}
+
 func (s *SQLStore) UpdateGuildMemberNickname(ctx context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error) {
 	row := new(guildMemberRow)
 	if err := sqlx.GetContext(

@@ -160,6 +160,34 @@ const listGuildMembersQuery = `
     LIMIT $3
 `
 
+const listGuildRoleMembersQuery = `
+    SELECT gm.guild_id, gm.user_id, gm.nickname, gm.revision,
+           gm.joined_at, gm.updated_at, gm.deleted_at
+    FROM guild_members AS gm
+    WHERE gm.guild_id = $1
+      AND gm.deleted_at = 0
+      AND ($3 = 0 OR gm.user_id < $3)
+      AND EXISTS (
+          SELECT 1
+          FROM roles AS r
+          WHERE r.guild_id = gm.guild_id
+            AND r.id = $2
+            AND r.deleted_at = 0
+            AND (
+                r.is_default = TRUE
+                OR EXISTS (
+                    SELECT 1
+                    FROM guild_member_roles AS gmr
+                    WHERE gmr.guild_id = gm.guild_id
+                      AND gmr.user_id = gm.user_id
+                      AND gmr.role_id = r.id
+                )
+            )
+      )
+    ORDER BY gm.user_id DESC
+    LIMIT $4
+`
+
 const updateGuildMemberNicknameQuery = `
     UPDATE guild_members
     SET nickname = $3,

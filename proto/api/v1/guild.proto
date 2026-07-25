@@ -4,9 +4,15 @@ package api.v1;
 
 import "api/v1/user.proto";
 
+// ============================================================
+// Enums
+// ============================================================
+
 // GuildPermission values are bit flags combined in uint64 permission fields.
 enum GuildPermission {
+  // No permission. Requests requiring a concrete permission reject this value.
   GUILD_PERMISSION_UNSPECIFIED = 0;
+  // Grants every Guild permission and bypasses channel overwrites.
   GUILD_PERMISSION_ADMINISTRATOR = 1;
   GUILD_PERMISSION_MANAGE_GUILD = 2;
   GUILD_PERMISSION_MANAGE_ROLES = 4;
@@ -20,14 +26,22 @@ enum GuildPermission {
   GUILD_PERMISSION_CREATE_INVITE = 1024;
 }
 
+// GuildChannelType identifies the behavior and nesting rules of a channel.
 enum GuildChannelType {
+  // No channel type. This value is invalid when creating a channel.
   GUILD_CHANNEL_TYPE_UNSPECIFIED = 0;
+  // A channel that stores messages.
   GUILD_CHANNEL_TYPE_TEXT = 1;
+  // A container for non-category channels.
   GUILD_CHANNEL_TYPE_CATEGORY = 2;
+  // A realtime voice channel.
   GUILD_CHANNEL_TYPE_VOICE = 3;
 }
 
+// GuildPermissionOverwriteType selects whether an overwrite targets a role or
+// one member.
 enum GuildPermissionOverwriteType {
+  // No target type. This value is invalid in overwrite requests.
   GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED = 0;
   GUILD_PERMISSION_OVERWRITE_TYPE_ROLE = 1;
   GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER = 2;
@@ -35,8 +49,10 @@ enum GuildPermissionOverwriteType {
 
 // GuildService exposes authenticated guild metadata operations.
 service GuildService {
+  // Guild lifecycle.
   rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
   rpc GetGuild(GetGuildRequest) returns (GetGuildResponse);
+  // ListGuilds returns Guilds joined by the bearer token user.
   rpc ListGuilds(ListGuildsRequest) returns (ListGuildsResponse);
   rpc UpdateGuild(UpdateGuildRequest) returns (UpdateGuildResponse);
   // CreateGuildIconUpload creates a single-PUT icon upload after checking the
@@ -47,6 +63,8 @@ service GuildService {
   // AbortGuildIconUpload cancels an unpublished icon upload.
   rpc AbortGuildIconUpload(AbortGuildIconUploadRequest) returns (AbortGuildIconUploadResponse);
   rpc DeleteGuild(DeleteGuildRequest) returns (DeleteGuildResponse);
+
+  // Membership and moderation.
   rpc AddGuildMember(AddGuildMemberRequest) returns (AddGuildMemberResponse);
   rpc GetGuildMember(GetGuildMemberRequest) returns (GetGuildMemberResponse);
   rpc ListGuildMembers(ListGuildMembersRequest) returns (ListGuildMembersResponse);
@@ -57,11 +75,16 @@ service GuildService {
   rpc ListGuildBans(ListGuildBansRequest) returns (ListGuildBansResponse);
   rpc LeaveGuild(LeaveGuildRequest) returns (LeaveGuildResponse);
   rpc TransferGuildOwnership(TransferGuildOwnershipRequest) returns (TransferGuildOwnershipResponse);
+
+  // Invites.
   rpc CreateGuildInvite(CreateGuildInviteRequest) returns (CreateGuildInviteResponse);
+  // GetGuildInvite returns a public preview and does not require membership.
   rpc GetGuildInvite(GetGuildInviteRequest) returns (GetGuildInviteResponse);
   rpc ListGuildInvites(ListGuildInvitesRequest) returns (ListGuildInvitesResponse);
   rpc DeleteGuildInvite(DeleteGuildInviteRequest) returns (DeleteGuildInviteResponse);
   rpc JoinGuildByInvite(JoinGuildByInviteRequest) returns (JoinGuildByInviteResponse);
+
+  // Roles and effective Guild permissions.
   rpc CreateGuildRole(CreateGuildRoleRequest) returns (CreateGuildRoleResponse);
   rpc GetGuildRole(GetGuildRoleRequest) returns (GetGuildRoleResponse);
   rpc ListGuildRoles(ListGuildRolesRequest) returns (ListGuildRolesResponse);
@@ -70,8 +93,14 @@ service GuildService {
   rpc ReorderGuildRoles(ReorderGuildRolesRequest) returns (ReorderGuildRolesResponse);
   rpc AddGuildMemberRole(AddGuildMemberRoleRequest) returns (AddGuildMemberRoleResponse);
   rpc RemoveGuildMemberRole(RemoveGuildMemberRoleRequest) returns (RemoveGuildMemberRoleResponse);
+  // ListGuildMemberRoles includes the implicit default role.
   rpc ListGuildMemberRoles(ListGuildMemberRolesRequest) returns (ListGuildMemberRolesResponse);
+  // ListGuildRoleMembers returns explicitly assigned members, or every member
+  // when role_id identifies the default role.
+  rpc ListGuildRoleMembers(ListGuildRoleMembersRequest) returns (ListGuildRoleMembersResponse);
   rpc GetGuildMemberPermissions(GetGuildMemberPermissionsRequest) returns (GetGuildMemberPermissionsResponse);
+
+  // Channels and permission overwrites.
   rpc CreateGuildChannel(CreateGuildChannelRequest) returns (CreateGuildChannelResponse);
   rpc GetGuildChannel(GetGuildChannelRequest) returns (GetGuildChannelResponse);
   rpc ListGuildChannels(ListGuildChannelsRequest) returns (ListGuildChannelsResponse);
@@ -83,6 +112,10 @@ service GuildService {
   rpc ListGuildChannelPermissionOverwrites(ListGuildChannelPermissionOverwritesRequest) returns (ListGuildChannelPermissionOverwritesResponse);
 }
 
+// ============================================================
+// Shared resources
+// ============================================================
+
 // Guild is a community the authenticated user belongs to.
 // All timestamps are Unix time in milliseconds.
 message Guild {
@@ -92,6 +125,7 @@ message Guild {
   // Zero means the Guild has no icon. Clients resolve a non-zero value through
   // the public CDN path icons/{id}/{icon_asset_id}.
   int64 icon_asset_id = 4;
+  // Monotonically increasing resource version used to discard stale events.
   int64 revision = 5;
   int64 created_at = 6;
   int64 updated_at = 7;
@@ -103,6 +137,7 @@ message GuildMember {
   int64 guild_id = 1;
   int64 user_id = 2;
   string nickname = 3;
+  // Monotonically increasing membership version.
   int64 revision = 4;
   int64 joined_at = 5;
   int64 updated_at = 6;
@@ -110,6 +145,8 @@ message GuildMember {
   UserProfile profile = 7;
 }
 
+// GuildBan records an active Guild ban and the moderator who created it.
+// created_at is Unix time in milliseconds.
 message GuildBan {
   int64 guild_id = 1;
   int64 user_id = 2;
@@ -129,13 +166,19 @@ message GuildRole {
   int64 guild_id = 2;
   string name = 3;
   uint64 permissions = 4;
+  // Higher values have greater authority. The default role is always at zero.
   int32 position = 5;
+  // The default role has the same ID as its Guild and applies implicitly to
+  // every active member.
   bool is_default = 6;
+  // Monotonically increasing resource version.
   int64 revision = 7;
   int64 created_at = 8;
   int64 updated_at = 9;
 }
 
+// GuildChannel is a text, category, or voice channel within one Guild.
+// All timestamps are Unix time in milliseconds.
 message GuildChannel {
   int64 id = 1;
   int64 guild_id = 2;
@@ -143,23 +186,35 @@ message GuildChannel {
   GuildChannelType type = 4;
   int32 position = 5;
   string topic = 6;
+  // Monotonically increasing resource version.
   int64 revision = 7;
   int64 created_at = 8;
   int64 updated_at = 9;
+  // Parent category ID, or zero when the channel is at the Guild root.
   int64 parent_id = 10;
 }
 
+// GuildChannelPermissionOverwrite adjusts a role or member's permissions in a
+// channel. Evaluation applies the default role, assigned roles, then the member.
 message GuildChannelPermissionOverwrite {
   int64 channel_id = 1;
   int64 guild_id = 2;
   GuildPermissionOverwriteType target_type = 3;
+  // Role ID or user ID according to target_type.
   int64 target_id = 4;
+  // Permission bits granted in this channel.
   uint64 allow = 5;
+  // Permission bits denied in this channel.
   uint64 deny = 6;
+  // Monotonically increasing resource version.
   int64 revision = 7;
   int64 created_at = 8;
   int64 updated_at = 9;
 }
+
+// ============================================================
+// Guild lifecycle RPCs
+// ============================================================
 
 message CreateGuildRequest {
   string name = 1;
@@ -178,12 +233,15 @@ message GetGuildResponse {
 }
 
 message ListGuildsRequest {
+  // Return Guilds with IDs smaller than this cursor. Zero starts from newest.
   int64 before = 1;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 2;
 }
 
 message ListGuildsResponse {
   repeated Guild guilds = 1;
+  // Smallest Guild ID in this page, or zero when the page is empty.
   int64 before_cursor = 2;
 }
 
@@ -252,6 +310,10 @@ message DeleteGuildResponse {
   bool ok = 1;
 }
 
+// ============================================================
+// Membership and moderation RPCs
+// ============================================================
+
 message AddGuildMemberRequest {
   int64 guild_id = 1;
   int64 user_id = 2;
@@ -272,12 +334,16 @@ message GetGuildMemberResponse {
 
 message ListGuildMembersRequest {
   int64 guild_id = 1;
+  // Return members with user IDs smaller than this cursor. Zero starts from
+  // the greatest user ID.
   int64 before_user_id = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
 message ListGuildMembersResponse {
   repeated GuildMember members = 1;
+  // Smallest user ID in this page, or zero when the page is empty.
   int64 before_user_id = 2;
 }
 
@@ -321,12 +387,15 @@ message UnbanGuildMemberResponse {
 
 message ListGuildBansRequest {
   int64 guild_id = 1;
+  // Return bans with user IDs smaller than this cursor.
   int64 before_user_id = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
 message ListGuildBansResponse {
   repeated GuildBan bans = 1;
+  // Smallest user ID in this page, or zero when the page is empty.
   int64 before_user_id = 2;
 }
 
@@ -346,6 +415,10 @@ message TransferGuildOwnershipRequest {
 message TransferGuildOwnershipResponse {
   Guild guild = 1;
 }
+
+// ============================================================
+// Invite RPCs
+// ============================================================
 
 // GuildInvite is a shareable code that lets users join a guild.
 // All timestamps are Unix time in milliseconds.
@@ -400,11 +473,13 @@ message ListGuildInvitesRequest {
   int64 guild_id = 1;
   // Return invites with IDs smaller than this cursor.
   int64 before_id = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
 message ListGuildInvitesResponse {
   repeated GuildInvite invites = 1;
+  // Smallest invite ID in this page, or zero when the page is empty.
   int64 before_id = 2;
 }
 
@@ -425,9 +500,15 @@ message JoinGuildByInviteResponse {
   GuildMember member = 2;
 }
 
+// ============================================================
+// Role RPCs
+// ============================================================
+
 message CreateGuildRoleRequest {
   int64 guild_id = 1;
   string name = 2;
+  // Bitwise OR of GuildPermission values. The caller may grant only
+  // permissions they hold.
   uint64 permissions = 3;
 }
 
@@ -449,13 +530,14 @@ message ListGuildRolesRequest {
 }
 
 message ListGuildRolesResponse {
+  // Roles ordered by descending position, then ascending ID.
   repeated GuildRole roles = 1;
 }
 
 message UpdateGuildRoleRequest {
   int64 guild_id = 1;
   int64 role_id = 2;
-  // Optional replacement fields.
+  // Optional replacement fields. At least one must be present.
   string name = 3;
   uint64 permissions = 4;
 }
@@ -475,11 +557,14 @@ message DeleteGuildRoleResponse {
 
 message GuildRolePosition {
   int64 role_id = 1;
+  // Positive position for a non-default role. Higher values have greater
+  // authority.
   int32 position = 2;
 }
 
 message ReorderGuildRolesRequest {
   int64 guild_id = 1;
+  // Partial set of roles to move. Final positions must remain unique.
   repeated GuildRolePosition positions = 2;
 }
 
@@ -513,7 +598,25 @@ message ListGuildMemberRolesRequest {
 }
 
 message ListGuildMemberRolesResponse {
+  // Roles ordered by descending position, including the default role.
   repeated GuildRole roles = 1;
+}
+
+message ListGuildRoleMembersRequest {
+  int64 guild_id = 1;
+  // The default role matches every active Guild member; other roles match
+  // explicit assignments only.
+  int64 role_id = 2;
+  // Return members with user IDs smaller than this cursor.
+  int64 before_user_id = 3;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
+  int32 limit = 4;
+}
+
+message ListGuildRoleMembersResponse {
+  repeated GuildMember members = 1;
+  // Smallest user ID in this page, or zero when the page is empty.
+  int64 before_user_id = 2;
 }
 
 message GetGuildMemberPermissionsRequest {
@@ -522,14 +625,21 @@ message GetGuildMemberPermissionsRequest {
 }
 
 message GetGuildMemberPermissionsResponse {
+  // Effective Guild-level permissions after combining ownership, the default
+  // role, and explicit member roles. Channel overwrites are not applied.
   uint64 permissions = 1;
 }
+
+// ============================================================
+// Channel and permission overwrite RPCs
+// ============================================================
 
 message CreateGuildChannelRequest {
   int64 guild_id = 1;
   string name = 2;
   GuildChannelType type = 3;
   string topic = 4;
+  // Parent category ID, or zero to create the channel at the Guild root.
   int64 parent_id = 5;
 }
 
@@ -555,8 +665,10 @@ message ListGuildChannelsResponse {
 
 message UpdateGuildChannelRequest {
   int64 channel_id = 1;
+  // Optional replacement fields. At least one must be present.
   string name = 2;
   string topic = 3;
+  // Zero moves the channel to the Guild root. Omission preserves its parent.
   int64 parent_id = 4;
 }
 
@@ -574,6 +686,7 @@ message DeleteGuildChannelResponse {
 
 message GuildChannelPosition {
   int64 channel_id = 1;
+  // Zero-based position within the current or requested parent.
   int32 position = 2;
   // parent_id moves the channel to a category; zero moves it to the Guild root.
   // When omitted, the current parent is preserved.
@@ -582,6 +695,8 @@ message GuildChannelPosition {
 
 message ReorderGuildChannelsRequest {
   int64 guild_id = 1;
+  // Partial set of channels to move. Final positions must remain unique
+  // within each parent.
   repeated GuildChannelPosition positions = 2;
 }
 
@@ -592,7 +707,9 @@ message ReorderGuildChannelsResponse {
 message UpsertGuildChannelPermissionOverwriteRequest {
   int64 channel_id = 1;
   GuildPermissionOverwriteType target_type = 2;
+  // Role ID or user ID according to target_type.
   int64 target_id = 3;
+  // Permission bits to grant and deny. The same bit cannot appear in both.
   uint64 allow = 4;
   uint64 deny = 5;
 }

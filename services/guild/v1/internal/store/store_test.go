@@ -189,6 +189,25 @@ func TestListGuildMemberRolesIncludesDefaultAndAssigned(t *testing.T) {
 	require.True(t, roles[1].IsDefault)
 }
 
+func TestListGuildRoleMembersUsesRoleAndCursor(t *testing.T) {
+	store, mock, cleanup := newTestStore(t)
+	defer cleanup()
+
+	rows := sqlmock.NewRows([]string{
+		"guild_id", "user_id", "nickname", "revision", "joined_at", "updated_at", "deleted_at",
+	}).AddRow(int64(1001), int64(2001), "member", int64(1), int64(10), int64(0), int64(0))
+	mock.ExpectQuery(sqlPattern(listGuildRoleMembersQuery)).
+		WithArgs(int64(1001), int64(3001), int64(2002), 25).
+		WillReturnRows(rows)
+
+	members, err := store.ListGuildRoleMembers(context.Background(), ListGuildRoleMembersParams{
+		GuildID: 1001, RoleID: 3001, BeforeUserID: 2002, Limit: 25,
+	})
+	require.NoError(t, err)
+	require.Len(t, members, 1)
+	require.Equal(t, int64(2001), members[0].UserID)
+}
+
 func TestDeleteGuildRoleAssignments(t *testing.T) {
 	store, mock, cleanup := newTestStore(t)
 	defer cleanup()

@@ -34,13 +34,13 @@ Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事�
 
 - Guild 创建、查询、修改、删除、离开和所有权转移；
 - 成员加入、修改、踢出、封禁、解封和封禁列表；
-- 角色 CRUD、成员角色和显式排序；
+- 角色 CRUD、成员角色、按角色列出成员和显式排序；
 - 文本、分类、语音频道的元数据与排序；
 - 角色/成员频道权限覆盖和频道授权检查。
 
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 
-公开 Guild member 响应始终嵌入成员 profile；封禁响应同时嵌入被封用户和操作者 profile，邀请响应嵌入创建者 profile。成员与封禁事件不经过 API，因此 Guild 自行加载事件需要的 profile。
+按角色列出成员与 Guild 成员列表使用相同的用户 ID 游标分页；普通角色返回显式分配且有效的成员，默认角色返回全部有效 Guild 成员。公开 Guild member 响应始终嵌入成员 profile；封禁响应同时嵌入被封用户和操作者 profile，邀请响应嵌入创建者 profile。成员与封禁事件不经过 API，因此 Guild 自行加载事件需要的 profile。
 
 持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
 

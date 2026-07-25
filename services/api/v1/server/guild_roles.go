@@ -188,6 +188,31 @@ func (s *guildServer) ListGuildMemberRoles(ctx context.Context, req *apiv1.ListG
 	return resp, nil
 }
 
+func (s *guildServer) ListGuildRoleMembers(ctx context.Context, req *apiv1.ListGuildRoleMembersRequest) (*apiv1.ListGuildRoleMembersResponse, error) {
+	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	svcReq := new(guildv1.ListGuildRoleMembersRequest)
+	svcReq.SetGuildId(req.GetGuildId())
+	svcReq.SetActorUserId(auth.GetUserId())
+	svcReq.SetRoleId(req.GetRoleId())
+	svcReq.SetBeforeUserId(req.GetBeforeUserId())
+	svcReq.SetLimit(req.GetLimit())
+	svcResp, err := s.svcCtx.GuildClient.ListGuildRoleMembers(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	members, err := s.guildMembersToAPIWithProfiles(ctx, svcResp.GetMembers())
+	if err != nil {
+		return nil, err
+	}
+	resp := new(apiv1.ListGuildRoleMembersResponse)
+	resp.SetMembers(members)
+	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
+	return resp, nil
+}
+
 func (s *guildServer) GetGuildMemberPermissions(ctx context.Context, req *apiv1.GetGuildMemberPermissionsRequest) (*apiv1.GetGuildMemberPermissionsResponse, error) {
 	auth, err := authenticate(ctx, s.svcCtx.AuthenticatorClient)
 	if err != nil {

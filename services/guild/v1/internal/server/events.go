@@ -64,13 +64,13 @@ type guildDeletedPayload struct {
 }
 
 type guildMemberPayload struct {
-	GuildID   string `json:"guild_id"`
-	UserID    string `json:"user_id"`
+	GuildID   string             `json:"guild_id"`
+	UserID    string             `json:"user_id"`
 	Profile   userProfilePayload `json:"profile"`
-	Nickname  string `json:"nickname"`
-	Revision  int64  `json:"revision"`
-	JoinedAt  int64  `json:"joined_at"`
-	UpdatedAt int64  `json:"updated_at"`
+	Nickname  string             `json:"nickname"`
+	Revision  int64              `json:"revision"`
+	JoinedAt  int64              `json:"joined_at"`
+	UpdatedAt int64              `json:"updated_at"`
 }
 
 type guildMemberRemovedPayload struct {
@@ -81,20 +81,20 @@ type guildMemberRemovedPayload struct {
 }
 
 type guildMemberBannedPayload struct {
-	GuildID     string `json:"guild_id"`
-	UserID      string `json:"user_id"`
-	ActorUserID string `json:"actor_user_id"`
-	Profile     userProfilePayload `json:"profile"`
+	GuildID      string             `json:"guild_id"`
+	UserID       string             `json:"user_id"`
+	ActorUserID  string             `json:"actor_user_id"`
+	Profile      userProfilePayload `json:"profile"`
 	ActorProfile userProfilePayload `json:"actor_profile"`
-	Reason      string `json:"reason"`
-	BannedAt    int64  `json:"banned_at"`
+	Reason       string             `json:"reason"`
+	BannedAt     int64              `json:"banned_at"`
 }
 
 type guildMemberUnbannedPayload struct {
-	GuildID    string `json:"guild_id"`
-	UserID     string `json:"user_id"`
+	GuildID    string             `json:"guild_id"`
+	UserID     string             `json:"user_id"`
 	Profile    userProfilePayload `json:"profile"`
-	UnbannedAt int64  `json:"unbanned_at"`
+	UnbannedAt int64              `json:"unbanned_at"`
 }
 
 type userProfilePayload struct {

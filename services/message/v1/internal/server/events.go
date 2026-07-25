@@ -31,23 +31,23 @@ type messageEvent struct {
 }
 
 type messagePayload struct {
-	MessageID              string           `json:"id"`
-	GuildID                string           `json:"guild_id,omitempty"`
-	ChannelID              string           `json:"channel_id"`
-	UserID                 string           `json:"user_id,omitempty"`
+	MessageID              string             `json:"id"`
+	GuildID                string             `json:"guild_id,omitempty"`
+	ChannelID              string             `json:"channel_id"`
+	UserID                 string             `json:"user_id,omitempty"`
 	Author                 userProfilePayload `json:"author"`
-	Content                string           `json:"content"`
-	Type                   int32            `json:"type"`
-	Flags                  int32            `json:"flags"`
-	ReferencedMessageID    string           `json:"referenced_message_id,omitempty"`
-	ReferencedChannelID    string           `json:"referenced_channel_id,omitempty"`
-	Attachments            []attachmentJSON `json:"attachments"`
-	MentionUserIDs         []string         `json:"mention_user_ids"`
-	PreviousMentionUserIDs []string         `json:"previous_mention_user_ids,omitempty"`
-	EditedAt               int64            `json:"edited_at"`
-	CreatedAt              int64            `json:"created_at"`
-	UpdatedAt              int64            `json:"updated_at"`
-	Revision               int64            `json:"revision"`
+	Content                string             `json:"content"`
+	Type                   int32              `json:"type"`
+	Flags                  int32              `json:"flags"`
+	ReferencedMessageID    string             `json:"referenced_message_id,omitempty"`
+	ReferencedChannelID    string             `json:"referenced_channel_id,omitempty"`
+	Attachments            []attachmentJSON   `json:"attachments"`
+	MentionUserIDs         []string           `json:"mention_user_ids"`
+	PreviousMentionUserIDs []string           `json:"previous_mention_user_ids,omitempty"`
+	EditedAt               int64              `json:"edited_at"`
+	CreatedAt              int64              `json:"created_at"`
+	UpdatedAt              int64              `json:"updated_at"`
+	Revision               int64              `json:"revision"`
 }
 
 type userProfilePayload struct {

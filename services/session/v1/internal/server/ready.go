@@ -78,10 +78,10 @@ type readyPermissionOverwrite struct {
 }
 
 type readyDmChannel struct {
-	ID          string `json:"id"`
-	RecipientID string `json:"recipient_id"`
+	ID          string           `json:"id"`
+	RecipientID string           `json:"recipient_id"`
 	Recipient   readyUserProfile `json:"recipient"`
-	CreatedAt   int64  `json:"created_at"`
+	CreatedAt   int64            `json:"created_at"`
 }
 
 type readyUserProfile struct {

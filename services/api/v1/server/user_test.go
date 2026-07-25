@@ -32,6 +32,9 @@ type fakeUserClient struct {
 	getUserProfileRequest            *userv1.GetUserProfileRequest
 	getUserProfileResponse           *userv1.GetUserProfileResponse
 	getUserProfileError              error
+	batchGetUserProfilesRequest      *userv1.BatchGetUserProfilesRequest
+	batchGetUserProfilesResponse     *userv1.BatchGetUserProfilesResponse
+	batchGetUserProfilesError        error
 	checkEmailAvailabilityRequest    *userv1.CheckEmailAvailabilityRequest
 	checkEmailAvailabilityResponse   *userv1.CheckEmailAvailabilityResponse
 	checkEmailAvailabilityError      error
@@ -96,6 +99,11 @@ func (f *fakeUserClient) GetUser(_ context.Context, req *userv1.GetUserRequest, 
 func (f *fakeUserClient) GetUserProfile(_ context.Context, req *userv1.GetUserProfileRequest, _ ...grpc.CallOption) (*userv1.GetUserProfileResponse, error) {
 	f.getUserProfileRequest = req
 	return f.getUserProfileResponse, f.getUserProfileError
+}
+
+func (f *fakeUserClient) BatchGetUserProfiles(_ context.Context, req *userv1.BatchGetUserProfilesRequest, _ ...grpc.CallOption) (*userv1.BatchGetUserProfilesResponse, error) {
+	f.batchGetUserProfilesRequest = req
+	return f.batchGetUserProfilesResponse, f.batchGetUserProfilesError
 }
 
 func (f *fakeUserClient) CheckEmailAvailability(_ context.Context, req *userv1.CheckEmailAvailabilityRequest, _ ...grpc.CallOption) (*userv1.CheckEmailAvailabilityResponse, error) {

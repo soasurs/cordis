@@ -14,6 +14,7 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/api/v1/svc"
@@ -611,7 +612,10 @@ func TestListGuildMembersMapsRequestAndResponse(t *testing.T) {
 			return resp, nil
 		},
 	}
-	client, closeServer := newGuildHTTPClient(t, guildClient)
+	profilesResp := new(userv1.BatchGetUserProfilesResponse)
+	profilesResp.SetProfiles([]*userv1.UserProfile{internalUserProfile()})
+	userClient := &fakeUserClient{batchGetUserProfilesResponse: profilesResp}
+	client, closeServer := newGuildHTTPClientWithUser(t, guildClient, userClient)
 	defer closeServer()
 
 	listMembersReq := new(apiv1.ListGuildMembersRequest)
@@ -623,8 +627,30 @@ func TestListGuildMembersMapsRequestAndResponse(t *testing.T) {
 	require.Equal(t, int64(1001), guildClient.listMembersReq.GetActorUserId())
 	require.Equal(t, int64(1002), guildClient.listMembersReq.GetBeforeUserId())
 	require.Equal(t, int32(50), guildClient.listMembersReq.GetLimit())
+	require.Equal(t, []int64{1001}, userClient.batchGetUserProfilesRequest.GetUserIds())
 	require.Len(t, resp.GetMembers(), 1)
+	require.Equal(t, "display name", resp.GetMembers()[0].GetProfile().GetName())
+	require.Equal(t, int64(6001), resp.GetMembers()[0].GetProfile().GetAvatarAssetId())
 	require.Equal(t, int64(1000), resp.GetBeforeUserId())
+}
+
+func TestListGuildMembersRejectsMissingProfile(t *testing.T) {
+	guildClient := &fakeGuildClient{
+		listMembersFn: func(*guildv1.ListGuildMembersRequest) (*guildv1.ListGuildMembersResponse, error) {
+			resp := new(guildv1.ListGuildMembersResponse)
+			resp.SetMembers([]*guildv1.GuildMember{internalGuildMember()})
+			return resp, nil
+		},
+	}
+	profilesResp := new(userv1.BatchGetUserProfilesResponse)
+	userClient := &fakeUserClient{batchGetUserProfilesResponse: profilesResp}
+	client, closeServer := newGuildHTTPClientWithUser(t, guildClient, userClient)
+	defer closeServer()
+
+	req := new(apiv1.ListGuildMembersRequest)
+	req.SetGuildId(3001)
+	_, err := client.ListGuildMembers(context.Background(), req)
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 }
 
 func TestKickGuildMemberUsesAuthenticatedActor(t *testing.T) {
@@ -1153,9 +1179,18 @@ func TestGuildErrorMappings(t *testing.T) {
 }
 
 func newGuildHTTPClient(t *testing.T, guildClient *fakeGuildClient) (apiv1connect.GuildServiceClient, func()) {
+	return newGuildHTTPClientWithUser(t, guildClient, new(fakeUserClient))
+}
+
+func newGuildHTTPClientWithUser(
+	t *testing.T,
+	guildClient *fakeGuildClient,
+	userClient *fakeUserClient,
+) (apiv1connect.GuildServiceClient, func()) {
 	t.Helper()
 	svcCtx := &svc.ServiceContext{
 		AuthenticatorClient: &fakeAuthenticatorClient{verifyResponse: verifyAccessTokenResponse(1001)},
+		UserClient:          userClient,
 		GuildClient:         guildClient,
 	}
 	path, handler := apiv1connect.NewGuildServiceHandler(NewGuild(svcCtx))

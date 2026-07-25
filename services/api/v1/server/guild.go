@@ -2,10 +2,14 @@ package server
 
 import (
 	"context"
+	"errors"
+
+	"connectrpc.com/connect"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/svc"
@@ -226,10 +230,70 @@ func (s *guildServer) ListGuildMembers(ctx context.Context, req *apiv1.ListGuild
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
+	profiles, err := s.getGuildMemberProfiles(ctx, svcResp.GetMembers())
+	if err != nil {
+		return nil, err
+	}
+	members := guildMembersToAPI(svcResp.GetMembers())
+	for i, member := range svcResp.GetMembers() {
+		members[i].SetProfile(userProfileToAPI(profiles[member.GetUserId()]))
+	}
 	resp := new(apiv1.ListGuildMembersResponse)
-	resp.SetMembers(guildMembersToAPI(svcResp.GetMembers()))
+	resp.SetMembers(members)
 	resp.SetBeforeUserId(svcResp.GetBeforeUserId())
 	return resp, nil
+}
+
+func (s *guildServer) getGuildMemberProfiles(
+	ctx context.Context,
+	members []*guildv1.GuildMember,
+) (map[int64]*userv1.UserProfile, error) {
+	userIDs := make([]int64, 0, len(members))
+	expected := make(map[int64]struct{}, len(members))
+	for _, member := range members {
+		if member == nil || member.GetUserId() <= 0 {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("guild service returned an invalid member"))
+		}
+		userID := member.GetUserId()
+		if _, ok := expected[userID]; ok {
+			continue
+		}
+		expected[userID] = struct{}{}
+		userIDs = append(userIDs, userID)
+	}
+
+	profiles := make(map[int64]*userv1.UserProfile, len(userIDs))
+	if len(userIDs) == 0 {
+		return profiles, nil
+	}
+	req := new(userv1.BatchGetUserProfilesRequest)
+	req.SetUserIds(userIDs)
+	userResp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	if userResp == nil {
+		return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid response"))
+	}
+	for _, profile := range userResp.GetProfiles() {
+		if profile == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid profile"))
+		}
+		userID := profile.GetUserId()
+		if _, ok := expected[userID]; !ok {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an unexpected profile"))
+		}
+		if profiles[userID] != nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned a duplicate profile"))
+		}
+		profiles[userID] = profile
+	}
+	for _, userID := range userIDs {
+		if profiles[userID] == nil {
+			return nil, connect.NewError(connect.CodeInternal, errors.New("user service did not return all profiles"))
+		}
+	}
+	return profiles, nil
 }
 
 func (s *guildServer) UpdateCurrentGuildMember(ctx context.Context, req *apiv1.UpdateCurrentGuildMemberRequest) (*apiv1.UpdateCurrentGuildMemberResponse, error) {

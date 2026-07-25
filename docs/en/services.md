@@ -117,8 +117,9 @@ on a best-effort basis; failures are logged. Guild message records carry
 ## Gateway
 
 HTTP/WebSocket on `:8081`, exposing the WebSocket at `/`; operational probes are
-served by a separate probe server. It sends `HELLO`, requires `IDENTIFY` or
-`RESUME` as the first client message, discovers Session nodes through etcd,
+served by a separate probe server. It sends `hello`, requires `identify` or
+`resume` as the first client message, discovers
+Session nodes through etcd,
 reads resume ownership from Redis, and proxies the WebSocket over a
 `SessionService.Connect` bidirectional stream. It owns no logical routing state
 and consumes no Kafka events. WebSocket handshakes validate cross-origin
@@ -134,8 +135,8 @@ send at most 120 Gateway events per minute by default. `IDENTIFY` is additionall
 limited by source scope, while `RESUME` is limited by both source scope and
 logical session ID; only these discrete rate-limit events use Redis.
 
-Gateway owns physical connection liveness. It validates heartbeat sequences,
-returns `HEARTBEAT_ACK` locally, and closes a socket after two missed advertised
+Gateway owns physical connection liveness. It validates `heartbeat` sequences,
+returns `heartbeat.ack` locally, and closes a socket after two missed advertised
 intervals. Heartbeats arriving more than 10% before the advertised interval are
 rejected and do not extend the liveness deadline. Only an advanced acknowledged
 sequence becomes dirty state; dirty

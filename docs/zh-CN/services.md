@@ -59,11 +59,11 @@
 
 ## Gateway
 
-监听 `:8081`，在根路径 `/` 提供 WebSocket；运维探针由单独的 probe server 提供。连接后发送 `HELLO`，首个客户端消息必须是 `IDENTIFY` 或 `RESUME`。Gateway 从 etcd 发现 Session 节点；Resume owner 仍从 Redis 读取。建立 `SessionService.Connect` 双向 gRPC 流后，它只负责 WebSocket 与 gRPC 消息互转，不保存逻辑路由状态，也不消费 Kafka。WebSocket 握手会按照配置的 `originPatterns` 校验跨来源请求，生产环境应配置前端页面的 Origin。
+监听 `:8081`，在根路径 `/` 提供 WebSocket；运维探针由单独的 probe server 提供。连接后发送 `hello`，首个客户端消息必须是 `identify` 或 `resume`。Gateway 从 etcd 发现 Session 节点；Resume owner 仍从 Redis 读取。建立 `SessionService.Connect` 双向 gRPC 流后，它只负责 WebSocket 与 gRPC 消息互转，不保存逻辑路由状态，也不消费 Kafka。WebSocket 握手会按照配置的 `originPatterns` 校验跨来源请求，生产环境应配置前端页面的 Origin。
 
 接受 WebSocket 前，Gateway 会按可信代理解析出的 IPv4 `/32` 或 IPv6 `/64` 来源作用域限速。连接容量完全由进程本地维护：每实例默认最多 50000 条连接和 5000 条 pending handshake，IPv4 与 IPv6 每来源 pending 上限分别为 100 和 20；Session 接受 IDENTIFY 或 RESUME 后立即释放 pending 槽。每条连接默认每分钟最多发送 120 个 Gateway event。`IDENTIFY` 还会按来源作用域限速；`RESUME` 同时按来源作用域和逻辑 Session ID 限速，只有这些离散限流事件使用 Redis。
 
-物理连接活性由 Gateway 本地管理。Gateway 校验 heartbeat sequence 并直接返回 `HEARTBEAT_ACK`，连续两个约定周期未收到 heartbeat 时关闭连接；比约定周期提前超过 10% 的 heartbeat 会被拒绝，也不会延长活性 deadline。只有确认 sequence 前进时才记录 dirty checkpoint；默认每 5 秒按目标 Session 节点归并，并以每批最多 500 条同步。Session binding epoch 用来拒绝连接被替换后迟到的 checkpoint。
+物理连接活性由 Gateway 本地管理。Gateway 校验 `heartbeat` 的 sequence 并直接返回 `heartbeat.ack`，连续两个约定周期未收到 heartbeat 时关闭连接；比约定周期提前超过 10% 的 heartbeat 会被拒绝，也不会延长活性 deadline。只有确认 sequence 前进时才记录 dirty checkpoint；默认每 5 秒按目标 Session 节点归并，并以每批最多 500 条同步。Session binding epoch 用来拒绝连接被替换后迟到的 checkpoint。
 
 ## Session
 

@@ -28,10 +28,21 @@ defined.
 WebSocket envelopes contain `op`, optional `s`, optional `t`, and `d`. Important
 opcodes are dispatch `0`, heartbeat `1`, identify `2`, presence `3`, resume `6`,
 invalid session `9`, hello `10`, and heartbeat ACK `11`.
-Domain event types are lowercase dot-separated names. Gateway lifecycle types
-are uppercase constants such as `READY` and `RESUMED`.
+All event types are lowercase dot-separated names. Gateway event types and
+directions are:
 
-Snowflake IDs in `READY` and domain event payloads are decimal strings.
+| `t` | Direction | `op` |
+| --- | --- | ---: |
+| `hello` | Server to client | `10` |
+| `identify` | Client to server | `2` |
+| `ready` | Server to client | `0` |
+| `resume` | Client to server | `6` |
+| `resumed` | Server to client | `0` |
+| `heartbeat` | Client to server | `1` |
+| `heartbeat.ack` | Server to client | `11` |
+| `error` | Server to client | `4000` |
+
+Snowflake IDs in `ready` and domain event payloads are decimal strings.
 Sequences, revisions, and timestamps remain JSON numbers.
 
 Domain services create gRPC statuses through `pkg/rpcerror.New` and attach

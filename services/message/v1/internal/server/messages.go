@@ -134,7 +134,8 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	}
 
 	resp := new(messagev1.CreateMessageResponse)
-	resp.SetMessage(messageToProto(created, author))
+	resp.SetMessage(messageToProto(created))
+	resp.SetAuthor(author)
 	return resp, nil
 }
 
@@ -254,7 +255,8 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
-	resp.SetMessage(messageToProto(updated, author))
+	resp.SetMessage(messageToProto(updated))
+	resp.SetAuthor(author)
 	return resp, nil
 }
 
@@ -330,7 +332,8 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 	}
 
 	resp := new(messagev1.GetMessageResponse)
-	resp.SetMessage(messageToProto(message, author))
+	resp.SetMessage(messageToProto(message))
+	resp.SetAuthor(author)
 	return resp, nil
 }
 
@@ -378,20 +381,16 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 	if err := s.hydrateAttachmentURLs(ctx, messages...); err != nil {
 		return nil, err
 	}
-	authors, err := s.getAuthors(ctx, messages)
-	if err != nil {
-		return nil, err
-	}
 	resp := new(messagev1.ListMessagesResponse)
-	resp.SetMessages(messagesToProto(messages, authors))
+	resp.SetMessages(messagesToProto(messages))
 	setListCursors(resp, messages)
 	return resp, nil
 }
 
-func messagesToProto(messages []*model.Message, authors map[int64]*userv1.UserProfile) []*messagev1.Message {
+func messagesToProto(messages []*model.Message) []*messagev1.Message {
 	values := make([]*messagev1.Message, 0, len(messages))
 	for _, message := range messages {
-		values = append(values, messageToProto(message, authors[message.AuthorID]))
+		values = append(values, messageToProto(message))
 	}
 	return values
 }
@@ -408,44 +407,6 @@ func (s *messageServer) getAuthor(ctx context.Context, userID int64) (*userv1.Us
 		return nil, status.Error(codes.Internal, "user service returned an invalid profile")
 	}
 	return profile, nil
-}
-
-func (s *messageServer) getAuthors(ctx context.Context, messages []*model.Message) (map[int64]*userv1.UserProfile, error) {
-	userIDs := make([]int64, 0, len(messages))
-	seen := make(map[int64]struct{}, len(messages))
-	for _, message := range messages {
-		if _, ok := seen[message.AuthorID]; ok {
-			continue
-		}
-		seen[message.AuthorID] = struct{}{}
-		userIDs = append(userIDs, message.AuthorID)
-	}
-	authors := make(map[int64]*userv1.UserProfile, len(userIDs))
-	if len(userIDs) == 0 {
-		return authors, nil
-	}
-
-	req := new(userv1.BatchGetUserProfilesRequest)
-	req.SetUserIds(userIDs)
-	resp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	for _, profile := range resp.GetProfiles() {
-		if profile == nil {
-			return nil, status.Error(codes.Internal, "user service returned an invalid profile")
-		}
-		if _, ok := seen[profile.GetUserId()]; !ok {
-			return nil, status.Error(codes.Internal, "user service returned an unexpected profile")
-		}
-		authors[profile.GetUserId()] = profile
-	}
-	for _, userID := range userIDs {
-		if authors[userID] == nil {
-			return nil, status.Error(codes.Internal, "user service did not return all profiles")
-		}
-	}
-	return authors, nil
 }
 
 func setListCursors(resp *messagev1.ListMessagesResponse, messages []*model.Message) {

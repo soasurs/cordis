@@ -262,12 +262,22 @@ func TestListMessagesMapsCursorAndResponse(t *testing.T) {
 	authenticatorClient := &fakeAuthenticatorClient{
 		verifyResponse: verifyAccessTokenResponse(1001),
 	}
+	secondMessage := internalMessage()
+	secondMessage.SetId(4002)
+	secondMessage.SetAuthorId(1002)
+	thirdMessage := internalMessage()
+	thirdMessage.SetId(4003)
 	svcResp := new(messagev1.ListMessagesResponse)
-	svcResp.SetMessages([]*messagev1.Message{internalMessage()})
+	svcResp.SetMessages([]*messagev1.Message{internalMessage(), secondMessage, thirdMessage})
 	svcResp.SetBeforeCursor(4000)
 	svcResp.SetAfterCursor(4002)
 	messageClient := &fakeMessageClient{listResponse: svcResp}
-	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+	secondProfile := internalUserProfile()
+	secondProfile.SetUserId(1002)
+	profilesResp := new(userv1.BatchGetUserProfilesResponse)
+	profilesResp.SetProfiles([]*userv1.UserProfile{secondProfile, internalUserProfile()})
+	userClient := &fakeUserClient{batchGetUserProfilesResponse: profilesResp}
+	client, closeServer := newMessageHTTPClientWithUser(t, authenticatorClient, userClient, messageClient, "access-token")
 	defer closeServer()
 
 	req := new(apiv1.ListMessagesRequest)
@@ -281,9 +291,31 @@ func TestListMessagesMapsCursorAndResponse(t *testing.T) {
 	require.True(t, messageClient.listRequest.HasAround())
 	require.Equal(t, int64(4001), messageClient.listRequest.GetAround())
 	require.Equal(t, int32(25), messageClient.listRequest.GetLimit())
-	require.Len(t, resp.GetMessages(), 1)
+	require.Len(t, resp.GetMessages(), 3)
+	require.Equal(t, []int64{1001, 1002}, userClient.batchGetUserProfilesRequest.GetUserIds())
+	require.Equal(t, int64(1001), resp.GetMessages()[0].GetAuthor().GetUserId())
+	require.Equal(t, int64(1002), resp.GetMessages()[1].GetAuthor().GetUserId())
+	require.Equal(t, int64(1001), resp.GetMessages()[2].GetAuthor().GetUserId())
 	require.Equal(t, int64(4000), resp.GetBeforeCursor())
 	require.Equal(t, int64(4002), resp.GetAfterCursor())
+}
+
+func TestListMessagesRequiresEveryAuthorProfile(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	svcResp := new(messagev1.ListMessagesResponse)
+	svcResp.SetMessages([]*messagev1.Message{internalMessage()})
+	messageClient := &fakeMessageClient{listResponse: svcResp}
+	profilesResp := new(userv1.BatchGetUserProfilesResponse)
+	userClient := &fakeUserClient{batchGetUserProfilesResponse: profilesResp}
+	client, closeServer := newMessageHTTPClientWithUser(t, authenticatorClient, userClient, messageClient, "access-token")
+	defer closeServer()
+
+	req := new(apiv1.ListMessagesRequest)
+	req.SetChannelId(2001)
+	_, err := client.ListMessages(t.Context(), req)
+	require.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 }
 
 func TestListMessagesBeforeCursor(t *testing.T) {
@@ -370,9 +402,29 @@ func newMessageHTTPClient(
 	accessToken string,
 ) (apiv1connect.MessageServiceClient, func()) {
 	t.Helper()
+	profilesResp := new(userv1.BatchGetUserProfilesResponse)
+	profilesResp.SetProfiles([]*userv1.UserProfile{internalUserProfile()})
+	return newMessageHTTPClientWithUser(
+		t,
+		authenticatorClient,
+		&fakeUserClient{batchGetUserProfilesResponse: profilesResp},
+		messageClient,
+		accessToken,
+	)
+}
+
+func newMessageHTTPClientWithUser(
+	t *testing.T,
+	authenticatorClient *fakeAuthenticatorClient,
+	userClient *fakeUserClient,
+	messageClient *fakeMessageClient,
+	accessToken string,
+) (apiv1connect.MessageServiceClient, func()) {
+	t.Helper()
 
 	svcCtx := &svc.ServiceContext{
 		AuthenticatorClient: authenticatorClient,
+		UserClient:          userClient,
 		MessageClient:       messageClient,
 	}
 	path, handler := apiv1connect.NewMessageServiceHandler(NewMessage(svcCtx))
@@ -401,6 +453,7 @@ func internalMessage() *messagev1.Message {
 	message := new(messagev1.Message)
 	message.SetId(4001)
 	message.SetChannelId(2001)
+	message.SetAuthorId(1001)
 	message.SetContent("hello")
 	message.SetType(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)
 	message.SetFlags(int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS))
@@ -409,32 +462,27 @@ func internalMessage() *messagev1.Message {
 	message.SetCreatedAt(5000)
 	message.SetUpdatedAt(5001)
 	message.SetRevision(2)
-	author := new(userv1.UserProfile)
-	author.SetUserId(1001)
-	author.SetName("Alice")
-	author.SetUsername("alice")
-	author.SetAvatarAssetId(77)
-	author.SetCreatedAt(100)
-	author.SetUpdatedAt(200)
-	message.SetAuthor(author)
 	return message
 }
 
 func createGetMessageResponse(message *messagev1.Message) *messagev1.GetMessageResponse {
 	resp := new(messagev1.GetMessageResponse)
 	resp.SetMessage(message)
+	resp.SetAuthor(internalUserProfile())
 	return resp
 }
 
 func createMessageResponse(message *messagev1.Message) *messagev1.CreateMessageResponse {
 	resp := new(messagev1.CreateMessageResponse)
 	resp.SetMessage(message)
+	resp.SetAuthor(internalUserProfile())
 	return resp
 }
 
 func updateMessageResponse(message *messagev1.Message) *messagev1.UpdateMessageResponse {
 	resp := new(messagev1.UpdateMessageResponse)
 	resp.SetMessage(message)
+	resp.SetAuthor(internalUserProfile())
 	return resp
 }
 

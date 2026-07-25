@@ -77,11 +77,12 @@ enum MessageFlag {
 
 // Message represents a single message in a channel or thread.
 message Message {
+  reserved 3;
+  reserved author;
+
   int64 id = 1;
   // Opaque reference to the channel or thread this message belongs to.
   int64 channel_id = 2;
-  // Public profile of the user who sent this message.
-  user.v1.UserProfile author = 3;
   // Message body text. May be empty for attachment-only messages.
   string content = 4;
 
@@ -106,6 +107,8 @@ message Message {
   // Monotonically increasing state version. Starts at 1 and increments on
   // every update and deletion.
   int64 revision = 13;
+  // Stable reference to the user who sent this message.
+  int64 author_id = 14;
 }
 
 // Attachment describes a validated Media asset attached to a message.
@@ -225,6 +228,8 @@ message CreateMessageRequest {
 
 message CreateMessageResponse {
   Message message = 1;
+  // Profile already loaded for the created event and reusable by API callers.
+  user.v1.UserProfile author = 2;
 }
 
 message UpdateMessageRequest {
@@ -244,6 +249,8 @@ message UpdateMessageRequest {
 
 message UpdateMessageResponse {
   Message message = 1;
+  // Profile already loaded for the updated event and reusable by API callers.
+  user.v1.UserProfile author = 2;
 }
 
 message DeleteMessageRequest {
@@ -263,6 +270,7 @@ message GetMessageRequest {
 
 message GetMessageResponse {
   Message message = 1;
+  user.v1.UserProfile author = 2;
 }
 
 message ListMessagesRequest {

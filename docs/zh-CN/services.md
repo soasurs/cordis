@@ -44,6 +44,11 @@
 
 监听 `:3002`，拥有消息、附件、提及和回复关系。创建、读取、更新和删除操作先调用 Guild 授权。列表使用 `before`、`after` 或 `around` 游标分页。当前没有反应或自定义 emoji RPC。
 
+内部消息对象只携带 `author_id`，不嵌入 User profile。API 在组装公开
+`ListMessages` 响应时批量加载去重后的作者资料。单条消息 RPC 将 profile 作为响应附加数据返回，
+使创建和更新路径可以复用为实时事件加载的资料。事件不经过 API，因此事件需要的 profile
+仍由 Message 服务自行查询。
+
 消息创建和更新默认最多携带 10 个附件和 100 个不重复的被提及用户 ID；两项上限均由 Message 服务配置。
 
 内部 READY RPC 一次加载用户的全部 DM，并针对 Session 提供的可见 Guild 文本频道计算 read state。每项包含 `channel_id`、`last_message_id`、`last_read_message_id` 和未读提及数；客户端用 `last_message_id > last_read_message_id` 判断是否未读，不再计算具体未读消息数。`AckMessage` 只有在 watermark 实际前进时才发布 user-routed `message.read.updated`，CreateMessage 也会在写事务内从数据库读回作者的最终 read state。

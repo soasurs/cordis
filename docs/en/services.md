@@ -80,6 +80,13 @@ read, update, and delete operations ask Guild for authorization. Listing uses
 `before`, `after`, or `around` cursor pagination. Reaction and custom emoji RPCs
 are not currently implemented.
 
+Internal message objects carry `author_id` rather than embedding a User
+profile. The API batch-loads distinct profiles when composing public
+`ListMessages` responses. Single-message RPC responses return the profile as
+response metadata so create and update can reuse the profile already loaded
+for their realtime events. Message loads any profile required by an event
+itself because events do not pass through the API.
+
 Create and update requests allow at most 10 attachments and 100 unique mentioned
 user IDs by default. Both limits are configured by the Message service.
 

@@ -609,6 +609,28 @@ func (s *fakeStore) ListGuildMembers(_ context.Context, params store.ListGuildMe
 	return members, nil
 }
 
+func (s *fakeStore) ListGuildRoleMembers(_ context.Context, params store.ListGuildRoleMembersParams) ([]*model.GuildMember, error) {
+	role := s.roles[params.GuildID][params.RoleID]
+	if role == nil || role.DeletedAt != 0 {
+		return nil, nil
+	}
+	var members []*model.GuildMember
+	for userID, member := range s.members[params.GuildID] {
+		if member.DeletedAt != 0 || (params.BeforeUserID != 0 && userID >= params.BeforeUserID) {
+			continue
+		}
+		if !role.IsDefault && !s.memberRoles[params.GuildID][userID][params.RoleID] {
+			continue
+		}
+		members = append(members, cloneMember(member))
+	}
+	sort.Slice(members, func(i, j int) bool { return members[i].UserID > members[j].UserID })
+	if len(members) > params.Limit {
+		members = members[:params.Limit]
+	}
+	return members, nil
+}
+
 func (s *fakeStore) UpdateGuildMemberNickname(_ context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error) {
 	member := s.members[guildID][userID]
 	if member == nil || member.DeletedAt != 0 {

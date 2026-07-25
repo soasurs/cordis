@@ -398,6 +398,40 @@ func (s *guildServer) ListGuildMemberRoles(ctx context.Context, req *guildv1.Lis
 	return resp, nil
 }
 
+func (s *guildServer) ListGuildRoleMembers(ctx context.Context, req *guildv1.ListGuildRoleMembersRequest) (*guildv1.ListGuildRoleMembersResponse, error) {
+	if err := validateRoleRequest(req.GetGuildId(), req.GetActorUserId(), req.GetRoleId()); err != nil {
+		return nil, err
+	}
+	if req.GetBeforeUserId() < 0 {
+		return nil, invalidRequest("before user id must not be negative")
+	}
+	limit, err := normalizeLimit(req.GetLimit())
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.svcCtx.Store.GetGuildForMember(ctx, req.GetGuildId(), req.GetActorUserId()); err != nil {
+		return nil, mapStoreError(err)
+	}
+	if _, err := s.svcCtx.Store.GetGuildRole(ctx, req.GetGuildId(), req.GetRoleId()); err != nil {
+		return nil, mapStoreError(err)
+	}
+	members, err := s.svcCtx.Store.ListGuildRoleMembers(ctx, store.ListGuildRoleMembersParams{
+		GuildID:      req.GetGuildId(),
+		RoleID:       req.GetRoleId(),
+		BeforeUserID: req.GetBeforeUserId(),
+		Limit:        limit,
+	})
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	resp := new(guildv1.ListGuildRoleMembersResponse)
+	resp.SetMembers(guildMembersToProto(members))
+	if len(members) > 0 {
+		resp.SetBeforeUserId(members[len(members)-1].UserID)
+	}
+	return resp, nil
+}
+
 func (s *guildServer) GetGuildMemberPermissions(ctx context.Context, req *guildv1.GetGuildMemberPermissionsRequest) (*guildv1.GetGuildMemberPermissionsResponse, error) {
 	if err := validateMemberRoleRequest(req.GetGuildId(), req.GetActorUserId(), req.GetUserId(), 1); err != nil {
 		return nil, err

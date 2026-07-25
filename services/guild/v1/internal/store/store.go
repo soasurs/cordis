@@ -62,6 +62,13 @@ type ListGuildMembersParams struct {
 	Limit        int
 }
 
+type ListGuildRoleMembersParams struct {
+	GuildID      int64
+	RoleID       int64
+	BeforeUserID int64
+	Limit        int
+}
+
 type ListGuildBansParams struct {
 	GuildID      int64
 	BeforeUserID int64
@@ -113,6 +120,7 @@ type Store interface {
 	DeleteGuildRoles(ctx context.Context, guildID, deletedAt int64) error
 	GetGuildMember(ctx context.Context, guildID, userID int64) (*model.GuildMember, error)
 	ListGuildMembers(ctx context.Context, params ListGuildMembersParams) ([]*model.GuildMember, error)
+	ListGuildRoleMembers(ctx context.Context, params ListGuildRoleMembersParams) ([]*model.GuildMember, error)
 	UpdateGuildMemberNickname(ctx context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error)
 	RemoveGuildMember(ctx context.Context, guildID, userID, removedAt int64) (*model.GuildMember, error)
 	UpsertGuildBan(ctx context.Context, ban *model.GuildBan) (*model.GuildBan, error)

@@ -126,6 +126,9 @@ const (
 	// GuildServiceListGuildMemberRolesProcedure is the fully-qualified name of the GuildService's
 	// ListGuildMemberRoles RPC.
 	GuildServiceListGuildMemberRolesProcedure = "/api.v1.GuildService/ListGuildMemberRoles"
+	// GuildServiceListGuildRoleMembersProcedure is the fully-qualified name of the GuildService's
+	// ListGuildRoleMembers RPC.
+	GuildServiceListGuildRoleMembersProcedure = "/api.v1.GuildService/ListGuildRoleMembers"
 	// GuildServiceGetGuildMemberPermissionsProcedure is the fully-qualified name of the GuildService's
 	// GetGuildMemberPermissions RPC.
 	GuildServiceGetGuildMemberPermissionsProcedure = "/api.v1.GuildService/GetGuildMemberPermissions"
@@ -160,8 +163,10 @@ const (
 
 // GuildServiceClient is a client for the api.v1.GuildService service.
 type GuildServiceClient interface {
+	// Guild lifecycle.
 	CreateGuild(context.Context, *v1.CreateGuildRequest) (*v1.CreateGuildResponse, error)
 	GetGuild(context.Context, *v1.GetGuildRequest) (*v1.GetGuildResponse, error)
+	// ListGuilds returns Guilds joined by the bearer token user.
 	ListGuilds(context.Context, *v1.ListGuildsRequest) (*v1.ListGuildsResponse, error)
 	UpdateGuild(context.Context, *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error)
 	// CreateGuildIconUpload creates a single-PUT icon upload after checking the
@@ -172,6 +177,7 @@ type GuildServiceClient interface {
 	// AbortGuildIconUpload cancels an unpublished icon upload.
 	AbortGuildIconUpload(context.Context, *v1.AbortGuildIconUploadRequest) (*v1.AbortGuildIconUploadResponse, error)
 	DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error)
+	// Membership and moderation.
 	AddGuildMember(context.Context, *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error)
 	GetGuildMember(context.Context, *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error)
 	ListGuildMembers(context.Context, *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error)
@@ -182,11 +188,14 @@ type GuildServiceClient interface {
 	ListGuildBans(context.Context, *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
+	// Invites.
 	CreateGuildInvite(context.Context, *v1.CreateGuildInviteRequest) (*v1.CreateGuildInviteResponse, error)
+	// GetGuildInvite returns a public preview and does not require membership.
 	GetGuildInvite(context.Context, *v1.GetGuildInviteRequest) (*v1.GetGuildInviteResponse, error)
 	ListGuildInvites(context.Context, *v1.ListGuildInvitesRequest) (*v1.ListGuildInvitesResponse, error)
 	DeleteGuildInvite(context.Context, *v1.DeleteGuildInviteRequest) (*v1.DeleteGuildInviteResponse, error)
 	JoinGuildByInvite(context.Context, *v1.JoinGuildByInviteRequest) (*v1.JoinGuildByInviteResponse, error)
+	// Roles and effective Guild permissions.
 	CreateGuildRole(context.Context, *v1.CreateGuildRoleRequest) (*v1.CreateGuildRoleResponse, error)
 	GetGuildRole(context.Context, *v1.GetGuildRoleRequest) (*v1.GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *v1.ListGuildRolesRequest) (*v1.ListGuildRolesResponse, error)
@@ -195,8 +204,13 @@ type GuildServiceClient interface {
 	ReorderGuildRoles(context.Context, *v1.ReorderGuildRolesRequest) (*v1.ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *v1.AddGuildMemberRoleRequest) (*v1.AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(context.Context, *v1.RemoveGuildMemberRoleRequest) (*v1.RemoveGuildMemberRoleResponse, error)
+	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error)
+	// ListGuildRoleMembers returns explicitly assigned members, or every member
+	// when role_id identifies the default role.
+	ListGuildRoleMembers(context.Context, *v1.ListGuildRoleMembersRequest) (*v1.ListGuildRoleMembersResponse, error)
 	GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error)
+	// Channels and permission overwrites.
 	CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error)
 	GetGuildChannel(context.Context, *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error)
 	ListGuildChannels(context.Context, *v1.ListGuildChannelsRequest) (*v1.ListGuildChannelsResponse, error)
@@ -411,6 +425,12 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(guildServiceMethods.ByName("ListGuildMemberRoles")),
 			connect.WithClientOptions(opts...),
 		),
+		listGuildRoleMembers: connect.NewClient[v1.ListGuildRoleMembersRequest, v1.ListGuildRoleMembersResponse](
+			httpClient,
+			baseURL+GuildServiceListGuildRoleMembersProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("ListGuildRoleMembers")),
+			connect.WithClientOptions(opts...),
+		),
 		getGuildMemberPermissions: connect.NewClient[v1.GetGuildMemberPermissionsRequest, v1.GetGuildMemberPermissionsResponse](
 			httpClient,
 			baseURL+GuildServiceGetGuildMemberPermissionsProcedure,
@@ -508,6 +528,7 @@ type guildServiceClient struct {
 	addGuildMemberRole                    *connect.Client[v1.AddGuildMemberRoleRequest, v1.AddGuildMemberRoleResponse]
 	removeGuildMemberRole                 *connect.Client[v1.RemoveGuildMemberRoleRequest, v1.RemoveGuildMemberRoleResponse]
 	listGuildMemberRoles                  *connect.Client[v1.ListGuildMemberRolesRequest, v1.ListGuildMemberRolesResponse]
+	listGuildRoleMembers                  *connect.Client[v1.ListGuildRoleMembersRequest, v1.ListGuildRoleMembersResponse]
 	getGuildMemberPermissions             *connect.Client[v1.GetGuildMemberPermissionsRequest, v1.GetGuildMemberPermissionsResponse]
 	createGuildChannel                    *connect.Client[v1.CreateGuildChannelRequest, v1.CreateGuildChannelResponse]
 	getGuildChannel                       *connect.Client[v1.GetGuildChannelRequest, v1.GetGuildChannelResponse]
@@ -808,6 +829,15 @@ func (c *guildServiceClient) ListGuildMemberRoles(ctx context.Context, req *v1.L
 	return nil, err
 }
 
+// ListGuildRoleMembers calls api.v1.GuildService.ListGuildRoleMembers.
+func (c *guildServiceClient) ListGuildRoleMembers(ctx context.Context, req *v1.ListGuildRoleMembersRequest) (*v1.ListGuildRoleMembersResponse, error) {
+	response, err := c.listGuildRoleMembers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // GetGuildMemberPermissions calls api.v1.GuildService.GetGuildMemberPermissions.
 func (c *guildServiceClient) GetGuildMemberPermissions(ctx context.Context, req *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error) {
 	response, err := c.getGuildMemberPermissions.CallUnary(ctx, connect.NewRequest(req))
@@ -903,8 +933,10 @@ func (c *guildServiceClient) ListGuildChannelPermissionOverwrites(ctx context.Co
 
 // GuildServiceHandler is an implementation of the api.v1.GuildService service.
 type GuildServiceHandler interface {
+	// Guild lifecycle.
 	CreateGuild(context.Context, *v1.CreateGuildRequest) (*v1.CreateGuildResponse, error)
 	GetGuild(context.Context, *v1.GetGuildRequest) (*v1.GetGuildResponse, error)
+	// ListGuilds returns Guilds joined by the bearer token user.
 	ListGuilds(context.Context, *v1.ListGuildsRequest) (*v1.ListGuildsResponse, error)
 	UpdateGuild(context.Context, *v1.UpdateGuildRequest) (*v1.UpdateGuildResponse, error)
 	// CreateGuildIconUpload creates a single-PUT icon upload after checking the
@@ -915,6 +947,7 @@ type GuildServiceHandler interface {
 	// AbortGuildIconUpload cancels an unpublished icon upload.
 	AbortGuildIconUpload(context.Context, *v1.AbortGuildIconUploadRequest) (*v1.AbortGuildIconUploadResponse, error)
 	DeleteGuild(context.Context, *v1.DeleteGuildRequest) (*v1.DeleteGuildResponse, error)
+	// Membership and moderation.
 	AddGuildMember(context.Context, *v1.AddGuildMemberRequest) (*v1.AddGuildMemberResponse, error)
 	GetGuildMember(context.Context, *v1.GetGuildMemberRequest) (*v1.GetGuildMemberResponse, error)
 	ListGuildMembers(context.Context, *v1.ListGuildMembersRequest) (*v1.ListGuildMembersResponse, error)
@@ -925,11 +958,14 @@ type GuildServiceHandler interface {
 	ListGuildBans(context.Context, *v1.ListGuildBansRequest) (*v1.ListGuildBansResponse, error)
 	LeaveGuild(context.Context, *v1.LeaveGuildRequest) (*v1.LeaveGuildResponse, error)
 	TransferGuildOwnership(context.Context, *v1.TransferGuildOwnershipRequest) (*v1.TransferGuildOwnershipResponse, error)
+	// Invites.
 	CreateGuildInvite(context.Context, *v1.CreateGuildInviteRequest) (*v1.CreateGuildInviteResponse, error)
+	// GetGuildInvite returns a public preview and does not require membership.
 	GetGuildInvite(context.Context, *v1.GetGuildInviteRequest) (*v1.GetGuildInviteResponse, error)
 	ListGuildInvites(context.Context, *v1.ListGuildInvitesRequest) (*v1.ListGuildInvitesResponse, error)
 	DeleteGuildInvite(context.Context, *v1.DeleteGuildInviteRequest) (*v1.DeleteGuildInviteResponse, error)
 	JoinGuildByInvite(context.Context, *v1.JoinGuildByInviteRequest) (*v1.JoinGuildByInviteResponse, error)
+	// Roles and effective Guild permissions.
 	CreateGuildRole(context.Context, *v1.CreateGuildRoleRequest) (*v1.CreateGuildRoleResponse, error)
 	GetGuildRole(context.Context, *v1.GetGuildRoleRequest) (*v1.GetGuildRoleResponse, error)
 	ListGuildRoles(context.Context, *v1.ListGuildRolesRequest) (*v1.ListGuildRolesResponse, error)
@@ -938,8 +974,13 @@ type GuildServiceHandler interface {
 	ReorderGuildRoles(context.Context, *v1.ReorderGuildRolesRequest) (*v1.ReorderGuildRolesResponse, error)
 	AddGuildMemberRole(context.Context, *v1.AddGuildMemberRoleRequest) (*v1.AddGuildMemberRoleResponse, error)
 	RemoveGuildMemberRole(context.Context, *v1.RemoveGuildMemberRoleRequest) (*v1.RemoveGuildMemberRoleResponse, error)
+	// ListGuildMemberRoles includes the implicit default role.
 	ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error)
+	// ListGuildRoleMembers returns explicitly assigned members, or every member
+	// when role_id identifies the default role.
+	ListGuildRoleMembers(context.Context, *v1.ListGuildRoleMembersRequest) (*v1.ListGuildRoleMembersResponse, error)
 	GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error)
+	// Channels and permission overwrites.
 	CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error)
 	GetGuildChannel(context.Context, *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error)
 	ListGuildChannels(context.Context, *v1.ListGuildChannelsRequest) (*v1.ListGuildChannelsResponse, error)
@@ -1150,6 +1191,12 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(guildServiceMethods.ByName("ListGuildMemberRoles")),
 		connect.WithHandlerOptions(opts...),
 	)
+	guildServiceListGuildRoleMembersHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceListGuildRoleMembersProcedure,
+		svc.ListGuildRoleMembers,
+		connect.WithSchema(guildServiceMethods.ByName("ListGuildRoleMembers")),
+		connect.WithHandlerOptions(opts...),
+	)
 	guildServiceGetGuildMemberPermissionsHandler := connect.NewUnaryHandlerSimple(
 		GuildServiceGetGuildMemberPermissionsProcedure,
 		svc.GetGuildMemberPermissions,
@@ -1276,6 +1323,8 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceRemoveGuildMemberRoleHandler.ServeHTTP(w, r)
 		case GuildServiceListGuildMemberRolesProcedure:
 			guildServiceListGuildMemberRolesHandler.ServeHTTP(w, r)
+		case GuildServiceListGuildRoleMembersProcedure:
+			guildServiceListGuildRoleMembersHandler.ServeHTTP(w, r)
 		case GuildServiceGetGuildMemberPermissionsProcedure:
 			guildServiceGetGuildMemberPermissionsHandler.ServeHTTP(w, r)
 		case GuildServiceCreateGuildChannelProcedure:
@@ -1431,6 +1480,10 @@ func (UnimplementedGuildServiceHandler) RemoveGuildMemberRole(context.Context, *
 
 func (UnimplementedGuildServiceHandler) ListGuildMemberRoles(context.Context, *v1.ListGuildMemberRolesRequest) (*v1.ListGuildMemberRolesResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ListGuildMemberRoles is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) ListGuildRoleMembers(context.Context, *v1.ListGuildRoleMembersRequest) (*v1.ListGuildRoleMembersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.ListGuildRoleMembers is not implemented"))
 }
 
 func (UnimplementedGuildServiceHandler) GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error) {

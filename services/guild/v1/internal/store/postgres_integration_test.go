@@ -517,6 +517,21 @@ func testGuildMemberRoles(t *testing.T, store Store) {
 	require.NoError(t, store.AddGuildMemberRole(ctx, guildID, memberID, 10601, now))
 	require.NoError(t, store.AddGuildMemberRole(ctx, guildID, ownerID, 10601, now))
 	require.NoError(t, store.AddGuildMemberRole(ctx, guildID, ownerID, 10602, now))
+	roleMembers, err := store.ListGuildRoleMembers(ctx, ListGuildRoleMembersParams{
+		GuildID: guildID, RoleID: 10601, Limit: 10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int64{memberID, ownerID}, idsOf(roleMembers, func(m *model.GuildMember) int64 { return m.UserID }))
+	roleMembers, err = store.ListGuildRoleMembers(ctx, ListGuildRoleMembersParams{
+		GuildID: guildID, RoleID: 10601, BeforeUserID: memberID, Limit: 1,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int64{ownerID}, idsOf(roleMembers, func(m *model.GuildMember) int64 { return m.UserID }))
+	roleMembers, err = store.ListGuildRoleMembers(ctx, ListGuildRoleMembersParams{
+		GuildID: guildID, RoleID: guildID, Limit: 10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int64{memberID, ownerID}, idsOf(roleMembers, func(m *model.GuildMember) int64 { return m.UserID }))
 	require.NoError(t, store.DeleteGuildRoleAssignments(ctx, guildID, 10601))
 	memberRoles, err = store.ListGuildMemberRoles(ctx, guildID, ownerID)
 	require.NoError(t, err)

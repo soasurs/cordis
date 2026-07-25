@@ -77,6 +77,8 @@ type fakeGuildClient struct {
 	removeMemberRoleFn  func(*guildv1.RemoveGuildMemberRoleRequest) (*guildv1.RemoveGuildMemberRoleResponse, error)
 	listMemberRolesReq  *guildv1.ListGuildMemberRolesRequest
 	listMemberRolesFn   func(*guildv1.ListGuildMemberRolesRequest) (*guildv1.ListGuildMemberRolesResponse, error)
+	listRoleMembersReq  *guildv1.ListGuildRoleMembersRequest
+	listRoleMembersFn   func(*guildv1.ListGuildRoleMembersRequest) (*guildv1.ListGuildRoleMembersResponse, error)
 	permissionsReq      *guildv1.GetGuildMemberPermissionsRequest
 	permissionsFn       func(*guildv1.GetGuildMemberPermissionsRequest) (*guildv1.GetGuildMemberPermissionsResponse, error)
 
@@ -271,6 +273,14 @@ func (f *fakeGuildClient) ListGuildMemberRoles(_ context.Context, req *guildv1.L
 	f.listMemberRolesReq = req
 	if f.listMemberRolesFn != nil {
 		return f.listMemberRolesFn(req)
+	}
+	return nil, nil
+}
+
+func (f *fakeGuildClient) ListGuildRoleMembers(_ context.Context, req *guildv1.ListGuildRoleMembersRequest, _ ...grpc.CallOption) (*guildv1.ListGuildRoleMembersResponse, error) {
+	f.listRoleMembersReq = req
+	if f.listRoleMembersFn != nil {
+		return f.listRoleMembersFn(req)
 	}
 	return nil, nil
 }
@@ -932,6 +942,37 @@ func TestListGuildMemberRolesMapsResponse(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listMemberRolesReq.GetActorUserId())
 	require.Len(t, resp.GetRoles(), 1)
+}
+
+func TestListGuildRoleMembersMapsRequestProfilesAndCursor(t *testing.T) {
+	guildClient := &fakeGuildClient{
+		listRoleMembersFn: func(*guildv1.ListGuildRoleMembersRequest) (*guildv1.ListGuildRoleMembersResponse, error) {
+			resp := new(guildv1.ListGuildRoleMembersResponse)
+			resp.SetMembers([]*guildv1.GuildMember{internalGuildMember()})
+			resp.SetBeforeUserId(1000)
+			return resp, nil
+		},
+	}
+	profilesResp := new(userv1.BatchGetUserProfilesResponse)
+	profilesResp.SetProfiles([]*userv1.UserProfile{internalUserProfile()})
+	userClient := &fakeUserClient{batchGetUserProfilesResponse: profilesResp}
+	client, closeServer := newGuildHTTPClientWithUser(t, guildClient, userClient)
+	defer closeServer()
+
+	req := new(apiv1.ListGuildRoleMembersRequest)
+	req.SetGuildId(3001)
+	req.SetRoleId(4001)
+	req.SetBeforeUserId(1002)
+	req.SetLimit(25)
+	resp, err := client.ListGuildRoleMembers(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.listRoleMembersReq.GetActorUserId())
+	require.Equal(t, int64(4001), guildClient.listRoleMembersReq.GetRoleId())
+	require.Equal(t, int64(1002), guildClient.listRoleMembersReq.GetBeforeUserId())
+	require.Equal(t, int32(25), guildClient.listRoleMembersReq.GetLimit())
+	require.Len(t, resp.GetMembers(), 1)
+	require.Equal(t, "display name", resp.GetMembers()[0].GetProfile().GetName())
+	require.Equal(t, int64(1000), resp.GetBeforeUserId())
 }
 
 func TestGetGuildMemberPermissionsMapsResponse(t *testing.T) {

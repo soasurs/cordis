@@ -61,15 +61,18 @@ separate bounded request queue; the outer API rate limiter bounds admission.
 
 gRPC on `:3005`. Owns guilds, members, bans, roles, member-role assignments,
 channels, and channel permission overwrites. It supports guild lifecycle,
-membership and bans, role management and ordering, text/category/voice channel
-metadata and ordering, and channel authorization.
+membership and bans, role management, ordering, and member listing by role,
+text/category/voice channel metadata and ordering, and channel authorization.
 
 Permissions are a `uint64` bit set. Owners and administrators receive all
 permissions. Channel evaluation applies the default role, member roles, and
 member overwrites. Guild publishes dot-separated events directly to
 `cordis.guild.events.v1`.
 
-Public Guild member responses always embed the member profile. Ban responses
+Role member listing uses the same user-ID cursor pagination as Guild member
+listing. Explicit roles return assigned active members, while the default role
+returns every active Guild member. Public Guild member responses always embed
+the member profile. Ban responses
 also embed the banned user and moderator profiles, while invite responses embed
 the creator profile. Guild loads the profiles required by member and moderation
 events itself because those events do not pass through the API.

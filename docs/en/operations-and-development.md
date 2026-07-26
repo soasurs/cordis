@@ -16,6 +16,24 @@ Default ports:
 Dispatcher has no listening port. Config files live under each service's
 `etc/config.yaml` and are loaded with environment expansion.
 
+The API `inbound` section controls HTTP timeouts and header limits, the total
+HTTP body limit, the decompressed Connect message limit, the default RPC
+deadline, the per-instance global concurrency cap, the CPU shedding threshold,
+the graceful shutdown budget, and the inbound breaker.
+`procedureTimeouts` map can override the default deadline by full Connect
+procedure, while `serviceMaxMessageBytes` can override the decompressed message
+limit for the `authenticator`, `user`, `message`, and `guild` handlers.
+Unlisted procedures and services retain the global defaults. The write timeout
+must exceed the sum of the read timeout and largest RPC deadline, preserving
+the full handler and Connect response encoding budget after a request body is
+read. The graceful shutdown budget must in turn exceed the write timeout.
+Downstream zrpc calls from API to each domain service have an explicit
+two-second default and remain bounded by the default three-second inbound
+parent deadline. `cpuThreshold` uses millicpu-style units, so the default `900`
+means 90%; setting it to `0` disables adaptive shedding. `maxConcurrency`
+counts HTTP/1 and HTTP/2 requests shared by all four public services, not TCP
+connections.
+
 Infrastructure dependencies are PostgreSQL for domain persistence, Kafka for
 Guild/Message events, etcd for leased Session-node registration and discovery,
 and Redis for Presence, resume ownership, and aggregate realtime routing. RPC

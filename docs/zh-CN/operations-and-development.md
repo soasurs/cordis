@@ -15,6 +15,8 @@
 
 Dispatcher 没有监听端口。各服务配置位于 `services/<name>/v1/etc/config.yaml`，通过 `conf.LoadConfig(..., conf.UseEnv())` 加载并展开 `${CORDIS_*}`。
 
+API 的 `inbound` 配置同时控制 HTTP 超时和 header 限制、HTTP 总 body 上限、Connect 解压后单消息上限、默认 RPC deadline、优雅关闭预算、单实例全局并发帽、CPU shedding 阈值及入站 breaker。`procedureTimeouts` 可以用完整 Connect procedure 覆盖默认 deadline；`serviceMaxMessageBytes` 可以分别覆盖 `authenticator`、`user`、`message` 和 `guild` handler 的解压后消息上限。未覆盖的 procedure 与 service 使用全局默认值。写超时必须大于读超时与最大 RPC deadline 之和，为读取请求体后的业务处理和 Connect 响应编码保留完整预算；优雅关闭预算必须再大于写超时。API 到每个领域服务的下游 zrpc timeout 默认显式配置为 2 秒，并受默认 3 秒入站父 deadline 约束。`cpuThreshold` 使用千分比 CPU 单位，默认 `900` 表示 90%；设置为 `0` 可禁用自适应 shedding。`maxConcurrency` 是四个公开 service 共享的 HTTP/1 与 HTTP/2 请求并发数，不是 TCP 连接数。
+
 ## 基础设施
 
 - PostgreSQL：User、Authenticator、Guild、Message。

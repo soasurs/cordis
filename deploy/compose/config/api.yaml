@@ -9,6 +9,22 @@ log:
   level: info
   stat: false
 
+inbound:
+  readTimeout: 5s
+  readHeaderTimeout: 5s
+  writeTimeout: 10s
+  idleTimeout: 2m
+  shutdownTimeout: 15s
+  maxHeaderBytes: 1048576
+  maxRequestBytes: 2097152
+  maxMessageBytes: 1048576
+  timeout: 3s
+  procedureTimeouts: {}
+  serviceMaxMessageBytes: {}
+  maxConcurrency: 10000
+  cpuThreshold: 900
+  breaker: true
+
 rateLimit:
   redis:
     host: redis:6379
@@ -115,12 +131,16 @@ services:
   authenticator:
     endpoints:
       - authenticator:3001
+    timeout: 2000
   user:
     endpoints:
       - user:3000
+    timeout: 2000
   message:
     endpoints:
       - message:3002
+    timeout: 2000
   guild:
     endpoints:
       - guild:3005
+    timeout: 2000

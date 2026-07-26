@@ -20,6 +20,19 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "error", cfg.Log.Level)
 	require.False(t, cfg.Log.Stat)
 	require.Equal(t, "0.0.0.0:6060", cfg.ProbeServer.ListenOn)
+	require.Equal(t, 5*time.Second, cfg.Inbound.ReadTimeout)
+	require.Equal(t, 5*time.Second, cfg.Inbound.ReadHeaderTimeout)
+	require.Equal(t, 10*time.Second, cfg.Inbound.WriteTimeout)
+	require.Equal(t, 2*time.Minute, cfg.Inbound.IdleTimeout)
+	require.Equal(t, 15*time.Second, cfg.Inbound.ShutdownTimeout)
+	require.Equal(t, 1048576, cfg.Inbound.MaxHeaderBytes)
+	require.Equal(t, int64(2097152), cfg.Inbound.MaxRequestBytes)
+	require.Equal(t, 1048576, cfg.Inbound.MaxMessageBytes)
+	require.Equal(t, 3*time.Second, cfg.Inbound.Timeout)
+	require.Equal(t, int64(10000), cfg.Inbound.MaxConcurrency)
+	require.Equal(t, int64(900), cfg.Inbound.CPUThreshold)
+	require.True(t, cfg.Inbound.Breaker)
+	require.NoError(t, cfg.Inbound.Validate())
 	require.Equal(t, "127.0.0.1:6379", cfg.RateLimit.Redis.Host)
 	require.True(t, cfg.RateLimit.Redis.NonBlock)
 	ipv4 := func(policy string) string { return apiratelimit.PolicyForFamily(policy, clientip.FamilyIPv4) }
@@ -69,4 +82,37 @@ func TestLoadConfig(t *testing.T) {
 	require.False(t, cfg.Services.User.Middlewares.Duration)
 	require.False(t, cfg.Services.Message.Middlewares.Duration)
 	require.False(t, cfg.Services.Guild.Middlewares.Duration)
+	require.Equal(t, int64(2000), cfg.Services.Authenticator.Timeout)
+	require.Equal(t, int64(2000), cfg.Services.User.Timeout)
+	require.Equal(t, int64(2000), cfg.Services.Message.Timeout)
+	require.Equal(t, int64(2000), cfg.Services.Guild.Timeout)
+}
+
+func TestInboundConfigValidate(t *testing.T) {
+	valid := InboundConfig{
+		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       time.Minute,
+		ShutdownTimeout:   15 * time.Second,
+		MaxHeaderBytes:    1,
+		MaxRequestBytes:   2,
+		MaxMessageBytes:   1,
+		Timeout:           3 * time.Second,
+		MaxConcurrency:    1,
+		CPUThreshold:      900,
+	}
+	require.NoError(t, valid.Validate())
+
+	invalid := valid
+	invalid.ShutdownTimeout = invalid.WriteTimeout
+	require.EqualError(t, invalid.Validate(), "inbound shutdown timeout must exceed write timeout")
+
+	invalid = valid
+	invalid.WriteTimeout = invalid.ReadTimeout + invalid.Timeout
+	require.EqualError(t, invalid.Validate(), "inbound write timeout must exceed read timeout plus request timeout")
+
+	invalid = valid
+	invalid.MaxRequestBytes = 0
+	require.EqualError(t, invalid.Validate(), "inbound max request bytes must be positive")
 }

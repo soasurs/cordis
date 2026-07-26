@@ -63,7 +63,7 @@ func StartPostgres(t *testing.T) *Postgres {
 		postgrescontainer.WithDatabase("cordis"),
 		postgrescontainer.WithUsername("cordis"),
 		postgrescontainer.WithPassword("cordis"),
-		testcontainers.WithWaitStrategy(wait.ForSQL("5432/tcp", "postgres", func(host string, port network.Port) string {
+		testcontainers.WithWaitStrategy(wait.ForSQL("5432/tcp", "pgx", func(host string, port network.Port) string {
 			return fmt.Sprintf("postgres://cordis:cordis@%s:%s/cordis?sslmode=disable", host, port.Port())
 		}).WithStartupTimeout(60*time.Second)),
 	)

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/internal/testkit"
@@ -299,9 +299,9 @@ func sessionIDs(sessions []*model.Session) []int64 {
 
 func requireUniqueViolation(t *testing.T, err error) {
 	t.Helper()
-	var pqErr *pq.Error
-	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
-	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+	var pgErr *pgconn.PgError
+	require.True(t, errors.As(err, &pgErr), "expected pgconn.PgError, got %v", err)
+	require.Equal(t, "23505", pgErr.Code)
 }
 
 func testPasswordResetTokens(t *testing.T, store Store) {

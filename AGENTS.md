@@ -128,7 +128,6 @@ go build ./services/guild/v1/...
 ## Tests
 
 - Unit tests use `github.com/stretchr/testify/require`; follow the existing assertion style.
-- Store unit tests commonly use `sqlmock.QueryMatcherRegexp` and local `sqlPattern()` helpers; keep SQL expectations precise enough to catch query changes.
 - Integration tests use the `integration` build tag and `make test-integration`. They require Docker but no pre-existing services because `internal/testkit` starts fixed-version dependencies.
 - Keep validation, permission, and error-mapping branches in unit tests; cover store interfaces against real backends in integration tests; add cross-service composition coverage for interaction boundaries.
 - Go `internal/` boundaries prevent a test package from importing multiple services' internal servers. Composition tests run the caller in-process and dependencies as real service binaries through `internal/testkit`.

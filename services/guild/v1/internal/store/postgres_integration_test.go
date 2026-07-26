@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/internal/testkit"
@@ -769,9 +769,9 @@ func testConstraintEnforcement(t *testing.T, store Store) {
 	requireCheckViolation(t, err)
 
 	err = store.CreateDefaultRole(ctx, guildID, now)
-	var pqErr *pq.Error
-	require.True(t, errors.As(err, &pqErr))
-	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+	var pgErr *pgconn.PgError
+	require.True(t, errors.As(err, &pgErr))
+	require.Equal(t, "23505", pgErr.Code)
 }
 
 func testGuildDeleteHelpers(t *testing.T, store Store) {
@@ -809,9 +809,9 @@ func seedGuild(t *testing.T, store Store, guildID, ownerID int64) {
 
 func requireCheckViolation(t *testing.T, err error) {
 	t.Helper()
-	var pqErr *pq.Error
-	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
-	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	var pgErr *pgconn.PgError
+	require.True(t, errors.As(err, &pgErr), "expected pgconn.PgError, got %v", err)
+	require.Equal(t, "23514", pgErr.Code)
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -854,9 +854,9 @@ func testGuildInvites(t *testing.T, store Store) {
 	_, err = store.CreateGuildInvite(ctx, &model.GuildInvite{
 		ID: 11203, Code: "int-invite-a", GuildID: guildID, CreatorUserID: ownerID, CreatedAt: now,
 	})
-	var pqErr *pq.Error
-	require.True(t, errors.As(err, &pqErr))
-	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+	var pgErr *pgconn.PgError
+	require.True(t, errors.As(err, &pgErr))
+	require.Equal(t, "23505", pgErr.Code)
 
 	loaded, err := store.GetGuildInvite(ctx, "int-invite-a")
 	require.NoError(t, err)

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 )
 
 type Config struct {
@@ -19,7 +19,7 @@ func NewPostgres(cfg Config) (*sqlx.DB, error) {
 		return nil, errors.New("database data source is required")
 	}
 
-	db, err := sqlx.Open("postgres", cfg.DataSource)
+	db, err := sqlx.Open("pgx", cfg.DataSource)
 	if err != nil {
 		return nil, fmt.Errorf("open postgres: %w", err)
 	}

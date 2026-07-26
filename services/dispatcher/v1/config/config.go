@@ -22,19 +22,23 @@ type Config struct {
 	Services        ServiceConfig
 }
 
-// ServiceConfig wires the User service, which resolves friend lists for
-// presence fan-out.
+// ServiceConfig wires audience lookups used for realtime fan-out.
 type ServiceConfig struct {
-	User zrpc.RpcClientConf
+	User    zrpc.RpcClientConf
+	Guild   zrpc.RpcClientConf
+	Message zrpc.RpcClientConf
 }
 
 type KafkaConfig struct {
-	Seeds         []string
-	GuildTopic    string `json:",default=cordis.guild.events.v1"`
-	MessageTopic  string `json:",default=cordis.message.events.v1"`
-	UserTopic     string `json:",default=cordis.user.events.v1"`
-	PresenceTopic string `json:",default=cordis.presence.events.v1"`
-	ConsumerGroup string `json:",default=cordis.dispatcher.v1"`
+	Seeds                 []string
+	GuildTopic            string `json:",default=cordis.guild.events.v1"`
+	MessageTopic          string `json:",default=cordis.message.events.v1"`
+	UserTopic             string `json:",default=cordis.user.events.v1"`
+	PresenceTopic         string `json:",default=cordis.presence.events.v1"`
+	GuildConsumerGroup    string `json:",default=cordis.dispatcher.guild.v1"`
+	MessageConsumerGroup  string `json:",default=cordis.dispatcher.message.v1"`
+	UserConsumerGroup     string `json:",default=cordis.dispatcher.user.v1"`
+	PresenceConsumerGroup string `json:",default=cordis.dispatcher.presence.v1"`
 }
 
 type DispatcherConfig struct {

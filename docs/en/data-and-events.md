@@ -35,9 +35,11 @@ Kafka events use:
 
 Stable names live in `pkg/realtime` and use dot-separated hierarchy.
 
-Message and Guild do not use an outbox. After the business transaction commits,
-Message publishes best-effort to `cordis.message.events.v1`, while Guild publishes
-best-effort to `cordis.guild.events.v1`. The business ID is used as the Kafka
-key to preserve per-channel or per-guild partition order. With Kafka disabled,
-no producer is created. Publish failure is logged and does not fail the already
+User, Message, and Guild do not use an outbox. After the business transaction
+commits, User publishes relationship and profile events best-effort to
+`cordis.user.events.v1`, Message publishes best-effort to
+`cordis.message.events.v1`, and Guild publishes best-effort to
+`cordis.guild.events.v1`. The aggregate ID is used as the Kafka key to preserve
+per-user, per-channel, or per-guild partition order. With Kafka disabled, no
+producer is created. Publish failure is logged and does not fail the already
 committed RPC, so database and Kafka delivery are not atomic.

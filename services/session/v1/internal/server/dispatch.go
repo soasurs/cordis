@@ -49,6 +49,19 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 		s.dedup.remove(routeKindGuild, req.GetGuildId(), idempotencyKey, eventType)
 		return nil, status.Error(codes.InvalidArgument, "event routing payload is invalid")
 	}
+	if eventType == realtime.EventUserProfileUpdated {
+		if parseID(routing.UserID) <= 0 {
+			s.dedup.remove(routeKindGuild, req.GetGuildId(), idempotencyKey, eventType)
+			return nil, status.Error(codes.InvalidArgument, "profile user id is required")
+		}
+		delivered := s.dispatchProfileSessions(
+			s.guildSessions(req.GetGuildId()),
+			idempotencyKey,
+			eventType,
+			payload,
+		)
+		return dispatchGuildResponse(delivered), nil
+	}
 
 	switch eventType {
 	case realtime.EventGuildCreated:
@@ -203,14 +216,45 @@ func (s *Server) DispatchUserEvent(_ context.Context, req *sessionv1.DispatchUse
 	if idempotencyKey <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "idempotency key is required")
 	}
+	if eventType == realtime.EventUserProfileUpdated {
+		var routing eventRouting
+		if err := json.Unmarshal(payload, &routing); err != nil || parseID(routing.UserID) <= 0 {
+			return nil, status.Error(codes.InvalidArgument, "profile user id is required")
+		}
+	}
 	if !s.dedup.checkAndAdd(routeKindUser, req.GetUserId(), idempotencyKey, eventType, dedupTTL) {
 		resp := new(sessionv1.DispatchUserEventResponse)
 		return resp, nil
 	}
 
 	resp := new(sessionv1.DispatchUserEventResponse)
-	resp.SetDelivered(int32(s.dispatchSessions(s.userSessions(req.GetUserId()), eventType, payload)))
+	sessions := s.userSessions(req.GetUserId())
+	if eventType == realtime.EventUserProfileUpdated {
+		resp.SetDelivered(int32(s.dispatchProfileSessions(sessions, idempotencyKey, eventType, payload)))
+	} else {
+		resp.SetDelivered(int32(s.dispatchSessions(sessions, eventType, payload)))
+	}
 	return resp, nil
+}
+
+func (s *Server) dispatchProfileSessions(
+	sessions []*logicalSession,
+	idempotencyKey int64,
+	eventType string,
+	payload []byte,
+) int {
+	byUser := make(map[int64][]*logicalSession)
+	for _, session := range sessions {
+		byUser[session.userID] = append(byUser[session.userID], session)
+	}
+	delivered := 0
+	for userID, userSessions := range byUser {
+		if !s.dedup.checkAndAdd(routeKindProfile, userID, idempotencyKey, eventType, dedupTTL) {
+			continue
+		}
+		delivered += s.dispatchSessions(userSessions, eventType, payload)
+	}
+	return delivered
 }
 
 // dispatchGuildChannelAccessEvent reloads invalidated visibility snapshots and

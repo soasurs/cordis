@@ -93,6 +93,7 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *userv1.UpdateUs
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	s.publishUserProfileUpdated(ctx, profile)
 
 	resp := new(userv1.UpdateUserProfileResponse)
 	resp.SetProfile(userProfileToProto(profile))
@@ -115,6 +116,7 @@ func (s *userServer) UpdateUsername(ctx context.Context, req *userv1.UpdateUsern
 		}
 		return nil, mapStoreError(err)
 	}
+	s.publishUserProfileUpdated(ctx, profile)
 
 	resp := new(userv1.UpdateUsernameResponse)
 	resp.SetProfile(userProfileToProto(profile))

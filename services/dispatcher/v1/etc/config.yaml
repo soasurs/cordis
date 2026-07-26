@@ -20,7 +20,10 @@ kafka:
   messageTopic: cordis.message.events.v1
   userTopic: cordis.user.events.v1
   presenceTopic: cordis.presence.events.v1
-  consumerGroup: cordis.dispatcher.v1
+  guildConsumerGroup: cordis.dispatcher.guild.v1
+  messageConsumerGroup: cordis.dispatcher.message.v1
+  userConsumerGroup: cordis.dispatcher.user.v1
+  presenceConsumerGroup: cordis.dispatcher.presence.v1
 
 redis:
   host: 127.0.0.1:6379
@@ -41,3 +44,9 @@ services:
   user:
     endpoints:
       - 127.0.0.1:3000
+  guild:
+    endpoints:
+      - 127.0.0.1:3005
+  message:
+    endpoints:
+      - 127.0.0.1:3002

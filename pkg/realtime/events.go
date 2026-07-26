@@ -27,6 +27,8 @@ const (
 	EventRelationshipUpdated = "relationship.updated"
 	EventRelationshipRemoved = "relationship.removed"
 
+	EventUserProfileUpdated = "user.profile.updated"
+
 	EventDmChannelCreated = "dm.channel.created"
 
 	EventPresenceUpdated = "presence.updated"

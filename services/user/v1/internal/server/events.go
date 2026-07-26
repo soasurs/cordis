@@ -15,6 +15,7 @@ import (
 const (
 	EventTypeRelationshipUpdated = realtime.EventRelationshipUpdated
 	EventTypeRelationshipRemoved = realtime.EventRelationshipRemoved
+	EventTypeUserProfileUpdated  = realtime.EventUserProfileUpdated
 )
 
 type eventEnvelope[T any] struct {
@@ -85,6 +86,24 @@ func newRelationshipRemovedEvent(userID, targetID int64, idempotencyKey int64) (
 		UserID:   strconv.FormatInt(userID, 10),
 		TargetID: strconv.FormatInt(targetID, 10),
 	}, idempotencyKey)
+}
+
+func newUserProfileUpdatedEvent(profile *model.UserProfile, idempotencyKey int64) (userEvent, error) {
+	return newUserEvent(
+		EventTypeUserProfileUpdated,
+		profile.UserID,
+		userProfilePayloadFromModel(profile),
+		idempotencyKey,
+	)
+}
+
+func (s *userServer) publishUserProfileUpdated(ctx context.Context, profile *model.UserProfile) {
+	event, err := newUserProfileUpdatedEvent(profile, s.svcCtx.Snowflake.Generate().Int64())
+	if err != nil {
+		logx.WithContext(ctx).Errorw("build user profile updated event", logx.Field("error", err))
+		return
+	}
+	s.publishEvents(ctx, event)
 }
 
 func newUserEvent[T any](eventType string, recipientID int64, data T, idempotencyKey int64) (userEvent, error) {

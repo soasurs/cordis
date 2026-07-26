@@ -19,6 +19,7 @@ const (
 	routeKindGuild    uint8 = 1
 	routeKindGuildMsg uint8 = 2
 	routeKindUser     uint8 = 3
+	routeKindProfile  uint8 = 4
 )
 
 type dedupKey struct {

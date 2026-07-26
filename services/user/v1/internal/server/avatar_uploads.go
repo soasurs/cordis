@@ -56,6 +56,7 @@ func (s *userServer) CompleteAvatarUpload(
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	s.publishUserProfileUpdated(ctx, profile)
 	resp := new(userv1.CompleteAvatarUploadResponse)
 	resp.SetProfile(userProfileToProto(profile))
 	return resp, nil

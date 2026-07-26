@@ -40,7 +40,7 @@ func TestDispatchAttemptsCreateSiblingConsumerSpans(t *testing.T) {
 	cordiskafka.InjectTraceContext(ctx, record)
 
 	dispatcher := &Server{
-		cfg:      config.Config{Kafka: config.KafkaConfig{ConsumerGroup: "cordis.dispatcher.v1"}},
+		cfg:      config.Config{Kafka: config.KafkaConfig{MessageConsumerGroup: "cordis.dispatcher.message.v1"}},
 		resolver: &fakeResolver{},
 		tracer:   tracer,
 	}
@@ -61,7 +61,7 @@ func TestDispatchAttemptsCreateSiblingConsumerSpans(t *testing.T) {
 		attrs := attributesByKey(consumer.Attributes)
 		require.Equal(t, "kafka", attrs["messaging.system"])
 		require.Equal(t, "cordis.message.events.v1", attrs["messaging.destination.name"])
-		require.Equal(t, "cordis.dispatcher.v1", attrs["messaging.consumer.group.name"])
+		require.Equal(t, "cordis.dispatcher.message.v1", attrs["messaging.consumer.group.name"])
 		require.Equal(t, int64(7), attrs["messaging.destination.partition.id"])
 		require.Equal(t, realtime.EventMessageCreated, attrs["cordis.event.type"])
 		require.Equal(t, "success", attrs["cordis.messaging.result"])

@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/internal/testkit"
@@ -42,10 +44,12 @@ func TestDispatcherIntegration(t *testing.T) {
 	t.Run("guild message route", func(t *testing.T) { testGuildMessageRoute(t, env) })
 	t.Run("guild route merges user route nodes", func(t *testing.T) { testGuildRouteMergesUserNodes(t, env) })
 	t.Run("retry preserves uncommitted offset", func(t *testing.T) { testRetryPreservesUncommittedOffset(t, env) })
+	t.Run("topic retry isolation", func(t *testing.T) { testTopicRetryIsolation(t, env) })
 	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
 	t.Run("user route", func(t *testing.T) { testUserRoute(t, env) })
 	t.Run("presence fan-out", func(t *testing.T) { testPresenceFanOut(t, env) })
 	t.Run("presence friend lookup retry", func(t *testing.T) { testPresenceFriendLookupRetry(t, env) })
+	t.Run("profile fan-out", func(t *testing.T) { testProfileFanOut(t, env) })
 }
 
 func testGuildMessageRoute(t *testing.T, env *dispatcherEnv) {
@@ -127,6 +131,33 @@ func testRetryPreservesUncommittedOffset(t *testing.T, env *dispatcherEnv) {
 		15*time.Second, 50*time.Millisecond, "offset must be committed after successful dispatch")
 }
 
+func testTopicRetryIsolation(t *testing.T, env *dispatcherEnv) {
+	const (
+		guildID = int64(7250)
+		userID  = int64(7251)
+	)
+	h := newHarness(t, env)
+	node := newRecordingSessionServer()
+	node.setChannelFailing(true)
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteUser, userID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.produce(t, h.messageTopic, strconv.FormatInt(guildID, 10),
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9001","guild_id":"7250","channel_id":"7252"},"idempotency_key":"1015"}`)
+	require.Eventually(t, func() bool { return node.channelCalls() >= 2 },
+		15*time.Second, 20*time.Millisecond, "message consumer did not enter retry")
+
+	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventRelationshipRemoved+`","d":{"user_id":"7251","target_id":"7253"},"idempotency_key":"1016"}`)
+
+	require.Equal(t, userID, node.waitUserEvent(t).GetUserId())
+	require.Equal(t, int64(-1), h.committedOffset(t, h.messageTopic))
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.userTopic) == 1 },
+		15*time.Second, 50*time.Millisecond, "user topic must commit while message topic retries")
+}
+
 func testPoisonPillDoesNotBlockPartition(t *testing.T, env *dispatcherEnv) {
 	const guildID = int64(7300)
 	h := newHarness(t, env)
@@ -155,16 +186,18 @@ type dispatcherEnv struct {
 }
 
 type dispatcherHarness struct {
-	env           *dispatcherEnv
-	runID         string
-	guildTopic    string
-	messageTopic  string
-	userTopic     string
-	presenceTopic string
-	consumerGroup string
-	producer      *kgo.Client
-	registry      *sessionregistry.EtcdDirectory
-	userClient    *fakeDispatcherUserClient
+	env            *dispatcherEnv
+	runID          string
+	guildTopic     string
+	messageTopic   string
+	userTopic      string
+	presenceTopic  string
+	consumerGroups map[string]string
+	producer       *kgo.Client
+	registry       *sessionregistry.EtcdDirectory
+	userClient     *fakeDispatcherUserClient
+	guildClient    guildv1.GuildServiceClient
+	messageClient  messagev1.MessageServiceClient
 }
 
 func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
@@ -177,8 +210,15 @@ func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
 		messageTopic:  "cordis.integration.message." + runID,
 		userTopic:     "cordis.integration.user." + runID,
 		presenceTopic: "cordis.integration.presence." + runID,
-		consumerGroup: "cordis.integration.dispatcher." + runID,
+		consumerGroups: map[string]string{
+			"guild":    "cordis.integration.dispatcher.guild." + runID,
+			"message":  "cordis.integration.dispatcher.message." + runID,
+			"user":     "cordis.integration.dispatcher.user." + runID,
+			"presence": "cordis.integration.dispatcher.presence." + runID,
+		},
 		userClient:    newFakeDispatcherUserClient(),
+		guildClient:   emptyGuildClient{},
+		messageClient: emptyMessageClient{},
 	}
 
 	producer, err := kgo.NewClient(kgo.SeedBrokers(env.kafkaAddress))
@@ -235,19 +275,27 @@ func (h *dispatcherHarness) startDispatcher(t *testing.T) {
 	t.Helper()
 	dispatcher := New(config.Config{
 		Kafka: config.KafkaConfig{
-			Seeds:         []string{h.env.kafkaAddress},
-			GuildTopic:    h.guildTopic,
-			MessageTopic:  h.messageTopic,
-			UserTopic:     h.userTopic,
-			PresenceTopic: h.presenceTopic,
-			ConsumerGroup: h.consumerGroup,
+			Seeds:                 []string{h.env.kafkaAddress},
+			GuildTopic:            h.guildTopic,
+			MessageTopic:          h.messageTopic,
+			UserTopic:             h.userTopic,
+			PresenceTopic:         h.presenceTopic,
+			GuildConsumerGroup:    h.consumerGroups["guild"],
+			MessageConsumerGroup:  h.consumerGroups["message"],
+			UserConsumerGroup:     h.consumerGroups["user"],
+			PresenceConsumerGroup: h.consumerGroups["presence"],
 		},
 		Dispatcher: config.DispatcherConfig{
 			DispatchTimeoutSeconds: 5,
 			RetryMinMilliseconds:   10,
 			RetryMaxSeconds:        1,
 		},
-	}, discovery.NewRedisResolver(h.env.rds, h.registry), h.userClient)
+	},
+		discovery.NewRedisResolver(h.env.rds, h.registry),
+		h.userClient,
+		h.guildClient,
+		h.messageClient,
+	)
 
 	runCtx, cancel := context.WithCancel(t.Context())
 	done := make(chan struct{})
@@ -275,17 +323,18 @@ func (h *dispatcherHarness) produce(t *testing.T, topic, key, value string) {
 }
 
 // committedOffset returns the committed offset of partition 0 for the
-// harness consumer group, or -1 when nothing has been committed.
+// harness topic consumer group, or -1 when nothing has been committed.
 func (h *dispatcherHarness) committedOffset(t *testing.T, topic string) int64 {
 	t.Helper()
+	group := h.consumerGroup(topic)
 	req := kmsg.NewPtrOffsetFetchRequest()
-	req.Group = h.consumerGroup
+	req.Group = group
 	legacyTopic := kmsg.NewOffsetFetchRequestTopic()
 	legacyTopic.Topic = topic
 	legacyTopic.Partitions = []int32{0}
 	req.Topics = append(req.Topics, legacyTopic)
 	reqGroup := kmsg.NewOffsetFetchRequestGroup()
-	reqGroup.Group = h.consumerGroup
+	reqGroup.Group = group
 	groupTopic := kmsg.NewOffsetFetchRequestGroupTopic()
 	groupTopic.Topic = topic
 	groupTopic.Partitions = []int32{0}
@@ -311,6 +360,21 @@ func (h *dispatcherHarness) committedOffset(t *testing.T, topic string) int64 {
 		}
 	}
 	return -1
+}
+
+func (h *dispatcherHarness) consumerGroup(topic string) string {
+	switch topic {
+	case h.guildTopic:
+		return h.consumerGroups["guild"]
+	case h.messageTopic:
+		return h.consumerGroups["message"]
+	case h.userTopic:
+		return h.consumerGroups["user"]
+	case h.presenceTopic:
+		return h.consumerGroups["presence"]
+	default:
+		panic("unknown harness topic")
+	}
 }
 
 func startSessionServer(t *testing.T, server sessionv1.SessionServiceServer) string {
@@ -565,13 +629,77 @@ func testPresenceFriendLookupRetry(t *testing.T, env *dispatcherEnv) {
 		15*time.Second, 50*time.Millisecond, "presence offset must commit after friend lookup recovers")
 }
 
-// fakeDispatcherUserClient serves friend lists for presence fan-out tests.
+func testProfileFanOut(t *testing.T, env *dispatcherEnv) {
+	const (
+		userID   = int64(7701)
+		friendID = int64(7702)
+		guildID  = int64(7703)
+		dmPeerID = int64(7704)
+	)
+	h := newHarness(t, env)
+	h.userClient.setFriends(userID, friendID)
+	h.guildClient = staticGuildClient{guildIDs: []int64{guildID}}
+	h.messageClient = staticMessageClient{recipientIDs: []int64{dmPeerID}}
+	node := newRecordingSessionServer()
+	address := startSessionServer(t, node)
+	h.registerNode(t, "session-a", "generation-1", address)
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
+	for _, recipientID := range []int64{userID, friendID, dmPeerID} {
+		h.addRoute(t, discovery.RouteUser, recipientID, "session-a", "generation-1")
+	}
+	h.startDispatcher(t)
+
+	h.produce(t, h.userTopic, strconv.FormatInt(userID, 10),
+		`{"t":"`+realtime.EventUserProfileUpdated+`","d":{"user_id":"7701","username":"updated","name":"Updated","avatar_asset_id":"8801","created_at":1,"updated_at":2},"idempotency_key":"1014"}`)
+
+	guildRequest := node.waitGuildEvent(t)
+	require.Equal(t, guildID, guildRequest.GetGuildId())
+	require.Equal(t, realtime.EventUserProfileUpdated, guildRequest.GetEvent().GetType())
+	userRequests := []*sessionv1.DispatchUserEventRequest{
+		node.waitUserEvent(t),
+		node.waitUserEvent(t),
+		node.waitUserEvent(t),
+	}
+	require.ElementsMatch(t, []int64{userID, friendID, dmPeerID}, []int64{
+		userRequests[0].GetUserId(),
+		userRequests[1].GetUserId(),
+		userRequests[2].GetUserId(),
+	})
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.userTopic) == 1 },
+		15*time.Second, 50*time.Millisecond, "profile offset must commit after every audience path succeeds")
+}
+
+// fakeDispatcherUserClient serves relationship lists for fan-out tests.
 type fakeDispatcherUserClient struct {
 	userv1.UserServiceClient
 	mu      sync.Mutex
 	friends map[int64][]int64
 	err     error
 	calls   int
+}
+
+type emptyGuildClient struct {
+	guildv1.GuildServiceClient
+}
+
+func (emptyGuildClient) ListUserGuilds(
+	context.Context,
+	*guildv1.ListUserGuildsRequest,
+	...grpc.CallOption,
+) (*guildv1.ListUserGuildsResponse, error) {
+	return new(guildv1.ListUserGuildsResponse), nil
+}
+
+type emptyMessageClient struct {
+	messagev1.MessageServiceClient
+}
+
+func (emptyMessageClient) ListDmChannels(
+	context.Context,
+	*messagev1.ListDmChannelsRequest,
+	...grpc.CallOption,
+) (*messagev1.ListDmChannelsResponse, error) {
+	return new(messagev1.ListDmChannelsResponse), nil
 }
 
 func newFakeDispatcherUserClient() *fakeDispatcherUserClient {

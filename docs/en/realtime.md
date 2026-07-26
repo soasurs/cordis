@@ -40,6 +40,11 @@ produces one sequenced `session.reconcile` hint for the current invalid snapshot
 generation. Membership removal or ban events are sent before the user's Guild
 index is revoked.
 
+For `user.profile.updated`, Dispatcher loads shared Guilds, non-blocked
+relationships, and existing DM peers, then also includes the profile owner's
+user route. Session deduplicates each local recipient by event ID across Guild
+and direct-user paths before delivering the full profile snapshot.
+
 ## etcd directory and Redis keys
 
 - `/cordis/session/nodes/{node_id}`: leased etcd key containing generation,
@@ -51,7 +56,10 @@ index is revoked.
 Route members contain node ID and generation. Redis TTLs, etcd leases, and
 read-time generation validation remove stale processes.
 
-Domain services publish `{t,d}` envelopes to Kafka. Dispatcher resolves routes
-and invokes Session. Session filters Guild messages with visibility snapshots,
-assigns sequence, stores replay, and writes a response to Gateway. Delivery is
-at least once under retry; there is no general event-ID deduplication yet.
+Domain services publish `{t,d}` envelopes to Kafka. Dispatcher uses an
+independent consumer group and loop for each domain topic, then resolves routes
+and invokes Session through a shared connection pool. Session filters Guild
+messages with visibility snapshots, assigns sequence, stores replay, and writes
+a response to Gateway. Delivery is at least once under retry; profile fan-out
+has recipient-level event deduplication, but there is no general event-ID
+deduplication yet.

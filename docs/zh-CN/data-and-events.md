@@ -33,8 +33,8 @@ Kafka 事件统一为：
 }
 ```
 
-事件名常量集中在 `pkg/realtime`，领域事件只使用点分层级，不新增下划线变体。现有事件包括 Guild、成员、角色、频道、权限覆盖、消息和反应事件。
+事件名常量集中在 `pkg/realtime`，领域事件只使用点分层级，不新增下划线变体。现有事件包括 Guild、成员、角色、频道、权限覆盖、消息、关系、用户资料和 Presence 事件。
 
 ## 直接发布 Kafka
 
-Message 和 Guild 都不使用 Outbox。业务事务成功后，Message best-effort 发布到 `cordis.message.events.v1`，Guild best-effort 发布到 `cordis.guild.events.v1`。发布使用业务 ID 作为 Kafka key，以保持同一频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。
+User、Message 和 Guild 都不使用 Outbox。业务事务成功后，User 将关系和资料事件 best-effort 发布到 `cordis.user.events.v1`，Message 发布到 `cordis.message.events.v1`，Guild 发布到 `cordis.guild.events.v1`。发布使用聚合 ID 作为 Kafka key，以保持同一用户、频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。

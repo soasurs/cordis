@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
@@ -64,8 +65,17 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 		s.invalidateGuildVisibility(req.GetGuildId(), parseID(routing.UserID), routing.AccessRevision)
 	case realtime.EventGuildChannelCreated, realtime.EventGuildChannelUpdated,
 		realtime.EventGuildChannelOverwriteUpdated, realtime.EventGuildChannelOverwriteDeleted:
+		channelID := parseID(routing.ChannelID)
+		if channelID == 0 {
+			channelID = parseID(routing.ID)
+		}
+		// Capture viewers before invalidation so revoke paths still notify
+		// members who just lost View Channel and need to drop the channel.
+		previouslyVisible := s.usersWithChannelVisibility(req.GetGuildId(), channelID)
 		s.invalidateChannelEventVisibility(req.GetGuildId(), eventType, routing)
-		delivered := s.dispatchAuthorizedGuildChannel(ctx, req.GetGuildId(), eventType, payload, routing)
+		delivered := s.dispatchGuildChannelAccessEvent(
+			ctx, req.GetGuildId(), channelID, eventType, payload, previouslyVisible,
+		)
 		return dispatchGuildResponse(delivered), nil
 	case realtime.EventGuildChannelDeleted:
 		s.invalidateGuildVisibility(req.GetGuildId(), 0, routing.AccessRevision)
@@ -203,31 +213,89 @@ func (s *Server) DispatchUserEvent(_ context.Context, req *sessionv1.DispatchUse
 	return resp, nil
 }
 
-func (s *Server) dispatchAuthorizedGuildChannel(ctx context.Context, guildID int64, eventType string, payload []byte, routing eventRouting) int {
-	channelID := parseID(routing.ChannelID)
-	if channelID == 0 {
-		channelID = parseID(routing.ID)
-	}
-	delivered := 0
+// dispatchGuildChannelAccessEvent reloads invalidated visibility snapshots and
+// delivers channel access events to sessions that either currently see the
+// channel or saw it before invalidation. Reloading every affected snapshot keeps
+// previous visibility for other channels available to later revoke events.
+func (s *Server) dispatchGuildChannelAccessEvent(
+	ctx context.Context,
+	guildID, channelID int64,
+	eventType string,
+	payload []byte,
+	previouslyVisible map[int64]struct{},
+) int {
+	byUser := make(map[int64][]*logicalSession)
 	for _, session := range s.guildSessions(guildID) {
-		allowed, err := s.authorizeChannel(ctx, session.userID, channelID)
-		if err != nil {
-			logx.WithContext(ctx).Errorw("authorize session guild channel event",
-				logx.Field("guild_id", guildID),
-				logx.Field("channel_id", channelID),
-				logx.Field("user_id", session.userID),
-				logx.Field("error", err),
-			)
-			continue
-		}
-		if !allowed {
-			continue
-		}
-		if s.dispatchSession(session, eventType, payload) {
-			delivered++
-		}
+		byUser[session.userID] = append(byUser[session.userID], session)
+	}
+
+	type dispatchJob struct {
+		userID   int64
+		sessions []*logicalSession
+	}
+	jobs := make(chan dispatchJob, len(byUser))
+	for userID, sessions := range byUser {
+		jobs <- dispatchJob{userID: userID, sessions: sessions}
+	}
+	close(jobs)
+
+	workerCount := min(len(byUser), int(s.svcCtx.Cfg.Node.SnapshotReloadLimit()))
+	results := make(chan int, len(byUser))
+	var workers sync.WaitGroup
+	workers.Add(workerCount)
+	for range workerCount {
+		go func() {
+			defer workers.Done()
+			for job := range jobs {
+				snapshot, err := s.ensureVisibilitySnapshot(ctx, job.userID, guildID)
+				if err != nil {
+					logx.WithContext(ctx).Errorw("reload guild visibility for channel access event",
+						logx.Field("guild_id", guildID),
+						logx.Field("channel_id", channelID),
+						logx.Field("user_id", job.userID),
+						logx.Field("error", err),
+					)
+					s.dispatchVisibilityReconcile(job.sessions, job.userID, guildID, channelID)
+					results <- 0
+					continue
+				}
+
+				_, wasVisible := previouslyVisible[job.userID]
+				if !wasVisible && !snapshot.contains(channelID) {
+					results <- 0
+					continue
+				}
+				results <- s.dispatchSessions(job.sessions, eventType, payload)
+			}
+		}()
+	}
+	workers.Wait()
+	close(results)
+
+	delivered := 0
+	for count := range results {
+		delivered += count
 	}
 	return delivered
+}
+
+// usersWithChannelVisibility returns guild members whose retained visibility
+// snapshot currently includes channelID. Call before invalidating snapshots.
+func (s *Server) usersWithChannelVisibility(guildID, channelID int64) map[int64]struct{} {
+	if channelID <= 0 {
+		return nil
+	}
+	viewers := make(map[int64]struct{})
+	for _, session := range s.guildSessions(guildID) {
+		if _, seen := viewers[session.userID]; seen {
+			continue
+		}
+		snapshot, ok := s.visibilitySnapshotFor(session.userID, guildID)
+		if ok && snapshot.contains(channelID) {
+			viewers[session.userID] = struct{}{}
+		}
+	}
+	return viewers
 }
 
 func (s *Server) dispatchSessions(sessions []*logicalSession, eventType string, payload []byte) int {

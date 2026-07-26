@@ -86,7 +86,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 - 应用 Gateway 批量同步的 heartbeat ACK checkpoint、处理 Presence 更新、detach 和 resume；
 - 接收 Dispatcher 的 Guild、频道和用户事件并本地 fanout。
 
-IDENTIFY 分别向 Guild 和 Message 拉取完整 READY，再从 User 批量加载 DM 对端 profile：Guild、角色、成员角色、可见频道及其 permission overwrites、全部 DM 和四字段 read state。READY 组装期间收到的实时事件先缓冲，READY 以 sequence 1 发出后再按接收顺序入队。pending dispatch 同时受事件条数和事件数据总字节数限制，有效条数还会低于 replay 与 binding queue 容量；溢出时清空 pending buffer 并让本次 IDENTIFY 失败，使客户端重连后重新获取权威快照。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。同一节点上属于同一用户的逻辑 Session 共享授权快照，最后一个本地 Session 移除后释放。Guild access 事件按 revision 使受影响的快照失效；按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`。
+IDENTIFY 分别向 Guild 和 Message 拉取完整 READY，再从 User 批量加载 DM 对端 profile：Guild、角色、成员角色、可见频道及其 permission overwrites、全部 DM 和四字段 read state。READY 组装期间收到的实时事件先缓冲，READY 以 sequence 1 发出后再按接收顺序入队。pending dispatch 同时受事件条数和事件数据总字节数限制，有效条数还会低于 replay 与 binding queue 容量；溢出时清空 pending buffer 并让本次 IDENTIFY 失败，使客户端重连后重新获取权威快照。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。同一节点上属于同一用户的逻辑 Session 共享授权快照，最后一个本地 Session 移除后释放。Guild access 事件先记录频道的原可见用户，再按 revision 使受影响快照失效并以受控并发重建；事件会投递给原可见与当前可见用户的并集，使新授权客户端添加频道、被撤权客户端移除频道。按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`。
 
 Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Session ID 限速。同一个认证 Session 可以为多个浏览器页面或设备创建并存的逻辑 Session；每个逻辑 Session 拥有独立的 Session ID、回放窗口、Presence 租约和 transport binding。
 

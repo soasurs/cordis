@@ -55,7 +55,7 @@ func TestHandshakeSpanEndsWhileWebSocketRemainsOpen(t *testing.T) {
 	attrs := make(map[string]string, len(span.Attributes))
 	for _, attr := range span.Attributes {
 		attrs[string(attr.Key)] = attr.Value.AsString()
-		require.NotContains(t, strings.ToLower(attr.Value.Emit()), "secret-access-token")
+		require.NotContains(t, strings.ToLower(attr.Value.String()), "secret-access-token")
 	}
 	require.Equal(t, "identify", attrs["cordis.session.operation"])
 	require.Equal(t, "success", attrs["cordis.session.result"])

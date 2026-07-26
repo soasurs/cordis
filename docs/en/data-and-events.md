@@ -11,9 +11,10 @@ mostly enforced by application logic rather than foreign keys. Active soft
 deleted entities generally use `deleted_at = 0`.
 
 Stores are interfaces. SQL implementations keep both a database handle and an
-`sqlx.ExtContext`; transactions replace the executor with `*sqlx.Tx`. User,
-Guild, and Message roll back on errors and panics. Tests inject fake stores and
-other dependencies.
+`sqlx.ExtContext`; transactions replace the executor with `*sqlx.Tx`. Postgres
+handles come from `pkg/database.NewPostgres`, which wraps `database/sql` with
+otelsql tracing. User, Guild, and Message roll back on errors and panics.
+Tests inject fake stores and other dependencies.
 
 Entity IDs use Snowflake with a 2025-01-01 epoch, a node derived from a
 non-loopback IP hash, 16 node bits, and 8 step bits. Event JSON encodes 64-bit

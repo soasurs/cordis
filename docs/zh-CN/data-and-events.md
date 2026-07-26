@@ -11,7 +11,7 @@
 
 ## Store 与事务
 
-服务通过 Store 接口隔离业务和 SQL。SQL Store 同时保存数据库连接与 `sqlx.ExtContext` 执行器；进入 `Transact` 后执行器替换为 `*sqlx.Tx`。User、Guild 和 Message 在 error 或 panic 时回滚。依赖通过 `NewDependencies` 创建，测试通过 `NewServiceContextWithDependencies` 注入 fake。
+服务通过 Store 接口隔离业务和 SQL。SQL Store 同时保存数据库连接与 `sqlx.ExtContext` 执行器；进入 `Transact` 后执行器替换为 `*sqlx.Tx`。Postgres 连接由 `pkg/database.NewPostgres` 创建，并通过 otelsql 自动产生 SQL tracing。User、Guild 和 Message 在 error 或 panic 时回滚。依赖通过 `NewDependencies` 创建，测试通过 `NewServiceContextWithDependencies` 注入 fake。
 
 ## ID
 

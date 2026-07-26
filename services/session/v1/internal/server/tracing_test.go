@@ -207,7 +207,7 @@ func TestFilteredConnectPropagatesAndEndsHandshakeSpan(t *testing.T) {
 	require.Equal(t, parent.SpanContext().SpanID(), span.Parent.SpanID())
 	attrs := make(map[string]string, len(span.Attributes))
 	for _, attr := range span.Attributes {
-		value := strings.ToLower(attr.Value.Emit())
+		value := strings.ToLower(attr.Value.String())
 		require.NotContains(t, value, "sensitive-")
 		attrs[string(attr.Key)] = attr.Value.AsString()
 	}

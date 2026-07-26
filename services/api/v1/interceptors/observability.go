@@ -1,4 +1,4 @@
-package observability
+package interceptors
 
 import (
 	"context"
@@ -46,15 +46,15 @@ var (
 	)
 )
 
-func ConnectInterceptors() []connect.Interceptor {
+func observabilityInterceptors() []connect.Interceptor {
 	return []connect.Interceptor{
-		UnaryTracingInterceptor(),
-		UnaryPrometheusInterceptor(),
-		UnaryErrorLogInterceptor(),
+		unaryTracingInterceptor(),
+		unaryPrometheusInterceptor(),
+		unaryErrorLogInterceptor(),
 	}
 }
 
-func UnaryTracingInterceptor() connect.Interceptor {
+func unaryTracingInterceptor() connect.Interceptor {
 	return connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			spec := req.Spec()
@@ -80,7 +80,7 @@ func UnaryTracingInterceptor() connect.Interceptor {
 	})
 }
 
-func UnaryPrometheusInterceptor() connect.Interceptor {
+func unaryPrometheusInterceptor() connect.Interceptor {
 	return connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			start := time.Now()
@@ -94,7 +94,7 @@ func UnaryPrometheusInterceptor() connect.Interceptor {
 	})
 }
 
-func UnaryErrorLogInterceptor() connect.Interceptor {
+func unaryErrorLogInterceptor() connect.Interceptor {
 	return connect.UnaryInterceptorFunc(func(next connect.UnaryFunc) connect.UnaryFunc {
 		return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 			start := time.Now()

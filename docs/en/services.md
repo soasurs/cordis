@@ -19,6 +19,17 @@ creation, relationship writes, Guild resource creation, and invite joins also
 consume business-specific buckets. Authenticated `GetReadStates` reconciliation
 also uses a process-local keyed limiter to bound concurrent requests per user.
 
+Before business rate limiting, the API inbound chain applies a server deadline,
+a global in-flight request cap, and CPU-adaptive load shedding. A circuit
+breaker isolates persistent server failures per public RPC procedure. Only
+`Unknown`, `DeadlineExceeded`, `Internal`, `Unavailable`, and `DataLoss` count
+as breaker failures; validation, authentication, and rate-limit errors do not
+open a circuit. The total HTTP body and each decompressed Connect message have
+separate size limits. Panics are logged with the procedure and stack before
+being converted to an opaque `Internal` error. A timed-out request retains its
+concurrency slot until the underlying handler actually exits, so work that
+ignores cancellation cannot bypass the global cap.
+
 ## User
 
 gRPC on `:3000`. Owns users and profiles, email availability and updates,

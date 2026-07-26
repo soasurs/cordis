@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
 
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/services/api/v1/config"
+	"github.com/soasurs/cordis/services/api/v1/interceptors"
 	"github.com/soasurs/cordis/services/api/v1/observability"
 	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 	"github.com/soasurs/cordis/services/api/v1/server"
@@ -31,6 +31,9 @@ func main() {
 
 	cfg := new(config.Config)
 	if err := conf.LoadConfig(*configPath, cfg, conf.UseEnv()); err != nil {
+		panic(err)
+	}
+	if err := cfg.Inbound.Validate(); err != nil {
 		panic(err)
 	}
 	cfg.Log.ServiceName = cfg.Name
@@ -68,25 +71,39 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	interceptors := append(
-		observability.ConnectInterceptors(),
-		apiratelimit.UnaryInterceptor(svcCtx.RateLimiter, clientIPResolver),
-	)
+	interceptorRuntime, err := interceptors.New(interceptors.Config{
+		Timeout:                cfg.Inbound.Timeout,
+		ProcedureTimeouts:      cfg.Inbound.ProcedureTimeouts,
+		MaxConcurrency:         cfg.Inbound.MaxConcurrency,
+		CPUThreshold:           cfg.Inbound.CPUThreshold,
+		Breaker:                cfg.Inbound.Breaker,
+		MaxMessageBytes:        cfg.Inbound.MaxMessageBytes,
+		ServiceMaxMessageBytes: cfg.Inbound.ServiceMaxMessageBytes,
+		RateLimiter:            svcCtx.RateLimiter,
+		ClientIPResolver:       clientIPResolver,
+	})
+	if err != nil {
+		panic(err)
+	}
+	authenticatorHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.AuthenticatorService)
+	userHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.UserService)
+	messageHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.MessageService)
+	guildHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.GuildService)
 	path, handler := apiv1connect.NewAuthenticatorServiceHandler(
 		server.NewAuthenticator(svcCtx),
-		connect.WithInterceptors(interceptors...),
+		authenticatorHandlerOptions...,
 	)
 	userPath, userHandler := apiv1connect.NewUserServiceHandler(
 		server.NewUser(svcCtx),
-		connect.WithInterceptors(interceptors...),
+		userHandlerOptions...,
 	)
 	messagePath, messageHandler := apiv1connect.NewMessageServiceHandler(
 		server.NewMessage(svcCtx),
-		connect.WithInterceptors(interceptors...),
+		messageHandlerOptions...,
 	)
 	guildPath, guildHandler := apiv1connect.NewGuildServiceHandler(
 		server.NewGuild(svcCtx),
-		connect.WithInterceptors(interceptors...),
+		guildHandlerOptions...,
 	)
 
 	mux := http.NewServeMux()
@@ -94,11 +111,16 @@ func main() {
 	mux.Handle(userPath, userHandler)
 	mux.Handle(messagePath, messageHandler)
 	mux.Handle(guildPath, guildHandler)
+	publicHandler := http.MaxBytesHandler(mux, cfg.Inbound.MaxRequestBytes)
 
 	httpServer := &http.Server{
 		Addr:              cfg.ListenOn,
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
+		Handler:           publicHandler,
+		ReadTimeout:       cfg.Inbound.ReadTimeout,
+		ReadHeaderTimeout: cfg.Inbound.ReadHeaderTimeout,
+		WriteTimeout:      cfg.Inbound.WriteTimeout,
+		IdleTimeout:       cfg.Inbound.IdleTimeout,
+		MaxHeaderBytes:    cfg.Inbound.MaxHeaderBytes,
 	}
 	listener, err := net.Listen("tcp", cfg.ListenOn)
 	if err != nil {
@@ -124,7 +146,7 @@ func main() {
 		}
 	case <-ctx.Done():
 		probeState.SetReadiness(false)
-		if err := shutdownHTTPServer(httpServer, serveErr, 5*time.Second); err != nil {
+		if err := shutdownHTTPServer(httpServer, serveErr, cfg.Inbound.ShutdownTimeout); err != nil {
 			logx.Errorw("shutdown api server", logx.Field("error", err))
 		}
 	}

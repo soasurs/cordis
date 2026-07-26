@@ -8,6 +8,8 @@
 
 公开请求使用 Redis-backed 命名限流 policy，并在 Redis 故障时使用有界本地 fallback。IP 桶按 IPv4 `/32` 或 IPv6 `/64` 归一化，IPv4 阈值会为 CGNAT 放宽。所有请求先消费来源 IP guard；认证成功后再消费用户通用配额，消息创建、关系写入、Guild 资源创建和邀请加入还会消费对应业务桶。认证后的 `GetReadStates` reconcile 还使用进程内 keyed limiter，限制同一用户的并发请求数。
 
+API 入站链在业务限流之前施加服务端 deadline、全局请求并发帽和 CPU 自适应 shedding，并按公开 RPC procedure 使用熔断器隔离持续的服务端失败。只有 `Unknown`、`DeadlineExceeded`、`Internal`、`Unavailable` 和 `DataLoss` 会使熔断器记为失败；校验、鉴权和限流错误不会打开线路。HTTP 总请求体与 Connect 解压后的单消息分别限长，panic 会记录 procedure 和 stack 后转换为不泄露内部信息的 `Internal` 错误。超时请求只有在底层 handler 实际退出后才释放并发槽，避免不响应取消的工作绕过全局并发帽。
+
 ## User
 
 监听 `:3000`，拥有用户和资料数据。负责注册所需的用户创建、用户查询、邮箱可用性、邮箱更新、资料更新、密码校验和修改。密码使用 Argon2id 哈希。User 不签发令牌。

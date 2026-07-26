@@ -14,6 +14,25 @@ observability:
     sampler: 1.0
     insecure: true
 
+inbound:
+  readTimeout: 5s
+  readHeaderTimeout: 5s
+  writeTimeout: 10s
+  idleTimeout: 2m
+  shutdownTimeout: 15s
+  maxHeaderBytes: 1048576
+  maxRequestBytes: 2097152
+  maxMessageBytes: 1048576
+  timeout: 3s
+  # Optional keys are full Connect procedures, for example
+  # /api.v1.GuildService/ListGuildMembers.
+  procedureTimeouts: {}
+  # Optional keys: authenticator, user, message, guild.
+  serviceMaxMessageBytes: {}
+  maxConcurrency: 10000
+  cpuThreshold: 900
+  breaker: true
+
 rateLimit:
   redis:
     host: 127.0.0.1:6379
@@ -121,6 +140,7 @@ services:
   authenticator:
     endpoints:
       - 127.0.0.1:3001
+    timeout: 2000
     middlewares:
       trace: true
       duration: false
@@ -130,6 +150,7 @@ services:
   user:
     endpoints:
       - 127.0.0.1:3000
+    timeout: 2000
     middlewares:
       trace: true
       duration: false
@@ -139,6 +160,7 @@ services:
   message:
     endpoints:
       - 127.0.0.1:3002
+    timeout: 2000
     middlewares:
       trace: true
       duration: false
@@ -148,6 +170,7 @@ services:
   guild:
     endpoints:
       - 127.0.0.1:3005
+    timeout: 2000
     middlewares:
       trace: true
       duration: false

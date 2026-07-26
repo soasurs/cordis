@@ -4,12 +4,11 @@ go 1.26
 
 require (
 	connectrpc.com/connect v1.20.0
-	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coder/websocket v1.8.14
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/moby/moby/api v1.54.2
 	github.com/prometheus/client_golang v1.23.2
@@ -111,6 +110,9 @@ require (
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.9 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jdx/go-netrc v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

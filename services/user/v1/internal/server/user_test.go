@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -56,7 +56,7 @@ func TestCreateUserValidation(t *testing.T) {
 
 func TestCreateUserEmailAlreadyExists(t *testing.T) {
 	store := newFakeStore()
-	store.createUserErr = &pq.Error{Code: "23505"}
+	store.createUserErr = &pgconn.PgError{Code: "23505"}
 	server := newTestUserServer(t, store)
 
 	req := new(userv1.CreateUserRequest)
@@ -818,7 +818,7 @@ func TestCreateUserUsernameNormalized(t *testing.T) {
 
 func TestCreateUserUsernameTaken(t *testing.T) {
 	store := newFakeStore()
-	store.createProfileErr = &pq.Error{Code: "23505", Constraint: "user_profiles_username_active_idx"}
+	store.createProfileErr = &pgconn.PgError{Code: "23505", ConstraintName: "user_profiles_username_active_idx"}
 	server := newTestUserServer(t, store)
 
 	req := new(userv1.CreateUserRequest)
@@ -895,7 +895,7 @@ func TestUpdateUsernameValidationAndConflicts(t *testing.T) {
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 
 	req.SetUsername("valid_name")
-	store.updateUsernameErr = &pq.Error{Code: "23505", Constraint: "user_profiles_username_active_idx"}
+	store.updateUsernameErr = &pgconn.PgError{Code: "23505", ConstraintName: "user_profiles_username_active_idx"}
 	_, err = server.UpdateUsername(context.Background(), req)
 	require.Equal(t, codes.AlreadyExists, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.UserDomain, rpcerror.UserUsernameTaken))

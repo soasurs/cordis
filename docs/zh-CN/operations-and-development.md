@@ -42,11 +42,13 @@ make test
 
 每轮 Go 代码改动后，先运行 `go fix ./...`，再执行相应的 build 和 test。Staticcheck 已通过 `go.mod` 固定版本，并使用 `go tool` 调用，不依赖本机另行安装的二进制。`SA5008` 已排除，因为 go-zero 配置在 `json` struct tag 中扩展的 `default`、`optional`、`options` 和 `range` 会产生误报，且这些扩展必须保留；修改配置 tag 时仍需人工确认语法。当前改动涉及的其他可执行诊断应当解决。
 
-单元测试使用 `testify/require`。SQL Store 测试以 `sqlmock` 校验查询；日常开发不要求 Docker：
+单元测试使用 `testify/require`。日常开发不要求 Docker：
 
 ```bash
 make test
 ```
+
+SQL Store 由 Postgres 集成测试覆盖（`make test-integration`），不再使用 mock 的 database/sql 驱动。
 
 真实依赖测试显式使用 `integration` tag。它通过 Testcontainers 启动并清理固定版本的 PostgreSQL、Redis、Kafka（KRaft）与 etcd，不依赖开发机上已有的服务：
 

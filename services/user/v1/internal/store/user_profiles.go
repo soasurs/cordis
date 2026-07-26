@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
@@ -63,7 +62,7 @@ func (s *SQLStore) GetUserProfile(ctx context.Context, userID int64) (*model.Use
 
 func (s *SQLStore) ListUserProfiles(ctx context.Context, userIDs []int64) ([]*model.UserProfile, error) {
 	var rows []*userProfileRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListUserProfilesQuery, pq.Array(userIDs), 0); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, ListUserProfilesQuery, userIDs, 0); err != nil {
 		return nil, err
 	}
 	profiles := make([]*model.UserProfile, 0, len(rows))

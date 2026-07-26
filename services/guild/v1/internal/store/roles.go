@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -62,7 +61,7 @@ func (s *SQLStore) ListGuildRolesByGuilds(ctx context.Context, guildIDs []int64)
 		return nil, nil
 	}
 	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildRolesByGuildsQuery, pq.Array(guildIDs)); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildRolesByGuildsQuery, guildIDs); err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))
@@ -118,7 +117,7 @@ func (s *SQLStore) UpdateGuildRolePositions(ctx context.Context, guildID int64, 
 		return nil, nil
 	}
 	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildRolePositionsQuery, guildID, pq.Array(roleIDs), pq.Array(positions), updatedAt); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildRolePositionsQuery, guildID, roleIDs, positions, updatedAt); err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))
@@ -178,7 +177,7 @@ func (s *SQLStore) ListGuildMemberRolesByGuilds(ctx context.Context, guildIDs []
 		return nil, nil
 	}
 	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberRolesByGuildsQuery, pq.Array(guildIDs), userID); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberRolesByGuildsQuery, guildIDs, userID); err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))

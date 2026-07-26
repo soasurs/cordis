@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 
 	"github.com/soasurs/cordis/pkg/rpcerror"
@@ -55,8 +55,8 @@ func mapStoreError(err error) error {
 	if errors.Is(err, store.ErrResourceLimitExceeded) {
 		return resourceLimitExceeded()
 	}
-	var pqErr *pq.Error
-	if errors.As(err, &pqErr) && pqErr.Code == "23514" {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23514" {
 		return invalidRequest("invalid guild state")
 	}
 	return err

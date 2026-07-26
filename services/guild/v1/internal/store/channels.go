@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -76,7 +75,7 @@ func (s *SQLStore) ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int
 		return nil, nil
 	}
 	var rows []*channelRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsByGuildsQuery, pq.Array(guildIDs)); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsByGuildsQuery, guildIDs); err != nil {
 		return nil, err
 	}
 	channels := make([]*model.Channel, 0, len(rows))
@@ -131,7 +130,7 @@ func (s *SQLStore) UpdateGuildChannelPositions(ctx context.Context, guildID int6
 	}
 	var rows []*channelRow
 	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildChannelPositionsQuery,
-		guildID, pq.Array(channelIDs), pq.Array(positions), pq.Array(parentIDs), updatedAt,
+		guildID, channelIDs, positions, parentIDs, updatedAt,
 	); err != nil {
 		return nil, err
 	}
@@ -212,7 +211,7 @@ func (s *SQLStore) ListGuildChannelPermissionOverwritesByChannels(ctx context.Co
 		return nil, nil
 	}
 	var rows []*channelOverwriteRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByChannelsQuery, pq.Array(channelIDs)); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByChannelsQuery, channelIDs); err != nil {
 		return nil, err
 	}
 	overwrites := make([]*model.ChannelPermissionOverwrite, 0, len(rows))
@@ -239,7 +238,7 @@ func (s *SQLStore) ListGuildChannelPermissionOverwritesByGuilds(ctx context.Cont
 		return nil, nil
 	}
 	var rows []*channelOverwriteRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByGuildsQuery, pq.Array(guildIDs), userID); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelPermissionOverwritesByGuildsQuery, guildIDs, userID); err != nil {
 		return nil, err
 	}
 	overwrites := make([]*model.ChannelPermissionOverwrite, 0, len(rows))

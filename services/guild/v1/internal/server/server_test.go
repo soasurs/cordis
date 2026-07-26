@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -879,7 +879,7 @@ func (s *fakeStore) CountGuildMembers(_ context.Context, guildID int64) (int64, 
 
 func (s *fakeStore) CreateGuildInvite(_ context.Context, invite *model.GuildInvite) (*model.GuildInvite, error) {
 	if s.invites[invite.Code] != nil {
-		return nil, &pq.Error{Code: "23505"}
+		return nil, &pgconn.PgError{Code: "23505"}
 	}
 	value := *invite
 	s.invites[invite.Code] = &value

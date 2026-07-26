@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/internal/testkit"
@@ -159,9 +159,9 @@ func testConstraintEnforcement(t *testing.T, store Store) {
 
 func requireUniqueViolation(t *testing.T, err error) {
 	t.Helper()
-	var pqErr *pq.Error
-	require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
-	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
+	var pgErr *pgconn.PgError
+	require.True(t, errors.As(err, &pgErr), "expected pgconn.PgError, got %v", err)
+	require.Equal(t, "23505", pgErr.Code)
 }
 
 func testEmailVerification(t *testing.T, store Store) {
@@ -214,15 +214,15 @@ func testUsernames(t *testing.T, store Store) {
 	_, err = store.CreateUser(ctx, userID+1, "handle2@example.com")
 	require.NoError(t, err)
 	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second")
-	var pqErr *pq.Error
-	require.True(t, errors.As(err, &pqErr))
-	require.Equal(t, pq.ErrorCode("23505"), pqErr.Code)
-	require.Equal(t, "user_profiles_username_active_idx", pqErr.Constraint)
+	var pgErr *pgconn.PgError
+	require.True(t, errors.As(err, &pgErr))
+	require.Equal(t, "23505", pgErr.Code)
+	require.Equal(t, "user_profiles_username_active_idx", pgErr.ConstraintName)
 
 	// The CHECK constraint rejects malformed handles.
 	_, err = store.CreateUserProfile(ctx, userID+1, "Bad Handle!", "Second")
-	require.True(t, errors.As(err, &pqErr))
-	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	require.True(t, errors.As(err, &pgErr))
+	require.Equal(t, "23514", pgErr.Code)
 
 	// Renaming releases the old handle for someone else to claim.
 	renamed, err := store.UpdateUsername(ctx, userID, "handle_renamed")
@@ -231,8 +231,8 @@ func testUsernames(t *testing.T, store Store) {
 	_, err = store.CreateUserProfile(ctx, userID+1, "handle_owner", "Second")
 	require.NoError(t, err)
 	_, err = store.UpdateUsername(ctx, userID, "handle_owner")
-	require.True(t, errors.As(err, &pqErr))
-	require.Equal(t, "user_profiles_username_active_idx", pqErr.Constraint)
+	require.True(t, errors.As(err, &pgErr))
+	require.Equal(t, "user_profiles_username_active_idx", pgErr.ConstraintName)
 	_, err = store.UpdateUsername(ctx, userID+99, "free_handle")
 	require.ErrorIs(t, err, sql.ErrNoRows)
 }
@@ -290,13 +290,13 @@ func testRelationships(t *testing.T, store Store) {
 	require.ErrorIs(t, store.DeleteRelationship(ctx, userA, userC), sql.ErrNoRows)
 
 	// Constraints: self relationships and unknown types are rejected.
-	var pqErr *pq.Error
+	var pgErr *pgconn.PgError
 	err = store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userA, Type: model.RelationshipFriend, CreatedAt: now})
-	require.True(t, errors.As(err, &pqErr))
-	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	require.True(t, errors.As(err, &pgErr))
+	require.Equal(t, "23514", pgErr.Code)
 	err = store.UpsertRelationship(ctx, &model.Relationship{UserID: userA, TargetID: userB, Type: 9, CreatedAt: now})
-	require.True(t, errors.As(err, &pqErr))
-	require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+	require.True(t, errors.As(err, &pgErr))
+	require.Equal(t, "23514", pgErr.Code)
 }
 
 func idsOfRelationships(relationships []*model.Relationship) []int64 {

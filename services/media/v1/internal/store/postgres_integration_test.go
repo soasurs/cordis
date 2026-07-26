@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/internal/testkit"
@@ -170,18 +170,18 @@ func testConstraints(t *testing.T, assetStore Store) {
 	t.Run("asset id", func(t *testing.T) {
 		invalid := integrationAsset(-1, 1401)
 		err := assetStore.CreateAssetWithQuota(t.Context(), invalid, 5)
-		var pqErr *pq.Error
-		require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
-		require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+		var pgErr *pgconn.PgError
+		require.True(t, errors.As(err, &pgErr), "expected pgconn.PgError, got %v", err)
+		require.Equal(t, "23514", pgErr.Code)
 	})
 
 	t.Run("subject id", func(t *testing.T) {
 		invalid := integrationAsset(1402, 1401)
 		invalid.SubjectID = 0
 		err := assetStore.CreateAssetWithQuota(t.Context(), invalid, 5)
-		var pqErr *pq.Error
-		require.True(t, errors.As(err, &pqErr), "expected pq.Error, got %v", err)
-		require.Equal(t, pq.ErrorCode("23514"), pqErr.Code)
+		var pgErr *pgconn.PgError
+		require.True(t, errors.As(err, &pgErr), "expected pgconn.PgError, got %v", err)
+		require.Equal(t, "23514", pgErr.Code)
 	})
 }
 

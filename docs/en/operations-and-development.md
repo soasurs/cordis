@@ -65,12 +65,14 @@ because go-zero's extended `json` configuration tags (`default`, `optional`,
 Configuration-tag changes still require a manual syntax review. Other
 actionable diagnostics in changed code should be resolved.
 
-Tests use `testify/require`; SQL stores use `sqlmock`. Day-to-day development
-does not require Docker:
+Tests use `testify/require`. Day-to-day development does not require Docker:
 
 ```bash
 make test
 ```
+
+SQL stores are covered by Postgres integration tests (`make test-integration`),
+not by mocked database/sql drivers.
 
 Real-backend integration tests use the `integration` tag and start fixed-version
 PostgreSQL, Redis, Kafka (KRaft), and etcd via Testcontainers without requiring

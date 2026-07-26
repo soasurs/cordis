@@ -5,7 +5,6 @@ import (
 	"database/sql"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
@@ -97,7 +96,7 @@ func (s *SQLStore) ListRelationships(ctx context.Context, params ListRelationshi
 
 func (s *SQLStore) ListRelationshipsByTargets(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
 	var rows []*relationshipRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRelationshipsByTargetsQuery, userID, pq.Array(targetIDs)); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRelationshipsByTargetsQuery, userID, targetIDs); err != nil {
 		return nil, err
 	}
 	relationships := make([]*model.Relationship, 0, len(rows))
@@ -112,7 +111,7 @@ func (s *SQLStore) ListRelationshipsByTargets(ctx context.Context, userID int64,
 // consistent snapshot for block checks.
 func (s *SQLStore) ListRelationshipsBidirectional(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
 	var rows []*relationshipRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRelationshipsBidirectionalQuery, userID, pq.Array(targetIDs)); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRelationshipsBidirectionalQuery, userID, targetIDs); err != nil {
 		return nil, err
 	}
 	relationships := make([]*model.Relationship, 0, len(rows))

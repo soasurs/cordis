@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 )
 
 func (s *SQLStore) CreateAssetWithQuota(
@@ -68,7 +67,7 @@ func (s *SQLStore) ListAssets(ctx context.Context, ids []int64) ([]*Asset, error
 		return []*Asset{}, nil
 	}
 	var assets []*Asset
-	if err := sqlx.SelectContext(ctx, s.q, &assets, listAssetsQuery, pq.Array(ids)); err != nil {
+	if err := sqlx.SelectContext(ctx, s.q, &assets, listAssetsQuery, ids); err != nil {
 		return nil, fmt.Errorf("list assets: %w", err)
 	}
 	return assets, nil

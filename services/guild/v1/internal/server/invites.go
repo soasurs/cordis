@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/pkg/cursor"
@@ -300,8 +300,8 @@ func newInviteCode() (string, error) {
 }
 
 func isUniqueViolation(err error) bool {
-	var pqErr *pq.Error
-	return errors.As(err, &pqErr) && pqErr.Code == "23505"
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 func guildInviteToProto(invite *model.GuildInvite) *guildv1.GuildInvite {

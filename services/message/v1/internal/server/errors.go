@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
 
 	"github.com/soasurs/cordis/pkg/rpcerror"
@@ -44,6 +44,6 @@ func mapStoreError(err error) error {
 }
 
 func isCheckViolation(err error) bool {
-	var pqErr *pq.Error
-	return errors.As(err, &pqErr) && pqErr.Code == "23514"
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23514"
 }

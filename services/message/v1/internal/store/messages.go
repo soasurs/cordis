@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -216,7 +215,7 @@ func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, 
 }
 
 func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, userIDs []int64) error {
-	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, pq.Array(userIDs))
+	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, userIDs)
 	return err
 }
 

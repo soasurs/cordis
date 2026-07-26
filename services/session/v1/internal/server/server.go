@@ -26,7 +26,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
-	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
@@ -843,18 +842,6 @@ func (s *Server) removeSession(ctx context.Context, session *logicalSession) {
 	_ = s.svcCtx.Store.DeleteOwner(ctx, session.id, s.nodeID, s.generation)
 	s.removePresence(ctx, session, guildIDs)
 	s.refreshAllRoutes(ctx)
-}
-
-func (s *Server) authorizeChannel(ctx context.Context, userID, channelID int64) (bool, error) {
-	req := new(guildv1.AuthorizeGuildChannelRequest)
-	req.SetUserId(userID)
-	req.SetChannelId(channelID)
-	req.SetPermission(uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL))
-	resp, err := s.svcCtx.GuildClient.AuthorizeGuildChannel(ctx, req)
-	if err != nil {
-		return false, err
-	}
-	return resp.GetAllowed(), nil
 }
 
 func (s *Server) refreshOwner(ctx context.Context, session *logicalSession) error {

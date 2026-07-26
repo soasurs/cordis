@@ -194,7 +194,10 @@ read states. Realtime events received while these responses are assembled are
 buffered and sequenced after READY. Visibility snapshots are shared by the
 user's logical Sessions on the node and released after the last local Session is
 removed. Loading is bounded to 100 Guilds and 500 visible channels per Guild by
-default. Guild access events invalidate affected snapshots by revision.
+default. Guild access events capture prior channel visibility, invalidate
+affected snapshots by revision, and rebuild them with bounded concurrency. An
+access event is delivered to the union of previous and current viewers so newly
+authorized clients can add the channel and revoked clients can remove it.
 Events buffered while READY is assembled are bounded by count and total event
 bytes, with the effective count also capped below the replay and binding queue
 capacities. Overflow discards the pending buffer and fails IDENTIFY so the next

@@ -33,10 +33,12 @@ cannot move between nodes.
 IDENTIFY creates user and Guild routes. Dispatcher routes Guild messages to
 candidate Session nodes by Guild, and Session checks its revisioned
 per-user visibility snapshot before delivering to all of that user's local
-logical sessions. Access events invalidate affected snapshots. Rebuilds fail
-closed; a failed rebuild produces one sequenced `session.reconcile` hint for the
-current invalid snapshot generation. Membership removal or ban events are sent
-before the user's Guild index is revoked.
+logical sessions. Access events capture prior channel visibility, invalidate and
+rebuild affected snapshots with bounded concurrency, and are delivered to the
+union of previous and current viewers. Rebuilds fail closed; a failed rebuild
+produces one sequenced `session.reconcile` hint for the current invalid snapshot
+generation. Membership removal or ban events are sent before the user's Guild
+index is revoked.
 
 ## etcd directory and Redis keys
 

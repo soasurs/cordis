@@ -20,6 +20,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	sessionv1 "github.com/soasurs/cordis/gen/session/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	cordiskafka "github.com/soasurs/cordis/pkg/kafka"
@@ -74,37 +76,82 @@ func (id *eventID) UnmarshalJSON(value []byte) error {
 }
 
 type Server struct {
-	cfg        config.Config
-	consumer   *kgo.Client
-	resolver   discovery.Resolver
-	userClient userv1.UserServiceClient
-	tracer     trace.Tracer
+	cfg           config.Config
+	consumers     []eventConsumer
+	resolver      discovery.Resolver
+	userClient    userv1.UserServiceClient
+	guildClient   guildv1.GuildServiceClient
+	messageClient messagev1.MessageServiceClient
+	tracer        trace.Tracer
 
 	mu      sync.Mutex
 	clients map[string]sessionv1.SessionServiceClient
 	conns   map[string]*grpc.ClientConn
 }
 
-func New(cfg config.Config, resolver discovery.Resolver, userClient userv1.UserServiceClient) *Server {
+type eventConsumer struct {
+	client *kgo.Client
+}
+
+func New(
+	cfg config.Config,
+	resolver discovery.Resolver,
+	userClient userv1.UserServiceClient,
+	guildClient guildv1.GuildServiceClient,
+	messageClient messagev1.MessageServiceClient,
+) *Server {
 	if len(cfg.Kafka.Seeds) == 0 {
 		panic("dispatcher kafka seeds are required")
 	}
-	consumer, err := kgo.NewClient(
-		kgo.SeedBrokers(cfg.Kafka.Seeds...),
-		kgo.ConsumerGroup(defaultString(cfg.Kafka.ConsumerGroup, "cordis.dispatcher.v1")),
-		kgo.ConsumeTopics(
+	specs := [][2]string{
+		{
 			defaultString(cfg.Kafka.GuildTopic, "cordis.guild.events.v1"),
+			defaultString(cfg.Kafka.GuildConsumerGroup, "cordis.dispatcher.guild.v1"),
+		},
+		{
 			defaultString(cfg.Kafka.MessageTopic, "cordis.message.events.v1"),
+			defaultString(cfg.Kafka.MessageConsumerGroup, "cordis.dispatcher.message.v1"),
+		},
+		{
 			defaultString(cfg.Kafka.UserTopic, "cordis.user.events.v1"),
+			defaultString(cfg.Kafka.UserConsumerGroup, "cordis.dispatcher.user.v1"),
+		},
+		{
 			defaultString(cfg.Kafka.PresenceTopic, "cordis.presence.events.v1"),
-		),
-		kgo.DisableAutoCommit(),
-	)
-	if err != nil {
-		panic(err)
+			defaultString(cfg.Kafka.PresenceConsumerGroup, "cordis.dispatcher.presence.v1"),
+		},
+	}
+	seenTopics := make(map[string]struct{}, len(specs))
+	seenGroups := make(map[string]struct{}, len(specs))
+	for _, spec := range specs {
+		if _, exists := seenTopics[spec[0]]; exists {
+			panic("dispatcher kafka topics must be unique")
+		}
+		if _, exists := seenGroups[spec[1]]; exists {
+			panic("dispatcher kafka consumer groups must be unique")
+		}
+		seenTopics[spec[0]] = struct{}{}
+		seenGroups[spec[1]] = struct{}{}
+	}
+	consumers := make([]eventConsumer, 0, len(specs))
+	for _, spec := range specs {
+		consumer, err := kgo.NewClient(
+			kgo.SeedBrokers(cfg.Kafka.Seeds...),
+			kgo.ConsumerGroup(spec[1]),
+			kgo.ConsumeTopics(spec[0]),
+			kgo.DisableAutoCommit(),
+		)
+		if err != nil {
+			for _, created := range consumers {
+				created.client.Close()
+			}
+			panic(err)
+		}
+		consumers = append(consumers, eventConsumer{client: consumer})
 	}
 	return &Server{
-		cfg: cfg, consumer: consumer, resolver: resolver, userClient: userClient,
+		cfg: cfg, consumers: consumers, resolver: resolver,
+		userClient: userClient, guildClient: guildClient, messageClient: messageClient,
 		clients: make(map[string]sessionv1.SessionServiceClient),
 		conns:   make(map[string]*grpc.ClientConn),
 		tracer:  otel.Tracer(observability.DispatcherInstrumentationName),
@@ -113,8 +160,16 @@ func New(cfg config.Config, resolver discovery.Resolver, userClient userv1.UserS
 
 func (s *Server) Run(ctx context.Context) {
 	defer s.close()
+	var wg sync.WaitGroup
+	for _, consumer := range s.consumers {
+		wg.Go(func() { s.runConsumer(ctx, consumer.client) })
+	}
+	wg.Wait()
+}
+
+func (s *Server) runConsumer(ctx context.Context, consumer *kgo.Client) {
 	for {
-		fetches := s.consumer.PollFetches(ctx)
+		fetches := consumer.PollFetches(ctx)
 		if ctx.Err() != nil {
 			return
 		}
@@ -131,7 +186,7 @@ func (s *Server) Run(ctx context.Context) {
 				ftp.EachRecord(func(record *kgo.Record) {
 					permanent, err := s.dispatchRecord(ctx, record)
 					if err != nil && !permanent {
-						s.retryRecord(ctx, record)
+						s.retryRecord(ctx, consumer, record)
 						return
 					}
 					if err != nil {
@@ -142,7 +197,7 @@ func (s *Server) Run(ctx context.Context) {
 							logx.Field("error", err),
 						)
 					}
-					if err := s.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
+					if err := consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
 						logx.WithContext(ctx).Errorw("commit dispatcher event", logx.Field("error", err))
 					}
 				})
@@ -152,7 +207,7 @@ func (s *Server) Run(ctx context.Context) {
 	}
 }
 
-func (s *Server) retryRecord(ctx context.Context, record *kgo.Record) {
+func (s *Server) retryRecord(ctx context.Context, consumer *kgo.Client, record *kgo.Record) {
 	delay := s.retryMin()
 	for ctx.Err() == nil {
 		logx.WithContext(ctx).Errorw("retry dispatcher event",
@@ -170,7 +225,7 @@ func (s *Server) retryRecord(ctx context.Context, record *kgo.Record) {
 		}
 		permanent, err := s.dispatchRecord(ctx, record)
 		if err == nil || permanent {
-			if err := s.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
+			if err := consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
 				logx.WithContext(ctx).Errorw("commit retried dispatcher event", logx.Field("error", err))
 			}
 			return
@@ -197,7 +252,7 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 		trace.WithAttributes(
 			attribute.String("messaging.system", "kafka"),
 			attribute.String("messaging.destination.name", topic),
-			attribute.String("messaging.consumer.group.name", defaultString(s.cfg.Kafka.ConsumerGroup, "cordis.dispatcher.v1")),
+			attribute.String("messaging.consumer.group.name", s.consumerGroup(record)),
 			attribute.Int64("messaging.destination.partition.id", int64(partition)),
 			attribute.String("messaging.operation.name", "process"),
 			attribute.String("messaging.operation.type", "process"),
@@ -277,6 +332,13 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 				return true, errors.New("user-routed event user id is invalid")
 			}
 			return false, s.dispatchUser(ctx, userID, event, idempotencyKey)
+		}
+		if event.Type == realtime.EventUserProfileUpdated {
+			userID := int64(routing.UserID)
+			if userID <= 0 {
+				return true, errors.New("profile event user id is invalid")
+			}
+			return false, s.dispatchUserProfile(ctx, userID, event, idempotencyKey)
 		}
 		if !strings.HasPrefix(event.Type, "guild.") {
 			return true, errors.New("unsupported event type")
@@ -528,6 +590,7 @@ func isCanonicalEventType(eventType string) bool {
 		realtime.EventMessageReadUpdated,
 		realtime.EventRelationshipUpdated,
 		realtime.EventRelationshipRemoved,
+		realtime.EventUserProfileUpdated,
 		realtime.EventDmChannelCreated,
 		realtime.EventPresenceUpdated:
 		return true
@@ -537,11 +600,31 @@ func isCanonicalEventType(eventType string) bool {
 }
 
 func (s *Server) close() {
-	s.consumer.Close()
+	for _, consumer := range s.consumers {
+		consumer.client.Close()
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, conn := range s.conns {
 		_ = conn.Close()
+	}
+}
+
+func (s *Server) consumerGroup(record *kgo.Record) string {
+	if record == nil {
+		return ""
+	}
+	switch record.Topic {
+	case defaultString(s.cfg.Kafka.GuildTopic, "cordis.guild.events.v1"):
+		return defaultString(s.cfg.Kafka.GuildConsumerGroup, "cordis.dispatcher.guild.v1")
+	case defaultString(s.cfg.Kafka.MessageTopic, "cordis.message.events.v1"):
+		return defaultString(s.cfg.Kafka.MessageConsumerGroup, "cordis.dispatcher.message.v1")
+	case defaultString(s.cfg.Kafka.UserTopic, "cordis.user.events.v1"):
+		return defaultString(s.cfg.Kafka.UserConsumerGroup, "cordis.dispatcher.user.v1")
+	case defaultString(s.cfg.Kafka.PresenceTopic, "cordis.presence.events.v1"):
+		return defaultString(s.cfg.Kafka.PresenceConsumerGroup, "cordis.dispatcher.presence.v1")
+	default:
+		return ""
 	}
 }
 

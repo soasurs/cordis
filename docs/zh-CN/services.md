@@ -14,6 +14,8 @@
 
 Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事件在关系事务前从 User store 加载目标 profile，使提交后的更新事件可以独立渲染。关系列表使用 opaque `cursor` / `next_cursor` 分页（按 `created_at`、`target_id` 降序；没有下一页时省略 `next_cursor`）。可选的 `type` 过滤属于 cursor 作用域，翻页时必须保持不变。
 
+名称、用户名或头像修改成功后，User 发布携带完整资料快照的 `user.profile.updated`。Dispatcher 将事件投递给用户本人的全部客户端、共同 Guild 成员、非 block 的关系对端以及已有 DM 对端；同一接收者通过多个受众路径命中时由 Session 去重。
+
 ## Authenticator
 
 监听 `:3001`，负责注册编排、登录、访问令牌与刷新令牌、令牌校验以及登录 Session 管理。用户身份由 User 提供；密码凭据和认证 Session 存储在 PostgreSQL。访问令牌默认短期有效，刷新令牌和认证 Session 默认 30 天。真实启动需要访问令牌和刷新令牌密钥环境变量。
@@ -100,7 +102,7 @@ Dispatcher 通过聚合 Guild route 定位 Guild 消息的候选 Session 节点�
 
 ## Dispatcher
 
-独立后台服务，使用 consumer group `cordis.dispatcher.v1` 消费 `cordis.guild.events.v1` 和 `cordis.message.events.v1`。Guild 消息携带 `guild_id` 并按 Guild ID 作为 Kafka key；Dispatcher 从 Redis 解析聚合 Guild route，再调用频道分发 RPC。DM 消息携带目标 `user_id`，通过聚合 user route 调用用户分发 RPC。
+独立后台服务，为 Guild、Message、User 与 Presence event topic 分别创建 consumer client、消费循环和 `cordis.dispatcher.{guild,message,user,presence}.v1` group，使积压、重试和 rebalance 相互隔离，同时共享路由器与 Session gRPC 连接池。Guild 消息携带 `guild_id` 并按 Guild ID 作为 Kafka key；Dispatcher 从 Redis 解析聚合 Guild route，再调用频道分发 RPC。DM 消息携带目标 `user_id`，通过聚合 user route 调用用户分发 RPC。Profile 更新会先从 Guild、User 和 Message 分页加载共同 Guild、关系及 DM 受众，再执行 fanout。
 
 消费采用手工提交。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误按指数退避重试，成功后提交。单次尝试会合并重复目标节点，但整条记录重试时可能再次调用已经成功的节点，因此投递是至少一次语义，且当前没有通用 event ID 去重。
 

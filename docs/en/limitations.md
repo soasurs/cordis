@@ -15,11 +15,12 @@ Logical Session state and the 2048-entry replay buffer exist only in memory.
 Node failure loses them. Graceful drain asks clients to identify again; live
 state migration is not implemented.
 
-Message and Guild both publish to Kafka best-effort after database commit and
-have no transactional outbox, leaving a loss window between commit and publish.
-Dispatcher has retry and manual offset commits but no dead-letter queue, global
-event ID, or generic deduplication. Calls to target Session nodes are
-sequential, so one node failure retries the Kafka record.
+User profile and relationship events, Message events, and Guild events publish
+to Kafka best-effort after database commit and have no transactional outbox,
+leaving a loss window between commit and publish. Dispatcher has retry and
+manual offset commits but no dead-letter queue, global event ID, or generic
+deduplication. Calls to target Session nodes are sequential, so one node failure
+retries the Kafka record.
 
 Known feature gaps include invites, stronger limits and rate limiting, automatic
 role/channel reorder behavior, threads, pinned messages, voice media behavior,

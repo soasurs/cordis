@@ -24,6 +24,8 @@ IDENTIFY 自动建立用户和 Guild 路由。Dispatcher 按 Guild 将消息路�
 
 成员被踢出或封禁时，事件先投递给当前 Guild 会话，再撤销其 Guild 索引。这样客户端能够收到导致访问失效的最终状态事件。
 
+对于 `user.profile.updated`，Dispatcher 加载共同 Guild、非 block 关系和已有 DM 对端，并始终包含资料所有者的 user route。Session 按接收用户和 event ID 对 Guild 与直接用户路径去重，再投递完整 profile 快照。
+
 ## etcd 节点目录与 Redis 索引
 
 - `/cordis/session/nodes/{node_id}`：etcd 租约 key，保存节点 generation、RPC 地址和 ready/draining 状态。
@@ -37,7 +39,7 @@ IDENTIFY 自动建立用户和 Guild 路由。Dispatcher 按 Guild 将消息路�
 
 ```mermaid
 sequenceDiagram
-    participant Domain as Guild/Message
+    participant Domain as User/Guild/Message
     participant Kafka
     participant Dispatcher
     participant Redis
@@ -55,4 +57,4 @@ sequenceDiagram
     Gateway->>Client: WebSocket envelope
 ```
 
-事件在 Dispatcher 重试下是至少一次语义。当前协议没有通用 event ID 去重，因此消费者应能够容忍重复事件。
+Dispatcher 为每个领域 topic 使用独立 consumer group 与消费循环，但共享路由和 Session 连接池，因此一个 topic 的积压、重试或 rebalance 不会阻塞其他 topic。事件在 Dispatcher 重试下是至少一次语义。Profile fanout 会按接收用户和 event ID 去重，但当前协议没有通用 event ID 去重，因此其他事件的消费者仍应能够容忍重复。

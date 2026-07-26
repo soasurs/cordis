@@ -26,7 +26,7 @@ type ServiceConfig struct {
 	Media zrpc.RpcClientConf
 }
 
-// KafkaConfig configures the optional relationship event stream.
+// KafkaConfig configures the optional user event stream.
 type KafkaConfig struct {
 	Seeds            []string `json:",optional"`
 	Topic            string   `json:",default=cordis.user.events.v1"`

@@ -33,6 +33,12 @@ Relationship listing uses opaque `cursor` / `next_cursor` pagination ordered by
 next page). Optional `type` filters are part of the cursor scope and must stay
 unchanged across pages.
 
+Name, username, and avatar changes publish a full `user.profile.updated`
+snapshot after the profile write succeeds. Dispatcher sends it to every client
+owned by the user, all shared-Guild members, non-blocked relationship peers,
+and existing DM peers. Session deduplicates recipients reached through more
+than one audience path.
+
 ## Authenticator
 
 gRPC on `:3001`. Orchestrates registration and login, issues and refreshes
@@ -240,13 +246,17 @@ existing clients to identify again.
 
 ## Dispatcher
 
-Background Kafka consumer for `cordis.guild.events.v1` and `cordis.message.events.v1`,
-using consumer group `cordis.dispatcher.v1`. It resolves aggregate user/Guild
-routes in Redis for message delivery and calls the Session node's dispatch RPC. Offsets are committed
-manually. Invalid events are dropped and committed; transient failures retry
-with exponential backoff. Routes are deduplicated within one attempt, but a
-record retry can call an already successful node again. Delivery is at least
-once and there is no general event-ID deduplication.
+Background Kafka consumer for the Guild, Message, User, and Presence event
+topics. Each topic has its own consumer client, loop, and group
+(`cordis.dispatcher.{guild,message,user,presence}.v1`) so backlog, retry, and
+rebalance are isolated while routing and Session connections remain shared.
+Dispatcher resolves aggregate user/Guild routes in Redis and calls the Session
+node's dispatch RPC. Profile updates load the subject's Guild, relationship,
+and DM audiences before fan-out. Offsets are committed manually. Invalid events
+are dropped and committed; transient failures retry with exponential backoff.
+Routes are deduplicated within one attempt, but a record retry can call an
+already successful node again. Delivery is at least once and there is no
+general event-ID deduplication.
 
 ## Presence
 

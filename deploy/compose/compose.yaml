@@ -408,6 +408,10 @@ services:
         condition: service_healthy
       user:
         condition: service_healthy
+      guild:
+        condition: service_healthy
+      message:
+        condition: service_healthy
       session:
         condition: service_healthy
     healthcheck:

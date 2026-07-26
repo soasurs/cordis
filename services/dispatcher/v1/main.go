@@ -13,6 +13,8 @@ import (
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/zrpc"
 
+	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/observability"
 	"github.com/soasurs/cordis/pkg/probe"
@@ -50,7 +52,23 @@ func main() {
 		panic(err)
 	}
 	defer userRPCClient.Conn().Close()
-	dispatcher := server.New(*cfg, discovery.NewRedisResolver(rds, registry), userv1.NewUserServiceClient(userRPCClient.Conn()))
+	guildRPCClient, err := zrpc.NewClient(cfg.Services.Guild)
+	if err != nil {
+		panic(err)
+	}
+	defer guildRPCClient.Conn().Close()
+	messageRPCClient, err := zrpc.NewClient(cfg.Services.Message)
+	if err != nil {
+		panic(err)
+	}
+	defer messageRPCClient.Conn().Close()
+	dispatcher := server.New(
+		*cfg,
+		discovery.NewRedisResolver(rds, registry),
+		userv1.NewUserServiceClient(userRPCClient.Conn()),
+		guildv1.NewGuildServiceClient(guildRPCClient.Conn()),
+		messagev1.NewMessageServiceClient(messageRPCClient.Conn()),
+	)
 	probeState := probe.New()
 	probeServer, err := probe.StartHTTP(cfg.ProbeServer, probeState)
 	if err != nil {

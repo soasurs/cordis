@@ -17,7 +17,7 @@ import (
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )
 
-// EventPublisher delivers relationship events to the user event stream.
+// EventPublisher delivers domain events to the user event stream.
 type EventPublisher interface {
 	Publish(ctx context.Context, key, payload []byte) error
 }

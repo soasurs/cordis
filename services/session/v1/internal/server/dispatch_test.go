@@ -345,6 +345,67 @@ func TestDispatchRejectsMissingIdempotencyKey(t *testing.T) {
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
+func TestProfileUpdateDeduplicatesAcrossGuildAndUserRoutes(t *testing.T) {
+	server := newTestServer()
+	firstClient := testLogicalSession(1002, 9001)
+	firstClient.guilds[9002] = struct{}{}
+	secondClient := testLogicalSession(1002, 9001)
+	secondClient.id += "-second"
+	secondClient.guilds[9002] = struct{}{}
+	otherMember := testLogicalSession(1003, 9001)
+	dmRecipient := testLogicalSession(1004, 0)
+	server.addSession(firstClient, nil)
+	server.addSession(secondClient, nil)
+	server.addSession(otherMember, nil)
+	server.addSession(dmRecipient, nil)
+
+	payload := `{"user_id":"1001","name":"Updated"}`
+	firstGuild := guildEventRequest(9001, realtime.EventUserProfileUpdated, payload)
+	firstGuild.GetEvent().SetIdempotencyKey(101)
+	resp, err := server.DispatchGuildEvent(t.Context(), firstGuild)
+	require.NoError(t, err)
+	require.Equal(t, int32(3), resp.GetDelivered())
+
+	secondGuild := guildEventRequest(9002, realtime.EventUserProfileUpdated, payload)
+	secondGuild.GetEvent().SetIdempotencyKey(101)
+	resp, err = server.DispatchGuildEvent(t.Context(), secondGuild)
+	require.NoError(t, err)
+	require.Zero(t, resp.GetDelivered())
+
+	directDuplicate := userEventRequest(1002, realtime.EventUserProfileUpdated, payload)
+	directDuplicate.GetEvent().SetIdempotencyKey(101)
+	userResp, err := server.DispatchUserEvent(t.Context(), directDuplicate)
+	require.NoError(t, err)
+	require.Zero(t, userResp.GetDelivered())
+
+	direct := userEventRequest(1004, realtime.EventUserProfileUpdated, payload)
+	direct.GetEvent().SetIdempotencyKey(101)
+	userResp, err = server.DispatchUserEvent(t.Context(), direct)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), userResp.GetDelivered())
+
+	for _, session := range []*logicalSession{firstClient, secondClient, otherMember, dmRecipient} {
+		require.Len(t, session.replay, 1)
+		require.Equal(t, realtime.EventUserProfileUpdated, session.replay[0].frame.GetType())
+	}
+}
+
+func TestProfileUpdateRejectsMissingSubject(t *testing.T) {
+	server := newTestServer()
+
+	_, err := server.DispatchGuildEvent(
+		t.Context(),
+		guildEventRequest(9001, realtime.EventUserProfileUpdated, `{"name":"Updated"}`),
+	)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	_, err = server.DispatchUserEvent(
+		t.Context(),
+		userEventRequest(1001, realtime.EventUserProfileUpdated, `{"name":"Updated"}`),
+	)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestGuildMessageRejectsNonMessageEvent(t *testing.T) {
 	server := newTestServer()
 	req := channelEventRequest(9001, 7001, realtime.EventGuildUpdated, `{"id":"9001"}`)
@@ -448,6 +509,17 @@ func channelEventRequest(guildID, channelID int64, eventType, payload string) *s
 	req := new(sessionv1.DispatchGuildMessageEventRequest)
 	req.SetGuildId(guildID)
 	req.SetChannelId(channelID)
+	req.SetEvent(event)
+	return req
+}
+
+func userEventRequest(userID int64, eventType, payload string) *sessionv1.DispatchUserEventRequest {
+	event := new(sessionv1.EventEnvelope)
+	event.SetType(eventType)
+	event.SetJsonPayload(payload)
+	event.SetIdempotencyKey(100)
+	req := new(sessionv1.DispatchUserEventRequest)
+	req.SetUserId(userID)
 	req.SetEvent(event)
 	return req
 }

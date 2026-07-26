@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"sort"
 	"testing"
@@ -18,6 +19,7 @@ import (
 	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
+	"github.com/soasurs/cordis/services/user/v1/config"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 	"github.com/soasurs/cordis/services/user/v1/internal/svc"
@@ -155,10 +157,14 @@ func TestUpdateUserProfile(t *testing.T) {
 	store := newFakeStore()
 	store.profile = &model.UserProfile{
 		UserID:        1001,
+		Username:      "test_user",
 		Name:          "old name",
 		AvatarAssetID: 77,
+		CreatedAt:     10,
+		UpdatedAt:     20,
 	}
-	server := newTestUserServer(t, store)
+	publisher := new(fakeUserPublisher)
+	server := newTestUserServerWithPublisher(t, store, &fakeMediaClient{}, publisher)
 
 	req := new(userv1.UpdateUserProfileRequest)
 	req.SetUserId(1001)
@@ -168,6 +174,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "new name", resp.GetProfile().GetName())
 	require.Equal(t, int64(77), resp.GetProfile().GetAvatarAssetId())
+	assertProfileUpdatedEvent(t, publisher, store.profile)
 }
 
 func TestUpdateUserProfileValidation(t *testing.T) {
@@ -276,7 +283,8 @@ func TestAvatarUploadLifecycle(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.profile = &model.UserProfile{UserID: 1001, Name: "user"}
 	mediaClient := &fakeMediaClient{asset: avatarAsset(7001, 1001)}
-	server := newTestUserServerWithMedia(t, fakeStore, mediaClient)
+	publisher := new(fakeUserPublisher)
+	server := newTestUserServerWithPublisher(t, fakeStore, mediaClient, publisher)
 
 	createReq := new(userv1.CreateAvatarUploadRequest)
 	createReq.SetUserId(1001)
@@ -297,6 +305,7 @@ func TestAvatarUploadLifecycle(t *testing.T) {
 	require.Equal(t, int64(7001), completeResp.GetProfile().GetAvatarAssetId())
 	require.Equal(t, int64(1001), mediaClient.completeRequest.GetActorUserId())
 	require.Equal(t, int64(7001), mediaClient.completeRequest.GetUploadId())
+	assertProfileUpdatedEvent(t, publisher, fakeStore.profile)
 }
 
 func TestCompleteAvatarUploadRejectsAnotherUsersAsset(t *testing.T) {
@@ -323,17 +332,39 @@ func newTestUserServerWithMedia(
 	store store.Store,
 	mediaClient mediav1.MediaServiceClient,
 ) userv1.UserServiceServer {
+	return newTestUserServerWithPublisher(t, store, mediaClient, nil)
+}
+
+func newTestUserServerWithPublisher(
+	t *testing.T,
+	store store.Store,
+	mediaClient mediav1.MediaServiceClient,
+	publisher svc.EventPublisher,
+) userv1.UserServiceServer {
 	t.Helper()
 
 	node, err := snowflake.New()
 	require.NoError(t, err)
 
 	return New(&svc.ServiceContext{
+		Cfg:         config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
 		Store:       store,
 		Snowflake:   node,
 		Cursors:     mustTestCursorCodec(t),
 		MediaClient: mediaClient,
+		Publisher:   publisher,
 	})
+}
+
+func assertProfileUpdatedEvent(t *testing.T, publisher *fakeUserPublisher, profile *model.UserProfile) {
+	t.Helper()
+	require.Len(t, publisher.records, 1)
+	require.Equal(t, "1001", publisher.records[0].key)
+	var envelope eventEnvelope[userProfilePayload]
+	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
+	require.Equal(t, EventTypeUserProfileUpdated, envelope.Type)
+	require.NotEmpty(t, envelope.IdempotencyKey)
+	require.Equal(t, userProfilePayloadFromModel(profile), envelope.Data)
 }
 
 func mustTestCursorCodec(t *testing.T) *cursor.Codec {
@@ -835,7 +866,8 @@ func TestGetUserProfileByUsername(t *testing.T) {
 func TestUpdateUsername(t *testing.T) {
 	store := newFakeStore()
 	store.profile = &model.UserProfile{UserID: 1001, Username: "old_name", Name: "Display"}
-	server := newTestUserServer(t, store)
+	publisher := new(fakeUserPublisher)
+	server := newTestUserServerWithPublisher(t, store, &fakeMediaClient{}, publisher)
 
 	req := new(userv1.UpdateUsernameRequest)
 	req.SetUserId(1001)
@@ -844,6 +876,7 @@ func TestUpdateUsername(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "new_name42", resp.GetProfile().GetUsername())
 	require.Equal(t, "new_name42", store.profile.Username)
+	assertProfileUpdatedEvent(t, publisher, store.profile)
 }
 
 func TestUpdateUsernameValidationAndConflicts(t *testing.T) {

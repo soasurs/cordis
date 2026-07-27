@@ -65,6 +65,7 @@ type Asset struct {
 	ExpiresAt       int64  `db:"expires_at"`
 	Width           int32  `db:"width"`
 	Height          int32  `db:"height"`
+	Blurhash        string `db:"blurhash"`
 	ErrorMessage    string `db:"error_message"`
 	CreatedAt       int64  `db:"created_at"`
 	UpdatedAt       int64  `db:"updated_at"`

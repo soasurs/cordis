@@ -278,6 +278,7 @@ func attachmentsToMessageService(attachments []*apiv1.Attachment) []*messagev1.A
 		value.SetContentType(attachment.GetContentType())
 		value.SetWidth(attachment.GetWidth())
 		value.SetHeight(attachment.GetHeight())
+		value.SetBlurhash(attachment.GetBlurhash())
 		values = append(values, value)
 	}
 	return values
@@ -304,6 +305,7 @@ func attachmentToAPI(attachment *messagev1.Attachment) *apiv1.Attachment {
 	value.SetContentType(attachment.GetContentType())
 	value.SetWidth(attachment.GetWidth())
 	value.SetHeight(attachment.GetHeight())
+	value.SetBlurhash(attachment.GetBlurhash())
 	value.SetUrl(attachment.GetUrl())
 	value.SetUrlExpiresAt(attachment.GetUrlExpiresAt())
 	return value

@@ -130,6 +130,10 @@ message Attachment {
   string url = 7;
   // Zero for public URLs; presigned URL expiration as Unix milliseconds.
   int64 url_expires_at = 8;
+  // Compact image placeholder from Media. Empty for non-image attachments or
+  // when Media did not generate one. Values supplied on message writes are
+  // ignored and replaced from Media metadata.
+  string blurhash = 9;
 }
 
 // CreateAttachmentUploadRequest carries an authenticated actor, target channel,

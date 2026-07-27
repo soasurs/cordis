@@ -22,6 +22,7 @@ type attachmentJSON struct {
 	ContentType string `json:"content_type"`
 	Width       int32  `json:"width"`
 	Height      int32  `json:"height"`
+	Blurhash    string `json:"blurhash,omitempty"`
 }
 
 type messageRow struct {
@@ -325,6 +326,7 @@ func marshalAttachments(attachments []model.Attachment) (string, error) {
 			ContentType: attachment.ContentType,
 			Width:       attachment.Width,
 			Height:      attachment.Height,
+			Blurhash:    attachment.Blurhash,
 		})
 	}
 	data, err := json.Marshal(values)
@@ -351,6 +353,7 @@ func unmarshalAttachments(value string) ([]model.Attachment, error) {
 			ContentType: attachment.ContentType,
 			Width:       attachment.Width,
 			Height:      attachment.Height,
+			Blurhash:    attachment.Blurhash,
 		})
 	}
 	return values, nil

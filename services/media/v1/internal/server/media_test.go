@@ -588,6 +588,7 @@ func TestCompleteImageUploadPublishesBeforeDeletingStaging(t *testing.T) {
 	require.Equal(t, "image/png", resp.GetMetadata().GetContentType())
 	require.Equal(t, int32(96), resp.GetMetadata().GetWidth())
 	require.Equal(t, int32(48), resp.GetMetadata().GetHeight())
+	require.NotEmpty(t, resp.GetMetadata().GetBlurhash())
 	require.False(t, objects.hasObject(asset.StagingKey))
 	require.True(t, objects.hasObject("avatars/1001/"+fmtID(asset.ID)))
 
@@ -643,8 +644,92 @@ func TestCompleteOpaqueUploadKeepsPrivateObject(t *testing.T) {
 	require.Equal(t, "report.pdf", resp.GetMetadata().GetFilename())
 	require.Contains(t, resp.GetMetadata().GetUrl(), "/report.pdf")
 	require.Zero(t, resp.GetMetadata().GetUrlExpiresAt())
+	require.Empty(t, resp.GetMetadata().GetBlurhash())
 	require.True(t, objects.hasObject(asset.PublishedKey))
 	require.Equal(t, store.StatusReady, asset.Status)
+}
+
+func TestCompleteAttachmentImageUploadSetsBlurhash(t *testing.T) {
+	srv, assets, objects := newTestServer(t)
+	source := testPNG(t, 64, 32)
+	createResp, err := srv.CreateUpload(t.Context(), newCreateRequest(
+		mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT,
+		int64(len(source)),
+		"image/png",
+	))
+	require.NoError(t, err)
+	asset, err := assets.GetAsset(t.Context(), createResp.GetUploadId())
+	require.NoError(t, err)
+	objects.setObject(asset.PublishedKey, asset.ContentType, source)
+
+	resp, err := srv.CompleteUpload(t.Context(), completeRequest(asset.ID, 1001))
+	require.NoError(t, err)
+	require.Equal(t, int32(64), resp.GetMetadata().GetWidth())
+	require.Equal(t, int32(32), resp.GetMetadata().GetHeight())
+	require.NotEmpty(t, resp.GetMetadata().GetBlurhash())
+	require.Equal(t, "image/png", resp.GetMetadata().GetContentType())
+	require.True(t, objects.hasObject(asset.PublishedKey))
+
+	loaded, err := assets.GetAsset(t.Context(), asset.ID)
+	require.NoError(t, err)
+	require.Equal(t, resp.GetMetadata().GetBlurhash(), loaded.Blurhash)
+	require.Equal(t, int32(64), loaded.Width)
+	require.Equal(t, int32(32), loaded.Height)
+}
+
+func TestCompleteAttachmentImageUploadSkipsOversizedObjectRead(t *testing.T) {
+	assetStore := newFakeStore()
+	objStore := newFakeObjectStore()
+	node, err := sn.NewNode(1)
+	require.NoError(t, err)
+	mediaConfig := config.MediaConfig{
+		UploadSessionTTLSeconds:      1800,
+		PresignedURLTTLSeconds:       900,
+		MaxUploadSizeBytes:           524288000,
+		MaxActiveUploadsPerUser:      5,
+		ImageProcessingTimeoutMs:     30000,
+		MaxConcurrentImageProcessing: 2,
+		MaxImageSizeBytes:            64,
+		MaxImageDimension:            4096,
+		MaxImagePixels:               4096 * 4096,
+		AttachmentAccessMode:         config.AttachmentAccessPublic,
+		AttachmentDownloadTTLSeconds: 3600,
+	}
+	srv := New(&svc.ServiceContext{
+		Cfg: config.Config{
+			ObjectStore: config.ObjectStoreConfig{
+				Backend:                 "r2",
+				AttachmentPublicBaseURL: "https://cdn.example.com",
+			},
+			Media: mediaConfig,
+		},
+		Store:                 assetStore,
+		Snowflake:             node,
+		PublicObjectStore:     objStore,
+		StagingObjectStore:    objStore,
+		AttachmentObjectStore: objStore,
+		Processor:             processing.NewProcessor(objStore, objStore, mediaConfig),
+	})
+	source := testPNG(t, 64, 32)
+	require.Greater(t, len(source), 64)
+
+	createResp, err := srv.CreateUpload(t.Context(), newCreateRequest(
+		mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT,
+		int64(len(source)),
+		"image/png",
+	))
+	require.NoError(t, err)
+	asset, err := assetStore.GetAsset(t.Context(), createResp.GetUploadId())
+	require.NoError(t, err)
+	objStore.setObject(asset.PublishedKey, asset.ContentType, source)
+
+	resp, err := srv.CompleteUpload(t.Context(), completeRequest(asset.ID, 1001))
+	require.NoError(t, err)
+	require.Zero(t, resp.GetMetadata().GetWidth())
+	require.Zero(t, resp.GetMetadata().GetHeight())
+	require.Empty(t, resp.GetMetadata().GetBlurhash())
+	require.Equal(t, "image/png", resp.GetMetadata().GetContentType())
+	require.True(t, objStore.hasObject(asset.PublishedKey))
 }
 
 func TestCompleteUploadRejectsObjectMetadataMismatch(t *testing.T) {

@@ -120,6 +120,9 @@ message AssetMetadata {
   // url_expires_at is zero for public URLs and Unix milliseconds for
   // presigned URLs.
   int64 url_expires_at = 7;
+  // blurhash is a compact image placeholder for supported still images. Empty
+  // for non-image assets, oversized sources, or when generation is skipped.
+  string blurhash = 8;
 }
 
 // AbortUploadRequest identifies an upload and its authenticated actor.
@@ -170,6 +173,9 @@ message Asset {
   // zero for non-image assets.
   int32 width = 8;
   int32 height = 9;
+  // blurhash is a compact image placeholder for supported still images. Empty
+  // for non-image assets, oversized sources, or when generation is skipped.
+  string blurhash = 10;
   // created_at and updated_at are Unix milliseconds.
   int64 created_at = 11;
   int64 updated_at = 12;

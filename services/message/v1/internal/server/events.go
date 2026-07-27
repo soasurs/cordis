@@ -66,6 +66,7 @@ type attachmentJSON struct {
 	ContentType  string `json:"content_type"`
 	Width        int32  `json:"width"`
 	Height       int32  `json:"height"`
+	Blurhash     string `json:"blurhash,omitempty"`
 	URL          string `json:"url"`
 	URLExpiresAt int64  `json:"url_expires_at"`
 }
@@ -274,6 +275,7 @@ func attachmentsForEvent(attachments []model.Attachment) []attachmentJSON {
 			ContentType:  attachment.ContentType,
 			Width:        attachment.Width,
 			Height:       attachment.Height,
+			Blurhash:     attachment.Blurhash,
 			URL:          attachment.URL,
 			URLExpiresAt: attachment.URLExpiresAt,
 		})

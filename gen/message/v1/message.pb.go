@@ -782,6 +782,7 @@ type Attachment struct {
 	xxx_hidden_Height       int32                  `protobuf:"varint,6,opt,name=height"`
 	xxx_hidden_Url          *string                `protobuf:"bytes,7,opt,name=url"`
 	xxx_hidden_UrlExpiresAt int64                  `protobuf:"varint,8,opt,name=url_expires_at,json=urlExpiresAt"`
+	xxx_hidden_Blurhash     *string                `protobuf:"bytes,9,opt,name=blurhash"`
 	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
 	XXX_presence            [1]uint32
 	unknownFields           protoimpl.UnknownFields
@@ -878,44 +879,59 @@ func (x *Attachment) GetUrlExpiresAt() int64 {
 	return 0
 }
 
+func (x *Attachment) GetBlurhash() string {
+	if x != nil {
+		if x.xxx_hidden_Blurhash != nil {
+			return *x.xxx_hidden_Blurhash
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *Attachment) SetAssetId(v int64) {
 	x.xxx_hidden_AssetId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
 }
 
 func (x *Attachment) SetFilename(v string) {
 	x.xxx_hidden_Filename = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
 func (x *Attachment) SetSize(v int64) {
 	x.xxx_hidden_Size = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
 func (x *Attachment) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
 func (x *Attachment) SetWidth(v int32) {
 	x.xxx_hidden_Width = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
 }
 
 func (x *Attachment) SetHeight(v int32) {
 	x.xxx_hidden_Height = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
 }
 
 func (x *Attachment) SetUrl(v string) {
 	x.xxx_hidden_Url = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
 }
 
 func (x *Attachment) SetUrlExpiresAt(v int64) {
 	x.xxx_hidden_UrlExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *Attachment) SetBlurhash(v string) {
+	x.xxx_hidden_Blurhash = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
 }
 
 func (x *Attachment) HasAssetId() bool {
@@ -974,6 +990,13 @@ func (x *Attachment) HasUrlExpiresAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
+func (x *Attachment) HasBlurhash() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
 func (x *Attachment) ClearAssetId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_AssetId = 0
@@ -1014,6 +1037,11 @@ func (x *Attachment) ClearUrlExpiresAt() {
 	x.xxx_hidden_UrlExpiresAt = 0
 }
 
+func (x *Attachment) ClearBlurhash() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_Blurhash = nil
+}
+
 type Attachment_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1034,6 +1062,10 @@ type Attachment_builder struct {
 	Url *string
 	// Zero for public URLs; presigned URL expiration as Unix milliseconds.
 	UrlExpiresAt *int64
+	// Compact image placeholder from Media. Empty for non-image attachments or
+	// when Media did not generate one. Values supplied on message writes are
+	// ignored and replaced from Media metadata.
+	Blurhash *string
 }
 
 func (b0 Attachment_builder) Build() *Attachment {
@@ -1041,36 +1073,40 @@ func (b0 Attachment_builder) Build() *Attachment {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.AssetId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
 		x.xxx_hidden_AssetId = *b.AssetId
 	}
 	if b.Filename != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
 		x.xxx_hidden_Filename = b.Filename
 	}
 	if b.Size != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
 		x.xxx_hidden_Size = *b.Size
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_ContentType = b.ContentType
 	}
 	if b.Width != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
 		x.xxx_hidden_Width = *b.Width
 	}
 	if b.Height != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
 		x.xxx_hidden_Height = *b.Height
 	}
 	if b.Url != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
 		x.xxx_hidden_Url = b.Url
 	}
 	if b.UrlExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
 		x.xxx_hidden_UrlExpiresAt = *b.UrlExpiresAt
+	}
+	if b.Blurhash != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		x.xxx_hidden_Blurhash = b.Blurhash
 	}
 	return m0
 }
@@ -4660,7 +4696,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1a\n" +
 	"\brevision\x18\r \x01(\x03R\brevision\x12\x1b\n" +
-	"\tauthor_id\x18\x0e \x01(\x03R\bauthorIdJ\x04\b\x03\x10\x04R\x06author\"\xe0\x01\n" +
+	"\tauthor_id\x18\x0e \x01(\x03R\bauthorIdJ\x04\b\x03\x10\x04R\x06author\"\xfc\x01\n" +
 	"\n" +
 	"Attachment\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\x12\x1a\n" +
@@ -4670,7 +4706,8 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x05width\x18\x05 \x01(\x05R\x05width\x12\x16\n" +
 	"\x06height\x18\x06 \x01(\x05R\x06height\x12\x10\n" +
 	"\x03url\x18\a \x01(\tR\x03url\x12$\n" +
-	"\x0eurl_expires_at\x18\b \x01(\x03R\furlExpiresAt\"\xc6\x01\n" +
+	"\x0eurl_expires_at\x18\b \x01(\x03R\furlExpiresAt\x12\x1a\n" +
+	"\bblurhash\x18\t \x01(\tR\bblurhash\"\xc6\x01\n" +
 	"\x1dCreateAttachmentUploadRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +

@@ -33,6 +33,7 @@ func attachmentsToProto(attachments []model.Attachment) []*messagev1.Attachment 
 		result.SetContentType(attachment.ContentType)
 		result.SetWidth(attachment.Width)
 		result.SetHeight(attachment.Height)
+		result.SetBlurhash(attachment.Blurhash)
 		result.SetUrl(attachment.URL)
 		result.SetUrlExpiresAt(attachment.URLExpiresAt)
 		values = append(values, result)

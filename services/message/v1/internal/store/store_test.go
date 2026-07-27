@@ -18,6 +18,7 @@ func TestMarshalAttachmentsRoundTrip(t *testing.T) {
 			ContentType:  "image/png",
 			Width:        100,
 			Height:       200,
+			Blurhash:     "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
 			URL:          "https://cdn.example.com/a.png",
 			URLExpiresAt: 9001,
 		},
@@ -27,6 +28,7 @@ func TestMarshalAttachmentsRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, value, "https://cdn.example.com")
 	require.NotContains(t, value, "url_expires_at")
+	require.Contains(t, value, "blurhash")
 
 	got, err := unmarshalAttachments(value)
 	require.NoError(t, err)

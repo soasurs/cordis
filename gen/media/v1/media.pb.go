@@ -1088,6 +1088,7 @@ type AssetMetadata struct {
 	xxx_hidden_Filename     *string                `protobuf:"bytes,5,opt,name=filename"`
 	xxx_hidden_Url          *string                `protobuf:"bytes,6,opt,name=url"`
 	xxx_hidden_UrlExpiresAt int64                  `protobuf:"varint,7,opt,name=url_expires_at,json=urlExpiresAt"`
+	xxx_hidden_Blurhash     *string                `protobuf:"bytes,8,opt,name=blurhash"`
 	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
 	XXX_presence            [1]uint32
 	unknownFields           protoimpl.UnknownFields
@@ -1177,39 +1178,54 @@ func (x *AssetMetadata) GetUrlExpiresAt() int64 {
 	return 0
 }
 
+func (x *AssetMetadata) GetBlurhash() string {
+	if x != nil {
+		if x.xxx_hidden_Blurhash != nil {
+			return *x.xxx_hidden_Blurhash
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *AssetMetadata) SetSize(v int64) {
 	x.xxx_hidden_Size = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *AssetMetadata) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *AssetMetadata) SetWidth(v int32) {
 	x.xxx_hidden_Width = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *AssetMetadata) SetHeight(v int32) {
 	x.xxx_hidden_Height = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *AssetMetadata) SetFilename(v string) {
 	x.xxx_hidden_Filename = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *AssetMetadata) SetUrl(v string) {
 	x.xxx_hidden_Url = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
 func (x *AssetMetadata) SetUrlExpiresAt(v int64) {
 	x.xxx_hidden_UrlExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *AssetMetadata) SetBlurhash(v string) {
+	x.xxx_hidden_Blurhash = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *AssetMetadata) HasSize() bool {
@@ -1261,6 +1277,13 @@ func (x *AssetMetadata) HasUrlExpiresAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
+func (x *AssetMetadata) HasBlurhash() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *AssetMetadata) ClearSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Size = 0
@@ -1296,6 +1319,11 @@ func (x *AssetMetadata) ClearUrlExpiresAt() {
 	x.xxx_hidden_UrlExpiresAt = 0
 }
 
+func (x *AssetMetadata) ClearBlurhash() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_Blurhash = nil
+}
+
 type AssetMetadata_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1314,6 +1342,9 @@ type AssetMetadata_builder struct {
 	// url_expires_at is zero for public URLs and Unix milliseconds for
 	// presigned URLs.
 	UrlExpiresAt *int64
+	// blurhash is a compact image placeholder for supported still images. Empty
+	// for non-image assets, oversized sources, or when generation is skipped.
+	Blurhash *string
 }
 
 func (b0 AssetMetadata_builder) Build() *AssetMetadata {
@@ -1321,32 +1352,36 @@ func (b0 AssetMetadata_builder) Build() *AssetMetadata {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Size != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_Size = *b.Size
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_ContentType = b.ContentType
 	}
 	if b.Width != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_Width = *b.Width
 	}
 	if b.Height != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_Height = *b.Height
 	}
 	if b.Filename != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_Filename = b.Filename
 	}
 	if b.Url != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_Url = b.Url
 	}
 	if b.UrlExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
 		x.xxx_hidden_UrlExpiresAt = *b.UrlExpiresAt
+	}
+	if b.Blurhash != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_Blurhash = b.Blurhash
 	}
 	return m0
 }
@@ -1664,6 +1699,7 @@ type Asset struct {
 	xxx_hidden_Size            int64                  `protobuf:"varint,7,opt,name=size"`
 	xxx_hidden_Width           int32                  `protobuf:"varint,8,opt,name=width"`
 	xxx_hidden_Height          int32                  `protobuf:"varint,9,opt,name=height"`
+	xxx_hidden_Blurhash        *string                `protobuf:"bytes,10,opt,name=blurhash"`
 	xxx_hidden_CreatedAt       int64                  `protobuf:"varint,11,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt       int64                  `protobuf:"varint,12,opt,name=updated_at,json=updatedAt"`
 	xxx_hidden_SubjectId       int64                  `protobuf:"varint,13,opt,name=subject_id,json=subjectId"`
@@ -1774,6 +1810,16 @@ func (x *Asset) GetHeight() int32 {
 	return 0
 }
 
+func (x *Asset) GetBlurhash() string {
+	if x != nil {
+		if x.xxx_hidden_Blurhash != nil {
+			return *x.xxx_hidden_Blurhash
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *Asset) GetCreatedAt() int64 {
 	if x != nil {
 		return x.xxx_hidden_CreatedAt
@@ -1824,77 +1870,82 @@ func (x *Asset) GetUrlExpiresAt() int64 {
 
 func (x *Asset) SetId(v int64) {
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 16)
 }
 
 func (x *Asset) SetCreatedByUserId(v int64) {
 	x.xxx_hidden_CreatedByUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 16)
 }
 
 func (x *Asset) SetKind(v AssetKind) {
 	x.xxx_hidden_Kind = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 16)
 }
 
 func (x *Asset) SetStatus(v AssetStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 16)
 }
 
 func (x *Asset) SetStorageBackend(v string) {
 	x.xxx_hidden_StorageBackend = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 16)
 }
 
 func (x *Asset) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 16)
 }
 
 func (x *Asset) SetSize(v int64) {
 	x.xxx_hidden_Size = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 16)
 }
 
 func (x *Asset) SetWidth(v int32) {
 	x.xxx_hidden_Width = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 16)
 }
 
 func (x *Asset) SetHeight(v int32) {
 	x.xxx_hidden_Height = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 16)
+}
+
+func (x *Asset) SetBlurhash(v string) {
+	x.xxx_hidden_Blurhash = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 16)
 }
 
 func (x *Asset) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 16)
 }
 
 func (x *Asset) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 16)
 }
 
 func (x *Asset) SetSubjectId(v int64) {
 	x.xxx_hidden_SubjectId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 16)
 }
 
 func (x *Asset) SetFilename(v string) {
 	x.xxx_hidden_Filename = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 16)
 }
 
 func (x *Asset) SetUrl(v string) {
 	x.xxx_hidden_Url = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 16)
 }
 
 func (x *Asset) SetUrlExpiresAt(v int64) {
 	x.xxx_hidden_UrlExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 15)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 16)
 }
 
 func (x *Asset) HasId() bool {
@@ -1960,46 +2011,53 @@ func (x *Asset) HasHeight() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
-func (x *Asset) HasCreatedAt() bool {
+func (x *Asset) HasBlurhash() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
-func (x *Asset) HasUpdatedAt() bool {
+func (x *Asset) HasCreatedAt() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
 }
 
-func (x *Asset) HasSubjectId() bool {
+func (x *Asset) HasUpdatedAt() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
 }
 
-func (x *Asset) HasFilename() bool {
+func (x *Asset) HasSubjectId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
 }
 
-func (x *Asset) HasUrl() bool {
+func (x *Asset) HasFilename() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
 }
 
-func (x *Asset) HasUrlExpiresAt() bool {
+func (x *Asset) HasUrl() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+}
+
+func (x *Asset) HasUrlExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
 }
 
 func (x *Asset) ClearId() {
@@ -2047,33 +2105,38 @@ func (x *Asset) ClearHeight() {
 	x.xxx_hidden_Height = 0
 }
 
-func (x *Asset) ClearCreatedAt() {
+func (x *Asset) ClearBlurhash() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_Blurhash = nil
+}
+
+func (x *Asset) ClearCreatedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
 	x.xxx_hidden_CreatedAt = 0
 }
 
 func (x *Asset) ClearUpdatedAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
 	x.xxx_hidden_UpdatedAt = 0
 }
 
 func (x *Asset) ClearSubjectId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
 	x.xxx_hidden_SubjectId = 0
 }
 
 func (x *Asset) ClearFilename() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
 	x.xxx_hidden_Filename = nil
 }
 
 func (x *Asset) ClearUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
 	x.xxx_hidden_Url = nil
 }
 
 func (x *Asset) ClearUrlExpiresAt() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
 	x.xxx_hidden_UrlExpiresAt = 0
 }
 
@@ -2101,6 +2164,9 @@ type Asset_builder struct {
 	// zero for non-image assets.
 	Width  *int32
 	Height *int32
+	// blurhash is a compact image placeholder for supported still images. Empty
+	// for non-image assets, oversized sources, or when generation is skipped.
+	Blurhash *string
 	// created_at and updated_at are Unix milliseconds.
 	CreatedAt *int64
 	UpdatedAt *int64
@@ -2121,63 +2187,67 @@ func (b0 Asset_builder) Build() *Asset {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 16)
 		x.xxx_hidden_Id = *b.Id
 	}
 	if b.CreatedByUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 16)
 		x.xxx_hidden_CreatedByUserId = *b.CreatedByUserId
 	}
 	if b.Kind != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 16)
 		x.xxx_hidden_Kind = *b.Kind
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 16)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.StorageBackend != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 16)
 		x.xxx_hidden_StorageBackend = b.StorageBackend
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 16)
 		x.xxx_hidden_ContentType = b.ContentType
 	}
 	if b.Size != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 16)
 		x.xxx_hidden_Size = *b.Size
 	}
 	if b.Width != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 16)
 		x.xxx_hidden_Width = *b.Width
 	}
 	if b.Height != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 16)
 		x.xxx_hidden_Height = *b.Height
 	}
+	if b.Blurhash != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 16)
+		x.xxx_hidden_Blurhash = b.Blurhash
+	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 16)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 16)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
 	if b.SubjectId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 16)
 		x.xxx_hidden_SubjectId = *b.SubjectId
 	}
 	if b.Filename != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 16)
 		x.xxx_hidden_Filename = b.Filename
 	}
 	if b.Url != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 16)
 		x.xxx_hidden_Url = b.Url
 	}
 	if b.UrlExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 15)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 16)
 		x.xxx_hidden_UrlExpiresAt = *b.UrlExpiresAt
 	}
 	return m0
@@ -2485,7 +2555,7 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"h\n" +
 	"\x16CompleteUploadResponse\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\x123\n" +
-	"\bmetadata\x18\x02 \x01(\v2\x17.media.v1.AssetMetadataR\bmetadata\"\xc8\x01\n" +
+	"\bmetadata\x18\x02 \x01(\v2\x17.media.v1.AssetMetadataR\bmetadata\"\xe4\x01\n" +
 	"\rAssetMetadata\x12\x12\n" +
 	"\x04size\x18\x01 \x01(\x03R\x04size\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x14\n" +
@@ -2493,7 +2563,8 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\x06height\x18\x04 \x01(\x05R\x06height\x12\x1a\n" +
 	"\bfilename\x18\x05 \x01(\tR\bfilename\x12\x10\n" +
 	"\x03url\x18\x06 \x01(\tR\x03url\x12$\n" +
-	"\x0eurl_expires_at\x18\a \x01(\x03R\furlExpiresAt\"U\n" +
+	"\x0eurl_expires_at\x18\a \x01(\x03R\furlExpiresAt\x12\x1a\n" +
+	"\bblurhash\x18\b \x01(\tR\bblurhash\"U\n" +
 	"\x12AbortUploadRequest\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"\x15\n" +
@@ -2501,7 +2572,7 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\x0fGetAssetRequest\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\"9\n" +
 	"\x10GetAssetResponse\x12%\n" +
-	"\x05asset\x18\x01 \x01(\v2\x0f.media.v1.AssetR\x05asset\"\xdb\x03\n" +
+	"\x05asset\x18\x01 \x01(\v2\x0f.media.v1.AssetR\x05asset\"\xf7\x03\n" +
 	"\x05Asset\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12+\n" +
 	"\x12created_by_user_id\x18\x02 \x01(\x03R\x0fcreatedByUserId\x12'\n" +
@@ -2511,7 +2582,9 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\fcontent_type\x18\x06 \x01(\tR\vcontentType\x12\x12\n" +
 	"\x04size\x18\a \x01(\x03R\x04size\x12\x14\n" +
 	"\x05width\x18\b \x01(\x05R\x05width\x12\x16\n" +
-	"\x06height\x18\t \x01(\x05R\x06height\x12\x1d\n" +
+	"\x06height\x18\t \x01(\x05R\x06height\x12\x1a\n" +
+	"\bblurhash\x18\n" +
+	" \x01(\tR\bblurhash\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\v \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +

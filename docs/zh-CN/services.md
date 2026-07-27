@@ -61,7 +61,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 使创建和更新路径可以复用为实时事件加载的资料。事件不经过 API，因此事件需要的 profile
 仍由 Message 服务自行查询。
 
-消息创建和更新默认最多携带 10 个附件和 100 个不重复的被提及用户 ID；两项上限均由 Message 服务配置。
+消息创建和更新默认最多携带 10 个附件和 100 个不重复的被提及用户 ID；两项上限均由 Message 服务配置。图片附件的 `blurhash` 由 Media 在 CompleteUpload 时生成，Message 写入附件元数据一并返回与广播；非图片或未能生成时为空。客户端在 Create/Update 上携带的 `blurhash` 会被忽略并以 Media 元数据覆盖。
 
 内部 READY RPC 一次加载用户的全部 DM，并针对 Session 提供的可见 Guild 文本频道计算 read state。每项包含 `channel_id`、`last_message_id`、`last_read_message_id` 和未读提及数；客户端用 `last_message_id > last_read_message_id` 判断是否未读，不再计算具体未读消息数。`AckMessage` 只有在 watermark 实际前进时才发布 user-routed `message.read.updated`，CreateMessage 也会在写事务内从数据库读回作者的最终 read state。
 

@@ -5,6 +5,7 @@ go 1.26
 require (
 	connectrpc.com/connect v1.20.0
 	github.com/XSAM/otelsql v0.43.0
+	github.com/bbrks/go-blurhash v1.2.0
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coder/websocket v1.8.14
 	github.com/golang-jwt/jwt/v5 v5.3.1

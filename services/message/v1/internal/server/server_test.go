@@ -45,6 +45,7 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	attachment.SetContentType("application/x-untrusted")
 	attachment.SetWidth(999)
 	attachment.SetHeight(999)
+	attachment.SetBlurhash("client-forged")
 	req.SetAttachments([]*messagev1.Attachment{attachment})
 	req.SetMentionUserIds([]int64{30, 31})
 
@@ -68,11 +69,13 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, "image/png", resp.GetMessage().GetAttachments()[0].GetContentType())
 	require.Equal(t, int32(1), resp.GetMessage().GetAttachments()[0].GetWidth())
 	require.Equal(t, int32(1), resp.GetMessage().GetAttachments()[0].GetHeight())
+	require.Equal(t, "LEHV6nWB2yk8pyo0adR*.7kCMdnj", resp.GetMessage().GetAttachments()[0].GetBlurhash())
 	require.Equal(t, "https://download.example/101", resp.GetMessage().GetAttachments()[0].GetUrl())
 	require.Equal(t, int64(9001), resp.GetMessage().GetAttachments()[0].GetUrlExpiresAt())
 	require.Equal(t, "20", envelope.Data.Author.UserID)
 	require.Equal(t, "https://download.example/101", envelope.Data.Attachments[0].URL)
 	require.Equal(t, int64(9001), envelope.Data.Attachments[0].URLExpiresAt)
+	require.Equal(t, "LEHV6nWB2yk8pyo0adR*.7kCMdnj", envelope.Data.Attachments[0].Blurhash)
 	require.Equal(t, int64(1), envelope.Data.Revision)
 	var readEnvelope eventEnvelope[messageReadUpdatedPayload]
 	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &readEnvelope))
@@ -607,6 +610,7 @@ func (f *fakeMediaClient) GetAsset(
 		asset.SetFilename("file.png")
 		asset.SetWidth(1)
 		asset.SetHeight(1)
+		asset.SetBlurhash("LEHV6nWB2yk8pyo0adR*.7kCMdnj")
 		asset.SetUrl("https://download.example/" + strconv.FormatInt(req.GetAssetId(), 10))
 		asset.SetUrlExpiresAt(9001)
 	}

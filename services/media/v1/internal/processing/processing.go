@@ -12,12 +12,20 @@ import (
 	"io"
 	"strings"
 
+	"github.com/bbrks/go-blurhash"
+	"golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/soasurs/cordis/services/media/v1/config"
 	"github.com/soasurs/cordis/services/media/v1/internal/objectstore"
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
+)
+
+const (
+	blurhashXComponents = 4
+	blurhashYComponents = 3
+	blurhashMaxEdge     = 32
 )
 
 // Processor validates source images and publishes the validated original
@@ -47,7 +55,16 @@ func NewProcessor(
 type ProcessResult struct {
 	Width        int32
 	Height       int32
+	Blurhash     string
 	PublishedKey string
+}
+
+// InspectResult describes best-effort image metadata for opaque attachment
+// uploads that stay on their published object key.
+type InspectResult struct {
+	Width    int32
+	Height   int32
+	Blurhash string
 }
 
 // Process fully decodes the uploaded image and copies the original bytes to
@@ -111,7 +128,8 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	bounds := img.Bounds()
 	origW := int32(bounds.Dx())
 	origH := int32(bounds.Dy())
-	if orientation := imageOrientation(data, format); orientation >= 5 {
+	orientation := imageOrientation(data, format)
+	if orientation >= 5 {
 		origW, origH = origH, origW
 	}
 	if err := validateDimensions(int(origW), int(origH), p.cfg); err != nil {
@@ -129,8 +147,116 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	return &ProcessResult{
 		Width:        origW,
 		Height:       origH,
+		Blurhash:     encodeBlurhash(img, orientation),
 		PublishedKey: publishedKey,
 	}, nil
+}
+
+// AttachmentObjectOpener opens an already-uploaded attachment object for
+// best-effort image inspection. The size must match the CompleteUpload
+// validated object size.
+type AttachmentObjectOpener func(ctx context.Context) (io.ReadCloser, int64, error)
+
+// InspectAttachmentImage best-effort extracts display dimensions and blurhash
+// from an already-uploaded attachment object. Objects larger than MaxImageSize
+// are skipped without opening storage. Object reads happen only after acquiring
+// image-processing capacity. Failures that are not storage I/O errors return an
+// empty result so opaque attachment completion is not blocked.
+func (p *Processor) InspectAttachmentImage(
+	ctx context.Context,
+	contentType string,
+	expectedSize int64,
+	open AttachmentObjectOpener,
+) (InspectResult, error) {
+	if expectedSize <= 0 || expectedSize > p.cfg.MaxImageSize() {
+		return InspectResult{}, nil
+	}
+	if open == nil {
+		return InspectResult{}, nil
+	}
+
+	processCtx, cancel := context.WithTimeout(ctx, p.cfg.ImageProcessingTimeout())
+	defer cancel()
+	if err := p.limit.Acquire(processCtx, 1); err != nil {
+		return InspectResult{}, nil
+	}
+	defer p.limit.Release(1)
+
+	reader, size, err := open(processCtx)
+	if err != nil {
+		return InspectResult{}, err
+	}
+	defer reader.Close()
+	if size != expectedSize {
+		return InspectResult{}, nil
+	}
+	data, err := io.ReadAll(io.LimitReader(reader, expectedSize+1))
+	if err != nil {
+		return InspectResult{}, fmt.Errorf("read attachment object: %w", err)
+	}
+	if int64(len(data)) != expectedSize {
+		return InspectResult{}, nil
+	}
+	return inspectAttachmentData(contentType, data, p.cfg), nil
+}
+
+func inspectAttachmentData(contentType string, data []byte, cfg config.MediaConfig) InspectResult {
+	imageConfig, format, err := decodeImageConfig(data)
+	if err != nil {
+		return InspectResult{}
+	}
+	actualContentType := imageContentType(format)
+	if !strings.EqualFold(contentType, actualContentType) {
+		return InspectResult{}
+	}
+	if imageAnimated(data, format) {
+		return InspectResult{}
+	}
+	orientation := imageOrientation(data, format)
+	width, height := imageConfig.Width, imageConfig.Height
+	if orientation >= 5 {
+		width, height = height, width
+	}
+	if width <= 0 || height <= 0 {
+		return InspectResult{}
+	}
+	result := InspectResult{Width: int32(width), Height: int32(height)}
+	if err := validateDimensions(width, height, cfg); err != nil {
+		return result
+	}
+	img, decodedFormat, err := decodeImage(data)
+	if err != nil || decodedFormat != format {
+		return result
+	}
+	result.Blurhash = encodeBlurhash(img, orientation)
+	return result
+}
+
+func encodeBlurhash(img image.Image, orientation int) string {
+	thumb := downsampleForBlurhash(img)
+	oriented := applyOrientation(thumb, orientation)
+	hash, err := blurhash.Encode(blurhashXComponents, blurhashYComponents, oriented)
+	if err != nil || hash == "" {
+		return ""
+	}
+	return hash
+}
+
+func downsampleForBlurhash(src image.Image) image.Image {
+	bounds := src.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	if width <= 0 || height <= 0 {
+		return src
+	}
+	if width <= blurhashMaxEdge && height <= blurhashMaxEdge {
+		return src
+	}
+	maxSide := max(height, width)
+	dstWidth := max(1, width*blurhashMaxEdge/maxSide)
+	dstHeight := max(1, height*blurhashMaxEdge/maxSide)
+	dst := image.NewNRGBA(image.Rect(0, 0, dstWidth, dstHeight))
+	draw.ApproxBiLinear.Scale(dst, dst.Bounds(), src, bounds, draw.Src, nil)
+	return dst
 }
 
 func decodeImage(data []byte) (image.Image, string, error) {

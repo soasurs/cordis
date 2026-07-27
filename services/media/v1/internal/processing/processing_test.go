@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"image"
 	"image/color"
 	"image/png"
@@ -13,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bbrks/go-blurhash"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/services/media/v1/config"
@@ -61,6 +63,110 @@ func TestProcessorRejectsPixelLimitBeforePublication(t *testing.T) {
 	_, err := processor.Process(t.Context(), asset)
 	require.ErrorContains(t, err, "pixel count")
 	require.Len(t, objectStore.objects, 1)
+}
+
+func TestProcessorGeneratesBlurhash(t *testing.T) {
+	source := testPNG(t, 96, 48)
+	objectStore := &processorObjectStore{
+		objects: map[string]processorObject{
+			"staging/1": {data: source, contentType: "image/png"},
+		},
+	}
+	processor := NewProcessor(objectStore, objectStore, config.MediaConfig{
+		ImageProcessingTimeoutMs:     1000,
+		MaxConcurrentImageProcessing: 1,
+		MaxImageSizeBytes:            1 << 20,
+		MaxImageDimension:            1000,
+		MaxImagePixels:               1_000_000,
+	})
+	asset := &store.Asset{
+		ID:           1,
+		SubjectID:    10,
+		Kind:         store.KindUserAvatar,
+		StagingKey:   "staging/1",
+		ExpectedSize: int64(len(source)),
+		ContentType:  "image/png",
+	}
+
+	result, err := processor.Process(t.Context(), asset)
+	require.NoError(t, err)
+	require.Equal(t, int32(96), result.Width)
+	require.Equal(t, int32(48), result.Height)
+	require.NotEmpty(t, result.Blurhash)
+	x, y, err := blurhash.Components(result.Blurhash)
+	require.NoError(t, err)
+	require.Equal(t, blurhashXComponents, x)
+	require.Equal(t, blurhashYComponents, y)
+}
+
+func TestInspectAttachmentImage(t *testing.T) {
+	processor := NewProcessor(nil, nil, config.MediaConfig{
+		ImageProcessingTimeoutMs:     1000,
+		MaxConcurrentImageProcessing: 1,
+		MaxImageSizeBytes:            1 << 20,
+		MaxImageDimension:            1000,
+		MaxImagePixels:               1_000_000,
+	})
+	source := testPNG(t, 64, 32)
+
+	result, err := processor.InspectAttachmentImage(
+		t.Context(),
+		"image/png",
+		int64(len(source)),
+		bytesOpener(source),
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(64), result.Width)
+	require.Equal(t, int32(32), result.Height)
+	require.NotEmpty(t, result.Blurhash)
+
+	overLimit := NewProcessor(nil, nil, config.MediaConfig{
+		ImageProcessingTimeoutMs:     1000,
+		MaxConcurrentImageProcessing: 1,
+		MaxImageSizeBytes:            1 << 20,
+		MaxImageDimension:            1000,
+		MaxImagePixels:               100,
+	})
+	oversizedPNG := testPNG(t, 40, 40)
+	oversized, err := overLimit.InspectAttachmentImage(
+		t.Context(),
+		"image/png",
+		int64(len(oversizedPNG)),
+		bytesOpener(oversizedPNG),
+	)
+	require.NoError(t, err)
+	require.Equal(t, int32(40), oversized.Width)
+	require.Equal(t, int32(40), oversized.Height)
+	require.Empty(t, oversized.Blurhash)
+
+	opened := false
+	skipped, err := processor.InspectAttachmentImage(
+		t.Context(),
+		"image/png",
+		(1<<20)+1,
+		func(context.Context) (io.ReadCloser, int64, error) {
+			opened = true
+			return nil, 0, errors.New("should not open oversized object")
+		},
+	)
+	require.NoError(t, err)
+	require.False(t, opened)
+	require.Equal(t, InspectResult{}, skipped)
+
+	invalid, err := processor.InspectAttachmentImage(
+		t.Context(),
+		"image/png",
+		13,
+		bytesOpener([]byte("not-an-image")),
+	)
+	require.NoError(t, err)
+	require.Empty(t, invalid.Blurhash)
+}
+
+func bytesOpener(data []byte) AttachmentObjectOpener {
+	return func(context.Context) (io.ReadCloser, int64, error) {
+		return io.NopCloser(bytes.NewReader(data)), int64(len(data)), nil
+	}
 }
 
 func TestAnimationDetection(t *testing.T) {

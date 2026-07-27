@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	neturl "net/url"
 	"strings"
@@ -200,6 +201,11 @@ func (s *MediaServer) completeLocked(
 		if asset.Kind.IsImage() {
 			return s.publishImage(ctx, assetStore, asset)
 		}
+		if asset.Kind == store.KindMessageAttachment {
+			if err := s.inspectAttachmentImage(ctx, asset); err != nil {
+				return nil, err
+			}
+		}
 		asset.Status = store.StatusReady
 		if err := assetStore.UpdateAsset(ctx, asset); err != nil {
 			return nil, fmt.Errorf("update asset to ready: %w", err)
@@ -267,6 +273,7 @@ func (s *MediaServer) publishImage(
 	asset.PublishedKey = result.PublishedKey
 	asset.Width = result.Width
 	asset.Height = result.Height
+	asset.Blurhash = result.Blurhash
 	asset.Status = store.StatusReady
 	asset.ErrorMessage = ""
 	if err := assetStore.UpdateAsset(ctx, asset); err != nil {
@@ -274,6 +281,34 @@ func (s *MediaServer) publishImage(
 	}
 	s.deleteUploadObject(asset)
 	return s.buildCompleteResponse(ctx, asset)
+}
+
+func (s *MediaServer) inspectAttachmentImage(ctx context.Context, asset *store.Asset) error {
+	if _, ok := allowedImageContentTypes[asset.ContentType]; !ok {
+		return nil
+	}
+	inspected, err := s.svcCtx.Processor.InspectAttachmentImage(
+		ctx,
+		asset.ContentType,
+		asset.ActualSize,
+		func(ctx context.Context) (io.ReadCloser, int64, error) {
+			reader, info, err := s.uploadObjectStore(asset).GetObject(ctx, uploadObjectKey(asset))
+			if err != nil {
+				return nil, 0, err
+			}
+			return reader, info.Size, nil
+		},
+	)
+	if err != nil {
+		if errors.Is(err, objectstore.ErrObjectNotFound) {
+			return errNotUploaded
+		}
+		return errObjectStoreDown
+	}
+	asset.Width = inspected.Width
+	asset.Height = inspected.Height
+	asset.Blurhash = inspected.Blurhash
+	return nil
 }
 
 func (s *MediaServer) failUpload(
@@ -303,6 +338,7 @@ func (s *MediaServer) buildCompleteResponse(
 	metadata.SetContentType(asset.ContentType)
 	metadata.SetWidth(asset.Width)
 	metadata.SetHeight(asset.Height)
+	metadata.SetBlurhash(asset.Blurhash)
 	metadata.SetFilename(asset.Filename)
 	if asset.Kind == store.KindMessageAttachment {
 		downloadURL, expiresAt, err := s.attachmentURL(ctx, asset)
@@ -378,6 +414,7 @@ func (s *MediaServer) GetAsset(
 	value.SetSize(asset.ActualSize)
 	value.SetWidth(asset.Width)
 	value.SetHeight(asset.Height)
+	value.SetBlurhash(asset.Blurhash)
 	value.SetCreatedAt(asset.CreatedAt)
 	value.SetUpdatedAt(asset.UpdatedAt)
 	value.SetSubjectId(asset.SubjectID)

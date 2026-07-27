@@ -82,6 +82,7 @@ func (s *messageServer) CompleteAttachmentUpload(
 	attachment.SetContentType(mediaResp.GetMetadata().GetContentType())
 	attachment.SetWidth(mediaResp.GetMetadata().GetWidth())
 	attachment.SetHeight(mediaResp.GetMetadata().GetHeight())
+	attachment.SetBlurhash(mediaResp.GetMetadata().GetBlurhash())
 	attachment.SetUrl(mediaResp.GetMetadata().GetUrl())
 	attachment.SetUrlExpiresAt(mediaResp.GetMetadata().GetUrlExpiresAt())
 	resp := new(messagev1.CompleteAttachmentUploadResponse)
@@ -151,6 +152,7 @@ func (s *messageServer) resolveAttachments(
 			ContentType:  asset.GetContentType(),
 			Width:        asset.GetWidth(),
 			Height:       asset.GetHeight(),
+			Blurhash:     asset.GetBlurhash(),
 			URL:          asset.GetUrl(),
 			URLExpiresAt: asset.GetUrlExpiresAt(),
 		})

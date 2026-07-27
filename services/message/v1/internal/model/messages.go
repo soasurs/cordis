@@ -24,6 +24,7 @@ type Attachment struct {
 	ContentType  string
 	Width        int32
 	Height       int32
+	Blurhash     string
 	URL          string
 	URLExpiresAt int64
 }

@@ -9,6 +9,7 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
+	"github.com/soasurs/cordis/services/api/v1/config"
 	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
 )
 
@@ -37,6 +38,11 @@ func (s *authenticatorServer) Register(ctx context.Context, req *apiv1.RegisterR
 }
 
 func (s *authenticatorServer) Login(ctx context.Context, req *apiv1.LoginRequest) (*apiv1.LoginResponse, error) {
+	if req.GetTokenTransport() == apiv1.TokenTransport_TOKEN_TRANSPORT_COOKIE {
+		if err := s.requireBrowserOrigin(ctx); err != nil {
+			return nil, err
+		}
+	}
 	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyLoginIP); err != nil {
 		return nil, err
 	}
@@ -55,7 +61,11 @@ func (s *authenticatorServer) Login(ctx context.Context, req *apiv1.LoginRequest
 
 	resp := new(apiv1.LoginResponse)
 	if svcResp.GetResult() != nil {
-		resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+		cookieMode := req.GetTokenTransport() == apiv1.TokenTransport_TOKEN_TRANSPORT_COOKIE
+		if cookieMode {
+			setResponseAuthenticationCookies(ctx, s.svcCtx.Cfg.BrowserAuth, svcResp.GetResult())
+		}
+		resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult(), !cookieMode))
 	} else {
 		resp.SetTwoFactorChallenge(toAPITwoFactorLoginChallenge(svcResp.GetTwoFactorChallenge()))
 	}
@@ -63,6 +73,11 @@ func (s *authenticatorServer) Login(ctx context.Context, req *apiv1.LoginRequest
 }
 
 func (s *authenticatorServer) CompleteTwoFactorLogin(ctx context.Context, req *apiv1.CompleteTwoFactorLoginRequest) (*apiv1.CompleteTwoFactorLoginResponse, error) {
+	if req.GetTokenTransport() == apiv1.TokenTransport_TOKEN_TRANSPORT_COOKIE {
+		if err := s.requireBrowserOrigin(ctx); err != nil {
+			return nil, err
+		}
+	}
 	svcReq := new(authenticatorv1.CompleteTwoFactorLoginRequest)
 	svcReq.SetChallengeToken(req.GetChallengeToken())
 	svcReq.SetCode(req.GetCode())
@@ -72,13 +87,25 @@ func (s *authenticatorServer) CompleteTwoFactorLogin(ctx context.Context, req *a
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.CompleteTwoFactorLoginResponse)
-	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+	cookieMode := req.GetTokenTransport() == apiv1.TokenTransport_TOKEN_TRANSPORT_COOKIE
+	if cookieMode {
+		setResponseAuthenticationCookies(ctx, s.svcCtx.Cfg.BrowserAuth, svcResp.GetResult())
+	}
+	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult(), !cookieMode))
 	return resp, nil
 }
 
 func (s *authenticatorServer) Refresh(ctx context.Context, req *apiv1.RefreshRequest) (*apiv1.RefreshResponse, error) {
+	refreshToken := req.GetRefreshToken()
+	cookieMode := refreshToken == ""
+	if cookieMode {
+		if err := s.requireBrowserOrigin(ctx); err != nil {
+			return nil, err
+		}
+		refreshToken = requestCookieFromContext(ctx, s.svcCtx.Cfg.BrowserAuth.EffectiveRefreshCookieName())
+	}
 	svcReq := new(authenticatorv1.RefreshRequest)
-	svcReq.SetRefreshToken(req.GetRefreshToken())
+	svcReq.SetRefreshToken(refreshToken)
 
 	svcResp, err := s.svcCtx.AuthenticatorClient.Refresh(ctx, svcReq)
 	if err != nil {
@@ -86,13 +113,24 @@ func (s *authenticatorServer) Refresh(ctx context.Context, req *apiv1.RefreshReq
 	}
 
 	resp := new(apiv1.RefreshResponse)
-	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult()))
+	if cookieMode {
+		setResponseAuthenticationCookies(ctx, s.svcCtx.Cfg.BrowserAuth, svcResp.GetResult())
+	}
+	resp.SetResult(toAPIAuthenticationResult(svcResp.GetResult(), !cookieMode))
 	return resp, nil
 }
 
 func (s *authenticatorServer) Logout(ctx context.Context, req *apiv1.LogoutRequest) (*apiv1.LogoutResponse, error) {
+	refreshToken := req.GetRefreshToken()
+	cookieMode := refreshToken == ""
+	if cookieMode {
+		if err := s.requireBrowserOrigin(ctx); err != nil {
+			return nil, err
+		}
+		refreshToken = requestCookieFromContext(ctx, s.svcCtx.Cfg.BrowserAuth.EffectiveRefreshCookieName())
+	}
 	svcReq := new(authenticatorv1.LogoutRequest)
-	svcReq.SetRefreshToken(req.GetRefreshToken())
+	svcReq.SetRefreshToken(refreshToken)
 
 	svcResp, err := s.svcCtx.AuthenticatorClient.Logout(ctx, svcReq)
 	if err != nil {
@@ -101,6 +139,30 @@ func (s *authenticatorServer) Logout(ctx context.Context, req *apiv1.LogoutReque
 
 	resp := new(apiv1.LogoutResponse)
 	resp.SetOk(svcResp.GetOk())
+	if cookieMode {
+		if callInfo, ok := connect.CallInfoForHandlerContext(ctx); ok {
+			clearAuthenticationCookies(callInfo.ResponseHeader(), s.svcCtx.Cfg.BrowserAuth)
+		}
+	}
+	return resp, nil
+}
+
+func (s *authenticatorServer) CreateGatewayTicket(ctx context.Context, _ *apiv1.CreateGatewayTicketRequest) (*apiv1.CreateGatewayTicketResponse, error) {
+	auth, err := authenticateWithMinimumAccessTTL(ctx, s.svcCtx.AuthenticatorClient, s.svcCtx.Cfg.BrowserAuth.GatewayTicketMinimumAccessTTL)
+	if err != nil {
+		return nil, err
+	}
+	req := new(authenticatorv1.CreateGatewayTicketRequest)
+	req.SetUserId(auth.GetUserId())
+	req.SetSessionId(auth.GetSessionId())
+	req.SetAccessTokenExpiresAt(auth.GetExpiresAt())
+	result, err := s.svcCtx.AuthenticatorClient.CreateGatewayTicket(ctx, req)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CreateGatewayTicketResponse)
+	resp.SetGatewayTicket(result.GetGatewayTicket())
+	resp.SetExpiresAt(result.GetExpiresAt())
 	return resp, nil
 }
 
@@ -126,6 +188,7 @@ func (s *authenticatorServer) ListSessions(ctx context.Context, _ *apiv1.ListSes
 		s.SetCreatedAt(session.GetCreatedAt())
 		s.SetUpdatedAt(session.GetUpdatedAt())
 		s.SetExpiresAt(session.GetExpiresAt())
+		s.SetAbsoluteExpiresAt(session.GetAbsoluteExpiresAt())
 		s.SetCurrent(session.GetSessionId() == auth.GetSessionId())
 		sessions = append(sessions, s)
 	}
@@ -149,6 +212,11 @@ func (s *authenticatorServer) RevokeSession(ctx context.Context, req *apiv1.Revo
 	}
 	resp := new(apiv1.RevokeSessionResponse)
 	resp.SetOk(svcResp.GetOk())
+	if req.GetSessionId() == auth.GetSessionId() {
+		if callInfo, ok := connect.CallInfoForHandlerContext(ctx); ok && callInfo.RequestHeader().Get("Authorization") == "" {
+			clearAuthenticationCookies(callInfo.ResponseHeader(), s.svcCtx.Cfg.BrowserAuth)
+		}
+	}
 	return resp, nil
 }
 
@@ -273,7 +341,7 @@ func clientIP(address string) string {
 	return address
 }
 
-func toAPIAuthenticationResult(result *authenticatorv1.AuthenticationResult) *apiv1.AuthenticationResult {
+func toAPIAuthenticationResult(result *authenticatorv1.AuthenticationResult, includeTokens bool) *apiv1.AuthenticationResult {
 	resp := new(apiv1.AuthenticationResult)
 	if result == nil {
 		resp.SetOk(false)
@@ -283,12 +351,37 @@ func toAPIAuthenticationResult(result *authenticatorv1.AuthenticationResult) *ap
 	resp.SetOk(result.GetOk())
 	resp.SetUserId(result.GetUserId())
 	resp.SetSessionId(result.GetSessionId())
-	resp.SetAccessToken(result.GetAccessToken())
+	if includeTokens {
+		resp.SetAccessToken(result.GetAccessToken())
+		resp.SetRefreshToken(result.GetRefreshToken())
+	}
 	resp.SetAccessTokenExpiresAt(result.GetAccessTokenExpiresAt())
-	resp.SetRefreshToken(result.GetRefreshToken())
 	resp.SetRefreshTokenExpiresAt(result.GetRefreshTokenExpiresAt())
 	resp.SetSessionExpiresAt(result.GetSessionExpiresAt())
+	resp.SetAbsoluteSessionExpiresAt(result.GetAbsoluteSessionExpiresAt())
 	return resp
+}
+
+func (s *authenticatorServer) requireBrowserOrigin(ctx context.Context) error {
+	callInfo, ok := connect.CallInfoForHandlerContext(ctx)
+	if !ok || !allowedBrowserOrigin(callInfo.RequestHeader().Get("Origin"), s.svcCtx.Cfg.BrowserAuth.AllowedOrigins) {
+		return invalidAccessTokenError()
+	}
+	return nil
+}
+
+func requestCookieFromContext(ctx context.Context, name string) string {
+	callInfo, ok := connect.CallInfoForHandlerContext(ctx)
+	if !ok {
+		return ""
+	}
+	return requestCookie(callInfo.RequestHeader(), name)
+}
+
+func setResponseAuthenticationCookies(ctx context.Context, cfg config.BrowserAuthConfig, result *authenticatorv1.AuthenticationResult) {
+	if callInfo, ok := connect.CallInfoForHandlerContext(ctx); ok {
+		setAuthenticationCookies(callInfo.ResponseHeader(), cfg, result)
+	}
 }
 
 func toAPITwoFactorLoginChallenge(challenge *authenticatorv1.TwoFactorLoginChallenge) *apiv1.TwoFactorLoginChallenge {

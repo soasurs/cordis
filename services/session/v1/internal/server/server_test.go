@@ -42,6 +42,26 @@ func TestIdentifyAllowsMultipleLogicalSessionsPerAuthSession(t *testing.T) {
 	require.Len(t, server.users[first.userID], 2)
 }
 
+func TestIdentifyAcceptsGatewayTicket(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetGatewayTicket("ticket")
+	session, err := server.identify(t.Context(), "conn-ticket", "gateway", "generation", identify)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), session.userID)
+	require.Equal(t, int64(2002), session.authSessionID)
+}
+
+func TestIdentifyRejectsUnsuccessfulGatewayTicket(t *testing.T) {
+	server := newTestServer()
+	server.svcCtx.AuthenticatorClient = rejectedGatewayTicketAuthenticator{}
+	identify := new(sessionv1.Identify)
+	identify.SetGatewayTicket("ticket")
+
+	_, err := server.identify(t.Context(), "conn-ticket", "gateway", "generation", identify)
+	require.Equal(t, codes.Unauthenticated, status.Code(err))
+}
+
 func TestIdentifyRateLimitsValidatedUserAndAuthSession(t *testing.T) {
 	server := newTestServer()
 	limiter := &sessionFakeRateLimiter{}
@@ -592,6 +612,18 @@ type fakeAuthenticator struct {
 	authenticatorv1.AuthenticatorServiceClient
 }
 
+type rejectedGatewayTicketAuthenticator struct {
+	authenticatorv1.AuthenticatorServiceClient
+}
+
+func (rejectedGatewayTicketAuthenticator) RedeemGatewayTicket(
+	context.Context,
+	*authenticatorv1.RedeemGatewayTicketRequest,
+	...grpc.CallOption,
+) (*authenticatorv1.RedeemGatewayTicketResponse, error) {
+	return new(authenticatorv1.RedeemGatewayTicketResponse), nil
+}
+
 func (fakeAuthenticator) VerifyAccessToken(
 	context.Context,
 	*authenticatorv1.VerifyAccessTokenRequest,
@@ -602,6 +634,19 @@ func (fakeAuthenticator) VerifyAccessToken(
 	resp.SetUserId(1001)
 	resp.SetSessionId(2002)
 	resp.SetExpiresAt(3003)
+	return resp, nil
+}
+
+func (fakeAuthenticator) RedeemGatewayTicket(
+	context.Context,
+	*authenticatorv1.RedeemGatewayTicketRequest,
+	...grpc.CallOption,
+) (*authenticatorv1.RedeemGatewayTicketResponse, error) {
+	resp := new(authenticatorv1.RedeemGatewayTicketResponse)
+	resp.SetOk(true)
+	resp.SetUserId(1001)
+	resp.SetSessionId(2002)
+	resp.SetAccessTokenExpiresAt(3003)
 	return resp, nil
 }
 

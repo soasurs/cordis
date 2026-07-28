@@ -3,14 +3,20 @@ package store
 const (
 	CreateSessionStatement = `
 	INSERT INTO
-		sessions (session_id, user_id, refresh_token_hash, user_agent, ip, created_at, updated_at, expires_at, revoked_at)
+		sessions (session_id, user_id, refresh_token_hash, refresh_token_id, refresh_token_issued_at,
+			refresh_token_expires_at, previous_refresh_token_hash, previous_refresh_token_valid_until,
+			user_agent, ip, created_at, updated_at, expires_at, absolute_expires_at, revoked_at)
 	VALUES
-		(:session_id, :user_id, :refresh_token_hash, :user_agent, :ip, :created_at, :updated_at, :expires_at, :revoked_at);
+		(:session_id, :user_id, :refresh_token_hash, :refresh_token_id, :refresh_token_issued_at,
+			:refresh_token_expires_at, :previous_refresh_token_hash, :previous_refresh_token_valid_until,
+			:user_agent, :ip, :created_at, :updated_at, :expires_at, :absolute_expires_at, :revoked_at);
 	`
 
 	GetSessionQuery = `
 	SELECT
-		session_id, user_id, refresh_token_hash, user_agent, ip, created_at, updated_at, expires_at, revoked_at
+		session_id, user_id, refresh_token_hash, refresh_token_id, refresh_token_issued_at,
+		refresh_token_expires_at, previous_refresh_token_hash, previous_refresh_token_valid_until,
+		user_agent, ip, created_at, updated_at, expires_at, absolute_expires_at, revoked_at
 	FROM
 		sessions
 	WHERE
@@ -21,7 +27,9 @@ const (
 
 	ListSessionsQuery = `
 	SELECT
-		session_id, user_id, refresh_token_hash, user_agent, ip, created_at, updated_at, expires_at, revoked_at
+		session_id, user_id, refresh_token_hash, refresh_token_id, refresh_token_issued_at,
+		refresh_token_expires_at, previous_refresh_token_hash, previous_refresh_token_valid_until,
+		user_agent, ip, created_at, updated_at, expires_at, absolute_expires_at, revoked_at
 	FROM
 		sessions
 	WHERE
@@ -30,6 +38,8 @@ const (
 		revoked_at = $2
 	AND
 		expires_at > $3
+	AND
+		(absolute_expires_at = 0 OR absolute_expires_at > $3)
 	ORDER BY
 		created_at DESC
 	`
@@ -39,13 +49,19 @@ const (
 		sessions
 	SET
 		refresh_token_hash = $1,
-		updated_at = $2
+		refresh_token_id = $2,
+		refresh_token_issued_at = $3,
+		refresh_token_expires_at = $4,
+		previous_refresh_token_hash = refresh_token_hash,
+		previous_refresh_token_valid_until = $5,
+		expires_at = $6,
+		updated_at = $10
 	WHERE
-		session_id = $3
+		session_id = $7
 	AND
-		revoked_at = $4
+		revoked_at = $8
 	AND
-		refresh_token_hash = $5
+		refresh_token_hash = $9
 	`
 
 	RevokeSessionStatement = `

@@ -10,5 +10,6 @@ repository contribution constraints and links back here.
 - [Realtime system](realtime.md)
 - [Data storage and events](data-and-events.md)
 - [APIs, protocols, and errors](protocols-and-errors.md)
+- [Authentication and token rotation](authentication.md)
 - [Configuration, observability, and development](operations-and-development.md)
 - [Current limitations and evolution](limitations.md)

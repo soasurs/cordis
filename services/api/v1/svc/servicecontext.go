@@ -41,6 +41,19 @@ type Dependencies struct {
 	ReadStatesLimiter   KeyedConcurrencyLimiter
 }
 
+type browserAuthenticatorClient struct {
+	authenticatorv1.AuthenticatorServiceClient
+	cfg config.BrowserAuthConfig
+}
+
+func (c browserAuthenticatorClient) BrowserAuthConfig() config.BrowserAuthConfig {
+	return c.cfg
+}
+
+func NewBrowserAuthenticatorClient(client authenticatorv1.AuthenticatorServiceClient, cfg config.BrowserAuthConfig) authenticatorv1.AuthenticatorServiceClient {
+	return browserAuthenticatorClient{AuthenticatorServiceClient: client, cfg: cfg}
+}
+
 func NewDependencies(cfg config.Config) (Dependencies, error) {
 	readStatesLimiter, err := concurrencylimit.NewKeyed(
 		"api_get_read_states_user",
@@ -87,12 +100,15 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, err
 	}
 	return Dependencies{
-		AuthenticatorClient: authenticatorv1.NewAuthenticatorServiceClient(authenticatorClient.Conn()),
-		UserClient:          userv1.NewUserServiceClient(userClient.Conn()),
-		MessageClient:       messagev1.NewMessageServiceClient(messageClient.Conn()),
-		GuildClient:         guildv1.NewGuildServiceClient(guildClient.Conn()),
-		RateLimiter:         limiter,
-		ReadStatesLimiter:   readStatesLimiter,
+		AuthenticatorClient: browserAuthenticatorClient{
+			AuthenticatorServiceClient: authenticatorv1.NewAuthenticatorServiceClient(authenticatorClient.Conn()),
+			cfg:                        cfg.BrowserAuth,
+		},
+		UserClient:        userv1.NewUserServiceClient(userClient.Conn()),
+		MessageClient:     messagev1.NewMessageServiceClient(messageClient.Conn()),
+		GuildClient:       guildv1.NewGuildServiceClient(guildClient.Conn()),
+		RateLimiter:       limiter,
+		ReadStatesLimiter: readStatesLimiter,
 	}, nil
 }
 
@@ -123,9 +139,15 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if cfg.ReadStates.MaxConcurrencyPerUser > 0 && deps.ReadStatesLimiter == nil {
 		panic("read states concurrency limiter is required")
 	}
+	authenticatorClient := deps.AuthenticatorClient
+	if _, ok := authenticatorClient.(interface {
+		BrowserAuthConfig() config.BrowserAuthConfig
+	}); !ok {
+		authenticatorClient = NewBrowserAuthenticatorClient(authenticatorClient, cfg.BrowserAuth)
+	}
 	return &ServiceContext{
 		Cfg:                 cfg,
-		AuthenticatorClient: deps.AuthenticatorClient,
+		AuthenticatorClient: authenticatorClient,
 		UserClient:          deps.UserClient,
 		MessageClient:       deps.MessageClient,
 		GuildClient:         deps.GuildClient,

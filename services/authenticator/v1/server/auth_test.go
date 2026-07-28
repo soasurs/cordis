@@ -24,6 +24,7 @@ import (
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
+	"github.com/soasurs/cordis/services/authenticator/v1/internal/gatewayticket"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
@@ -430,6 +431,116 @@ func TestRefresh(t *testing.T) {
 	require.Equal(t, token.Hash(result.GetRefreshToken()), store.rotatedNewHash)
 }
 
+func TestRefreshRetryReturnsSameRefreshToken(t *testing.T) {
+	store := newFakeSessionStore()
+	tokens := newTestTokenManager(t)
+	session := createRefreshSession(t, store, tokens, 1001, 2001, time.Now().Add(time.Hour).UnixMilli())
+	session.session.AbsoluteExpiresAt = time.Now().Add(24 * time.Hour).UnixMilli()
+	server := newTestAuthenticatorServer(t, store, tokens, new(fakeUserClient))
+	req := new(authenticatorv1.RefreshRequest)
+	req.SetRefreshToken(session.refreshToken.Raw)
+
+	first, err := server.Refresh(t.Context(), req)
+	require.NoError(t, err)
+	second, err := server.Refresh(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, first.GetResult().GetRefreshToken(), second.GetResult().GetRefreshToken())
+}
+
+func TestRefreshRetryRejectsRevokedSession(t *testing.T) {
+	store := newFakeSessionStore()
+	tokens := newTestTokenManager(t)
+	session := createRefreshSession(t, store, tokens, 1001, 2001, time.Now().Add(time.Hour).UnixMilli())
+	session.session.AbsoluteExpiresAt = time.Now().Add(24 * time.Hour).UnixMilli()
+	server := newTestAuthenticatorServer(t, store, tokens, new(fakeUserClient)).(*authenticatorServer)
+	req := new(authenticatorv1.RefreshRequest)
+	req.SetRefreshToken(session.refreshToken.Raw)
+
+	_, err := server.Refresh(t.Context(), req)
+	require.NoError(t, err)
+	session.session.RevokedAt = time.Now().UnixMilli()
+	_, err = server.replayRefreshToken(t.Context(), session.session, token.Hash(session.refreshToken.Raw), time.Now())
+	require.Error(t, err)
+	require.True(t, rpcerror.Is(err, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionRevoked))
+}
+
+func TestRefreshExtendsIdleExpiryWithinAbsoluteExpiry(t *testing.T) {
+	store := newFakeSessionStore()
+	tokens := newTestTokenManager(t)
+	session := createRefreshSession(t, store, tokens, 1001, 2001, time.Now().Add(time.Minute).UnixMilli())
+	absoluteExpiresAt := time.Now().Add(24 * time.Hour).UnixMilli()
+	session.session.AbsoluteExpiresAt = absoluteExpiresAt
+	server := newTestAuthenticatorServer(t, store, tokens, new(fakeUserClient))
+	req := new(authenticatorv1.RefreshRequest)
+	req.SetRefreshToken(session.refreshToken.Raw)
+
+	resp, err := server.Refresh(t.Context(), req)
+	require.NoError(t, err)
+	require.Greater(t, resp.GetResult().GetSessionExpiresAt(), time.Now().Add(30*time.Minute).UnixMilli())
+	require.LessOrEqual(t, resp.GetResult().GetSessionExpiresAt(), absoluteExpiresAt)
+	require.Equal(t, absoluteExpiresAt, resp.GetResult().GetAbsoluteSessionExpiresAt())
+}
+
+func TestRefreshRejectsPreviousTokenOutsideGrace(t *testing.T) {
+	store := newFakeSessionStore()
+	tokens := newTestTokenManager(t)
+	session := createRefreshSession(t, store, tokens, 1001, 2001, time.Now().Add(time.Hour).UnixMilli())
+	session.session.AbsoluteExpiresAt = time.Now().Add(24 * time.Hour).UnixMilli()
+	server := newTestAuthenticatorServer(t, store, tokens, new(fakeUserClient))
+	req := new(authenticatorv1.RefreshRequest)
+	req.SetRefreshToken(session.refreshToken.Raw)
+
+	_, err := server.Refresh(t.Context(), req)
+	require.NoError(t, err)
+	session.session.PreviousRefreshTokenValidUntil = time.Now().Add(-time.Second).UnixMilli()
+	_, err = server.Refresh(t.Context(), req)
+	require.Error(t, err)
+	require.NotZero(t, session.session.RevokedAt)
+}
+
+func TestAuthenticateCookieRotatesExpiredAccessToken(t *testing.T) {
+	store := newFakeSessionStore()
+	tokens := newTestTokenManager(t)
+	session := createRefreshSession(t, store, tokens, 1001, 2001, time.Now().Add(time.Hour).UnixMilli())
+	session.session.AbsoluteExpiresAt = time.Now().Add(24 * time.Hour).UnixMilli()
+	expiredAccess, err := tokens.IssueAccessToken(1001, 2001, time.Now().Add(-time.Hour))
+	require.NoError(t, err)
+	server := newTestAuthenticatorServer(t, store, tokens, new(fakeUserClient))
+	req := new(authenticatorv1.AuthenticateCookieRequest)
+	req.SetAccessToken(expiredAccess.Raw)
+	req.SetRefreshToken(session.refreshToken.Raw)
+
+	resp, err := server.AuthenticateCookie(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), resp.GetUserId())
+	require.NotNil(t, resp.GetRotated())
+	require.NotEqual(t, session.refreshToken.Raw, resp.GetRotated().GetRefreshToken())
+}
+
+func TestGatewayTicketIsSingleUse(t *testing.T) {
+	store := newFakeSessionStore()
+	tokens := newTestTokenManager(t)
+	session := createRefreshSession(t, store, tokens, 1001, 2001, time.Now().Add(time.Hour).UnixMilli())
+	tickets := newFakeGatewayTicketStore()
+	server := newTestAuthenticatorServer(t, store, tokens, new(fakeUserClient)).(*authenticatorServer)
+	server.svcCtx.GatewayTickets = tickets
+	server.svcCtx.Cfg.GatewayTickets.TTL = 30 * time.Second
+	createReq := new(authenticatorv1.CreateGatewayTicketRequest)
+	createReq.SetUserId(1001)
+	createReq.SetSessionId(2001)
+	createReq.SetAccessTokenExpiresAt(time.Now().Add(15 * time.Minute).UnixMilli())
+
+	created, err := server.CreateGatewayTicket(t.Context(), createReq)
+	require.NoError(t, err)
+	redeemReq := new(authenticatorv1.RedeemGatewayTicketRequest)
+	redeemReq.SetGatewayTicket(created.GetGatewayTicket())
+	redeemed, err := server.RedeemGatewayTicket(t.Context(), redeemReq)
+	require.NoError(t, err)
+	require.Equal(t, session.session.SessionID, redeemed.GetSessionId())
+	_, err = server.RedeemGatewayTicket(t.Context(), redeemReq)
+	require.Error(t, err)
+}
+
 func TestRefreshInvalidToken(t *testing.T) {
 	server := newTestAuthenticatorServer(t, newFakeSessionStore(), newTestTokenManager(t), new(fakeUserClient))
 
@@ -607,7 +718,7 @@ func newTestAuthenticatorServer(t *testing.T, store store.Store, tokens *token.M
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
 			Sessions: config.SessionConfig{
-				TTL: time.Hour,
+				IdleTTL: time.Hour, AbsoluteTTL: 24 * time.Hour, RotationGrace: 30 * time.Second,
 			},
 			TwoFactor: config.TwoFactorConfig{
 				Issuer: "Cordis Test", EnrollmentTTL: 10 * time.Minute, LoginChallengeTTL: 5 * time.Minute,
@@ -736,6 +847,28 @@ type fakeSessionStore struct {
 	credentials         map[int64]*model.UserCredential
 }
 
+type fakeGatewayTicketStore struct {
+	tickets map[string]gatewayticket.Ticket
+}
+
+func newFakeGatewayTicketStore() *fakeGatewayTicketStore {
+	return &fakeGatewayTicketStore{tickets: make(map[string]gatewayticket.Ticket)}
+}
+
+func (s *fakeGatewayTicketStore) Put(_ context.Context, tokenHash string, ticket gatewayticket.Ticket, _ time.Duration) error {
+	s.tickets[tokenHash] = ticket
+	return nil
+}
+
+func (s *fakeGatewayTicketStore) Redeem(_ context.Context, tokenHash string) (gatewayticket.Ticket, error) {
+	ticket, ok := s.tickets[tokenHash]
+	if !ok {
+		return gatewayticket.Ticket{}, gatewayticket.ErrNotFound
+	}
+	delete(s.tickets, tokenHash)
+	return ticket, nil
+}
+
 func newFakeSessionStore() *fakeSessionStore {
 	return &fakeSessionStore{
 		sessions:            make(map[int64]*model.Session),
@@ -754,17 +887,16 @@ func (s *fakeSessionStore) Transact(_ context.Context, fn func(store.Store) erro
 	return fn(s)
 }
 
-func (s *fakeSessionStore) CreateSession(_ context.Context, sessionID, userID int64, refreshTokenHash, userAgent, ip string, expiresAt int64) (*model.Session, error) {
+func (s *fakeSessionStore) CreateSession(_ context.Context, params store.CreateSessionParams) (*model.Session, error) {
 	session := &model.Session{
-		SessionID:        sessionID,
-		UserID:           userID,
-		RefreshTokenHash: refreshTokenHash,
-		UserAgent:        userAgent,
-		IP:               ip,
-		ExpiresAt:        expiresAt,
+		SessionID: params.SessionID, UserID: params.UserID, RefreshTokenHash: params.RefreshTokenHash,
+		RefreshTokenID: params.RefreshTokenID, RefreshTokenIssuedAt: params.RefreshTokenIssuedAt,
+		RefreshTokenExpiresAt: params.RefreshTokenExpiresAt,
+		UserAgent:             params.UserAgent, IP: params.IP, ExpiresAt: params.ExpiresAt,
+		AbsoluteExpiresAt: params.AbsoluteExpiresAt,
 	}
 	s.createdSession = session
-	s.sessions[sessionID] = session
+	s.sessions[params.SessionID] = session
 	return session, nil
 }
 
@@ -779,21 +911,28 @@ func (s *fakeSessionStore) GetSession(_ context.Context, sessionID int64) (*mode
 func (s *fakeSessionStore) ListSessions(_ context.Context, userID int64) ([]*model.Session, error) {
 	sessions := make([]*model.Session, 0)
 	for _, session := range s.sessions {
-		if session.UserID == userID && session.RevokedAt == 0 && session.ExpiresAt > time.Now().UnixMilli() {
+		if session.UserID == userID && session.RevokedAt == 0 && session.ExpiresAt > time.Now().UnixMilli() &&
+			(session.AbsoluteExpiresAt == 0 || session.AbsoluteExpiresAt > time.Now().UnixMilli()) {
 			sessions = append(sessions, session)
 		}
 	}
 	return sessions, nil
 }
 
-func (s *fakeSessionStore) RotateRefreshToken(_ context.Context, sessionID int64, oldRefreshTokenHash, newRefreshTokenHash string) error {
-	session, ok := s.sessions[sessionID]
-	if !ok || session.RefreshTokenHash != oldRefreshTokenHash {
+func (s *fakeSessionStore) RotateRefreshToken(_ context.Context, params store.RotateRefreshTokenParams) error {
+	session, ok := s.sessions[params.SessionID]
+	if !ok || session.RefreshTokenHash != params.OldRefreshTokenHash {
 		return sql.ErrNoRows
 	}
-	s.rotatedOldHash = oldRefreshTokenHash
-	s.rotatedNewHash = newRefreshTokenHash
-	session.RefreshTokenHash = newRefreshTokenHash
+	s.rotatedOldHash = params.OldRefreshTokenHash
+	s.rotatedNewHash = params.NewRefreshTokenHash
+	session.PreviousRefreshTokenHash = session.RefreshTokenHash
+	session.PreviousRefreshTokenValidUntil = params.PreviousRefreshTokenValidUntil
+	session.RefreshTokenHash = params.NewRefreshTokenHash
+	session.RefreshTokenID = params.NewRefreshTokenID
+	session.RefreshTokenIssuedAt = params.NewRefreshTokenIssuedAt
+	session.RefreshTokenExpiresAt = params.NewRefreshTokenExpiresAt
+	session.ExpiresAt = params.ExpiresAt
 	return nil
 }
 
@@ -956,10 +1095,14 @@ func createRefreshSession(t *testing.T, store *fakeSessionStore, tokens *token.M
 	require.NoError(t, err)
 
 	session := &model.Session{
-		SessionID:        sessionID,
-		UserID:           userID,
-		RefreshTokenHash: token.Hash(refreshToken.Raw),
-		ExpiresAt:        sessionExpiresAt,
+		SessionID:             sessionID,
+		UserID:                userID,
+		RefreshTokenHash:      token.Hash(refreshToken.Raw),
+		RefreshTokenID:        refreshToken.ID,
+		RefreshTokenIssuedAt:  refreshToken.IssuedAt,
+		RefreshTokenExpiresAt: refreshToken.ExpiresAt,
+		ExpiresAt:             sessionExpiresAt,
+		AbsoluteExpiresAt:     sessionExpiresAt,
 	}
 	store.sessions[sessionID] = session
 	return refreshSession{

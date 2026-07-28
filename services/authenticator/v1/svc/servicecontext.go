@@ -16,6 +16,7 @@ import (
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/authenticator/v1/config"
+	"github.com/soasurs/cordis/services/authenticator/v1/internal/gatewayticket"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/store"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/twofactor"
@@ -34,6 +35,7 @@ type ServiceContext struct {
 	RecoveryLimiter RecoveryLimiter
 	// PasswordLimiter bounds process-local Argon2 work.
 	PasswordLimiter PasswordLimiter
+	GatewayTickets  gatewayticket.Store
 }
 
 // PasswordLimiter acquires weighted permits before Argon2 work.
@@ -68,6 +70,7 @@ type Dependencies struct {
 	MailerClient    mailerv1.MailerServiceClient
 	RecoveryLimiter RecoveryLimiter
 	PasswordLimiter PasswordLimiter
+	GatewayTickets  gatewayticket.Store
 	DB              *sqlx.DB
 }
 
@@ -75,8 +78,11 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if err := validateRegistrationConfig(cfg.Registration); err != nil {
 		return Dependencies{}, err
 	}
-	if cfg.Sessions.TTL <= 0 {
-		return Dependencies{}, errors.New("session ttl must be positive")
+	if err := validateSessionConfig(cfg.Sessions); err != nil {
+		return Dependencies{}, err
+	}
+	if cfg.GatewayTickets.TTL <= 0 || cfg.GatewayTickets.Redis.Host == "" || cfg.GatewayTickets.KeyPrefix == "" {
+		return Dependencies{}, errors.New("gateway ticket redis, ttl, and key prefix are required")
 	}
 	if cfg.TwoFactor.EnrollmentTTL <= 0 || cfg.TwoFactor.LoginChallengeTTL <= 0 {
 		return Dependencies{}, errors.New("two-factor TTLs must be positive")
@@ -154,6 +160,10 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if err != nil {
 		return Dependencies{}, err
 	}
+	ticketRedis, err := redis.NewRedis(cfg.GatewayTickets.Redis)
+	if err != nil {
+		return Dependencies{}, err
+	}
 
 	db, err := database.NewPostgres(cfg.Database)
 	if err != nil {
@@ -169,6 +179,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		MailerClient:    mailerClient,
 		RecoveryLimiter: recoveryLimiter,
 		PasswordLimiter: passwordLimiter,
+		GatewayTickets:  gatewayticket.NewRedisStore(ticketRedis, cfg.GatewayTickets.KeyPrefix),
 		DB:              db,
 	}, nil
 }
@@ -185,14 +196,17 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if err := validateRegistrationConfig(cfg.Registration); err != nil {
 		panic(err)
 	}
-	if cfg.Sessions.TTL <= 0 {
-		panic("session ttl must be positive")
+	if err := validateSessionConfig(cfg.Sessions); err != nil {
+		panic(err)
 	}
 	if deps.Store == nil {
 		panic("authenticator store is required")
 	}
 	if deps.Tokens == nil {
 		panic("token manager is required")
+	}
+	if deps.GatewayTickets == nil {
+		panic("gateway ticket store is required")
 	}
 	if deps.TwoFactor == nil {
 		panic("two-factor cipher is required")
@@ -216,6 +230,20 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		MailerClient:    deps.MailerClient,
 		RecoveryLimiter: deps.RecoveryLimiter,
 		PasswordLimiter: deps.PasswordLimiter,
+		GatewayTickets:  deps.GatewayTickets,
+	}
+}
+
+func validateSessionConfig(cfg config.SessionConfig) error {
+	switch {
+	case cfg.IdleTTL <= 0:
+		return errors.New("session idle ttl must be positive")
+	case cfg.AbsoluteTTL < cfg.IdleTTL:
+		return errors.New("session absolute ttl must be at least idle ttl")
+	case cfg.RotationGrace <= 0:
+		return errors.New("session rotation grace must be positive")
+	default:
+		return nil
 	}
 }
 

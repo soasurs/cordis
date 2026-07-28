@@ -33,6 +33,15 @@ inbound:
   cpuThreshold: 900
   breaker: true
 
+browserAuth:
+  accessCookieName: cordis_access
+  refreshCookieName: cordis_refresh
+  secure: false
+  gatewayTicketMinimumAccessTTL: 30s
+  allowedOrigins:
+    - http://localhost:5173
+    - http://localhost:4173
+
 rateLimit:
   redis:
     host: 127.0.0.1:6379

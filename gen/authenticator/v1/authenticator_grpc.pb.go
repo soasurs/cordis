@@ -25,6 +25,9 @@ const (
 	AuthenticatorService_Refresh_FullMethodName                          = "/authenticator.v1.AuthenticatorService/Refresh"
 	AuthenticatorService_Logout_FullMethodName                           = "/authenticator.v1.AuthenticatorService/Logout"
 	AuthenticatorService_VerifyAccessToken_FullMethodName                = "/authenticator.v1.AuthenticatorService/VerifyAccessToken"
+	AuthenticatorService_AuthenticateCookie_FullMethodName               = "/authenticator.v1.AuthenticatorService/AuthenticateCookie"
+	AuthenticatorService_CreateGatewayTicket_FullMethodName              = "/authenticator.v1.AuthenticatorService/CreateGatewayTicket"
+	AuthenticatorService_RedeemGatewayTicket_FullMethodName              = "/authenticator.v1.AuthenticatorService/RedeemGatewayTicket"
 	AuthenticatorService_ChangePassword_FullMethodName                   = "/authenticator.v1.AuthenticatorService/ChangePassword"
 	AuthenticatorService_RequestPasswordReset_FullMethodName             = "/authenticator.v1.AuthenticatorService/RequestPasswordReset"
 	AuthenticatorService_ConfirmPasswordReset_FullMethodName             = "/authenticator.v1.AuthenticatorService/ConfirmPasswordReset"
@@ -50,6 +53,11 @@ type AuthenticatorServiceClient interface {
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
 	VerifyAccessToken(ctx context.Context, in *VerifyAccessTokenRequest, opts ...grpc.CallOption) (*VerifyAccessTokenResponse, error)
+	// AuthenticateCookie verifies a browser access token and transparently
+	// rotates the refresh token when the access token is absent or expired.
+	AuthenticateCookie(ctx context.Context, in *AuthenticateCookieRequest, opts ...grpc.CallOption) (*AuthenticateCookieResponse, error)
+	CreateGatewayTicket(ctx context.Context, in *CreateGatewayTicketRequest, opts ...grpc.CallOption) (*CreateGatewayTicketResponse, error)
+	RedeemGatewayTicket(ctx context.Context, in *RedeemGatewayTicketRequest, opts ...grpc.CallOption) (*RedeemGatewayTicketResponse, error)
 	// ChangePassword verifies the old password, replaces the credential, and
 	// revokes every session except the current one.
 	ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*ChangePasswordResponse, error)
@@ -135,6 +143,36 @@ func (c *authenticatorServiceClient) VerifyAccessToken(ctx context.Context, in *
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VerifyAccessTokenResponse)
 	err := c.cc.Invoke(ctx, AuthenticatorService_VerifyAccessToken_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) AuthenticateCookie(ctx context.Context, in *AuthenticateCookieRequest, opts ...grpc.CallOption) (*AuthenticateCookieResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthenticateCookieResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_AuthenticateCookie_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) CreateGatewayTicket(ctx context.Context, in *CreateGatewayTicketRequest, opts ...grpc.CallOption) (*CreateGatewayTicketResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateGatewayTicketResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_CreateGatewayTicket_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authenticatorServiceClient) RedeemGatewayTicket(ctx context.Context, in *RedeemGatewayTicketRequest, opts ...grpc.CallOption) (*RedeemGatewayTicketResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RedeemGatewayTicketResponse)
+	err := c.cc.Invoke(ctx, AuthenticatorService_RedeemGatewayTicket_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -281,6 +319,11 @@ type AuthenticatorServiceServer interface {
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
 	VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error)
+	// AuthenticateCookie verifies a browser access token and transparently
+	// rotates the refresh token when the access token is absent or expired.
+	AuthenticateCookie(context.Context, *AuthenticateCookieRequest) (*AuthenticateCookieResponse, error)
+	CreateGatewayTicket(context.Context, *CreateGatewayTicketRequest) (*CreateGatewayTicketResponse, error)
+	RedeemGatewayTicket(context.Context, *RedeemGatewayTicketRequest) (*RedeemGatewayTicketResponse, error)
 	// ChangePassword verifies the old password, replaces the credential, and
 	// revokes every session except the current one.
 	ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error)
@@ -328,6 +371,15 @@ func (UnimplementedAuthenticatorServiceServer) Logout(context.Context, *LogoutRe
 }
 func (UnimplementedAuthenticatorServiceServer) VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyAccessToken not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) AuthenticateCookie(context.Context, *AuthenticateCookieRequest) (*AuthenticateCookieResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AuthenticateCookie not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) CreateGatewayTicket(context.Context, *CreateGatewayTicketRequest) (*CreateGatewayTicketResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateGatewayTicket not implemented")
+}
+func (UnimplementedAuthenticatorServiceServer) RedeemGatewayTicket(context.Context, *RedeemGatewayTicketRequest) (*RedeemGatewayTicketResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RedeemGatewayTicket not implemented")
 }
 func (UnimplementedAuthenticatorServiceServer) ChangePassword(context.Context, *ChangePasswordRequest) (*ChangePasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ChangePassword not implemented")
@@ -492,6 +544,60 @@ func _AuthenticatorService_VerifyAccessToken_Handler(srv interface{}, ctx contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthenticatorServiceServer).VerifyAccessToken(ctx, req.(*VerifyAccessTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_AuthenticateCookie_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthenticateCookieRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).AuthenticateCookie(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_AuthenticateCookie_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).AuthenticateCookie(ctx, req.(*AuthenticateCookieRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_CreateGatewayTicket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateGatewayTicketRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).CreateGatewayTicket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_CreateGatewayTicket_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).CreateGatewayTicket(ctx, req.(*CreateGatewayTicketRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthenticatorService_RedeemGatewayTicket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RedeemGatewayTicketRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthenticatorServiceServer).RedeemGatewayTicket(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthenticatorService_RedeemGatewayTicket_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthenticatorServiceServer).RedeemGatewayTicket(ctx, req.(*RedeemGatewayTicketRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -760,6 +866,18 @@ var AuthenticatorService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyAccessToken",
 			Handler:    _AuthenticatorService_VerifyAccessToken_Handler,
+		},
+		{
+			MethodName: "AuthenticateCookie",
+			Handler:    _AuthenticatorService_AuthenticateCookie_Handler,
+		},
+		{
+			MethodName: "CreateGatewayTicket",
+			Handler:    _AuthenticatorService_CreateGatewayTicket_Handler,
+		},
+		{
+			MethodName: "RedeemGatewayTicket",
+			Handler:    _AuthenticatorService_RedeemGatewayTicket_Handler,
 		},
 		{
 			MethodName: "ChangePassword",

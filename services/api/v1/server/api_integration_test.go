@@ -41,6 +41,7 @@ func TestAPIIntegration(t *testing.T) {
 	t.Setenv("CORDIS_TOTP_ENCRYPTION_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
 
 	postgres := testkit.StartPostgres(t)
+	redis := testkit.StartRedis(t)
 	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -51,7 +52,7 @@ func TestAPIIntegration(t *testing.T) {
 
 	userAddr := startUser(t, postgres.DSN)
 	mailerAddr := startMailer(t)
-	authAddr := startAuthenticator(t, postgres.DSN, userAddr, mailerAddr)
+	authAddr := startAuthenticator(t, postgres.DSN, redis.Address, userAddr, mailerAddr)
 	guildAddr := startGuild(t, postgres.DSN, userAddr)
 	messageAddr := startMessage(t, postgres.DSN, guildAddr, userAddr)
 
@@ -542,7 +543,7 @@ services:
 	return addr
 }
 
-func startAuthenticator(t *testing.T, dsn, userAddr, mailerAddr string) string {
+func startAuthenticator(t *testing.T, dsn, redisAddr, userAddr, mailerAddr string) string {
 	t.Helper()
 	addr := testkit.FreeAddress(t)
 	binary := testkit.BuildService(t, "github.com/soasurs/cordis/services/authenticator/v1")
@@ -564,7 +565,15 @@ tokens:
     secret: ${CORDIS_REFRESH_TOKEN_SECRET}
     ttl: 720h
 sessions:
-  ttl: 720h
+  idleTTL: 720h
+  absoluteTTL: 4320h
+  rotationGrace: 30s
+gatewayTickets:
+  ttl: 30s
+  keyPrefix: "cordis:test:gateway_ticket:"
+  redis:
+    host: %s
+    type: node
 twoFactor:
   issuer: Cordis
   enrollmentTTL: 10m
@@ -583,7 +592,7 @@ services:
   mailer:
     endpoints:
       - %s
-`, addr, dsn, userAddr, mailerAddr))
+`, addr, dsn, redisAddr, userAddr, mailerAddr))
 	return addr
 }
 

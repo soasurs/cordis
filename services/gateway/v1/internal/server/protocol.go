@@ -28,16 +28,18 @@ type helloData struct {
 }
 
 type identifyData struct {
-	Token       string `json:"token"`
-	DeviceType  string `json:"device_type,omitempty"`
-	Status      string `json:"status,omitempty"`
-	ClientState string `json:"client_state,omitempty"`
+	Token         string `json:"token,omitempty"`
+	GatewayTicket string `json:"gateway_ticket,omitempty"`
+	DeviceType    string `json:"device_type,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ClientState   string `json:"client_state,omitempty"`
 }
 
 type resumeData struct {
-	Token     string `json:"token"`
-	SessionID string `json:"session_id"`
-	Sequence  uint64 `json:"seq"`
+	Token         string `json:"token,omitempty"`
+	GatewayTicket string `json:"gateway_ticket,omitempty"`
+	SessionID     string `json:"session_id"`
+	Sequence      uint64 `json:"seq"`
 }
 
 type presenceData struct {

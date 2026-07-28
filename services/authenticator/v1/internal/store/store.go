@@ -11,10 +11,10 @@ import (
 
 type Store interface {
 	Transact(ctx context.Context, fn func(Store) error) error
-	CreateSession(ctx context.Context, sessionID, userID int64, refreshTokenHash, userAgent, ip string, expiresAt int64) (*model.Session, error)
+	CreateSession(ctx context.Context, params CreateSessionParams) (*model.Session, error)
 	GetSession(ctx context.Context, sessionID int64) (*model.Session, error)
 	ListSessions(ctx context.Context, userID int64) ([]*model.Session, error)
-	RotateRefreshToken(ctx context.Context, sessionID int64, oldRefreshTokenHash, newRefreshTokenHash string) error
+	RotateRefreshToken(ctx context.Context, params RotateRefreshTokenParams) error
 	RevokeSession(ctx context.Context, sessionID int64) error
 	RevokeUserSession(ctx context.Context, userID, sessionID int64) error
 	RevokeOtherSessions(ctx context.Context, userID, currentSessionID int64) (int64, error)
@@ -48,6 +48,30 @@ type Store interface {
 	CreateUserCredential(ctx context.Context, credential *model.UserCredential) error
 	GetUserCredential(ctx context.Context, userID int64, forUpdate bool) (*model.UserCredential, error)
 	UpdateUserCredential(ctx context.Context, userID int64, hashedPassword string, updatedAt int64) error
+}
+
+type CreateSessionParams struct {
+	SessionID             int64
+	UserID                int64
+	RefreshTokenHash      string
+	RefreshTokenID        string
+	RefreshTokenIssuedAt  int64
+	RefreshTokenExpiresAt int64
+	UserAgent             string
+	IP                    string
+	ExpiresAt             int64
+	AbsoluteExpiresAt     int64
+}
+
+type RotateRefreshTokenParams struct {
+	SessionID                      int64
+	OldRefreshTokenHash            string
+	NewRefreshTokenHash            string
+	NewRefreshTokenID              string
+	NewRefreshTokenIssuedAt        int64
+	NewRefreshTokenExpiresAt       int64
+	ExpiresAt                      int64
+	PreviousRefreshTokenValidUntil int64
 }
 
 type SQLStore struct {

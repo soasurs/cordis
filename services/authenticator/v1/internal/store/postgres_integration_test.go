@@ -42,12 +42,23 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("user credentials", func(t *testing.T) { testUserCredentials(t, store) })
 }
 
+func testSessionParams(sessionID, userID int64, refreshHash string, expiresAt int64) CreateSessionParams {
+	return CreateSessionParams{
+		SessionID: sessionID, UserID: userID, RefreshTokenHash: refreshHash,
+		RefreshTokenID: "id-" + refreshHash, RefreshTokenIssuedAt: time.Now().UnixMilli(),
+		RefreshTokenExpiresAt: expiresAt, ExpiresAt: expiresAt,
+		AbsoluteExpiresAt: max(expiresAt, time.Now().Add(time.Hour).UnixMilli()),
+	}
+}
+
 func testSessionLifecycle(t *testing.T, store Store) {
 	const userID = int64(2001)
 	ctx := t.Context()
 	expiresAt := time.Now().Add(time.Hour).UnixMilli()
 
-	created, err := store.CreateSession(ctx, 1001, userID, "refresh-a", "Cordis", "127.0.0.1", expiresAt)
+	params := testSessionParams(1001, userID, "refresh-a", expiresAt)
+	params.UserAgent, params.IP = "Cordis", "127.0.0.1"
+	created, err := store.CreateSession(ctx, params)
 	require.NoError(t, err)
 	require.Equal(t, userID, created.UserID)
 	require.True(t, created.CreatedAt > 0)
@@ -59,16 +70,22 @@ func testSessionLifecycle(t *testing.T, store Store) {
 	_, err = store.GetSession(ctx, 9999)
 	require.ErrorIs(t, err, sql.ErrNoRows)
 
-	require.ErrorIs(t, store.RotateRefreshToken(ctx, created.SessionID, "wrong-old", "refresh-b"), sql.ErrNoRows)
-	require.NoError(t, store.RotateRefreshToken(ctx, created.SessionID, "refresh-a", "refresh-b"))
+	rotation := RotateRefreshTokenParams{SessionID: created.SessionID, OldRefreshTokenHash: "wrong-old", NewRefreshTokenHash: "refresh-b", NewRefreshTokenID: "id-b", NewRefreshTokenIssuedAt: time.Now().UnixMilli(), NewRefreshTokenExpiresAt: expiresAt, ExpiresAt: expiresAt, PreviousRefreshTokenValidUntil: time.Now().Add(30 * time.Second).UnixMilli()}
+	require.ErrorIs(t, store.RotateRefreshToken(ctx, rotation), sql.ErrNoRows)
+	rotation.OldRefreshTokenHash = "refresh-a"
+	require.NoError(t, store.RotateRefreshToken(ctx, rotation))
 	loaded, err = store.GetSession(ctx, created.SessionID)
 	require.NoError(t, err)
 	require.Equal(t, "refresh-b", loaded.RefreshTokenHash)
 	require.True(t, loaded.UpdatedAt > 0)
 
-	_, err = store.CreateSession(ctx, 1002, userID, "refresh-c", "", "", expiresAt)
+	_, err = store.CreateSession(ctx, testSessionParams(1002, userID, "refresh-c", expiresAt))
 	require.NoError(t, err)
-	_, err = store.CreateSession(ctx, 1003, userID, "refresh-expired", "", "", time.Now().Add(-time.Hour).UnixMilli())
+	_, err = store.CreateSession(ctx, testSessionParams(1003, userID, "refresh-expired", time.Now().Add(-time.Hour).UnixMilli()))
+	require.NoError(t, err)
+	absoluteExpired := testSessionParams(1004, userID, "refresh-absolute-expired", expiresAt)
+	absoluteExpired.AbsoluteExpiresAt = time.Now().Add(-time.Hour).UnixMilli()
+	_, err = store.CreateSession(ctx, absoluteExpired)
 	require.NoError(t, err)
 
 	sessions, err := store.ListSessions(ctx, userID)
@@ -81,7 +98,7 @@ func testSessionRevocation(t *testing.T, store Store) {
 	ctx := t.Context()
 	expiresAt := time.Now().Add(time.Hour).UnixMilli()
 	for _, sessionID := range []int64{2001, 2002, 2003} {
-		_, err := store.CreateSession(ctx, sessionID, userID, "revoke-refresh-"+string(rune('a'+sessionID%10)), "", "", expiresAt)
+		_, err := store.CreateSession(ctx, testSessionParams(sessionID, userID, "revoke-refresh-"+string(rune('a'+sessionID%10)), expiresAt))
 		require.NoError(t, err)
 	}
 
@@ -98,7 +115,7 @@ func testSessionRevocation(t *testing.T, store Store) {
 	require.ElementsMatch(t, []int64{2003}, sessionIDs(sessions))
 
 	const currentSessionID = int64(2004)
-	_, err = store.CreateSession(ctx, currentSessionID, userID, "revoke-refresh-current", "", "", expiresAt)
+	_, err = store.CreateSession(ctx, testSessionParams(currentSessionID, userID, "revoke-refresh-current", expiresAt))
 	require.NoError(t, err)
 	affected, err := store.RevokeOtherSessions(ctx, userID, currentSessionID)
 	require.NoError(t, err)
@@ -259,7 +276,7 @@ func testTransactRollback(t *testing.T, store Store) {
 	expiresAt := time.Now().Add(time.Hour).UnixMilli()
 
 	err := store.Transact(ctx, func(tx Store) error {
-		if _, err := tx.CreateSession(ctx, 8101, userID, "rollback-refresh", "", "", expiresAt); err != nil {
+		if _, err := tx.CreateSession(ctx, testSessionParams(8101, userID, "rollback-refresh", expiresAt)); err != nil {
 			return err
 		}
 		return errors.New("force rollback")
@@ -275,9 +292,9 @@ func testConstraintEnforcement(t *testing.T, store Store) {
 	now := time.Now().UnixMilli()
 	expiresAt := time.Now().Add(time.Hour).UnixMilli()
 
-	_, err := store.CreateSession(ctx, 9101, userID, "unique-refresh", "", "", expiresAt)
+	_, err := store.CreateSession(ctx, testSessionParams(9101, userID, "unique-refresh", expiresAt))
 	require.NoError(t, err)
-	_, err = store.CreateSession(ctx, 9102, userID, "unique-refresh", "", "", expiresAt)
+	_, err = store.CreateSession(ctx, testSessionParams(9102, userID, "unique-refresh", expiresAt))
 	requireUniqueViolation(t, err)
 
 	require.NoError(t, store.CreateTwoFactorLoginChallenge(ctx, &model.TwoFactorLoginChallenge{

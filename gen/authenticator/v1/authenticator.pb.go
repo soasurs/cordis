@@ -21,19 +21,20 @@ const (
 )
 
 type Session struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SessionId   int64                  `protobuf:"varint,1,opt,name=session_id,json=sessionId"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
-	xxx_hidden_CreatedAt   int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt   int64                  `protobuf:"varint,4,opt,name=updated_at,json=updatedAt"`
-	xxx_hidden_ExpiresAt   int64                  `protobuf:"varint,5,opt,name=expires_at,json=expiresAt"`
-	xxx_hidden_RevokedAt   int64                  `protobuf:"varint,6,opt,name=revoked_at,json=revokedAt"`
-	xxx_hidden_UserAgent   *string                `protobuf:"bytes,7,opt,name=user_agent,json=userAgent"`
-	xxx_hidden_Ip          *string                `protobuf:"bytes,8,opt,name=ip"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SessionId         int64                  `protobuf:"varint,1,opt,name=session_id,json=sessionId"`
+	xxx_hidden_UserId            int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_CreatedAt         int64                  `protobuf:"varint,3,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt         int64                  `protobuf:"varint,4,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_ExpiresAt         int64                  `protobuf:"varint,5,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_RevokedAt         int64                  `protobuf:"varint,6,opt,name=revoked_at,json=revokedAt"`
+	xxx_hidden_UserAgent         *string                `protobuf:"bytes,7,opt,name=user_agent,json=userAgent"`
+	xxx_hidden_Ip                *string                `protobuf:"bytes,8,opt,name=ip"`
+	xxx_hidden_AbsoluteExpiresAt int64                  `protobuf:"varint,9,opt,name=absolute_expires_at,json=absoluteExpiresAt"`
+	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
+	XXX_presence                 [1]uint32
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *Session) Reset() {
@@ -123,44 +124,56 @@ func (x *Session) GetIp() string {
 	return ""
 }
 
+func (x *Session) GetAbsoluteExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_AbsoluteExpiresAt
+	}
+	return 0
+}
+
 func (x *Session) SetSessionId(v int64) {
 	x.xxx_hidden_SessionId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
 }
 
 func (x *Session) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
 func (x *Session) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
 func (x *Session) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
 func (x *Session) SetExpiresAt(v int64) {
 	x.xxx_hidden_ExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
 }
 
 func (x *Session) SetRevokedAt(v int64) {
 	x.xxx_hidden_RevokedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
 }
 
 func (x *Session) SetUserAgent(v string) {
 	x.xxx_hidden_UserAgent = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
 }
 
 func (x *Session) SetIp(v string) {
 	x.xxx_hidden_Ip = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *Session) SetAbsoluteExpiresAt(v int64) {
+	x.xxx_hidden_AbsoluteExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
 }
 
 func (x *Session) HasSessionId() bool {
@@ -219,6 +232,13 @@ func (x *Session) HasIp() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
+func (x *Session) HasAbsoluteExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
 func (x *Session) ClearSessionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_SessionId = 0
@@ -259,17 +279,23 @@ func (x *Session) ClearIp() {
 	x.xxx_hidden_Ip = nil
 }
 
+func (x *Session) ClearAbsoluteExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_AbsoluteExpiresAt = 0
+}
+
 type Session_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	SessionId *int64
-	UserId    *int64
-	CreatedAt *int64
-	UpdatedAt *int64
-	ExpiresAt *int64
-	RevokedAt *int64
-	UserAgent *string
-	Ip        *string
+	SessionId         *int64
+	UserId            *int64
+	CreatedAt         *int64
+	UpdatedAt         *int64
+	ExpiresAt         *int64
+	RevokedAt         *int64
+	UserAgent         *string
+	Ip                *string
+	AbsoluteExpiresAt *int64
 }
 
 func (b0 Session_builder) Build() *Session {
@@ -277,36 +303,40 @@ func (b0 Session_builder) Build() *Session {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.SessionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
 		x.xxx_hidden_SessionId = *b.SessionId
 	}
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
 	if b.ExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
 		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
 	}
 	if b.RevokedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
 		x.xxx_hidden_RevokedAt = *b.RevokedAt
 	}
 	if b.UserAgent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
 		x.xxx_hidden_UserAgent = b.UserAgent
 	}
 	if b.Ip != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
 		x.xxx_hidden_Ip = b.Ip
+	}
+	if b.AbsoluteExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		x.xxx_hidden_AbsoluteExpiresAt = *b.AbsoluteExpiresAt
 	}
 	return m0
 }
@@ -1300,19 +1330,20 @@ func (b0 CompleteTwoFactorLoginResponse_builder) Build() *CompleteTwoFactorLogin
 }
 
 type AuthenticationResult struct {
-	state                            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ok                    bool                   `protobuf:"varint,1,opt,name=ok"`
-	xxx_hidden_UserId                int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
-	xxx_hidden_SessionId             int64                  `protobuf:"varint,3,opt,name=session_id,json=sessionId"`
-	xxx_hidden_AccessToken           *string                `protobuf:"bytes,4,opt,name=access_token,json=accessToken"`
-	xxx_hidden_AccessTokenExpiresAt  int64                  `protobuf:"varint,5,opt,name=access_token_expires_at,json=accessTokenExpiresAt"`
-	xxx_hidden_RefreshToken          *string                `protobuf:"bytes,6,opt,name=refresh_token,json=refreshToken"`
-	xxx_hidden_RefreshTokenExpiresAt int64                  `protobuf:"varint,7,opt,name=refresh_token_expires_at,json=refreshTokenExpiresAt"`
-	xxx_hidden_SessionExpiresAt      int64                  `protobuf:"varint,8,opt,name=session_expires_at,json=sessionExpiresAt"`
-	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
-	XXX_presence                     [1]uint32
-	unknownFields                    protoimpl.UnknownFields
-	sizeCache                        protoimpl.SizeCache
+	state                               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok                       bool                   `protobuf:"varint,1,opt,name=ok"`
+	xxx_hidden_UserId                   int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId                int64                  `protobuf:"varint,3,opt,name=session_id,json=sessionId"`
+	xxx_hidden_AccessToken              *string                `protobuf:"bytes,4,opt,name=access_token,json=accessToken"`
+	xxx_hidden_AccessTokenExpiresAt     int64                  `protobuf:"varint,5,opt,name=access_token_expires_at,json=accessTokenExpiresAt"`
+	xxx_hidden_RefreshToken             *string                `protobuf:"bytes,6,opt,name=refresh_token,json=refreshToken"`
+	xxx_hidden_RefreshTokenExpiresAt    int64                  `protobuf:"varint,7,opt,name=refresh_token_expires_at,json=refreshTokenExpiresAt"`
+	xxx_hidden_SessionExpiresAt         int64                  `protobuf:"varint,8,opt,name=session_expires_at,json=sessionExpiresAt"`
+	xxx_hidden_AbsoluteSessionExpiresAt int64                  `protobuf:"varint,9,opt,name=absolute_session_expires_at,json=absoluteSessionExpiresAt"`
+	XXX_raceDetectHookData              protoimpl.RaceDetectHookData
+	XXX_presence                        [1]uint32
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *AuthenticationResult) Reset() {
@@ -1402,44 +1433,56 @@ func (x *AuthenticationResult) GetSessionExpiresAt() int64 {
 	return 0
 }
 
+func (x *AuthenticationResult) GetAbsoluteSessionExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_AbsoluteSessionExpiresAt
+	}
+	return 0
+}
+
 func (x *AuthenticationResult) SetOk(v bool) {
 	x.xxx_hidden_Ok = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
 }
 
 func (x *AuthenticationResult) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
 func (x *AuthenticationResult) SetSessionId(v int64) {
 	x.xxx_hidden_SessionId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
 func (x *AuthenticationResult) SetAccessToken(v string) {
 	x.xxx_hidden_AccessToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
 func (x *AuthenticationResult) SetAccessTokenExpiresAt(v int64) {
 	x.xxx_hidden_AccessTokenExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
 }
 
 func (x *AuthenticationResult) SetRefreshToken(v string) {
 	x.xxx_hidden_RefreshToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
 }
 
 func (x *AuthenticationResult) SetRefreshTokenExpiresAt(v int64) {
 	x.xxx_hidden_RefreshTokenExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
 }
 
 func (x *AuthenticationResult) SetSessionExpiresAt(v int64) {
 	x.xxx_hidden_SessionExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *AuthenticationResult) SetAbsoluteSessionExpiresAt(v int64) {
+	x.xxx_hidden_AbsoluteSessionExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
 }
 
 func (x *AuthenticationResult) HasOk() bool {
@@ -1498,6 +1541,13 @@ func (x *AuthenticationResult) HasSessionExpiresAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
+func (x *AuthenticationResult) HasAbsoluteSessionExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
 func (x *AuthenticationResult) ClearOk() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Ok = false
@@ -1538,17 +1588,23 @@ func (x *AuthenticationResult) ClearSessionExpiresAt() {
 	x.xxx_hidden_SessionExpiresAt = 0
 }
 
+func (x *AuthenticationResult) ClearAbsoluteSessionExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_AbsoluteSessionExpiresAt = 0
+}
+
 type AuthenticationResult_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ok                    *bool
-	UserId                *int64
-	SessionId             *int64
-	AccessToken           *string
-	AccessTokenExpiresAt  *int64
-	RefreshToken          *string
-	RefreshTokenExpiresAt *int64
-	SessionExpiresAt      *int64
+	Ok                       *bool
+	UserId                   *int64
+	SessionId                *int64
+	AccessToken              *string
+	AccessTokenExpiresAt     *int64
+	RefreshToken             *string
+	RefreshTokenExpiresAt    *int64
+	SessionExpiresAt         *int64
+	AbsoluteSessionExpiresAt *int64
 }
 
 func (b0 AuthenticationResult_builder) Build() *AuthenticationResult {
@@ -1556,36 +1612,40 @@ func (b0 AuthenticationResult_builder) Build() *AuthenticationResult {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Ok != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
 		x.xxx_hidden_Ok = *b.Ok
 	}
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.SessionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
 		x.xxx_hidden_SessionId = *b.SessionId
 	}
 	if b.AccessToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_AccessToken = b.AccessToken
 	}
 	if b.AccessTokenExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
 		x.xxx_hidden_AccessTokenExpiresAt = *b.AccessTokenExpiresAt
 	}
 	if b.RefreshToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
 		x.xxx_hidden_RefreshToken = b.RefreshToken
 	}
 	if b.RefreshTokenExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
 		x.xxx_hidden_RefreshTokenExpiresAt = *b.RefreshTokenExpiresAt
 	}
 	if b.SessionExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
 		x.xxx_hidden_SessionExpiresAt = *b.SessionExpiresAt
+	}
+	if b.AbsoluteSessionExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		x.xxx_hidden_AbsoluteSessionExpiresAt = *b.AbsoluteSessionExpiresAt
 	}
 	return m0
 }
@@ -2132,6 +2192,823 @@ func (b0 VerifyAccessTokenResponse_builder) Build() *VerifyAccessTokenResponse {
 	return m0
 }
 
+type AuthenticateCookieRequest struct {
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_AccessToken        *string                `protobuf:"bytes,1,opt,name=access_token,json=accessToken"`
+	xxx_hidden_RefreshToken       *string                `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken"`
+	xxx_hidden_MinimumAccessTtlMs int64                  `protobuf:"varint,3,opt,name=minimum_access_ttl_ms,json=minimumAccessTtlMs"`
+	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
+	XXX_presence                  [1]uint32
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
+}
+
+func (x *AuthenticateCookieRequest) Reset() {
+	*x = AuthenticateCookieRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthenticateCookieRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthenticateCookieRequest) ProtoMessage() {}
+
+func (x *AuthenticateCookieRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AuthenticateCookieRequest) GetAccessToken() string {
+	if x != nil {
+		if x.xxx_hidden_AccessToken != nil {
+			return *x.xxx_hidden_AccessToken
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AuthenticateCookieRequest) GetRefreshToken() string {
+	if x != nil {
+		if x.xxx_hidden_RefreshToken != nil {
+			return *x.xxx_hidden_RefreshToken
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AuthenticateCookieRequest) GetMinimumAccessTtlMs() int64 {
+	if x != nil {
+		return x.xxx_hidden_MinimumAccessTtlMs
+	}
+	return 0
+}
+
+func (x *AuthenticateCookieRequest) SetAccessToken(v string) {
+	x.xxx_hidden_AccessToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *AuthenticateCookieRequest) SetRefreshToken(v string) {
+	x.xxx_hidden_RefreshToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *AuthenticateCookieRequest) SetMinimumAccessTtlMs(v int64) {
+	x.xxx_hidden_MinimumAccessTtlMs = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *AuthenticateCookieRequest) HasAccessToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AuthenticateCookieRequest) HasRefreshToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AuthenticateCookieRequest) HasMinimumAccessTtlMs() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AuthenticateCookieRequest) ClearAccessToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_AccessToken = nil
+}
+
+func (x *AuthenticateCookieRequest) ClearRefreshToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_RefreshToken = nil
+}
+
+func (x *AuthenticateCookieRequest) ClearMinimumAccessTtlMs() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_MinimumAccessTtlMs = 0
+}
+
+type AuthenticateCookieRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	AccessToken        *string
+	RefreshToken       *string
+	MinimumAccessTtlMs *int64
+}
+
+func (b0 AuthenticateCookieRequest_builder) Build() *AuthenticateCookieRequest {
+	m0 := &AuthenticateCookieRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.AccessToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_AccessToken = b.AccessToken
+	}
+	if b.RefreshToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_RefreshToken = b.RefreshToken
+	}
+	if b.MinimumAccessTtlMs != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_MinimumAccessTtlMs = *b.MinimumAccessTtlMs
+	}
+	return m0
+}
+
+type AuthenticateCookieResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
+	xxx_hidden_UserId      int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId   int64                  `protobuf:"varint,3,opt,name=session_id,json=sessionId"`
+	xxx_hidden_ExpiresAt   int64                  `protobuf:"varint,4,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_Rotated     *AuthenticationResult  `protobuf:"bytes,5,opt,name=rotated"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *AuthenticateCookieResponse) Reset() {
+	*x = AuthenticateCookieResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthenticateCookieResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthenticateCookieResponse) ProtoMessage() {}
+
+func (x *AuthenticateCookieResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AuthenticateCookieResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *AuthenticateCookieResponse) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *AuthenticateCookieResponse) GetSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_SessionId
+	}
+	return 0
+}
+
+func (x *AuthenticateCookieResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *AuthenticateCookieResponse) GetRotated() *AuthenticationResult {
+	if x != nil {
+		return x.xxx_hidden_Rotated
+	}
+	return nil
+}
+
+func (x *AuthenticateCookieResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *AuthenticateCookieResponse) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *AuthenticateCookieResponse) SetSessionId(v int64) {
+	x.xxx_hidden_SessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *AuthenticateCookieResponse) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *AuthenticateCookieResponse) SetRotated(v *AuthenticationResult) {
+	x.xxx_hidden_Rotated = v
+}
+
+func (x *AuthenticateCookieResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AuthenticateCookieResponse) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *AuthenticateCookieResponse) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AuthenticateCookieResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *AuthenticateCookieResponse) HasRotated() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Rotated != nil
+}
+
+func (x *AuthenticateCookieResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+func (x *AuthenticateCookieResponse) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *AuthenticateCookieResponse) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_SessionId = 0
+}
+
+func (x *AuthenticateCookieResponse) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+func (x *AuthenticateCookieResponse) ClearRotated() {
+	x.xxx_hidden_Rotated = nil
+}
+
+type AuthenticateCookieResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok        *bool
+	UserId    *int64
+	SessionId *int64
+	ExpiresAt *int64
+	Rotated   *AuthenticationResult
+}
+
+func (b0 AuthenticateCookieResponse_builder) Build() *AuthenticateCookieResponse {
+	m0 := &AuthenticateCookieResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_SessionId = *b.SessionId
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	x.xxx_hidden_Rotated = b.Rotated
+	return m0
+}
+
+type CreateGatewayTicketRequest struct {
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId               int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId            int64                  `protobuf:"varint,2,opt,name=session_id,json=sessionId"`
+	xxx_hidden_AccessTokenExpiresAt int64                  `protobuf:"varint,3,opt,name=access_token_expires_at,json=accessTokenExpiresAt"`
+	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
+	XXX_presence                    [1]uint32
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
+}
+
+func (x *CreateGatewayTicketRequest) Reset() {
+	*x = CreateGatewayTicketRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateGatewayTicketRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateGatewayTicketRequest) ProtoMessage() {}
+
+func (x *CreateGatewayTicketRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateGatewayTicketRequest) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *CreateGatewayTicketRequest) GetSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_SessionId
+	}
+	return 0
+}
+
+func (x *CreateGatewayTicketRequest) GetAccessTokenExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_AccessTokenExpiresAt
+	}
+	return 0
+}
+
+func (x *CreateGatewayTicketRequest) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CreateGatewayTicketRequest) SetSessionId(v int64) {
+	x.xxx_hidden_SessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateGatewayTicketRequest) SetAccessTokenExpiresAt(v int64) {
+	x.xxx_hidden_AccessTokenExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *CreateGatewayTicketRequest) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGatewayTicketRequest) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGatewayTicketRequest) HasAccessTokenExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *CreateGatewayTicketRequest) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *CreateGatewayTicketRequest) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SessionId = 0
+}
+
+func (x *CreateGatewayTicketRequest) ClearAccessTokenExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_AccessTokenExpiresAt = 0
+}
+
+type CreateGatewayTicketRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	UserId               *int64
+	SessionId            *int64
+	AccessTokenExpiresAt *int64
+}
+
+func (b0 CreateGatewayTicketRequest_builder) Build() *CreateGatewayTicketRequest {
+	m0 := &CreateGatewayTicketRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_SessionId = *b.SessionId
+	}
+	if b.AccessTokenExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_AccessTokenExpiresAt = *b.AccessTokenExpiresAt
+	}
+	return m0
+}
+
+type CreateGatewayTicketResponse struct {
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GatewayTicket *string                `protobuf:"bytes,1,opt,name=gateway_ticket,json=gatewayTicket"`
+	xxx_hidden_ExpiresAt     int64                  `protobuf:"varint,2,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *CreateGatewayTicketResponse) Reset() {
+	*x = CreateGatewayTicketResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateGatewayTicketResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateGatewayTicketResponse) ProtoMessage() {}
+
+func (x *CreateGatewayTicketResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateGatewayTicketResponse) GetGatewayTicket() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayTicket != nil {
+			return *x.xxx_hidden_GatewayTicket
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateGatewayTicketResponse) GetExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return 0
+}
+
+func (x *CreateGatewayTicketResponse) SetGatewayTicket(v string) {
+	x.xxx_hidden_GatewayTicket = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *CreateGatewayTicketResponse) SetExpiresAt(v int64) {
+	x.xxx_hidden_ExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *CreateGatewayTicketResponse) HasGatewayTicket() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateGatewayTicketResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateGatewayTicketResponse) ClearGatewayTicket() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GatewayTicket = nil
+}
+
+func (x *CreateGatewayTicketResponse) ClearExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ExpiresAt = 0
+}
+
+type CreateGatewayTicketResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GatewayTicket *string
+	ExpiresAt     *int64
+}
+
+func (b0 CreateGatewayTicketResponse_builder) Build() *CreateGatewayTicketResponse {
+	m0 := &CreateGatewayTicketResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GatewayTicket != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_GatewayTicket = b.GatewayTicket
+	}
+	if b.ExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
+	}
+	return m0
+}
+
+type RedeemGatewayTicketRequest struct {
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GatewayTicket *string                `protobuf:"bytes,1,opt,name=gateway_ticket,json=gatewayTicket"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *RedeemGatewayTicketRequest) Reset() {
+	*x = RedeemGatewayTicketRequest{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RedeemGatewayTicketRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RedeemGatewayTicketRequest) ProtoMessage() {}
+
+func (x *RedeemGatewayTicketRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RedeemGatewayTicketRequest) GetGatewayTicket() string {
+	if x != nil {
+		if x.xxx_hidden_GatewayTicket != nil {
+			return *x.xxx_hidden_GatewayTicket
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RedeemGatewayTicketRequest) SetGatewayTicket(v string) {
+	x.xxx_hidden_GatewayTicket = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *RedeemGatewayTicketRequest) HasGatewayTicket() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RedeemGatewayTicketRequest) ClearGatewayTicket() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GatewayTicket = nil
+}
+
+type RedeemGatewayTicketRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GatewayTicket *string
+}
+
+func (b0 RedeemGatewayTicketRequest_builder) Build() *RedeemGatewayTicketRequest {
+	m0 := &RedeemGatewayTicketRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GatewayTicket != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_GatewayTicket = b.GatewayTicket
+	}
+	return m0
+}
+
+type RedeemGatewayTicketResponse struct {
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok                   bool                   `protobuf:"varint,1,opt,name=ok"`
+	xxx_hidden_UserId               int64                  `protobuf:"varint,2,opt,name=user_id,json=userId"`
+	xxx_hidden_SessionId            int64                  `protobuf:"varint,3,opt,name=session_id,json=sessionId"`
+	xxx_hidden_AccessTokenExpiresAt int64                  `protobuf:"varint,4,opt,name=access_token_expires_at,json=accessTokenExpiresAt"`
+	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
+	XXX_presence                    [1]uint32
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
+}
+
+func (x *RedeemGatewayTicketResponse) Reset() {
+	*x = RedeemGatewayTicketResponse{}
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RedeemGatewayTicketResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RedeemGatewayTicketResponse) ProtoMessage() {}
+
+func (x *RedeemGatewayTicketResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *RedeemGatewayTicketResponse) GetOk() bool {
+	if x != nil {
+		return x.xxx_hidden_Ok
+	}
+	return false
+}
+
+func (x *RedeemGatewayTicketResponse) GetUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_UserId
+	}
+	return 0
+}
+
+func (x *RedeemGatewayTicketResponse) GetSessionId() int64 {
+	if x != nil {
+		return x.xxx_hidden_SessionId
+	}
+	return 0
+}
+
+func (x *RedeemGatewayTicketResponse) GetAccessTokenExpiresAt() int64 {
+	if x != nil {
+		return x.xxx_hidden_AccessTokenExpiresAt
+	}
+	return 0
+}
+
+func (x *RedeemGatewayTicketResponse) SetOk(v bool) {
+	x.xxx_hidden_Ok = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *RedeemGatewayTicketResponse) SetUserId(v int64) {
+	x.xxx_hidden_UserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *RedeemGatewayTicketResponse) SetSessionId(v int64) {
+	x.xxx_hidden_SessionId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *RedeemGatewayTicketResponse) SetAccessTokenExpiresAt(v int64) {
+	x.xxx_hidden_AccessTokenExpiresAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *RedeemGatewayTicketResponse) HasOk() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *RedeemGatewayTicketResponse) HasUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *RedeemGatewayTicketResponse) HasSessionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *RedeemGatewayTicketResponse) HasAccessTokenExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *RedeemGatewayTicketResponse) ClearOk() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Ok = false
+}
+
+func (x *RedeemGatewayTicketResponse) ClearUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_UserId = 0
+}
+
+func (x *RedeemGatewayTicketResponse) ClearSessionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_SessionId = 0
+}
+
+func (x *RedeemGatewayTicketResponse) ClearAccessTokenExpiresAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_AccessTokenExpiresAt = 0
+}
+
+type RedeemGatewayTicketResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Ok                   *bool
+	UserId               *int64
+	SessionId            *int64
+	AccessTokenExpiresAt *int64
+}
+
+func (b0 RedeemGatewayTicketResponse_builder) Build() *RedeemGatewayTicketResponse {
+	m0 := &RedeemGatewayTicketResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Ok != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_Ok = *b.Ok
+	}
+	if b.UserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_UserId = *b.UserId
+	}
+	if b.SessionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_SessionId = *b.SessionId
+	}
+	if b.AccessTokenExpiresAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_AccessTokenExpiresAt = *b.AccessTokenExpiresAt
+	}
+	return m0
+}
+
 type ListSessionsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -2143,7 +3020,7 @@ type ListSessionsRequest struct {
 
 func (x *ListSessionsRequest) Reset() {
 	*x = ListSessionsRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2155,7 +3032,7 @@ func (x *ListSessionsRequest) String() string {
 func (*ListSessionsRequest) ProtoMessage() {}
 
 func (x *ListSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[15]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2216,7 +3093,7 @@ type ListSessionsResponse struct {
 
 func (x *ListSessionsResponse) Reset() {
 	*x = ListSessionsResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2228,7 +3105,7 @@ func (x *ListSessionsResponse) String() string {
 func (*ListSessionsResponse) ProtoMessage() {}
 
 func (x *ListSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[16]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2278,7 +3155,7 @@ type RevokeUserSessionRequest struct {
 
 func (x *RevokeUserSessionRequest) Reset() {
 	*x = RevokeUserSessionRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2290,7 +3167,7 @@ func (x *RevokeUserSessionRequest) String() string {
 func (*RevokeUserSessionRequest) ProtoMessage() {}
 
 func (x *RevokeUserSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[17]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2382,7 +3259,7 @@ type RevokeUserSessionResponse struct {
 
 func (x *RevokeUserSessionResponse) Reset() {
 	*x = RevokeUserSessionResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[18]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2394,7 +3271,7 @@ func (x *RevokeUserSessionResponse) String() string {
 func (*RevokeUserSessionResponse) ProtoMessage() {}
 
 func (x *RevokeUserSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[18]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2458,7 +3335,7 @@ type RevokeOtherSessionsRequest struct {
 
 func (x *RevokeOtherSessionsRequest) Reset() {
 	*x = RevokeOtherSessionsRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[19]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2470,7 +3347,7 @@ func (x *RevokeOtherSessionsRequest) String() string {
 func (*RevokeOtherSessionsRequest) ProtoMessage() {}
 
 func (x *RevokeOtherSessionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[19]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2562,7 +3439,7 @@ type RevokeOtherSessionsResponse struct {
 
 func (x *RevokeOtherSessionsResponse) Reset() {
 	*x = RevokeOtherSessionsResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[20]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2574,7 +3451,7 @@ func (x *RevokeOtherSessionsResponse) String() string {
 func (*RevokeOtherSessionsResponse) ProtoMessage() {}
 
 func (x *RevokeOtherSessionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[20]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2637,7 +3514,7 @@ type GetTwoFactorStatusRequest struct {
 
 func (x *GetTwoFactorStatusRequest) Reset() {
 	*x = GetTwoFactorStatusRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[21]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2649,7 +3526,7 @@ func (x *GetTwoFactorStatusRequest) String() string {
 func (*GetTwoFactorStatusRequest) ProtoMessage() {}
 
 func (x *GetTwoFactorStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[21]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2713,7 +3590,7 @@ type GetTwoFactorStatusResponse struct {
 
 func (x *GetTwoFactorStatusResponse) Reset() {
 	*x = GetTwoFactorStatusResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[22]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2725,7 +3602,7 @@ func (x *GetTwoFactorStatusResponse) String() string {
 func (*GetTwoFactorStatusResponse) ProtoMessage() {}
 
 func (x *GetTwoFactorStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[22]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2818,7 +3695,7 @@ type BeginTwoFactorEnrollmentRequest struct {
 
 func (x *BeginTwoFactorEnrollmentRequest) Reset() {
 	*x = BeginTwoFactorEnrollmentRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[23]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2830,7 +3707,7 @@ func (x *BeginTwoFactorEnrollmentRequest) String() string {
 func (*BeginTwoFactorEnrollmentRequest) ProtoMessage() {}
 
 func (x *BeginTwoFactorEnrollmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[23]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2928,7 +3805,7 @@ type BeginTwoFactorEnrollmentResponse struct {
 
 func (x *BeginTwoFactorEnrollmentResponse) Reset() {
 	*x = BeginTwoFactorEnrollmentResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[24]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2940,7 +3817,7 @@ func (x *BeginTwoFactorEnrollmentResponse) String() string {
 func (*BeginTwoFactorEnrollmentResponse) ProtoMessage() {}
 
 func (x *BeginTwoFactorEnrollmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[24]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3102,7 +3979,7 @@ type ConfirmTwoFactorEnrollmentRequest struct {
 
 func (x *ConfirmTwoFactorEnrollmentRequest) Reset() {
 	*x = ConfirmTwoFactorEnrollmentRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[25]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3114,7 +3991,7 @@ func (x *ConfirmTwoFactorEnrollmentRequest) String() string {
 func (*ConfirmTwoFactorEnrollmentRequest) ProtoMessage() {}
 
 func (x *ConfirmTwoFactorEnrollmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[25]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3268,7 +4145,7 @@ type ConfirmTwoFactorEnrollmentResponse struct {
 
 func (x *ConfirmTwoFactorEnrollmentResponse) Reset() {
 	*x = ConfirmTwoFactorEnrollmentResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[26]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3280,7 +4157,7 @@ func (x *ConfirmTwoFactorEnrollmentResponse) String() string {
 func (*ConfirmTwoFactorEnrollmentResponse) ProtoMessage() {}
 
 func (x *ConfirmTwoFactorEnrollmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[26]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3330,7 +4207,7 @@ type DisableTwoFactorRequest struct {
 
 func (x *DisableTwoFactorRequest) Reset() {
 	*x = DisableTwoFactorRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[27]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3342,7 +4219,7 @@ func (x *DisableTwoFactorRequest) String() string {
 func (*DisableTwoFactorRequest) ProtoMessage() {}
 
 func (x *DisableTwoFactorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[27]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3551,7 +4428,7 @@ func (b0 DisableTwoFactorRequest_builder) Build() *DisableTwoFactorRequest {
 type case_DisableTwoFactorRequest_Verification protoreflect.FieldNumber
 
 func (x case_DisableTwoFactorRequest_Verification) String() string {
-	md := file_authenticator_v1_authenticator_proto_msgTypes[27].Descriptor()
+	md := file_authenticator_v1_authenticator_proto_msgTypes[33].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -3585,7 +4462,7 @@ type DisableTwoFactorResponse struct {
 
 func (x *DisableTwoFactorResponse) Reset() {
 	*x = DisableTwoFactorResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[28]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3597,7 +4474,7 @@ func (x *DisableTwoFactorResponse) String() string {
 func (*DisableTwoFactorResponse) ProtoMessage() {}
 
 func (x *DisableTwoFactorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[28]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3663,7 +4540,7 @@ type RegenerateTwoFactorRecoveryCodesRequest struct {
 
 func (x *RegenerateTwoFactorRecoveryCodesRequest) Reset() {
 	*x = RegenerateTwoFactorRecoveryCodesRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[29]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3675,7 +4552,7 @@ func (x *RegenerateTwoFactorRecoveryCodesRequest) String() string {
 func (*RegenerateTwoFactorRecoveryCodesRequest) ProtoMessage() {}
 
 func (x *RegenerateTwoFactorRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[29]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3829,7 +4706,7 @@ type RegenerateTwoFactorRecoveryCodesResponse struct {
 
 func (x *RegenerateTwoFactorRecoveryCodesResponse) Reset() {
 	*x = RegenerateTwoFactorRecoveryCodesResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[30]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3841,7 +4718,7 @@ func (x *RegenerateTwoFactorRecoveryCodesResponse) String() string {
 func (*RegenerateTwoFactorRecoveryCodesResponse) ProtoMessage() {}
 
 func (x *RegenerateTwoFactorRecoveryCodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[30]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3888,7 +4765,7 @@ type RequestPasswordResetRequest struct {
 
 func (x *RequestPasswordResetRequest) Reset() {
 	*x = RequestPasswordResetRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[31]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3900,7 +4777,7 @@ func (x *RequestPasswordResetRequest) String() string {
 func (*RequestPasswordResetRequest) ProtoMessage() {}
 
 func (x *RequestPasswordResetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[31]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3966,7 +4843,7 @@ type RequestPasswordResetResponse struct {
 
 func (x *RequestPasswordResetResponse) Reset() {
 	*x = RequestPasswordResetResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[32]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3978,7 +4855,7 @@ func (x *RequestPasswordResetResponse) String() string {
 func (*RequestPasswordResetResponse) ProtoMessage() {}
 
 func (x *RequestPasswordResetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[32]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4042,7 +4919,7 @@ type ConfirmPasswordResetRequest struct {
 
 func (x *ConfirmPasswordResetRequest) Reset() {
 	*x = ConfirmPasswordResetRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[33]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4054,7 +4931,7 @@ func (x *ConfirmPasswordResetRequest) String() string {
 func (*ConfirmPasswordResetRequest) ProtoMessage() {}
 
 func (x *ConfirmPasswordResetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[33]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4152,7 +5029,7 @@ type ConfirmPasswordResetResponse struct {
 
 func (x *ConfirmPasswordResetResponse) Reset() {
 	*x = ConfirmPasswordResetResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[34]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4164,7 +5041,7 @@ func (x *ConfirmPasswordResetResponse) String() string {
 func (*ConfirmPasswordResetResponse) ProtoMessage() {}
 
 func (x *ConfirmPasswordResetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[34]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4227,7 +5104,7 @@ type RequestEmailVerificationRequest struct {
 
 func (x *RequestEmailVerificationRequest) Reset() {
 	*x = RequestEmailVerificationRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[35]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4239,7 +5116,7 @@ func (x *RequestEmailVerificationRequest) String() string {
 func (*RequestEmailVerificationRequest) ProtoMessage() {}
 
 func (x *RequestEmailVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[35]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4305,7 +5182,7 @@ type RequestEmailVerificationResponse struct {
 
 func (x *RequestEmailVerificationResponse) Reset() {
 	*x = RequestEmailVerificationResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[36]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4317,7 +5194,7 @@ func (x *RequestEmailVerificationResponse) String() string {
 func (*RequestEmailVerificationResponse) ProtoMessage() {}
 
 func (x *RequestEmailVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[36]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4380,7 +5257,7 @@ type ConfirmEmailVerificationRequest struct {
 
 func (x *ConfirmEmailVerificationRequest) Reset() {
 	*x = ConfirmEmailVerificationRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[37]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4392,7 +5269,7 @@ func (x *ConfirmEmailVerificationRequest) String() string {
 func (*ConfirmEmailVerificationRequest) ProtoMessage() {}
 
 func (x *ConfirmEmailVerificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[37]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4458,7 +5335,7 @@ type ConfirmEmailVerificationResponse struct {
 
 func (x *ConfirmEmailVerificationResponse) Reset() {
 	*x = ConfirmEmailVerificationResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[38]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4470,7 +5347,7 @@ func (x *ConfirmEmailVerificationResponse) String() string {
 func (*ConfirmEmailVerificationResponse) ProtoMessage() {}
 
 func (x *ConfirmEmailVerificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[38]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4536,7 +5413,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[39]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4548,7 +5425,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[39]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4706,7 +5583,7 @@ type ChangePasswordResponse struct {
 
 func (x *ChangePasswordResponse) Reset() {
 	*x = ChangePasswordResponse{}
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[40]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4718,7 +5595,7 @@ func (x *ChangePasswordResponse) String() string {
 func (*ChangePasswordResponse) ProtoMessage() {}
 
 func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_authenticator_v1_authenticator_proto_msgTypes[40]
+	mi := &file_authenticator_v1_authenticator_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4775,7 +5652,7 @@ var File_authenticator_v1_authenticator_proto protoreflect.FileDescriptor
 
 const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\n" +
-	"$authenticator/v1/authenticator.proto\x12\x10authenticator.v1\"\xec\x01\n" +
+	"$authenticator/v1/authenticator.proto\x12\x10authenticator.v1\"\x9c\x02\n" +
 	"\aSession\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\x03R\tsessionId\x12\x17\n" +
@@ -4790,7 +5667,8 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"revoked_at\x18\x06 \x01(\x03R\trevokedAt\x12\x1d\n" +
 	"\n" +
 	"user_agent\x18\a \x01(\tR\tuserAgent\x12\x0e\n" +
-	"\x02ip\x18\b \x01(\tR\x02ip\"\xad\x01\n" +
+	"\x02ip\x18\b \x01(\tR\x02ip\x12.\n" +
+	"\x13absolute_expires_at\x18\t \x01(\x03R\x11absoluteExpiresAt\"\xad\x01\n" +
 	"\x0fRegisterRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -4820,7 +5698,7 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"user_agent\x18\x03 \x01(\tR\tuserAgent\x12\x0e\n" +
 	"\x02ip\x18\x04 \x01(\tR\x02ip\"`\n" +
 	"\x1eCompleteTwoFactorLoginResponse\x12>\n" +
-	"\x06result\x18\x01 \x01(\v2&.authenticator.v1.AuthenticationResultR\x06result\"\xc4\x02\n" +
+	"\x06result\x18\x01 \x01(\v2&.authenticator.v1.AuthenticationResultR\x06result\"\x83\x03\n" +
 	"\x14AuthenticationResult\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1d\n" +
@@ -4830,7 +5708,8 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\x17access_token_expires_at\x18\x05 \x01(\x03R\x14accessTokenExpiresAt\x12#\n" +
 	"\rrefresh_token\x18\x06 \x01(\tR\frefreshToken\x127\n" +
 	"\x18refresh_token_expires_at\x18\a \x01(\x03R\x15refreshTokenExpiresAt\x12,\n" +
-	"\x12session_expires_at\x18\b \x01(\x03R\x10sessionExpiresAt\"5\n" +
+	"\x12session_expires_at\x18\b \x01(\x03R\x10sessionExpiresAt\x12=\n" +
+	"\x1babsolute_session_expires_at\x18\t \x01(\x03R\x18absoluteSessionExpiresAt\"5\n" +
 	"\x0eRefreshRequest\x12#\n" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"Q\n" +
 	"\x0fRefreshResponse\x12>\n" +
@@ -4847,7 +5726,36 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\n" +
 	"session_id\x18\x03 \x01(\x03R\tsessionId\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x04 \x01(\x03R\texpiresAt\".\n" +
+	"expires_at\x18\x04 \x01(\x03R\texpiresAt\"\x96\x01\n" +
+	"\x19AuthenticateCookieRequest\x12!\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\x121\n" +
+	"\x15minimum_access_ttl_ms\x18\x03 \x01(\x03R\x12minimumAccessTtlMs\"\xc5\x01\n" +
+	"\x1aAuthenticateCookieResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\x03R\tsessionId\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x04 \x01(\x03R\texpiresAt\x12@\n" +
+	"\arotated\x18\x05 \x01(\v2&.authenticator.v1.AuthenticationResultR\arotated\"\x8b\x01\n" +
+	"\x1aCreateGatewayTicketRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\x03R\tsessionId\x125\n" +
+	"\x17access_token_expires_at\x18\x03 \x01(\x03R\x14accessTokenExpiresAt\"c\n" +
+	"\x1bCreateGatewayTicketResponse\x12%\n" +
+	"\x0egateway_ticket\x18\x01 \x01(\tR\rgatewayTicket\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\x03R\texpiresAt\"C\n" +
+	"\x1aRedeemGatewayTicketRequest\x12%\n" +
+	"\x0egateway_ticket\x18\x01 \x01(\tR\rgatewayTicket\"\x9c\x01\n" +
+	"\x1bRedeemGatewayTicketResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\x03R\x06userId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\x03R\tsessionId\x125\n" +
+	"\x17access_token_expires_at\x18\x04 \x01(\x03R\x14accessTokenExpiresAt\".\n" +
 	"\x13ListSessionsRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\"M\n" +
 	"\x14ListSessionsResponse\x125\n" +
@@ -4924,14 +5832,17 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	"\fold_password\x18\x03 \x01(\tR\voldPassword\x12!\n" +
 	"\fnew_password\x18\x04 \x01(\tR\vnewPassword\"(\n" +
 	"\x16ChangePasswordResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok2\xdd\x10\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok2\xb6\x13\n" +
 	"\x14AuthenticatorService\x12Q\n" +
 	"\bRegister\x12!.authenticator.v1.RegisterRequest\x1a\".authenticator.v1.RegisterResponse\x12H\n" +
 	"\x05Login\x12\x1e.authenticator.v1.LoginRequest\x1a\x1f.authenticator.v1.LoginResponse\x12{\n" +
 	"\x16CompleteTwoFactorLogin\x12/.authenticator.v1.CompleteTwoFactorLoginRequest\x1a0.authenticator.v1.CompleteTwoFactorLoginResponse\x12N\n" +
 	"\aRefresh\x12 .authenticator.v1.RefreshRequest\x1a!.authenticator.v1.RefreshResponse\x12K\n" +
 	"\x06Logout\x12\x1f.authenticator.v1.LogoutRequest\x1a .authenticator.v1.LogoutResponse\x12l\n" +
-	"\x11VerifyAccessToken\x12*.authenticator.v1.VerifyAccessTokenRequest\x1a+.authenticator.v1.VerifyAccessTokenResponse\x12c\n" +
+	"\x11VerifyAccessToken\x12*.authenticator.v1.VerifyAccessTokenRequest\x1a+.authenticator.v1.VerifyAccessTokenResponse\x12o\n" +
+	"\x12AuthenticateCookie\x12+.authenticator.v1.AuthenticateCookieRequest\x1a,.authenticator.v1.AuthenticateCookieResponse\x12r\n" +
+	"\x13CreateGatewayTicket\x12,.authenticator.v1.CreateGatewayTicketRequest\x1a-.authenticator.v1.CreateGatewayTicketResponse\x12r\n" +
+	"\x13RedeemGatewayTicket\x12,.authenticator.v1.RedeemGatewayTicketRequest\x1a-.authenticator.v1.RedeemGatewayTicketResponse\x12c\n" +
 	"\x0eChangePassword\x12'.authenticator.v1.ChangePasswordRequest\x1a(.authenticator.v1.ChangePasswordResponse\x12u\n" +
 	"\x14RequestPasswordReset\x12-.authenticator.v1.RequestPasswordResetRequest\x1a..authenticator.v1.RequestPasswordResetResponse\x12u\n" +
 	"\x14ConfirmPasswordReset\x12-.authenticator.v1.ConfirmPasswordResetRequest\x1a..authenticator.v1.ConfirmPasswordResetResponse\x12\x81\x01\n" +
@@ -4947,7 +5858,7 @@ const file_authenticator_v1_authenticator_proto_rawDesc = "" +
 	" RegenerateTwoFactorRecoveryCodes\x129.authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest\x1a:.authenticator.v1.RegenerateTwoFactorRecoveryCodesResponseB\xcb\x01\n" +
 	"\x14com.authenticator.v1B\x12AuthenticatorProtoP\x01Z>github.com/soasurs/cordis/gen/authenticator/v1;authenticatorv1\xa2\x02\x03AXX\xaa\x02\x10Authenticator.V1\xca\x02\x10Authenticator\\V1\xe2\x02\x1cAuthenticator\\V1\\GPBMetadata\xea\x02\x11Authenticator::V1b\beditionsp\xe8\a"
 
-var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_authenticator_v1_authenticator_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_authenticator_v1_authenticator_proto_goTypes = []any{
 	(*Session)(nil),                                  // 0: authenticator.v1.Session
 	(*RegisterRequest)(nil),                          // 1: authenticator.v1.RegisterRequest
@@ -4964,82 +5875,95 @@ var file_authenticator_v1_authenticator_proto_goTypes = []any{
 	(*LogoutResponse)(nil),                           // 12: authenticator.v1.LogoutResponse
 	(*VerifyAccessTokenRequest)(nil),                 // 13: authenticator.v1.VerifyAccessTokenRequest
 	(*VerifyAccessTokenResponse)(nil),                // 14: authenticator.v1.VerifyAccessTokenResponse
-	(*ListSessionsRequest)(nil),                      // 15: authenticator.v1.ListSessionsRequest
-	(*ListSessionsResponse)(nil),                     // 16: authenticator.v1.ListSessionsResponse
-	(*RevokeUserSessionRequest)(nil),                 // 17: authenticator.v1.RevokeUserSessionRequest
-	(*RevokeUserSessionResponse)(nil),                // 18: authenticator.v1.RevokeUserSessionResponse
-	(*RevokeOtherSessionsRequest)(nil),               // 19: authenticator.v1.RevokeOtherSessionsRequest
-	(*RevokeOtherSessionsResponse)(nil),              // 20: authenticator.v1.RevokeOtherSessionsResponse
-	(*GetTwoFactorStatusRequest)(nil),                // 21: authenticator.v1.GetTwoFactorStatusRequest
-	(*GetTwoFactorStatusResponse)(nil),               // 22: authenticator.v1.GetTwoFactorStatusResponse
-	(*BeginTwoFactorEnrollmentRequest)(nil),          // 23: authenticator.v1.BeginTwoFactorEnrollmentRequest
-	(*BeginTwoFactorEnrollmentResponse)(nil),         // 24: authenticator.v1.BeginTwoFactorEnrollmentResponse
-	(*ConfirmTwoFactorEnrollmentRequest)(nil),        // 25: authenticator.v1.ConfirmTwoFactorEnrollmentRequest
-	(*ConfirmTwoFactorEnrollmentResponse)(nil),       // 26: authenticator.v1.ConfirmTwoFactorEnrollmentResponse
-	(*DisableTwoFactorRequest)(nil),                  // 27: authenticator.v1.DisableTwoFactorRequest
-	(*DisableTwoFactorResponse)(nil),                 // 28: authenticator.v1.DisableTwoFactorResponse
-	(*RegenerateTwoFactorRecoveryCodesRequest)(nil),  // 29: authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
-	(*RegenerateTwoFactorRecoveryCodesResponse)(nil), // 30: authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
-	(*RequestPasswordResetRequest)(nil),              // 31: authenticator.v1.RequestPasswordResetRequest
-	(*RequestPasswordResetResponse)(nil),             // 32: authenticator.v1.RequestPasswordResetResponse
-	(*ConfirmPasswordResetRequest)(nil),              // 33: authenticator.v1.ConfirmPasswordResetRequest
-	(*ConfirmPasswordResetResponse)(nil),             // 34: authenticator.v1.ConfirmPasswordResetResponse
-	(*RequestEmailVerificationRequest)(nil),          // 35: authenticator.v1.RequestEmailVerificationRequest
-	(*RequestEmailVerificationResponse)(nil),         // 36: authenticator.v1.RequestEmailVerificationResponse
-	(*ConfirmEmailVerificationRequest)(nil),          // 37: authenticator.v1.ConfirmEmailVerificationRequest
-	(*ConfirmEmailVerificationResponse)(nil),         // 38: authenticator.v1.ConfirmEmailVerificationResponse
-	(*ChangePasswordRequest)(nil),                    // 39: authenticator.v1.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),                   // 40: authenticator.v1.ChangePasswordResponse
+	(*AuthenticateCookieRequest)(nil),                // 15: authenticator.v1.AuthenticateCookieRequest
+	(*AuthenticateCookieResponse)(nil),               // 16: authenticator.v1.AuthenticateCookieResponse
+	(*CreateGatewayTicketRequest)(nil),               // 17: authenticator.v1.CreateGatewayTicketRequest
+	(*CreateGatewayTicketResponse)(nil),              // 18: authenticator.v1.CreateGatewayTicketResponse
+	(*RedeemGatewayTicketRequest)(nil),               // 19: authenticator.v1.RedeemGatewayTicketRequest
+	(*RedeemGatewayTicketResponse)(nil),              // 20: authenticator.v1.RedeemGatewayTicketResponse
+	(*ListSessionsRequest)(nil),                      // 21: authenticator.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),                     // 22: authenticator.v1.ListSessionsResponse
+	(*RevokeUserSessionRequest)(nil),                 // 23: authenticator.v1.RevokeUserSessionRequest
+	(*RevokeUserSessionResponse)(nil),                // 24: authenticator.v1.RevokeUserSessionResponse
+	(*RevokeOtherSessionsRequest)(nil),               // 25: authenticator.v1.RevokeOtherSessionsRequest
+	(*RevokeOtherSessionsResponse)(nil),              // 26: authenticator.v1.RevokeOtherSessionsResponse
+	(*GetTwoFactorStatusRequest)(nil),                // 27: authenticator.v1.GetTwoFactorStatusRequest
+	(*GetTwoFactorStatusResponse)(nil),               // 28: authenticator.v1.GetTwoFactorStatusResponse
+	(*BeginTwoFactorEnrollmentRequest)(nil),          // 29: authenticator.v1.BeginTwoFactorEnrollmentRequest
+	(*BeginTwoFactorEnrollmentResponse)(nil),         // 30: authenticator.v1.BeginTwoFactorEnrollmentResponse
+	(*ConfirmTwoFactorEnrollmentRequest)(nil),        // 31: authenticator.v1.ConfirmTwoFactorEnrollmentRequest
+	(*ConfirmTwoFactorEnrollmentResponse)(nil),       // 32: authenticator.v1.ConfirmTwoFactorEnrollmentResponse
+	(*DisableTwoFactorRequest)(nil),                  // 33: authenticator.v1.DisableTwoFactorRequest
+	(*DisableTwoFactorResponse)(nil),                 // 34: authenticator.v1.DisableTwoFactorResponse
+	(*RegenerateTwoFactorRecoveryCodesRequest)(nil),  // 35: authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
+	(*RegenerateTwoFactorRecoveryCodesResponse)(nil), // 36: authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
+	(*RequestPasswordResetRequest)(nil),              // 37: authenticator.v1.RequestPasswordResetRequest
+	(*RequestPasswordResetResponse)(nil),             // 38: authenticator.v1.RequestPasswordResetResponse
+	(*ConfirmPasswordResetRequest)(nil),              // 39: authenticator.v1.ConfirmPasswordResetRequest
+	(*ConfirmPasswordResetResponse)(nil),             // 40: authenticator.v1.ConfirmPasswordResetResponse
+	(*RequestEmailVerificationRequest)(nil),          // 41: authenticator.v1.RequestEmailVerificationRequest
+	(*RequestEmailVerificationResponse)(nil),         // 42: authenticator.v1.RequestEmailVerificationResponse
+	(*ConfirmEmailVerificationRequest)(nil),          // 43: authenticator.v1.ConfirmEmailVerificationRequest
+	(*ConfirmEmailVerificationResponse)(nil),         // 44: authenticator.v1.ConfirmEmailVerificationResponse
+	(*ChangePasswordRequest)(nil),                    // 45: authenticator.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),                   // 46: authenticator.v1.ChangePasswordResponse
 }
 var file_authenticator_v1_authenticator_proto_depIdxs = []int32{
 	8,  // 0: authenticator.v1.LoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
 	5,  // 1: authenticator.v1.LoginResponse.two_factor_challenge:type_name -> authenticator.v1.TwoFactorLoginChallenge
 	8,  // 2: authenticator.v1.CompleteTwoFactorLoginResponse.result:type_name -> authenticator.v1.AuthenticationResult
 	8,  // 3: authenticator.v1.RefreshResponse.result:type_name -> authenticator.v1.AuthenticationResult
-	0,  // 4: authenticator.v1.ListSessionsResponse.sessions:type_name -> authenticator.v1.Session
-	1,  // 5: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
-	3,  // 6: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
-	6,  // 7: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:input_type -> authenticator.v1.CompleteTwoFactorLoginRequest
-	9,  // 8: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
-	11, // 9: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
-	13, // 10: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
-	39, // 11: authenticator.v1.AuthenticatorService.ChangePassword:input_type -> authenticator.v1.ChangePasswordRequest
-	31, // 12: authenticator.v1.AuthenticatorService.RequestPasswordReset:input_type -> authenticator.v1.RequestPasswordResetRequest
-	33, // 13: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:input_type -> authenticator.v1.ConfirmPasswordResetRequest
-	35, // 14: authenticator.v1.AuthenticatorService.RequestEmailVerification:input_type -> authenticator.v1.RequestEmailVerificationRequest
-	37, // 15: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:input_type -> authenticator.v1.ConfirmEmailVerificationRequest
-	15, // 16: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
-	17, // 17: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
-	19, // 18: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
-	21, // 19: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> authenticator.v1.GetTwoFactorStatusRequest
-	23, // 20: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> authenticator.v1.BeginTwoFactorEnrollmentRequest
-	25, // 21: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> authenticator.v1.ConfirmTwoFactorEnrollmentRequest
-	27, // 22: authenticator.v1.AuthenticatorService.DisableTwoFactor:input_type -> authenticator.v1.DisableTwoFactorRequest
-	29, // 23: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
-	2,  // 24: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
-	4,  // 25: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
-	7,  // 26: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> authenticator.v1.CompleteTwoFactorLoginResponse
-	10, // 27: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
-	12, // 28: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
-	14, // 29: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
-	40, // 30: authenticator.v1.AuthenticatorService.ChangePassword:output_type -> authenticator.v1.ChangePasswordResponse
-	32, // 31: authenticator.v1.AuthenticatorService.RequestPasswordReset:output_type -> authenticator.v1.RequestPasswordResetResponse
-	34, // 32: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:output_type -> authenticator.v1.ConfirmPasswordResetResponse
-	36, // 33: authenticator.v1.AuthenticatorService.RequestEmailVerification:output_type -> authenticator.v1.RequestEmailVerificationResponse
-	38, // 34: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:output_type -> authenticator.v1.ConfirmEmailVerificationResponse
-	16, // 35: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
-	18, // 36: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
-	20, // 37: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
-	22, // 38: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> authenticator.v1.GetTwoFactorStatusResponse
-	24, // 39: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> authenticator.v1.BeginTwoFactorEnrollmentResponse
-	26, // 40: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> authenticator.v1.ConfirmTwoFactorEnrollmentResponse
-	28, // 41: authenticator.v1.AuthenticatorService.DisableTwoFactor:output_type -> authenticator.v1.DisableTwoFactorResponse
-	30, // 42: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
-	24, // [24:43] is the sub-list for method output_type
-	5,  // [5:24] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	8,  // 4: authenticator.v1.AuthenticateCookieResponse.rotated:type_name -> authenticator.v1.AuthenticationResult
+	0,  // 5: authenticator.v1.ListSessionsResponse.sessions:type_name -> authenticator.v1.Session
+	1,  // 6: authenticator.v1.AuthenticatorService.Register:input_type -> authenticator.v1.RegisterRequest
+	3,  // 7: authenticator.v1.AuthenticatorService.Login:input_type -> authenticator.v1.LoginRequest
+	6,  // 8: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:input_type -> authenticator.v1.CompleteTwoFactorLoginRequest
+	9,  // 9: authenticator.v1.AuthenticatorService.Refresh:input_type -> authenticator.v1.RefreshRequest
+	11, // 10: authenticator.v1.AuthenticatorService.Logout:input_type -> authenticator.v1.LogoutRequest
+	13, // 11: authenticator.v1.AuthenticatorService.VerifyAccessToken:input_type -> authenticator.v1.VerifyAccessTokenRequest
+	15, // 12: authenticator.v1.AuthenticatorService.AuthenticateCookie:input_type -> authenticator.v1.AuthenticateCookieRequest
+	17, // 13: authenticator.v1.AuthenticatorService.CreateGatewayTicket:input_type -> authenticator.v1.CreateGatewayTicketRequest
+	19, // 14: authenticator.v1.AuthenticatorService.RedeemGatewayTicket:input_type -> authenticator.v1.RedeemGatewayTicketRequest
+	45, // 15: authenticator.v1.AuthenticatorService.ChangePassword:input_type -> authenticator.v1.ChangePasswordRequest
+	37, // 16: authenticator.v1.AuthenticatorService.RequestPasswordReset:input_type -> authenticator.v1.RequestPasswordResetRequest
+	39, // 17: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:input_type -> authenticator.v1.ConfirmPasswordResetRequest
+	41, // 18: authenticator.v1.AuthenticatorService.RequestEmailVerification:input_type -> authenticator.v1.RequestEmailVerificationRequest
+	43, // 19: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:input_type -> authenticator.v1.ConfirmEmailVerificationRequest
+	21, // 20: authenticator.v1.AuthenticatorService.ListSessions:input_type -> authenticator.v1.ListSessionsRequest
+	23, // 21: authenticator.v1.AuthenticatorService.RevokeUserSession:input_type -> authenticator.v1.RevokeUserSessionRequest
+	25, // 22: authenticator.v1.AuthenticatorService.RevokeOtherSessions:input_type -> authenticator.v1.RevokeOtherSessionsRequest
+	27, // 23: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:input_type -> authenticator.v1.GetTwoFactorStatusRequest
+	29, // 24: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:input_type -> authenticator.v1.BeginTwoFactorEnrollmentRequest
+	31, // 25: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:input_type -> authenticator.v1.ConfirmTwoFactorEnrollmentRequest
+	33, // 26: authenticator.v1.AuthenticatorService.DisableTwoFactor:input_type -> authenticator.v1.DisableTwoFactorRequest
+	35, // 27: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:input_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesRequest
+	2,  // 28: authenticator.v1.AuthenticatorService.Register:output_type -> authenticator.v1.RegisterResponse
+	4,  // 29: authenticator.v1.AuthenticatorService.Login:output_type -> authenticator.v1.LoginResponse
+	7,  // 30: authenticator.v1.AuthenticatorService.CompleteTwoFactorLogin:output_type -> authenticator.v1.CompleteTwoFactorLoginResponse
+	10, // 31: authenticator.v1.AuthenticatorService.Refresh:output_type -> authenticator.v1.RefreshResponse
+	12, // 32: authenticator.v1.AuthenticatorService.Logout:output_type -> authenticator.v1.LogoutResponse
+	14, // 33: authenticator.v1.AuthenticatorService.VerifyAccessToken:output_type -> authenticator.v1.VerifyAccessTokenResponse
+	16, // 34: authenticator.v1.AuthenticatorService.AuthenticateCookie:output_type -> authenticator.v1.AuthenticateCookieResponse
+	18, // 35: authenticator.v1.AuthenticatorService.CreateGatewayTicket:output_type -> authenticator.v1.CreateGatewayTicketResponse
+	20, // 36: authenticator.v1.AuthenticatorService.RedeemGatewayTicket:output_type -> authenticator.v1.RedeemGatewayTicketResponse
+	46, // 37: authenticator.v1.AuthenticatorService.ChangePassword:output_type -> authenticator.v1.ChangePasswordResponse
+	38, // 38: authenticator.v1.AuthenticatorService.RequestPasswordReset:output_type -> authenticator.v1.RequestPasswordResetResponse
+	40, // 39: authenticator.v1.AuthenticatorService.ConfirmPasswordReset:output_type -> authenticator.v1.ConfirmPasswordResetResponse
+	42, // 40: authenticator.v1.AuthenticatorService.RequestEmailVerification:output_type -> authenticator.v1.RequestEmailVerificationResponse
+	44, // 41: authenticator.v1.AuthenticatorService.ConfirmEmailVerification:output_type -> authenticator.v1.ConfirmEmailVerificationResponse
+	22, // 42: authenticator.v1.AuthenticatorService.ListSessions:output_type -> authenticator.v1.ListSessionsResponse
+	24, // 43: authenticator.v1.AuthenticatorService.RevokeUserSession:output_type -> authenticator.v1.RevokeUserSessionResponse
+	26, // 44: authenticator.v1.AuthenticatorService.RevokeOtherSessions:output_type -> authenticator.v1.RevokeOtherSessionsResponse
+	28, // 45: authenticator.v1.AuthenticatorService.GetTwoFactorStatus:output_type -> authenticator.v1.GetTwoFactorStatusResponse
+	30, // 46: authenticator.v1.AuthenticatorService.BeginTwoFactorEnrollment:output_type -> authenticator.v1.BeginTwoFactorEnrollmentResponse
+	32, // 47: authenticator.v1.AuthenticatorService.ConfirmTwoFactorEnrollment:output_type -> authenticator.v1.ConfirmTwoFactorEnrollmentResponse
+	34, // 48: authenticator.v1.AuthenticatorService.DisableTwoFactor:output_type -> authenticator.v1.DisableTwoFactorResponse
+	36, // 49: authenticator.v1.AuthenticatorService.RegenerateTwoFactorRecoveryCodes:output_type -> authenticator.v1.RegenerateTwoFactorRecoveryCodesResponse
+	28, // [28:50] is the sub-list for method output_type
+	6,  // [6:28] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_authenticator_v1_authenticator_proto_init() }
@@ -5051,7 +5975,7 @@ func file_authenticator_v1_authenticator_proto_init() {
 		(*loginResponse_Result)(nil),
 		(*loginResponse_TwoFactorChallenge)(nil),
 	}
-	file_authenticator_v1_authenticator_proto_msgTypes[27].OneofWrappers = []any{
+	file_authenticator_v1_authenticator_proto_msgTypes[33].OneofWrappers = []any{
 		(*disableTwoFactorRequest_Code)(nil),
 		(*disableTwoFactorRequest_RecoveryCode)(nil),
 	}
@@ -5061,7 +5985,7 @@ func file_authenticator_v1_authenticator_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_authenticator_v1_authenticator_proto_rawDesc), len(file_authenticator_v1_authenticator_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   41,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

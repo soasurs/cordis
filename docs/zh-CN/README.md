@@ -7,6 +7,7 @@
 - [实时系统](realtime.md)
 - [数据存储与事件](data-and-events.md)
 - [API、协议与错误](protocols-and-errors.md)
+- [认证与令牌轮换](authentication.md)
 - [配置、可观测性与开发](operations-and-development.md)
 - [当前限制与演进方向](limitations.md)
 

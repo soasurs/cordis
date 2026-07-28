@@ -4,11 +4,12 @@
 
 1. 客户端连接 Gateway WebSocket。
 2. Gateway 返回 `op=10`、`t=hello` 的事件，包含 45 秒心跳间隔。
-3. 客户端发送 `identify`，或携带 `session_id` 与最后 sequence 发送 `resume`。
+3. 客户端发送 `identify`，或携带 `session_id` 与最后 sequence 发送 `resume`。原生客户端在 `token` 中提供 access token；浏览器并行向 API 获取单次 ticket，并在 `gateway_ticket` 中提供。
 4. Gateway 从 etcd 选择可用 Session 节点；Resume 先从 Redis 查找 Session owner，再用 etcd 校验节点 generation。
 5. Gateway 建立 `SessionService.Connect` 双向流，并发送首条 `ConnectRequest`。
-6. IDENTIFY 成功后 Session 返回 sequence 化的 `ready`；RESUME 成功后重放缺失事件并返回 `resumed`。
-7. 后续 Presence、detach 和服务端事件经同一条流传递；Gateway 本地处理 `heartbeat`，并批量向 Session 同步 sequence checkpoint。
+6. Session 通过 Authenticator 校验 access token 或原子兑换 ticket。
+7. IDENTIFY 成功后 Session 返回 sequence 化的 `ready`；RESUME 成功后重放缺失事件并返回 `resumed`。
+8. 后续 Presence、detach 和服务端事件经同一条流传递；Gateway 本地处理 `heartbeat`，并批量向 Session 同步 sequence checkpoint。
 
 Gateway 实例身份包含 ID 与 generation，可区分同名进程重启。逻辑 Session 与 WebSocket connection 分离，因此一次断线重连可以绑定到原 Session。
 

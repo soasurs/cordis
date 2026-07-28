@@ -426,7 +426,7 @@ func (*connectRequest_Detach) isConnectRequest_Payload() {}
 
 type Identify struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
+	xxx_hidden_Credential  isIdentify_Credential  `protobuf_oneof:"credential"`
 	xxx_hidden_DeviceType  *string                `protobuf:"bytes,2,opt,name=device_type,json=deviceType"`
 	xxx_hidden_Status      *string                `protobuf:"bytes,3,opt,name=status"`
 	xxx_hidden_ClientState *string                `protobuf:"bytes,4,opt,name=client_state,json=clientState"`
@@ -463,10 +463,18 @@ func (x *Identify) ProtoReflect() protoreflect.Message {
 
 func (x *Identify) GetToken() string {
 	if x != nil {
-		if x.xxx_hidden_Token != nil {
-			return *x.xxx_hidden_Token
+		if x, ok := x.xxx_hidden_Credential.(*identify_Token); ok {
+			return x.Token
 		}
-		return ""
+	}
+	return ""
+}
+
+func (x *Identify) GetGatewayTicket() string {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Credential.(*identify_GatewayTicket); ok {
+			return x.GatewayTicket
+		}
 	}
 	return ""
 }
@@ -502,8 +510,11 @@ func (x *Identify) GetClientState() string {
 }
 
 func (x *Identify) SetToken(v string) {
-	x.xxx_hidden_Token = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	x.xxx_hidden_Credential = &identify_Token{v}
+}
+
+func (x *Identify) SetGatewayTicket(v string) {
+	x.xxx_hidden_Credential = &identify_GatewayTicket{v}
 }
 
 func (x *Identify) SetDeviceType(v string) {
@@ -521,11 +532,27 @@ func (x *Identify) SetClientState(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
+func (x *Identify) HasCredential() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Credential != nil
+}
+
 func (x *Identify) HasToken() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+	_, ok := x.xxx_hidden_Credential.(*identify_Token)
+	return ok
+}
+
+func (x *Identify) HasGatewayTicket() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Credential.(*identify_GatewayTicket)
+	return ok
 }
 
 func (x *Identify) HasDeviceType() bool {
@@ -549,9 +576,20 @@ func (x *Identify) HasClientState() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *Identify) ClearCredential() {
+	x.xxx_hidden_Credential = nil
+}
+
 func (x *Identify) ClearToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Token = nil
+	if _, ok := x.xxx_hidden_Credential.(*identify_Token); ok {
+		x.xxx_hidden_Credential = nil
+	}
+}
+
+func (x *Identify) ClearGatewayTicket() {
+	if _, ok := x.xxx_hidden_Credential.(*identify_GatewayTicket); ok {
+		x.xxx_hidden_Credential = nil
+	}
 }
 
 func (x *Identify) ClearDeviceType() {
@@ -569,10 +607,31 @@ func (x *Identify) ClearClientState() {
 	x.xxx_hidden_ClientState = nil
 }
 
+const Identify_Credential_not_set_case case_Identify_Credential = 0
+const Identify_Token_case case_Identify_Credential = 1
+const Identify_GatewayTicket_case case_Identify_Credential = 5
+
+func (x *Identify) WhichCredential() case_Identify_Credential {
+	if x == nil {
+		return Identify_Credential_not_set_case
+	}
+	switch x.xxx_hidden_Credential.(type) {
+	case *identify_Token:
+		return Identify_Token_case
+	case *identify_GatewayTicket:
+		return Identify_GatewayTicket_case
+	default:
+		return Identify_Credential_not_set_case
+	}
+}
+
 type Identify_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Token       *string
+	// Fields of oneof xxx_hidden_Credential:
+	Token         *string
+	GatewayTicket *string
+	// -- end of xxx_hidden_Credential
 	DeviceType  *string
 	Status      *string
 	ClientState *string
@@ -583,8 +642,10 @@ func (b0 Identify_builder) Build() *Identify {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Token != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
-		x.xxx_hidden_Token = b.Token
+		x.xxx_hidden_Credential = &identify_Token{*b.Token}
+	}
+	if b.GatewayTicket != nil {
+		x.xxx_hidden_Credential = &identify_GatewayTicket{*b.GatewayTicket}
 	}
 	if b.DeviceType != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
@@ -601,9 +662,35 @@ func (b0 Identify_builder) Build() *Identify {
 	return m0
 }
 
+type case_Identify_Credential protoreflect.FieldNumber
+
+func (x case_Identify_Credential) String() string {
+	md := file_session_v1_session_proto_msgTypes[1].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
+type isIdentify_Credential interface {
+	isIdentify_Credential()
+}
+
+type identify_Token struct {
+	Token string `protobuf:"bytes,1,opt,name=token,oneof"`
+}
+
+type identify_GatewayTicket struct {
+	GatewayTicket string `protobuf:"bytes,5,opt,name=gateway_ticket,json=gatewayTicket,oneof"`
+}
+
+func (*identify_Token) isIdentify_Credential() {}
+
+func (*identify_GatewayTicket) isIdentify_Credential() {}
+
 type Resume struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
+	xxx_hidden_Credential  isResume_Credential    `protobuf_oneof:"credential"`
 	xxx_hidden_SessionId   *string                `protobuf:"bytes,2,opt,name=session_id,json=sessionId"`
 	xxx_hidden_Sequence    uint64                 `protobuf:"varint,3,opt,name=sequence"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
@@ -639,10 +726,18 @@ func (x *Resume) ProtoReflect() protoreflect.Message {
 
 func (x *Resume) GetToken() string {
 	if x != nil {
-		if x.xxx_hidden_Token != nil {
-			return *x.xxx_hidden_Token
+		if x, ok := x.xxx_hidden_Credential.(*resume_Token); ok {
+			return x.Token
 		}
-		return ""
+	}
+	return ""
+}
+
+func (x *Resume) GetGatewayTicket() string {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Credential.(*resume_GatewayTicket); ok {
+			return x.GatewayTicket
+		}
 	}
 	return ""
 }
@@ -665,8 +760,11 @@ func (x *Resume) GetSequence() uint64 {
 }
 
 func (x *Resume) SetToken(v string) {
-	x.xxx_hidden_Token = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	x.xxx_hidden_Credential = &resume_Token{v}
+}
+
+func (x *Resume) SetGatewayTicket(v string) {
+	x.xxx_hidden_Credential = &resume_GatewayTicket{v}
 }
 
 func (x *Resume) SetSessionId(v string) {
@@ -679,11 +777,27 @@ func (x *Resume) SetSequence(v uint64) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
+func (x *Resume) HasCredential() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Credential != nil
+}
+
 func (x *Resume) HasToken() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+	_, ok := x.xxx_hidden_Credential.(*resume_Token)
+	return ok
+}
+
+func (x *Resume) HasGatewayTicket() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Credential.(*resume_GatewayTicket)
+	return ok
 }
 
 func (x *Resume) HasSessionId() bool {
@@ -700,9 +814,20 @@ func (x *Resume) HasSequence() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *Resume) ClearCredential() {
+	x.xxx_hidden_Credential = nil
+}
+
 func (x *Resume) ClearToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Token = nil
+	if _, ok := x.xxx_hidden_Credential.(*resume_Token); ok {
+		x.xxx_hidden_Credential = nil
+	}
+}
+
+func (x *Resume) ClearGatewayTicket() {
+	if _, ok := x.xxx_hidden_Credential.(*resume_GatewayTicket); ok {
+		x.xxx_hidden_Credential = nil
+	}
 }
 
 func (x *Resume) ClearSessionId() {
@@ -715,10 +840,31 @@ func (x *Resume) ClearSequence() {
 	x.xxx_hidden_Sequence = 0
 }
 
+const Resume_Credential_not_set_case case_Resume_Credential = 0
+const Resume_Token_case case_Resume_Credential = 1
+const Resume_GatewayTicket_case case_Resume_Credential = 4
+
+func (x *Resume) WhichCredential() case_Resume_Credential {
+	if x == nil {
+		return Resume_Credential_not_set_case
+	}
+	switch x.xxx_hidden_Credential.(type) {
+	case *resume_Token:
+		return Resume_Token_case
+	case *resume_GatewayTicket:
+		return Resume_GatewayTicket_case
+	default:
+		return Resume_Credential_not_set_case
+	}
+}
+
 type Resume_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Token     *string
+	// Fields of oneof xxx_hidden_Credential:
+	Token         *string
+	GatewayTicket *string
+	// -- end of xxx_hidden_Credential
 	SessionId *string
 	Sequence  *uint64
 }
@@ -728,8 +874,10 @@ func (b0 Resume_builder) Build() *Resume {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Token != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_Token = b.Token
+		x.xxx_hidden_Credential = &resume_Token{*b.Token}
+	}
+	if b.GatewayTicket != nil {
+		x.xxx_hidden_Credential = &resume_GatewayTicket{*b.GatewayTicket}
 	}
 	if b.SessionId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
@@ -741,6 +889,32 @@ func (b0 Resume_builder) Build() *Resume {
 	}
 	return m0
 }
+
+type case_Resume_Credential protoreflect.FieldNumber
+
+func (x case_Resume_Credential) String() string {
+	md := file_session_v1_session_proto_msgTypes[2].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
+type isResume_Credential interface {
+	isResume_Credential()
+}
+
+type resume_Token struct {
+	Token string `protobuf:"bytes,1,opt,name=token,oneof"`
+}
+
+type resume_GatewayTicket struct {
+	GatewayTicket string `protobuf:"bytes,4,opt,name=gateway_ticket,json=gatewayTicket,oneof"`
+}
+
+func (*resume_Token) isResume_Credential() {}
+
+func (*resume_GatewayTicket) isResume_Credential() {}
 
 type Heartbeat struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
@@ -2387,18 +2561,24 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"gateway_id\x18\a \x01(\tR\tgatewayId\x12-\n" +
 	"\x12gateway_generation\x18\b \x01(\tR\x11gatewayGenerationB\t\n" +
-	"\apayload\"|\n" +
-	"\bIdentify\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1f\n" +
+	"\apayload\"\xb5\x01\n" +
+	"\bIdentify\x12\x16\n" +
+	"\x05token\x18\x01 \x01(\tH\x00R\x05token\x12'\n" +
+	"\x0egateway_ticket\x18\x05 \x01(\tH\x00R\rgatewayTicket\x12\x1f\n" +
 	"\vdevice_type\x18\x02 \x01(\tR\n" +
 	"deviceType\x12\x16\n" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12!\n" +
-	"\fclient_state\x18\x04 \x01(\tR\vclientState\"Y\n" +
-	"\x06Resume\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
+	"\fclient_state\x18\x04 \x01(\tR\vclientStateB\f\n" +
+	"\n" +
+	"credential\"\x92\x01\n" +
+	"\x06Resume\x12\x16\n" +
+	"\x05token\x18\x01 \x01(\tH\x00R\x05token\x12'\n" +
+	"\x0egateway_ticket\x18\x04 \x01(\tH\x00R\rgatewayTicket\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x1a\n" +
-	"\bsequence\x18\x03 \x01(\x04R\bsequence\"'\n" +
+	"\bsequence\x18\x03 \x01(\x04R\bsequenceB\f\n" +
+	"\n" +
+	"credential\"'\n" +
 	"\tHeartbeat\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x04R\bsequence\"K\n" +
 	"\x0ePresenceUpdate\x12\x16\n" +
@@ -2519,6 +2699,14 @@ func file_session_v1_session_proto_init() {
 		(*connectRequest_Heartbeat)(nil),
 		(*connectRequest_Presence)(nil),
 		(*connectRequest_Detach)(nil),
+	}
+	file_session_v1_session_proto_msgTypes[1].OneofWrappers = []any{
+		(*identify_Token)(nil),
+		(*identify_GatewayTicket)(nil),
+	}
+	file_session_v1_session_proto_msgTypes[2].OneofWrappers = []any{
+		(*resume_Token)(nil),
+		(*resume_GatewayTicket)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

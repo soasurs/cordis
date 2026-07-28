@@ -32,6 +32,7 @@ func (s *authenticatorServer) ListSessions(ctx context.Context, req *authenticat
 		pbSession.SetRevokedAt(session.RevokedAt)
 		pbSession.SetUserAgent(session.UserAgent)
 		pbSession.SetIp(session.IP)
+		pbSession.SetAbsoluteExpiresAt(session.AbsoluteExpiresAt)
 		pbSessions = append(pbSessions, pbSession)
 	}
 	resp.SetSessions(pbSessions)

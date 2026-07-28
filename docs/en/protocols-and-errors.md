@@ -28,6 +28,9 @@ defined.
 WebSocket envelopes contain `op`, optional `s`, optional `t`, and `d`. Important
 opcodes are dispatch `0`, heartbeat `1`, identify `2`, presence `3`, resume `6`,
 invalid session `9`, hello `10`, and heartbeat ACK `11`.
+The `identify` and `resume` data objects contain exactly one credential:
+native clients use `token` with an access token, while browsers use the
+short-lived `gateway_ticket`. Supplying both or neither is rejected.
 All event types are lowercase dot-separated names. Gateway event types and
 directions are:
 
@@ -52,6 +55,10 @@ without exposing unknown internal errors. Some Gateway and Presence validation
 still uses plain gRPC status errors.
 
 Authenticator owns credential verification and token issuance. Session calls
-Authenticator for IDENTIFY/RESUME. Guild is the authority for membership, roles,
+Authenticator to verify access tokens or atomically redeem Gateway tickets for
+IDENTIFY/RESUME. Browser API calls use HttpOnly cookies and transparent refresh;
+native clients use Bearer access tokens and explicit refresh. The complete
+rotation and client rules are in [Authentication and token rotation](authentication.md).
+Guild is the authority for membership, roles,
 and channel permissions; Message and Session call Guild instead of duplicating
 its permission algorithm.

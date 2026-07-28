@@ -53,6 +53,17 @@ func TestRefreshTokenExpiresNoLaterThanSession(t *testing.T) {
 	require.LessOrEqual(t, issued.ExpiresAt, sessionExpiresAt)
 }
 
+func TestReissueRefreshTokenIsDeterministic(t *testing.T) {
+	manager := newTestManager(t)
+	now := time.Now().Truncate(time.Second)
+	issued, err := manager.IssueRefreshToken(1001, 2001, now.Add(time.Hour).UnixMilli(), now)
+	require.NoError(t, err)
+
+	reissued, err := manager.ReissueRefreshToken(issued.UserID, issued.SessionID, issued.ID, issued.IssuedAt, issued.ExpiresAt)
+	require.NoError(t, err)
+	require.Equal(t, issued.Raw, reissued.Raw)
+}
+
 func TestHash(t *testing.T) {
 	first := Hash("token")
 	second := Hash("token")

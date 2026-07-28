@@ -9,6 +9,11 @@ service AuthenticatorService {
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
   rpc VerifyAccessToken(VerifyAccessTokenRequest) returns (VerifyAccessTokenResponse);
+  // AuthenticateCookie verifies a browser access token and transparently
+  // rotates the refresh token when the access token is absent or expired.
+  rpc AuthenticateCookie(AuthenticateCookieRequest) returns (AuthenticateCookieResponse);
+  rpc CreateGatewayTicket(CreateGatewayTicketRequest) returns (CreateGatewayTicketResponse);
+  rpc RedeemGatewayTicket(RedeemGatewayTicketRequest) returns (RedeemGatewayTicketResponse);
   // ChangePassword verifies the old password, replaces the credential, and
   // revokes every session except the current one.
   rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
@@ -41,6 +46,7 @@ message Session {
   int64 revoked_at = 6;
   string user_agent = 7;
   string ip = 8;
+  int64 absolute_expires_at = 9;
 }
 
 message RegisterRequest {
@@ -96,6 +102,7 @@ message AuthenticationResult {
   string refresh_token = 6;
   int64 refresh_token_expires_at = 7;
   int64 session_expires_at = 8;
+  int64 absolute_session_expires_at = 9;
 }
 
 message RefreshRequest {
@@ -123,6 +130,42 @@ message VerifyAccessTokenResponse {
   int64 user_id = 2;
   int64 session_id = 3;
   int64 expires_at = 4;
+}
+
+message AuthenticateCookieRequest {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 minimum_access_ttl_ms = 3;
+}
+
+message AuthenticateCookieResponse {
+  bool ok = 1;
+  int64 user_id = 2;
+  int64 session_id = 3;
+  int64 expires_at = 4;
+  AuthenticationResult rotated = 5;
+}
+
+message CreateGatewayTicketRequest {
+  int64 user_id = 1;
+  int64 session_id = 2;
+  int64 access_token_expires_at = 3;
+}
+
+message CreateGatewayTicketResponse {
+  string gateway_ticket = 1;
+  int64 expires_at = 2;
+}
+
+message RedeemGatewayTicketRequest {
+  string gateway_ticket = 1;
+}
+
+message RedeemGatewayTicketResponse {
+  bool ok = 1;
+  int64 user_id = 2;
+  int64 session_id = 3;
+  int64 access_token_expires_at = 4;
 }
 
 message ListSessionsRequest {

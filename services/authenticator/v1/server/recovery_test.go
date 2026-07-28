@@ -89,7 +89,7 @@ func newThrottledRecoveryTestServer(
 
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
-			Sessions: config.SessionConfig{TTL: time.Hour},
+			Sessions: config.SessionConfig{IdleTTL: time.Hour, AbsoluteTTL: 24 * time.Hour, RotationGrace: 30 * time.Second},
 			Recovery: config.RecoveryConfig{
 				PasswordResetTTL:     30 * time.Minute,
 				EmailVerificationTTL: 24 * time.Hour,

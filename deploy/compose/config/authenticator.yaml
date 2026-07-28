@@ -26,7 +26,16 @@ tokens:
     ttl: 720h
 
 sessions:
-  ttl: 720h
+  idleTTL: 720h
+  absoluteTTL: 4320h
+  rotationGrace: 30s
+
+gatewayTickets:
+  ttl: 30s
+  keyPrefix: "cordis:gateway_ticket:"
+  redis:
+    host: redis:6379
+    type: node
 
 password:
   maxConcurrency: 4

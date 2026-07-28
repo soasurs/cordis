@@ -180,8 +180,9 @@ func TestAuthenticatorUserComposition(t *testing.T) {
 
 		req = new(authenticatorv1.RefreshRequest)
 		req.SetRefreshToken(refreshToken)
-		_, err = service.Refresh(ctx, req)
-		require.Equal(t, codes.Unauthenticated, status.Code(err))
+		retry, err := service.Refresh(ctx, req)
+		require.NoError(t, err)
+		require.Equal(t, resp.GetResult().GetRefreshToken(), retry.GetResult().GetRefreshToken())
 	})
 
 	t.Run("password reset replaces password and revokes sessions", func(t *testing.T) {
@@ -382,17 +383,18 @@ func newCompositionServiceContext(t *testing.T, db *sqlx.DB, userClient userv1.U
 	require.NoError(t, err)
 
 	return svc.NewServiceContextWithDependencies(config.Config{
-		Sessions: config.SessionConfig{TTL: 24 * time.Hour},
+		Sessions: config.SessionConfig{IdleTTL: 24 * time.Hour, AbsoluteTTL: 30 * 24 * time.Hour, RotationGrace: 30 * time.Second},
 		Recovery: config.RecoveryConfig{
 			PasswordResetTTL:     30 * time.Minute,
 			EmailVerificationTTL: 24 * time.Hour,
 		},
 	}, svc.Dependencies{
-		Store:        store.New(db),
-		Tokens:       tokens,
-		TwoFactor:    cipher,
-		Snowflake:    node,
-		UserClient:   userClient,
-		MailerClient: mailerClient,
+		Store:          store.New(db),
+		Tokens:         tokens,
+		TwoFactor:      cipher,
+		Snowflake:      node,
+		UserClient:     userClient,
+		MailerClient:   mailerClient,
+		GatewayTickets: newFakeGatewayTicketStore(),
 	})
 }

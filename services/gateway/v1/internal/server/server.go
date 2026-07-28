@@ -691,7 +691,14 @@ func (c *client) toGatewayFrame(msg envelope) (*sessionv1.ConnectRequest, error)
 			return nil, err
 		}
 		identify := new(sessionv1.Identify)
-		identify.SetToken(data.Token)
+		if (strings.TrimSpace(data.Token) == "") == (strings.TrimSpace(data.GatewayTicket) == "") {
+			return nil, errors.New("exactly one gateway credential is required")
+		}
+		if data.Token != "" {
+			identify.SetToken(data.Token)
+		} else {
+			identify.SetGatewayTicket(data.GatewayTicket)
+		}
 		identify.SetDeviceType(data.DeviceType)
 		identify.SetStatus(data.Status)
 		identify.SetClientState(data.ClientState)
@@ -702,7 +709,14 @@ func (c *client) toGatewayFrame(msg envelope) (*sessionv1.ConnectRequest, error)
 			return nil, err
 		}
 		resume := new(sessionv1.Resume)
-		resume.SetToken(data.Token)
+		if (strings.TrimSpace(data.Token) == "") == (strings.TrimSpace(data.GatewayTicket) == "") {
+			return nil, errors.New("exactly one gateway credential is required")
+		}
+		if data.Token != "" {
+			resume.SetToken(data.Token)
+		} else {
+			resume.SetGatewayTicket(data.GatewayTicket)
+		}
 		resume.SetSessionId(data.SessionID)
 		resume.SetSequence(data.Sequence)
 		frame.SetResume(resume)

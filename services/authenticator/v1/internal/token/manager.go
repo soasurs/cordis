@@ -19,6 +19,7 @@ const (
 )
 
 var ErrInvalidToken = errors.New("invalid token")
+var ErrExpiredToken = errors.New("expired token")
 
 const minimumSecretLength = 32
 
@@ -49,6 +50,8 @@ type Token struct {
 	UserID    int64
 	SessionID int64
 	ExpiresAt int64
+	ID        string
+	IssuedAt  int64
 }
 
 func NewManager(cfg Config) (*Manager, error) {
@@ -106,12 +109,40 @@ func (m *Manager) IssueRefreshToken(userID, sessionID int64, sessionExpiresAt in
 	return m.issueToken(RefreshTokenType, userID, sessionID, jti, expiresAt, now, m.refreshSecret)
 }
 
+// ReissueRefreshToken deterministically reconstructs a previously issued
+// refresh token for an idempotent rotation retry.
+func (m *Manager) ReissueRefreshToken(userID, sessionID int64, tokenID string, issuedAt, expiresAt int64) (Token, error) {
+	if tokenID == "" || issuedAt <= 0 || expiresAt <= issuedAt {
+		return Token{}, ErrInvalidToken
+	}
+	return m.issueToken(RefreshTokenType, userID, sessionID, tokenID,
+		time.UnixMilli(expiresAt), time.UnixMilli(issuedAt), m.refreshSecret)
+}
+
 func (m *Manager) ParseAccessToken(raw string) (Token, error) {
+	value, expired, err := m.parseToken(raw, AccessTokenType, m.accessSecret)
+	if err != nil {
+		return Token{}, err
+	}
+	if expired {
+		return Token{}, ErrExpiredToken
+	}
+	return value, nil
+}
+
+func (m *Manager) ParseAccessTokenAllowExpired(raw string) (Token, bool, error) {
 	return m.parseToken(raw, AccessTokenType, m.accessSecret)
 }
 
 func (m *Manager) ParseRefreshToken(raw string) (Token, error) {
-	return m.parseToken(raw, RefreshTokenType, m.refreshSecret)
+	value, expired, err := m.parseToken(raw, RefreshTokenType, m.refreshSecret)
+	if err != nil {
+		return Token{}, err
+	}
+	if expired {
+		return Token{}, ErrExpiredToken
+	}
+	return value, nil
 }
 
 func Hash(raw string) string {
@@ -144,10 +175,12 @@ func (m *Manager) issueToken(tokenType string, userID, sessionID int64, tokenID 
 		UserID:    userID,
 		SessionID: sessionID,
 		ExpiresAt: expires.Time.UnixMilli(),
+		ID:        tokenID,
+		IssuedAt:  issuedAt.Time.UnixMilli(),
 	}, nil
 }
 
-func (m *Manager) parseToken(raw, tokenType string, secret []byte) (Token, error) {
+func (m *Manager) parseToken(raw, tokenType string, secret []byte) (Token, bool, error) {
 	claims := new(Claims)
 	parsed, err := jwt.ParseWithClaims(
 		raw,
@@ -156,34 +189,42 @@ func (m *Manager) parseToken(raw, tokenType string, secret []byte) (Token, error
 			return secret, nil
 		},
 		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
-		jwt.WithIssuer(m.issuer),
-		jwt.WithExpirationRequired(),
+		jwt.WithoutClaimsValidation(),
 	)
 	if err != nil {
-		return Token{}, fmt.Errorf("%w: %v", ErrInvalidToken, err)
+		return Token{}, false, fmt.Errorf("%w: %v", ErrInvalidToken, err)
 	}
-	if parsed == nil || !parsed.Valid || claims.TokenType != tokenType {
-		return Token{}, ErrInvalidToken
+	if parsed == nil || !parsed.Valid || claims.TokenType != tokenType || claims.Issuer != m.issuer {
+		return Token{}, false, ErrInvalidToken
 	}
 
 	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
 	if err != nil {
-		return Token{}, ErrInvalidToken
+		return Token{}, false, ErrInvalidToken
 	}
 	sessionID, err := strconv.ParseInt(claims.SessionID, 10, 64)
 	if err != nil {
-		return Token{}, ErrInvalidToken
+		return Token{}, false, ErrInvalidToken
 	}
 	if claims.ExpiresAt == nil {
-		return Token{}, ErrInvalidToken
+		return Token{}, false, ErrInvalidToken
+	}
+	if claims.IssuedAt == nil {
+		return Token{}, false, ErrInvalidToken
+	}
+	if !claims.ExpiresAt.Time.After(claims.IssuedAt.Time) || (tokenType == RefreshTokenType && claims.ID == "") {
+		return Token{}, false, ErrInvalidToken
 	}
 
-	return Token{
+	value := Token{
 		Raw:       raw,
 		UserID:    userID,
 		SessionID: sessionID,
 		ExpiresAt: claims.ExpiresAt.Time.UnixMilli(),
-	}, nil
+		ID:        claims.ID,
+		IssuedAt:  claims.IssuedAt.Time.UnixMilli(),
+	}
+	return value, value.ExpiresAt <= time.Now().UnixMilli(), nil
 }
 
 func randomID() (string, error) {

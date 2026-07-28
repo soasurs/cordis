@@ -374,12 +374,7 @@ func (s *Server) identify(
 	connectionID, gatewayID, gatewayGeneration string,
 	data *sessionv1.Identify,
 ) (*logicalSession, error) {
-	if strings.TrimSpace(data.GetToken()) == "" {
-		return nil, status.Error(codes.Unauthenticated, "token is required")
-	}
-	authReq := new(authenticatorv1.VerifyAccessTokenRequest)
-	authReq.SetAccessToken(data.GetToken())
-	auth, err := s.svcCtx.AuthenticatorClient.VerifyAccessToken(ctx, authReq)
+	auth, err := s.authenticateGatewayCredential(ctx, data.GetToken(), data.GetGatewayTicket())
 	if err != nil {
 		return nil, err
 	}
@@ -488,8 +483,8 @@ func (s *Server) resume(
 	connectionID, gatewayID, gatewayGeneration string,
 	data *sessionv1.Resume,
 ) (*logicalSession, error) {
-	if strings.TrimSpace(data.GetToken()) == "" || strings.TrimSpace(data.GetSessionId()) == "" {
-		return nil, status.Error(codes.InvalidArgument, "token and session id are required")
+	if (strings.TrimSpace(data.GetToken()) == "" && strings.TrimSpace(data.GetGatewayTicket()) == "") || strings.TrimSpace(data.GetSessionId()) == "" {
+		return nil, status.Error(codes.InvalidArgument, "credential and session id are required")
 	}
 	s.mu.RLock()
 	session := s.sessions[data.GetSessionId()]
@@ -498,9 +493,7 @@ func (s *Server) resume(
 		return nil, status.Error(codes.NotFound, "session not found")
 	}
 
-	authReq := new(authenticatorv1.VerifyAccessTokenRequest)
-	authReq.SetAccessToken(data.GetToken())
-	auth, err := s.svcCtx.AuthenticatorClient.VerifyAccessToken(ctx, authReq)
+	auth, err := s.authenticateGatewayCredential(ctx, data.GetToken(), data.GetGatewayTicket())
 	if err != nil {
 		return nil, err
 	}
@@ -548,6 +541,34 @@ func (s *Server) resume(
 		return nil, err
 	}
 	return session, nil
+}
+
+func (s *Server) authenticateGatewayCredential(ctx context.Context, accessToken, gatewayTicket string) (*authenticatorv1.VerifyAccessTokenResponse, error) {
+	hasAccessToken := strings.TrimSpace(accessToken) != ""
+	hasGatewayTicket := strings.TrimSpace(gatewayTicket) != ""
+	if hasAccessToken == hasGatewayTicket {
+		return nil, status.Error(codes.Unauthenticated, "exactly one gateway credential is required")
+	}
+	if hasAccessToken {
+		req := new(authenticatorv1.VerifyAccessTokenRequest)
+		req.SetAccessToken(accessToken)
+		return s.svcCtx.AuthenticatorClient.VerifyAccessToken(ctx, req)
+	}
+	req := new(authenticatorv1.RedeemGatewayTicketRequest)
+	req.SetGatewayTicket(gatewayTicket)
+	redeemed, err := s.svcCtx.AuthenticatorClient.RedeemGatewayTicket(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if !redeemed.GetOk() || redeemed.GetUserId() <= 0 || redeemed.GetSessionId() <= 0 {
+		return nil, status.Error(codes.Unauthenticated, "invalid gateway ticket")
+	}
+	resp := new(authenticatorv1.VerifyAccessTokenResponse)
+	resp.SetOk(redeemed.GetOk())
+	resp.SetUserId(redeemed.GetUserId())
+	resp.SetSessionId(redeemed.GetSessionId())
+	resp.SetExpiresAt(redeemed.GetAccessTokenExpiresAt())
+	return resp, nil
 }
 
 func (s *Server) receiveFrames(

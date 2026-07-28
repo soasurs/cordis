@@ -20,7 +20,7 @@ Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事�
 
 ## Authenticator
 
-监听 `:3001`，负责注册编排、登录、访问令牌与刷新令牌、令牌校验以及登录 Session 管理。用户身份由 User 提供；密码凭据和认证 Session 存储在 PostgreSQL。访问令牌默认短期有效，刷新令牌和认证 Session 默认 30 天。真实启动需要访问令牌和刷新令牌密钥环境变量。
+监听 `:3001`，负责注册编排、登录、访问令牌与刷新令牌、令牌校验以及登录 Session 管理。用户身份由 User 提供；密码凭据和认证 Session 存储在 PostgreSQL。access token 默认有效 15 分钟；认证 Session 的空闲期限为 30 天，绝对期限为 180 天。refresh token 每次使用都会轮换，紧邻的 previous token 有 30 秒幂等恢复窗口。API 为原生客户端保留显式 Bearer transport，并为浏览器提供 HttpOnly Cookie 和服务端透明刷新。Authenticator 还在 Redis 中保存 30 秒单次使用的 Gateway ticket。完整客户端约定见[认证与令牌轮换](authentication.md)。真实启动需要访问令牌和刷新令牌密钥环境变量。
 
 注册支持 `open`、`invite_only` 和 `closed` 三种模式。邀请制使用由 Authenticator
 保存的一次性邀请码，也可以将邀请码绑定到指定邮箱。邀请码会在 Argon2 和 User RPC
@@ -73,7 +73,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 ## Gateway
 
-监听 `:8081`，在根路径 `/` 提供 WebSocket；运维探针由单独的 probe server 提供。连接后发送 `hello`，首个客户端消息必须是 `identify` 或 `resume`。Gateway 从 etcd 发现 Session 节点；Resume owner 仍从 Redis 读取。建立 `SessionService.Connect` 双向 gRPC 流后，它只负责 WebSocket 与 gRPC 消息互转，不保存逻辑路由状态，也不消费 Kafka。WebSocket 握手会按照配置的 `originPatterns` 校验跨来源请求，生产环境应配置前端页面的 Origin。
+监听 `:8081`，在根路径 `/` 提供 WebSocket；运维探针由单独的 probe server 提供。连接后发送 `hello`，首个客户端消息必须是 `identify` 或 `resume`。原生客户端在 JSON `token` 中发送 access token；浏览器发送 API 签发的单次 `gateway_ticket`，两个字段必须且只能出现一个。Gateway 从 etcd 发现 Session 节点；Resume owner 仍从 Redis 读取。建立 `SessionService.Connect` 双向 gRPC 流后，它只负责 WebSocket 与 gRPC 消息互转，不保存逻辑路由状态，也不消费 Kafka。WebSocket 握手会按照配置的 `originPatterns` 校验跨来源请求，生产环境应配置前端页面的 Origin。
 
 接受 WebSocket 前，Gateway 会按可信代理解析出的 IPv4 `/32` 或 IPv6 `/64` 来源作用域限速。连接容量完全由进程本地维护：每实例默认最多 50000 条连接和 5000 条 pending handshake，IPv4 与 IPv6 每来源 pending 上限分别为 100 和 20；Session 接受 IDENTIFY 或 RESUME 后立即释放 pending 槽。每条连接默认每分钟最多发送 120 个 Gateway event。`IDENTIFY` 还会按来源作用域限速；`RESUME` 同时按来源作用域和逻辑 Session ID 限速，只有这些离散限流事件使用 Redis。
 
@@ -83,7 +83,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 监听 `:3006`，是实时系统的有状态核心。它负责：
 
-- 校验 IDENTIFY/RESUME 的 access token；
+- 校验 IDENTIFY/RESUME 的 access token，或通过 Authenticator 原子兑换浏览器 Gateway ticket；
 - 创建逻辑 Session，并加载用户完整的 READY Guild 与 read-state 快照；
 - 保存用户和 Guild 的本地反向索引；
 - 分配递增 sequence，保存最多 2048 条内存回放记录；

@@ -37,14 +37,20 @@ message ConnectRequest {
 }
 
 message Identify {
-  string token = 1;
+  oneof credential {
+    string token = 1;
+    string gateway_ticket = 5;
+  }
   string device_type = 2;
   string status = 3;
   string client_state = 4;
 }
 
 message Resume {
-  string token = 1;
+  oneof credential {
+    string token = 1;
+    string gateway_ticket = 4;
+  }
   string session_id = 2;
   uint64 sequence = 3;
 }

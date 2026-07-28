@@ -45,6 +45,8 @@ WebSocket 消息采用 `op`、可选 `s`、可选 `t` 和 `d`。主要 opcode：
 
 WebSocket JSON 中的 Snowflake ID 使用十进制字符串。`ready` 和领域事件 payload 中的 ID 输出为字符串；sequence、revision 和时间戳仍使用 JSON number。
 
+`identify` 和 `resume` 的 `d` 必须且只能包含一种凭证：原生客户端通过 `token` 发送 access token，浏览器通过 `gateway_ticket` 发送短期单次 ticket；两个字段同时出现或同时缺失都会被拒绝。
+
 ## 内部错误
 
 领域服务使用 `pkg/rpcerror.New` 创建 gRPC status，并附带 `google.rpc.ErrorInfo`，其中包含稳定的 domain 和 reason。错误消息保持面向开发者，稳定判断应使用 code/domain/reason。
@@ -53,4 +55,4 @@ WebSocket JSON 中的 Snowflake ID 使用十进制字符串。`ready` 和领域�
 
 ## 鉴权边界
 
-公开业务请求携带 actor user ID 到内部服务。Authenticator 校验凭证并签发 token；Gateway 的 IDENTIFY/RESUME 由 Session 调用 Authenticator 验证 token。Guild 是成员、角色和频道权限的权威来源，Message 和 Session 不复制权限算法，而是调用 Guild 授权接口。
+公开业务请求携带 actor user ID 到内部服务。Authenticator 校验凭证并签发 token；Gateway 的 IDENTIFY/RESUME 由 Session 调用 Authenticator 验证 access token 或原子兑换 Gateway ticket。浏览器 API 使用 HttpOnly Cookie 和透明刷新，原生客户端使用 Bearer access token 和显式 Refresh；完整轮换与客户端约定见[认证与令牌轮换](authentication.md)。Guild 是成员、角色和频道权限的权威来源，Message 和 Session 不复制权限算法，而是调用 Guild 授权接口。

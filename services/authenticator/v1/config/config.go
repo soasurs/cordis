@@ -11,14 +11,15 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database     database.Config
-	Tokens       TokenConfig
-	Sessions     SessionConfig
-	Password     PasswordConfig
-	Registration RegistrationConfig
-	TwoFactor    TwoFactorConfig
-	Recovery     RecoveryConfig
-	Services     ServiceConfig
+	Database       database.Config
+	Tokens         TokenConfig
+	Sessions       SessionConfig
+	GatewayTickets GatewayTicketConfig
+	Password       PasswordConfig
+	Registration   RegistrationConfig
+	TwoFactor      TwoFactorConfig
+	Recovery       RecoveryConfig
+	Services       ServiceConfig
 }
 
 const (
@@ -86,7 +87,15 @@ type TokenKindConfig struct {
 }
 
 type SessionConfig struct {
-	TTL time.Duration
+	IdleTTL       time.Duration `json:",default=720h"`
+	AbsoluteTTL   time.Duration `json:",default=4320h"`
+	RotationGrace time.Duration `json:",default=30s"`
+}
+
+type GatewayTicketConfig struct {
+	Redis     redis.RedisConf
+	TTL       time.Duration `json:",default=30s"`
+	KeyPrefix string        `json:",default=cordis:gateway_ticket:"`
 }
 
 type TwoFactorConfig struct {

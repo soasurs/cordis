@@ -48,6 +48,9 @@ const (
 	// AuthenticatorServiceLogoutProcedure is the fully-qualified name of the AuthenticatorService's
 	// Logout RPC.
 	AuthenticatorServiceLogoutProcedure = "/api.v1.AuthenticatorService/Logout"
+	// AuthenticatorServiceCreateGatewayTicketProcedure is the fully-qualified name of the
+	// AuthenticatorService's CreateGatewayTicket RPC.
+	AuthenticatorServiceCreateGatewayTicketProcedure = "/api.v1.AuthenticatorService/CreateGatewayTicket"
 	// AuthenticatorServiceRequestPasswordResetProcedure is the fully-qualified name of the
 	// AuthenticatorService's RequestPasswordReset RPC.
 	AuthenticatorServiceRequestPasswordResetProcedure = "/api.v1.AuthenticatorService/RequestPasswordReset"
@@ -95,6 +98,9 @@ type AuthenticatorServiceClient interface {
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
 	// Logout revokes the session identified by the refresh token.
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	// CreateGatewayTicket creates a short-lived, single-use browser credential
+	// for Gateway IDENTIFY or RESUME.
+	CreateGatewayTicket(context.Context, *v1.CreateGatewayTicketRequest) (*v1.CreateGatewayTicketResponse, error)
 	// RequestPasswordReset starts the email-based recovery flow. It always
 	// reports success to avoid account enumeration.
 	RequestPasswordReset(context.Context, *v1.RequestPasswordResetRequest) (*v1.RequestPasswordResetResponse, error)
@@ -156,6 +162,12 @@ func NewAuthenticatorServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+AuthenticatorServiceLogoutProcedure,
 			connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
+			connect.WithClientOptions(opts...),
+		),
+		createGatewayTicket: connect.NewClient[v1.CreateGatewayTicketRequest, v1.CreateGatewayTicketResponse](
+			httpClient,
+			baseURL+AuthenticatorServiceCreateGatewayTicketProcedure,
+			connect.WithSchema(authenticatorServiceMethods.ByName("CreateGatewayTicket")),
 			connect.WithClientOptions(opts...),
 		),
 		requestPasswordReset: connect.NewClient[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse](
@@ -234,6 +246,7 @@ type authenticatorServiceClient struct {
 	completeTwoFactorLogin           *connect.Client[v1.CompleteTwoFactorLoginRequest, v1.CompleteTwoFactorLoginResponse]
 	refresh                          *connect.Client[v1.RefreshRequest, v1.RefreshResponse]
 	logout                           *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	createGatewayTicket              *connect.Client[v1.CreateGatewayTicketRequest, v1.CreateGatewayTicketResponse]
 	requestPasswordReset             *connect.Client[v1.RequestPasswordResetRequest, v1.RequestPasswordResetResponse]
 	confirmPasswordReset             *connect.Client[v1.ConfirmPasswordResetRequest, v1.ConfirmPasswordResetResponse]
 	requestEmailVerification         *connect.Client[v1.RequestEmailVerificationRequest, v1.RequestEmailVerificationResponse]
@@ -286,6 +299,15 @@ func (c *authenticatorServiceClient) Refresh(ctx context.Context, req *v1.Refres
 // Logout calls api.v1.AuthenticatorService.Logout.
 func (c *authenticatorServiceClient) Logout(ctx context.Context, req *v1.LogoutRequest) (*v1.LogoutResponse, error) {
 	response, err := c.logout.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CreateGatewayTicket calls api.v1.AuthenticatorService.CreateGatewayTicket.
+func (c *authenticatorServiceClient) CreateGatewayTicket(ctx context.Context, req *v1.CreateGatewayTicketRequest) (*v1.CreateGatewayTicketResponse, error) {
+	response, err := c.createGatewayTicket.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -404,6 +426,9 @@ type AuthenticatorServiceHandler interface {
 	Refresh(context.Context, *v1.RefreshRequest) (*v1.RefreshResponse, error)
 	// Logout revokes the session identified by the refresh token.
 	Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error)
+	// CreateGatewayTicket creates a short-lived, single-use browser credential
+	// for Gateway IDENTIFY or RESUME.
+	CreateGatewayTicket(context.Context, *v1.CreateGatewayTicketRequest) (*v1.CreateGatewayTicketResponse, error)
 	// RequestPasswordReset starts the email-based recovery flow. It always
 	// reports success to avoid account enumeration.
 	RequestPasswordReset(context.Context, *v1.RequestPasswordResetRequest) (*v1.RequestPasswordResetResponse, error)
@@ -461,6 +486,12 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 		AuthenticatorServiceLogoutProcedure,
 		svc.Logout,
 		connect.WithSchema(authenticatorServiceMethods.ByName("Logout")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authenticatorServiceCreateGatewayTicketHandler := connect.NewUnaryHandlerSimple(
+		AuthenticatorServiceCreateGatewayTicketProcedure,
+		svc.CreateGatewayTicket,
+		connect.WithSchema(authenticatorServiceMethods.ByName("CreateGatewayTicket")),
 		connect.WithHandlerOptions(opts...),
 	)
 	authenticatorServiceRequestPasswordResetHandler := connect.NewUnaryHandlerSimple(
@@ -541,6 +572,8 @@ func NewAuthenticatorServiceHandler(svc AuthenticatorServiceHandler, opts ...con
 			authenticatorServiceRefreshHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceLogoutProcedure:
 			authenticatorServiceLogoutHandler.ServeHTTP(w, r)
+		case AuthenticatorServiceCreateGatewayTicketProcedure:
+			authenticatorServiceCreateGatewayTicketHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceRequestPasswordResetProcedure:
 			authenticatorServiceRequestPasswordResetHandler.ServeHTTP(w, r)
 		case AuthenticatorServiceConfirmPasswordResetProcedure:
@@ -590,6 +623,10 @@ func (UnimplementedAuthenticatorServiceHandler) Refresh(context.Context, *v1.Ref
 
 func (UnimplementedAuthenticatorServiceHandler) Logout(context.Context, *v1.LogoutRequest) (*v1.LogoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.Logout is not implemented"))
+}
+
+func (UnimplementedAuthenticatorServiceHandler) CreateGatewayTicket(context.Context, *v1.CreateGatewayTicketRequest) (*v1.CreateGatewayTicketResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.AuthenticatorService.CreateGatewayTicket is not implemented"))
 }
 
 func (UnimplementedAuthenticatorServiceHandler) RequestPasswordReset(context.Context, *v1.RequestPasswordResetRequest) (*v1.RequestPasswordResetResponse, error) {

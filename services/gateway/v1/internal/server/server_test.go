@@ -207,6 +207,26 @@ func TestToGatewayFrameResume(t *testing.T) {
 	require.Equal(t, uint64(42), frame.GetResume().GetSequence())
 }
 
+func TestToGatewayFrameGatewayTicket(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opIdentify,
+		D:  json.RawMessage(`{"gateway_ticket":"ticket"}`),
+	})
+	require.NoError(t, err)
+	require.Equal(t, "ticket", frame.GetIdentify().GetGatewayTicket())
+	require.Empty(t, frame.GetIdentify().GetToken())
+}
+
+func TestToGatewayFrameRejectsAmbiguousCredential(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
+	_, err := client.toGatewayFrame(envelope{
+		Op: opIdentify,
+		D:  json.RawMessage(`{"token":"access","gateway_ticket":"ticket"}`),
+	})
+	require.Error(t, err)
+}
+
 func TestToGatewayFrameResumeInvalidJSON(t *testing.T) {
 	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1"}}
 	_, err := client.toGatewayFrame(envelope{

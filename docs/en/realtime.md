@@ -4,14 +4,17 @@
 
 1. The client opens a Gateway WebSocket.
 2. Gateway sends `hello` with a 45-second heartbeat interval.
-3. The client sends `identify`, or `resume` with a session ID
-   and sequence.
+3. The client sends `identify`, or `resume` with a session ID and sequence.
+   Native clients provide an access token in `token`; browsers obtain a
+   single-use ticket from API and provide `gateway_ticket`.
 4. Gateway selects a ready Session node from etcd. For resume, it reads the
    owner from Redis and validates the node generation through etcd.
 5. Gateway opens `SessionService.Connect` and forwards the first request.
-6. Session returns a sequenced `ready`, or replays missing events followed by
+6. Session verifies the access token or atomically redeems the ticket through
+   Authenticator.
+7. Session returns a sequenced `ready`, or replays missing events followed by
    `resumed`.
-7. Presence updates, detach, and server events use the same stream; Gateway
+8. Presence updates, detach, and server events use the same stream; Gateway
    handles `heartbeat` frames locally and batches sequence checkpoints
    to Session.
 

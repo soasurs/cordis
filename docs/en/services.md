@@ -58,6 +58,14 @@ PostgreSQL. User remains the authority for user identity, while Authenticator
 owns password credentials. Real startup requires access- and refresh-token
 secrets.
 
+Access tokens default to 15 minutes. Authentication sessions use a 30-day idle
+deadline and a 180-day absolute deadline. Every refresh rotates its token; the
+immediately previous token has a 30-second idempotent recovery window. API
+supports explicit Bearer transport for native clients and HttpOnly Cookie
+transport with transparent server-side refresh for browsers. Authenticator also
+stores 30-second, single-use Gateway tickets in Redis. See
+[Authentication and token rotation](authentication.md).
+
 Registration supports `open`, `invite_only`, and `closed` modes. Invite-only
 registration uses one-time, optionally email-bound invitations stored by
 Authenticator. An invitation is reserved before Argon2 and the User RPC, then
@@ -176,7 +184,9 @@ on a best-effort basis; failures are logged. Guild message records carry
 
 HTTP/WebSocket on `:8081`, exposing the WebSocket at `/`; operational probes are
 served by a separate probe server. It sends `hello`, requires `identify` or
-`resume` as the first client message, discovers
+`resume` as the first client message, and forwards exactly one credential:
+native clients send an access token in JSON `token`, while browsers send a
+single-use `gateway_ticket`. It discovers
 Session nodes through etcd,
 reads resume ownership from Redis, and proxies the WebSocket over a
 `SessionService.Connect` bidirectional stream. It owns no logical routing state
@@ -204,7 +214,8 @@ make delayed checkpoints from replaced connections harmless.
 
 ## Session
 
-gRPC on `:3006` and the stateful core of realtime delivery. It validates tokens,
+gRPC on `:3006` and the stateful core of realtime delivery. It validates access
+tokens or atomically redeems browser Gateway tickets through Authenticator,
 creates or resumes logical sessions, loads Guild visibility, owns local
 user/Guild indexes, assigns sequence numbers, and keeps up to 2048 replay
 events in memory.

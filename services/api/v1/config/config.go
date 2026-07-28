@@ -22,7 +22,30 @@ type Config struct {
 	Inbound       InboundConfig
 	RateLimit     RateLimitConfig
 	ReadStates    ReadStatesConfig
+	BrowserAuth   BrowserAuthConfig
 	Services      ServiceConfig
+}
+
+type BrowserAuthConfig struct {
+	AccessCookieName              string        `json:",default=cordis_access"`
+	RefreshCookieName             string        `json:",default=cordis_refresh"`
+	Secure                        bool          `json:",default=false"`
+	AllowedOrigins                []string      `json:",optional"`
+	GatewayTicketMinimumAccessTTL time.Duration `json:",default=30s"`
+}
+
+func (c BrowserAuthConfig) EffectiveAccessCookieName() string {
+	if c.AccessCookieName == "" {
+		return "cordis_access"
+	}
+	return c.AccessCookieName
+}
+
+func (c BrowserAuthConfig) EffectiveRefreshCookieName() string {
+	if c.RefreshCookieName == "" {
+		return "cordis_refresh"
+	}
+	return c.RefreshCookieName
 }
 
 // InboundConfig controls public HTTP and Connect-RPC resource protection.

@@ -14,6 +14,9 @@ service AuthenticatorService {
   rpc Refresh(RefreshRequest) returns (RefreshResponse);
   // Logout revokes the session identified by the refresh token.
   rpc Logout(LogoutRequest) returns (LogoutResponse);
+  // CreateGatewayTicket creates a short-lived, single-use browser credential
+  // for Gateway IDENTIFY or RESUME.
+  rpc CreateGatewayTicket(CreateGatewayTicketRequest) returns (CreateGatewayTicketResponse);
   // RequestPasswordReset starts the email-based recovery flow. It always
   // reports success to avoid account enumeration.
   rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
@@ -36,6 +39,12 @@ service AuthenticatorService {
   rpc RegenerateTwoFactorRecoveryCodes(RegenerateTwoFactorRecoveryCodesRequest) returns (RegenerateTwoFactorRecoveryCodesResponse);
 }
 
+enum TokenTransport {
+  TOKEN_TRANSPORT_UNSPECIFIED = 0;
+  TOKEN_TRANSPORT_TOKEN = 1;
+  TOKEN_TRANSPORT_COOKIE = 2;
+}
+
 // AuthenticationResult contains the tokens and expiration times for an authenticated session.
 // All expiration timestamps are Unix time in milliseconds.
 message AuthenticationResult {
@@ -47,6 +56,7 @@ message AuthenticationResult {
   string refresh_token = 6;
   int64 refresh_token_expires_at = 7;
   int64 session_expires_at = 8;
+  int64 absolute_session_expires_at = 9;
 }
 
 message RegisterRequest {
@@ -66,6 +76,9 @@ message RegisterResponse {
 message LoginRequest {
   string email = 1;
   string password = 2;
+  // TOKEN is the compatibility default. COOKIE stores both tokens in
+  // HttpOnly cookies and omits them from the response body.
+  TokenTransport token_transport = 3;
 }
 
 message LoginResponse {
@@ -83,6 +96,7 @@ message TwoFactorLoginChallenge {
 message CompleteTwoFactorLoginRequest {
   string challenge_token = 1;
   string code = 2;
+  TokenTransport token_transport = 3;
 }
 
 message CompleteTwoFactorLoginResponse {
@@ -105,6 +119,13 @@ message LogoutResponse {
   bool ok = 1;
 }
 
+message CreateGatewayTicketRequest {}
+
+message CreateGatewayTicketResponse {
+  string gateway_ticket = 1;
+  int64 expires_at = 2;
+}
+
 // Session contains client-visible metadata for an active authenticated session.
 // All timestamps are Unix time in milliseconds.
 message Session {
@@ -115,6 +136,7 @@ message Session {
   int64 updated_at = 5;
   int64 expires_at = 6;
   bool current = 7;
+  int64 absolute_expires_at = 8;
 }
 
 message ListSessionsRequest {}

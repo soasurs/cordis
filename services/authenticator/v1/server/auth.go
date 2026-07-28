@@ -244,30 +244,10 @@ func (s *authenticatorServer) Refresh(ctx context.Context, req *authenticatorv1.
 		return nil, status.Error(codes.InvalidArgument, "refresh token is required")
 	}
 
-	_, session, err := s.getSessionWithRefreshToken(ctx, req.GetRefreshToken())
+	result, err := s.rotateRefreshToken(ctx, req.GetRefreshToken())
 	if err != nil {
 		return nil, err
 	}
-
-	now := time.Now()
-	newRefreshToken, err := s.svcCtx.Tokens.IssueRefreshToken(session.UserID, session.SessionID, session.ExpiresAt, now)
-	if err != nil {
-		return nil, err
-	}
-	accessToken, err := s.svcCtx.Tokens.IssueAccessToken(session.UserID, session.SessionID, now)
-	if err != nil {
-		return nil, err
-	}
-
-	oldRefreshTokenHash := token.Hash(req.GetRefreshToken())
-	if err := s.svcCtx.Store.RotateRefreshToken(ctx, session.SessionID, oldRefreshTokenHash, token.Hash(newRefreshToken.Raw)); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, invalidRefreshTokenError()
-		}
-		return nil, err
-	}
-
-	result := newAuthenticationResult(session.UserID, session.SessionID, accessToken, newRefreshToken, session.ExpiresAt)
 	resp := new(authenticatorv1.RefreshResponse)
 	resp.SetResult(result)
 	return resp, nil
@@ -298,26 +278,7 @@ func (s *authenticatorServer) VerifyAccessToken(ctx context.Context, req *authen
 		return nil, invalidAccessTokenError()
 	}
 
-	session, err := s.svcCtx.Store.GetSession(ctx, accessToken.SessionID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, invalidAccessTokenError()
-		}
-		return nil, err
-	}
-	if err := checkSession(session, time.Now().UnixMilli()); err != nil {
-		return nil, err
-	}
-	if session.UserID != accessToken.UserID {
-		return nil, invalidAccessTokenError()
-	}
-
-	resp := new(authenticatorv1.VerifyAccessTokenResponse)
-	resp.SetOk(true)
-	resp.SetUserId(accessToken.UserID)
-	resp.SetSessionId(accessToken.SessionID)
-	resp.SetExpiresAt(accessToken.ExpiresAt)
-	return resp, nil
+	return s.verifyParsedAccessToken(ctx, accessToken)
 }
 
 func (s *authenticatorServer) createSession(ctx context.Context, userID int64, userAgent, ip string) (*authenticatorv1.AuthenticationResult, error) {
@@ -327,14 +288,20 @@ func (s *authenticatorServer) createSession(ctx context.Context, userID int64, u
 func (s *authenticatorServer) createSessionWithStore(ctx context.Context, sessionStore store.Store, userID int64, userAgent, ip string) (*authenticatorv1.AuthenticationResult, error) {
 	now := time.Now()
 	sessionID := s.svcCtx.Snowflake.Generate().Int64()
-	sessionExpiresAt := now.Add(s.svcCtx.Cfg.Sessions.TTL).UnixMilli()
+	sessionExpiresAt := now.Add(s.svcCtx.Cfg.Sessions.IdleTTL).UnixMilli()
+	absoluteExpiresAt := now.Add(s.svcCtx.Cfg.Sessions.AbsoluteTTL).UnixMilli()
 
 	refreshToken, err := s.svcCtx.Tokens.IssueRefreshToken(userID, sessionID, sessionExpiresAt, now)
 	if err != nil {
 		return nil, err
 	}
 
-	session, err := sessionStore.CreateSession(ctx, sessionID, userID, token.Hash(refreshToken.Raw), userAgent, ip, sessionExpiresAt)
+	session, err := sessionStore.CreateSession(ctx, store.CreateSessionParams{
+		SessionID: sessionID, UserID: userID, RefreshTokenHash: token.Hash(refreshToken.Raw),
+		RefreshTokenID: refreshToken.ID, RefreshTokenIssuedAt: refreshToken.IssuedAt,
+		RefreshTokenExpiresAt: refreshToken.ExpiresAt, UserAgent: userAgent, IP: ip,
+		ExpiresAt: sessionExpiresAt, AbsoluteExpiresAt: absoluteExpiresAt,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +311,80 @@ func (s *authenticatorServer) createSessionWithStore(ctx context.Context, sessio
 		return nil, err
 	}
 
-	return newAuthenticationResult(userID, session.SessionID, accessToken, refreshToken, session.ExpiresAt), nil
+	return newAuthenticationResult(userID, session.SessionID, accessToken, refreshToken, session.ExpiresAt, session.AbsoluteExpiresAt), nil
+}
+
+func (s *authenticatorServer) rotateRefreshToken(ctx context.Context, raw string) (*authenticatorv1.AuthenticationResult, error) {
+	refreshToken, err := s.svcCtx.Tokens.ParseRefreshToken(raw)
+	if err != nil {
+		return nil, invalidRefreshTokenError()
+	}
+	session, err := s.svcCtx.Store.GetSession(ctx, refreshToken.SessionID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, invalidRefreshTokenError()
+		}
+		return nil, err
+	}
+	now := time.Now()
+	if err := checkSession(session, now.UnixMilli()); err != nil {
+		return nil, err
+	}
+	if session.UserID != refreshToken.UserID {
+		return nil, invalidRefreshTokenError()
+	}
+	presentedHash := token.Hash(raw)
+	if subtle.ConstantTimeCompare([]byte(session.RefreshTokenHash), []byte(presentedHash)) != 1 {
+		return s.replayRefreshToken(ctx, session, presentedHash, now)
+	}
+
+	expiresAt := min(now.Add(s.svcCtx.Cfg.Sessions.IdleTTL).UnixMilli(), session.AbsoluteExpiresAt)
+	newRefreshToken, err := s.svcCtx.Tokens.IssueRefreshToken(session.UserID, session.SessionID, expiresAt, now)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.svcCtx.Store.RotateRefreshToken(ctx, store.RotateRefreshTokenParams{
+		SessionID: session.SessionID, OldRefreshTokenHash: presentedHash,
+		NewRefreshTokenHash: token.Hash(newRefreshToken.Raw), NewRefreshTokenID: newRefreshToken.ID,
+		NewRefreshTokenIssuedAt: newRefreshToken.IssuedAt, NewRefreshTokenExpiresAt: newRefreshToken.ExpiresAt,
+		ExpiresAt: expiresAt, PreviousRefreshTokenValidUntil: now.Add(s.svcCtx.Cfg.Sessions.RotationGrace).UnixMilli(),
+	}); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return nil, err
+		}
+		latest, loadErr := s.svcCtx.Store.GetSession(ctx, session.SessionID)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		return s.replayRefreshToken(ctx, latest, presentedHash, now)
+	}
+	accessToken, err := s.svcCtx.Tokens.IssueAccessToken(session.UserID, session.SessionID, now)
+	if err != nil {
+		return nil, err
+	}
+	return newAuthenticationResult(session.UserID, session.SessionID, accessToken, newRefreshToken, expiresAt, session.AbsoluteExpiresAt), nil
+}
+
+func (s *authenticatorServer) replayRefreshToken(ctx context.Context, session *model.Session, presentedHash string, now time.Time) (*authenticatorv1.AuthenticationResult, error) {
+	if err := checkSession(session, now.UnixMilli()); err != nil {
+		return nil, err
+	}
+	if subtle.ConstantTimeCompare([]byte(session.PreviousRefreshTokenHash), []byte(presentedHash)) != 1 ||
+		session.PreviousRefreshTokenValidUntil < now.UnixMilli() {
+		_ = s.svcCtx.Store.RevokeSession(ctx, session.SessionID)
+		return nil, invalidRefreshTokenError()
+	}
+	refreshToken, err := s.svcCtx.Tokens.ReissueRefreshToken(session.UserID, session.SessionID,
+		session.RefreshTokenID, session.RefreshTokenIssuedAt, session.RefreshTokenExpiresAt)
+	if err != nil || token.Hash(refreshToken.Raw) != session.RefreshTokenHash {
+		return nil, invalidRefreshTokenError()
+	}
+	accessToken, err := s.svcCtx.Tokens.IssueAccessToken(session.UserID, session.SessionID, now)
+	if err != nil {
+		return nil, err
+	}
+	return newAuthenticationResult(session.UserID, session.SessionID, accessToken, refreshToken,
+		session.ExpiresAt, session.AbsoluteExpiresAt), nil
 }
 
 func invalidTwoFactorCodeError() error {
@@ -392,8 +432,11 @@ func (s *authenticatorServer) getSessionWithRefreshToken(ctx context.Context, ra
 	if err := checkSession(session, time.Now().UnixMilli()); err != nil {
 		return token.Token{}, nil, err
 	}
-	if session.UserID != refreshToken.UserID ||
-		subtle.ConstantTimeCompare([]byte(session.RefreshTokenHash), []byte(token.Hash(rawRefreshToken))) != 1 {
+	hash := token.Hash(rawRefreshToken)
+	current := subtle.ConstantTimeCompare([]byte(session.RefreshTokenHash), []byte(hash)) == 1
+	previous := subtle.ConstantTimeCompare([]byte(session.PreviousRefreshTokenHash), []byte(hash)) == 1 &&
+		session.PreviousRefreshTokenValidUntil >= time.Now().UnixMilli()
+	if session.UserID != refreshToken.UserID || (!current && !previous) {
 		return token.Token{}, nil, invalidRefreshTokenError()
 	}
 
@@ -404,7 +447,7 @@ func checkSession(session *model.Session, now int64) error {
 	if session.RevokedAt != 0 {
 		return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionRevoked, "session revoked")
 	}
-	if session.ExpiresAt <= now {
+	if session.ExpiresAt <= now || (session.AbsoluteExpiresAt != 0 && session.AbsoluteExpiresAt <= now) {
 		return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorSessionExpired, "session expired")
 	}
 	return nil
@@ -422,7 +465,7 @@ func invalidRefreshTokenError() error {
 	return rpcerror.New(codes.Unauthenticated, rpcerror.AuthenticatorDomain, rpcerror.AuthenticatorInvalidRefreshToken, "invalid refresh token")
 }
 
-func newAuthenticationResult(userID, sessionID int64, accessToken, refreshToken token.Token, sessionExpiresAt int64) *authenticatorv1.AuthenticationResult {
+func newAuthenticationResult(userID, sessionID int64, accessToken, refreshToken token.Token, sessionExpiresAt, absoluteSessionExpiresAt int64) *authenticatorv1.AuthenticationResult {
 	resp := new(authenticatorv1.AuthenticationResult)
 	resp.SetOk(true)
 	resp.SetUserId(userID)
@@ -432,5 +475,6 @@ func newAuthenticationResult(userID, sessionID int64, accessToken, refreshToken 
 	resp.SetRefreshToken(refreshToken.Raw)
 	resp.SetRefreshTokenExpiresAt(refreshToken.ExpiresAt)
 	resp.SetSessionExpiresAt(sessionExpiresAt)
+	resp.SetAbsoluteSessionExpiresAt(absoluteSessionExpiresAt)
 	return resp
 }

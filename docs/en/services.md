@@ -20,10 +20,11 @@ consume business-specific buckets. Authenticated `GetReadStates` reconciliation
 also uses a process-local keyed limiter to bound concurrent requests per user.
 
 `ResolveUsersPresence` accepts at most 100 unique user IDs and returns only the
-caller's own snapshot plus friends and users who share an active Guild. Either
-direction of a block removes the target even when a Guild is shared. Invisible
-or unknown aggregate states are exposed as offline, unrelated users are
-omitted, and the public model contains only `user_id`, `status`,
+caller's own snapshot plus friends and users who share an active Guild. A
+shared Guild independently grants Presence visibility even when either user
+has blocked the other; blocking removes only the relationship/DM visibility
+path. Invisible or unknown aggregate states are exposed as offline, unrelated
+users are omitted, and the public model contains only `user_id`, `status`,
 `last_seen_at`, and `version`.
 
 Before business rate limiting, the API inbound chain applies a server deadline,

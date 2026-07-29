@@ -8,7 +8,7 @@
 
 公开请求使用 Redis-backed 命名限流 policy，并在 Redis 故障时使用有界本地 fallback。IP 桶按 IPv4 `/32` 或 IPv6 `/64` 归一化，IPv4 阈值会为 CGNAT 放宽。所有请求先消费来源 IP guard；认证成功后再消费用户通用配额，消息创建、关系写入、Guild 资源创建和邀请加入还会消费对应业务桶。认证后的 `GetReadStates` reconcile 还使用进程内 keyed limiter，限制同一用户的并发请求数。
 
-`ResolveUsersPresence` 最多接受 100 个去重后的用户 ID，只返回调用者本人、好友和有有效共同 Guild 的用户。任一方向存在 block 时，即使双方有共同 Guild 也会排除目标。invisible 或未知聚合状态统一公开为 offline，无关用户直接省略；公开模型仅包含 `user_id`、`status`、`last_seen_at` 和 `version`。
+`ResolveUsersPresence` 最多接受 100 个去重后的用户 ID，只返回调用者本人、好友和有有效共同 Guild 的用户。共同 Guild 会独立授予 Presence 可见性，即使任一方 block 对方也仍然可见；block 只取消关系或 DM 可见路径。invisible 或未知聚合状态统一公开为 offline，无关用户直接省略；公开模型仅包含 `user_id`、`status`、`last_seen_at` 和 `version`。
 
 API 入站链在业务限流之前施加服务端 deadline、全局请求并发帽和 CPU 自适应 shedding，并按公开 RPC procedure 使用熔断器隔离持续的服务端失败。只有 `Unknown`、`DeadlineExceeded`、`Internal`、`Unavailable` 和 `DataLoss` 会使熔断器记为失败；校验、鉴权和限流错误不会打开线路。HTTP 总请求体与 Connect 解压后的单消息分别限长，panic 会记录 procedure 和 stack 后转换为不泄露内部信息的 `Internal` 错误。超时请求只有在底层 handler 实际退出后才释放并发槽，避免不响应取消的工作绕过全局并发帽。
 

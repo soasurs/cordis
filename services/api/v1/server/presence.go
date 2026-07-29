@@ -71,37 +71,24 @@ func (s *presenceServer) ResolveUsersPresence(
 			targets[userID] = struct{}{}
 		}
 	}
-	blocked := make(map[int64]struct{})
 	if len(targetUserIDs) > 0 {
 		relationshipReq := new(userv1.CheckRelationshipsRequest)
 		relationshipReq.SetUserId(auth.GetUserId())
 		relationshipReq.SetTargetIds(targetUserIDs)
-		relationshipReq.SetIncludeReverse(true)
 		relationshipResp, err := s.svcCtx.UserClient.CheckRelationships(ctx, relationshipReq)
 		if err != nil {
 			return nil, apierror.FromRPC(err)
 		}
 		for _, relationship := range relationshipResp.GetRelationships() {
-			var targetID int64
-			switch {
-			case relationship.GetUserId() == auth.GetUserId():
-				targetID = relationship.GetTargetId()
-			case relationship.GetTargetId() == auth.GetUserId():
-				targetID = relationship.GetUserId()
-			default:
+			if relationship.GetUserId() != auth.GetUserId() {
 				return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid response"))
 			}
+			targetID := relationship.GetTargetId()
 			if _, ok := targets[targetID]; !ok {
 				return nil, connect.NewError(connect.CodeInternal, errors.New("user service returned an invalid response"))
 			}
-			switch relationship.GetType() {
-			case userv1.RelationshipType_RELATIONSHIP_TYPE_BLOCKED:
-				blocked[targetID] = struct{}{}
-				delete(visible, targetID)
-			case userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND:
-				if _, denied := blocked[targetID]; !denied {
-					visible[targetID] = struct{}{}
-				}
+			if relationship.GetType() == userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND {
+				visible[targetID] = struct{}{}
 			}
 		}
 
@@ -116,9 +103,7 @@ func (s *presenceServer) ResolveUsersPresence(
 			if _, ok := targets[userID]; !ok {
 				continue
 			}
-			if _, denied := blocked[userID]; !denied {
-				visible[userID] = struct{}{}
-			}
+			visible[userID] = struct{}{}
 		}
 	}
 

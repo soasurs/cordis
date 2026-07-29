@@ -72,13 +72,14 @@ func (c *presenceInternalClient) ResolveUsersPresence(
 func TestResolveUsersPresenceFiltersVisibilityAndPrivateFields(t *testing.T) {
 	userClient := &presenceUserClient{relationships: []*userv1.Relationship{
 		relationship(1001, 1002, userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND),
-		relationship(1004, 1001, userv1.RelationshipType_RELATIONSHIP_TYPE_BLOCKED),
+		relationship(1001, 1004, userv1.RelationshipType_RELATIONSHIP_TYPE_BLOCKED),
 	}}
 	guildClient := &presenceGuildClient{userIDs: []int64{1003, 1004}}
 	presenceClient := &presenceInternalClient{presences: []*presencev1.UserPresence{
 		internalPresence(1001, presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE, 11),
 		internalPresence(1002, presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE, 12),
 		internalPresence(1003, presencev1.PresenceStatus_PRESENCE_STATUS_IDLE, 13),
+		internalPresence(1004, presencev1.PresenceStatus_PRESENCE_STATUS_DND, 14),
 	}}
 	client, closeServer := newPresenceHTTPClient(t, userClient, guildClient, presenceClient)
 	defer closeServer()
@@ -89,12 +90,13 @@ func TestResolveUsersPresenceFiltersVisibilityAndPrivateFields(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []int64{1002, 1003, 1004, 1005}, userClient.request.GetTargetIds())
-	require.True(t, userClient.request.GetIncludeReverse())
+	require.False(t, userClient.request.GetIncludeReverse())
 	require.Equal(t, []int64{1002, 1003, 1004, 1005}, guildClient.request.GetTargetUserIds())
-	require.Equal(t, []int64{1001, 1002, 1003}, presenceClient.request.GetUserIds())
-	require.Equal(t, []int64{1001, 1002, 1003}, publicPresenceUserIDs(resp.GetPresences()))
+	require.Equal(t, []int64{1001, 1002, 1003, 1004}, presenceClient.request.GetUserIds())
+	require.Equal(t, []int64{1001, 1002, 1003, 1004}, publicPresenceUserIDs(resp.GetPresences()))
 	require.Equal(t, apiv1.PresenceStatus_PRESENCE_STATUS_OFFLINE, resp.GetPresences()[1].GetStatus())
 	require.Equal(t, int64(13), resp.GetPresences()[2].GetVersion())
+	require.Equal(t, apiv1.PresenceStatus_PRESENCE_STATUS_DND, resp.GetPresences()[3].GetStatus())
 }
 
 func TestResolveUsersPresenceRejectsInvalidAndOversizedInput(t *testing.T) {

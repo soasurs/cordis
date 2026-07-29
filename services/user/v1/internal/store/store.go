@@ -18,8 +18,10 @@ type ListRelationshipsParams struct {
 }
 
 type UpdateUserProfileParams struct {
-	UserID int64
-	Name   *string
+	UserID        int64
+	Name          *string
+	Bio           *string
+	AvatarAssetID *int64
 }
 
 type Store interface {

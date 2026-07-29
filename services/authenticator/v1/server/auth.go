@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -21,14 +22,14 @@ import (
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/token"
 )
 
-const maxNameLength = 64
+const maxNameRunes = 64
 
 func (s *authenticatorServer) Register(ctx context.Context, req *authenticatorv1.RegisterRequest) (*authenticatorv1.RegisterResponse, error) {
 	name := strings.TrimSpace(req.GetName())
 	if name == "" {
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
-	if len(name) > maxNameLength {
+	if utf8.RuneCountInString(name) > maxNameRunes {
 		return nil, status.Error(codes.InvalidArgument, "name is too long")
 	}
 	if strings.TrimSpace(req.GetEmail()) == "" {

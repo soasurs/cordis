@@ -105,6 +105,12 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *apiv1.UpdateUse
 	if req.HasName() {
 		svcReq.SetName(req.GetName())
 	}
+	if req.HasBio() {
+		svcReq.SetBio(req.GetBio())
+	}
+	if req.HasAvatarAssetId() {
+		svcReq.SetAvatarAssetId(req.GetAvatarAssetId())
+	}
 	svcResp, err := s.svcCtx.UserClient.UpdateUserProfile(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -236,6 +242,7 @@ func userProfileToAPI(profile *userv1.UserProfile) *apiv1.UserProfile {
 	resp.SetUserId(profile.GetUserId())
 	resp.SetUsername(profile.GetUsername())
 	resp.SetName(profile.GetName())
+	resp.SetBio(profile.GetBio())
 	resp.SetAvatarAssetId(profile.GetAvatarAssetId())
 	resp.SetCreatedAt(profile.GetCreatedAt())
 	resp.SetUpdatedAt(profile.GetUpdatedAt())

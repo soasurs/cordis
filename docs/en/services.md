@@ -44,11 +44,18 @@ Relationship listing uses opaque `cursor` / `next_cursor` pagination ordered by
 next page). Optional `type` filters are part of the cursor scope and must stay
 unchanged across pages.
 
-Name, username, and avatar changes publish a full `user.profile.updated`
+Name, username, bio, and avatar changes publish a full `user.profile.updated`
 snapshot after the profile write succeeds. Dispatcher sends it to every client
 owned by the user, all shared-Guild members, non-blocked relationship peers,
 and existing DM peers. Session deduplicates recipients reached through more
 than one audience path.
+
+`UpdateUserProfile` is presence-aware for `name`, `bio`, and `avatar_asset_id`.
+Avatar binaries still use `CreateAvatarUpload` → direct PUT → either
+`CompleteAvatarUpload` or `UpdateUserProfile` with the upload/asset ID.
+Clients may preview unsaved avatars from a local blob URL. An explicit
+`avatar_asset_id` of `0` clears the avatar. Replaced assets are left for Media
+lifecycle reclaim.
 
 ## Authenticator
 

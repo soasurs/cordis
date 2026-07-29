@@ -16,7 +16,9 @@ API 入站链在业务限流之前施加服务端 deadline、全局请求并发�
 
 Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事件在关系事务前从 User store 加载目标 profile，使提交后的更新事件可以独立渲染。关系列表使用 opaque `cursor` / `next_cursor` 分页（按 `created_at`、`target_id` 降序；没有下一页时省略 `next_cursor`）。可选的 `type` 过滤属于 cursor 作用域，翻页时必须保持不变。
 
-名称、用户名或头像修改成功后，User 发布携带完整资料快照的 `user.profile.updated`。Dispatcher 将事件投递给用户本人的全部客户端、共同 Guild 成员、非 block 的关系对端以及已有 DM 对端；同一接收者通过多个受众路径命中时由 Session 去重。
+名称、用户名、简介或头像修改成功后，User 发布携带完整资料快照的 `user.profile.updated`。Dispatcher 将事件投递给用户本人的全部客户端、共同 Guild 成员、非 block 的关系对端以及已有 DM 对端；同一接收者通过多个受众路径命中时由 Session 去重。
+
+`UpdateUserProfile` 对 `name`、`bio` 和 `avatar_asset_id` 采用 presence-aware 部分更新。头像二进制仍走 `CreateAvatarUpload` → 直传 PUT，随后可通过 `CompleteAvatarUpload` 或带 `avatar_asset_id` 的 `UpdateUserProfile` 挂载。保存前可用本地 blob URL 预览。显式传入 `avatar_asset_id = 0` 清除头像；被替换的旧 asset 交由 Media lifecycle 回收。
 
 ## Authenticator
 

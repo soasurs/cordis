@@ -74,21 +74,41 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *userv1.UpdateUs
 	if req.GetUserId() <= 0 {
 		return nil, errUserIDRequired
 	}
-	if !req.HasName() {
+	if !req.HasName() && !req.HasBio() && !req.HasAvatarAssetId() {
 		return nil, errUpdateFieldsRequired
 	}
 
 	params := store.UpdateUserProfileParams{UserID: req.GetUserId()}
 	if req.HasName() {
 		name := strings.TrimSpace(req.GetName())
-		if name == "" {
-			return nil, errNameRequired
-		}
-		if len(name) > maxNameLength {
-			return nil, errNameTooLong
+		if err := validateName(name); err != nil {
+			return nil, err
 		}
 		params.Name = &name
 	}
+	if req.HasBio() {
+		bio := req.GetBio()
+		if err := validateBio(bio); err != nil {
+			return nil, err
+		}
+		params.Bio = &bio
+	}
+
+	if req.HasAvatarAssetId() {
+		assetID := req.GetAvatarAssetId()
+		if assetID < 0 {
+			return nil, errAvatarAssetIDInvalid
+		}
+		if assetID > 0 {
+			mountedID, err := s.mountAvatarAsset(ctx, req.GetUserId(), assetID)
+			if err != nil {
+				return nil, err
+			}
+			assetID = mountedID
+		}
+		params.AvatarAssetID = &assetID
+	}
+
 	profile, err := s.svcCtx.Store.UpdateUserProfile(ctx, params)
 	if err != nil {
 		return nil, mapStoreError(err)

@@ -41,6 +41,7 @@ type relationshipPayload struct {
 type userProfilePayload struct {
 	UserID        string `json:"user_id"`
 	Name          string `json:"name"`
+	Bio           string `json:"bio"`
 	AvatarAssetID string `json:"avatar_asset_id"`
 	CreatedAt     int64  `json:"created_at"`
 	UpdatedAt     int64  `json:"updated_at"`
@@ -74,6 +75,7 @@ func userProfilePayloadFromModel(profile *model.UserProfile) userProfilePayload 
 	return userProfilePayload{
 		UserID:        strconv.FormatInt(profile.UserID, 10),
 		Name:          profile.Name,
+		Bio:           profile.Bio,
 		AvatarAssetID: strconv.FormatInt(profile.AvatarAssetID, 10),
 		CreatedAt:     profile.CreatedAt,
 		UpdatedAt:     profile.UpdatedAt,

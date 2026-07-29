@@ -38,21 +38,11 @@ func (s *userServer) CompleteAvatarUpload(
 	ctx context.Context,
 	req *userv1.CompleteAvatarUploadRequest,
 ) (*userv1.CompleteAvatarUploadResponse, error) {
-	asset, err := s.getAvatarUpload(ctx, req.GetUserId(), req.GetUploadId())
+	assetID, err := s.mountAvatarAsset(ctx, req.GetUserId(), req.GetUploadId())
 	if err != nil {
 		return nil, err
 	}
-	mediaReq := new(mediav1.CompleteUploadRequest)
-	mediaReq.SetActorUserId(req.GetUserId())
-	mediaReq.SetUploadId(req.GetUploadId())
-	mediaResp, err := s.svcCtx.MediaClient.CompleteUpload(ctx, mediaReq)
-	if err != nil {
-		return nil, err
-	}
-	if mediaResp.GetAssetId() != asset.GetId() {
-		return nil, status.Error(codes.Internal, "media returned an unexpected asset id")
-	}
-	profile, err := s.svcCtx.Store.UpdateUserAvatar(ctx, req.GetUserId(), mediaResp.GetAssetId())
+	profile, err := s.svcCtx.Store.UpdateUserAvatar(ctx, req.GetUserId(), assetID)
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
@@ -76,6 +66,33 @@ func (s *userServer) AbortAvatarUpload(
 		return nil, err
 	}
 	return new(userv1.AbortAvatarUploadResponse), nil
+}
+
+// mountAvatarAsset validates ownership and completes an unpublished upload when
+// needed, returning the ready asset ID to associate with the profile.
+func (s *userServer) mountAvatarAsset(ctx context.Context, userID, assetID int64) (int64, error) {
+	asset, err := s.getAvatarUpload(ctx, userID, assetID)
+	if err != nil {
+		return 0, err
+	}
+	switch asset.GetStatus() {
+	case mediav1.AssetStatus_ASSET_STATUS_READY:
+		return asset.GetId(), nil
+	case mediav1.AssetStatus_ASSET_STATUS_CREATED, mediav1.AssetStatus_ASSET_STATUS_COMPLETING:
+		mediaReq := new(mediav1.CompleteUploadRequest)
+		mediaReq.SetActorUserId(userID)
+		mediaReq.SetUploadId(assetID)
+		mediaResp, err := s.svcCtx.MediaClient.CompleteUpload(ctx, mediaReq)
+		if err != nil {
+			return 0, err
+		}
+		if mediaResp.GetAssetId() != asset.GetId() {
+			return 0, status.Error(codes.Internal, "media returned an unexpected asset id")
+		}
+		return mediaResp.GetAssetId(), nil
+	default:
+		return 0, status.Error(codes.FailedPrecondition, "avatar asset is not ready to mount")
+	}
 }
 
 func (s *userServer) getAvatarUpload(

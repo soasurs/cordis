@@ -13,10 +13,24 @@ type userProfileRow struct {
 	UserID        int64  `db:"user_id"`
 	Username      string `db:"username"`
 	Name          string `db:"name"`
+	Bio           string `db:"bio"`
 	AvatarAssetID int64  `db:"avatar_asset_id"`
 	CreatedAt     int64  `db:"created_at"`
 	UpdatedAt     int64  `db:"updated_at"`
 	DeletedAt     int64  `db:"deleted_at"`
+}
+
+func profileFromRow(row *userProfileRow) *model.UserProfile {
+	return &model.UserProfile{
+		UserID:        row.UserID,
+		Username:      row.Username,
+		Name:          row.Name,
+		Bio:           row.Bio,
+		AvatarAssetID: row.AvatarAssetID,
+		CreatedAt:     row.CreatedAt,
+		UpdatedAt:     row.UpdatedAt,
+		DeletedAt:     row.DeletedAt,
+	}
 }
 
 func (s *SQLStore) CreateUserProfile(ctx context.Context, userID int64, username, name string) (*model.UserProfile, error) {
@@ -32,15 +46,7 @@ func (s *SQLStore) CreateUserProfile(ctx context.Context, userID int64, username
 		return nil, err
 	}
 
-	return &model.UserProfile{
-		UserID:        row.UserID,
-		Username:      row.Username,
-		Name:          row.Name,
-		AvatarAssetID: row.AvatarAssetID,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
-		DeletedAt:     row.DeletedAt,
-	}, nil
+	return profileFromRow(row), nil
 }
 
 func (s *SQLStore) GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error) {
@@ -49,15 +55,7 @@ func (s *SQLStore) GetUserProfile(ctx context.Context, userID int64) (*model.Use
 	if err != nil {
 		return nil, err
 	}
-	return &model.UserProfile{
-		UserID:        row.UserID,
-		Username:      row.Username,
-		Name:          row.Name,
-		AvatarAssetID: row.AvatarAssetID,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
-		DeletedAt:     row.DeletedAt,
-	}, nil
+	return profileFromRow(row), nil
 }
 
 func (s *SQLStore) ListUserProfiles(ctx context.Context, userIDs []int64) ([]*model.UserProfile, error) {
@@ -67,15 +65,7 @@ func (s *SQLStore) ListUserProfiles(ctx context.Context, userIDs []int64) ([]*mo
 	}
 	profiles := make([]*model.UserProfile, 0, len(rows))
 	for _, row := range rows {
-		profiles = append(profiles, &model.UserProfile{
-			UserID:        row.UserID,
-			Username:      row.Username,
-			Name:          row.Name,
-			AvatarAssetID: row.AvatarAssetID,
-			CreatedAt:     row.CreatedAt,
-			UpdatedAt:     row.UpdatedAt,
-			DeletedAt:     row.DeletedAt,
-		})
+		profiles = append(profiles, profileFromRow(row))
 	}
 	return profiles, nil
 }
@@ -85,6 +75,14 @@ func (s *SQLStore) UpdateUserProfile(ctx context.Context, params UpdateUserProfi
 	if params.Name != nil {
 		name = *params.Name
 	}
+	var bio string
+	if params.Bio != nil {
+		bio = *params.Bio
+	}
+	var avatarAssetID int64
+	if params.AvatarAssetID != nil {
+		avatarAssetID = *params.AvatarAssetID
+	}
 	row := new(userProfileRow)
 	err := sqlx.GetContext(
 		ctx,
@@ -93,6 +91,10 @@ func (s *SQLStore) UpdateUserProfile(ctx context.Context, params UpdateUserProfi
 		UpdateUserProfileQuery,
 		params.Name != nil,
 		name,
+		params.Bio != nil,
+		bio,
+		params.AvatarAssetID != nil,
+		avatarAssetID,
 		time.Now().UnixMilli(),
 		params.UserID,
 		0,
@@ -100,15 +102,7 @@ func (s *SQLStore) UpdateUserProfile(ctx context.Context, params UpdateUserProfi
 	if err != nil {
 		return nil, err
 	}
-	return &model.UserProfile{
-		UserID:        row.UserID,
-		Username:      row.Username,
-		Name:          row.Name,
-		AvatarAssetID: row.AvatarAssetID,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
-		DeletedAt:     row.DeletedAt,
-	}, nil
+	return profileFromRow(row), nil
 }
 
 func (s *SQLStore) UpdateUserAvatar(ctx context.Context, userID, assetID int64) (*model.UserProfile, error) {
@@ -124,15 +118,7 @@ func (s *SQLStore) UpdateUserAvatar(ctx context.Context, userID, assetID int64) 
 	); err != nil {
 		return nil, err
 	}
-	return &model.UserProfile{
-		UserID:        row.UserID,
-		Username:      row.Username,
-		Name:          row.Name,
-		AvatarAssetID: row.AvatarAssetID,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
-		DeletedAt:     row.DeletedAt,
-	}, nil
+	return profileFromRow(row), nil
 }
 
 func (s *SQLStore) GetUserProfileByUsername(ctx context.Context, username string) (*model.UserProfile, error) {
@@ -140,15 +126,7 @@ func (s *SQLStore) GetUserProfileByUsername(ctx context.Context, username string
 	if err := sqlx.GetContext(ctx, s.q, row, GetUserProfileByUsernameQuery, username, 0); err != nil {
 		return nil, err
 	}
-	return &model.UserProfile{
-		UserID:        row.UserID,
-		Username:      row.Username,
-		Name:          row.Name,
-		AvatarAssetID: row.AvatarAssetID,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
-		DeletedAt:     row.DeletedAt,
-	}, nil
+	return profileFromRow(row), nil
 }
 
 func (s *SQLStore) UpdateUsername(ctx context.Context, userID int64, username string) (*model.UserProfile, error) {
@@ -156,13 +134,5 @@ func (s *SQLStore) UpdateUsername(ctx context.Context, userID int64, username st
 	if err := sqlx.GetContext(ctx, s.q, row, UpdateUsernameQuery, username, time.Now().UnixMilli(), userID, 0); err != nil {
 		return nil, err
 	}
-	return &model.UserProfile{
-		UserID:        row.UserID,
-		Username:      row.Username,
-		Name:          row.Name,
-		AvatarAssetID: row.AvatarAssetID,
-		CreatedAt:     row.CreatedAt,
-		UpdatedAt:     row.UpdatedAt,
-		DeletedAt:     row.DeletedAt,
-	}, nil
+	return profileFromRow(row), nil
 }

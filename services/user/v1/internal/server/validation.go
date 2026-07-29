@@ -3,6 +3,7 @@ package server
 import (
 	"regexp"
 	"strings"
+	"unicode/utf8"
 )
 
 var usernamePattern = regexp.MustCompile(`^[a-z0-9_]{2,32}$`)
@@ -20,7 +21,8 @@ func validateUsername(username string) error {
 	return nil
 }
 
-const maxNameLength = 64
+const maxNameRunes = 64
+const maxBioRunes = 190
 
 // normalizeEmail canonicalizes an address for storage and lookup. Mailbox
 // local parts are case-insensitive at every mainstream provider, so the
@@ -49,8 +51,15 @@ func validateName(name string) error {
 	if trimmed == "" {
 		return errNameRequired
 	}
-	if len(trimmed) > maxNameLength {
+	if utf8.RuneCountInString(trimmed) > maxNameRunes {
 		return errNameTooLong
+	}
+	return nil
+}
+
+func validateBio(bio string) error {
+	if utf8.RuneCountInString(bio) > maxBioRunes {
+		return errBioTooLong
 	}
 	return nil
 }

@@ -81,14 +81,14 @@ const (
 const (
 	CreateUserProfileStatement = `
 	INSERT INTO
-		user_profiles (user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at)
+		user_profiles (user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at)
 	VALUES
-		(:user_id, :username, :name, :avatar_asset_id, :created_at, :updated_at, :deleted_at);
+		(:user_id, :username, :name, :bio, :avatar_asset_id, :created_at, :updated_at, :deleted_at);
 	`
 
 	GetUserProfileQuery = `
 	SELECT
-		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
+		user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at
 	FROM
 		user_profiles
 	WHERE
@@ -101,7 +101,7 @@ const (
 
 	ListUserProfilesQuery = `
 	SELECT
-		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
+		user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at
 	FROM
 		user_profiles
 	WHERE
@@ -117,13 +117,15 @@ const (
 		user_profiles
 	SET
 		name = CASE WHEN $1 THEN $2 ELSE name END,
-		updated_at = $3
+		bio = CASE WHEN $3 THEN $4 ELSE bio END,
+		avatar_asset_id = CASE WHEN $5 THEN $6 ELSE avatar_asset_id END,
+		updated_at = $7
 	WHERE
-		user_id = $4
+		user_id = $8
 	AND
-		deleted_at = $5
+		deleted_at = $9
 	RETURNING
-		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
+		user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at
 	`
 
 	UpdateUserAvatarQuery = `
@@ -133,7 +135,7 @@ const (
 	WHERE user_id = $3
 	  AND deleted_at = 0
 	RETURNING
-		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
+		user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at
 	`
 
 	UpdateUsernameQuery = `
@@ -147,12 +149,12 @@ const (
 	AND
 		deleted_at = $4
 	RETURNING
-		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
+		user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at
 	`
 
 	GetUserProfileByUsernameQuery = `
 	SELECT
-		user_id, username, name, avatar_asset_id, created_at, updated_at, deleted_at
+		user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at
 	FROM
 		user_profiles
 	WHERE

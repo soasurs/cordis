@@ -102,13 +102,38 @@ func testUserProfiles(t *testing.T, store Store) {
 	updated, err := store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: userID, Name: &name})
 	require.NoError(t, err)
 	require.Equal(t, "Alice Cooper", updated.Name)
+	require.Empty(t, updated.Bio)
 	require.Zero(t, updated.AvatarAssetID)
 	require.True(t, updated.UpdatedAt > 0)
 
-	updated, err = store.UpdateUserAvatar(ctx, userID, 9001)
+	bio := "hello bio"
+	avatarID := int64(9001)
+	updated, err = store.UpdateUserProfile(ctx, UpdateUserProfileParams{
+		UserID:        userID,
+		Bio:           &bio,
+		AvatarAssetID: &avatarID,
+	})
 	require.NoError(t, err)
 	require.Equal(t, "Alice Cooper", updated.Name)
+	require.Equal(t, "hello bio", updated.Bio)
 	require.Equal(t, int64(9001), updated.AvatarAssetID)
+
+	clearedBio := ""
+	clearedAvatar := int64(0)
+	updated, err = store.UpdateUserProfile(ctx, UpdateUserProfileParams{
+		UserID:        userID,
+		Bio:           &clearedBio,
+		AvatarAssetID: &clearedAvatar,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "Alice Cooper", updated.Name)
+	require.Empty(t, updated.Bio)
+	require.Zero(t, updated.AvatarAssetID)
+
+	updated, err = store.UpdateUserAvatar(ctx, userID, 9002)
+	require.NoError(t, err)
+	require.Equal(t, "Alice Cooper", updated.Name)
+	require.Equal(t, int64(9002), updated.AvatarAssetID)
 
 	_, err = store.UpdateUserProfile(ctx, UpdateUserProfileParams{UserID: 9999, Name: &name})
 	require.ErrorIs(t, err, sql.ErrNoRows)

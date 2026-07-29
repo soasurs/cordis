@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -159,6 +160,7 @@ func TestUpdateUserProfile(t *testing.T) {
 		UserID:        1001,
 		Username:      "test_user",
 		Name:          "old name",
+		Bio:           "old bio",
 		AvatarAssetID: 77,
 		CreatedAt:     10,
 		UpdatedAt:     20,
@@ -173,8 +175,78 @@ func TestUpdateUserProfile(t *testing.T) {
 	resp, err := server.UpdateUserProfile(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, "new name", resp.GetProfile().GetName())
+	require.Equal(t, "old bio", resp.GetProfile().GetBio())
 	require.Equal(t, int64(77), resp.GetProfile().GetAvatarAssetId())
 	assertProfileUpdatedEvent(t, publisher, store.profile)
+}
+
+func TestUpdateUserProfileBioAndAvatar(t *testing.T) {
+	store := newFakeStore()
+	store.profile = &model.UserProfile{
+		UserID:        1001,
+		Username:      "test_user",
+		Name:          "name",
+		Bio:           "keep me",
+		AvatarAssetID: 77,
+	}
+	mediaClient := &fakeMediaClient{asset: avatarAsset(7001, 1001)}
+	publisher := new(fakeUserPublisher)
+	server := newTestUserServerWithPublisher(t, store, mediaClient, publisher)
+
+	req := new(userv1.UpdateUserProfileRequest)
+	req.SetUserId(1001)
+	req.SetBio("hello 简介")
+	req.SetAvatarAssetId(7001)
+
+	resp, err := server.UpdateUserProfile(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, "name", resp.GetProfile().GetName())
+	require.Equal(t, "hello 简介", resp.GetProfile().GetBio())
+	require.Equal(t, int64(7001), resp.GetProfile().GetAvatarAssetId())
+	require.Equal(t, int64(1001), mediaClient.completeRequest.GetActorUserId())
+	require.Equal(t, int64(7001), mediaClient.completeRequest.GetUploadId())
+	assertProfileUpdatedEvent(t, publisher, store.profile)
+
+	clearReq := new(userv1.UpdateUserProfileRequest)
+	clearReq.SetUserId(1001)
+	clearReq.SetBio("")
+	clearReq.SetAvatarAssetId(0)
+	clearResp, err := server.UpdateUserProfile(context.Background(), clearReq)
+	require.NoError(t, err)
+	require.Empty(t, clearResp.GetProfile().GetBio())
+	require.Zero(t, clearResp.GetProfile().GetAvatarAssetId())
+}
+
+func TestUpdateUserProfileMountsReadyAvatarWithoutComplete(t *testing.T) {
+	store := newFakeStore()
+	store.profile = &model.UserProfile{UserID: 1001, Name: "name", AvatarAssetID: 11}
+	asset := avatarAsset(7001, 1001)
+	asset.SetStatus(mediav1.AssetStatus_ASSET_STATUS_READY)
+	mediaClient := &fakeMediaClient{asset: asset}
+	server := newTestUserServerWithMedia(t, store, mediaClient)
+
+	req := new(userv1.UpdateUserProfileRequest)
+	req.SetUserId(1001)
+	req.SetAvatarAssetId(7001)
+	resp, err := server.UpdateUserProfile(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(7001), resp.GetProfile().GetAvatarAssetId())
+	require.Nil(t, mediaClient.completeRequest)
+}
+
+func TestUpdateUserProfileRejectsForeignAvatar(t *testing.T) {
+	store := newFakeStore()
+	store.profile = &model.UserProfile{UserID: 1001, AvatarAssetID: 99}
+	mediaClient := &fakeMediaClient{asset: avatarAsset(7001, 2002)}
+	server := newTestUserServerWithMedia(t, store, mediaClient)
+
+	req := new(userv1.UpdateUserProfileRequest)
+	req.SetUserId(1001)
+	req.SetAvatarAssetId(7001)
+	_, err := server.UpdateUserProfile(context.Background(), req)
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+	require.Nil(t, mediaClient.completeRequest)
+	require.Equal(t, int64(99), store.profile.AvatarAssetID)
 }
 
 func TestUpdateUserProfileValidation(t *testing.T) {
@@ -184,6 +256,12 @@ func TestUpdateUserProfileValidation(t *testing.T) {
 	req.SetUserId(1001)
 
 	_, err := server.UpdateUserProfile(context.Background(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	bioReq := new(userv1.UpdateUserProfileRequest)
+	bioReq.SetUserId(1001)
+	bioReq.SetBio(strings.Repeat("刺", maxBioRunes+1))
+	_, err = server.UpdateUserProfile(context.Background(), bioReq)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
@@ -249,7 +327,7 @@ func TestCreateUserNameTooLong(t *testing.T) {
 	server := newTestUserServer(t, newFakeStore())
 
 	req := new(userv1.CreateUserRequest)
-	req.SetName(string(make([]byte, 65)))
+	req.SetName(strings.Repeat("刺", maxNameRunes+1))
 	req.SetEmail("user@example.com")
 	req.SetUsername("tester")
 
@@ -572,6 +650,12 @@ func (s *fakeStore) UpdateUserProfile(_ context.Context, params store.UpdateUser
 	}
 	if params.Name != nil {
 		s.profile.Name = *params.Name
+	}
+	if params.Bio != nil {
+		s.profile.Bio = *params.Bio
+	}
+	if params.AvatarAssetID != nil {
+		s.profile.AvatarAssetID = *params.AvatarAssetID
 	}
 	return s.profile, nil
 }

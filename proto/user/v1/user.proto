@@ -84,6 +84,9 @@ message UserProfile {
   int64 deleted_at = 6;
   // Globally unique lowercase handle.
   string username = 7;
+  // Public about text. Empty means the user has no bio. Limited to 190 Unicode
+  // code points.
+  string bio = 8;
 }
 
 // User identity is owned by this service; authentication credentials are
@@ -155,8 +158,14 @@ message MarkEmailVerifiedResponse {
 
 message UpdateUserProfileRequest {
   int64 user_id = 1;
-  // Optional replacement field. When absent, the current name is preserved.
+  // Optional replacement fields. Omitted fields keep their stored values.
+  // An explicitly present empty bio clears the bio. An explicitly present
+  // avatar_asset_id of 0 clears the avatar; a non-zero value mounts an owned
+  // user-avatar Media asset (completing the upload when still unpublished).
+  // At least one mutable field must be present.
   string name = 2;
+  string bio = 3;
+  int64 avatar_asset_id = 4;
 }
 
 message UpdateUserProfileResponse {
@@ -176,7 +185,7 @@ message CreateAvatarUploadRequest {
 
 // CreateAvatarUploadResponse forwards Media's one-shot direct-upload contract.
 message CreateAvatarUploadResponse {
-  // Opaque upload identifier used for completion or abort.
+  // Opaque upload identifier used for completion, abort, or profile association.
   int64 upload_id = 1;
   // Short-lived URL accepting one PUT with the declared length and media type.
   string presigned_url = 2;

@@ -13,8 +13,9 @@ make lint
 
 Resource `Update` RPCs use partial-update semantics. Only fields explicitly
 present in a request are changed; omitted fields keep their stored values. An
-explicitly present default value is still an update—for example, an empty
-`avatar_uri` clears the avatar. Requests with no mutable fields are rejected.
+explicitly present default value is still an update—for example, an explicitly
+present empty `bio` clears the bio, and an explicitly present `avatar_asset_id`
+of `0` clears the avatar. Requests with no mutable fields are rejected.
 
 Edition 2023 scalar presence is carried through both the public and internal
 protobuf APIs. API adapters therefore forward a field only when its generated

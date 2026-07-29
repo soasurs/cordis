@@ -88,6 +88,7 @@ type readyDmChannel struct {
 type readyUserProfile struct {
 	UserID        string `json:"user_id"`
 	Name          string `json:"name"`
+	Bio           string `json:"bio"`
 	AvatarAssetID string `json:"avatar_asset_id"`
 	CreatedAt     int64  `json:"created_at"`
 	UpdatedAt     int64  `json:"updated_at"`
@@ -187,7 +188,7 @@ func readyDmChannelValues(
 
 func readyUserProfileFromProto(profile *userv1.UserProfile) readyUserProfile {
 	return readyUserProfile{
-		UserID: idString(profile.GetUserId()), Name: profile.GetName(),
+		UserID: idString(profile.GetUserId()), Name: profile.GetName(), Bio: profile.GetBio(),
 		AvatarAssetID: idString(profile.GetAvatarAssetId()), CreatedAt: profile.GetCreatedAt(),
 		UpdatedAt: profile.GetUpdatedAt(), Username: profile.GetUsername(),
 	}

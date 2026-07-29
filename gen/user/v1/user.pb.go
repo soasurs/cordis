@@ -509,6 +509,7 @@ type UserProfile struct {
 	xxx_hidden_UpdatedAt     int64                  `protobuf:"varint,5,opt,name=updated_at,json=updatedAt"`
 	xxx_hidden_DeletedAt     int64                  `protobuf:"varint,6,opt,name=deleted_at,json=deletedAt"`
 	xxx_hidden_Username      *string                `protobuf:"bytes,7,opt,name=username"`
+	xxx_hidden_Bio           *string                `protobuf:"bytes,8,opt,name=bio"`
 	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
 	XXX_presence             [1]uint32
 	unknownFields            protoimpl.UnknownFields
@@ -595,39 +596,54 @@ func (x *UserProfile) GetUsername() string {
 	return ""
 }
 
+func (x *UserProfile) GetBio() string {
+	if x != nil {
+		if x.xxx_hidden_Bio != nil {
+			return *x.xxx_hidden_Bio
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *UserProfile) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *UserProfile) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *UserProfile) SetAvatarAssetId(v int64) {
 	x.xxx_hidden_AvatarAssetId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *UserProfile) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *UserProfile) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *UserProfile) SetDeletedAt(v int64) {
 	x.xxx_hidden_DeletedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
 func (x *UserProfile) SetUsername(v string) {
 	x.xxx_hidden_Username = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *UserProfile) SetBio(v string) {
+	x.xxx_hidden_Bio = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *UserProfile) HasUserId() bool {
@@ -679,6 +695,13 @@ func (x *UserProfile) HasUsername() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
+func (x *UserProfile) HasBio() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *UserProfile) ClearUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UserId = 0
@@ -714,6 +737,11 @@ func (x *UserProfile) ClearUsername() {
 	x.xxx_hidden_Username = nil
 }
 
+func (x *UserProfile) ClearBio() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_Bio = nil
+}
+
 type UserProfile_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -727,6 +755,9 @@ type UserProfile_builder struct {
 	DeletedAt     *int64
 	// Globally unique lowercase handle.
 	Username *string
+	// Public about text. Empty means the user has no bio. Limited to 190 Unicode
+	// code points.
+	Bio *string
 }
 
 func (b0 UserProfile_builder) Build() *UserProfile {
@@ -734,32 +765,36 @@ func (b0 UserProfile_builder) Build() *UserProfile {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.AvatarAssetId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_AvatarAssetId = *b.AvatarAssetId
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
 	if b.DeletedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_DeletedAt = *b.DeletedAt
 	}
 	if b.Username != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
 		x.xxx_hidden_Username = b.Username
+	}
+	if b.Bio != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_Bio = b.Bio
 	}
 	return m0
 }
@@ -2012,13 +2047,15 @@ func (b0 MarkEmailVerifiedResponse_builder) Build() *MarkEmailVerifiedResponse {
 }
 
 type UpdateUserProfileRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_Name          *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_Bio           *string                `protobuf:"bytes,3,opt,name=bio"`
+	xxx_hidden_AvatarAssetId int64                  `protobuf:"varint,4,opt,name=avatar_asset_id,json=avatarAssetId"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *UpdateUserProfileRequest) Reset() {
@@ -2063,14 +2100,41 @@ func (x *UpdateUserProfileRequest) GetName() string {
 	return ""
 }
 
+func (x *UpdateUserProfileRequest) GetBio() string {
+	if x != nil {
+		if x.xxx_hidden_Bio != nil {
+			return *x.xxx_hidden_Bio
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UpdateUserProfileRequest) GetAvatarAssetId() int64 {
+	if x != nil {
+		return x.xxx_hidden_AvatarAssetId
+	}
+	return 0
+}
+
 func (x *UpdateUserProfileRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *UpdateUserProfileRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *UpdateUserProfileRequest) SetBio(v string) {
+	x.xxx_hidden_Bio = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *UpdateUserProfileRequest) SetAvatarAssetId(v int64) {
+	x.xxx_hidden_AvatarAssetId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *UpdateUserProfileRequest) HasUserId() bool {
@@ -2087,6 +2151,20 @@ func (x *UpdateUserProfileRequest) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *UpdateUserProfileRequest) HasBio() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *UpdateUserProfileRequest) HasAvatarAssetId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *UpdateUserProfileRequest) ClearUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UserId = 0
@@ -2097,12 +2175,28 @@ func (x *UpdateUserProfileRequest) ClearName() {
 	x.xxx_hidden_Name = nil
 }
 
+func (x *UpdateUserProfileRequest) ClearBio() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Bio = nil
+}
+
+func (x *UpdateUserProfileRequest) ClearAvatarAssetId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_AvatarAssetId = 0
+}
+
 type UpdateUserProfileRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	UserId *int64
-	// Optional replacement field. When absent, the current name is preserved.
-	Name *string
+	// Optional replacement fields. Omitted fields keep their stored values.
+	// An explicitly present empty bio clears the bio. An explicitly present
+	// avatar_asset_id of 0 clears the avatar; a non-zero value mounts an owned
+	// user-avatar Media asset (completing the upload when still unpublished).
+	// At least one mutable field must be present.
+	Name          *string
+	Bio           *string
+	AvatarAssetId *int64
 }
 
 func (b0 UpdateUserProfileRequest_builder) Build() *UpdateUserProfileRequest {
@@ -2110,12 +2204,20 @@ func (b0 UpdateUserProfileRequest_builder) Build() *UpdateUserProfileRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_Name = b.Name
+	}
+	if b.Bio != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Bio = b.Bio
+	}
+	if b.AvatarAssetId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_AvatarAssetId = *b.AvatarAssetId
 	}
 	return m0
 }
@@ -2458,7 +2560,7 @@ func (x *CreateAvatarUploadResponse) ClearExpiresAt() {
 type CreateAvatarUploadResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// Opaque upload identifier used for completion or abort.
+	// Opaque upload identifier used for completion, abort, or profile association.
 	UploadId *int64
 	// Short-lived URL accepting one PUT with the declared length and media type.
 	PresignedUrl *string
@@ -4679,7 +4781,7 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"updated_at\x18\x04 \x01(\x03R\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"deleted_at\x18\x05 \x01(\x03R\tdeletedAt\x12*\n" +
-	"\x11email_verified_at\x18\x06 \x01(\x03R\x0femailVerifiedAt\"\xdb\x01\n" +
+	"\x11email_verified_at\x18\x06 \x01(\x03R\x0femailVerifiedAt\"\xed\x01\n" +
 	"\vUserProfile\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12&\n" +
@@ -4690,7 +4792,8 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"updated_at\x18\x05 \x01(\x03R\tupdatedAt\x12\x1d\n" +
 	"\n" +
 	"deleted_at\x18\x06 \x01(\x03R\tdeletedAt\x12\x1a\n" +
-	"\busername\x18\a \x01(\tR\busername\"Y\n" +
+	"\busername\x18\a \x01(\tR\busername\x12\x10\n" +
+	"\x03bio\x18\b \x01(\tR\x03bio\"Y\n" +
 	"\x11CreateUserRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -4727,10 +4830,12 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\vverified_at\x18\x03 \x01(\x03R\n" +
 	"verifiedAt\"+\n" +
 	"\x19MarkEmailVerifiedResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"G\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\"\x81\x01\n" +
 	"\x18UpdateUserProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"K\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
+	"\x03bio\x18\x03 \x01(\tR\x03bio\x12&\n" +
+	"\x0favatar_asset_id\x18\x04 \x01(\x03R\ravatarAssetId\"K\n" +
 	"\x19UpdateUserProfileResponse\x12.\n" +
 	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"|\n" +
 	"\x19CreateAvatarUploadRequest\x12\x17\n" +

@@ -285,6 +285,8 @@ func TestUpdateUserProfileUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, int64(1001), userClient.updateUserProfileRequest.GetUserId())
 	require.True(t, userClient.updateUserProfileRequest.HasName())
 	require.Equal(t, "new name", userClient.updateUserProfileRequest.GetName())
+	require.False(t, userClient.updateUserProfileRequest.HasBio())
+	require.False(t, userClient.updateUserProfileRequest.HasAvatarAssetId())
 	require.Equal(t, int64(1001), resp.GetProfile().GetUserId())
 
 	req = new(apiv1.UpdateUserProfileRequest)
@@ -293,6 +295,17 @@ func TestUpdateUserProfileUsesAuthenticatedUser(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, userClient.updateUserProfileRequest.HasName())
 	require.Empty(t, userClient.updateUserProfileRequest.GetName())
+
+	req = new(apiv1.UpdateUserProfileRequest)
+	req.SetBio("about me")
+	req.SetAvatarAssetId(0)
+	_, err = client.UpdateUserProfile(context.Background(), req)
+	require.NoError(t, err)
+	require.False(t, userClient.updateUserProfileRequest.HasName())
+	require.True(t, userClient.updateUserProfileRequest.HasBio())
+	require.Equal(t, "about me", userClient.updateUserProfileRequest.GetBio())
+	require.True(t, userClient.updateUserProfileRequest.HasAvatarAssetId())
+	require.Zero(t, userClient.updateUserProfileRequest.GetAvatarAssetId())
 }
 
 func TestCreateAvatarUploadUsesAuthenticatedUser(t *testing.T) {

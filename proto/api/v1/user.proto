@@ -65,6 +65,9 @@ message UserProfile {
   int64 updated_at = 5;
   // Globally unique lowercase handle.
   string username = 6;
+  // Public about text. Empty means the user has no bio. Limited to 190 Unicode
+  // code points.
+  string bio = 7;
 }
 
 // The current user is derived from the Authorization bearer token.
@@ -100,8 +103,14 @@ message UpdateEmailResponse {
 }
 
 message UpdateUserProfileRequest {
-  // Optional replacement field. When absent, the current name is preserved.
+  // Optional replacement fields. Omitted fields keep their stored values.
+  // An explicitly present empty bio clears the bio. An explicitly present
+  // avatar_asset_id of 0 clears the avatar; a non-zero value mounts an owned
+  // user-avatar Media asset (completing the upload when still unpublished).
+  // At least one mutable field must be present.
   string name = 1;
+  string bio = 2;
+  int64 avatar_asset_id = 3;
 }
 
 message UpdateUserProfileResponse {
@@ -119,7 +128,8 @@ message CreateAvatarUploadRequest {
 
 // CreateAvatarUploadResponse contains a one-shot direct-upload contract.
 message CreateAvatarUploadResponse {
-  // Opaque upload identifier used by CompleteAvatarUpload or AbortAvatarUpload.
+  // Opaque upload identifier used by CompleteAvatarUpload, AbortAvatarUpload,
+  // or UpdateUserProfile.avatar_asset_id.
   int64 upload_id = 1;
   // Short-lived URL accepting one PUT with the declared length and media type.
   string presigned_url = 2;

@@ -42,6 +42,12 @@ const (
 	// UserServiceCheckEmailAvailabilityProcedure is the fully-qualified name of the UserService's
 	// CheckEmailAvailability RPC.
 	UserServiceCheckEmailAvailabilityProcedure = "/api.v1.UserService/CheckEmailAvailability"
+	// UserServiceCheckUsernameAvailabilityProcedure is the fully-qualified name of the UserService's
+	// CheckUsernameAvailability RPC.
+	UserServiceCheckUsernameAvailabilityProcedure = "/api.v1.UserService/CheckUsernameAvailability"
+	// UserServiceGetAvatarUploadConstraintsProcedure is the fully-qualified name of the UserService's
+	// GetAvatarUploadConstraints RPC.
+	UserServiceGetAvatarUploadConstraintsProcedure = "/api.v1.UserService/GetAvatarUploadConstraints"
 	// UserServiceUpdateEmailProcedure is the fully-qualified name of the UserService's UpdateEmail RPC.
 	UserServiceUpdateEmailProcedure = "/api.v1.UserService/UpdateEmail"
 	// UserServiceUpdateUserProfileProcedure is the fully-qualified name of the UserService's
@@ -93,6 +99,13 @@ type UserServiceClient interface {
 	GetUserProfile(context.Context, *v1.GetUserProfileRequest) (*v1.GetUserProfileResponse, error)
 	// CheckEmailAvailability supports registration flows without requiring authentication.
 	CheckEmailAvailability(context.Context, *v1.CheckEmailAvailabilityRequest) (*v1.CheckEmailAvailabilityResponse, error)
+	// CheckUsernameAvailability supports registration and profile flows without
+	// requiring authentication. Invalid usernames are rejected; taken handles
+	// return available=false.
+	CheckUsernameAvailability(context.Context, *v1.CheckUsernameAvailabilityRequest) (*v1.CheckUsernameAvailabilityResponse, error)
+	// GetAvatarUploadConstraints returns the current avatar direct-upload limits
+	// without requiring authentication.
+	GetAvatarUploadConstraints(context.Context, *v1.GetAvatarUploadConstraintsRequest) (*v1.GetAvatarUploadConstraintsResponse, error)
 	// UpdateEmail changes the bearer token owner's email address.
 	UpdateEmail(context.Context, *v1.UpdateEmailRequest) (*v1.UpdateEmailResponse, error)
 	// UpdateUserProfile replaces the bearer token owner's public profile fields.
@@ -152,6 +165,18 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+UserServiceCheckEmailAvailabilityProcedure,
 			connect.WithSchema(userServiceMethods.ByName("CheckEmailAvailability")),
+			connect.WithClientOptions(opts...),
+		),
+		checkUsernameAvailability: connect.NewClient[v1.CheckUsernameAvailabilityRequest, v1.CheckUsernameAvailabilityResponse](
+			httpClient,
+			baseURL+UserServiceCheckUsernameAvailabilityProcedure,
+			connect.WithSchema(userServiceMethods.ByName("CheckUsernameAvailability")),
+			connect.WithClientOptions(opts...),
+		),
+		getAvatarUploadConstraints: connect.NewClient[v1.GetAvatarUploadConstraintsRequest, v1.GetAvatarUploadConstraintsResponse](
+			httpClient,
+			baseURL+UserServiceGetAvatarUploadConstraintsProcedure,
+			connect.WithSchema(userServiceMethods.ByName("GetAvatarUploadConstraints")),
 			connect.WithClientOptions(opts...),
 		),
 		updateEmail: connect.NewClient[v1.UpdateEmailRequest, v1.UpdateEmailResponse](
@@ -249,24 +274,26 @@ func NewUserServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // userServiceClient implements UserServiceClient.
 type userServiceClient struct {
-	getCurrentUser         *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
-	getUserProfile         *connect.Client[v1.GetUserProfileRequest, v1.GetUserProfileResponse]
-	checkEmailAvailability *connect.Client[v1.CheckEmailAvailabilityRequest, v1.CheckEmailAvailabilityResponse]
-	updateEmail            *connect.Client[v1.UpdateEmailRequest, v1.UpdateEmailResponse]
-	updateUserProfile      *connect.Client[v1.UpdateUserProfileRequest, v1.UpdateUserProfileResponse]
-	createAvatarUpload     *connect.Client[v1.CreateAvatarUploadRequest, v1.CreateAvatarUploadResponse]
-	completeAvatarUpload   *connect.Client[v1.CompleteAvatarUploadRequest, v1.CompleteAvatarUploadResponse]
-	abortAvatarUpload      *connect.Client[v1.AbortAvatarUploadRequest, v1.AbortAvatarUploadResponse]
-	changePassword         *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
-	lookupUser             *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
-	updateUsername         *connect.Client[v1.UpdateUsernameRequest, v1.UpdateUsernameResponse]
-	sendFriendRequest      *connect.Client[v1.SendFriendRequestRequest, v1.SendFriendRequestResponse]
-	acceptFriendRequest    *connect.Client[v1.AcceptFriendRequestRequest, v1.AcceptFriendRequestResponse]
-	declineFriendRequest   *connect.Client[v1.DeclineFriendRequestRequest, v1.DeclineFriendRequestResponse]
-	removeFriend           *connect.Client[v1.RemoveFriendRequest, v1.RemoveFriendResponse]
-	blockUser              *connect.Client[v1.BlockUserRequest, v1.BlockUserResponse]
-	unblockUser            *connect.Client[v1.UnblockUserRequest, v1.UnblockUserResponse]
-	listRelationships      *connect.Client[v1.ListRelationshipsRequest, v1.ListRelationshipsResponse]
+	getCurrentUser             *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
+	getUserProfile             *connect.Client[v1.GetUserProfileRequest, v1.GetUserProfileResponse]
+	checkEmailAvailability     *connect.Client[v1.CheckEmailAvailabilityRequest, v1.CheckEmailAvailabilityResponse]
+	checkUsernameAvailability  *connect.Client[v1.CheckUsernameAvailabilityRequest, v1.CheckUsernameAvailabilityResponse]
+	getAvatarUploadConstraints *connect.Client[v1.GetAvatarUploadConstraintsRequest, v1.GetAvatarUploadConstraintsResponse]
+	updateEmail                *connect.Client[v1.UpdateEmailRequest, v1.UpdateEmailResponse]
+	updateUserProfile          *connect.Client[v1.UpdateUserProfileRequest, v1.UpdateUserProfileResponse]
+	createAvatarUpload         *connect.Client[v1.CreateAvatarUploadRequest, v1.CreateAvatarUploadResponse]
+	completeAvatarUpload       *connect.Client[v1.CompleteAvatarUploadRequest, v1.CompleteAvatarUploadResponse]
+	abortAvatarUpload          *connect.Client[v1.AbortAvatarUploadRequest, v1.AbortAvatarUploadResponse]
+	changePassword             *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	lookupUser                 *connect.Client[v1.LookupUserRequest, v1.LookupUserResponse]
+	updateUsername             *connect.Client[v1.UpdateUsernameRequest, v1.UpdateUsernameResponse]
+	sendFriendRequest          *connect.Client[v1.SendFriendRequestRequest, v1.SendFriendRequestResponse]
+	acceptFriendRequest        *connect.Client[v1.AcceptFriendRequestRequest, v1.AcceptFriendRequestResponse]
+	declineFriendRequest       *connect.Client[v1.DeclineFriendRequestRequest, v1.DeclineFriendRequestResponse]
+	removeFriend               *connect.Client[v1.RemoveFriendRequest, v1.RemoveFriendResponse]
+	blockUser                  *connect.Client[v1.BlockUserRequest, v1.BlockUserResponse]
+	unblockUser                *connect.Client[v1.UnblockUserRequest, v1.UnblockUserResponse]
+	listRelationships          *connect.Client[v1.ListRelationshipsRequest, v1.ListRelationshipsResponse]
 }
 
 // GetCurrentUser calls api.v1.UserService.GetCurrentUser.
@@ -290,6 +317,24 @@ func (c *userServiceClient) GetUserProfile(ctx context.Context, req *v1.GetUserP
 // CheckEmailAvailability calls api.v1.UserService.CheckEmailAvailability.
 func (c *userServiceClient) CheckEmailAvailability(ctx context.Context, req *v1.CheckEmailAvailabilityRequest) (*v1.CheckEmailAvailabilityResponse, error) {
 	response, err := c.checkEmailAvailability.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// CheckUsernameAvailability calls api.v1.UserService.CheckUsernameAvailability.
+func (c *userServiceClient) CheckUsernameAvailability(ctx context.Context, req *v1.CheckUsernameAvailabilityRequest) (*v1.CheckUsernameAvailabilityResponse, error) {
+	response, err := c.checkUsernameAvailability.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// GetAvatarUploadConstraints calls api.v1.UserService.GetAvatarUploadConstraints.
+func (c *userServiceClient) GetAvatarUploadConstraints(ctx context.Context, req *v1.GetAvatarUploadConstraintsRequest) (*v1.GetAvatarUploadConstraintsResponse, error) {
+	response, err := c.getAvatarUploadConstraints.CallUnary(ctx, connect.NewRequest(req))
 	if response != nil {
 		return response.Msg, err
 	}
@@ -439,6 +484,13 @@ type UserServiceHandler interface {
 	GetUserProfile(context.Context, *v1.GetUserProfileRequest) (*v1.GetUserProfileResponse, error)
 	// CheckEmailAvailability supports registration flows without requiring authentication.
 	CheckEmailAvailability(context.Context, *v1.CheckEmailAvailabilityRequest) (*v1.CheckEmailAvailabilityResponse, error)
+	// CheckUsernameAvailability supports registration and profile flows without
+	// requiring authentication. Invalid usernames are rejected; taken handles
+	// return available=false.
+	CheckUsernameAvailability(context.Context, *v1.CheckUsernameAvailabilityRequest) (*v1.CheckUsernameAvailabilityResponse, error)
+	// GetAvatarUploadConstraints returns the current avatar direct-upload limits
+	// without requiring authentication.
+	GetAvatarUploadConstraints(context.Context, *v1.GetAvatarUploadConstraintsRequest) (*v1.GetAvatarUploadConstraintsResponse, error)
 	// UpdateEmail changes the bearer token owner's email address.
 	UpdateEmail(context.Context, *v1.UpdateEmailRequest) (*v1.UpdateEmailResponse, error)
 	// UpdateUserProfile replaces the bearer token owner's public profile fields.
@@ -494,6 +546,18 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 		UserServiceCheckEmailAvailabilityProcedure,
 		svc.CheckEmailAvailability,
 		connect.WithSchema(userServiceMethods.ByName("CheckEmailAvailability")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceCheckUsernameAvailabilityHandler := connect.NewUnaryHandlerSimple(
+		UserServiceCheckUsernameAvailabilityProcedure,
+		svc.CheckUsernameAvailability,
+		connect.WithSchema(userServiceMethods.ByName("CheckUsernameAvailability")),
+		connect.WithHandlerOptions(opts...),
+	)
+	userServiceGetAvatarUploadConstraintsHandler := connect.NewUnaryHandlerSimple(
+		UserServiceGetAvatarUploadConstraintsProcedure,
+		svc.GetAvatarUploadConstraints,
+		connect.WithSchema(userServiceMethods.ByName("GetAvatarUploadConstraints")),
 		connect.WithHandlerOptions(opts...),
 	)
 	userServiceUpdateEmailHandler := connect.NewUnaryHandlerSimple(
@@ -594,6 +658,10 @@ func NewUserServiceHandler(svc UserServiceHandler, opts ...connect.HandlerOption
 			userServiceGetUserProfileHandler.ServeHTTP(w, r)
 		case UserServiceCheckEmailAvailabilityProcedure:
 			userServiceCheckEmailAvailabilityHandler.ServeHTTP(w, r)
+		case UserServiceCheckUsernameAvailabilityProcedure:
+			userServiceCheckUsernameAvailabilityHandler.ServeHTTP(w, r)
+		case UserServiceGetAvatarUploadConstraintsProcedure:
+			userServiceGetAvatarUploadConstraintsHandler.ServeHTTP(w, r)
 		case UserServiceUpdateEmailProcedure:
 			userServiceUpdateEmailHandler.ServeHTTP(w, r)
 		case UserServiceUpdateUserProfileProcedure:
@@ -643,6 +711,14 @@ func (UnimplementedUserServiceHandler) GetUserProfile(context.Context, *v1.GetUs
 
 func (UnimplementedUserServiceHandler) CheckEmailAvailability(context.Context, *v1.CheckEmailAvailabilityRequest) (*v1.CheckEmailAvailabilityResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.CheckEmailAvailability is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) CheckUsernameAvailability(context.Context, *v1.CheckUsernameAvailabilityRequest) (*v1.CheckUsernameAvailabilityResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.CheckUsernameAvailability is not implemented"))
+}
+
+func (UnimplementedUserServiceHandler) GetAvatarUploadConstraints(context.Context, *v1.GetAvatarUploadConstraintsRequest) (*v1.GetAvatarUploadConstraintsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.UserService.GetAvatarUploadConstraints is not implemented"))
 }
 
 func (UnimplementedUserServiceHandler) UpdateEmail(context.Context, *v1.UpdateEmailRequest) (*v1.UpdateEmailResponse, error) {

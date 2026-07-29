@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strconv"
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
@@ -73,6 +74,60 @@ func (s *userServer) CheckEmailAvailability(ctx context.Context, req *apiv1.Chec
 	}
 	resp := new(apiv1.CheckEmailAvailabilityResponse)
 	resp.SetAvailable(svcResp.GetAvailable())
+	return resp, nil
+}
+
+func (s *userServer) CheckUsernameAvailability(
+	ctx context.Context,
+	req *apiv1.CheckUsernameAvailabilityRequest,
+) (*apiv1.CheckUsernameAvailabilityResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyCheckUsernameAvailabilityIP); err != nil {
+		return nil, err
+	}
+	auth, err := optionalAuthenticate(ctx, s.svcCtx.AuthenticatorClient)
+	if err != nil {
+		return nil, err
+	}
+	if auth != nil {
+		if err := apiratelimit.CheckKey(
+			ctx,
+			apiratelimit.PolicyCheckUsernameAvailabilityUser,
+			strconv.FormatInt(auth.GetUserId(), 10),
+		); err != nil {
+			return nil, err
+		}
+	}
+	svcReq := new(userv1.CheckUsernameAvailabilityRequest)
+	svcReq.SetUsername(req.GetUsername())
+	svcResp, err := s.svcCtx.UserClient.CheckUsernameAvailability(ctx, svcReq)
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	resp := new(apiv1.CheckUsernameAvailabilityResponse)
+	resp.SetAvailable(svcResp.GetAvailable())
+	return resp, nil
+}
+
+func (s *userServer) GetAvatarUploadConstraints(
+	ctx context.Context,
+	_ *apiv1.GetAvatarUploadConstraintsRequest,
+) (*apiv1.GetAvatarUploadConstraintsResponse, error) {
+	if err := apiratelimit.CheckIP(ctx, apiratelimit.PolicyGetAvatarUploadConstraintsIP); err != nil {
+		return nil, err
+	}
+	svcResp, err := s.svcCtx.UserClient.GetAvatarUploadConstraints(ctx, new(userv1.GetAvatarUploadConstraintsRequest))
+	if err != nil {
+		return nil, apierror.FromRPC(err)
+	}
+	svcConstraints := svcResp.GetConstraints()
+	constraints := new(apiv1.AvatarUploadConstraints)
+	constraints.SetMaxFileSizeBytes(svcConstraints.GetMaxFileSizeBytes())
+	constraints.SetMaxWidth(svcConstraints.GetMaxWidth())
+	constraints.SetMaxHeight(svcConstraints.GetMaxHeight())
+	constraints.SetMaxPixels(svcConstraints.GetMaxPixels())
+	constraints.SetAllowedContentTypes(append([]string(nil), svcConstraints.GetAllowedContentTypes()...))
+	resp := new(apiv1.GetAvatarUploadConstraintsResponse)
+	resp.SetConstraints(constraints)
 	return resp, nil
 }
 

@@ -18,6 +18,9 @@ service MediaService {
   rpc AbortUpload(AbortUploadRequest) returns (AbortUploadResponse);
   // GetAsset returns persisted metadata and never reads object bytes.
   rpc GetAsset(GetAssetRequest) returns (GetAssetResponse);
+  // GetImageUploadConstraints returns the image limits Media enforces for one
+  // upload purpose.
+  rpc GetImageUploadConstraints(GetImageUploadConstraintsRequest) returns (GetImageUploadConstraintsResponse);
   // BatchGetAssetURLs resolves delivery URLs for ready attachments after the
   // trusted Message caller has authorized the containing messages.
   rpc BatchGetAssetURLs(BatchGetAssetURLsRequest) returns (BatchGetAssetURLsResponse);
@@ -148,6 +151,33 @@ message GetAssetResponse {
   // asset contains persisted metadata; object bytes and storage keys are not
   // exposed.
   Asset asset = 1;
+}
+
+// GetImageUploadConstraintsRequest selects which purpose profile to return.
+// Domain-specific IDs inside purpose messages are ignored for discovery.
+message GetImageUploadConstraintsRequest {
+  oneof purpose {
+    UserAvatarUploadPurpose user_avatar = 10;
+    GuildIconUploadPurpose guild_icon = 11;
+    MessageAttachmentUploadPurpose message_attachment = 12;
+  }
+}
+
+message ImageUploadConstraints {
+  // Maximum accepted image file size in bytes for this purpose.
+  int64 max_file_size_bytes = 1;
+  // Maximum accepted width in pixels.
+  int32 max_width = 2;
+  // Maximum accepted height in pixels.
+  int32 max_height = 3;
+  // Maximum accepted width * height product.
+  int64 max_pixels = 4;
+  // Canonical lowercase MIME types accepted for this purpose's image uploads.
+  repeated string allowed_content_types = 5;
+}
+
+message GetImageUploadConstraintsResponse {
+  ImageUploadConstraints constraints = 1;
 }
 
 // Asset is the persisted provider-neutral asset metadata.

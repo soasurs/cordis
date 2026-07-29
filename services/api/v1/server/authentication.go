@@ -26,6 +26,34 @@ func authenticate(
 	return authenticateWithMinimumAccessTTL(ctx, client, 0)
 }
 
+// optionalAuthenticate verifies credentials when present and returns nil when
+// the request is anonymous. Invalid credentials still fail.
+func optionalAuthenticate(
+	ctx context.Context,
+	client authenticatorv1.AuthenticatorServiceClient,
+) (*authenticatorv1.VerifyAccessTokenResponse, error) {
+	callInfo, ok := connect.CallInfoForHandlerContext(ctx)
+	if !ok {
+		return nil, nil
+	}
+	if callInfo.RequestHeader().Get("Authorization") != "" {
+		return authenticate(ctx, client)
+	}
+	provider, ok := client.(interface {
+		BrowserAuthConfig() config.BrowserAuthConfig
+	})
+	if !ok {
+		return nil, nil
+	}
+	browserAuth := provider.BrowserAuthConfig()
+	access := requestCookie(callInfo.RequestHeader(), browserAuth.EffectiveAccessCookieName())
+	refresh := requestCookie(callInfo.RequestHeader(), browserAuth.EffectiveRefreshCookieName())
+	if access == "" && refresh == "" {
+		return nil, nil
+	}
+	return authenticate(ctx, client)
+}
+
 func authenticateWithMinimumAccessTTL(
 	ctx context.Context,
 	client authenticatorv1.AuthenticatorServiceClient,

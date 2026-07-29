@@ -12,13 +12,13 @@ API 入站链在业务限流之前施加服务端 deadline、全局请求并发�
 
 ## User
 
-监听 `:3000`，拥有用户和资料数据。负责注册所需的用户创建、用户查询、邮箱可用性、邮箱更新、资料更新、密码校验和修改。密码使用 Argon2id 哈希。User 不签发令牌。
+监听 `:3000`，拥有用户和资料数据。负责注册所需的用户创建、用户查询、邮箱可用性、用户名可用性、邮箱更新、资料更新、密码校验和修改。密码使用 Argon2id 哈希。User 不签发令牌。
 
 Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事件在关系事务前从 User store 加载目标 profile，使提交后的更新事件可以独立渲染。关系列表使用 opaque `cursor` / `next_cursor` 分页（按 `created_at`、`target_id` 降序；没有下一页时省略 `next_cursor`）。可选的 `type` 过滤属于 cursor 作用域，翻页时必须保持不变。
 
 名称、用户名、简介或头像修改成功后，User 发布携带完整资料快照的 `user.profile.updated`。Dispatcher 将事件投递给用户本人的全部客户端、共同 Guild 成员、非 block 的关系对端以及已有 DM 对端；同一接收者通过多个受众路径命中时由 Session 去重。
 
-`UpdateUserProfile` 对 `name`、`bio` 和 `avatar_asset_id` 采用 presence-aware 部分更新。头像二进制仍走 `CreateAvatarUpload` → 直传 PUT，随后可通过 `CompleteAvatarUpload` 或带 `avatar_asset_id` 的 `UpdateUserProfile` 挂载。保存前可用本地 blob URL 预览。显式传入 `avatar_asset_id = 0` 清除头像；被替换的旧 asset 交由 Media lifecycle 回收。
+`UpdateUserProfile` 对 `name`、`bio` 和 `avatar_asset_id` 采用 presence-aware 部分更新。头像二进制仍走 `CreateAvatarUpload` → 直传 PUT，随后可通过 `CompleteAvatarUpload` 或带 `avatar_asset_id` 的 `UpdateUserProfile` 挂载。保存前可用本地 blob URL 预览。显式传入 `avatar_asset_id = 0` 清除头像；被替换的旧 asset 交由 Media lifecycle 回收。`GetAvatarUploadConstraints` 经 User 读取 Media 的 `userAvatar` 图片限制档，返回最大文件大小、最大宽高、最大像素数和允许 MIME 类型。Media 按用途分别持有 `imageConstraints`（头像、公会图标、消息附件图片）。头像创建与完成失败会返回稳定 reason：`avatar_file_too_large`、`avatar_content_type_invalid`、`avatar_dimensions_exceeded`、`avatar_pixels_exceeded`。`CheckUsernameAvailability` 复用与 `UpdateUsername` 相同的规范化与校验；已占用返回 `available=false`，最终改名仍以数据库唯一约束为准。
 
 ## Authenticator
 

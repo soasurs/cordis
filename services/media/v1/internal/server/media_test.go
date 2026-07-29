@@ -251,6 +251,20 @@ func (f *fakeObjectStore) hasObject(key string) bool {
 	return ok
 }
 
+
+func testImageConstraints(maxSize int64, maxDim int32, maxPixels int64) config.ImageConstraintProfile {
+	return config.ImageConstraintProfile{
+		MaxSizeBytes: maxSize,
+		MaxDimension: maxDim,
+		MaxPixels:    maxPixels,
+		AllowedContentTypes: []string{
+			"image/jpeg",
+			"image/png",
+			"image/webp",
+		},
+	}
+}
+
 func newTestServer(t *testing.T) (*MediaServer, *fakeStore, *fakeObjectStore) {
 	t.Helper()
 	assetStore := newFakeStore()
@@ -265,9 +279,11 @@ func newTestServer(t *testing.T) (*MediaServer, *fakeStore, *fakeObjectStore) {
 		MaxActiveUploadsPerUser:      5,
 		ImageProcessingTimeoutMs:     30000,
 		MaxConcurrentImageProcessing: 2,
-		MaxImageSizeBytes:            10 << 20,
-		MaxImageDimension:            4096,
-		MaxImagePixels:               4096 * 4096,
+ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar:        testImageConstraints(10<<20, 4096, 4096 * 4096),
+			GuildIcon:         testImageConstraints(10<<20, 4096, 4096 * 4096),
+			MessageAttachment: testImageConstraints(10<<20, 4096, 4096 * 4096),
+		},
 		AttachmentAccessMode:         config.AttachmentAccessPublic,
 		AttachmentDownloadTTLSeconds: 3600,
 	}
@@ -321,6 +337,32 @@ func TestCreateUploadSignsExactImageContract(t *testing.T) {
 	require.Equal(t, int64(900_000), asset.ExpiresAt-resp.GetExpiresAt())
 }
 
+func TestGetImageUploadConstraintsArePurposeSpecific(t *testing.T) {
+	srv, _, _ := newTestServer(t)
+	srv.svcCtx.Cfg.Media.ImageConstraints = config.ImageConstraintsConfig{
+		UserAvatar:        testImageConstraints(1<<20, 512, 512*512),
+		GuildIcon:         testImageConstraints(2<<20, 1024, 1024*1024),
+		MessageAttachment: testImageConstraints(3<<20, 2048, 2048*2048),
+	}
+
+	avatarReq := new(mediav1.GetImageUploadConstraintsRequest)
+	avatarReq.SetUserAvatar(new(mediav1.UserAvatarUploadPurpose))
+	avatarResp, err := srv.GetImageUploadConstraints(t.Context(), avatarReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(1<<20), avatarResp.GetConstraints().GetMaxFileSizeBytes())
+	require.Equal(t, int32(512), avatarResp.GetConstraints().GetMaxWidth())
+
+	iconReq := new(mediav1.GetImageUploadConstraintsRequest)
+	iconReq.SetGuildIcon(new(mediav1.GuildIconUploadPurpose))
+	iconResp, err := srv.GetImageUploadConstraints(t.Context(), iconReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(2<<20), iconResp.GetConstraints().GetMaxFileSizeBytes())
+	require.Equal(t, int32(1024), iconResp.GetConstraints().GetMaxWidth())
+
+	_, err = srv.GetImageUploadConstraints(t.Context(), new(mediav1.GetImageUploadConstraintsRequest))
+	require.Error(t, err)
+}
+
 func TestCreateAttachmentUploadUsesTokenizedFinalKey(t *testing.T) {
 	srv, assets, objects := newTestServer(t)
 	req := newCreateRequest(
@@ -355,9 +397,11 @@ func TestCreateUploadUsesPurposeSpecificObjectStores(t *testing.T) {
 		MaxActiveUploadsPerUser:      5,
 		ImageProcessingTimeoutMs:     30000,
 		MaxConcurrentImageProcessing: 2,
-		MaxImageSizeBytes:            10 << 20,
-		MaxImageDimension:            4096,
-		MaxImagePixels:               4096 * 4096,
+ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar:        testImageConstraints(10<<20, 4096, 4096 * 4096),
+			GuildIcon:         testImageConstraints(10<<20, 4096, 4096 * 4096),
+			MessageAttachment: testImageConstraints(10<<20, 4096, 4096 * 4096),
+		},
 		AttachmentAccessMode:         config.AttachmentAccessPublic,
 		AttachmentDownloadTTLSeconds: 3600,
 	}
@@ -689,9 +733,11 @@ func TestCompleteAttachmentImageUploadSkipsOversizedObjectRead(t *testing.T) {
 		MaxActiveUploadsPerUser:      5,
 		ImageProcessingTimeoutMs:     30000,
 		MaxConcurrentImageProcessing: 2,
-		MaxImageSizeBytes:            64,
-		MaxImageDimension:            4096,
-		MaxImagePixels:               4096 * 4096,
+ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar:        testImageConstraints(64, 4096, 4096 * 4096),
+			GuildIcon:         testImageConstraints(64, 4096, 4096 * 4096),
+			MessageAttachment: testImageConstraints(64, 4096, 4096 * 4096),
+		},
 		AttachmentAccessMode:         config.AttachmentAccessPublic,
 		AttachmentDownloadTTLSeconds: 3600,
 	}

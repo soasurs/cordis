@@ -36,20 +36,24 @@ type fakeUserClient struct {
 	batchGetUserProfilesRequests     []*userv1.BatchGetUserProfilesRequest
 	batchGetUserProfilesResponse     *userv1.BatchGetUserProfilesResponse
 	batchGetUserProfilesError        error
-	checkEmailAvailabilityRequest    *userv1.CheckEmailAvailabilityRequest
-	checkEmailAvailabilityResponse   *userv1.CheckEmailAvailabilityResponse
-	checkEmailAvailabilityError      error
-	updateEmailRequest               *userv1.UpdateEmailRequest
-	updateEmailResponse              *userv1.UpdateEmailResponse
-	updateEmailError                 error
+	checkEmailAvailabilityRequest     *userv1.CheckEmailAvailabilityRequest
+	checkEmailAvailabilityResponse    *userv1.CheckEmailAvailabilityResponse
+	checkEmailAvailabilityError       error
+	checkUsernameAvailabilityRequest  *userv1.CheckUsernameAvailabilityRequest
+	checkUsernameAvailabilityResponse *userv1.CheckUsernameAvailabilityResponse
+	checkUsernameAvailabilityError    error
+	updateEmailRequest                *userv1.UpdateEmailRequest
+	updateEmailResponse               *userv1.UpdateEmailResponse
+	updateEmailError                  error
 	updateUserProfileRequest         *userv1.UpdateUserProfileRequest
 	updateUserProfileResponse        *userv1.UpdateUserProfileResponse
 	updateUserProfileError           error
-	createAvatarUploadRequest        *userv1.CreateAvatarUploadRequest
-	createAvatarUploadResponse       *userv1.CreateAvatarUploadResponse
-	updateUsernameRequest            *userv1.UpdateUsernameRequest
-	updateUsernameResponse           *userv1.UpdateUsernameResponse
-	updateUsernameError              error
+	createAvatarUploadRequest             *userv1.CreateAvatarUploadRequest
+	createAvatarUploadResponse            *userv1.CreateAvatarUploadResponse
+	getAvatarUploadConstraintsResponse    *userv1.GetAvatarUploadConstraintsResponse
+	updateUsernameRequest                 *userv1.UpdateUsernameRequest
+	updateUsernameResponse                *userv1.UpdateUsernameResponse
+	updateUsernameError                   error
 	getUserProfileByUsernameRequest  *userv1.GetUserProfileByUsernameRequest
 	getUserProfileByUsernameResponse *userv1.GetUserProfileByUsernameResponse
 	getUserProfileByUsernameError    error
@@ -124,6 +128,11 @@ func (f *fakeUserClient) CheckEmailAvailability(_ context.Context, req *userv1.C
 	return f.checkEmailAvailabilityResponse, f.checkEmailAvailabilityError
 }
 
+func (f *fakeUserClient) CheckUsernameAvailability(_ context.Context, req *userv1.CheckUsernameAvailabilityRequest, _ ...grpc.CallOption) (*userv1.CheckUsernameAvailabilityResponse, error) {
+	f.checkUsernameAvailabilityRequest = req
+	return f.checkUsernameAvailabilityResponse, f.checkUsernameAvailabilityError
+}
+
 func (f *fakeUserClient) UpdateEmail(_ context.Context, req *userv1.UpdateEmailRequest, _ ...grpc.CallOption) (*userv1.UpdateEmailResponse, error) {
 	f.updateEmailRequest = req
 	return f.updateEmailResponse, f.updateEmailError
@@ -141,6 +150,25 @@ func (f *fakeUserClient) CreateAvatarUpload(
 ) (*userv1.CreateAvatarUploadResponse, error) {
 	f.createAvatarUploadRequest = req
 	return f.createAvatarUploadResponse, nil
+}
+
+func (f *fakeUserClient) GetAvatarUploadConstraints(
+	_ context.Context,
+	_ *userv1.GetAvatarUploadConstraintsRequest,
+	_ ...grpc.CallOption,
+) (*userv1.GetAvatarUploadConstraintsResponse, error) {
+	if f.getAvatarUploadConstraintsResponse != nil {
+		return f.getAvatarUploadConstraintsResponse, nil
+	}
+	constraints := new(userv1.AvatarUploadConstraints)
+	constraints.SetMaxFileSizeBytes(10485760)
+	constraints.SetMaxWidth(4096)
+	constraints.SetMaxHeight(4096)
+	constraints.SetMaxPixels(16777216)
+	constraints.SetAllowedContentTypes([]string{"image/jpeg", "image/png", "image/webp"})
+	resp := new(userv1.GetAvatarUploadConstraintsResponse)
+	resp.SetConstraints(constraints)
+	return resp, nil
 }
 
 func TestGetCurrentUserOverConnectHTTP(t *testing.T) {
@@ -243,6 +271,42 @@ func TestCheckEmailAvailability(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "user@example.com", userClient.checkEmailAvailabilityRequest.GetEmail())
 	require.True(t, resp.GetAvailable())
+}
+
+func TestCheckUsernameAvailability(t *testing.T) {
+	svcResp := new(userv1.CheckUsernameAvailabilityResponse)
+	svcResp.SetAvailable(false)
+	userClient := &fakeUserClient{
+		checkUsernameAvailabilityResponse: svcResp,
+	}
+	server := NewUser(&svc.ServiceContext{UserClient: userClient})
+
+	req := new(apiv1.CheckUsernameAvailabilityRequest)
+	req.SetUsername("taken_user")
+	resp, err := server.CheckUsernameAvailability(context.Background(), req)
+	require.NoError(t, err)
+	require.False(t, resp.GetAvailable())
+	require.Equal(t, "taken_user", userClient.checkUsernameAvailabilityRequest.GetUsername())
+}
+
+func TestGetAvatarUploadConstraints(t *testing.T) {
+	svcConstraints := new(userv1.AvatarUploadConstraints)
+	svcConstraints.SetMaxFileSizeBytes(10485760)
+	svcConstraints.SetMaxWidth(4096)
+	svcConstraints.SetMaxHeight(4096)
+	svcConstraints.SetMaxPixels(16777216)
+	svcConstraints.SetAllowedContentTypes([]string{"image/jpeg", "image/png", "image/webp"})
+	svcResp := new(userv1.GetAvatarUploadConstraintsResponse)
+	svcResp.SetConstraints(svcConstraints)
+	userClient := &fakeUserClient{getAvatarUploadConstraintsResponse: svcResp}
+	server := NewUser(&svc.ServiceContext{UserClient: userClient})
+	resp, err := server.GetAvatarUploadConstraints(context.Background(), new(apiv1.GetAvatarUploadConstraintsRequest))
+	require.NoError(t, err)
+	require.Equal(t, int64(10485760), resp.GetConstraints().GetMaxFileSizeBytes())
+	require.Equal(t, int32(4096), resp.GetConstraints().GetMaxWidth())
+	require.Equal(t, int32(4096), resp.GetConstraints().GetMaxHeight())
+	require.Equal(t, int64(16777216), resp.GetConstraints().GetMaxPixels())
+	require.Equal(t, []string{"image/jpeg", "image/png", "image/webp"}, resp.GetConstraints().GetAllowedContentTypes())
 }
 
 func TestUpdateEmailUsesAuthenticatedUser(t *testing.T) {

@@ -103,6 +103,23 @@ func (s *userServer) CheckEmailAvailability(ctx context.Context, req *userv1.Che
 	return resp, nil
 }
 
+func (s *userServer) CheckUsernameAvailability(
+	ctx context.Context,
+	req *userv1.CheckUsernameAvailabilityRequest,
+) (*userv1.CheckUsernameAvailabilityResponse, error) {
+	username := normalizeUsername(req.GetUsername())
+	if err := validateUsername(username); err != nil {
+		return nil, err
+	}
+	available, err := s.svcCtx.Store.CheckUsernameAvailability(ctx, username)
+	if err != nil {
+		return nil, err
+	}
+	resp := new(userv1.CheckUsernameAvailabilityResponse)
+	resp.SetAvailable(available)
+	return resp, nil
+}
+
 func (s *userServer) UpdateEmail(ctx context.Context, req *userv1.UpdateEmailRequest) (*userv1.UpdateEmailResponse, error) {
 	if req.GetUserId() <= 0 {
 		return nil, errUserIDRequired

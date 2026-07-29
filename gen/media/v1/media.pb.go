@@ -1687,6 +1687,476 @@ func (b0 GetAssetResponse_builder) Build() *GetAssetResponse {
 	return m0
 }
 
+// GetImageUploadConstraintsRequest selects which purpose profile to return.
+// Domain-specific IDs inside purpose messages are ignored for discovery.
+type GetImageUploadConstraintsRequest struct {
+	state              protoimpl.MessageState                     `protogen:"opaque.v1"`
+	xxx_hidden_Purpose isGetImageUploadConstraintsRequest_Purpose `protobuf_oneof:"purpose"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *GetImageUploadConstraintsRequest) Reset() {
+	*x = GetImageUploadConstraintsRequest{}
+	mi := &file_media_v1_media_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetImageUploadConstraintsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetImageUploadConstraintsRequest) ProtoMessage() {}
+
+func (x *GetImageUploadConstraintsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_media_v1_media_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetImageUploadConstraintsRequest) GetUserAvatar() *UserAvatarUploadPurpose {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_UserAvatar); ok {
+			return x.UserAvatar
+		}
+	}
+	return nil
+}
+
+func (x *GetImageUploadConstraintsRequest) GetGuildIcon() *GuildIconUploadPurpose {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_GuildIcon); ok {
+			return x.GuildIcon
+		}
+	}
+	return nil
+}
+
+func (x *GetImageUploadConstraintsRequest) GetMessageAttachment() *MessageAttachmentUploadPurpose {
+	if x != nil {
+		if x, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_MessageAttachment); ok {
+			return x.MessageAttachment
+		}
+	}
+	return nil
+}
+
+func (x *GetImageUploadConstraintsRequest) SetUserAvatar(v *UserAvatarUploadPurpose) {
+	if v == nil {
+		x.xxx_hidden_Purpose = nil
+		return
+	}
+	x.xxx_hidden_Purpose = &getImageUploadConstraintsRequest_UserAvatar{v}
+}
+
+func (x *GetImageUploadConstraintsRequest) SetGuildIcon(v *GuildIconUploadPurpose) {
+	if v == nil {
+		x.xxx_hidden_Purpose = nil
+		return
+	}
+	x.xxx_hidden_Purpose = &getImageUploadConstraintsRequest_GuildIcon{v}
+}
+
+func (x *GetImageUploadConstraintsRequest) SetMessageAttachment(v *MessageAttachmentUploadPurpose) {
+	if v == nil {
+		x.xxx_hidden_Purpose = nil
+		return
+	}
+	x.xxx_hidden_Purpose = &getImageUploadConstraintsRequest_MessageAttachment{v}
+}
+
+func (x *GetImageUploadConstraintsRequest) HasPurpose() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Purpose != nil
+}
+
+func (x *GetImageUploadConstraintsRequest) HasUserAvatar() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_UserAvatar)
+	return ok
+}
+
+func (x *GetImageUploadConstraintsRequest) HasGuildIcon() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_GuildIcon)
+	return ok
+}
+
+func (x *GetImageUploadConstraintsRequest) HasMessageAttachment() bool {
+	if x == nil {
+		return false
+	}
+	_, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_MessageAttachment)
+	return ok
+}
+
+func (x *GetImageUploadConstraintsRequest) ClearPurpose() {
+	x.xxx_hidden_Purpose = nil
+}
+
+func (x *GetImageUploadConstraintsRequest) ClearUserAvatar() {
+	if _, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_UserAvatar); ok {
+		x.xxx_hidden_Purpose = nil
+	}
+}
+
+func (x *GetImageUploadConstraintsRequest) ClearGuildIcon() {
+	if _, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_GuildIcon); ok {
+		x.xxx_hidden_Purpose = nil
+	}
+}
+
+func (x *GetImageUploadConstraintsRequest) ClearMessageAttachment() {
+	if _, ok := x.xxx_hidden_Purpose.(*getImageUploadConstraintsRequest_MessageAttachment); ok {
+		x.xxx_hidden_Purpose = nil
+	}
+}
+
+const GetImageUploadConstraintsRequest_Purpose_not_set_case case_GetImageUploadConstraintsRequest_Purpose = 0
+const GetImageUploadConstraintsRequest_UserAvatar_case case_GetImageUploadConstraintsRequest_Purpose = 10
+const GetImageUploadConstraintsRequest_GuildIcon_case case_GetImageUploadConstraintsRequest_Purpose = 11
+const GetImageUploadConstraintsRequest_MessageAttachment_case case_GetImageUploadConstraintsRequest_Purpose = 12
+
+func (x *GetImageUploadConstraintsRequest) WhichPurpose() case_GetImageUploadConstraintsRequest_Purpose {
+	if x == nil {
+		return GetImageUploadConstraintsRequest_Purpose_not_set_case
+	}
+	switch x.xxx_hidden_Purpose.(type) {
+	case *getImageUploadConstraintsRequest_UserAvatar:
+		return GetImageUploadConstraintsRequest_UserAvatar_case
+	case *getImageUploadConstraintsRequest_GuildIcon:
+		return GetImageUploadConstraintsRequest_GuildIcon_case
+	case *getImageUploadConstraintsRequest_MessageAttachment:
+		return GetImageUploadConstraintsRequest_MessageAttachment_case
+	default:
+		return GetImageUploadConstraintsRequest_Purpose_not_set_case
+	}
+}
+
+type GetImageUploadConstraintsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Fields of oneof xxx_hidden_Purpose:
+	UserAvatar        *UserAvatarUploadPurpose
+	GuildIcon         *GuildIconUploadPurpose
+	MessageAttachment *MessageAttachmentUploadPurpose
+	// -- end of xxx_hidden_Purpose
+}
+
+func (b0 GetImageUploadConstraintsRequest_builder) Build() *GetImageUploadConstraintsRequest {
+	m0 := &GetImageUploadConstraintsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.UserAvatar != nil {
+		x.xxx_hidden_Purpose = &getImageUploadConstraintsRequest_UserAvatar{b.UserAvatar}
+	}
+	if b.GuildIcon != nil {
+		x.xxx_hidden_Purpose = &getImageUploadConstraintsRequest_GuildIcon{b.GuildIcon}
+	}
+	if b.MessageAttachment != nil {
+		x.xxx_hidden_Purpose = &getImageUploadConstraintsRequest_MessageAttachment{b.MessageAttachment}
+	}
+	return m0
+}
+
+type case_GetImageUploadConstraintsRequest_Purpose protoreflect.FieldNumber
+
+func (x case_GetImageUploadConstraintsRequest_Purpose) String() string {
+	md := file_media_v1_media_proto_msgTypes[12].Descriptor()
+	if x == 0 {
+		return "not set"
+	}
+	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
+}
+
+type isGetImageUploadConstraintsRequest_Purpose interface {
+	isGetImageUploadConstraintsRequest_Purpose()
+}
+
+type getImageUploadConstraintsRequest_UserAvatar struct {
+	UserAvatar *UserAvatarUploadPurpose `protobuf:"bytes,10,opt,name=user_avatar,json=userAvatar,oneof"`
+}
+
+type getImageUploadConstraintsRequest_GuildIcon struct {
+	GuildIcon *GuildIconUploadPurpose `protobuf:"bytes,11,opt,name=guild_icon,json=guildIcon,oneof"`
+}
+
+type getImageUploadConstraintsRequest_MessageAttachment struct {
+	MessageAttachment *MessageAttachmentUploadPurpose `protobuf:"bytes,12,opt,name=message_attachment,json=messageAttachment,oneof"`
+}
+
+func (*getImageUploadConstraintsRequest_UserAvatar) isGetImageUploadConstraintsRequest_Purpose() {}
+
+func (*getImageUploadConstraintsRequest_GuildIcon) isGetImageUploadConstraintsRequest_Purpose() {}
+
+func (*getImageUploadConstraintsRequest_MessageAttachment) isGetImageUploadConstraintsRequest_Purpose() {
+}
+
+type ImageUploadConstraints struct {
+	state                          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_MaxFileSizeBytes    int64                  `protobuf:"varint,1,opt,name=max_file_size_bytes,json=maxFileSizeBytes"`
+	xxx_hidden_MaxWidth            int32                  `protobuf:"varint,2,opt,name=max_width,json=maxWidth"`
+	xxx_hidden_MaxHeight           int32                  `protobuf:"varint,3,opt,name=max_height,json=maxHeight"`
+	xxx_hidden_MaxPixels           int64                  `protobuf:"varint,4,opt,name=max_pixels,json=maxPixels"`
+	xxx_hidden_AllowedContentTypes []string               `protobuf:"bytes,5,rep,name=allowed_content_types,json=allowedContentTypes"`
+	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
+	XXX_presence                   [1]uint32
+	unknownFields                  protoimpl.UnknownFields
+	sizeCache                      protoimpl.SizeCache
+}
+
+func (x *ImageUploadConstraints) Reset() {
+	*x = ImageUploadConstraints{}
+	mi := &file_media_v1_media_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImageUploadConstraints) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImageUploadConstraints) ProtoMessage() {}
+
+func (x *ImageUploadConstraints) ProtoReflect() protoreflect.Message {
+	mi := &file_media_v1_media_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ImageUploadConstraints) GetMaxFileSizeBytes() int64 {
+	if x != nil {
+		return x.xxx_hidden_MaxFileSizeBytes
+	}
+	return 0
+}
+
+func (x *ImageUploadConstraints) GetMaxWidth() int32 {
+	if x != nil {
+		return x.xxx_hidden_MaxWidth
+	}
+	return 0
+}
+
+func (x *ImageUploadConstraints) GetMaxHeight() int32 {
+	if x != nil {
+		return x.xxx_hidden_MaxHeight
+	}
+	return 0
+}
+
+func (x *ImageUploadConstraints) GetMaxPixels() int64 {
+	if x != nil {
+		return x.xxx_hidden_MaxPixels
+	}
+	return 0
+}
+
+func (x *ImageUploadConstraints) GetAllowedContentTypes() []string {
+	if x != nil {
+		return x.xxx_hidden_AllowedContentTypes
+	}
+	return nil
+}
+
+func (x *ImageUploadConstraints) SetMaxFileSizeBytes(v int64) {
+	x.xxx_hidden_MaxFileSizeBytes = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *ImageUploadConstraints) SetMaxWidth(v int32) {
+	x.xxx_hidden_MaxWidth = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+}
+
+func (x *ImageUploadConstraints) SetMaxHeight(v int32) {
+	x.xxx_hidden_MaxHeight = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *ImageUploadConstraints) SetMaxPixels(v int64) {
+	x.xxx_hidden_MaxPixels = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *ImageUploadConstraints) SetAllowedContentTypes(v []string) {
+	x.xxx_hidden_AllowedContentTypes = v
+}
+
+func (x *ImageUploadConstraints) HasMaxFileSizeBytes() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ImageUploadConstraints) HasMaxWidth() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ImageUploadConstraints) HasMaxHeight() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ImageUploadConstraints) HasMaxPixels() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *ImageUploadConstraints) ClearMaxFileSizeBytes() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_MaxFileSizeBytes = 0
+}
+
+func (x *ImageUploadConstraints) ClearMaxWidth() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_MaxWidth = 0
+}
+
+func (x *ImageUploadConstraints) ClearMaxHeight() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_MaxHeight = 0
+}
+
+func (x *ImageUploadConstraints) ClearMaxPixels() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_MaxPixels = 0
+}
+
+type ImageUploadConstraints_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Maximum accepted image file size in bytes for this purpose.
+	MaxFileSizeBytes *int64
+	// Maximum accepted width in pixels.
+	MaxWidth *int32
+	// Maximum accepted height in pixels.
+	MaxHeight *int32
+	// Maximum accepted width * height product.
+	MaxPixels *int64
+	// Canonical lowercase MIME types accepted for this purpose's image uploads.
+	AllowedContentTypes []string
+}
+
+func (b0 ImageUploadConstraints_builder) Build() *ImageUploadConstraints {
+	m0 := &ImageUploadConstraints{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.MaxFileSizeBytes != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_MaxFileSizeBytes = *b.MaxFileSizeBytes
+	}
+	if b.MaxWidth != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		x.xxx_hidden_MaxWidth = *b.MaxWidth
+	}
+	if b.MaxHeight != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_MaxHeight = *b.MaxHeight
+	}
+	if b.MaxPixels != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_MaxPixels = *b.MaxPixels
+	}
+	x.xxx_hidden_AllowedContentTypes = b.AllowedContentTypes
+	return m0
+}
+
+type GetImageUploadConstraintsResponse struct {
+	state                  protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Constraints *ImageUploadConstraints `protobuf:"bytes,1,opt,name=constraints"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *GetImageUploadConstraintsResponse) Reset() {
+	*x = GetImageUploadConstraintsResponse{}
+	mi := &file_media_v1_media_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetImageUploadConstraintsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetImageUploadConstraintsResponse) ProtoMessage() {}
+
+func (x *GetImageUploadConstraintsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_media_v1_media_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetImageUploadConstraintsResponse) GetConstraints() *ImageUploadConstraints {
+	if x != nil {
+		return x.xxx_hidden_Constraints
+	}
+	return nil
+}
+
+func (x *GetImageUploadConstraintsResponse) SetConstraints(v *ImageUploadConstraints) {
+	x.xxx_hidden_Constraints = v
+}
+
+func (x *GetImageUploadConstraintsResponse) HasConstraints() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Constraints != nil
+}
+
+func (x *GetImageUploadConstraintsResponse) ClearConstraints() {
+	x.xxx_hidden_Constraints = nil
+}
+
+type GetImageUploadConstraintsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	Constraints *ImageUploadConstraints
+}
+
+func (b0 GetImageUploadConstraintsResponse_builder) Build() *GetImageUploadConstraintsResponse {
+	m0 := &GetImageUploadConstraintsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Constraints = b.Constraints
+	return m0
+}
+
 // Asset is the persisted provider-neutral asset metadata.
 type Asset struct {
 	state                      protoimpl.MessageState `protogen:"opaque.v1"`
@@ -1714,7 +2184,7 @@ type Asset struct {
 
 func (x *Asset) Reset() {
 	*x = Asset{}
-	mi := &file_media_v1_media_proto_msgTypes[12]
+	mi := &file_media_v1_media_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1726,7 +2196,7 @@ func (x *Asset) String() string {
 func (*Asset) ProtoMessage() {}
 
 func (x *Asset) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[12]
+	mi := &file_media_v1_media_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2264,7 +2734,7 @@ type BatchGetAssetURLsRequest struct {
 
 func (x *BatchGetAssetURLsRequest) Reset() {
 	*x = BatchGetAssetURLsRequest{}
-	mi := &file_media_v1_media_proto_msgTypes[13]
+	mi := &file_media_v1_media_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2276,7 +2746,7 @@ func (x *BatchGetAssetURLsRequest) String() string {
 func (*BatchGetAssetURLsRequest) ProtoMessage() {}
 
 func (x *BatchGetAssetURLsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[13]
+	mi := &file_media_v1_media_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2328,7 +2798,7 @@ type AssetURL struct {
 
 func (x *AssetURL) Reset() {
 	*x = AssetURL{}
-	mi := &file_media_v1_media_proto_msgTypes[14]
+	mi := &file_media_v1_media_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2340,7 +2810,7 @@ func (x *AssetURL) String() string {
 func (*AssetURL) ProtoMessage() {}
 
 func (x *AssetURL) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[14]
+	mi := &file_media_v1_media_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2467,7 +2937,7 @@ type BatchGetAssetURLsResponse struct {
 
 func (x *BatchGetAssetURLsResponse) Reset() {
 	*x = BatchGetAssetURLsResponse{}
-	mi := &file_media_v1_media_proto_msgTypes[15]
+	mi := &file_media_v1_media_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2479,7 +2949,7 @@ func (x *BatchGetAssetURLsResponse) String() string {
 func (*BatchGetAssetURLsResponse) ProtoMessage() {}
 
 func (x *BatchGetAssetURLsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_media_v1_media_proto_msgTypes[15]
+	mi := &file_media_v1_media_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2572,7 +3042,25 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\x0fGetAssetRequest\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\"9\n" +
 	"\x10GetAssetResponse\x12%\n" +
-	"\x05asset\x18\x01 \x01(\v2\x0f.media.v1.AssetR\x05asset\"\xf7\x03\n" +
+	"\x05asset\x18\x01 \x01(\v2\x0f.media.v1.AssetR\x05asset\"\x91\x02\n" +
+	" GetImageUploadConstraintsRequest\x12D\n" +
+	"\vuser_avatar\x18\n" +
+	" \x01(\v2!.media.v1.UserAvatarUploadPurposeH\x00R\n" +
+	"userAvatar\x12A\n" +
+	"\n" +
+	"guild_icon\x18\v \x01(\v2 .media.v1.GuildIconUploadPurposeH\x00R\tguildIcon\x12Y\n" +
+	"\x12message_attachment\x18\f \x01(\v2(.media.v1.MessageAttachmentUploadPurposeH\x00R\x11messageAttachmentB\t\n" +
+	"\apurpose\"\xd6\x01\n" +
+	"\x16ImageUploadConstraints\x12-\n" +
+	"\x13max_file_size_bytes\x18\x01 \x01(\x03R\x10maxFileSizeBytes\x12\x1b\n" +
+	"\tmax_width\x18\x02 \x01(\x05R\bmaxWidth\x12\x1d\n" +
+	"\n" +
+	"max_height\x18\x03 \x01(\x05R\tmaxHeight\x12\x1d\n" +
+	"\n" +
+	"max_pixels\x18\x04 \x01(\x03R\tmaxPixels\x122\n" +
+	"\x15allowed_content_types\x18\x05 \x03(\tR\x13allowedContentTypes\"g\n" +
+	"!GetImageUploadConstraintsResponse\x12B\n" +
+	"\vconstraints\x18\x01 \x01(\v2 .media.v1.ImageUploadConstraintsR\vconstraints\"\xf7\x03\n" +
 	"\x05Asset\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12+\n" +
 	"\x12created_by_user_id\x18\x02 \x01(\x03R\x0fcreatedByUserId\x12'\n" +
@@ -2615,64 +3103,74 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\x12ASSET_STATUS_READY\x10\x05\x12\x17\n" +
 	"\x13ASSET_STATUS_FAILED\x10\x06\x12\x18\n" +
 	"\x14ASSET_STATUS_ABORTED\x10\a\x12\x18\n" +
-	"\x14ASSET_STATUS_EXPIRED\x10\b2\x9f\x03\n" +
+	"\x14ASSET_STATUS_EXPIRED\x10\b2\x95\x04\n" +
 	"\fMediaService\x12M\n" +
 	"\fCreateUpload\x12\x1d.media.v1.CreateUploadRequest\x1a\x1e.media.v1.CreateUploadResponse\x12S\n" +
 	"\x0eCompleteUpload\x12\x1f.media.v1.CompleteUploadRequest\x1a .media.v1.CompleteUploadResponse\x12J\n" +
 	"\vAbortUpload\x12\x1c.media.v1.AbortUploadRequest\x1a\x1d.media.v1.AbortUploadResponse\x12A\n" +
-	"\bGetAsset\x12\x19.media.v1.GetAssetRequest\x1a\x1a.media.v1.GetAssetResponse\x12\\\n" +
+	"\bGetAsset\x12\x19.media.v1.GetAssetRequest\x1a\x1a.media.v1.GetAssetResponse\x12t\n" +
+	"\x19GetImageUploadConstraints\x12*.media.v1.GetImageUploadConstraintsRequest\x1a+.media.v1.GetImageUploadConstraintsResponse\x12\\\n" +
 	"\x11BatchGetAssetURLs\x12\".media.v1.BatchGetAssetURLsRequest\x1a#.media.v1.BatchGetAssetURLsResponseB\x8b\x01\n" +
 	"\fcom.media.v1B\n" +
 	"MediaProtoP\x01Z.github.com/soasurs/cordis/gen/media/v1;mediav1\xa2\x02\x03MXX\xaa\x02\bMedia.V1\xca\x02\bMedia\\V1\xe2\x02\x14Media\\V1\\GPBMetadata\xea\x02\tMedia::V1b\beditionsp\xe8\a"
 
 var file_media_v1_media_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_media_v1_media_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_media_v1_media_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_media_v1_media_proto_goTypes = []any{
-	(AssetKind)(0),                         // 0: media.v1.AssetKind
-	(AssetStatus)(0),                       // 1: media.v1.AssetStatus
-	(*CreateUploadRequest)(nil),            // 2: media.v1.CreateUploadRequest
-	(*UserAvatarUploadPurpose)(nil),        // 3: media.v1.UserAvatarUploadPurpose
-	(*GuildIconUploadPurpose)(nil),         // 4: media.v1.GuildIconUploadPurpose
-	(*MessageAttachmentUploadPurpose)(nil), // 5: media.v1.MessageAttachmentUploadPurpose
-	(*CreateUploadResponse)(nil),           // 6: media.v1.CreateUploadResponse
-	(*CompleteUploadRequest)(nil),          // 7: media.v1.CompleteUploadRequest
-	(*CompleteUploadResponse)(nil),         // 8: media.v1.CompleteUploadResponse
-	(*AssetMetadata)(nil),                  // 9: media.v1.AssetMetadata
-	(*AbortUploadRequest)(nil),             // 10: media.v1.AbortUploadRequest
-	(*AbortUploadResponse)(nil),            // 11: media.v1.AbortUploadResponse
-	(*GetAssetRequest)(nil),                // 12: media.v1.GetAssetRequest
-	(*GetAssetResponse)(nil),               // 13: media.v1.GetAssetResponse
-	(*Asset)(nil),                          // 14: media.v1.Asset
-	(*BatchGetAssetURLsRequest)(nil),       // 15: media.v1.BatchGetAssetURLsRequest
-	(*AssetURL)(nil),                       // 16: media.v1.AssetURL
-	(*BatchGetAssetURLsResponse)(nil),      // 17: media.v1.BatchGetAssetURLsResponse
-	nil,                                    // 18: media.v1.CreateUploadResponse.RequestHeadersEntry
+	(AssetKind)(0),                            // 0: media.v1.AssetKind
+	(AssetStatus)(0),                          // 1: media.v1.AssetStatus
+	(*CreateUploadRequest)(nil),               // 2: media.v1.CreateUploadRequest
+	(*UserAvatarUploadPurpose)(nil),           // 3: media.v1.UserAvatarUploadPurpose
+	(*GuildIconUploadPurpose)(nil),            // 4: media.v1.GuildIconUploadPurpose
+	(*MessageAttachmentUploadPurpose)(nil),    // 5: media.v1.MessageAttachmentUploadPurpose
+	(*CreateUploadResponse)(nil),              // 6: media.v1.CreateUploadResponse
+	(*CompleteUploadRequest)(nil),             // 7: media.v1.CompleteUploadRequest
+	(*CompleteUploadResponse)(nil),            // 8: media.v1.CompleteUploadResponse
+	(*AssetMetadata)(nil),                     // 9: media.v1.AssetMetadata
+	(*AbortUploadRequest)(nil),                // 10: media.v1.AbortUploadRequest
+	(*AbortUploadResponse)(nil),               // 11: media.v1.AbortUploadResponse
+	(*GetAssetRequest)(nil),                   // 12: media.v1.GetAssetRequest
+	(*GetAssetResponse)(nil),                  // 13: media.v1.GetAssetResponse
+	(*GetImageUploadConstraintsRequest)(nil),  // 14: media.v1.GetImageUploadConstraintsRequest
+	(*ImageUploadConstraints)(nil),            // 15: media.v1.ImageUploadConstraints
+	(*GetImageUploadConstraintsResponse)(nil), // 16: media.v1.GetImageUploadConstraintsResponse
+	(*Asset)(nil),                             // 17: media.v1.Asset
+	(*BatchGetAssetURLsRequest)(nil),          // 18: media.v1.BatchGetAssetURLsRequest
+	(*AssetURL)(nil),                          // 19: media.v1.AssetURL
+	(*BatchGetAssetURLsResponse)(nil),         // 20: media.v1.BatchGetAssetURLsResponse
+	nil,                                       // 21: media.v1.CreateUploadResponse.RequestHeadersEntry
 }
 var file_media_v1_media_proto_depIdxs = []int32{
 	3,  // 0: media.v1.CreateUploadRequest.user_avatar:type_name -> media.v1.UserAvatarUploadPurpose
 	4,  // 1: media.v1.CreateUploadRequest.guild_icon:type_name -> media.v1.GuildIconUploadPurpose
 	5,  // 2: media.v1.CreateUploadRequest.message_attachment:type_name -> media.v1.MessageAttachmentUploadPurpose
-	18, // 3: media.v1.CreateUploadResponse.request_headers:type_name -> media.v1.CreateUploadResponse.RequestHeadersEntry
+	21, // 3: media.v1.CreateUploadResponse.request_headers:type_name -> media.v1.CreateUploadResponse.RequestHeadersEntry
 	9,  // 4: media.v1.CompleteUploadResponse.metadata:type_name -> media.v1.AssetMetadata
-	14, // 5: media.v1.GetAssetResponse.asset:type_name -> media.v1.Asset
-	0,  // 6: media.v1.Asset.kind:type_name -> media.v1.AssetKind
-	1,  // 7: media.v1.Asset.status:type_name -> media.v1.AssetStatus
-	16, // 8: media.v1.BatchGetAssetURLsResponse.assets:type_name -> media.v1.AssetURL
-	2,  // 9: media.v1.MediaService.CreateUpload:input_type -> media.v1.CreateUploadRequest
-	7,  // 10: media.v1.MediaService.CompleteUpload:input_type -> media.v1.CompleteUploadRequest
-	10, // 11: media.v1.MediaService.AbortUpload:input_type -> media.v1.AbortUploadRequest
-	12, // 12: media.v1.MediaService.GetAsset:input_type -> media.v1.GetAssetRequest
-	15, // 13: media.v1.MediaService.BatchGetAssetURLs:input_type -> media.v1.BatchGetAssetURLsRequest
-	6,  // 14: media.v1.MediaService.CreateUpload:output_type -> media.v1.CreateUploadResponse
-	8,  // 15: media.v1.MediaService.CompleteUpload:output_type -> media.v1.CompleteUploadResponse
-	11, // 16: media.v1.MediaService.AbortUpload:output_type -> media.v1.AbortUploadResponse
-	13, // 17: media.v1.MediaService.GetAsset:output_type -> media.v1.GetAssetResponse
-	17, // 18: media.v1.MediaService.BatchGetAssetURLs:output_type -> media.v1.BatchGetAssetURLsResponse
-	14, // [14:19] is the sub-list for method output_type
-	9,  // [9:14] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	17, // 5: media.v1.GetAssetResponse.asset:type_name -> media.v1.Asset
+	3,  // 6: media.v1.GetImageUploadConstraintsRequest.user_avatar:type_name -> media.v1.UserAvatarUploadPurpose
+	4,  // 7: media.v1.GetImageUploadConstraintsRequest.guild_icon:type_name -> media.v1.GuildIconUploadPurpose
+	5,  // 8: media.v1.GetImageUploadConstraintsRequest.message_attachment:type_name -> media.v1.MessageAttachmentUploadPurpose
+	15, // 9: media.v1.GetImageUploadConstraintsResponse.constraints:type_name -> media.v1.ImageUploadConstraints
+	0,  // 10: media.v1.Asset.kind:type_name -> media.v1.AssetKind
+	1,  // 11: media.v1.Asset.status:type_name -> media.v1.AssetStatus
+	19, // 12: media.v1.BatchGetAssetURLsResponse.assets:type_name -> media.v1.AssetURL
+	2,  // 13: media.v1.MediaService.CreateUpload:input_type -> media.v1.CreateUploadRequest
+	7,  // 14: media.v1.MediaService.CompleteUpload:input_type -> media.v1.CompleteUploadRequest
+	10, // 15: media.v1.MediaService.AbortUpload:input_type -> media.v1.AbortUploadRequest
+	12, // 16: media.v1.MediaService.GetAsset:input_type -> media.v1.GetAssetRequest
+	14, // 17: media.v1.MediaService.GetImageUploadConstraints:input_type -> media.v1.GetImageUploadConstraintsRequest
+	18, // 18: media.v1.MediaService.BatchGetAssetURLs:input_type -> media.v1.BatchGetAssetURLsRequest
+	6,  // 19: media.v1.MediaService.CreateUpload:output_type -> media.v1.CreateUploadResponse
+	8,  // 20: media.v1.MediaService.CompleteUpload:output_type -> media.v1.CompleteUploadResponse
+	11, // 21: media.v1.MediaService.AbortUpload:output_type -> media.v1.AbortUploadResponse
+	13, // 22: media.v1.MediaService.GetAsset:output_type -> media.v1.GetAssetResponse
+	16, // 23: media.v1.MediaService.GetImageUploadConstraints:output_type -> media.v1.GetImageUploadConstraintsResponse
+	20, // 24: media.v1.MediaService.BatchGetAssetURLs:output_type -> media.v1.BatchGetAssetURLsResponse
+	19, // [19:25] is the sub-list for method output_type
+	13, // [13:19] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_media_v1_media_proto_init() }
@@ -2685,13 +3183,18 @@ func file_media_v1_media_proto_init() {
 		(*createUploadRequest_GuildIcon)(nil),
 		(*createUploadRequest_MessageAttachment)(nil),
 	}
+	file_media_v1_media_proto_msgTypes[12].OneofWrappers = []any{
+		(*getImageUploadConstraintsRequest_UserAvatar)(nil),
+		(*getImageUploadConstraintsRequest_GuildIcon)(nil),
+		(*getImageUploadConstraintsRequest_MessageAttachment)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_media_v1_media_proto_rawDesc), len(file_media_v1_media_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   17,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

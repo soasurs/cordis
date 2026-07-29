@@ -38,6 +38,12 @@ const (
 	PolicyGetUserProfileIP = "get_user_profile_ip"
 	// PolicyCheckEmailAvailabilityIP limits anonymous availability checks by source address.
 	PolicyCheckEmailAvailabilityIP = "check_email_availability_ip"
+	// PolicyCheckUsernameAvailabilityIP limits username availability checks by source address.
+	PolicyCheckUsernameAvailabilityIP = "check_username_availability_ip"
+	// PolicyCheckUsernameAvailabilityUser limits username availability checks by authenticated user.
+	PolicyCheckUsernameAvailabilityUser = "check_username_availability_user"
+	// PolicyGetAvatarUploadConstraintsIP limits avatar constraint discovery by source address.
+	PolicyGetAvatarUploadConstraintsIP = "get_avatar_upload_constraints_ip"
 	// PolicyRecoveryRequestIP limits aggregate recovery mail requests by source address.
 	PolicyRecoveryRequestIP = "recovery_request_ip"
 	// PolicyCreateMessageUser limits message creation by author.
@@ -71,6 +77,8 @@ var ipPolicies = [...]string{
 	PolicyConfirmPasswordResetIP,
 	PolicyGetUserProfileIP,
 	PolicyCheckEmailAvailabilityIP,
+	PolicyCheckUsernameAvailabilityIP,
+	PolicyGetAvatarUploadConstraintsIP,
 	PolicyRecoveryRequestIP,
 	PolicyJoinGuildInviteIP,
 }
@@ -79,6 +87,7 @@ var requiredPolicies = [...]string{
 	PolicyAuthenticatedUser,
 	PolicyRegisterEmail,
 	PolicyLoginEmail,
+	PolicyCheckUsernameAvailabilityUser,
 	PolicyCreateMessageUser,
 	PolicyCreateMessageChannel,
 	PolicyRelationshipWrite,

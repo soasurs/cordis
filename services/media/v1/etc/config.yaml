@@ -45,8 +45,30 @@ media:
   stagingCleanupIntervalSeconds: 300
   imageProcessingTimeoutMs: 30000
   maxConcurrentImageProcessing: 4
-  maxImageSizeBytes: 10485760
-  maxImageDimension: 4096
-  maxImagePixels: 16777216
+  imageConstraints:
+    userAvatar:
+      maxSizeBytes: 10485760
+      maxDimension: 4096
+      maxPixels: 16777216
+      allowedContentTypes:
+        - image/jpeg
+        - image/png
+        - image/webp
+    guildIcon:
+      maxSizeBytes: 10485760
+      maxDimension: 4096
+      maxPixels: 16777216
+      allowedContentTypes:
+        - image/jpeg
+        - image/png
+        - image/webp
+    messageAttachment:
+      maxSizeBytes: 10485760
+      maxDimension: 4096
+      maxPixels: 16777216
+      allowedContentTypes:
+        - image/jpeg
+        - image/png
+        - image/webp
   attachmentAccessMode: public
   attachmentDownloadTTLSeconds: 86400

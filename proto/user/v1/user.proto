@@ -12,6 +12,9 @@ service UserService {
   // GetUserProfileByUsername resolves the globally unique handle.
   rpc GetUserProfileByUsername(GetUserProfileByUsernameRequest) returns (GetUserProfileByUsernameResponse);
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
+  // CheckUsernameAvailability reports whether a normalized handle is free.
+  // Invalid usernames are rejected; taken handles return available=false.
+  rpc CheckUsernameAvailability(CheckUsernameAvailabilityRequest) returns (CheckUsernameAvailabilityResponse);
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
   // MarkEmailVerified records verification only while the supplied email is
   // still the user's current email.
@@ -26,6 +29,8 @@ service UserService {
   rpc CompleteAvatarUpload(CompleteAvatarUploadRequest) returns (CompleteAvatarUploadResponse);
   // AbortAvatarUpload cancels an unpublished avatar upload owned by the user.
   rpc AbortAvatarUpload(AbortAvatarUploadRequest) returns (AbortAvatarUploadResponse);
+  // GetAvatarUploadConstraints returns Media's current avatar upload limits.
+  rpc GetAvatarUploadConstraints(GetAvatarUploadConstraintsRequest) returns (GetAvatarUploadConstraintsResponse);
   // UpdateUsername replaces the unique handle; the old handle is released
   // immediately.
   rpc UpdateUsername(UpdateUsernameRequest) returns (UpdateUsernameResponse);
@@ -136,6 +141,14 @@ message CheckEmailAvailabilityResponse {
   bool available = 1;
 }
 
+message CheckUsernameAvailabilityRequest {
+  string username = 1;
+}
+
+message CheckUsernameAvailabilityResponse {
+  bool available = 1;
+}
+
 message UpdateEmailRequest {
   int64 user_id = 1;
   string email = 2;
@@ -220,6 +233,20 @@ message AbortAvatarUploadRequest {
 
 // AbortAvatarUploadResponse is empty because abort has no mutable result.
 message AbortAvatarUploadResponse {}
+
+message GetAvatarUploadConstraintsRequest {}
+
+message AvatarUploadConstraints {
+  int64 max_file_size_bytes = 1;
+  int32 max_width = 2;
+  int32 max_height = 3;
+  int64 max_pixels = 4;
+  repeated string allowed_content_types = 5;
+}
+
+message GetAvatarUploadConstraintsResponse {
+  AvatarUploadConstraints constraints = 1;
+}
 
 message GetUserProfileByUsernameRequest {
   string username = 1;

@@ -278,6 +278,28 @@ func TestCheckEmailAvailability(t *testing.T) {
 	require.True(t, resp.GetAvailable())
 }
 
+func TestCheckUsernameAvailability(t *testing.T) {
+	store := newFakeStore()
+	store.usernameAvailable = true
+	server := newTestUserServer(t, store)
+
+	req := new(userv1.CheckUsernameAvailabilityRequest)
+	req.SetUsername(" Free_Handle ")
+	resp, err := server.CheckUsernameAvailability(context.Background(), req)
+	require.NoError(t, err)
+	require.True(t, resp.GetAvailable())
+
+	store.usernameAvailable = false
+	resp, err = server.CheckUsernameAvailability(context.Background(), req)
+	require.NoError(t, err)
+	require.False(t, resp.GetAvailable())
+
+	invalid := new(userv1.CheckUsernameAvailabilityRequest)
+	invalid.SetUsername("Bad Handle!")
+	_, err = server.CheckUsernameAvailability(context.Background(), invalid)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestUpdateEmail(t *testing.T) {
 	store := newFakeStore()
 	store.user = &model.User{
@@ -355,6 +377,20 @@ func TestGetUserNotFound(t *testing.T) {
 
 	_, err := server.GetUser(context.Background(), req)
 	require.Equal(t, codes.NotFound, status.Code(err))
+}
+
+func TestGetAvatarUploadConstraints(t *testing.T) {
+	fakeStore := newFakeStore()
+	mediaClient := &fakeMediaClient{}
+	server := newTestUserServerWithMedia(t, fakeStore, mediaClient)
+
+	resp, err := server.GetAvatarUploadConstraints(t.Context(), new(userv1.GetAvatarUploadConstraintsRequest))
+	require.NoError(t, err)
+	require.Equal(t, int64(10485760), resp.GetConstraints().GetMaxFileSizeBytes())
+	require.Equal(t, int32(4096), resp.GetConstraints().GetMaxWidth())
+	require.Equal(t, int32(4096), resp.GetConstraints().GetMaxHeight())
+	require.Equal(t, int64(16777216), resp.GetConstraints().GetMaxPixels())
+	require.Equal(t, []string{"image/jpeg", "image/png", "image/webp"}, resp.GetConstraints().GetAllowedContentTypes())
 }
 
 func TestAvatarUploadLifecycle(t *testing.T) {
@@ -484,6 +520,25 @@ func (f *fakeMediaClient) GetAsset(
 	return resp, nil
 }
 
+func (f *fakeMediaClient) GetImageUploadConstraints(
+	_ context.Context,
+	req *mediav1.GetImageUploadConstraintsRequest,
+	_ ...grpc.CallOption,
+) (*mediav1.GetImageUploadConstraintsResponse, error) {
+	if !req.HasUserAvatar() && !req.HasGuildIcon() && !req.HasMessageAttachment() {
+		return nil, status.Error(codes.InvalidArgument, "purpose is required")
+	}
+	constraints := new(mediav1.ImageUploadConstraints)
+	constraints.SetMaxFileSizeBytes(10485760)
+	constraints.SetMaxWidth(4096)
+	constraints.SetMaxHeight(4096)
+	constraints.SetMaxPixels(16777216)
+	constraints.SetAllowedContentTypes([]string{"image/jpeg", "image/png", "image/webp"})
+	resp := new(mediav1.GetImageUploadConstraintsResponse)
+	resp.SetConstraints(constraints)
+	return resp, nil
+}
+
 func (f *fakeMediaClient) CompleteUpload(
 	_ context.Context,
 	req *mediav1.CompleteUploadRequest,
@@ -525,6 +580,7 @@ type fakeStore struct {
 	updateUsernameErr   error
 	getUserWithEmailErr error
 	emailAvailable      bool
+	usernameAvailable   bool
 	relationships       map[[2]int64]*model.Relationship
 	lockedPairs         [][2]int64
 }
@@ -575,6 +631,10 @@ func (s *fakeStore) GetUserWithEmail(_ context.Context, email string) (*model.Us
 
 func (s *fakeStore) CheckEmailAvailability(context.Context, string) (bool, error) {
 	return s.emailAvailable, nil
+}
+
+func (s *fakeStore) CheckUsernameAvailability(context.Context, string) (bool, error) {
+	return s.usernameAvailable, nil
 }
 
 func (s *fakeStore) UpdateUserEmail(_ context.Context, userID int64, email string) (*model.User, error) {

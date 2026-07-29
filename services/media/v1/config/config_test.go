@@ -37,3 +37,36 @@ func TestConfigValidateAttachmentAccess(t *testing.T) {
 	missingBucket.ObjectStore.AttachmentBucket = ""
 	require.ErrorContains(t, missingBucket.Validate(), "attachment object store bucket is required")
 }
+
+func TestImageConstraintsArePurposeSpecific(t *testing.T) {
+	cfg := MediaConfig{
+		ImageConstraints: ImageConstraintsConfig{
+			UserAvatar: ImageConstraintProfile{
+				MaxSizeBytes:        1 << 20,
+				MaxDimension:        512,
+				MaxPixels:           512 * 512,
+				AllowedContentTypes: []string{"image/png"},
+			},
+			GuildIcon: ImageConstraintProfile{
+				MaxSizeBytes:        2 << 20,
+				MaxDimension:        1024,
+				MaxPixels:           1024 * 1024,
+				AllowedContentTypes: []string{"image/jpeg", "image/png"},
+			},
+		},
+	}
+
+	avatar := cfg.ImageConstraintsFor(ImagePurposeUserAvatar)
+	require.Equal(t, int64(1<<20), avatar.MaxSizeBytes)
+	require.Equal(t, int32(512), avatar.MaxDimension)
+	require.Equal(t, []string{"image/png"}, avatar.AllowedContentTypes)
+
+	icon := cfg.ImageConstraintsFor(ImagePurposeGuildIcon)
+	require.Equal(t, int64(2<<20), icon.MaxSizeBytes)
+	require.Equal(t, int32(1024), icon.MaxDimension)
+	require.True(t, icon.AllowsContentType("image/jpeg"))
+
+	attachment := cfg.ImageConstraintsFor(ImagePurposeMessageAttachment)
+	require.Equal(t, int64(10<<20), attachment.MaxSizeBytes)
+	require.Equal(t, []string{"image/jpeg", "image/png", "image/webp"}, attachment.AllowedContentTypes)
+}

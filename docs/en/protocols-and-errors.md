@@ -26,6 +26,18 @@ and write unrelated fields back. When present, collection-valued update fields
 replace the complete collection unless dedicated add/remove operations are
 defined.
 
+## Availability checks and avatar constraints
+
+`CheckUsernameAvailability` reuses the same username normalization and format
+rules as `UpdateUsername`. Invalid usernames return `InvalidArgument`; a valid
+but taken handle returns `available=false`. Final renames still depend on the
+database unique constraint. Avatar create and complete failures may include
+stable `media.cordis` reasons `avatar_file_too_large`,
+`avatar_content_type_invalid`, `avatar_dimensions_exceeded`, and
+`avatar_pixels_exceeded`. `GetAvatarUploadConstraints` returns Media's current
+`userAvatar` image limits clients should enforce before requesting a
+presigned PUT.
+
 WebSocket envelopes contain `op`, optional `s`, optional `t`, and `d`. Important
 opcodes are dispatch `0`, heartbeat `1`, identify `2`, presence `3`, resume `6`,
 invalid session `9`, hello `10`, and heartbeat ACK `11`.

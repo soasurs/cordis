@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MediaService_CreateUpload_FullMethodName      = "/media.v1.MediaService/CreateUpload"
-	MediaService_CompleteUpload_FullMethodName    = "/media.v1.MediaService/CompleteUpload"
-	MediaService_AbortUpload_FullMethodName       = "/media.v1.MediaService/AbortUpload"
-	MediaService_GetAsset_FullMethodName          = "/media.v1.MediaService/GetAsset"
-	MediaService_BatchGetAssetURLs_FullMethodName = "/media.v1.MediaService/BatchGetAssetURLs"
+	MediaService_CreateUpload_FullMethodName              = "/media.v1.MediaService/CreateUpload"
+	MediaService_CompleteUpload_FullMethodName            = "/media.v1.MediaService/CompleteUpload"
+	MediaService_AbortUpload_FullMethodName               = "/media.v1.MediaService/AbortUpload"
+	MediaService_GetAsset_FullMethodName                  = "/media.v1.MediaService/GetAsset"
+	MediaService_GetImageUploadConstraints_FullMethodName = "/media.v1.MediaService/GetImageUploadConstraints"
+	MediaService_BatchGetAssetURLs_FullMethodName         = "/media.v1.MediaService/BatchGetAssetURLs"
 )
 
 // MediaServiceClient is the client API for MediaService service.
@@ -46,6 +47,9 @@ type MediaServiceClient interface {
 	AbortUpload(ctx context.Context, in *AbortUploadRequest, opts ...grpc.CallOption) (*AbortUploadResponse, error)
 	// GetAsset returns persisted metadata and never reads object bytes.
 	GetAsset(ctx context.Context, in *GetAssetRequest, opts ...grpc.CallOption) (*GetAssetResponse, error)
+	// GetImageUploadConstraints returns the image limits Media enforces for one
+	// upload purpose.
+	GetImageUploadConstraints(ctx context.Context, in *GetImageUploadConstraintsRequest, opts ...grpc.CallOption) (*GetImageUploadConstraintsResponse, error)
 	// BatchGetAssetURLs resolves delivery URLs for ready attachments after the
 	// trusted Message caller has authorized the containing messages.
 	BatchGetAssetURLs(ctx context.Context, in *BatchGetAssetURLsRequest, opts ...grpc.CallOption) (*BatchGetAssetURLsResponse, error)
@@ -99,6 +103,16 @@ func (c *mediaServiceClient) GetAsset(ctx context.Context, in *GetAssetRequest, 
 	return out, nil
 }
 
+func (c *mediaServiceClient) GetImageUploadConstraints(ctx context.Context, in *GetImageUploadConstraintsRequest, opts ...grpc.CallOption) (*GetImageUploadConstraintsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetImageUploadConstraintsResponse)
+	err := c.cc.Invoke(ctx, MediaService_GetImageUploadConstraints_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *mediaServiceClient) BatchGetAssetURLs(ctx context.Context, in *BatchGetAssetURLsRequest, opts ...grpc.CallOption) (*BatchGetAssetURLsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BatchGetAssetURLsResponse)
@@ -129,6 +143,9 @@ type MediaServiceServer interface {
 	AbortUpload(context.Context, *AbortUploadRequest) (*AbortUploadResponse, error)
 	// GetAsset returns persisted metadata and never reads object bytes.
 	GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error)
+	// GetImageUploadConstraints returns the image limits Media enforces for one
+	// upload purpose.
+	GetImageUploadConstraints(context.Context, *GetImageUploadConstraintsRequest) (*GetImageUploadConstraintsResponse, error)
 	// BatchGetAssetURLs resolves delivery URLs for ready attachments after the
 	// trusted Message caller has authorized the containing messages.
 	BatchGetAssetURLs(context.Context, *BatchGetAssetURLsRequest) (*BatchGetAssetURLsResponse, error)
@@ -152,6 +169,9 @@ func (UnimplementedMediaServiceServer) AbortUpload(context.Context, *AbortUpload
 }
 func (UnimplementedMediaServiceServer) GetAsset(context.Context, *GetAssetRequest) (*GetAssetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAsset not implemented")
+}
+func (UnimplementedMediaServiceServer) GetImageUploadConstraints(context.Context, *GetImageUploadConstraintsRequest) (*GetImageUploadConstraintsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetImageUploadConstraints not implemented")
 }
 func (UnimplementedMediaServiceServer) BatchGetAssetURLs(context.Context, *BatchGetAssetURLsRequest) (*BatchGetAssetURLsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method BatchGetAssetURLs not implemented")
@@ -248,6 +268,24 @@ func _MediaService_GetAsset_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MediaService_GetImageUploadConstraints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetImageUploadConstraintsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MediaServiceServer).GetImageUploadConstraints(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MediaService_GetImageUploadConstraints_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MediaServiceServer).GetImageUploadConstraints(ctx, req.(*GetImageUploadConstraintsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MediaService_BatchGetAssetURLs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BatchGetAssetURLsRequest)
 	if err := dec(in); err != nil {
@@ -288,6 +326,10 @@ var MediaService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAsset",
 			Handler:    _MediaService_GetAsset_Handler,
+		},
+		{
+			MethodName: "GetImageUploadConstraints",
+			Handler:    _MediaService_GetImageUploadConstraints_Handler,
 		},
 		{
 			MethodName: "BatchGetAssetURLs",

@@ -143,6 +143,26 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeAlreadyExists,
 		message:     "Username is already taken.",
 	},
+	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarFileTooLarge}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Avatar file is too large.",
+	},
+	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarContentTypeInvalid}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Avatar content type is invalid.",
+	},
+	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarDimensionsExceeded}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Avatar dimensions exceed limit.",
+	},
+	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarPixelsExceeded}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeInvalidArgument,
+		message:     "Avatar pixel count exceeds limit.",
+	},
 	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserRelationshipNotFound}: {
 		connectCode: connect.CodeNotFound,
 		publicCode:  CodeNotFound,

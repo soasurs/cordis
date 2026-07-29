@@ -99,6 +99,21 @@ rateLimit:
     check_email_availability_ip_ipv6:
       limit: 60
       window: 1m
+    check_username_availability_ip_ipv4:
+      limit: 600
+      window: 1m
+    check_username_availability_ip_ipv6:
+      limit: 60
+      window: 1m
+    check_username_availability_user:
+      limit: 60
+      window: 1m
+    get_avatar_upload_constraints_ip_ipv4:
+      limit: 600
+      window: 1m
+    get_avatar_upload_constraints_ip_ipv6:
+      limit: 60
+      window: 1m
     recovery_request_ip_ipv4:
       limit: 300
       window: 10m

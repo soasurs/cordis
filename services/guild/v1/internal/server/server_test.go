@@ -447,6 +447,7 @@ func (f *fakeUserClient) BatchGetUserProfiles(
 		profile.SetUserId(userID)
 		profile.SetUsername("user_" + strconv.FormatInt(userID, 10))
 		profile.SetName("User " + strconv.FormatInt(userID, 10))
+		profile.SetBio("Bio " + strconv.FormatInt(userID, 10))
 		profile.SetAvatarAssetId(userID + 1000)
 		profiles = append(profiles, profile)
 	}

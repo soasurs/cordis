@@ -101,6 +101,7 @@ type guildMemberUnbannedPayload struct {
 type userProfilePayload struct {
 	UserID        string `json:"user_id"`
 	Name          string `json:"name"`
+	Bio           string `json:"bio"`
 	AvatarAssetID string `json:"avatar_asset_id"`
 	CreatedAt     int64  `json:"created_at"`
 	UpdatedAt     int64  `json:"updated_at"`
@@ -234,6 +235,7 @@ func userProfilePayloadFromProto(profile *userv1.UserProfile) userProfilePayload
 	return userProfilePayload{
 		UserID:        strconv.FormatInt(profile.GetUserId(), 10),
 		Name:          profile.GetName(),
+		Bio:           profile.GetBio(),
 		AvatarAssetID: strconv.FormatInt(profile.GetAvatarAssetId(), 10),
 		CreatedAt:     profile.GetCreatedAt(),
 		UpdatedAt:     profile.GetUpdatedAt(),

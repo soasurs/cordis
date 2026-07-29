@@ -35,6 +35,7 @@ func TestAddGuildMemberRequiresOwnerAndPublishesEvent(t *testing.T) {
 	require.Equal(t, "10", envelope.Data.GuildID)
 	require.Equal(t, "1002", envelope.Data.UserID)
 	require.Equal(t, "1002", envelope.Data.Profile.UserID)
+	require.Equal(t, "Bio 1002", envelope.Data.Profile.Bio)
 
 	req.SetActorUserId(1002)
 	req.SetUserId(1003)
@@ -83,6 +84,7 @@ func TestUpdateGuildMemberUpdatesOnlyActor(t *testing.T) {
 	require.Equal(t, EventTypeGuildMemberUpdated, envelope.Type)
 	require.Equal(t, "1002", envelope.Data.UserID)
 	require.Equal(t, "1002", envelope.Data.Profile.UserID)
+	require.Equal(t, "Bio 1002", envelope.Data.Profile.Bio)
 }
 
 func TestKickAndLeaveEnforceOwnerRules(t *testing.T) {

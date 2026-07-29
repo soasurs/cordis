@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,6 +13,45 @@ import (
 	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
+
+func TestFilterUsersWithCommonGuild(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.guilds[20] = testGuild(20, 2001)
+	fakeStore.members[10] = testMembers(10, 1001, 1002)
+	fakeStore.members[20] = testMembers(20, 1001, 1003, 1004)
+	fakeStore.members[20][1004].DeletedAt = 2
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	req := new(guildv1.FilterUsersWithCommonGuildRequest)
+	req.SetUserId(1001)
+	req.SetTargetUserIds([]int64{1003, 1002, 1002, 1004, 1005})
+	resp, err := server.FilterUsersWithCommonGuild(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []int64{1002, 1003}, resp.GetUserIds())
+}
+
+func TestFilterUsersWithCommonGuildValidatesBatch(t *testing.T) {
+	server := newTestGuildServer(t, newFakeStore(), nil)
+
+	req := new(guildv1.FilterUsersWithCommonGuildRequest)
+	req.SetUserId(1001)
+	req.SetTargetUserIds([]int64{0})
+	_, err := server.FilterUsersWithCommonGuild(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	req.SetTargetUserIds(slices.Repeat([]int64{1002}, maxCommonGuildFilterBatch+1))
+	_, err = server.FilterUsersWithCommonGuild(t.Context(), req)
+	require.NoError(t, err)
+
+	targets := make([]int64, maxCommonGuildFilterBatch+1)
+	for i := range targets {
+		targets[i] = int64(i + 1)
+	}
+	req.SetTargetUserIds(targets)
+	_, err = server.FilterUsersWithCommonGuild(t.Context(), req)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
 
 func TestAddGuildMemberRequiresOwnerAndPublishesEvent(t *testing.T) {
 	fakeStore := newFakeStore()

@@ -33,6 +33,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("guild CRUD", func(t *testing.T) { testGuildCRUD(t, store) })
 	t.Run("access revision", func(t *testing.T) { testGuildAccessRevision(t, store) })
 	t.Run("member lifecycle", func(t *testing.T) { testGuildMemberLifecycle(t, store) })
+	t.Run("common guild membership", func(t *testing.T) { testCommonGuildMembership(t, store) })
 	t.Run("bans", func(t *testing.T) { testGuildBans(t, store) })
 	t.Run("ownership transfer", func(t *testing.T) { testTransferGuildOwnership(t, store) })
 	t.Run("roles CRUD", func(t *testing.T) { testGuildRolesCRUD(t, store) })
@@ -45,6 +46,38 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("invites", func(t *testing.T) { testGuildInvites(t, store) })
 	t.Run("resource quotas", func(t *testing.T) { testResourceQuotas(t, store) })
 	t.Run("channel mutation lock", func(t *testing.T) { testGuildChannelMutationLock(t, store) })
+}
+
+func testCommonGuildMembership(t *testing.T, store Store) {
+	const (
+		guildA    = int64(19400)
+		guildB    = int64(19401)
+		guildC    = int64(19402)
+		actor     = int64(29400)
+		targetA   = int64(29401)
+		targetB   = int64(29402)
+		removed   = int64(29403)
+		unrelated = int64(29404)
+	)
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+	seedGuild(t, store, guildA, actor)
+	seedGuild(t, store, guildB, actor)
+	seedGuild(t, store, guildC, unrelated)
+	_, err := store.CreateGuildMember(ctx, guildA, targetA, now)
+	require.NoError(t, err)
+	_, err = store.CreateGuildMember(ctx, guildB, targetB, now)
+	require.NoError(t, err)
+	_, err = store.CreateGuildMember(ctx, guildA, removed, now)
+	require.NoError(t, err)
+	_, err = store.RemoveGuildMember(ctx, guildA, removed, now+1)
+	require.NoError(t, err)
+
+	userIDs, err := store.ListUsersWithCommonGuild(ctx, actor, []int64{
+		unrelated, removed, targetB, targetA, targetA,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int64{targetA, targetB}, userIDs)
 }
 
 func testGuildChannelMutationLock(t *testing.T, store Store) {

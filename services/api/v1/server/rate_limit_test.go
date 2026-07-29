@@ -17,6 +17,7 @@ import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
 	apiratelimit "github.com/soasurs/cordis/services/api/v1/ratelimit"
@@ -426,6 +427,23 @@ func TestGuildEndpointsApplyBusinessPolicies(t *testing.T) {
 	}, limiter.snapshot())
 }
 
+func TestResolveUsersPresenceAppliesNamedPolicies(t *testing.T) {
+	limiter := new(recordingAPILimiter)
+	client, closeServer := newRateLimitedPresenceClient(t, limiter)
+	defer closeServer()
+
+	req := new(apiv1.ResolveUsersPresenceRequest)
+	req.SetUserIds([]int64{1001})
+	_, err := client.ResolveUsersPresence(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []apiRateLimitCall{
+		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
+		{policy: apiratelimit.PolicyAuthenticatedUser, key: "1001"},
+		{policy: apiratelimit.PolicyResolvePresenceIP, key: "127.0.0.1"},
+		{policy: apiratelimit.PolicyResolvePresenceUser, key: "1001"},
+	}, limiter.snapshot())
+}
+
 func newRateLimitedAuthenticatorClient(
 	t *testing.T,
 	internalClient *fakeAuthenticatorClient,
@@ -540,6 +558,33 @@ func newRateLimitedGuildClient(
 		accessToken: "access-token",
 	}}
 	return apiv1connect.NewGuildServiceClient(httpClient, httpServer.URL), httpServer.Close
+}
+
+func newRateLimitedPresenceClient(
+	t *testing.T,
+	limiter coreratelimit.Limiter,
+) (apiv1connect.PresenceServiceClient, func()) {
+	t.Helper()
+	resolver, err := apiratelimit.NewClientIPResolver(nil)
+	require.NoError(t, err)
+	path, handler := apiv1connect.NewPresenceServiceHandler(
+		NewPresence(&svc.ServiceContext{
+			AuthenticatorClient: &fakeAuthenticatorClient{verifyResponse: verifyAccessTokenResponse(1001)},
+			UserClient:          new(presenceUserClient),
+			GuildClient:         new(presenceGuildClient),
+			PresenceClient: &presenceInternalClient{presences: []*presencev1.UserPresence{
+				internalPresence(1001, presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE, 11),
+			}},
+		}),
+		connect.WithInterceptors(apiratelimit.UnaryInterceptor(limiter, resolver)),
+	)
+	mux := http.NewServeMux()
+	mux.Handle(path, handler)
+	httpServer := httptest.NewServer(mux)
+	httpClient := &http.Client{Transport: bearerRoundTripper{
+		base: http.DefaultTransport, accessToken: "access-token",
+	}}
+	return apiv1connect.NewPresenceServiceClient(httpClient, httpServer.URL), httpServer.Close
 }
 
 func newAuthenticatedUserClient(path string, handler http.Handler) (apiv1connect.UserServiceClient, func()) {

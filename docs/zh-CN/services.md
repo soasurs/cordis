@@ -2,11 +2,13 @@
 
 ## API
 
-公开 Connect-RPC HTTP 服务，监听 `:8080`。它代理 Authenticator、User、Guild 和 Message RPC，将内部 protobuf 转换为公开模型，并通过 `pkg/apierror` 将带 `google.rpc.ErrorInfo` 的内部错误转换为稳定的公开错误。API 本身不访问业务数据库。
+公开 Connect-RPC HTTP 服务，监听 `:8080`。它代理 Authenticator、User、Guild、Message 和 Presence RPC，将内部 protobuf 转换为公开模型，并通过 `pkg/apierror` 将带 `google.rpc.ErrorInfo` 的内部错误转换为稳定的公开错误。API 本身不访问业务数据库。
 
 公开资源模型会嵌入客户端渲染所需的当前 User profile。API 在组装 Guild 成员、封禁、邀请、关系、消息和 DM 频道时批量加载并校验这些 profile；内部领域模型仍只保存稳定的用户 ID。
 
 公开请求使用 Redis-backed 命名限流 policy，并在 Redis 故障时使用有界本地 fallback。IP 桶按 IPv4 `/32` 或 IPv6 `/64` 归一化，IPv4 阈值会为 CGNAT 放宽。所有请求先消费来源 IP guard；认证成功后再消费用户通用配额，消息创建、关系写入、Guild 资源创建和邀请加入还会消费对应业务桶。认证后的 `GetReadStates` reconcile 还使用进程内 keyed limiter，限制同一用户的并发请求数。
+
+`ResolveUsersPresence` 最多接受 100 个去重后的用户 ID，只返回调用者本人、好友和有有效共同 Guild 的用户。任一方向存在 block 时，即使双方有共同 Guild 也会排除目标。invisible 或未知聚合状态统一公开为 offline，无关用户直接省略；公开模型仅包含 `user_id`、`status`、`last_seen_at` 和 `version`。
 
 API 入站链在业务限流之前施加服务端 deadline、全局请求并发帽和 CPU 自适应 shedding，并按公开 RPC procedure 使用熔断器隔离持续的服务端失败。只有 `Unknown`、`DeadlineExceeded`、`Internal`、`Unavailable` 和 `DataLoss` 会使熔断器记为失败；校验、鉴权和限流错误不会打开线路。HTTP 总请求体与 Connect 解压后的单消息分别限长，panic 会记录 procedure 和 stack 后转换为不泄露内部信息的 `Internal` 错误。超时请求只有在底层 handler 实际退出后才释放并发槽，避免不响应取消的工作绕过全局并发帽。
 
@@ -92,7 +94,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 - 应用 Gateway 批量同步的 heartbeat ACK checkpoint、处理 Presence 更新、detach 和 resume；
 - 接收 Dispatcher 的 Guild、频道和用户事件并本地 fanout。
 
-IDENTIFY 分别向 Guild 和 Message 拉取完整 READY，再从 User 批量加载 DM 对端 profile：Guild、角色、成员角色、可见频道及其 permission overwrites、全部 DM 和四字段 read state。READY 组装期间收到的实时事件先缓冲，READY 以 sequence 1 发出后再按接收顺序入队。pending dispatch 同时受事件条数和事件数据总字节数限制，有效条数还会低于 replay 与 binding queue 容量；溢出时清空 pending buffer 并让本次 IDENTIFY 失败，使客户端重连后重新获取权威快照。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。同一节点上属于同一用户的逻辑 Session 共享授权快照，最后一个本地 Session 移除后释放。Guild access 事件先记录频道的原可见用户，再按 revision 使受影响快照失效并以受控并发重建；事件会投递给原可见与当前可见用户的并集，使新授权客户端添加频道、被撤权客户端移除频道。按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`。
+IDENTIFY 分别向 Guild 和 Message 拉取完整 READY，再从 User 批量加载 DM 对端 profile，并从 Presence 加载本人和去重后的 DM 对端版本化快照：Guild、角色、成员角色、可见频道及其 permission overwrites、全部 DM 和四字段 read state。READY 不加载全部 Guild 成员的 Presence。READY 组装期间收到的实时事件先缓冲，READY 以 sequence 1 发出后再按接收顺序入队。pending dispatch 同时受事件条数和事件数据总字节数限制，有效条数还会低于 replay 与 binding queue 容量；溢出时清空 pending buffer 并让本次 IDENTIFY 失败，使客户端重连后重新获取权威快照。默认加载上限为每用户 100 个 Guild、每 Guild 500 个可见频道。同一节点上属于同一用户的逻辑 Session 共享授权快照，最后一个本地 Session 移除后释放。Guild access 事件先记录频道的原可见用户，再按 revision 使受影响快照失效并以受控并发重建；事件会投递给原可见与当前可见用户的并集，使新授权客户端添加频道、被撤权客户端移除频道。按用户和 Guild 的重建使用 singleflight 合并，单节点默认最多并发 16 次且每次最多等待 2 秒。缺失、格式错误、超限、版本过旧或已标记失效的快照不能用于授权。重建失败时会跳过敏感事件，并为当前失效代发送一次带 sequence 的 `session.reconcile`。
 
 Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Session ID 限速。同一个认证 Session 可以为多个浏览器页面或设备创建并存的逻辑 Session；每个逻辑 Session 拥有独立的 Session ID、回放窗口、Presence 租约和 transport binding。
 
@@ -113,3 +115,5 @@ IDENTIFY 中缺失的 Presence status / client state 分别默认为 online / fo
 ## Presence
 
 监听 `:3003`，是 Redis 支撑的在线状态服务。它管理用户设备 Session，并按 TTL 和 generation 过滤失效记录。多个设备状态聚合为用户 Presence；`INVISIBLE` 对外表现为离线。Session 调用 Presence 注册和刷新用户在线状态。所有写入 RPC 都严格拒绝 unspecified、offline 或未知 status，以及 unspecified 或未知 client state，不再将非法枚举静默映射为默认值。
+
+Presence 还在 Redis 中为每个用户持久化一份聚合快照，包括 offline tombstone。每次聚合 status 变化都会获得基于 Snowflake 且跨服务节点钳制为大于旧值的单调递增 `version`；无变化的续租保留版本，`last_seen_at` 可以在不产生 status transition 时推进。内部 Resolve 与对应的 `presence.updated` 事件携带同一个版本。写入和按需 Resolve 都在按用户的 Redis 锁内完成对账，避免读到新 status 配旧 version。

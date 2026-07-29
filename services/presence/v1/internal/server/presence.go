@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"math"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -142,14 +143,22 @@ func (s *presenceServer) RemoveUserSession(ctx context.Context, req *presencev1.
 	}
 
 	err := s.svcCtx.Store.WithUserMutation(ctx, req.GetUserId(), func(ctx context.Context) error {
-		oldStatus, known := s.previousStatus(ctx, req.GetUserId())
 		if err := s.svcCtx.Store.RemoveUserSession(ctx, req.GetUserId(), req.GetSessionId()); err != nil {
 			return err
 		}
-		if known {
-			if presences, err := s.svcCtx.Store.ResolveUsersPresence(ctx, []int64{req.GetUserId()}); err == nil && len(presences) == 1 {
-				s.publishTransition(ctx, req.GetUserId(), req.GetGuildIds(), oldStatus, true, presences[0].Status)
-			}
+		presences, err := s.svcCtx.Store.ResolveUsersPresence(ctx, []int64{req.GetUserId()})
+		if err != nil {
+			return err
+		}
+		if len(presences) != 1 {
+			return status.Error(codes.Internal, "presence store returned an invalid response")
+		}
+		presence, changed, err := s.reconcileUserPresence(ctx, req.GetUserId(), presences[0])
+		if err != nil {
+			return err
+		}
+		if changed {
+			s.publishTransition(ctx, presence, req.GetGuildIds())
 		}
 		return nil
 	})
@@ -170,27 +179,86 @@ func (s *presenceServer) mutateUserPresence(
 ) (store.UserPresence, error) {
 	var presence store.UserPresence
 	err := s.svcCtx.Store.WithUserMutation(ctx, userID, func(ctx context.Context) error {
-		oldStatus, known := s.previousStatus(ctx, userID)
-		var err error
-		presence, err = mutate(ctx)
+		live, err := mutate(ctx)
 		if err != nil {
 			return err
 		}
-		s.publishTransition(ctx, userID, guildIDs, oldStatus, known, presence.Status)
+		var changed bool
+		presence, changed, err = s.reconcileUserPresence(ctx, userID, live)
+		if err != nil {
+			return err
+		}
+		if changed {
+			s.publishTransition(ctx, presence, guildIDs)
+		}
 		return nil
 	})
 	return presence, err
 }
 
 func (s *presenceServer) ResolveUsersPresence(ctx context.Context, req *presencev1.ResolveUsersPresenceRequest) (*presencev1.ResolveUsersPresenceResponse, error) {
-	presences, err := s.svcCtx.Store.ResolveUsersPresence(ctx, req.GetUserIds())
-	if err != nil {
-		return nil, err
+	if len(req.GetUserIds()) > 500 {
+		return nil, status.Error(codes.InvalidArgument, "too many users")
+	}
+	presences := make([]store.UserPresence, 0, len(req.GetUserIds()))
+	for _, userID := range req.GetUserIds() {
+		if userID <= 0 {
+			return nil, errUserIDRequired
+		}
+		var presence store.UserPresence
+		err := s.svcCtx.Store.WithUserMutation(ctx, userID, func(ctx context.Context) error {
+			live, err := s.svcCtx.Store.ResolveUsersPresence(ctx, []int64{userID})
+			if err != nil {
+				return err
+			}
+			if len(live) != 1 {
+				return status.Error(codes.Internal, "presence store returned an invalid response")
+			}
+			presence, _, err = s.reconcileUserPresence(ctx, userID, live[0])
+			return err
+		})
+		if err != nil {
+			return nil, err
+		}
+		presences = append(presences, presence)
 	}
 
 	resp := new(presencev1.ResolveUsersPresenceResponse)
 	resp.SetPresences(userPresencesToProto(presences))
 	return resp, nil
+}
+
+func (s *presenceServer) reconcileUserPresence(
+	ctx context.Context,
+	userID int64,
+	live store.UserPresence,
+) (store.UserPresence, bool, error) {
+	previous, known, err := s.svcCtx.Store.GetUserPresenceSnapshot(ctx, userID)
+	if err != nil {
+		return store.UserPresence{}, false, err
+	}
+	live.UserID = userID
+	if live.Status == store.PresenceStatusOffline && live.LastSeenAt == 0 && known {
+		live.LastSeenAt = previous.LastSeenAt
+	}
+	changed := !known || previous.Status != live.Status
+	if changed {
+		live.Version = s.svcCtx.Snowflake.Generate().Int64()
+		if known && live.Version <= previous.Version {
+			if previous.Version == math.MaxInt64 {
+				return store.UserPresence{}, false, status.Error(codes.Internal, "presence version is exhausted")
+			}
+			live.Version = previous.Version + 1
+		}
+	} else {
+		live.Version = previous.Version
+	}
+	if !known || changed || previous.LastSeenAt != live.LastSeenAt {
+		if err := s.svcCtx.Store.SaveUserPresenceSnapshot(ctx, live); err != nil {
+			return store.UserPresence{}, false, err
+		}
+	}
+	return live, changed, nil
 }
 
 func validateUserSessionRequest(userID int64, sessionID, gatewayID, generation string) error {
@@ -228,6 +296,7 @@ func userPresenceToProto(presence store.UserPresence) *presencev1.UserPresence {
 	msg.SetUserId(presence.UserID)
 	msg.SetStatus(storeStatusToProto(presence.Status))
 	msg.SetLastSeenAt(presence.LastSeenAt)
+	msg.SetVersion(presence.Version)
 	sessions := make([]*presencev1.UserSession, 0, len(presence.Sessions))
 	for _, session := range presence.Sessions {
 		sessions = append(sessions, userSessionToProto(session))

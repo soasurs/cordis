@@ -22,6 +22,7 @@ const (
 	GuildService_CreateGuild_FullMethodName                           = "/guild.v1.GuildService/CreateGuild"
 	GuildService_GetGuild_FullMethodName                              = "/guild.v1.GuildService/GetGuild"
 	GuildService_ListUserGuilds_FullMethodName                        = "/guild.v1.GuildService/ListUserGuilds"
+	GuildService_FilterUsersWithCommonGuild_FullMethodName            = "/guild.v1.GuildService/FilterUsersWithCommonGuild"
 	GuildService_GetUserReadyState_FullMethodName                     = "/guild.v1.GuildService/GetUserReadyState"
 	GuildService_GetUserGuildChannelVisibility_FullMethodName         = "/guild.v1.GuildService/GetUserGuildChannelVisibility"
 	GuildService_UpdateGuild_FullMethodName                           = "/guild.v1.GuildService/UpdateGuild"
@@ -81,6 +82,9 @@ type GuildServiceClient interface {
 	CreateGuild(ctx context.Context, in *CreateGuildRequest, opts ...grpc.CallOption) (*CreateGuildResponse, error)
 	GetGuild(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*GetGuildResponse, error)
 	ListUserGuilds(ctx context.Context, in *ListUserGuildsRequest, opts ...grpc.CallOption) (*ListUserGuildsResponse, error)
+	// FilterUsersWithCommonGuild returns targets that share at least one active
+	// Guild membership with user_id. It is an internal visibility primitive.
+	FilterUsersWithCommonGuild(ctx context.Context, in *FilterUsersWithCommonGuildRequest, opts ...grpc.CallOption) (*FilterUsersWithCommonGuildResponse, error)
 	// GetUserReadyState returns the complete Guild bootstrap for one user.
 	GetUserReadyState(ctx context.Context, in *GetUserReadyStateRequest, opts ...grpc.CallOption) (*GetUserReadyStateResponse, error)
 	// GetUserGuildChannelVisibility returns a single Guild visibility snapshot
@@ -177,6 +181,16 @@ func (c *guildServiceClient) ListUserGuilds(ctx context.Context, in *ListUserGui
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUserGuildsResponse)
 	err := c.cc.Invoke(ctx, GuildService_ListUserGuilds_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) FilterUsersWithCommonGuild(ctx context.Context, in *FilterUsersWithCommonGuildRequest, opts ...grpc.CallOption) (*FilterUsersWithCommonGuildResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FilterUsersWithCommonGuildResponse)
+	err := c.cc.Invoke(ctx, GuildService_FilterUsersWithCommonGuild_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -645,6 +659,9 @@ type GuildServiceServer interface {
 	CreateGuild(context.Context, *CreateGuildRequest) (*CreateGuildResponse, error)
 	GetGuild(context.Context, *GetGuildRequest) (*GetGuildResponse, error)
 	ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error)
+	// FilterUsersWithCommonGuild returns targets that share at least one active
+	// Guild membership with user_id. It is an internal visibility primitive.
+	FilterUsersWithCommonGuild(context.Context, *FilterUsersWithCommonGuildRequest) (*FilterUsersWithCommonGuildResponse, error)
 	// GetUserReadyState returns the complete Guild bootstrap for one user.
 	GetUserReadyState(context.Context, *GetUserReadyStateRequest) (*GetUserReadyStateResponse, error)
 	// GetUserGuildChannelVisibility returns a single Guild visibility snapshot
@@ -724,6 +741,9 @@ func (UnimplementedGuildServiceServer) GetGuild(context.Context, *GetGuildReques
 }
 func (UnimplementedGuildServiceServer) ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListUserGuilds not implemented")
+}
+func (UnimplementedGuildServiceServer) FilterUsersWithCommonGuild(context.Context, *FilterUsersWithCommonGuildRequest) (*FilterUsersWithCommonGuildResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FilterUsersWithCommonGuild not implemented")
 }
 func (UnimplementedGuildServiceServer) GetUserReadyState(context.Context, *GetUserReadyStateRequest) (*GetUserReadyStateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserReadyState not implemented")
@@ -930,6 +950,24 @@ func _GuildService_ListUserGuilds_Handler(srv interface{}, ctx context.Context, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GuildServiceServer).ListUserGuilds(ctx, req.(*ListUserGuildsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_FilterUsersWithCommonGuild_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FilterUsersWithCommonGuildRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).FilterUsersWithCommonGuild(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_FilterUsersWithCommonGuild_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).FilterUsersWithCommonGuild(ctx, req.(*FilterUsersWithCommonGuildRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1762,6 +1800,10 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListUserGuilds",
 			Handler:    _GuildService_ListUserGuilds_Handler,
+		},
+		{
+			MethodName: "FilterUsersWithCommonGuild",
+			Handler:    _GuildService_FilterUsersWithCommonGuild_Handler,
 		},
 		{
 			MethodName: "GetUserReadyState",

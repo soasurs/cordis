@@ -105,6 +105,15 @@ rateLimit:
     get_avatar_upload_constraints_ip_ipv6:
       limit: 60
       window: 1m
+    resolve_presence_ip_ipv4:
+      limit: 6000
+      window: 1m
+    resolve_presence_ip_ipv6:
+      limit: 600
+      window: 1m
+    resolve_presence_user:
+      limit: 120
+      window: 1m
     recovery_request_ip_ipv4:
       limit: 300
       window: 10m
@@ -167,4 +176,8 @@ services:
   guild:
     endpoints:
       - guild:3005
+    timeout: 2000
+  presence:
+    endpoints:
+      - presence:3003
     timeout: 2000

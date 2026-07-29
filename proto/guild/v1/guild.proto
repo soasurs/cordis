@@ -53,6 +53,9 @@ service GuildService {
   rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
   rpc GetGuild(GetGuildRequest) returns (GetGuildResponse);
   rpc ListUserGuilds(ListUserGuildsRequest) returns (ListUserGuildsResponse);
+  // FilterUsersWithCommonGuild returns targets that share at least one active
+  // Guild membership with user_id. It is an internal visibility primitive.
+  rpc FilterUsersWithCommonGuild(FilterUsersWithCommonGuildRequest) returns (FilterUsersWithCommonGuildResponse);
   // GetUserReadyState returns the complete Guild bootstrap for one user.
   rpc GetUserReadyState(GetUserReadyStateRequest) returns (GetUserReadyStateResponse);
   // GetUserGuildChannelVisibility returns a single Guild visibility snapshot
@@ -124,6 +127,15 @@ service GuildService {
 // ============================================================
 // Shared resources and authorization snapshots
 // ============================================================
+
+message FilterUsersWithCommonGuildRequest {
+  int64 user_id = 1;
+  repeated int64 target_user_ids = 2;
+}
+
+message FilterUsersWithCommonGuildResponse {
+  repeated int64 user_ids = 1;
+}
 
 // Guild is the persisted metadata for one community.
 // All timestamps are Unix time in milliseconds.

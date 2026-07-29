@@ -81,7 +81,7 @@ func (c InboundConfig) Validate() error {
 	}
 	for service, maxMessageBytes := range c.ServiceMaxMessageBytes {
 		switch service {
-		case "authenticator", "user", "message", "guild":
+		case "authenticator", "user", "message", "guild", "presence":
 		default:
 			return errors.New("inbound service max message bytes has unknown service")
 		}
@@ -144,4 +144,5 @@ type ServiceConfig struct {
 	User          zrpc.RpcClientConf
 	Message       zrpc.RpcClientConf
 	Guild         zrpc.RpcClientConf
+	Presence      zrpc.RpcClientConf
 }

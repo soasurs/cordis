@@ -454,6 +454,7 @@ type UserPresence struct {
 	xxx_hidden_Status      PresenceStatus         `protobuf:"varint,2,opt,name=status,enum=presence.v1.PresenceStatus"`
 	xxx_hidden_LastSeenAt  int64                  `protobuf:"varint,3,opt,name=last_seen_at,json=lastSeenAt"`
 	xxx_hidden_Sessions    *[]*UserSession        `protobuf:"bytes,4,rep,name=sessions"`
+	xxx_hidden_Version     int64                  `protobuf:"varint,5,opt,name=version"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -517,23 +518,35 @@ func (x *UserPresence) GetSessions() []*UserSession {
 	return nil
 }
 
+func (x *UserPresence) GetVersion() int64 {
+	if x != nil {
+		return x.xxx_hidden_Version
+	}
+	return 0
+}
+
 func (x *UserPresence) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *UserPresence) SetStatus(v PresenceStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *UserPresence) SetLastSeenAt(v int64) {
 	x.xxx_hidden_LastSeenAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *UserPresence) SetSessions(v []*UserSession) {
 	x.xxx_hidden_Sessions = &v
+}
+
+func (x *UserPresence) SetVersion(v int64) {
+	x.xxx_hidden_Version = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *UserPresence) HasUserId() bool {
@@ -557,6 +570,13 @@ func (x *UserPresence) HasLastSeenAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *UserPresence) HasVersion() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *UserPresence) ClearUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UserId = 0
@@ -572,6 +592,11 @@ func (x *UserPresence) ClearLastSeenAt() {
 	x.xxx_hidden_LastSeenAt = 0
 }
 
+func (x *UserPresence) ClearVersion() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Version = 0
+}
+
 type UserPresence_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -579,6 +604,9 @@ type UserPresence_builder struct {
 	Status     *PresenceStatus
 	LastSeenAt *int64
 	Sessions   []*UserSession
+	// Monotonically increases whenever the aggregate status changes. The
+	// version remains available on the offline tombstone after all sessions end.
+	Version *int64
 }
 
 func (b0 UserPresence_builder) Build() *UserPresence {
@@ -586,18 +614,22 @@ func (b0 UserPresence_builder) Build() *UserPresence {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.LastSeenAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_LastSeenAt = *b.LastSeenAt
 	}
 	x.xxx_hidden_Sessions = &b.Sessions
+	if b.Version != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_Version = *b.Version
+	}
 	return m0
 }
 
@@ -2019,13 +2051,14 @@ const file_presence_v1_presence_proto_rawDesc = "" +
 	"\flast_seen_at\x18\b \x01(\x03R\n" +
 	"lastSeenAt\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\t \x01(\x03R\texpiresAt\"\xb4\x01\n" +
+	"expires_at\x18\t \x01(\x03R\texpiresAt\"\xce\x01\n" +
 	"\fUserPresence\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x123\n" +
 	"\x06status\x18\x02 \x01(\x0e2\x1b.presence.v1.PresenceStatusR\x06status\x12 \n" +
 	"\flast_seen_at\x18\x03 \x01(\x03R\n" +
 	"lastSeenAt\x124\n" +
-	"\bsessions\x18\x04 \x03(\v2\x18.presence.v1.UserSessionR\bsessions\"\xc3\x02\n" +
+	"\bsessions\x18\x04 \x03(\v2\x18.presence.v1.UserSessionR\bsessions\x12\x18\n" +
+	"\aversion\x18\x05 \x01(\x03R\aversion\"\xc3\x02\n" +
 	"\x1aRegisterUserSessionRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12\x1d\n" +
 	"\n" +

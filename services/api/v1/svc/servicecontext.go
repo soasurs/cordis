@@ -10,6 +10,7 @@ import (
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/concurrencylimit"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
@@ -28,6 +29,7 @@ type ServiceContext struct {
 	UserClient          userv1.UserServiceClient
 	MessageClient       messagev1.MessageServiceClient
 	GuildClient         guildv1.GuildServiceClient
+	PresenceClient      presencev1.PresenceServiceClient
 	RateLimiter         coreratelimit.Limiter
 	ReadStatesLimiter   KeyedConcurrencyLimiter
 }
@@ -37,6 +39,7 @@ type Dependencies struct {
 	UserClient          userv1.UserServiceClient
 	MessageClient       messagev1.MessageServiceClient
 	GuildClient         guildv1.GuildServiceClient
+	PresenceClient      presencev1.PresenceServiceClient
 	RateLimiter         coreratelimit.Limiter
 	ReadStatesLimiter   KeyedConcurrencyLimiter
 }
@@ -78,6 +81,10 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	if err != nil {
 		return Dependencies{}, err
 	}
+	presenceClient, err := zrpc.NewClient(cfg.Services.Presence)
+	if err != nil {
+		return Dependencies{}, err
+	}
 	for _, policy := range apiratelimit.RequiredPolicies() {
 		if _, ok := cfg.RateLimit.Policies[policy]; !ok {
 			return Dependencies{}, fmt.Errorf("api rate limit policy %q is required", policy)
@@ -107,6 +114,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		UserClient:        userv1.NewUserServiceClient(userClient.Conn()),
 		MessageClient:     messagev1.NewMessageServiceClient(messageClient.Conn()),
 		GuildClient:       guildv1.NewGuildServiceClient(guildClient.Conn()),
+		PresenceClient:    presencev1.NewPresenceServiceClient(presenceClient.Conn()),
 		RateLimiter:       limiter,
 		ReadStatesLimiter: readStatesLimiter,
 	}, nil
@@ -133,6 +141,9 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.GuildClient == nil {
 		panic("guild client is required")
 	}
+	if deps.PresenceClient == nil {
+		panic("presence client is required")
+	}
 	if len(cfg.RateLimit.Policies) > 0 && deps.RateLimiter == nil {
 		panic("api rate limiter is required")
 	}
@@ -151,6 +162,7 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		UserClient:          deps.UserClient,
 		MessageClient:       deps.MessageClient,
 		GuildClient:         deps.GuildClient,
+		PresenceClient:      deps.PresenceClient,
 		RateLimiter:         deps.RateLimiter,
 		ReadStatesLimiter:   deps.ReadStatesLimiter,
 	}

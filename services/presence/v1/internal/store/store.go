@@ -35,6 +35,7 @@ type UserPresence struct {
 	UserID     int64
 	Status     PresenceStatus
 	LastSeenAt int64
+	Version    int64
 	Sessions   []UserSession
 }
 
@@ -45,4 +46,6 @@ type Store interface {
 	UpdateUserSession(ctx context.Context, session UserSession) (UserPresence, error)
 	RemoveUserSession(ctx context.Context, userID int64, sessionID string) error
 	ResolveUsersPresence(ctx context.Context, userIDs []int64) ([]UserPresence, error)
+	GetUserPresenceSnapshot(ctx context.Context, userID int64) (UserPresence, bool, error)
+	SaveUserPresenceSnapshot(ctx context.Context, presence UserPresence) error
 }

@@ -750,6 +750,25 @@ func (s *fakeStore) ListGuildMembers(_ context.Context, params store.ListGuildMe
 	return members, nil
 }
 
+func (s *fakeStore) ListUsersWithCommonGuild(_ context.Context, userID int64, targetUserIDs []int64) ([]int64, error) {
+	actorGuilds := make(map[int64]struct{})
+	for guildID, members := range s.members {
+		if members[userID] != nil && members[userID].DeletedAt == 0 {
+			actorGuilds[guildID] = struct{}{}
+		}
+	}
+	var result []int64
+	for _, targetUserID := range targetUserIDs {
+		for guildID := range actorGuilds {
+			if member := s.members[guildID][targetUserID]; member != nil && member.DeletedAt == 0 {
+				result = append(result, targetUserID)
+				break
+			}
+		}
+	}
+	return result, nil
+}
+
 func (s *fakeStore) ListGuildRoleMembers(_ context.Context, params store.ListGuildRoleMembersParams) ([]*model.GuildMember, error) {
 	role := s.roles[params.GuildID][params.RoleID]
 	if role == nil || role.DeletedAt != 0 {

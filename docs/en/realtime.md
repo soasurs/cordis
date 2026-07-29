@@ -68,6 +68,15 @@ invalid status, and `presence_client_state_invalid` for an invalid client
 state. Session and the internal Presence service also reject invalid values
 that bypass Gateway with `InvalidArgument`.
 
+The `ready` payload includes a `presences` array for the current user and every
+unique DM peer, but not all members of the user's Guilds. Each item contains
+`user_id`, aggregate `status`, `last_seen_at`, and `version`. IDs and versions
+are decimal strings in WebSocket JSON. Clients keep the greatest version seen
+per user: apply a later `presence.updated` event only when its version is
+greater than the READY or previously applied version. This makes events
+buffered during READY assembly safe even when the snapshot and event describe
+the same aggregate transition.
+
 ## Replay
 
 Replayable dispatches receive monotonically increasing sequence numbers. Each

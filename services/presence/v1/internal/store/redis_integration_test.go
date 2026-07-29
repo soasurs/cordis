@@ -143,6 +143,30 @@ func TestRedisStoreFiltersExpiredUserSessions(t *testing.T) {
 	require.Empty(t, resolved[0].Sessions)
 }
 
+func TestRedisStorePersistsUserPresenceSnapshot(t *testing.T) {
+	rds := newIntegrationRedis(t)
+	store := NewRedisStore(rds, time.Minute, time.Second)
+	ctx := t.Context()
+	userID := time.Now().UnixNano()
+	t.Cleanup(func() {
+		_, _ = rds.DelCtx(ctx, userPresenceSnapshotKey(userID))
+	})
+
+	_, known, err := store.GetUserPresenceSnapshot(ctx, userID)
+	require.NoError(t, err)
+	require.False(t, known)
+
+	expected := UserPresence{
+		UserID: userID, Status: PresenceStatusOffline, LastSeenAt: 1234, Version: 5678,
+	}
+	require.NoError(t, store.SaveUserPresenceSnapshot(ctx, expected))
+
+	actual, known, err := store.GetUserPresenceSnapshot(ctx, userID)
+	require.NoError(t, err)
+	require.True(t, known)
+	require.Equal(t, expected, actual)
+}
+
 func TestRedisStoreSerializesUserMutations(t *testing.T) {
 	rds := newIntegrationRedis(t)
 	storeA := NewRedisStore(rds, time.Minute, time.Second)

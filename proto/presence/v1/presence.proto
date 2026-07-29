@@ -62,6 +62,9 @@ message UserPresence {
   PresenceStatus status = 2;
   int64 last_seen_at = 3;
   repeated UserSession sessions = 4;
+  // Monotonically increases whenever the aggregate status changes. The
+  // version remains available on the offline tombstone after all sessions end.
+  int64 version = 5;
 }
 
 message RegisterUserSessionRequest {

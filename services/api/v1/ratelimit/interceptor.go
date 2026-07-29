@@ -44,6 +44,10 @@ const (
 	PolicyCheckUsernameAvailabilityUser = "check_username_availability_user"
 	// PolicyGetAvatarUploadConstraintsIP limits avatar constraint discovery by source address.
 	PolicyGetAvatarUploadConstraintsIP = "get_avatar_upload_constraints_ip"
+	// PolicyResolvePresenceIP limits presence reconciliation by source address.
+	PolicyResolvePresenceIP = "resolve_presence_ip"
+	// PolicyResolvePresenceUser limits presence reconciliation by authenticated user.
+	PolicyResolvePresenceUser = "resolve_presence_user"
 	// PolicyRecoveryRequestIP limits aggregate recovery mail requests by source address.
 	PolicyRecoveryRequestIP = "recovery_request_ip"
 	// PolicyCreateMessageUser limits message creation by author.
@@ -79,6 +83,7 @@ var ipPolicies = [...]string{
 	PolicyCheckEmailAvailabilityIP,
 	PolicyCheckUsernameAvailabilityIP,
 	PolicyGetAvatarUploadConstraintsIP,
+	PolicyResolvePresenceIP,
 	PolicyRecoveryRequestIP,
 	PolicyJoinGuildInviteIP,
 }
@@ -88,6 +93,7 @@ var requiredPolicies = [...]string{
 	PolicyRegisterEmail,
 	PolicyLoginEmail,
 	PolicyCheckUsernameAvailabilityUser,
+	PolicyResolvePresenceUser,
 	PolicyCreateMessageUser,
 	PolicyCreateMessageChannel,
 	PolicyRelationshipWrite,

@@ -11,6 +11,7 @@ import (
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	presencev1 "github.com/soasurs/cordis/gen/presence/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 )
 
@@ -23,6 +24,7 @@ type readyPayload struct {
 	Guilds               []readyGuild     `json:"guilds"`
 	DmChannels           []readyDmChannel `json:"dm_channels"`
 	ReadStates           []readyReadState `json:"read_states"`
+	Presences            []readyPresence  `json:"presences"`
 }
 
 type readyGuild struct {
@@ -102,12 +104,20 @@ type readyReadState struct {
 	MentionCount      int32  `json:"mention_count"`
 }
 
+type readyPresence struct {
+	UserID     string `json:"user_id"`
+	Status     int32  `json:"status"`
+	LastSeenAt int64  `json:"last_seen_at"`
+	Version    string `json:"version"`
+}
+
 func marshalReady(
 	session *logicalSession,
 	accessTokenExpiresAt int64,
 	guilds []*guildv1.ReadyGuild,
 	messages *messagev1.GetUserReadyStateResponse,
 	profiles map[int64]*userv1.UserProfile,
+	presences []*presencev1.UserPresence,
 	nodeID string,
 ) ([]byte, error) {
 	payload := readyPayload{
@@ -119,8 +129,31 @@ func marshalReady(
 		Guilds:               readyGuildValues(guilds),
 		DmChannels:           readyDmChannelValues(session.userID, messages.GetDmChannels(), profiles),
 		ReadStates:           readyReadStateValues(messages.GetReadStates()),
+		Presences:            readyPresenceValues(presences),
 	}
 	return json.Marshal(payload)
+}
+
+func readyPresenceValues(values []*presencev1.UserPresence) []readyPresence {
+	result := make([]readyPresence, 0, len(values))
+	for _, value := range values {
+		result = append(result, readyPresence{
+			UserID: idString(value.GetUserId()), Status: readyPresenceStatus(value.GetStatus()),
+			LastSeenAt: value.GetLastSeenAt(), Version: idString(value.GetVersion()),
+		})
+	}
+	return result
+}
+
+func readyPresenceStatus(statusValue presencev1.PresenceStatus) int32 {
+	switch statusValue {
+	case presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE,
+		presencev1.PresenceStatus_PRESENCE_STATUS_IDLE,
+		presencev1.PresenceStatus_PRESENCE_STATUS_DND:
+		return int32(statusValue)
+	default:
+		return int32(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE)
+	}
 }
 
 func readyGuildValues(values []*guildv1.ReadyGuild) []readyGuild {
@@ -248,6 +281,41 @@ func (s *Server) getReadyUserProfiles(
 		}
 	}
 	return profiles, nil
+}
+
+func (s *Server) getReadyPresences(
+	ctx context.Context,
+	userID int64,
+	profiles map[int64]*userv1.UserProfile,
+) ([]*presencev1.UserPresence, error) {
+	userIDs := make([]int64, 0, len(profiles)+1)
+	userIDs = append(userIDs, userID)
+	for profileUserID := range profiles {
+		if profileUserID != userID {
+			userIDs = append(userIDs, profileUserID)
+		}
+	}
+	slices.Sort(userIDs)
+	const batchSize = 500
+	result := make([]*presencev1.UserPresence, 0, len(userIDs))
+	for chunk := range slices.Chunk(userIDs, batchSize) {
+		req := new(presencev1.ResolveUsersPresenceRequest)
+		req.SetUserIds(chunk)
+		resp, err := s.svcCtx.PresenceClient.ResolveUsersPresence(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if resp == nil || len(resp.GetPresences()) != len(chunk) {
+			return nil, status.Error(codes.Internal, "presence service returned an invalid ready response")
+		}
+		for i, presence := range resp.GetPresences() {
+			if presence == nil || presence.GetUserId() != chunk[i] || presence.GetVersion() <= 0 {
+				return nil, status.Error(codes.Internal, "presence service returned an invalid ready response")
+			}
+			result = append(result, presence)
+		}
+	}
+	return result, nil
 }
 
 func readyReadStateValues(values []*messagev1.ChannelReadState) []readyReadState {

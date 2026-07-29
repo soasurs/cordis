@@ -100,7 +100,7 @@ Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Sessio
 
 Dispatcher 通过聚合 Guild route 定位 Guild 消息的候选 Session 节点，并通过专用 Guild-message RPC 携带 Guild 与频道 ID。Session 按本地用户检查服务端可见性快照，将消息投递给该用户的所有本地逻辑 Session。DM 消息为每个参与者各发布一条记录，并通过聚合 user route 投递。没有且仅有一个 Guild/user 聚合 route 的消息记录会被拒绝。
 
-无变化的 Presence 更新会直接丢弃。实际变化每个逻辑 Session 最多 5 次/20 秒，随后还需消耗跨设备共享的每用户 10 次/20 秒配额，才会调用 Presence。
+IDENTIFY 中缺失的 Presence status / client state 分别默认为 online / foreground；显式值会被严格校验。后续 Presence Update 使用部分更新语义，缺失字段保留当前值，空更新会被拒绝。无变化的 Presence 更新会直接丢弃。实际变化每个逻辑 Session 最多 5 次/20 秒，随后还需消耗跨设备共享的每用户 10 次/20 秒配额，才会调用 Presence。
 
 断线 Session 默认保留 120 秒。Resume 必须路由回原 Session 节点；节点进程丢失会同时丢失内存 Session。Session 节点通过 etcd 租约注册；进入 drain 后发布 draining 状态、拒绝新连接，并分批要求现有客户端重新 IDENTIFY。
 
@@ -112,4 +112,4 @@ Dispatcher 通过聚合 Guild route 定位 Guild 消息的候选 Session 节点�
 
 ## Presence
 
-监听 `:3003`，是 Redis 支撑的在线状态服务。它管理用户设备 Session，并按 TTL 和 generation 过滤失效记录。多个设备状态聚合为用户 Presence；`INVISIBLE` 对外表现为离线。Session 调用 Presence 注册和刷新用户在线状态。
+监听 `:3003`，是 Redis 支撑的在线状态服务。它管理用户设备 Session，并按 TTL 和 generation 过滤失效记录。多个设备状态聚合为用户 Presence；`INVISIBLE` 对外表现为离线。Session 调用 Presence 注册和刷新用户在线状态。所有写入 RPC 都严格拒绝 unspecified、offline 或未知 status，以及 unspecified 或未知 client state，不再将非法枚举静默映射为默认值。

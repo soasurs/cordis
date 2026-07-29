@@ -28,11 +28,11 @@ type helloData struct {
 }
 
 type identifyData struct {
-	Token         string `json:"token,omitempty"`
-	GatewayTicket string `json:"gateway_ticket,omitempty"`
-	DeviceType    string `json:"device_type,omitempty"`
-	Status        string `json:"status,omitempty"`
-	ClientState   string `json:"client_state,omitempty"`
+	Token         string          `json:"token,omitempty"`
+	GatewayTicket string          `json:"gateway_ticket,omitempty"`
+	DeviceType    string          `json:"device_type,omitempty"`
+	Status        json.RawMessage `json:"status,omitempty"`
+	ClientState   json.RawMessage `json:"client_state,omitempty"`
 }
 
 type resumeData struct {
@@ -43,8 +43,8 @@ type resumeData struct {
 }
 
 type presenceData struct {
-	Status      string `json:"status,omitempty"`
-	ClientState string `json:"client_state,omitempty"`
+	Status      json.RawMessage `json:"status,omitempty"`
+	ClientState json.RawMessage `json:"client_state,omitempty"`
 }
 
 type errorData struct {

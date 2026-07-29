@@ -67,6 +67,7 @@ func registerRequest(userID int64, status presencev1.PresenceStatus, guildIDs ..
 	req.SetGatewayId("gateway-a")
 	req.SetGeneration("gen-1")
 	req.SetStatus(status)
+	req.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 	req.SetGuildIds(guildIDs)
 	return req
 }
@@ -106,6 +107,7 @@ func TestRefreshWithUnchangedAggregateStaysSilent(t *testing.T) {
 	req.SetGatewayId("gateway-a")
 	req.SetGeneration("gen-1")
 	req.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
+	req.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 	_, err := server.RefreshUserSession(context.Background(), req)
 	require.NoError(t, err)
 	require.Empty(t, publisher.records)
@@ -119,6 +121,7 @@ func TestUpdatePresencePublishesStatusChange(t *testing.T) {
 	req.SetUserId(601)
 	req.SetSessionId("sess-1")
 	req.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_DND)
+	req.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 	req.SetGuildIds([]int64{11})
 	_, err := server.UpdateUserPresence(context.Background(), req)
 	require.NoError(t, err)
@@ -175,6 +178,7 @@ func TestConcurrentUpdatesPublishInMutationOrder(t *testing.T) {
 		req.SetUserId(601)
 		req.SetSessionId("sess-1")
 		req.SetStatus(status)
+		req.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 		_, err := server.UpdateUserPresence(t.Context(), req)
 		return err
 	}

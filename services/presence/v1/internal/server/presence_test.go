@@ -54,6 +54,8 @@ func TestRefreshUserSessions(t *testing.T) {
 		item.SetSessionId(sessionID)
 		item.SetGatewayId("gw-a")
 		item.SetGeneration("gen-1")
+		item.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
+		item.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 		items = append(items, item)
 	}
 	req.SetSessions(items)
@@ -68,6 +70,43 @@ func TestRegisterUserSessionValidation(t *testing.T) {
 	server, _ := newTestServer()
 
 	_, err := server.RegisterUserSession(t.Context(), new(presencev1.RegisterUserSessionRequest))
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
+func TestPresenceMutationsRejectInvalidEnums(t *testing.T) {
+	server, _ := newTestServer()
+
+	register := new(presencev1.RegisterUserSessionRequest)
+	register.SetUserId(1001)
+	register.SetSessionId("sess-a")
+	register.SetGatewayId("gw-a")
+	register.SetGeneration("gen-1")
+	register.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE)
+	register.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
+	_, err := server.RegisterUserSession(t.Context(), register)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	refresh := new(presencev1.RefreshUserSessionRequest)
+	refresh.SetUserId(1001)
+	refresh.SetSessionId("sess-a")
+	refresh.SetGatewayId("gw-a")
+	refresh.SetGeneration("gen-1")
+	refresh.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
+	refresh.SetClientState(presencev1.ClientState_CLIENT_STATE_UNSPECIFIED)
+	_, err = server.RefreshUserSession(t.Context(), refresh)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	batch := new(presencev1.RefreshUserSessionsRequest)
+	batch.SetSessions([]*presencev1.RefreshUserSessionRequest{refresh})
+	_, err = server.RefreshUserSessions(t.Context(), batch)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	update := new(presencev1.UpdateUserPresenceRequest)
+	update.SetUserId(1001)
+	update.SetSessionId("sess-a")
+	update.SetStatus(presencev1.PresenceStatus(99))
+	update.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
+	_, err = server.UpdateUserPresence(t.Context(), update)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 

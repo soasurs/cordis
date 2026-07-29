@@ -21,6 +21,53 @@
 A WebSocket connection and a logical Session are separate objects. Gateway IDs
 include a generation so stale instances can be rejected.
 
+## Presence updates
+
+Clients may set the logical Session's initial Presence in `IDENTIFY` (opcode
+`2`):
+
+```json
+{
+  "op": 2,
+  "d": {
+    "gateway_ticket": "...",
+    "device_type": "desktop",
+    "status": "online",
+    "client_state": "foreground"
+  }
+}
+```
+
+An omitted `status` defaults to `online`, and an omitted `client_state`
+defaults to `foreground`. When present, `status` accepts only `online`, `idle`,
+`dnd`, or `invisible`; `client_state` accepts only `foreground` or
+`background`. `offline`, `null`, non-string values, empty strings, and unknown
+values are invalid. `invisible` is exposed as offline in aggregate results
+visible to other users.
+
+After the connection is established, opcode `3` partially updates the current
+logical Session. Omitted fields retain their current values, and at least one
+field is required:
+
+```json
+{"op":3,"d":{"status":"idle"}}
+{"op":3,"d":{"client_state":"background"}}
+{"op":3,"d":{"status":"invisible","client_state":"foreground"}}
+```
+
+`status` normally comes from a user-facing status selector. Clients should
+derive `client_state` automatically from page visibility, window focus, or the
+application lifecycle. Each device or page has independent values on its
+logical Session, which Presence aggregates across all active Sessions for the
+user. `RESUME` retains the logical Session's existing values; clients send
+opcode `3` afterward when a change is needed.
+
+Gateway reports invalid input with stable `error` event codes:
+`presence_update_empty` for an empty update, `presence_status_invalid` for an
+invalid status, and `presence_client_state_invalid` for an invalid client
+state. Session and the internal Presence service also reject invalid values
+that bypass Gateway with `InvalidArgument`.
+
 ## Replay
 
 Replayable dispatches receive monotonically increasing sequence numbers. Each

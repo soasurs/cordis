@@ -307,6 +307,112 @@ func TestPresenceDeduplicatesNoOpUpdates(t *testing.T) {
 	require.Empty(t, presence.updates)
 }
 
+func TestIdentifyPresenceDefaultsAndValidation(t *testing.T) {
+	defaults := new(sessionv1.Identify)
+	statusValue, clientState, err := identifyPresence(defaults)
+	require.NoError(t, err)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE, statusValue)
+	require.Equal(t, presencev1.ClientState_CLIENT_STATE_FOREGROUND, clientState)
+
+	valid := new(sessionv1.Identify)
+	valid.SetStatus("invisible")
+	valid.SetClientState("background")
+	statusValue, clientState, err = identifyPresence(valid)
+	require.NoError(t, err)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE, statusValue)
+	require.Equal(t, presencev1.ClientState_CLIENT_STATE_BACKGROUND, clientState)
+
+	tests := []struct {
+		name        string
+		status      *string
+		clientState *string
+	}{
+		{name: "empty status", status: new("")},
+		{name: "offline", status: new("offline")},
+		{name: "unknown status", status: new("away")},
+		{name: "empty client state", clientState: new("")},
+		{name: "unknown client state", clientState: new("mobile")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			identify := new(sessionv1.Identify)
+			if tt.status != nil {
+				identify.SetStatus(*tt.status)
+			}
+			if tt.clientState != nil {
+				identify.SetClientState(*tt.clientState)
+			}
+			_, _, err := identifyPresence(identify)
+			require.Equal(t, codes.InvalidArgument, status.Code(err))
+		})
+	}
+}
+
+func TestPresenceUpdateUsesPartialUpdateSemantics(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-presence-partial", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+
+	presence := &recordingPresence{}
+	server.svcCtx.PresenceClient = presence
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+
+	statusOnly := new(sessionv1.PresenceUpdate)
+	statusOnly.SetStatus("idle")
+	require.NoError(t, server.updatePresence(t.Context(), session, binding, statusOnly))
+	require.Len(t, presence.updates, 1)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_IDLE, presence.updates[0].GetStatus())
+	require.Equal(t, presencev1.ClientState_CLIENT_STATE_FOREGROUND, presence.updates[0].GetClientState())
+
+	clientStateOnly := new(sessionv1.PresenceUpdate)
+	clientStateOnly.SetClientState("background")
+	require.NoError(t, server.updatePresence(t.Context(), session, binding, clientStateOnly))
+	require.Len(t, presence.updates, 2)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_IDLE, presence.updates[1].GetStatus())
+	require.Equal(t, presencev1.ClientState_CLIENT_STATE_BACKGROUND, presence.updates[1].GetClientState())
+}
+
+func TestPresenceUpdateRejectsMissingAndInvalidFields(t *testing.T) {
+	server := newTestServer()
+	identify := new(sessionv1.Identify)
+	identify.SetToken("token")
+	session, err := server.identify(t.Context(), "conn-presence-invalid", "gateway-a", "gen-a", identify)
+	require.NoError(t, err)
+	session.mu.Lock()
+	binding := session.binding
+	session.mu.Unlock()
+
+	tests := []struct {
+		name        string
+		status      *string
+		clientState *string
+	}{
+		{name: "missing fields"},
+		{name: "empty status", status: new("")},
+		{name: "offline", status: new("offline")},
+		{name: "unknown status", status: new("away")},
+		{name: "empty client state", clientState: new("")},
+		{name: "unknown client state", clientState: new("mobile")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			update := new(sessionv1.PresenceUpdate)
+			if tt.status != nil {
+				update.SetStatus(*tt.status)
+			}
+			if tt.clientState != nil {
+				update.SetClientState(*tt.clientState)
+			}
+			err := server.updatePresence(t.Context(), session, binding, update)
+			require.Equal(t, codes.InvalidArgument, status.Code(err))
+		})
+	}
+}
+
 func TestPresenceLimitsEachLogicalSession(t *testing.T) {
 	server := newTestServer()
 	identify := new(sessionv1.Identify)

@@ -251,7 +251,6 @@ func (f *fakeObjectStore) hasObject(key string) bool {
 	return ok
 }
 
-
 func testImageConstraints(maxSize int64, maxDim int32, maxPixels int64) config.ImageConstraintProfile {
 	return config.ImageConstraintProfile{
 		MaxSizeBytes: maxSize,
@@ -279,11 +278,11 @@ func newTestServer(t *testing.T) (*MediaServer, *fakeStore, *fakeObjectStore) {
 		MaxActiveUploadsPerUser:      5,
 		ImageProcessingTimeoutMs:     30000,
 		MaxConcurrentImageProcessing: 2,
-ImageConstraints: config.ImageConstraintsConfig{
-			UserAvatar:        testImageConstraints(10<<20, 4096, 4096 * 4096),
-			GuildIcon:         testImageConstraints(10<<20, 4096, 4096 * 4096),
-			MessageAttachment: testImageConstraints(10<<20, 4096, 4096 * 4096),
+		ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar: testImageConstraints(10<<20, 4096, 4096*4096),
+			GuildIcon:  testImageConstraints(10<<20, 4096, 4096*4096),
 		},
+		AttachmentImageInspection:    config.AttachmentImageInspectionProfile(testImageConstraints(10<<20, 4096, 4096*4096)),
 		AttachmentAccessMode:         config.AttachmentAccessPublic,
 		AttachmentDownloadTTLSeconds: 3600,
 	}
@@ -340,9 +339,8 @@ func TestCreateUploadSignsExactImageContract(t *testing.T) {
 func TestGetImageUploadConstraintsArePurposeSpecific(t *testing.T) {
 	srv, _, _ := newTestServer(t)
 	srv.svcCtx.Cfg.Media.ImageConstraints = config.ImageConstraintsConfig{
-		UserAvatar:        testImageConstraints(1<<20, 512, 512*512),
-		GuildIcon:         testImageConstraints(2<<20, 1024, 1024*1024),
-		MessageAttachment: testImageConstraints(3<<20, 2048, 2048*2048),
+		UserAvatar: testImageConstraints(1<<20, 512, 512*512),
+		GuildIcon:  testImageConstraints(2<<20, 1024, 1024*1024),
 	}
 
 	avatarReq := new(mediav1.GetImageUploadConstraintsRequest)
@@ -397,11 +395,11 @@ func TestCreateUploadUsesPurposeSpecificObjectStores(t *testing.T) {
 		MaxActiveUploadsPerUser:      5,
 		ImageProcessingTimeoutMs:     30000,
 		MaxConcurrentImageProcessing: 2,
-ImageConstraints: config.ImageConstraintsConfig{
-			UserAvatar:        testImageConstraints(10<<20, 4096, 4096 * 4096),
-			GuildIcon:         testImageConstraints(10<<20, 4096, 4096 * 4096),
-			MessageAttachment: testImageConstraints(10<<20, 4096, 4096 * 4096),
+		ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar: testImageConstraints(10<<20, 4096, 4096*4096),
+			GuildIcon:  testImageConstraints(10<<20, 4096, 4096*4096),
 		},
+		AttachmentImageInspection:    config.AttachmentImageInspectionProfile(testImageConstraints(10<<20, 4096, 4096*4096)),
 		AttachmentAccessMode:         config.AttachmentAccessPublic,
 		AttachmentDownloadTTLSeconds: 3600,
 	}
@@ -733,11 +731,11 @@ func TestCompleteAttachmentImageUploadSkipsOversizedObjectRead(t *testing.T) {
 		MaxActiveUploadsPerUser:      5,
 		ImageProcessingTimeoutMs:     30000,
 		MaxConcurrentImageProcessing: 2,
-ImageConstraints: config.ImageConstraintsConfig{
-			UserAvatar:        testImageConstraints(64, 4096, 4096 * 4096),
-			GuildIcon:         testImageConstraints(64, 4096, 4096 * 4096),
-			MessageAttachment: testImageConstraints(64, 4096, 4096 * 4096),
+		ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar: testImageConstraints(64, 4096, 4096*4096),
+			GuildIcon:  testImageConstraints(64, 4096, 4096*4096),
 		},
+		AttachmentImageInspection:    config.AttachmentImageInspectionProfile(testImageConstraints(64, 4096, 4096*4096)),
 		AttachmentAccessMode:         config.AttachmentAccessPublic,
 		AttachmentDownloadTTLSeconds: 3600,
 	}

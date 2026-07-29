@@ -111,12 +111,10 @@ func TestInspectAttachmentImage(t *testing.T) {
 	processor := NewProcessor(nil, nil, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
-		ImageConstraints: config.ImageConstraintsConfig{
-			MessageAttachment: config.ImageConstraintProfile{
-				MaxSizeBytes: 1 << 20,
-				MaxDimension: 1000,
-				MaxPixels:    1_000_000,
-			},
+		AttachmentImageInspection: config.AttachmentImageInspectionProfile{
+			MaxSizeBytes: 1 << 20,
+			MaxDimension: 1000,
+			MaxPixels:    1_000_000,
 		},
 	})
 	source := testPNG(t, 64, 32)
@@ -135,12 +133,10 @@ func TestInspectAttachmentImage(t *testing.T) {
 	overLimit := NewProcessor(nil, nil, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
-		ImageConstraints: config.ImageConstraintsConfig{
-			MessageAttachment: config.ImageConstraintProfile{
-				MaxSizeBytes: 1 << 20,
-				MaxDimension: 1000,
-				MaxPixels:    100,
-			},
+		AttachmentImageInspection: config.AttachmentImageInspectionProfile{
+			MaxSizeBytes: 1 << 20,
+			MaxDimension: 1000,
+			MaxPixels:    100,
 		},
 	})
 	oversizedPNG := testPNG(t, 40, 40)

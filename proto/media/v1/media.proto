@@ -159,8 +159,9 @@ message GetImageUploadConstraintsRequest {
   oneof purpose {
     UserAvatarUploadPurpose user_avatar = 10;
     GuildIconUploadPurpose guild_icon = 11;
-    MessageAttachmentUploadPurpose message_attachment = 12;
   }
+  reserved 12;
+  reserved message_attachment;
 }
 
 message ImageUploadConstraints {

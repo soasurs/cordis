@@ -54,13 +54,13 @@ media:
         - image/jpeg
         - image/png
         - image/webp
-    messageAttachment:
-      maxSizeBytes: 10485760
-      maxDimension: 4096
-      maxPixels: 16777216
-      allowedContentTypes:
-        - image/jpeg
-        - image/png
-        - image/webp
+  attachmentImageInspection:
+    maxSizeBytes: 10485760
+    maxDimension: 4096
+    maxPixels: 16777216
+    allowedContentTypes:
+      - image/jpeg
+      - image/png
+      - image/webp
   attachmentAccessMode: presigned
   attachmentDownloadTTLSeconds: 86400

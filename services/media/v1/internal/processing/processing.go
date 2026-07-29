@@ -178,7 +178,7 @@ func (p *Processor) InspectAttachmentImage(
 	expectedSize int64,
 	open AttachmentObjectOpener,
 ) (InspectResult, error) {
-	constraints := p.cfg.ImageConstraintsFor(config.ImagePurposeMessageAttachment)
+	constraints := p.cfg.AttachmentImageInspectionConstraints()
 	if expectedSize <= 0 || expectedSize > constraints.MaxSizeBytes {
 		return InspectResult{}, nil
 	}
@@ -316,8 +316,6 @@ func imageConstraintsForKind(cfg config.MediaConfig, kind store.Kind) config.Ima
 		return cfg.ImageConstraintsFor(config.ImagePurposeUserAvatar)
 	case store.KindGuildIcon:
 		return cfg.ImageConstraintsFor(config.ImagePurposeGuildIcon)
-	case store.KindMessageAttachment:
-		return cfg.ImageConstraintsFor(config.ImagePurposeMessageAttachment)
 	default:
 		return cfg.ImageConstraintsFor("")
 	}

@@ -43,6 +43,9 @@ func (s *MediaServer) CreateUpload(
 		return nil, errSizeRequired
 	}
 	if expectedSize > s.svcCtx.Cfg.Media.MaxUploadSize() {
+		if kind.IsImage() {
+			return nil, imageTooLargeError(kind)
+		}
 		return nil, errSizeExceeded
 	}
 	contentType, err := normalizeContentType(req.GetContentType())
@@ -289,7 +292,7 @@ func (s *MediaServer) publishImage(
 }
 
 func (s *MediaServer) inspectAttachmentImage(ctx context.Context, asset *store.Asset) error {
-	constraints := s.svcCtx.Cfg.Media.ImageConstraintsFor(config.ImagePurposeMessageAttachment)
+	constraints := s.svcCtx.Cfg.Media.AttachmentImageInspectionConstraints()
 	if !constraints.AllowsContentType(asset.ContentType) {
 		return nil
 	}
@@ -574,8 +577,6 @@ func imagePurposeFromRequest(req *mediav1.GetImageUploadConstraintsRequest) (con
 		return config.ImagePurposeUserAvatar, nil
 	case req.HasGuildIcon():
 		return config.ImagePurposeGuildIcon, nil
-	case req.HasMessageAttachment():
-		return config.ImagePurposeMessageAttachment, nil
 	default:
 		return "", errPurposeRequired
 	}
@@ -587,8 +588,6 @@ func imageConstraintsForKind(cfg config.MediaConfig, kind store.Kind) config.Ima
 		return cfg.ImageConstraintsFor(config.ImagePurposeUserAvatar)
 	case store.KindGuildIcon:
 		return cfg.ImageConstraintsFor(config.ImagePurposeGuildIcon)
-	case store.KindMessageAttachment:
-		return cfg.ImageConstraintsFor(config.ImagePurposeMessageAttachment)
 	default:
 		return cfg.ImageConstraintsFor("")
 	}

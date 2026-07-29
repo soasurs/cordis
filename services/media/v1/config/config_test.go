@@ -66,7 +66,39 @@ func TestImageConstraintsArePurposeSpecific(t *testing.T) {
 	require.Equal(t, int32(1024), icon.MaxDimension)
 	require.True(t, icon.AllowsContentType("image/jpeg"))
 
-	attachment := cfg.ImageConstraintsFor(ImagePurposeMessageAttachment)
+	attachment := cfg.AttachmentImageInspectionConstraints()
 	require.Equal(t, int64(10<<20), attachment.MaxSizeBytes)
 	require.Equal(t, []string{"image/jpeg", "image/png", "image/webp"}, attachment.AllowedContentTypes)
+}
+
+func TestConfigValidateImagePolicies(t *testing.T) {
+	base := Config{
+		ObjectStore: ObjectStoreConfig{
+			PublicBucket:     "public",
+			StagingBucket:    "staging",
+			AttachmentBucket: "attachments",
+		},
+		Media: MediaConfig{
+			AttachmentAccessMode: AttachmentAccessPresigned,
+		},
+	}
+
+	unsupported := base
+	unsupported.Media.ImageConstraints.UserAvatar.AllowedContentTypes = []string{"image/gif"}
+	require.EqualError(t, unsupported.Validate(), `user avatar has unsupported content type "image/gif"`)
+
+	oversized := base
+	oversized.Media.MaxUploadSizeBytes = 1024
+	oversized.Media.ImageConstraints.UserAvatar.MaxSizeBytes = 2048
+	require.EqualError(t, oversized.Validate(), "user avatar max size must not exceed media max upload size")
+
+	invalidInspection := base
+	invalidInspection.Media.AttachmentImageInspection = AttachmentImageInspectionProfile{
+		AllowedContentTypes: []string{"application/pdf"},
+	}
+	require.EqualError(
+		t,
+		invalidInspection.Validate(),
+		`attachment image inspection has unsupported content type "application/pdf"`,
+	)
 }

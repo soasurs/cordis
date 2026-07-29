@@ -57,11 +57,13 @@ Clients may preview unsaved avatars from a local blob URL. An explicit
 `avatar_asset_id` of `0` clears the avatar. Replaced assets are left for Media
 lifecycle reclaim. `GetAvatarUploadConstraints` proxies Media's
 `userAvatar` image-constraint profile (max file size, max width/height, max
-pixels, and allowed MIME types). Media owns per-purpose
-`imageConstraints` for avatars, guild icons, and message-attachment images.
-Avatar create and complete failures surface stable
-reasons `avatar_file_too_large`, `avatar_content_type_invalid`,
-`avatar_dimensions_exceeded`, and `avatar_pixels_exceeded`.
+pixels, and allowed MIME types). Media owns enforced `imageConstraints` for
+avatars and guild icons. Message attachments remain opaque uploads; the
+separate `attachmentImageInspection` budget only controls best-effort
+dimension and blurhash extraction. Avatar create and complete failures map to
+the stable public codes `profile.avatar_file_too_large`,
+`profile.avatar_content_type_invalid`, `profile.avatar_dimensions_exceeded`,
+and `profile.avatar_pixels_exceeded`.
 `CheckUsernameAvailability` reuses the same username normalization and
 validation as `UpdateUsername`; taken handles return `available=false`, while
 `UpdateUsername` still relies on the database unique constraint as the final

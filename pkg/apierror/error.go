@@ -25,6 +25,10 @@ const (
 	CodeTwoFactorEnrollmentPending = "auth.two_factor_enrollment_pending"
 	CodeInvalidRegistrationInvite  = "auth.invalid_registration_invite"
 	CodeRegistrationClosed         = "auth.registration_closed"
+	CodeAvatarFileTooLarge         = "profile.avatar_file_too_large"
+	CodeAvatarContentTypeInvalid   = "profile.avatar_content_type_invalid"
+	CodeAvatarDimensionsExceeded   = "profile.avatar_dimensions_exceeded"
+	CodeAvatarPixelsExceeded       = "profile.avatar_pixels_exceeded"
 	CodeInvalidArgument            = "request.invalid_argument"
 	CodeCanceled                   = "request.canceled"
 	CodeDeadlineExceeded           = "request.deadline_exceeded"
@@ -145,22 +149,22 @@ var reasonMappings = map[rpcerror.Key]mapping{
 	},
 	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarFileTooLarge}: {
 		connectCode: connect.CodeInvalidArgument,
-		publicCode:  CodeInvalidArgument,
+		publicCode:  CodeAvatarFileTooLarge,
 		message:     "Avatar file is too large.",
 	},
 	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarContentTypeInvalid}: {
 		connectCode: connect.CodeInvalidArgument,
-		publicCode:  CodeInvalidArgument,
+		publicCode:  CodeAvatarContentTypeInvalid,
 		message:     "Avatar content type is invalid.",
 	},
 	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarDimensionsExceeded}: {
 		connectCode: connect.CodeInvalidArgument,
-		publicCode:  CodeInvalidArgument,
+		publicCode:  CodeAvatarDimensionsExceeded,
 		message:     "Avatar dimensions exceed limit.",
 	},
 	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaAvatarPixelsExceeded}: {
 		connectCode: connect.CodeInvalidArgument,
-		publicCode:  CodeInvalidArgument,
+		publicCode:  CodeAvatarPixelsExceeded,
 		message:     "Avatar pixel count exceeds limit.",
 	},
 	{Domain: rpcerror.UserDomain, Reason: rpcerror.UserRelationshipNotFound}: {

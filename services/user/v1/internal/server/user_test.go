@@ -525,7 +525,7 @@ func (f *fakeMediaClient) GetImageUploadConstraints(
 	req *mediav1.GetImageUploadConstraintsRequest,
 	_ ...grpc.CallOption,
 ) (*mediav1.GetImageUploadConstraintsResponse, error) {
-	if !req.HasUserAvatar() && !req.HasGuildIcon() && !req.HasMessageAttachment() {
+	if !req.HasUserAvatar() && !req.HasGuildIcon() {
 		return nil, status.Error(codes.InvalidArgument, "purpose is required")
 	}
 	constraints := new(mediav1.ImageUploadConstraints)

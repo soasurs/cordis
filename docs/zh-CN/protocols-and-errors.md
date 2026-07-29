@@ -19,7 +19,7 @@ make lint
 
 ## 可用性检查与头像约束
 
-`CheckUsernameAvailability` 复用与 `UpdateUsername` 相同的用户名规范化与格式规则。非法用户名返回 `InvalidArgument`；合法但已占用返回 `available=false`。最终改名仍以数据库唯一约束为准。头像创建与完成失败可携带稳定的 `media.cordis` reason：`avatar_file_too_large`、`avatar_content_type_invalid`、`avatar_dimensions_exceeded`、`avatar_pixels_exceeded`。`GetAvatarUploadConstraints` 返回 Media 当前 `userAvatar` 图片上传限制，供客户端在申请预签名 PUT 前遵守。
+`CheckUsernameAvailability` 复用与 `UpdateUsername` 相同的用户名规范化与格式规则。非法用户名返回 `InvalidArgument`；合法但已占用返回 `available=false`。最终改名仍以数据库唯一约束为准。Media 使用稳定的内部 `media.cordis` reason 表示头像校验失败；API 将它们映射为公开 code：`profile.avatar_file_too_large`、`profile.avatar_content_type_invalid`、`profile.avatar_dimensions_exceeded`、`profile.avatar_pixels_exceeded`。`GetAvatarUploadConstraints` 返回 Media 当前 `userAvatar` 图片上传限制，供客户端在申请预签名 PUT 前遵守。
 
 ## WebSocket envelope
 

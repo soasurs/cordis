@@ -30,6 +30,7 @@ type Store interface {
 	GetUser(ctx context.Context, userID int64) (*model.User, error)
 	GetUserWithEmail(ctx context.Context, email string) (*model.User, error)
 	CheckEmailAvailability(ctx context.Context, email string) (bool, error)
+	CheckUsernameAvailability(ctx context.Context, username string) (bool, error)
 	UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error)
 	MarkUserEmailVerified(ctx context.Context, userID int64, email string, verifiedAt int64) error
 	CreateUserProfile(ctx context.Context, userID int64, username, name string) (*model.UserProfile, error)

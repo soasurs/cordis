@@ -19,27 +19,29 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	UserService_CreateUser_FullMethodName               = "/user.v1.UserService/CreateUser"
-	UserService_GetUser_FullMethodName                  = "/user.v1.UserService/GetUser"
-	UserService_GetUserProfile_FullMethodName           = "/user.v1.UserService/GetUserProfile"
-	UserService_BatchGetUserProfiles_FullMethodName     = "/user.v1.UserService/BatchGetUserProfiles"
-	UserService_GetUserProfileByUsername_FullMethodName = "/user.v1.UserService/GetUserProfileByUsername"
-	UserService_CheckEmailAvailability_FullMethodName   = "/user.v1.UserService/CheckEmailAvailability"
-	UserService_UpdateEmail_FullMethodName              = "/user.v1.UserService/UpdateEmail"
-	UserService_MarkEmailVerified_FullMethodName        = "/user.v1.UserService/MarkEmailVerified"
-	UserService_UpdateUserProfile_FullMethodName        = "/user.v1.UserService/UpdateUserProfile"
-	UserService_CreateAvatarUpload_FullMethodName       = "/user.v1.UserService/CreateAvatarUpload"
-	UserService_CompleteAvatarUpload_FullMethodName     = "/user.v1.UserService/CompleteAvatarUpload"
-	UserService_AbortAvatarUpload_FullMethodName        = "/user.v1.UserService/AbortAvatarUpload"
-	UserService_UpdateUsername_FullMethodName           = "/user.v1.UserService/UpdateUsername"
-	UserService_SendFriendRequest_FullMethodName        = "/user.v1.UserService/SendFriendRequest"
-	UserService_AcceptFriendRequest_FullMethodName      = "/user.v1.UserService/AcceptFriendRequest"
-	UserService_DeclineFriendRequest_FullMethodName     = "/user.v1.UserService/DeclineFriendRequest"
-	UserService_RemoveFriend_FullMethodName             = "/user.v1.UserService/RemoveFriend"
-	UserService_BlockUser_FullMethodName                = "/user.v1.UserService/BlockUser"
-	UserService_UnblockUser_FullMethodName              = "/user.v1.UserService/UnblockUser"
-	UserService_ListRelationships_FullMethodName        = "/user.v1.UserService/ListRelationships"
-	UserService_CheckRelationships_FullMethodName       = "/user.v1.UserService/CheckRelationships"
+	UserService_CreateUser_FullMethodName                 = "/user.v1.UserService/CreateUser"
+	UserService_GetUser_FullMethodName                    = "/user.v1.UserService/GetUser"
+	UserService_GetUserProfile_FullMethodName             = "/user.v1.UserService/GetUserProfile"
+	UserService_BatchGetUserProfiles_FullMethodName       = "/user.v1.UserService/BatchGetUserProfiles"
+	UserService_GetUserProfileByUsername_FullMethodName   = "/user.v1.UserService/GetUserProfileByUsername"
+	UserService_CheckEmailAvailability_FullMethodName     = "/user.v1.UserService/CheckEmailAvailability"
+	UserService_CheckUsernameAvailability_FullMethodName  = "/user.v1.UserService/CheckUsernameAvailability"
+	UserService_UpdateEmail_FullMethodName                = "/user.v1.UserService/UpdateEmail"
+	UserService_MarkEmailVerified_FullMethodName          = "/user.v1.UserService/MarkEmailVerified"
+	UserService_UpdateUserProfile_FullMethodName          = "/user.v1.UserService/UpdateUserProfile"
+	UserService_CreateAvatarUpload_FullMethodName         = "/user.v1.UserService/CreateAvatarUpload"
+	UserService_CompleteAvatarUpload_FullMethodName       = "/user.v1.UserService/CompleteAvatarUpload"
+	UserService_AbortAvatarUpload_FullMethodName          = "/user.v1.UserService/AbortAvatarUpload"
+	UserService_GetAvatarUploadConstraints_FullMethodName = "/user.v1.UserService/GetAvatarUploadConstraints"
+	UserService_UpdateUsername_FullMethodName             = "/user.v1.UserService/UpdateUsername"
+	UserService_SendFriendRequest_FullMethodName          = "/user.v1.UserService/SendFriendRequest"
+	UserService_AcceptFriendRequest_FullMethodName        = "/user.v1.UserService/AcceptFriendRequest"
+	UserService_DeclineFriendRequest_FullMethodName       = "/user.v1.UserService/DeclineFriendRequest"
+	UserService_RemoveFriend_FullMethodName               = "/user.v1.UserService/RemoveFriend"
+	UserService_BlockUser_FullMethodName                  = "/user.v1.UserService/BlockUser"
+	UserService_UnblockUser_FullMethodName                = "/user.v1.UserService/UnblockUser"
+	UserService_ListRelationships_FullMethodName          = "/user.v1.UserService/ListRelationships"
+	UserService_CheckRelationships_FullMethodName         = "/user.v1.UserService/CheckRelationships"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -55,6 +57,9 @@ type UserServiceClient interface {
 	// GetUserProfileByUsername resolves the globally unique handle.
 	GetUserProfileByUsername(ctx context.Context, in *GetUserProfileByUsernameRequest, opts ...grpc.CallOption) (*GetUserProfileByUsernameResponse, error)
 	CheckEmailAvailability(ctx context.Context, in *CheckEmailAvailabilityRequest, opts ...grpc.CallOption) (*CheckEmailAvailabilityResponse, error)
+	// CheckUsernameAvailability reports whether a normalized handle is free.
+	// Invalid usernames are rejected; taken handles return available=false.
+	CheckUsernameAvailability(ctx context.Context, in *CheckUsernameAvailabilityRequest, opts ...grpc.CallOption) (*CheckUsernameAvailabilityResponse, error)
 	UpdateEmail(ctx context.Context, in *UpdateEmailRequest, opts ...grpc.CallOption) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
 	// still the user's current email.
@@ -69,6 +74,8 @@ type UserServiceClient interface {
 	CompleteAvatarUpload(ctx context.Context, in *CompleteAvatarUploadRequest, opts ...grpc.CallOption) (*CompleteAvatarUploadResponse, error)
 	// AbortAvatarUpload cancels an unpublished avatar upload owned by the user.
 	AbortAvatarUpload(ctx context.Context, in *AbortAvatarUploadRequest, opts ...grpc.CallOption) (*AbortAvatarUploadResponse, error)
+	// GetAvatarUploadConstraints returns Media's current avatar upload limits.
+	GetAvatarUploadConstraints(ctx context.Context, in *GetAvatarUploadConstraintsRequest, opts ...grpc.CallOption) (*GetAvatarUploadConstraintsResponse, error)
 	// UpdateUsername replaces the unique handle; the old handle is released
 	// immediately.
 	UpdateUsername(ctx context.Context, in *UpdateUsernameRequest, opts ...grpc.CallOption) (*UpdateUsernameResponse, error)
@@ -154,6 +161,16 @@ func (c *userServiceClient) CheckEmailAvailability(ctx context.Context, in *Chec
 	return out, nil
 }
 
+func (c *userServiceClient) CheckUsernameAvailability(ctx context.Context, in *CheckUsernameAvailabilityRequest, opts ...grpc.CallOption) (*CheckUsernameAvailabilityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckUsernameAvailabilityResponse)
+	err := c.cc.Invoke(ctx, UserService_CheckUsernameAvailability_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userServiceClient) UpdateEmail(ctx context.Context, in *UpdateEmailRequest, opts ...grpc.CallOption) (*UpdateEmailResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UpdateEmailResponse)
@@ -208,6 +225,16 @@ func (c *userServiceClient) AbortAvatarUpload(ctx context.Context, in *AbortAvat
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AbortAvatarUploadResponse)
 	err := c.cc.Invoke(ctx, UserService_AbortAvatarUpload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) GetAvatarUploadConstraints(ctx context.Context, in *GetAvatarUploadConstraintsRequest, opts ...grpc.CallOption) (*GetAvatarUploadConstraintsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAvatarUploadConstraintsResponse)
+	err := c.cc.Invoke(ctx, UserService_GetAvatarUploadConstraints_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -317,6 +344,9 @@ type UserServiceServer interface {
 	// GetUserProfileByUsername resolves the globally unique handle.
 	GetUserProfileByUsername(context.Context, *GetUserProfileByUsernameRequest) (*GetUserProfileByUsernameResponse, error)
 	CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error)
+	// CheckUsernameAvailability reports whether a normalized handle is free.
+	// Invalid usernames are rejected; taken handles return available=false.
+	CheckUsernameAvailability(context.Context, *CheckUsernameAvailabilityRequest) (*CheckUsernameAvailabilityResponse, error)
 	UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
 	// still the user's current email.
@@ -331,6 +361,8 @@ type UserServiceServer interface {
 	CompleteAvatarUpload(context.Context, *CompleteAvatarUploadRequest) (*CompleteAvatarUploadResponse, error)
 	// AbortAvatarUpload cancels an unpublished avatar upload owned by the user.
 	AbortAvatarUpload(context.Context, *AbortAvatarUploadRequest) (*AbortAvatarUploadResponse, error)
+	// GetAvatarUploadConstraints returns Media's current avatar upload limits.
+	GetAvatarUploadConstraints(context.Context, *GetAvatarUploadConstraintsRequest) (*GetAvatarUploadConstraintsResponse, error)
 	// UpdateUsername replaces the unique handle; the old handle is released
 	// immediately.
 	UpdateUsername(context.Context, *UpdateUsernameRequest) (*UpdateUsernameResponse, error)
@@ -373,6 +405,9 @@ func (UnimplementedUserServiceServer) GetUserProfileByUsername(context.Context, 
 func (UnimplementedUserServiceServer) CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckEmailAvailability not implemented")
 }
+func (UnimplementedUserServiceServer) CheckUsernameAvailability(context.Context, *CheckUsernameAvailabilityRequest) (*CheckUsernameAvailabilityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckUsernameAvailability not implemented")
+}
 func (UnimplementedUserServiceServer) UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateEmail not implemented")
 }
@@ -390,6 +425,9 @@ func (UnimplementedUserServiceServer) CompleteAvatarUpload(context.Context, *Com
 }
 func (UnimplementedUserServiceServer) AbortAvatarUpload(context.Context, *AbortAvatarUploadRequest) (*AbortAvatarUploadResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AbortAvatarUpload not implemented")
+}
+func (UnimplementedUserServiceServer) GetAvatarUploadConstraints(context.Context, *GetAvatarUploadConstraintsRequest) (*GetAvatarUploadConstraintsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAvatarUploadConstraints not implemented")
 }
 func (UnimplementedUserServiceServer) UpdateUsername(context.Context, *UpdateUsernameRequest) (*UpdateUsernameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateUsername not implemented")
@@ -546,6 +584,24 @@ func _UserService_CheckEmailAvailability_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_CheckUsernameAvailability_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckUsernameAvailabilityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).CheckUsernameAvailability(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_CheckUsernameAvailability_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).CheckUsernameAvailability(ctx, req.(*CheckUsernameAvailabilityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserService_UpdateEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateEmailRequest)
 	if err := dec(in); err != nil {
@@ -650,6 +706,24 @@ func _UserService_AbortAvatarUpload_Handler(srv interface{}, ctx context.Context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(UserServiceServer).AbortAvatarUpload(ctx, req.(*AbortAvatarUploadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_GetAvatarUploadConstraints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAvatarUploadConstraintsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).GetAvatarUploadConstraints(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_GetAvatarUploadConstraints_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).GetAvatarUploadConstraints(ctx, req.(*GetAvatarUploadConstraintsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -848,6 +922,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_CheckEmailAvailability_Handler,
 		},
 		{
+			MethodName: "CheckUsernameAvailability",
+			Handler:    _UserService_CheckUsernameAvailability_Handler,
+		},
+		{
 			MethodName: "UpdateEmail",
 			Handler:    _UserService_UpdateEmail_Handler,
 		},
@@ -870,6 +948,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AbortAvatarUpload",
 			Handler:    _UserService_AbortAvatarUpload_Handler,
+		},
+		{
+			MethodName: "GetAvatarUploadConstraints",
+			Handler:    _UserService_GetAvatarUploadConstraints_Handler,
 		},
 		{
 			MethodName: "UpdateUsername",

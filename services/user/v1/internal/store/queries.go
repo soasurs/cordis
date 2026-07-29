@@ -48,6 +48,20 @@ const (
 		)
 	`
 
+	CheckUsernameAvailabilityQuery = `
+	SELECT
+		NOT EXISTS (
+			SELECT
+				1
+			FROM
+				user_profiles
+			WHERE
+				username = $1
+			AND
+				deleted_at = $2
+		)
+	`
+
 	UpdateUserEmailQuery = `
 	UPDATE
 		users

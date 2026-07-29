@@ -47,9 +47,13 @@ func TestProcessorRejectsPixelLimitBeforePublication(t *testing.T) {
 	processor := NewProcessor(objectStore, objectStore, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
-		MaxImageSizeBytes:            1 << 20,
-		MaxImageDimension:            100,
-		MaxImagePixels:               10,
+		ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar: config.ImageConstraintProfile{
+				MaxSizeBytes: 1 << 20,
+				MaxDimension: 100,
+				MaxPixels:    10,
+			},
+		},
 	})
 	asset := &store.Asset{
 		ID:           1,
@@ -75,9 +79,13 @@ func TestProcessorGeneratesBlurhash(t *testing.T) {
 	processor := NewProcessor(objectStore, objectStore, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
-		MaxImageSizeBytes:            1 << 20,
-		MaxImageDimension:            1000,
-		MaxImagePixels:               1_000_000,
+		ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar: config.ImageConstraintProfile{
+				MaxSizeBytes: 1 << 20,
+				MaxDimension: 1000,
+				MaxPixels:    1_000_000,
+			},
+		},
 	})
 	asset := &store.Asset{
 		ID:           1,
@@ -103,9 +111,11 @@ func TestInspectAttachmentImage(t *testing.T) {
 	processor := NewProcessor(nil, nil, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
-		MaxImageSizeBytes:            1 << 20,
-		MaxImageDimension:            1000,
-		MaxImagePixels:               1_000_000,
+		AttachmentImageInspection: config.AttachmentImageInspectionProfile{
+			MaxSizeBytes: 1 << 20,
+			MaxDimension: 1000,
+			MaxPixels:    1_000_000,
+		},
 	})
 	source := testPNG(t, 64, 32)
 
@@ -123,9 +133,11 @@ func TestInspectAttachmentImage(t *testing.T) {
 	overLimit := NewProcessor(nil, nil, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
-		MaxImageSizeBytes:            1 << 20,
-		MaxImageDimension:            1000,
-		MaxImagePixels:               100,
+		AttachmentImageInspection: config.AttachmentImageInspectionProfile{
+			MaxSizeBytes: 1 << 20,
+			MaxDimension: 1000,
+			MaxPixels:    100,
+		},
 	})
 	oversizedPNG := testPNG(t, 40, 40)
 	oversized, err := overLimit.InspectAttachmentImage(
@@ -212,9 +224,13 @@ func TestProcessorBoundsConcurrency(t *testing.T) {
 	processor := NewProcessor(objectStore, objectStore, config.MediaConfig{
 		ImageProcessingTimeoutMs:     1000,
 		MaxConcurrentImageProcessing: 1,
-		MaxImageSizeBytes:            1 << 20,
-		MaxImageDimension:            100,
-		MaxImagePixels:               100,
+		ImageConstraints: config.ImageConstraintsConfig{
+			UserAvatar: config.ImageConstraintProfile{
+				MaxSizeBytes: 1 << 20,
+				MaxDimension: 100,
+				MaxPixels:    100,
+			},
+		},
 	})
 	asset := &store.Asset{
 		ID:           1,

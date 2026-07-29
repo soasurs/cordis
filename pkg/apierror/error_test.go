@@ -57,6 +57,27 @@ func TestFromRPCGuildMemberAlreadyExists(t *testing.T) {
 	require.Equal(t, CodeAlreadyExists, publicErrorInfo(t, connectErr).GetCode())
 }
 
+func TestFromRPCAvatarReasonsHaveDistinctPublicCodes(t *testing.T) {
+	tests := []struct {
+		reason     string
+		publicCode string
+	}{
+		{reason: rpcerror.MediaAvatarFileTooLarge, publicCode: CodeAvatarFileTooLarge},
+		{reason: rpcerror.MediaAvatarContentTypeInvalid, publicCode: CodeAvatarContentTypeInvalid},
+		{reason: rpcerror.MediaAvatarDimensionsExceeded, publicCode: CodeAvatarDimensionsExceeded},
+		{reason: rpcerror.MediaAvatarPixelsExceeded, publicCode: CodeAvatarPixelsExceeded},
+	}
+	for _, tc := range tests {
+		t.Run(tc.reason, func(t *testing.T) {
+			err := rpcerror.New(codes.InvalidArgument, rpcerror.MediaDomain, tc.reason, "invalid avatar")
+			connectErr := FromRPC(err)
+
+			require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(connectErr))
+			require.Equal(t, tc.publicCode, publicErrorInfo(t, connectErr).GetCode())
+		})
+	}
+}
+
 func TestFromRPCResourceLimitExceeded(t *testing.T) {
 	for _, tc := range []struct {
 		domain string

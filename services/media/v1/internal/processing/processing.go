@@ -28,6 +28,13 @@ const (
 	blurhashMaxEdge     = 32
 )
 
+var (
+	ErrImageTooLarge           = errors.New("image file too large")
+	ErrImageContentTypeInvalid = errors.New("image content type invalid")
+	ErrImageDimensionsExceeded = errors.New("image dimensions exceeded")
+	ErrImagePixelsExceeded     = errors.New("image pixels exceeded")
+)
+
 // Processor validates source images and publishes the validated original
 // representation under its immutable public key.
 type Processor struct {
@@ -86,8 +93,9 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	if info.Size != asset.ExpectedSize {
 		return nil, fmt.Errorf("image size %d does not match expected size %d", info.Size, asset.ExpectedSize)
 	}
-	if info.Size > p.cfg.MaxImageSize() {
-		return nil, fmt.Errorf("image size %d exceeds limit %d", info.Size, p.cfg.MaxImageSize())
+	constraints := imageConstraintsForKind(p.cfg, asset.Kind)
+	if info.Size > constraints.MaxSizeBytes {
+		return nil, fmt.Errorf("%w: image size %d exceeds limit %d", ErrImageTooLarge, info.Size, constraints.MaxSizeBytes)
 	}
 	data, err := io.ReadAll(io.LimitReader(reader, asset.ExpectedSize+1))
 	if err != nil {
@@ -104,7 +112,8 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	actualContentType := imageContentType(format)
 	if !strings.EqualFold(asset.ContentType, actualContentType) {
 		return nil, fmt.Errorf(
-			"decoded content type %q does not match expected content type %q",
+			"%w: decoded content type %q does not match expected content type %q",
+			ErrImageContentTypeInvalid,
 			actualContentType,
 			asset.ContentType,
 		)
@@ -112,7 +121,7 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	if imageAnimated(data, format) {
 		return nil, errors.New("animated images are not supported")
 	}
-	if err := validateDimensions(imageConfig.Width, imageConfig.Height, p.cfg); err != nil {
+	if err := validateDimensions(imageConfig.Width, imageConfig.Height, constraints); err != nil {
 		return nil, err
 	}
 	img, decodedFormat, err := decodeImage(data)
@@ -132,7 +141,7 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 	if orientation >= 5 {
 		origW, origH = origH, origW
 	}
-	if err := validateDimensions(int(origW), int(origH), p.cfg); err != nil {
+	if err := validateDimensions(int(origW), int(origH), constraints); err != nil {
 		return nil, err
 	}
 	publishedKey := asset.PublicKey()
@@ -158,17 +167,19 @@ func (p *Processor) Process(ctx context.Context, asset *store.Asset) (*ProcessRe
 type AttachmentObjectOpener func(ctx context.Context) (io.ReadCloser, int64, error)
 
 // InspectAttachmentImage best-effort extracts display dimensions and blurhash
-// from an already-uploaded attachment object. Objects larger than MaxImageSize
-// are skipped without opening storage. Object reads happen only after acquiring
-// image-processing capacity. Failures that are not storage I/O errors return an
-// empty result so opaque attachment completion is not blocked.
+// from an already-uploaded attachment object. Objects larger than the
+// messageAttachment image size limit are skipped without opening storage.
+// Object reads happen only after acquiring image-processing capacity. Failures
+// that are not storage I/O errors return an empty result so opaque attachment
+// completion is not blocked.
 func (p *Processor) InspectAttachmentImage(
 	ctx context.Context,
 	contentType string,
 	expectedSize int64,
 	open AttachmentObjectOpener,
 ) (InspectResult, error) {
-	if expectedSize <= 0 || expectedSize > p.cfg.MaxImageSize() {
+	constraints := p.cfg.AttachmentImageInspectionConstraints()
+	if expectedSize <= 0 || expectedSize > constraints.MaxSizeBytes {
 		return InspectResult{}, nil
 	}
 	if open == nil {
@@ -197,10 +208,10 @@ func (p *Processor) InspectAttachmentImage(
 	if int64(len(data)) != expectedSize {
 		return InspectResult{}, nil
 	}
-	return inspectAttachmentData(contentType, data, p.cfg), nil
+	return inspectAttachmentData(contentType, data, constraints), nil
 }
 
-func inspectAttachmentData(contentType string, data []byte, cfg config.MediaConfig) InspectResult {
+func inspectAttachmentData(contentType string, data []byte, constraints config.ImageConstraintProfile) InspectResult {
 	imageConfig, format, err := decodeImageConfig(data)
 	if err != nil {
 		return InspectResult{}
@@ -221,7 +232,7 @@ func inspectAttachmentData(contentType string, data []byte, cfg config.MediaConf
 		return InspectResult{}
 	}
 	result := InspectResult{Width: int32(width), Height: int32(height)}
-	if err := validateDimensions(width, height, cfg); err != nil {
+	if err := validateDimensions(width, height, constraints); err != nil {
 		return result
 	}
 	img, decodedFormat, err := decodeImage(data)
@@ -285,18 +296,29 @@ func decodeImageConfig(data []byte) (image.Config, string, error) {
 	}
 }
 
-func validateDimensions(width, height int, cfg config.MediaConfig) error {
+func validateDimensions(width, height int, constraints config.ImageConstraintProfile) error {
 	if width <= 0 || height <= 0 {
 		return fmt.Errorf("image dimensions must be positive: %dx%d", width, height)
 	}
-	maxDim := int(cfg.MaxImageDim())
+	maxDim := int(constraints.MaxDimension)
 	if width > maxDim || height > maxDim {
-		return fmt.Errorf("image dimensions %dx%d exceed limit %d", width, height, maxDim)
+		return fmt.Errorf("%w: image dimensions %dx%d exceed limit %d", ErrImageDimensionsExceeded, width, height, maxDim)
 	}
-	if pixels := int64(width) * int64(height); pixels > cfg.MaxPixels() {
-		return fmt.Errorf("image pixel count %d exceeds limit %d", pixels, cfg.MaxPixels())
+	if pixels := int64(width) * int64(height); pixels > constraints.MaxPixels {
+		return fmt.Errorf("%w: image pixel count %d exceeds limit %d", ErrImagePixelsExceeded, pixels, constraints.MaxPixels)
 	}
 	return nil
+}
+
+func imageConstraintsForKind(cfg config.MediaConfig, kind store.Kind) config.ImageConstraintProfile {
+	switch kind {
+	case store.KindUserAvatar:
+		return cfg.ImageConstraintsFor(config.ImagePurposeUserAvatar)
+	case store.KindGuildIcon:
+		return cfg.ImageConstraintsFor(config.ImagePurposeGuildIcon)
+	default:
+		return cfg.ImageConstraintsFor("")
+	}
 }
 
 func imageContentType(format string) string {

@@ -10,6 +10,28 @@ import (
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 )
 
+func (s *userServer) GetAvatarUploadConstraints(
+	ctx context.Context,
+	_ *userv1.GetAvatarUploadConstraintsRequest,
+) (*userv1.GetAvatarUploadConstraintsResponse, error) {
+	mediaReq := new(mediav1.GetImageUploadConstraintsRequest)
+	mediaReq.SetUserAvatar(new(mediav1.UserAvatarUploadPurpose))
+	mediaResp, err := s.svcCtx.MediaClient.GetImageUploadConstraints(ctx, mediaReq)
+	if err != nil {
+		return nil, err
+	}
+	mediaConstraints := mediaResp.GetConstraints()
+	constraints := new(userv1.AvatarUploadConstraints)
+	constraints.SetMaxFileSizeBytes(mediaConstraints.GetMaxFileSizeBytes())
+	constraints.SetMaxWidth(mediaConstraints.GetMaxWidth())
+	constraints.SetMaxHeight(mediaConstraints.GetMaxHeight())
+	constraints.SetMaxPixels(mediaConstraints.GetMaxPixels())
+	constraints.SetAllowedContentTypes(append([]string(nil), mediaConstraints.GetAllowedContentTypes()...))
+	resp := new(userv1.GetAvatarUploadConstraintsResponse)
+	resp.SetConstraints(constraints)
+	return resp, nil
+}
+
 func (s *userServer) CreateAvatarUpload(
 	ctx context.Context,
 	req *userv1.CreateAvatarUploadRequest,

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -47,24 +48,55 @@ func (c ObjectStoreConfig) ToObjectStoreConfig(bucket string) objectstore.Config
 }
 
 type MediaConfig struct {
-	UploadSessionTTLSeconds       int    `json:",default=900"`
-	PresignedURLTTLSeconds        int    `json:",default=900"`
-	MaxUploadSizeBytes            int64  `json:",default=524288000"`
-	MaxActiveUploadsPerUser       int64  `json:",default=5"`
-	StagingCleanupIntervalSeconds int    `json:",default=300"`
-	ImageProcessingTimeoutMs      int    `json:",default=30000"`
-	MaxConcurrentImageProcessing  int64  `json:",default=4"`
-	MaxImageSizeBytes             int64  `json:",default=10485760"`
-	MaxImageDimension             int32  `json:",default=4096"`
-	MaxImagePixels                int64  `json:",default=16777216"`
-	AttachmentAccessMode          string `json:",default=public"`
-	AttachmentDownloadTTLSeconds  int    `json:",default=86400"`
+	UploadSessionTTLSeconds       int                              `json:",default=900"`
+	PresignedURLTTLSeconds        int                              `json:",default=900"`
+	MaxUploadSizeBytes            int64                            `json:",default=524288000"`
+	MaxActiveUploadsPerUser       int64                            `json:",default=5"`
+	StagingCleanupIntervalSeconds int                              `json:",default=300"`
+	ImageProcessingTimeoutMs      int                              `json:",default=30000"`
+	MaxConcurrentImageProcessing  int64                            `json:",default=4"`
+	ImageConstraints              ImageConstraintsConfig           `json:",optional"`
+	AttachmentImageInspection     AttachmentImageInspectionProfile `json:",optional"`
+	AttachmentAccessMode          string                           `json:",default=public"`
+	AttachmentDownloadTTLSeconds  int                              `json:",default=86400"`
 }
+
+// ImageConstraintsConfig holds per-purpose image upload limits enforced by Media.
+type ImageConstraintsConfig struct {
+	UserAvatar ImageConstraintProfile `json:",optional"`
+	GuildIcon  ImageConstraintProfile `json:",optional"`
+}
+
+// ImageConstraintProfile is the size, dimension, and MIME policy for one upload purpose.
+type ImageConstraintProfile struct {
+	MaxSizeBytes        int64    `json:",default=10485760"`
+	MaxDimension        int32    `json:",default=4096"`
+	MaxPixels           int64    `json:",default=16777216"`
+	AllowedContentTypes []string `json:",optional"`
+}
+
+// AttachmentImageInspectionProfile bounds best-effort attachment metadata
+// extraction. It does not limit whether an attachment upload may complete.
+type AttachmentImageInspectionProfile ImageConstraintProfile
+
+// ImagePurpose selects which image constraint profile to apply.
+type ImagePurpose string
+
+const (
+	ImagePurposeUserAvatar ImagePurpose = "user_avatar"
+	ImagePurposeGuildIcon  ImagePurpose = "guild_icon"
+)
 
 const (
 	AttachmentAccessPublic    = "public"
 	AttachmentAccessPresigned = "presigned"
 )
+
+var defaultAllowedImageContentTypes = []string{
+	"image/jpeg",
+	"image/png",
+	"image/webp",
+}
 
 func (c Config) Validate() error {
 	if strings.TrimSpace(c.ObjectStore.PublicBucket) == "" {
@@ -90,7 +122,7 @@ func (c Config) Validate() error {
 	default:
 		return fmt.Errorf("unsupported attachment access mode %q", c.Media.AttachmentAccessMode)
 	}
-	return nil
+	return c.Media.Validate()
 }
 
 func (c MediaConfig) UploadSessionTTL() int64 {
@@ -156,23 +188,96 @@ func (c MediaConfig) ImageProcessingLimit() int64 {
 	return c.MaxConcurrentImageProcessing
 }
 
-func (c MediaConfig) MaxImageSize() int64 {
-	if c.MaxImageSizeBytes <= 0 {
-		return 10 << 20
+// Validate checks that advertised image policies can be enforced.
+func (c MediaConfig) Validate() error {
+	profiles := []struct {
+		name    string
+		profile ImageConstraintProfile
+	}{
+		{name: "user avatar", profile: c.ImageConstraints.UserAvatar},
+		{name: "guild icon", profile: c.ImageConstraints.GuildIcon},
 	}
-	return c.MaxImageSizeBytes
+	for _, value := range profiles {
+		if err := validateAllowedImageContentTypes(value.name, value.profile.AllowedContentTypes); err != nil {
+			return err
+		}
+		if value.profile.normalized().MaxSizeBytes > c.MaxUploadSize() {
+			return fmt.Errorf("%s max size must not exceed media max upload size", value.name)
+		}
+	}
+	if err := validateAllowedImageContentTypes(
+		"attachment image inspection",
+		ImageConstraintProfile(c.AttachmentImageInspection).AllowedContentTypes,
+	); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (c MediaConfig) MaxImageDim() int32 {
-	if c.MaxImageDimension <= 0 {
-		return 4096
+// ImageConstraintsFor returns the normalized upload profile for purpose.
+func (c MediaConfig) ImageConstraintsFor(purpose ImagePurpose) ImageConstraintProfile {
+	switch purpose {
+	case ImagePurposeUserAvatar:
+		return c.ImageConstraints.UserAvatar.normalized()
+	case ImagePurposeGuildIcon:
+		return c.ImageConstraints.GuildIcon.normalized()
+	default:
+		return ImageConstraintProfile{}.normalized()
 	}
-	return c.MaxImageDimension
 }
 
-func (c MediaConfig) MaxPixels() int64 {
-	if c.MaxImagePixels <= 0 {
-		return 4096 * 4096
+// AttachmentImageInspectionConstraints returns the normalized best-effort
+// attachment inspection budget.
+func (c MediaConfig) AttachmentImageInspectionConstraints() ImageConstraintProfile {
+	return ImageConstraintProfile(c.AttachmentImageInspection).normalized()
+}
+
+func (p ImageConstraintProfile) normalized() ImageConstraintProfile {
+	if p.MaxSizeBytes <= 0 {
+		p.MaxSizeBytes = 10 << 20
 	}
-	return c.MaxImagePixels
+	if p.MaxDimension <= 0 {
+		p.MaxDimension = 4096
+	}
+	if p.MaxPixels <= 0 {
+		p.MaxPixels = 4096 * 4096
+	}
+	if len(p.AllowedContentTypes) == 0 {
+		p.AllowedContentTypes = append([]string(nil), defaultAllowedImageContentTypes...)
+		return p
+	}
+	types := make([]string, 0, len(p.AllowedContentTypes))
+	seen := make(map[string]struct{}, len(p.AllowedContentTypes))
+	for _, contentType := range p.AllowedContentTypes {
+		normalized := strings.ToLower(strings.TrimSpace(contentType))
+		if normalized == "" {
+			continue
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		types = append(types, normalized)
+	}
+	if len(types) == 0 {
+		types = append([]string(nil), defaultAllowedImageContentTypes...)
+	}
+	p.AllowedContentTypes = types
+	return p
+}
+
+// AllowsContentType reports whether contentType is in the profile allowlist.
+func (p ImageConstraintProfile) AllowsContentType(contentType string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(contentType))
+	return slices.Contains(p.AllowedContentTypes, normalized)
+}
+
+func validateAllowedImageContentTypes(name string, contentTypes []string) error {
+	for _, contentType := range contentTypes {
+		normalized := strings.ToLower(strings.TrimSpace(contentType))
+		if normalized == "" || !slices.Contains(defaultAllowedImageContentTypes, normalized) {
+			return fmt.Errorf("%s has unsupported content type %q", name, contentType)
+		}
+	}
+	return nil
 }

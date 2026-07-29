@@ -129,6 +129,14 @@ func (s *SQLStore) GetUserProfileByUsername(ctx context.Context, username string
 	return profileFromRow(row), nil
 }
 
+func (s *SQLStore) CheckUsernameAvailability(ctx context.Context, username string) (bool, error) {
+	var available bool
+	if err := sqlx.GetContext(ctx, s.q, &available, CheckUsernameAvailabilityQuery, username, 0); err != nil {
+		return false, err
+	}
+	return available, nil
+}
+
 func (s *SQLStore) UpdateUsername(ctx context.Context, userID int64, username string) (*model.UserProfile, error) {
 	row := new(userProfileRow)
 	if err := sqlx.GetContext(ctx, s.q, row, UpdateUsernameQuery, username, time.Now().UnixMilli(), userID, 0); err != nil {

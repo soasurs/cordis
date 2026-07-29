@@ -17,6 +17,10 @@ make lint
 
 公开与内部 protobuf API 都使用 edition 2023 的标量字段 presence。API 适配层只有在入站请求的 `HasFoo` 为 true 时才向内部请求调用对应 setter；服务与 Store 使用指针或等价的 presence-aware 参数把该信息一直传到 SQL，只更新被选中的列。调用方不得先读取资源、拼出完整的新状态，再把无关字段一并写回。集合字段一旦出现，默认替换完整集合，除非 API 已定义专门的增删操作。
 
+## 可用性检查与头像约束
+
+`CheckUsernameAvailability` 复用与 `UpdateUsername` 相同的用户名规范化与格式规则。非法用户名返回 `InvalidArgument`；合法但已占用返回 `available=false`。最终改名仍以数据库唯一约束为准。Media 使用稳定的内部 `media.cordis` reason 表示头像校验失败；API 将它们映射为公开 code：`profile.avatar_file_too_large`、`profile.avatar_content_type_invalid`、`profile.avatar_dimensions_exceeded`、`profile.avatar_pixels_exceeded`。`GetAvatarUploadConstraints` 返回 Media 当前 `userAvatar` 图片上传限制，供客户端在申请预签名 PUT 前遵守。
+
 ## WebSocket envelope
 
 WebSocket 消息采用 `op`、可选 `s`、可选 `t` 和 `d`。主要 opcode：

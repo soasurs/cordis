@@ -14,17 +14,15 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"google.golang.org/grpc/codes"
+
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/media/v1/config"
 	"github.com/soasurs/cordis/services/media/v1/internal/objectstore"
+	"github.com/soasurs/cordis/services/media/v1/internal/processing"
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
 )
-
-var allowedImageContentTypes = map[string]struct{}{
-	"image/jpeg": {},
-	"image/png":  {},
-	"image/webp": {},
-}
 
 const maxBatchAssetURLs = 1000
 
@@ -45,18 +43,25 @@ func (s *MediaServer) CreateUpload(
 		return nil, errSizeRequired
 	}
 	if expectedSize > s.svcCtx.Cfg.Media.MaxUploadSize() {
+		if kind.IsImage() {
+			return nil, imageTooLargeError(kind)
+		}
 		return nil, errSizeExceeded
 	}
 	contentType, err := normalizeContentType(req.GetContentType())
 	if err != nil {
+		if kind.IsImage() {
+			return nil, imageContentTypeInvalidError(kind)
+		}
 		return nil, err
 	}
 	if kind.IsImage() {
-		if _, ok := allowedImageContentTypes[contentType]; !ok {
-			return nil, errContentTypeInvalid
+		constraints := imageConstraintsForKind(s.svcCtx.Cfg.Media, kind)
+		if !constraints.AllowsContentType(contentType) {
+			return nil, imageContentTypeInvalidError(kind)
 		}
-		if expectedSize > s.svcCtx.Cfg.Media.MaxImageSize() {
-			return nil, errSizeExceeded
+		if expectedSize > constraints.MaxSizeBytes {
+			return nil, imageTooLargeError(kind)
 		}
 	}
 	var storageToken string
@@ -267,6 +272,9 @@ func (s *MediaServer) publishImage(
 			return nil, fmt.Errorf("record processing failure: %w", updateErr)
 		}
 		s.deleteUploadObject(asset)
+		if mapped := mapAvatarProcessingError(asset.Kind, err); mapped != nil {
+			return nil, mapped
+		}
 		return nil, errProcessingFailed
 	}
 
@@ -284,7 +292,8 @@ func (s *MediaServer) publishImage(
 }
 
 func (s *MediaServer) inspectAttachmentImage(ctx context.Context, asset *store.Asset) error {
-	if _, ok := allowedImageContentTypes[asset.ContentType]; !ok {
+	constraints := s.svcCtx.Cfg.Media.AttachmentImageInspectionConstraints()
+	if !constraints.AllowsContentType(asset.ContentType) {
 		return nil
 	}
 	inspected, err := s.svcCtx.Processor.InspectAttachmentImage(
@@ -431,6 +440,26 @@ func (s *MediaServer) GetAsset(
 	return resp, nil
 }
 
+func (s *MediaServer) GetImageUploadConstraints(
+	_ context.Context,
+	req *mediav1.GetImageUploadConstraintsRequest,
+) (*mediav1.GetImageUploadConstraintsResponse, error) {
+	purpose, err := imagePurposeFromRequest(req)
+	if err != nil {
+		return nil, err
+	}
+	profile := s.svcCtx.Cfg.Media.ImageConstraintsFor(purpose)
+	constraints := new(mediav1.ImageUploadConstraints)
+	constraints.SetMaxFileSizeBytes(profile.MaxSizeBytes)
+	constraints.SetMaxWidth(profile.MaxDimension)
+	constraints.SetMaxHeight(profile.MaxDimension)
+	constraints.SetMaxPixels(profile.MaxPixels)
+	constraints.SetAllowedContentTypes(append([]string(nil), profile.AllowedContentTypes...))
+	resp := new(mediav1.GetImageUploadConstraintsResponse)
+	resp.SetConstraints(constraints)
+	return resp, nil
+}
+
 func (s *MediaServer) BatchGetAssetURLs(
 	ctx context.Context,
 	req *mediav1.BatchGetAssetURLsRequest,
@@ -542,6 +571,28 @@ func uploadPurpose(
 	}
 }
 
+func imagePurposeFromRequest(req *mediav1.GetImageUploadConstraintsRequest) (config.ImagePurpose, error) {
+	switch {
+	case req.HasUserAvatar():
+		return config.ImagePurposeUserAvatar, nil
+	case req.HasGuildIcon():
+		return config.ImagePurposeGuildIcon, nil
+	default:
+		return "", errPurposeRequired
+	}
+}
+
+func imageConstraintsForKind(cfg config.MediaConfig, kind store.Kind) config.ImageConstraintProfile {
+	switch kind {
+	case store.KindUserAvatar:
+		return cfg.ImageConstraintsFor(config.ImagePurposeUserAvatar)
+	case store.KindGuildIcon:
+		return cfg.ImageConstraintsFor(config.ImagePurposeGuildIcon)
+	default:
+		return cfg.ImageConstraintsFor("")
+	}
+}
+
 func kindToProto(kind store.Kind) mediav1.AssetKind {
 	switch kind {
 	case store.KindUserAvatar:
@@ -637,6 +688,68 @@ func (s *MediaServer) storageBackend() string {
 		return backend
 	}
 	return "s3"
+}
+
+func imageTooLargeError(kind store.Kind) error {
+	if kind == store.KindUserAvatar {
+		return rpcerror.New(
+			codes.InvalidArgument,
+			rpcerror.MediaDomain,
+			rpcerror.MediaAvatarFileTooLarge,
+			"avatar file is too large",
+		)
+	}
+	return errSizeExceeded
+}
+
+func imageContentTypeInvalidError(kind store.Kind) error {
+	if kind == store.KindUserAvatar {
+		return rpcerror.New(
+			codes.InvalidArgument,
+			rpcerror.MediaDomain,
+			rpcerror.MediaAvatarContentTypeInvalid,
+			"avatar content type is invalid",
+		)
+	}
+	return errContentTypeInvalid
+}
+
+func mapAvatarProcessingError(kind store.Kind, err error) error {
+	if kind != store.KindUserAvatar {
+		return nil
+	}
+	switch {
+	case errors.Is(err, processing.ErrImageTooLarge):
+		return rpcerror.New(
+			codes.InvalidArgument,
+			rpcerror.MediaDomain,
+			rpcerror.MediaAvatarFileTooLarge,
+			"avatar file is too large",
+		)
+	case errors.Is(err, processing.ErrImageContentTypeInvalid):
+		return rpcerror.New(
+			codes.InvalidArgument,
+			rpcerror.MediaDomain,
+			rpcerror.MediaAvatarContentTypeInvalid,
+			"avatar content type is invalid",
+		)
+	case errors.Is(err, processing.ErrImageDimensionsExceeded):
+		return rpcerror.New(
+			codes.InvalidArgument,
+			rpcerror.MediaDomain,
+			rpcerror.MediaAvatarDimensionsExceeded,
+			"avatar dimensions exceed limit",
+		)
+	case errors.Is(err, processing.ErrImagePixelsExceeded):
+		return rpcerror.New(
+			codes.InvalidArgument,
+			rpcerror.MediaDomain,
+			rpcerror.MediaAvatarPixelsExceeded,
+			"avatar pixel count exceeds limit",
+		)
+	default:
+		return nil
+	}
 }
 
 func uploadObjectKey(asset *store.Asset) string {

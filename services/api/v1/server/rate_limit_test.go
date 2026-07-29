@@ -169,9 +169,12 @@ func TestAnonymousUserEndpointsApplyIPPolicies(t *testing.T) {
 	profileResp.SetProfile(internalUserProfile())
 	availabilityResp := new(userv1.CheckEmailAvailabilityResponse)
 	availabilityResp.SetAvailable(true)
+	usernameResp := new(userv1.CheckUsernameAvailabilityResponse)
+	usernameResp.SetAvailable(true)
 	internalClient := &fakeUserClient{
-		getUserProfileResponse:         profileResp,
-		checkEmailAvailabilityResponse: availabilityResp,
+		getUserProfileResponse:            profileResp,
+		checkEmailAvailabilityResponse:    availabilityResp,
+		checkUsernameAvailabilityResponse: usernameResp,
 	}
 	limiter := new(recordingAPILimiter)
 	client, closeServer := newRateLimitedUserClient(t, internalClient, limiter)
@@ -194,6 +197,24 @@ func TestAnonymousUserEndpointsApplyIPPolicies(t *testing.T) {
 	require.Equal(t, []apiRateLimitCall{
 		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
 		{policy: apiratelimit.PolicyCheckEmailAvailabilityIP, key: "127.0.0.1"},
+	}, limiter.snapshot())
+
+	limiter.reset()
+	checkUsernameReq := new(apiv1.CheckUsernameAvailabilityRequest)
+	checkUsernameReq.SetUsername("free_user")
+	_, err = client.CheckUsernameAvailability(t.Context(), checkUsernameReq)
+	require.NoError(t, err)
+	require.Equal(t, []apiRateLimitCall{
+		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
+		{policy: apiratelimit.PolicyCheckUsernameAvailabilityIP, key: "127.0.0.1"},
+	}, limiter.snapshot())
+
+	limiter.reset()
+	_, err = client.GetAvatarUploadConstraints(t.Context(), new(apiv1.GetAvatarUploadConstraintsRequest))
+	require.NoError(t, err)
+	require.Equal(t, []apiRateLimitCall{
+		{policy: apiratelimit.PolicySourceIPGuard, key: "127.0.0.1"},
+		{policy: apiratelimit.PolicyGetAvatarUploadConstraintsIP, key: "127.0.0.1"},
 	}, limiter.snapshot())
 }
 

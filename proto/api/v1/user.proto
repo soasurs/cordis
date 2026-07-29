@@ -10,6 +10,13 @@ service UserService {
   rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
   // CheckEmailAvailability supports registration flows without requiring authentication.
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
+  // CheckUsernameAvailability supports registration and profile flows without
+  // requiring authentication. Invalid usernames are rejected; taken handles
+  // return available=false.
+  rpc CheckUsernameAvailability(CheckUsernameAvailabilityRequest) returns (CheckUsernameAvailabilityResponse);
+  // GetAvatarUploadConstraints returns the current avatar direct-upload limits
+  // without requiring authentication.
+  rpc GetAvatarUploadConstraints(GetAvatarUploadConstraintsRequest) returns (GetAvatarUploadConstraintsResponse);
   // UpdateEmail changes the bearer token owner's email address.
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
   // UpdateUserProfile replaces the bearer token owner's public profile fields.
@@ -92,6 +99,33 @@ message CheckEmailAvailabilityRequest {
 
 message CheckEmailAvailabilityResponse {
   bool available = 1;
+}
+
+message CheckUsernameAvailabilityRequest {
+  string username = 1;
+}
+
+message CheckUsernameAvailabilityResponse {
+  bool available = 1;
+}
+
+message GetAvatarUploadConstraintsRequest {}
+
+message AvatarUploadConstraints {
+  // Maximum accepted avatar file size in bytes.
+  int64 max_file_size_bytes = 1;
+  // Maximum accepted width in pixels.
+  int32 max_width = 2;
+  // Maximum accepted height in pixels.
+  int32 max_height = 3;
+  // Maximum accepted width * height product.
+  int64 max_pixels = 4;
+  // Canonical lowercase MIME types accepted for avatar uploads.
+  repeated string allowed_content_types = 5;
+}
+
+message GetAvatarUploadConstraintsResponse {
+  AvatarUploadConstraints constraints = 1;
 }
 
 message UpdateEmailRequest {

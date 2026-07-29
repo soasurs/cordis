@@ -33,8 +33,8 @@ ignores cancellation cannot bypass the global cap.
 ## User
 
 gRPC on `:3000`. Owns users and profiles, email availability and updates,
-profile updates, password verification, and password changes. Passwords use
-Argon2id. User does not issue tokens.
+username availability checks, profile updates, password verification, and
+password changes. Passwords use Argon2id. User does not issue tokens.
 
 Relationship HTTP responses embed the target profile. `relationship.updated`
 events load the target profile from the User store before the relationship
@@ -55,7 +55,19 @@ Avatar binaries still use `CreateAvatarUpload` → direct PUT → either
 `CompleteAvatarUpload` or `UpdateUserProfile` with the upload/asset ID.
 Clients may preview unsaved avatars from a local blob URL. An explicit
 `avatar_asset_id` of `0` clears the avatar. Replaced assets are left for Media
-lifecycle reclaim.
+lifecycle reclaim. `GetAvatarUploadConstraints` proxies Media's
+`userAvatar` image-constraint profile (max file size, max width/height, max
+pixels, and allowed MIME types). Media owns enforced `imageConstraints` for
+avatars and guild icons. Message attachments remain opaque uploads; the
+separate `attachmentImageInspection` budget only controls best-effort
+dimension and blurhash extraction. Avatar create and complete failures map to
+the stable public codes `profile.avatar_file_too_large`,
+`profile.avatar_content_type_invalid`, `profile.avatar_dimensions_exceeded`,
+and `profile.avatar_pixels_exceeded`.
+`CheckUsernameAvailability` reuses the same username normalization and
+validation as `UpdateUsername`; taken handles return `available=false`, while
+`UpdateUsername` still relies on the database unique constraint as the final
+authority.
 
 ## Authenticator
 

@@ -301,6 +301,52 @@ func userMutationLockKey(userID int64) string {
 	return fmt.Sprintf("presence:user:{%d}:mutation-lock", userID)
 }
 
+func userPresenceSnapshotKey(userID int64) string {
+	return fmt.Sprintf("presence:user:{%d}:snapshot", userID)
+}
+
+func (s *RedisStore) GetUserPresenceSnapshot(ctx context.Context, userID int64) (UserPresence, bool, error) {
+	values, err := s.rds.HmgetCtx(ctx, userPresenceSnapshotKey(userID), "status", "last_seen_at", "version")
+	if err != nil {
+		return UserPresence{}, false, err
+	}
+	if len(values) != 3 || values[0] == "" || values[2] == "" {
+		return UserPresence{}, false, nil
+	}
+	statusValue, err := strconv.ParseInt(values[0], 10, 32)
+	if err != nil {
+		return UserPresence{}, false, nil
+	}
+	lastSeenAt, err := strconv.ParseInt(values[1], 10, 64)
+	if err != nil {
+		return UserPresence{}, false, nil
+	}
+	version, err := strconv.ParseInt(values[2], 10, 64)
+	if err != nil || version <= 0 {
+		return UserPresence{}, false, nil
+	}
+	status := PresenceStatus(statusValue)
+	switch status {
+	case PresenceStatusOffline, PresenceStatusOnline, PresenceStatusIdle, PresenceStatusDND:
+	default:
+		return UserPresence{}, false, nil
+	}
+	return UserPresence{
+		UserID: userID, Status: status, LastSeenAt: lastSeenAt, Version: version,
+	}, true, nil
+}
+
+func (s *RedisStore) SaveUserPresenceSnapshot(ctx context.Context, presence UserPresence) error {
+	return s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
+		pipe.HSet(ctx, userPresenceSnapshotKey(presence.UserID), map[string]any{
+			"status":       strconv.FormatInt(int64(presence.Status), 10),
+			"last_seen_at": strconv.FormatInt(presence.LastSeenAt, 10),
+			"version":      strconv.FormatInt(presence.Version, 10),
+		})
+		return nil
+	})
+}
+
 func normalizeUserSession(session UserSession) UserSession {
 	session.Status = normalizePresenceStatus(session.Status)
 	session.ClientState = normalizeClientState(session.ClientState)

@@ -183,6 +183,31 @@ func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	require.Equal(t, "7100", payload.ReadStates[0].LastMessageID)
 	require.Equal(t, "7099", payload.ReadStates[0].LastReadMessageID)
 	require.Equal(t, int32(2), payload.ReadStates[0].MentionCount)
+	require.Equal(t, []readyPresence{
+		{UserID: "1001", Status: int32(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE), Version: "1002"},
+		{UserID: "1002", Status: int32(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE), Version: "1003"},
+	}, payload.Presences)
+}
+
+func TestGetReadyPresencesUsesBoundedBatches(t *testing.T) {
+	server := newTestServer()
+	client := new(recordingPresence)
+	server.svcCtx.PresenceClient = client
+	profiles := make(map[int64]*userv1.UserProfile, 501)
+	for i := range 501 {
+		userID := int64(2000 + i)
+		profile := new(userv1.UserProfile)
+		profile.SetUserId(userID)
+		profiles[userID] = profile
+	}
+
+	presences, err := server.getReadyPresences(t.Context(), 1001, profiles)
+	require.NoError(t, err)
+	require.Len(t, presences, 502)
+	require.Len(t, client.requests, 2)
+	require.Len(t, client.requests[0], 500)
+	require.Len(t, client.requests[1], 2)
+	require.Equal(t, int64(1001), client.requests[0][0])
 }
 
 func TestIdentifyQueuesEventsAfterReady(t *testing.T) {
@@ -783,6 +808,24 @@ type fakePresence struct {
 	presencev1.PresenceServiceClient
 }
 
+func (fakePresence) ResolveUsersPresence(
+	_ context.Context,
+	req *presencev1.ResolveUsersPresenceRequest,
+	_ ...grpc.CallOption,
+) (*presencev1.ResolveUsersPresenceResponse, error) {
+	presences := make([]*presencev1.UserPresence, 0, len(req.GetUserIds()))
+	for _, userID := range req.GetUserIds() {
+		presence := new(presencev1.UserPresence)
+		presence.SetUserId(userID)
+		presence.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE)
+		presence.SetVersion(userID + 1)
+		presences = append(presences, presence)
+	}
+	resp := new(presencev1.ResolveUsersPresenceResponse)
+	resp.SetPresences(presences)
+	return resp, nil
+}
+
 type fakeMessage struct {
 	messagev1.MessageServiceClient
 	request  *messagev1.GetUserReadyStateRequest
@@ -813,7 +856,8 @@ func (m *fakeMessage) GetUserReadyState(
 
 type recordingPresence struct {
 	fakePresence
-	updates []*presencev1.UpdateUserPresenceRequest
+	updates  []*presencev1.UpdateUserPresenceRequest
+	requests [][]int64
 }
 
 type batchPresence struct {
@@ -837,6 +881,15 @@ func (p *recordingPresence) UpdateUserPresence(
 ) (*presencev1.UpdateUserPresenceResponse, error) {
 	p.updates = append(p.updates, req)
 	return new(presencev1.UpdateUserPresenceResponse), nil
+}
+
+func (p *recordingPresence) ResolveUsersPresence(
+	ctx context.Context,
+	req *presencev1.ResolveUsersPresenceRequest,
+	opts ...grpc.CallOption,
+) (*presencev1.ResolveUsersPresenceResponse, error) {
+	p.requests = append(p.requests, append([]int64(nil), req.GetUserIds()...))
+	return p.fakePresence.ResolveUsersPresence(ctx, req, opts...)
 }
 
 func (fakePresence) RegisterUserSession(

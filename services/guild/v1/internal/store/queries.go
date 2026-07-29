@@ -165,6 +165,18 @@ const listGuildMembersQuery = `
     LIMIT $4
 `
 
+const listUsersWithCommonGuildQuery = `
+    SELECT DISTINCT target.user_id
+    FROM guild_members AS actor
+    JOIN guild_members AS target
+      ON target.guild_id = actor.guild_id
+     AND target.deleted_at = 0
+    WHERE actor.user_id = $1
+      AND actor.deleted_at = 0
+      AND target.user_id = ANY($2)
+    ORDER BY target.user_id
+`
+
 const listGuildRoleMembersQuery = `
     SELECT gm.guild_id, gm.user_id, gm.nickname, gm.revision,
            gm.joined_at, gm.updated_at, gm.deleted_at

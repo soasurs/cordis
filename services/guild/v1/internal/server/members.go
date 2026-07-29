@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"slices"
 	"time"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
@@ -12,6 +13,38 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
+
+const maxCommonGuildFilterBatch = 100
+
+func (s *guildServer) FilterUsersWithCommonGuild(
+	ctx context.Context,
+	req *guildv1.FilterUsersWithCommonGuildRequest,
+) (*guildv1.FilterUsersWithCommonGuildResponse, error) {
+	if req.GetUserId() <= 0 {
+		return nil, invalidRequest("user id is required")
+	}
+	targetUserIDs := append([]int64(nil), req.GetTargetUserIds()...)
+	slices.Sort(targetUserIDs)
+	targetUserIDs = slices.Compact(targetUserIDs)
+	if len(targetUserIDs) == 0 {
+		return new(guildv1.FilterUsersWithCommonGuildResponse), nil
+	}
+	if len(targetUserIDs) > maxCommonGuildFilterBatch {
+		return nil, invalidRequest("too many target users")
+	}
+	for _, targetUserID := range targetUserIDs {
+		if targetUserID <= 0 {
+			return nil, invalidRequest("target user id is required")
+		}
+	}
+	userIDs, err := s.svcCtx.Store.ListUsersWithCommonGuild(ctx, req.GetUserId(), targetUserIDs)
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	resp := new(guildv1.FilterUsersWithCommonGuildResponse)
+	resp.SetUserIds(userIDs)
+	return resp, nil
+}
 
 func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildMemberRequest) (*guildv1.AddGuildMemberResponse, error) {
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {

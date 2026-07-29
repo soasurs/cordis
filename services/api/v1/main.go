@@ -89,6 +89,7 @@ func main() {
 	userHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.UserService)
 	messageHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.MessageService)
 	guildHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.GuildService)
+	presenceHandlerOptions := interceptorRuntime.HandlerOptions(interceptors.PresenceService)
 	path, handler := apiv1connect.NewAuthenticatorServiceHandler(
 		server.NewAuthenticator(svcCtx),
 		authenticatorHandlerOptions...,
@@ -105,12 +106,17 @@ func main() {
 		server.NewGuild(svcCtx),
 		guildHandlerOptions...,
 	)
+	presencePath, presenceHandler := apiv1connect.NewPresenceServiceHandler(
+		server.NewPresence(svcCtx),
+		presenceHandlerOptions...,
+	)
 
 	mux := http.NewServeMux()
 	mux.Handle(path, handler)
 	mux.Handle(userPath, userHandler)
 	mux.Handle(messagePath, messageHandler)
 	mux.Handle(guildPath, guildHandler)
+	mux.Handle(presencePath, presenceHandler)
 	publicHandler := http.MaxBytesHandler(mux, cfg.Inbound.MaxRequestBytes)
 
 	httpServer := &http.Server{

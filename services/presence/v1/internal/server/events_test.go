@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -75,7 +76,7 @@ func registerRequest(userID int64, status presencev1.PresenceStatus, guildIDs ..
 func TestRegisterPublishesAggregateTransition(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
 	// The aggregate was offline before this session arrived.
-	fake.presences = []store.UserPresence{{UserID: 601, Status: store.PresenceStatusOffline}}
+	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOffline, Version: 100}
 
 	_, err := server.RegisterUserSession(context.Background(), registerRequest(601, presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE, 11, 12))
 	require.NoError(t, err)
@@ -95,11 +96,21 @@ func TestRegisterPublishesAggregateTransition(t *testing.T) {
 	require.NoError(t, json.Unmarshal(envelope.Data, &payload))
 	require.Equal(t, `"601"`, string(payload["user_id"]))
 	require.JSONEq(t, `["11","12"]`, string(payload["guild_ids"]))
+	require.NotEqual(t, `"100"`, string(payload["version"]))
+	require.Equal(t, string(payload["version"]), `"`+envelope.IdempotencyKey+`"`)
+	require.Equal(t, fake.snapshot.Version, mustParseVersion(t, envelope.IdempotencyKey))
+}
+
+func mustParseVersion(t *testing.T, value string) int64 {
+	t.Helper()
+	version, err := strconv.ParseInt(value, 10, 64)
+	require.NoError(t, err)
+	return version
 }
 
 func TestRefreshWithUnchangedAggregateStaysSilent(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
-	fake.presences = []store.UserPresence{{UserID: 601, Status: store.PresenceStatusOnline}}
+	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOnline, Version: 100}
 
 	req := new(presencev1.RefreshUserSessionRequest)
 	req.SetUserId(601)
@@ -115,7 +126,7 @@ func TestRefreshWithUnchangedAggregateStaysSilent(t *testing.T) {
 
 func TestUpdatePresencePublishesStatusChange(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
-	fake.presences = []store.UserPresence{{UserID: 601, Status: store.PresenceStatusOnline}}
+	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOnline, Version: 100}
 
 	req := new(presencev1.UpdateUserPresenceRequest)
 	req.SetUserId(601)
@@ -130,11 +141,8 @@ func TestUpdatePresencePublishesStatusChange(t *testing.T) {
 
 func TestRemoveUserSessionPublishesOffline(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
-	// First snapshot (before removal) is online, second (after) is offline.
-	fake.presenceSequence = [][]store.UserPresence{
-		{{UserID: 601, Status: store.PresenceStatusOnline}},
-		{{UserID: 601, Status: store.PresenceStatusOffline}},
-	}
+	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOnline, LastSeenAt: 123, Version: 100}
+	fake.presenceSequence = [][]store.UserPresence{{{UserID: 601, Status: store.PresenceStatusOffline}}}
 
 	req := new(presencev1.RemoveUserSessionRequest)
 	req.SetUserId(601)
@@ -152,11 +160,13 @@ func TestRemoveUserSessionPublishesOffline(t *testing.T) {
 	}
 	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
 	require.Equal(t, int32(store.PresenceStatusOffline), envelope.Data.Status)
+	require.Equal(t, int64(123), fake.snapshot.LastSeenAt)
 }
 
 func TestRemoveUserSessionWithoutTransitionStaysSilent(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
 	// Another device keeps the user online across the removal.
+	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOnline, Version: 100}
 	fake.presences = []store.UserPresence{{UserID: 601, Status: store.PresenceStatusOnline}}
 
 	req := new(presencev1.RemoveUserSessionRequest)
@@ -169,7 +179,7 @@ func TestRemoveUserSessionWithoutTransitionStaysSilent(t *testing.T) {
 
 func TestConcurrentUpdatesPublishInMutationOrder(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
-	fake.presences = []store.UserPresence{{UserID: 601, Status: store.PresenceStatusOnline}}
+	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOnline, Version: 100}
 	publisher.publishStart = make(chan struct{}, 1)
 	publisher.publishBlock = make(chan struct{})
 

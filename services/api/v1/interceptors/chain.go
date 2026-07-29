@@ -37,6 +37,8 @@ const (
 	MessageService Service = "message"
 	// GuildService identifies the public guild API.
 	GuildService Service = "guild"
+	// PresenceService identifies the public presence API.
+	PresenceService Service = "presence"
 )
 
 // Runtime owns the process-local controls and ordered handler options for the
@@ -116,7 +118,7 @@ func (r *Runtime) maxMessageBytesFor(service Service) int {
 
 func knownService(service Service) bool {
 	switch service {
-	case AuthenticatorService, UserService, MessageService, GuildService:
+	case AuthenticatorService, UserService, MessageService, GuildService, PresenceService:
 		return true
 	default:
 		return false

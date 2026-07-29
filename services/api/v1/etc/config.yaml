@@ -27,7 +27,7 @@ inbound:
   # Optional keys are full Connect procedures, for example
   # /api.v1.GuildService/ListGuildMembers.
   procedureTimeouts: {}
-  # Optional keys: authenticator, user, message, guild.
+  # Optional keys: authenticator, user, message, guild, presence.
   serviceMaxMessageBytes: {}
   maxConcurrency: 10000
   cpuThreshold: 900
@@ -114,6 +114,15 @@ rateLimit:
     get_avatar_upload_constraints_ip_ipv6:
       limit: 60
       window: 1m
+    resolve_presence_ip_ipv4:
+      limit: 6000
+      window: 1m
+    resolve_presence_ip_ipv6:
+      limit: 600
+      window: 1m
+    resolve_presence_user:
+      limit: 120
+      window: 1m
     recovery_request_ip_ipv4:
       limit: 300
       window: 10m
@@ -194,6 +203,16 @@ services:
   guild:
     endpoints:
       - 127.0.0.1:3005
+    timeout: 2000
+    middlewares:
+      trace: true
+      duration: false
+      prometheus: true
+      breaker: true
+      timeout: true
+  presence:
+    endpoints:
+      - 127.0.0.1:3003
     timeout: 2000
     middlewares:
       trace: true

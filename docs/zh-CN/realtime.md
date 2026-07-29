@@ -43,6 +43,8 @@ Gateway 实例身份包含 ID 与 generation，可区分同名进程重启。逻
 
 Gateway 对非法输入返回带稳定 code 的 `error` 事件：空更新为 `presence_update_empty`，非法 status 为 `presence_status_invalid`，非法 client state 为 `presence_client_state_invalid`。Session 和 Presence 内部服务也会以 `InvalidArgument` 拒绝绕过 Gateway 的非法值。
 
+`ready` payload 的 `presences` 数组包含用户本人和所有去重后的 DM 对端，但不包含全部 Guild 成员。每项提供 `user_id`、聚合 `status`、`last_seen_at` 和 `version`；WebSocket JSON 中的 ID 与 version 都是十进制字符串。客户端应为每个用户保留已见过的最大 version，仅当后续 `presence.updated` 的 version 更大时应用事件。这样即使 READY 组装期间缓冲的事件与快照代表同一次聚合变化，也不会回退状态。
+
 ## Sequence、ACK 与回放
 
 只有需要恢复的 dispatch 事件进入回放缓冲区并获得递增 sequence。每个逻辑 Session 最多保存 2048 条；溢出时移动 replay floor。客户端 heartbeat 携带已处理 sequence，Session 单调更新 ACK，并清理不再需要的前缀。

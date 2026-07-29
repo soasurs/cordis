@@ -2,8 +2,8 @@
 
 ## API
 
-Public Connect-RPC server on `:8080`. It proxies Authenticator, User, Guild, and
-Message, converts public/internal protobuf models, and maps domain errors with
+Public Connect-RPC server on `:8080`. It proxies Authenticator, User, Guild,
+Message, and Presence, converts public/internal protobuf models, and maps domain errors with
 `pkg/apierror`. It does not access domain databases.
 
 Public resource models embed the current User profiles needed to render them.
@@ -18,6 +18,14 @@ successful authentication then consumes the general user quota. Message
 creation, relationship writes, Guild resource creation, and invite joins also
 consume business-specific buckets. Authenticated `GetReadStates` reconciliation
 also uses a process-local keyed limiter to bound concurrent requests per user.
+
+`ResolveUsersPresence` accepts at most 100 unique user IDs and returns only the
+caller's own snapshot plus friends and users who share an active Guild. A
+shared Guild independently grants Presence visibility even when either user
+has blocked the other; blocking removes only the relationship/DM visibility
+path. Invisible or unknown aggregate states are exposed as offline, unrelated
+users are omitted, and the public model contains only `user_id`, `status`,
+`last_seen_at`, and `version`.
 
 Before business rate limiting, the API inbound chain applies a server deadline,
 a global in-flight request cap, and CPU-adaptive load shedding. A circuit
@@ -240,9 +248,10 @@ user/Guild indexes, assigns sequence numbers, and keeps up to 2048 replay
 events in memory.
 
 IDENTIFY loads one complete Guild READY response and one Message READY response,
-then batch-loads DM recipient profiles from User:
+then batch-loads DM recipient profiles from User and versioned Presence
+snapshots for the current user and unique DM peers:
 Guild metadata, roles, member role IDs, visible channels and permission overwrites, all DMs, and four-field
-read states. Realtime events received while these responses are assembled are
+read states. It does not load Presence for every Guild member. Realtime events received while these responses are assembled are
 buffered and sequenced after READY. Visibility snapshots are shared by the
 user's logical Sessions on the node and released after the last local Session is
 removed. Loading is bounded to 100 Guilds and 500 visible channels per Guild by
@@ -316,3 +325,12 @@ presence, while `INVISIBLE` is exposed as offline. Session uses Presence to
 register and refresh online state. All mutation RPCs reject unspecified,
 offline, or unknown status values and unspecified or unknown client states
 instead of silently mapping invalid enums to defaults.
+
+Presence also persists one aggregate snapshot per user in Redis, including an
+offline tombstone. Each aggregate status transition receives a monotonic
+Snowflake-based `version` (clamped above the previous value across service
+nodes); unchanged refreshes retain the version, while
+`last_seen_at` may advance without creating a transition. Internal resolve
+responses and the corresponding `presence.updated` event carry the same
+version. Mutations and on-demand resolution reconcile under a per-user Redis
+lock so callers cannot observe a new status paired with the previous version.

@@ -178,6 +178,57 @@ func TestResolveUsersPresence(t *testing.T) {
 	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE, resp.GetPresences()[0].GetStatus())
 	require.Len(t, resp.GetPresences()[0].GetSessions(), 1)
 	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE, resp.GetPresences()[1].GetStatus())
+	require.Positive(t, resp.GetPresences()[0].GetVersion())
+	require.Positive(t, resp.GetPresences()[1].GetVersion())
+}
+
+func TestResolveUsersPresenceKeepsVersionUntilAggregateChanges(t *testing.T) {
+	server, fake := newTestServer()
+	fake.presences = []store.UserPresence{{UserID: 1001, Status: store.PresenceStatusOnline, LastSeenAt: 123}}
+
+	req := new(presencev1.ResolveUsersPresenceRequest)
+	req.SetUserIds([]int64{1001})
+	first, err := server.ResolveUsersPresence(t.Context(), req)
+	require.NoError(t, err)
+	firstVersion := first.GetPresences()[0].GetVersion()
+	require.Positive(t, firstVersion)
+
+	second, err := server.ResolveUsersPresence(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, firstVersion, second.GetPresences()[0].GetVersion())
+
+	fake.presences = []store.UserPresence{{UserID: 1001, Status: store.PresenceStatusOffline}}
+	third, err := server.ResolveUsersPresence(t.Context(), req)
+	require.NoError(t, err)
+	require.Greater(t, third.GetPresences()[0].GetVersion(), firstVersion)
+	require.Equal(t, int64(123), third.GetPresences()[0].GetLastSeenAt())
+}
+
+func TestResolveUsersPresencePersistsOfflineTombstone(t *testing.T) {
+	server, fake := newTestServer()
+
+	req := new(presencev1.ResolveUsersPresenceRequest)
+	req.SetUserIds([]int64{1001})
+	resp, err := server.ResolveUsersPresence(t.Context(), req)
+	require.NoError(t, err)
+
+	require.NotNil(t, fake.snapshot)
+	require.Equal(t, store.PresenceStatusOffline, fake.snapshot.Status)
+	require.Equal(t, resp.GetPresences()[0].GetVersion(), fake.snapshot.Version)
+}
+
+func TestResolveUsersPresenceKeepsVersionMonotonicAcrossNodes(t *testing.T) {
+	server, fake := newTestServer()
+	fake.snapshot = &store.UserPresence{
+		UserID: 1001, Status: store.PresenceStatusOffline, Version: 1 << 62,
+	}
+	fake.presences = []store.UserPresence{{UserID: 1001, Status: store.PresenceStatusOnline}}
+
+	req := new(presencev1.ResolveUsersPresenceRequest)
+	req.SetUserIds([]int64{1001})
+	resp, err := server.ResolveUsersPresence(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(1<<62)+1, resp.GetPresences()[0].GetVersion())
 }
 
 func TestStoreErrorPropagates(t *testing.T) {
@@ -220,6 +271,7 @@ type fakeStore struct {
 	presenceSequence  [][]store.UserPresence
 	missingSessionIDs []string
 	refreshedSessions []store.UserSession
+	snapshot          *store.UserPresence
 }
 
 func (s *fakeStore) WithUserMutation(ctx context.Context, _ int64, fn func(context.Context) error) error {
@@ -278,11 +330,43 @@ func (s *fakeStore) ResolveUsersPresence(_ context.Context, userIDs []int64) ([]
 	if s.err != nil {
 		return nil, s.err
 	}
-	s.resolvedUserIDs = append([]int64(nil), userIDs...)
+	s.resolvedUserIDs = append(s.resolvedUserIDs, userIDs...)
 	if len(s.presenceSequence) > 0 {
 		next := s.presenceSequence[0]
 		s.presenceSequence = s.presenceSequence[1:]
 		return next, nil
 	}
-	return s.presences, nil
+	byUserID := make(map[int64]store.UserPresence, len(s.presences))
+	for _, presence := range s.presences {
+		byUserID[presence.UserID] = presence
+	}
+	result := make([]store.UserPresence, 0, len(userIDs))
+	for _, userID := range userIDs {
+		presence, ok := byUserID[userID]
+		if !ok {
+			presence = store.UserPresence{UserID: userID, Status: store.PresenceStatusOffline}
+		}
+		result = append(result, presence)
+	}
+	return result, nil
+}
+
+func (s *fakeStore) GetUserPresenceSnapshot(_ context.Context, userID int64) (store.UserPresence, bool, error) {
+	if s.err != nil {
+		return store.UserPresence{}, false, s.err
+	}
+	if s.snapshot == nil || s.snapshot.UserID != userID {
+		return store.UserPresence{}, false, nil
+	}
+	return *s.snapshot, true, nil
+}
+
+func (s *fakeStore) SaveUserPresenceSnapshot(_ context.Context, presence store.UserPresence) error {
+	if s.err != nil {
+		return s.err
+	}
+	snapshot := presence
+	snapshot.Sessions = nil
+	s.snapshot = &snapshot
+	return nil
 }

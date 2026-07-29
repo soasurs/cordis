@@ -145,6 +145,14 @@ func (s *SQLStore) ListGuildMembers(ctx context.Context, params ListGuildMembers
 	return members, nil
 }
 
+func (s *SQLStore) ListUsersWithCommonGuild(ctx context.Context, userID int64, targetUserIDs []int64) ([]int64, error) {
+	var userIDs []int64
+	if err := sqlx.SelectContext(ctx, s.q, &userIDs, listUsersWithCommonGuildQuery, userID, targetUserIDs); err != nil {
+		return nil, err
+	}
+	return userIDs, nil
+}
+
 func (s *SQLStore) ListGuildRoleMembers(ctx context.Context, params ListGuildRoleMembersParams) ([]*model.GuildMember, error) {
 	var rows []*guildMemberRow
 	if err := sqlx.SelectContext(

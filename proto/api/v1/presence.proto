@@ -1,0 +1,34 @@
+edition = "2023";
+
+package api.v1;
+
+// PresenceService exposes privacy-filtered aggregate Presence snapshots.
+service PresenceService {
+  // ResolveUsersPresence returns visible snapshots for at most 100 unique
+  // users. Targets without a self, friend, or common-Guild relationship are
+  // omitted.
+  rpc ResolveUsersPresence(ResolveUsersPresenceRequest) returns (ResolveUsersPresenceResponse);
+}
+
+enum PresenceStatus {
+  PRESENCE_STATUS_UNSPECIFIED = 0;
+  PRESENCE_STATUS_OFFLINE = 1;
+  PRESENCE_STATUS_ONLINE = 2;
+  PRESENCE_STATUS_IDLE = 3;
+  PRESENCE_STATUS_DND = 4;
+}
+
+message Presence {
+  int64 user_id = 1;
+  PresenceStatus status = 2;
+  int64 last_seen_at = 3;
+  int64 version = 4;
+}
+
+message ResolveUsersPresenceRequest {
+  repeated int64 user_ids = 1;
+}
+
+message ResolveUsersPresenceResponse {
+  repeated Presence presences = 1;
+}

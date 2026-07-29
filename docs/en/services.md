@@ -281,9 +281,13 @@ user's logical sessions. DM message records resolve directly through aggregate
 user routes. Message records without exactly one aggregate Guild/user route are
 rejected.
 
-No-op Presence updates are discarded. Changed updates are limited to five per
-logical session every 20 seconds, then consume a shared per-user quota of ten per
-20 seconds across devices before Presence is called.
+Missing Presence status and client state values on IDENTIFY default to online
+and foreground respectively; explicitly supplied values are validated
+strictly. Later Presence Updates use partial-update semantics, retain omitted
+fields, and reject empty updates. No-op Presence updates are discarded. Changed
+updates are limited to five per logical session every 20 seconds, then consume
+a shared per-user quota of ten per 20 seconds across devices before Presence is
+called.
 
 Detached sessions live for 120 seconds by default. Resume must reach the
 original node. Session nodes register through etcd leases. Graceful drain
@@ -309,4 +313,6 @@ general event-ID deduplication.
 gRPC on `:3003`. Redis-backed user-device presence storage. TTL and generation
 checks filter stale sessions. Multi-device sessions aggregate into user
 presence, while `INVISIBLE` is exposed as offline. Session uses Presence to
-register and refresh online state.
+register and refresh online state. All mutation RPCs reject unspecified,
+offline, or unknown status values and unspecified or unknown client states
+instead of silently mapping invalid enums to defaults.

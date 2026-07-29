@@ -376,9 +376,7 @@ func (c *client) run(ctx context.Context) {
 		}
 		frame, err := c.toGatewayFrame(msg)
 		if err != nil {
-			_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
-				Code: "operation_failed", Message: err.Error(),
-			}))
+			_ = c.write(ctx, makeEnvelope(opError, eventError, operationErrorData(err)))
 			continue
 		}
 		if err := c.sendSessionFrame(frame); err != nil {
@@ -700,8 +698,30 @@ func (c *client) toGatewayFrame(msg envelope) (*sessionv1.ConnectRequest, error)
 			identify.SetGatewayTicket(data.GatewayTicket)
 		}
 		identify.SetDeviceType(data.DeviceType)
-		identify.SetStatus(data.Status)
-		identify.SetClientState(data.ClientState)
+		statusValue, hasStatus, err := parseOptionalString(data.Status, "presence_status_invalid", "status")
+		if err != nil {
+			return nil, err
+		}
+		if hasStatus {
+			if err := validatePresenceStatus(statusValue); err != nil {
+				return nil, err
+			}
+			identify.SetStatus(statusValue)
+		}
+		clientState, hasClientState, err := parseOptionalString(
+			data.ClientState,
+			"presence_client_state_invalid",
+			"client_state",
+		)
+		if err != nil {
+			return nil, err
+		}
+		if hasClientState {
+			if err := validateClientState(clientState); err != nil {
+				return nil, err
+			}
+			identify.SetClientState(clientState)
+		}
 		frame.SetIdentify(identify)
 	case opResume:
 		var data resumeData
@@ -735,9 +755,34 @@ func (c *client) toGatewayFrame(msg envelope) (*sessionv1.ConnectRequest, error)
 		if err := json.Unmarshal(msg.D, &data); err != nil {
 			return nil, err
 		}
+		statusValue, hasStatus, err := parseOptionalString(data.Status, "presence_status_invalid", "status")
+		if err != nil {
+			return nil, err
+		}
+		clientState, hasClientState, err := parseOptionalString(
+			data.ClientState,
+			"presence_client_state_invalid",
+			"client_state",
+		)
+		if err != nil {
+			return nil, err
+		}
+		if !hasStatus && !hasClientState {
+			return nil, newGatewayError("presence_update_empty", "presence update must include status or client_state")
+		}
 		presence := new(sessionv1.PresenceUpdate)
-		presence.SetStatus(data.Status)
-		presence.SetClientState(data.ClientState)
+		if hasStatus {
+			if err := validatePresenceStatus(statusValue); err != nil {
+				return nil, err
+			}
+			presence.SetStatus(statusValue)
+		}
+		if hasClientState {
+			if err := validateClientState(clientState); err != nil {
+				return nil, err
+			}
+			presence.SetClientState(clientState)
+		}
 		frame.SetPresence(presence)
 	default:
 		return nil, errors.New("unsupported gateway op")
@@ -760,6 +805,13 @@ func (c *client) sendDetach(resumable bool) error {
 }
 
 func (c *client) writeConnectError(ctx context.Context, opcode int, err error) {
+	var gatewayErr *gatewayError
+	if errors.As(err, &gatewayErr) {
+		_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
+			Code: gatewayErr.code, Message: gatewayErr.message,
+		}))
+		return
+	}
 	if status.Code(err) == codes.ResourceExhausted {
 		_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
 			Code: "rate_limited", Message: status.Convert(err).Message(),
@@ -777,6 +829,58 @@ func (c *client) writeConnectError(ctx context.Context, opcode int, err error) {
 	_ = c.write(ctx, makeEnvelope(opError, eventError, errorData{
 		Code: "identify_failed", Message: message,
 	}))
+}
+
+func operationErrorData(err error) errorData {
+	var gatewayErr *gatewayError
+	if errors.As(err, &gatewayErr) {
+		return errorData{Code: gatewayErr.code, Message: gatewayErr.message}
+	}
+	return errorData{Code: "operation_failed", Message: err.Error()}
+}
+
+type gatewayError struct {
+	code    string
+	message string
+}
+
+func newGatewayError(code, message string) error {
+	return &gatewayError{code: code, message: message}
+}
+
+func (e *gatewayError) Error() string {
+	return e.message
+}
+
+func parseOptionalString(raw json.RawMessage, code, field string) (string, bool, error) {
+	if len(raw) == 0 {
+		return "", false, nil
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", false, newGatewayError(code, field+" is invalid")
+	}
+	return value, true, nil
+}
+
+func validatePresenceStatus(value string) error {
+	switch value {
+	case "online", "idle", "dnd", "invisible":
+		return nil
+	case "offline":
+		return newGatewayError("presence_status_invalid", "status cannot be offline")
+	default:
+		return newGatewayError("presence_status_invalid", "status is invalid")
+	}
+}
+
+func validateClientState(value string) error {
+	switch value {
+	case "foreground", "background":
+		return nil
+	default:
+		return newGatewayError("presence_client_state_invalid", "client_state is invalid")
+	}
 }
 
 func (c *client) write(ctx context.Context, msg envelope) error {

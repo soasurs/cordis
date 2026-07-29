@@ -185,14 +185,93 @@ func TestToGatewayFramePresenceUpdate(t *testing.T) {
 	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
 	frame, err := client.toGatewayFrame(envelope{
 		Op: opPresence,
-		D:  json.RawMessage(`{"status":"online","client_state":"mobile"}`),
+		D:  json.RawMessage(`{"status":"online","client_state":"background"}`),
 	})
 	require.NoError(t, err)
 	require.Equal(t, "conn-1", frame.GetConnectionId())
 	require.Equal(t, "gw-1", frame.GetGatewayId())
 	require.Equal(t, "gen-1", frame.GetGatewayGeneration())
 	require.Equal(t, "online", frame.GetPresence().GetStatus())
-	require.Equal(t, "mobile", frame.GetPresence().GetClientState())
+	require.Equal(t, "background", frame.GetPresence().GetClientState())
+	require.True(t, frame.GetPresence().HasStatus())
+	require.True(t, frame.GetPresence().HasClientState())
+}
+
+func TestToGatewayFramePresenceUpdatePreservesFieldPresence(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opPresence,
+		D:  json.RawMessage(`{"status":"idle"}`),
+	})
+	require.NoError(t, err)
+	require.True(t, frame.GetPresence().HasStatus())
+	require.False(t, frame.GetPresence().HasClientState())
+}
+
+func TestToGatewayFrameRejectsInvalidPresenceValues(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
+	tests := []struct {
+		name string
+		data string
+		code string
+	}{
+		{name: "empty update", data: `{}`, code: "presence_update_empty"},
+		{name: "empty status", data: `{"status":""}`, code: "presence_status_invalid"},
+		{name: "null status", data: `{"status":null}`, code: "presence_status_invalid"},
+		{name: "non-string status", data: `{"status":1}`, code: "presence_status_invalid"},
+		{name: "offline", data: `{"status":"offline"}`, code: "presence_status_invalid"},
+		{name: "unknown status", data: `{"status":"away"}`, code: "presence_status_invalid"},
+		{name: "empty client state", data: `{"client_state":""}`, code: "presence_client_state_invalid"},
+		{name: "null client state", data: `{"client_state":null}`, code: "presence_client_state_invalid"},
+		{name: "non-string client state", data: `{"client_state":true}`, code: "presence_client_state_invalid"},
+		{name: "unknown client state", data: `{"client_state":"mobile"}`, code: "presence_client_state_invalid"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.toGatewayFrame(envelope{Op: opPresence, D: json.RawMessage(tt.data)})
+			require.Error(t, err)
+			require.Equal(t, tt.code, operationErrorData(err).Code)
+		})
+	}
+}
+
+func TestToGatewayFrameIdentifyPresenceDefaultsRemainAbsent(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
+	frame, err := client.toGatewayFrame(envelope{
+		Op: opIdentify,
+		D:  json.RawMessage(`{"token":"access-token"}`),
+	})
+	require.NoError(t, err)
+	require.False(t, frame.GetIdentify().HasStatus())
+	require.False(t, frame.GetIdentify().HasClientState())
+}
+
+func TestToGatewayFrameRejectsInvalidIdentifyPresence(t *testing.T) {
+	client := &client{connectionID: "conn-1", server: &Server{gatewayID: "gw-1", generation: "gen-1"}}
+	tests := []struct {
+		name string
+		data string
+		code string
+	}{
+		{name: "empty status", data: `{"token":"access-token","status":""}`, code: "presence_status_invalid"},
+		{name: "null status", data: `{"token":"access-token","status":null}`, code: "presence_status_invalid"},
+		{name: "non-string status", data: `{"token":"access-token","status":1}`, code: "presence_status_invalid"},
+		{name: "offline", data: `{"token":"access-token","status":"offline"}`, code: "presence_status_invalid"},
+		{name: "unknown status", data: `{"token":"access-token","status":"away"}`, code: "presence_status_invalid"},
+		{name: "empty client state", data: `{"token":"access-token","client_state":""}`, code: "presence_client_state_invalid"},
+		{name: "null client state", data: `{"token":"access-token","client_state":null}`, code: "presence_client_state_invalid"},
+		{name: "non-string client state", data: `{"token":"access-token","client_state":true}`, code: "presence_client_state_invalid"},
+		{name: "unknown client state", data: `{"token":"access-token","client_state":"mobile"}`, code: "presence_client_state_invalid"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := client.toGatewayFrame(envelope{Op: opIdentify, D: json.RawMessage(tt.data)})
+			require.Error(t, err)
+			var gatewayErr *gatewayError
+			require.ErrorAs(t, err, &gatewayErr)
+			require.Equal(t, tt.code, gatewayErr.code)
+		})
+	}
 }
 
 func TestToGatewayFrameResume(t *testing.T) {
@@ -514,7 +593,7 @@ func TestWebSocketPresenceUpdate(t *testing.T) {
 	writeClientText(t, conn, `{"op":2,"d":{"token":"access-token"}}`)
 	_ = readEnvelope(t, reader)
 
-	writeClientText(t, conn, `{"op":3,"d":{"status":"online","client_state":"desktop"}}`)
+	writeClientText(t, conn, `{"op":3,"d":{"status":"online","client_state":"foreground"}}`)
 	time.Sleep(gateway.svcCtx.Cfg.Gateway.HeartbeatMinimumInterval())
 	writeClientText(t, conn, `{"op":1,"d":1}`)
 	ack := readEnvelope(t, reader)

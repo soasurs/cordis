@@ -14,6 +14,10 @@ func (s *presenceServer) RegisterUserSession(ctx context.Context, req *presencev
 	if err := validateUserSessionRequest(req.GetUserId(), req.GetSessionId(), req.GetGatewayId(), req.GetGeneration()); err != nil {
 		return nil, err
 	}
+	statusValue, clientState, err := presenceValuesToStore(req.GetStatus(), req.GetClientState())
+	if err != nil {
+		return nil, err
+	}
 
 	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
 		return s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
@@ -22,8 +26,8 @@ func (s *presenceServer) RegisterUserSession(ctx context.Context, req *presencev
 			GatewayID:   req.GetGatewayId(),
 			Generation:  req.GetGeneration(),
 			DeviceType:  req.GetDeviceType(),
-			Status:      protoStatusToStore(req.GetStatus()),
-			ClientState: protoClientStateToStore(req.GetClientState()),
+			Status:      statusValue,
+			ClientState: clientState,
 		})
 	})
 	if err != nil {
@@ -39,6 +43,10 @@ func (s *presenceServer) RefreshUserSession(ctx context.Context, req *presencev1
 	if err := validateUserSessionRequest(req.GetUserId(), req.GetSessionId(), req.GetGatewayId(), req.GetGeneration()); err != nil {
 		return nil, err
 	}
+	statusValue, clientState, err := presenceValuesToStore(req.GetStatus(), req.GetClientState())
+	if err != nil {
+		return nil, err
+	}
 
 	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
 		return s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
@@ -47,8 +55,8 @@ func (s *presenceServer) RefreshUserSession(ctx context.Context, req *presencev1
 			GatewayID:   req.GetGatewayId(),
 			Generation:  req.GetGeneration(),
 			DeviceType:  req.GetDeviceType(),
-			Status:      protoStatusToStore(req.GetStatus()),
-			ClientState: protoClientStateToStore(req.GetClientState()),
+			Status:      statusValue,
+			ClientState: clientState,
 		})
 	})
 	if err != nil {
@@ -73,6 +81,10 @@ func (s *presenceServer) RefreshUserSessions(ctx context.Context, req *presencev
 		if err := validateUserSessionRequest(item.GetUserId(), item.GetSessionId(), item.GetGatewayId(), item.GetGeneration()); err != nil {
 			return nil, err
 		}
+		statusValue, clientState, err := presenceValuesToStore(item.GetStatus(), item.GetClientState())
+		if err != nil {
+			return nil, err
+		}
 		if _, ok := seen[item.GetSessionId()]; ok {
 			return nil, status.Error(codes.InvalidArgument, "session id must be unique")
 		}
@@ -80,7 +92,7 @@ func (s *presenceServer) RefreshUserSessions(ctx context.Context, req *presencev
 		sessions = append(sessions, store.UserSession{
 			UserID: item.GetUserId(), SessionID: item.GetSessionId(), GatewayID: item.GetGatewayId(),
 			Generation: item.GetGeneration(), DeviceType: item.GetDeviceType(),
-			Status: protoStatusToStore(item.GetStatus()), ClientState: protoClientStateToStore(item.GetClientState()),
+			Status: statusValue, ClientState: clientState,
 		})
 	}
 	missing, err := s.svcCtx.Store.RefreshUserSessions(ctx, sessions)
@@ -99,13 +111,17 @@ func (s *presenceServer) UpdateUserPresence(ctx context.Context, req *presencev1
 	if req.GetSessionId() == "" {
 		return nil, errSessionIDRequired
 	}
+	statusValue, clientState, err := presenceValuesToStore(req.GetStatus(), req.GetClientState())
+	if err != nil {
+		return nil, err
+	}
 
 	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
 		return s.svcCtx.Store.UpdateUserSession(ctx, store.UserSession{
 			UserID:      req.GetUserId(),
 			SessionID:   req.GetSessionId(),
-			Status:      protoStatusToStore(req.GetStatus()),
-			ClientState: protoClientStateToStore(req.GetClientState()),
+			Status:      statusValue,
+			ClientState: clientState,
 		})
 	})
 	if err != nil {
@@ -228,16 +244,33 @@ func userPresencesToProto(presences []store.UserPresence) []*presencev1.UserPres
 	return values
 }
 
-func protoStatusToStore(status presencev1.PresenceStatus) store.PresenceStatus {
+func presenceValuesToStore(
+	status presencev1.PresenceStatus,
+	clientState presencev1.ClientState,
+) (store.PresenceStatus, store.ClientState, error) {
+	statusValue, err := protoStatusToStore(status)
+	if err != nil {
+		return 0, 0, err
+	}
+	clientStateValue, err := protoClientStateToStore(clientState)
+	if err != nil {
+		return 0, 0, err
+	}
+	return statusValue, clientStateValue, nil
+}
+
+func protoStatusToStore(status presencev1.PresenceStatus) (store.PresenceStatus, error) {
 	switch status {
+	case presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE:
+		return store.PresenceStatusOnline, nil
 	case presencev1.PresenceStatus_PRESENCE_STATUS_IDLE:
-		return store.PresenceStatusIdle
+		return store.PresenceStatusIdle, nil
 	case presencev1.PresenceStatus_PRESENCE_STATUS_DND:
-		return store.PresenceStatusDND
+		return store.PresenceStatusDND, nil
 	case presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE:
-		return store.PresenceStatusInvisible
+		return store.PresenceStatusInvisible, nil
 	default:
-		return store.PresenceStatusOnline
+		return 0, errStatusInvalid
 	}
 }
 
@@ -256,12 +289,14 @@ func storeStatusToProto(status store.PresenceStatus) presencev1.PresenceStatus {
 	}
 }
 
-func protoClientStateToStore(state presencev1.ClientState) store.ClientState {
+func protoClientStateToStore(state presencev1.ClientState) (store.ClientState, error) {
 	switch state {
+	case presencev1.ClientState_CLIENT_STATE_FOREGROUND:
+		return store.ClientStateForeground, nil
 	case presencev1.ClientState_CLIENT_STATE_BACKGROUND:
-		return store.ClientStateBackground
+		return store.ClientStateBackground, nil
 	default:
-		return store.ClientStateForeground
+		return 0, errClientStateInvalid
 	}
 }
 

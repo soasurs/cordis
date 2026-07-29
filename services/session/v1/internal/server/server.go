@@ -374,6 +374,10 @@ func (s *Server) identify(
 	connectionID, gatewayID, gatewayGeneration string,
 	data *sessionv1.Identify,
 ) (*logicalSession, error) {
+	statusValue, clientState, err := identifyPresence(data)
+	if err != nil {
+		return nil, err
+	}
 	auth, err := s.authenticateGatewayCredential(ctx, data.GetToken(), data.GetGatewayTicket())
 	if err != nil {
 		return nil, err
@@ -392,8 +396,8 @@ func (s *Server) identify(
 		gatewayID:         gatewayID,
 		gatewayGeneration: gatewayGeneration,
 		deviceType:        data.GetDeviceType(),
-		status:            statusFromString(data.GetStatus()),
-		clientState:       clientStateFromString(data.GetClientState()),
+		status:            statusValue,
+		clientState:       clientState,
 		guilds:            make(map[int64]struct{}),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 		initializing:      true,
@@ -661,14 +665,39 @@ func acknowledgeLocked(session *logicalSession, sequence uint64) {
 }
 
 func (s *Server) updatePresence(ctx context.Context, session *logicalSession, binding *binding, data *sessionv1.PresenceUpdate) error {
-	statusValue := statusFromString(data.GetStatus())
-	clientState := clientStateFromString(data.GetClientState())
+	if !data.HasStatus() && !data.HasClientState() {
+		return status.Error(codes.InvalidArgument, "presence update must include status or client_state")
+	}
+	var (
+		requestedStatus      presencev1.PresenceStatus
+		requestedClientState presencev1.ClientState
+		err                  error
+	)
+	if data.HasStatus() {
+		requestedStatus, err = parsePresenceStatus(data.GetStatus())
+		if err != nil {
+			return err
+		}
+	}
+	if data.HasClientState() {
+		requestedClientState, err = parseClientState(data.GetClientState())
+		if err != nil {
+			return err
+		}
+	}
 	now := time.Now()
 
 	session.mu.Lock()
 	if session.binding != binding {
 		session.mu.Unlock()
 		return status.Error(codes.Aborted, "stale session binding")
+	}
+	statusValue, clientState := session.status, session.clientState
+	if data.HasStatus() {
+		statusValue = requestedStatus
+	}
+	if data.HasClientState() {
+		clientState = requestedClientState
 	}
 	if session.status == statusValue && session.clientState == clientState {
 		session.mu.Unlock()
@@ -697,6 +726,13 @@ func (s *Server) updatePresence(ctx context.Context, session *logicalSession, bi
 	if session.binding != binding {
 		session.mu.Unlock()
 		return status.Error(codes.Aborted, "stale session binding")
+	}
+	statusValue, clientState = session.status, session.clientState
+	if data.HasStatus() {
+		statusValue = requestedStatus
+	}
+	if data.HasClientState() {
+		clientState = requestedClientState
 	}
 	if session.status == statusValue && session.clientState == clientState {
 		session.mu.Unlock()
@@ -1268,24 +1304,51 @@ func stringifyIDs(ids []int64) []string {
 	return values
 }
 
-func statusFromString(value string) presencev1.PresenceStatus {
-	switch strings.ToLower(strings.TrimSpace(value)) {
+func identifyPresence(data *sessionv1.Identify) (presencev1.PresenceStatus, presencev1.ClientState, error) {
+	statusValue := presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE
+	clientState := presencev1.ClientState_CLIENT_STATE_FOREGROUND
+	var err error
+	if data.HasStatus() {
+		statusValue, err = parsePresenceStatus(data.GetStatus())
+		if err != nil {
+			return 0, 0, err
+		}
+	}
+	if data.HasClientState() {
+		clientState, err = parseClientState(data.GetClientState())
+		if err != nil {
+			return 0, 0, err
+		}
+	}
+	return statusValue, clientState, nil
+}
+
+func parsePresenceStatus(value string) (presencev1.PresenceStatus, error) {
+	switch value {
+	case "online":
+		return presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE, nil
 	case "idle":
-		return presencev1.PresenceStatus_PRESENCE_STATUS_IDLE
+		return presencev1.PresenceStatus_PRESENCE_STATUS_IDLE, nil
 	case "dnd":
-		return presencev1.PresenceStatus_PRESENCE_STATUS_DND
+		return presencev1.PresenceStatus_PRESENCE_STATUS_DND, nil
 	case "invisible":
-		return presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE
+		return presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE, nil
+	case "offline":
+		return 0, status.Error(codes.InvalidArgument, "status cannot be offline")
 	default:
-		return presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE
+		return 0, status.Error(codes.InvalidArgument, "status is invalid")
 	}
 }
 
-func clientStateFromString(value string) presencev1.ClientState {
-	if strings.EqualFold(strings.TrimSpace(value), "background") {
-		return presencev1.ClientState_CLIENT_STATE_BACKGROUND
+func parseClientState(value string) (presencev1.ClientState, error) {
+	switch value {
+	case "foreground":
+		return presencev1.ClientState_CLIENT_STATE_FOREGROUND, nil
+	case "background":
+		return presencev1.ClientState_CLIENT_STATE_BACKGROUND, nil
+	default:
+		return 0, status.Error(codes.InvalidArgument, "client_state is invalid")
 	}
-	return presencev1.ClientState_CLIENT_STATE_FOREGROUND
 }
 
 func randomID(prefix string) string {

@@ -10,4 +10,6 @@ var (
 	errGenerationRequired = status.Error(codes.InvalidArgument, "generation is required")
 	errUserIDRequired     = status.Error(codes.InvalidArgument, "user id is required")
 	errSessionIDRequired  = status.Error(codes.InvalidArgument, "session id is required")
+	errStatusInvalid      = status.Error(codes.InvalidArgument, "status is invalid")
+	errClientStateInvalid = status.Error(codes.InvalidArgument, "client state is invalid")
 )

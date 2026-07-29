@@ -13,6 +13,36 @@
 
 Gateway 实例身份包含 ID 与 generation，可区分同名进程重启。逻辑 Session 与 WebSocket connection 分离，因此一次断线重连可以绑定到原 Session。
 
+## Presence 设置
+
+客户端可在 `IDENTIFY`（opcode `2`）中设置逻辑 Session 的初始 Presence：
+
+```json
+{
+  "op": 2,
+  "d": {
+    "gateway_ticket": "...",
+    "device_type": "desktop",
+    "status": "online",
+    "client_state": "foreground"
+  }
+}
+```
+
+`status` 缺失时默认为 `online`，`client_state` 缺失时默认为 `foreground`。显式提供时，`status` 只接受 `online`、`idle`、`dnd`、`invisible`，`client_state` 只接受 `foreground`、`background`。`offline`、`null`、非字符串、空字符串和未知值均无效；`invisible` 在对其他用户公开的聚合结果中表现为 offline。
+
+连接建立后，客户端发送 opcode `3` 部分更新当前逻辑 Session。缺失字段保留现值，至少必须提供一个字段：
+
+```json
+{"op":3,"d":{"status":"idle"}}
+{"op":3,"d":{"client_state":"background"}}
+{"op":3,"d":{"status":"invisible","client_state":"foreground"}}
+```
+
+`status` 通常来自用户的状态选择；`client_state` 应由客户端根据页面可见性、窗口焦点或应用生命周期自动维护。每个设备或页面的逻辑 Session 独立保存这两个值，Presence 服务再聚合用户的所有活动 Session。`RESUME` 保留原逻辑 Session 的值，需要改变时再发送 opcode `3`。
+
+Gateway 对非法输入返回带稳定 code 的 `error` 事件：空更新为 `presence_update_empty`，非法 status 为 `presence_status_invalid`，非法 client state 为 `presence_client_state_invalid`。Session 和 Presence 内部服务也会以 `InvalidArgument` 拒绝绕过 Gateway 的非法值。
+
 ## Sequence、ACK 与回放
 
 只有需要恢复的 dispatch 事件进入回放缓冲区并获得递增 sequence。每个逻辑 Session 最多保存 2048 条；溢出时移动 replay floor。客户端 heartbeat 携带已处理 sequence，Session 单调更新 ACK，并清理不再需要的前缀。

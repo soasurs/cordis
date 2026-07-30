@@ -397,9 +397,9 @@ func (s *Server) identify(
 		gatewayID:         gatewayID,
 		gatewayGeneration: gatewayGeneration,
 		deviceType:        data.GetDeviceType(),
-		initialStatus:    initialStatus,
-		hasInitialStatus: hasInitialStatus,
-		clientState:      clientState,
+		initialStatus:     initialStatus,
+		hasInitialStatus:  hasInitialStatus,
+		clientState:       clientState,
 		guilds:            make(map[int64]struct{}),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 		initializing:      true,
@@ -1162,7 +1162,7 @@ func (s *Server) refreshSessionLeaseBatch(ctx context.Context, sessions []*logic
 	}
 	for _, sessionID := range resp.GetMissingSessionIds() {
 		if session := byID[sessionID]; session != nil {
-				if _, err := s.registerPresence(ctx, session); err != nil {
+			if _, err := s.registerPresence(ctx, session); err != nil {
 				outcome.recordPresenceFailure(err)
 				if ctx.Err() == nil {
 					logx.WithContext(ctx).Errorw("register missing session presence", logx.Field("session_id", sessionID), logx.Field("error", err))

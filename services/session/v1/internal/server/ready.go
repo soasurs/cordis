@@ -16,15 +16,15 @@ import (
 )
 
 type readyPayload struct {
-	UserID               string           `json:"user_id"`
-	AuthSessionID        string           `json:"auth_session_id"`
-	SessionID            string           `json:"session_id"`
-	SessionNodeID        string           `json:"session_node_id"`
-	AccessTokenExpiresAt int64            `json:"access_token_expires_at"`
-	Guilds               []readyGuild     `json:"guilds"`
-	DmChannels           []readyDmChannel `json:"dm_channels"`
-	ReadStates           []readyReadState `json:"read_states"`
-	Presences            []readyPresence  `json:"presences"`
+	UserID               string                  `json:"user_id"`
+	AuthSessionID        string                  `json:"auth_session_id"`
+	SessionID            string                  `json:"session_id"`
+	SessionNodeID        string                  `json:"session_node_id"`
+	AccessTokenExpiresAt int64                   `json:"access_token_expires_at"`
+	Guilds               []readyGuild            `json:"guilds"`
+	DmChannels           []readyDmChannel        `json:"dm_channels"`
+	ReadStates           []readyReadState        `json:"read_states"`
+	Presences            []readyPresence         `json:"presences"`
 	PresencePreference   readyPresencePreference `json:"presence_preference"`
 }
 

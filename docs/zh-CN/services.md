@@ -102,7 +102,7 @@ Access token 校验通过后，`IDENTIFY` 会分别按用户 ID 和认证 Sessio
 
 Dispatcher 通过聚合 Guild route 定位 Guild 消息的候选 Session 节点，并通过专用 Guild-message RPC 携带 Guild 与频道 ID。Session 按本地用户检查服务端可见性快照，将消息投递给该用户的所有本地逻辑 Session。DM 消息为每个参与者各发布一条记录，并通过聚合 user route 投递。没有且仅有一个 Guild/user 聚合 route 的消息记录会被拒绝。
 
-IDENTIFY 中缺失的 Presence status / client state 分别默认为 online / foreground；显式值会被严格校验。后续 Presence Update 使用部分更新语义，缺失字段保留当前值，空更新会被拒绝。无变化的 Presence 更新会直接丢弃。实际变化每个逻辑 Session 最多 5 次/20 秒，随后还需消耗跨设备共享的每用户 10 次/20 秒配额，才会调用 Presence。
+IDENTIFY 中缺失的 Presence status 会保留已有用户偏好，仅在偏好不存在时初始化为 online；client state 缺失时默认为 foreground。显式值会被严格校验。后续 Presence Update 使用部分更新语义：status 更新共享的用户偏好，client state 只更新当前逻辑 Session。空更新会被拒绝，无变化的 client state 更新会直接丢弃。转发的更新每个逻辑 Session 最多 5 次/20 秒，随后还需消耗跨设备共享的每用户 10 次/20 秒配额。
 
 断线 Session 默认保留 120 秒。Resume 必须路由回原 Session 节点；节点进程丢失会同时丢失内存 Session。Session 节点通过 etcd 租约注册；进入 drain 后发布 draining 状态、拒绝新连接，并分批要求现有客户端重新 IDENTIFY。
 
@@ -114,6 +114,6 @@ IDENTIFY 中缺失的 Presence status / client state 分别默认为 online / fo
 
 ## Presence
 
-监听 `:3003`，是 Redis 支撑的在线状态服务。它管理用户设备 Session，并按 TTL 和 generation 过滤失效记录。多个设备状态聚合为用户 Presence；`INVISIBLE` 对外表现为离线。Session 调用 Presence 注册和刷新用户在线状态。所有写入 RPC 都严格拒绝 unspecified、offline 或未知 status，以及 unspecified 或未知 client state，不再将非法枚举静默映射为默认值。
+监听 `:3003`，是 Redis 支撑的用户状态偏好与设备活跃度服务。它按用户保存唯一的 status 偏好；Session 只保存 client state、租约和设备元数据，并按 TTL 与 generation 过滤失效记录。没有活动 Session 或偏好为 `INVISIBLE` 时公开状态为离线，其他情况下公开状态等于用户偏好。Session 注册只能初始化缺失偏好，不能覆盖已有偏好；续租不再携带 status。
 
-Presence 还在 Redis 中为每个用户持久化一份聚合快照，包括 offline tombstone。每次聚合 status 变化都会获得基于 Snowflake 且跨服务节点钳制为大于旧值的单调递增 `version`；无变化的续租保留版本，`last_seen_at` 可以在不产生 status transition 时推进。内部 Resolve 与对应的 `presence.updated` 事件携带同一个版本。写入和按需 Resolve 都在按用户的 Redis 锁内完成对账，避免读到新 status 配旧 version。
+Presence 在 Redis 中无 TTL 保存用户偏好，并另行持久化公开状态聚合快照，包括 offline tombstone。偏好变化通过 user route 发布私有 `presence.preference.updated`，公开状态变化发布 `presence.updated`，两者分别使用独立的单调递增 version。每次公开状态变化都会获得基于 Snowflake 且跨服务节点钳制为大于旧值的 version；无变化的续租保留版本，`last_seen_at` 可以在不产生公开状态 transition 时推进。内部 Resolve 与对应的 `presence.updated` 携带同一个 version。写入和按需 Resolve 都在按用户的 Redis 锁内完成对账。

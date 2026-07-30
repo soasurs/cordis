@@ -39,6 +39,9 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 	if idempotencyKey <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "idempotency key is required")
 	}
+	if eventType == realtime.EventPresencePreferenceUpdated {
+		return nil, status.Error(codes.InvalidArgument, "presence preference event must use a user route")
+	}
 
 	if !s.dedup.checkAndAdd(routeKindGuild, req.GetGuildId(), idempotencyKey, eventType, dedupTTL) {
 		return &sessionv1.DispatchGuildEventResponse{}, nil
@@ -59,6 +62,12 @@ func (s *Server) DispatchGuildEvent(ctx context.Context, req *sessionv1.Dispatch
 			idempotencyKey,
 			eventType,
 			payload,
+		)
+		return dispatchGuildResponse(delivered), nil
+	}
+	if eventType == realtime.EventPresenceUpdated {
+		delivered := s.dispatchPresenceSessions(
+			s.guildSessions(req.GetGuildId()), idempotencyKey, eventType, payload,
 		)
 		return dispatchGuildResponse(delivered), nil
 	}
@@ -231,10 +240,32 @@ func (s *Server) DispatchUserEvent(_ context.Context, req *sessionv1.DispatchUse
 	sessions := s.userSessions(req.GetUserId())
 	if eventType == realtime.EventUserProfileUpdated {
 		resp.SetDelivered(int32(s.dispatchProfileSessions(sessions, idempotencyKey, eventType, payload)))
+	} else if eventType == realtime.EventPresenceUpdated {
+		resp.SetDelivered(int32(s.dispatchPresenceSessions(sessions, idempotencyKey, eventType, payload)))
 	} else {
 		resp.SetDelivered(int32(s.dispatchSessions(sessions, eventType, payload)))
 	}
 	return resp, nil
+}
+
+func (s *Server) dispatchPresenceSessions(
+	sessions []*logicalSession,
+	idempotencyKey int64,
+	eventType string,
+	payload []byte,
+) int {
+	byUser := make(map[int64][]*logicalSession)
+	for _, session := range sessions {
+		byUser[session.userID] = append(byUser[session.userID], session)
+	}
+	delivered := 0
+	for userID, userSessions := range byUser {
+		if !s.dedup.checkAndAdd(routeKindPresence, userID, idempotencyKey, eventType, dedupTTL) {
+			continue
+		}
+		delivered += s.dispatchSessions(userSessions, eventType, payload)
+	}
+	return delivered
 }
 
 func (s *Server) dispatchProfileSessions(

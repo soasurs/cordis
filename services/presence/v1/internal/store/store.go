@@ -25,10 +25,15 @@ type UserSession struct {
 	GatewayID   string
 	Generation  string
 	DeviceType  string
-	Status      PresenceStatus
 	ClientState ClientState
 	LastSeenAt  int64
 	ExpiresAt   int64
+}
+
+type UserPresencePreference struct {
+	UserID  int64
+	Status  PresenceStatus
+	Version int64
 }
 
 type UserPresence struct {
@@ -46,6 +51,8 @@ type Store interface {
 	UpdateUserSession(ctx context.Context, session UserSession) (UserPresence, error)
 	RemoveUserSession(ctx context.Context, userID int64, sessionID string) error
 	ResolveUsersPresence(ctx context.Context, userIDs []int64) ([]UserPresence, error)
+	GetUserPresencePreference(ctx context.Context, userID int64) (UserPresencePreference, bool, error)
+	SaveUserPresencePreference(ctx context.Context, preference UserPresencePreference) error
 	GetUserPresenceSnapshot(ctx context.Context, userID int64) (UserPresence, bool, error)
 	SaveUserPresenceSnapshot(ctx context.Context, presence UserPresence) error
 }

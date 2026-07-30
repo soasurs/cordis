@@ -38,16 +38,18 @@ Clients may set the logical Session's initial Presence in `IDENTIFY` (opcode
 }
 ```
 
-An omitted `status` defaults to `online`, and an omitted `client_state`
-defaults to `foreground`. When present, `status` accepts only `online`, `idle`,
-`dnd`, or `invisible`; `client_state` accepts only `foreground` or
-`background`. `offline`, `null`, non-string values, empty strings, and unknown
-values are invalid. `invisible` is exposed as offline in aggregate results
-visible to other users.
+An omitted `status` preserves the existing user preference, initializing it to
+`online` only when no preference exists. An omitted `client_state` defaults to
+`foreground`. When present, `status` accepts only `online`, `idle`, `dnd`, or
+`invisible`; `client_state` accepts only `foreground` or `background`.
+`offline`, `null`, non-string values, empty strings, and unknown values are
+invalid. An IDENTIFY status is only an initialization hint and never overwrites
+an existing preference.
 
-After the connection is established, opcode `3` partially updates the current
-logical Session. Omitted fields retain their current values, and at least one
-field is required:
+After the connection is established, opcode `3` partially updates the
+user-level status preference and/or the current logical Session's client
+state. Omitted fields retain their current values, and at least one field is
+required:
 
 ```json
 {"op":3,"d":{"status":"idle"}}
@@ -55,12 +57,12 @@ field is required:
 {"op":3,"d":{"status":"invisible","client_state":"foreground"}}
 ```
 
-`status` normally comes from a user-facing status selector. Clients should
-derive `client_state` automatically from page visibility, window focus, or the
-application lifecycle. Each device or page has independent values on its
-logical Session, which Presence aggregates across all active Sessions for the
-user. `RESUME` retains the logical Session's existing values; clients send
-opcode `3` afterward when a change is needed.
+`status` normally comes from a user-facing status selector and is shared by
+all of the user's Sessions. Clients should derive the per-Session
+`client_state` automatically from page visibility, window focus, or the
+application lifecycle. Public presence is offline with no live Sessions,
+offline when the shared preference is `invisible`, and otherwise equals the
+shared preference. `RESUME` retains the logical Session's client state.
 
 Gateway reports invalid input with stable `error` event codes:
 `presence_update_empty` for an empty update, `presence_status_invalid` for an
@@ -68,7 +70,9 @@ invalid status, and `presence_client_state_invalid` for an invalid client
 state. Session and the internal Presence service also reject invalid values
 that bypass Gateway with `InvalidArgument`.
 
-The `ready` payload includes a `presences` array for the current user and every
+The `ready` payload includes `presence_preference`, containing the current
+user's private `status` and preference `version`, plus a `presences` array for
+the current user and every
 unique DM peer, but not all members of the user's Guilds. Each item contains
 `user_id`, aggregate `status`, `last_seen_at`, and `version`. IDs and versions
 are decimal strings in WebSocket JSON. Clients keep the greatest version seen
@@ -76,6 +80,14 @@ per user: apply a later `presence.updated` event only when its version is
 greater than the READY or previously applied version. This makes events
 buffered during READY assembly safe even when the snapshot and event describe
 the same aggregate transition.
+
+A private `presence.preference.updated` dispatch synchronizes a changed
+preference to all Sessions belonging to the user. It contains `status` and its
+own monotonic `version`, travels only through the user route, and is not exposed
+to Guild members or friends. Public `presence.updated` continues to project
+`invisible` as offline. Session nodes deduplicate one public transition across
+overlapping Guild and user routes before WebSocket delivery; clients still
+deduplicate by version for replay and at-least-once delivery.
 
 ## Replay
 

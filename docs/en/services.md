@@ -290,13 +290,14 @@ user's logical sessions. DM message records resolve directly through aggregate
 user routes. Message records without exactly one aggregate Guild/user route are
 rejected.
 
-Missing Presence status and client state values on IDENTIFY default to online
-and foreground respectively; explicitly supplied values are validated
-strictly. Later Presence Updates use partial-update semantics, retain omitted
-fields, and reject empty updates. No-op Presence updates are discarded. Changed
-updates are limited to five per logical session every 20 seconds, then consume
-a shared per-user quota of ten per 20 seconds across devices before Presence is
-called.
+Missing Presence status on IDENTIFY preserves the existing user preference and
+initializes it to online only when none exists; client state defaults to
+foreground. Explicit values are validated strictly. Later Presence Updates use
+partial-update semantics: status changes the shared user preference, while
+client state changes only the current logical Session. Empty updates are
+rejected, and no-op client-state updates are discarded. Forwarded updates are
+limited to five per logical session every 20 seconds, then consume a shared
+per-user quota of ten per 20 seconds across devices.
 
 Detached sessions live for 120 seconds by default. Resume must reach the
 original node. Session nodes register through etcd leases. Graceful drain
@@ -319,15 +320,19 @@ general event-ID deduplication.
 
 ## Presence
 
-gRPC on `:3003`. Redis-backed user-device presence storage. TTL and generation
-checks filter stale sessions. Multi-device sessions aggregate into user
-presence, while `INVISIBLE` is exposed as offline. Session uses Presence to
-register and refresh online state. All mutation RPCs reject unspecified,
-offline, or unknown status values and unspecified or unknown client states
-instead of silently mapping invalid enums to defaults.
+gRPC on `:3003`. Redis-backed user preference and device-liveness storage. TTL
+and generation checks filter stale sessions. Status is stored once per user;
+Sessions store client state and liveness only. Public presence is offline when
+there are no live Sessions or the preference is `INVISIBLE`, and otherwise
+equals the preference. Session registration may initialize a missing
+preference but never overwrite an existing one, and lease refreshes do not
+carry status.
 
-Presence also persists one aggregate snapshot per user in Redis, including an
-offline tombstone. Each aggregate status transition receives a monotonic
+Presence persists the user preference without a TTL and keeps a separate
+versioned aggregate snapshot, including an offline tombstone. Preference
+changes emit private `presence.preference.updated` events along the user route;
+public transitions emit `presence.updated`. Each stream has its own monotonic
+version. Each aggregate status transition receives a monotonic
 Snowflake-based `version` (clamped above the previous value across service
 nodes); unchanged refreshes retain the version, while
 `last_seen_at` may advance without creating a transition. Internal resolve

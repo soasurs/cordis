@@ -84,7 +84,8 @@ type logicalSession struct {
 	gatewayID               string
 	gatewayGeneration       string
 	deviceType              string
-	status                  presencev1.PresenceStatus
+	initialStatus           presencev1.PresenceStatus
+	hasInitialStatus        bool
 	clientState             presencev1.ClientState
 	sequence                uint64
 	ackedSequence           uint64
@@ -374,7 +375,7 @@ func (s *Server) identify(
 	connectionID, gatewayID, gatewayGeneration string,
 	data *sessionv1.Identify,
 ) (*logicalSession, error) {
-	statusValue, clientState, err := identifyPresence(data)
+	initialStatus, hasInitialStatus, clientState, err := identifyPresence(data)
 	if err != nil {
 		return nil, err
 	}
@@ -396,8 +397,9 @@ func (s *Server) identify(
 		gatewayID:         gatewayID,
 		gatewayGeneration: gatewayGeneration,
 		deviceType:        data.GetDeviceType(),
-		status:            statusValue,
-		clientState:       clientState,
+		initialStatus:    initialStatus,
+		hasInitialStatus: hasInitialStatus,
+		clientState:      clientState,
 		guilds:            make(map[int64]struct{}),
 		replay:            make([]replayEntry, 0, min(s.svcCtx.Cfg.Node.ReplayLimit(), 64)),
 		initializing:      true,
@@ -418,7 +420,8 @@ func (s *Server) identify(
 		s.removeSession(ctx, session)
 		return nil, err
 	}
-	if err := s.registerPresence(ctx, session); err != nil {
+	preference, err := s.registerPresence(ctx, session)
+	if err != nil {
 		s.removeSession(ctx, session)
 		return nil, err
 	}
@@ -442,7 +445,9 @@ func (s *Server) identify(
 		s.removeSession(ctx, session)
 		return nil, err
 	}
-	ready, err := marshalReady(session, auth.GetExpiresAt(), readyGuilds, messageReady, profiles, presences, s.nodeID)
+	ready, err := marshalReady(
+		session, auth.GetExpiresAt(), readyGuilds, messageReady, profiles, presences, preference, s.nodeID,
+	)
 	if err != nil {
 		s.removeSession(ctx, session)
 		return nil, status.Error(codes.Internal, "marshal ready payload")
@@ -697,14 +702,11 @@ func (s *Server) updatePresence(ctx context.Context, session *logicalSession, bi
 		session.mu.Unlock()
 		return status.Error(codes.Aborted, "stale session binding")
 	}
-	statusValue, clientState := session.status, session.clientState
-	if data.HasStatus() {
-		statusValue = requestedStatus
-	}
+	clientState := session.clientState
 	if data.HasClientState() {
 		clientState = requestedClientState
 	}
-	if session.status == statusValue && session.clientState == clientState {
+	if !data.HasStatus() && session.clientState == clientState {
 		session.mu.Unlock()
 		return nil
 	}
@@ -732,26 +734,21 @@ func (s *Server) updatePresence(ctx context.Context, session *logicalSession, bi
 		session.mu.Unlock()
 		return status.Error(codes.Aborted, "stale session binding")
 	}
-	statusValue, clientState = session.status, session.clientState
-	if data.HasStatus() {
-		statusValue = requestedStatus
-	}
+	clientState = session.clientState
 	if data.HasClientState() {
 		clientState = requestedClientState
 	}
-	if session.status == statusValue && session.clientState == clientState {
+	if !data.HasStatus() && session.clientState == clientState {
 		session.mu.Unlock()
 		return nil
 	}
-	oldStatus, oldClientState := session.status, session.clientState
-	session.status = statusValue
+	oldClientState := session.clientState
 	session.clientState = clientState
 	session.mu.Unlock()
 
-	if err := s.updatePresenceRPC(ctx, session); err != nil {
+	if err := s.updatePresenceRPC(ctx, session, data.HasStatus(), requestedStatus, data.HasClientState()); err != nil {
 		session.mu.Lock()
-		if session.status == statusValue && session.clientState == clientState {
-			session.status = oldStatus
+		if session.clientState == clientState {
 			session.clientState = oldClientState
 		}
 		session.mu.Unlock()
@@ -920,23 +917,34 @@ func presenceGuildIDs(session *logicalSession) []int64 {
 	return mapKeys(session.guilds)
 }
 
-func (s *Server) registerPresence(ctx context.Context, session *logicalSession) error {
+func (s *Server) registerPresence(
+	ctx context.Context,
+	session *logicalSession,
+) (*presencev1.UserPresencePreference, error) {
 	req := new(presencev1.RegisterUserSessionRequest)
 	req.SetUserId(session.userID)
 	req.SetSessionId(session.id)
 	req.SetGatewayId(session.gatewayID)
 	req.SetGeneration(session.gatewayGeneration)
 	req.SetDeviceType(session.deviceType)
-	req.SetStatus(session.status)
+	if session.hasInitialStatus {
+		req.SetInitialStatus(session.initialStatus)
+	}
 	req.SetClientState(session.clientState)
 	req.SetGuildIds(presenceGuildIDs(session))
-	_, err := s.svcCtx.PresenceClient.RegisterUserSession(ctx, req)
-	return err
+	resp, err := s.svcCtx.PresenceClient.RegisterUserSession(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.GetPreference() == nil || resp.GetPreference().GetVersion() <= 0 {
+		return nil, status.Error(codes.Internal, "presence service returned an invalid preference")
+	}
+	return resp.GetPreference(), nil
 }
 
 func (s *Server) refreshPresence(ctx context.Context, session *logicalSession) error {
 	session.mu.Lock()
-	statusValue, clientState := session.status, session.clientState
+	clientState := session.clientState
 	session.mu.Unlock()
 	req := new(presencev1.RefreshUserSessionRequest)
 	req.SetUserId(session.userID)
@@ -944,22 +952,31 @@ func (s *Server) refreshPresence(ctx context.Context, session *logicalSession) e
 	req.SetGatewayId(session.gatewayID)
 	req.SetGeneration(session.gatewayGeneration)
 	req.SetDeviceType(session.deviceType)
-	req.SetStatus(statusValue)
 	req.SetClientState(clientState)
 	req.SetGuildIds(presenceGuildIDs(session))
 	_, err := s.svcCtx.PresenceClient.RefreshUserSession(ctx, req)
 	return err
 }
 
-func (s *Server) updatePresenceRPC(ctx context.Context, session *logicalSession) error {
+func (s *Server) updatePresenceRPC(
+	ctx context.Context,
+	session *logicalSession,
+	hasStatus bool,
+	statusValue presencev1.PresenceStatus,
+	hasClientState bool,
+) error {
 	session.mu.Lock()
-	statusValue, clientState := session.status, session.clientState
+	clientState := session.clientState
 	session.mu.Unlock()
 	req := new(presencev1.UpdateUserPresenceRequest)
 	req.SetUserId(session.userID)
 	req.SetSessionId(session.id)
-	req.SetStatus(statusValue)
-	req.SetClientState(clientState)
+	if hasStatus {
+		req.SetStatus(statusValue)
+	}
+	if hasClientState {
+		req.SetClientState(clientState)
+	}
 	req.SetGuildIds(presenceGuildIDs(session))
 	_, err := s.svcCtx.PresenceClient.UpdateUserPresence(ctx, req)
 	return err
@@ -1145,7 +1162,7 @@ func (s *Server) refreshSessionLeaseBatch(ctx context.Context, sessions []*logic
 	}
 	for _, sessionID := range resp.GetMissingSessionIds() {
 		if session := byID[sessionID]; session != nil {
-			if err := s.registerPresence(ctx, session); err != nil {
+				if _, err := s.registerPresence(ctx, session); err != nil {
 				outcome.recordPresenceFailure(err)
 				if ctx.Err() == nil {
 					logx.WithContext(ctx).Errorw("register missing session presence", logx.Field("session_id", sessionID), logx.Field("error", err))
@@ -1211,7 +1228,7 @@ func leaseRefreshErrorType(err error) string {
 
 func presenceRefreshRequest(session *logicalSession) *presencev1.RefreshUserSessionRequest {
 	session.mu.Lock()
-	statusValue, clientState := session.status, session.clientState
+	clientState := session.clientState
 	session.mu.Unlock()
 	req := new(presencev1.RefreshUserSessionRequest)
 	req.SetUserId(session.userID)
@@ -1219,7 +1236,6 @@ func presenceRefreshRequest(session *logicalSession) *presencev1.RefreshUserSess
 	req.SetGatewayId(session.gatewayID)
 	req.SetGeneration(session.gatewayGeneration)
 	req.SetDeviceType(session.deviceType)
-	req.SetStatus(statusValue)
 	req.SetClientState(clientState)
 	req.SetGuildIds(presenceGuildIDs(session))
 	return req
@@ -1309,23 +1325,26 @@ func stringifyIDs(ids []int64) []string {
 	return values
 }
 
-func identifyPresence(data *sessionv1.Identify) (presencev1.PresenceStatus, presencev1.ClientState, error) {
-	statusValue := presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE
+func identifyPresence(
+	data *sessionv1.Identify,
+) (presencev1.PresenceStatus, bool, presencev1.ClientState, error) {
+	var statusValue presencev1.PresenceStatus
+	hasStatus := data.HasStatus()
 	clientState := presencev1.ClientState_CLIENT_STATE_FOREGROUND
 	var err error
-	if data.HasStatus() {
+	if hasStatus {
 		statusValue, err = parsePresenceStatus(data.GetStatus())
 		if err != nil {
-			return 0, 0, err
+			return 0, false, 0, err
 		}
 	}
 	if data.HasClientState() {
 		clientState, err = parseClientState(data.GetClientState())
 		if err != nil {
-			return 0, 0, err
+			return 0, false, 0, err
 		}
 	}
-	return statusValue, clientState, nil
+	return statusValue, hasStatus, clientState, nil
 }
 
 func parsePresenceStatus(value string) (presencev1.PresenceStatus, error) {

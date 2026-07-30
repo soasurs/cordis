@@ -184,7 +184,6 @@ func (s *RedisStore) writeUserSession(ctx context.Context, session UserSession) 
 			"gateway_id":   session.GatewayID,
 			"generation":   session.Generation,
 			"device_type":  session.DeviceType,
-			"status":       strconv.FormatInt(int64(session.Status), 10),
 			"client_state": strconv.FormatInt(int64(session.ClientState), 10),
 			"last_seen_at": strconv.FormatInt(session.LastSeenAt, 10),
 			"expires_at":   strconv.FormatInt(session.ExpiresAt, 10),
@@ -225,16 +224,21 @@ func (s *RedisStore) resolveUserPresence(ctx context.Context, userID int64, now 
 			stale = append(stale, pair.Key)
 			continue
 		}
-		if session.Status != PresenceStatusInvisible {
-			sessions = append(sessions, session)
-		}
+		sessions = append(sessions, session)
 	}
 
 	if len(stale) > 0 {
 		_, _ = s.rds.ZremCtx(ctx, key, stale...)
 	}
 
-	return aggregateUserPresence(userID, sessions), nil
+	preference, known, err := s.GetUserPresencePreference(ctx, userID)
+	if err != nil {
+		return UserPresence{}, err
+	}
+	if !known {
+		preference = UserPresencePreference{UserID: userID, Status: PresenceStatusOnline}
+	}
+	return aggregateUserPresence(userID, preference, sessions), nil
 }
 
 func (s *RedisStore) getLiveUserSession(ctx context.Context, userID int64, sessionID string, now int64) (UserSession, bool, error) {
@@ -243,7 +247,6 @@ func (s *RedisStore) getLiveUserSession(ctx context.Context, userID int64, sessi
 		"gateway_id",
 		"generation",
 		"device_type",
-		"status",
 		"client_state",
 		"last_seen_at",
 		"expires_at",
@@ -251,7 +254,7 @@ func (s *RedisStore) getLiveUserSession(ctx context.Context, userID int64, sessi
 	if err != nil {
 		return UserSession{}, false, err
 	}
-	if len(values) != 8 || values[0] == "" || values[1] == "" || values[2] == "" || values[7] == "" {
+	if len(values) != 7 || values[0] == "" || values[1] == "" || values[2] == "" || values[6] == "" {
 		return UserSession{}, false, nil
 	}
 
@@ -259,19 +262,15 @@ func (s *RedisStore) getLiveUserSession(ctx context.Context, userID int64, sessi
 	if err != nil || storedUserID != userID {
 		return UserSession{}, false, nil
 	}
-	expiresAt, err := strconv.ParseInt(values[7], 10, 64)
+	expiresAt, err := strconv.ParseInt(values[6], 10, 64)
 	if err != nil || expiresAt <= now {
 		return UserSession{}, false, nil
 	}
-	status, err := strconv.ParseInt(values[4], 10, 32)
-	if err != nil {
-		status = int64(PresenceStatusOnline)
-	}
-	clientState, err := strconv.ParseInt(values[5], 10, 32)
+	clientState, err := strconv.ParseInt(values[4], 10, 32)
 	if err != nil {
 		clientState = int64(ClientStateForeground)
 	}
-	lastSeenAt, err := strconv.ParseInt(values[6], 10, 64)
+	lastSeenAt, err := strconv.ParseInt(values[5], 10, 64)
 	if err != nil {
 		lastSeenAt = 0
 	}
@@ -282,7 +281,6 @@ func (s *RedisStore) getLiveUserSession(ctx context.Context, userID int64, sessi
 		GatewayID:   values[1],
 		Generation:  values[2],
 		DeviceType:  values[3],
-		Status:      normalizePresenceStatus(PresenceStatus(status)),
 		ClientState: normalizeClientState(ClientState(clientState)),
 		LastSeenAt:  lastSeenAt,
 		ExpiresAt:   expiresAt,
@@ -303,6 +301,50 @@ func userMutationLockKey(userID int64) string {
 
 func userPresenceSnapshotKey(userID int64) string {
 	return fmt.Sprintf("presence:user:{%d}:snapshot", userID)
+}
+
+func userPresencePreferenceKey(userID int64) string {
+	return fmt.Sprintf("presence:user:{%d}:preference", userID)
+}
+
+func (s *RedisStore) GetUserPresencePreference(
+	ctx context.Context,
+	userID int64,
+) (UserPresencePreference, bool, error) {
+	values, err := s.rds.HmgetCtx(ctx, userPresencePreferenceKey(userID), "status", "version")
+	if err != nil {
+		return UserPresencePreference{}, false, err
+	}
+	if len(values) != 2 || values[0] == "" || values[1] == "" {
+		return UserPresencePreference{}, false, nil
+	}
+	statusValue, err := strconv.ParseInt(values[0], 10, 32)
+	if err != nil {
+		return UserPresencePreference{}, false, nil
+	}
+	status := PresenceStatus(statusValue)
+	if status != PresenceStatusOnline && status != PresenceStatusIdle &&
+		status != PresenceStatusDND && status != PresenceStatusInvisible {
+		return UserPresencePreference{}, false, nil
+	}
+	version, err := strconv.ParseInt(values[1], 10, 64)
+	if err != nil || version <= 0 {
+		return UserPresencePreference{}, false, nil
+	}
+	return UserPresencePreference{UserID: userID, Status: status, Version: version}, true, nil
+}
+
+func (s *RedisStore) SaveUserPresencePreference(
+	ctx context.Context,
+	preference UserPresencePreference,
+) error {
+	return s.rds.PipelinedCtx(ctx, func(pipe redis.Pipeliner) error {
+		pipe.HSet(ctx, userPresencePreferenceKey(preference.UserID), map[string]any{
+			"status":  strconv.FormatInt(int64(preference.Status), 10),
+			"version": strconv.FormatInt(preference.Version, 10),
+		})
+		return nil
+	})
 }
 
 func (s *RedisStore) GetUserPresenceSnapshot(ctx context.Context, userID int64) (UserPresence, bool, error) {
@@ -348,7 +390,6 @@ func (s *RedisStore) SaveUserPresenceSnapshot(ctx context.Context, presence User
 }
 
 func normalizeUserSession(session UserSession) UserSession {
-	session.Status = normalizePresenceStatus(session.Status)
 	session.ClientState = normalizeClientState(session.ClientState)
 	return session
 }
@@ -371,7 +412,11 @@ func normalizeClientState(state ClientState) ClientState {
 	}
 }
 
-func aggregateUserPresence(userID int64, sessions []UserSession) UserPresence {
+func aggregateUserPresence(
+	userID int64,
+	preference UserPresencePreference,
+	sessions []UserSession,
+) UserPresence {
 	presence := UserPresence{
 		UserID:   userID,
 		Status:   PresenceStatusOffline,
@@ -381,20 +426,9 @@ func aggregateUserPresence(userID int64, sessions []UserSession) UserPresence {
 		if session.LastSeenAt > presence.LastSeenAt {
 			presence.LastSeenAt = session.LastSeenAt
 		}
-		if session.Status == PresenceStatusDND {
-			presence.Status = PresenceStatusDND
-			continue
-		}
-		if presence.Status == PresenceStatusDND {
-			continue
-		}
-		if session.Status == PresenceStatusOnline {
-			presence.Status = PresenceStatusOnline
-			continue
-		}
-		if presence.Status == PresenceStatusOffline && session.Status == PresenceStatusIdle {
-			presence.Status = PresenceStatusIdle
-		}
+	}
+	if len(sessions) > 0 && preference.Status != PresenceStatusInvisible {
+		presence.Status = normalizePresenceStatus(preference.Status)
 	}
 	return presence
 }

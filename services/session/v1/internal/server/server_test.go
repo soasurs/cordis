@@ -183,6 +183,7 @@ func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	require.Equal(t, "7100", payload.ReadStates[0].LastMessageID)
 	require.Equal(t, "7099", payload.ReadStates[0].LastReadMessageID)
 	require.Equal(t, int32(2), payload.ReadStates[0].MentionCount)
+	require.Equal(t, readyPresencePreference{Status: "online", Version: "1"}, payload.PresencePreference)
 	require.Equal(t, []readyPresence{
 		{UserID: "1001", Status: int32(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE), Version: "1002"},
 		{UserID: "1002", Status: int32(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE), Version: "1003"},
@@ -309,7 +310,7 @@ func TestPendingDispatchByteLimitMarksInitializationOverflow(t *testing.T) {
 	require.Empty(t, session.pendingDispatches)
 }
 
-func TestPresenceDeduplicatesNoOpUpdates(t *testing.T) {
+func TestPresenceDeduplicatesNoOpClientStateUpdates(t *testing.T) {
 	server := newTestServer()
 	identify := new(sessionv1.Identify)
 	identify.SetToken("token")
@@ -324,7 +325,6 @@ func TestPresenceDeduplicatesNoOpUpdates(t *testing.T) {
 	binding := session.binding
 	session.mu.Unlock()
 	update := new(sessionv1.PresenceUpdate)
-	update.SetStatus("online")
 	update.SetClientState("foreground")
 
 	require.NoError(t, server.updatePresence(t.Context(), session, binding, update))
@@ -334,16 +334,18 @@ func TestPresenceDeduplicatesNoOpUpdates(t *testing.T) {
 
 func TestIdentifyPresenceDefaultsAndValidation(t *testing.T) {
 	defaults := new(sessionv1.Identify)
-	statusValue, clientState, err := identifyPresence(defaults)
+	statusValue, hasStatus, clientState, err := identifyPresence(defaults)
 	require.NoError(t, err)
-	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE, statusValue)
+	require.False(t, hasStatus)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_UNSPECIFIED, statusValue)
 	require.Equal(t, presencev1.ClientState_CLIENT_STATE_FOREGROUND, clientState)
 
 	valid := new(sessionv1.Identify)
 	valid.SetStatus("invisible")
 	valid.SetClientState("background")
-	statusValue, clientState, err = identifyPresence(valid)
+	statusValue, hasStatus, clientState, err = identifyPresence(valid)
 	require.NoError(t, err)
+	require.True(t, hasStatus)
 	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE, statusValue)
 	require.Equal(t, presencev1.ClientState_CLIENT_STATE_BACKGROUND, clientState)
 
@@ -367,7 +369,7 @@ func TestIdentifyPresenceDefaultsAndValidation(t *testing.T) {
 			if tt.clientState != nil {
 				identify.SetClientState(*tt.clientState)
 			}
-			_, _, err := identifyPresence(identify)
+			_, _, _, err := identifyPresence(identify)
 			require.Equal(t, codes.InvalidArgument, status.Code(err))
 		})
 	}
@@ -390,14 +392,16 @@ func TestPresenceUpdateUsesPartialUpdateSemantics(t *testing.T) {
 	statusOnly.SetStatus("idle")
 	require.NoError(t, server.updatePresence(t.Context(), session, binding, statusOnly))
 	require.Len(t, presence.updates, 1)
+	require.True(t, presence.updates[0].HasStatus())
 	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_IDLE, presence.updates[0].GetStatus())
-	require.Equal(t, presencev1.ClientState_CLIENT_STATE_FOREGROUND, presence.updates[0].GetClientState())
+	require.False(t, presence.updates[0].HasClientState())
 
 	clientStateOnly := new(sessionv1.PresenceUpdate)
 	clientStateOnly.SetClientState("background")
 	require.NoError(t, server.updatePresence(t.Context(), session, binding, clientStateOnly))
 	require.Len(t, presence.updates, 2)
-	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_IDLE, presence.updates[1].GetStatus())
+	require.False(t, presence.updates[1].HasStatus())
+	require.True(t, presence.updates[1].HasClientState())
 	require.Equal(t, presencev1.ClientState_CLIENT_STATE_BACKGROUND, presence.updates[1].GetClientState())
 }
 
@@ -897,7 +901,13 @@ func (fakePresence) RegisterUserSession(
 	*presencev1.RegisterUserSessionRequest,
 	...grpc.CallOption,
 ) (*presencev1.RegisterUserSessionResponse, error) {
-	return new(presencev1.RegisterUserSessionResponse), nil
+	preference := new(presencev1.UserPresencePreference)
+	preference.SetUserId(1001)
+	preference.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
+	preference.SetVersion(1)
+	resp := new(presencev1.RegisterUserSessionResponse)
+	resp.SetPreference(preference)
+	return resp, nil
 }
 
 func (fakePresence) RefreshUserSession(

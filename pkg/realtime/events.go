@@ -31,5 +31,6 @@ const (
 
 	EventDmChannelCreated = "dm.channel.created"
 
-	EventPresenceUpdated = "presence.updated"
+	EventPresenceUpdated           = "presence.updated"
+	EventPresencePreferenceUpdated = "presence.preference.updated"
 )

@@ -390,6 +390,46 @@ func TestProfileUpdateDeduplicatesAcrossGuildAndUserRoutes(t *testing.T) {
 	}
 }
 
+func TestPresenceUpdateDeduplicatesAcrossGuildAndUserRoutes(t *testing.T) {
+	server := newTestServer()
+	session := testLogicalSession(1001, 9001)
+	session.guilds[9002] = struct{}{}
+	server.addSession(session, nil)
+	payload := `{"user_id":"1001","status":3,"version":"101"}`
+
+	first := guildEventRequest(9001, realtime.EventPresenceUpdated, payload)
+	first.GetEvent().SetIdempotencyKey(101)
+	firstResp, err := server.DispatchGuildEvent(t.Context(), first)
+	require.NoError(t, err)
+	require.Equal(t, int32(1), firstResp.GetDelivered())
+
+	second := guildEventRequest(9002, realtime.EventPresenceUpdated, payload)
+	second.GetEvent().SetIdempotencyKey(101)
+	secondResp, err := server.DispatchGuildEvent(t.Context(), second)
+	require.NoError(t, err)
+	require.Zero(t, secondResp.GetDelivered())
+
+	direct := userEventRequest(1001, realtime.EventPresenceUpdated, payload)
+	direct.GetEvent().SetIdempotencyKey(101)
+	directResp, err := server.DispatchUserEvent(t.Context(), direct)
+	require.NoError(t, err)
+	require.Zero(t, directResp.GetDelivered())
+	require.Len(t, session.replay, 1)
+}
+
+func TestPresencePreferenceRejectsGuildRoute(t *testing.T) {
+	server := newTestServer()
+	req := guildEventRequest(
+		9001,
+		realtime.EventPresencePreferenceUpdated,
+		`{"user_id":"1001","status":"invisible","version":"101"}`,
+	)
+
+	_, err := server.DispatchGuildEvent(t.Context(), req)
+
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestProfileUpdateRejectsMissingSubject(t *testing.T) {
 	server := newTestServer()
 

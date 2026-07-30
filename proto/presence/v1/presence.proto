@@ -2,7 +2,8 @@ edition = "2023";
 
 package presence.v1;
 
-// PresenceService tracks per-device user presence and aggregate status.
+// PresenceService tracks per-device liveness and a user-level presence
+// preference projected into a public status.
 service PresenceService {
   // RegisterUserSession records one logical Session device for a user.
   // Session calls this after IDENTIFY authenticates the user.
@@ -17,7 +18,8 @@ service PresenceService {
   // transition-aware single-session path.
   rpc RefreshUserSessions(RefreshUserSessionsRequest) returns (RefreshUserSessionsResponse);
 
-  // UpdateUserPresence updates a websocket session's visible presence state.
+  // UpdateUserPresence updates the user's presence preference and/or the
+  // websocket session's client state.
   rpc UpdateUserPresence(UpdateUserPresenceRequest) returns (UpdateUserPresenceResponse);
 
   // RemoveUserSession removes a logical Session when its resume window ends.
@@ -51,10 +53,18 @@ message UserSession {
   string gateway_id = 3;
   string generation = 4;
   string device_type = 5;
-  PresenceStatus status = 6;
+  reserved 6;
+  reserved status;
   ClientState client_state = 7;
   int64 last_seen_at = 8;
   int64 expires_at = 9;
+}
+
+message UserPresencePreference {
+  int64 user_id = 1;
+  PresenceStatus status = 2;
+  // Monotonically increases whenever the user-level preference changes.
+  int64 version = 3;
 }
 
 message UserPresence {
@@ -73,7 +83,9 @@ message RegisterUserSessionRequest {
   string gateway_id = 3;
   string generation = 4;
   string device_type = 5;
-  PresenceStatus status = 6;
+  // Used only to initialize a preference that does not exist yet. Opening a
+  // new session never overwrites an existing user-level preference.
+  PresenceStatus initial_status = 6;
   ClientState client_state = 7;
   // Guild memberships captured by the calling session node; presence
   // transition events fan out through these guild routes.
@@ -82,6 +94,7 @@ message RegisterUserSessionRequest {
 
 message RegisterUserSessionResponse {
   UserPresence presence = 1;
+  UserPresencePreference preference = 2;
 }
 
 message RefreshUserSessionRequest {
@@ -90,7 +103,8 @@ message RefreshUserSessionRequest {
   string gateway_id = 3;
   string generation = 4;
   string device_type = 5;
-  PresenceStatus status = 6;
+  reserved 6;
+  reserved status;
   ClientState client_state = 7;
   // Guild memberships captured by the calling session node; presence
   // transition events fan out through these guild routes.
@@ -121,6 +135,7 @@ message UpdateUserPresenceRequest {
 
 message UpdateUserPresenceResponse {
   UserPresence presence = 1;
+  UserPresencePreference preference = 2;
 }
 
 message RemoveUserSessionRequest {

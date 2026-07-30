@@ -77,6 +77,20 @@ func TestDispatchRecordRoutesReadUpdateByUser(t *testing.T) {
 	require.Equal(t, int64(1001), resolver.id)
 }
 
+func TestDispatchRecordRoutesPresencePreferenceOnlyToUser(t *testing.T) {
+	resolver := &fakeResolver{}
+	server := &Server{resolver: resolver}
+	value := []byte(`{"t":"` + realtime.EventPresencePreferenceUpdated +
+		`","d":{"user_id":"1001","status":"idle","version":"4"},"idempotency_key":"4"}`)
+
+	permanent, err := server.dispatchRecord(t.Context(), &kgo.Record{Value: value})
+
+	require.NoError(t, err)
+	require.False(t, permanent)
+	require.Equal(t, discovery.RouteUser, resolver.kind)
+	require.Equal(t, int64(1001), resolver.id)
+}
+
 func TestDispatchRecordRejectsMessageWithoutAggregateRoute(t *testing.T) {
 	server := &Server{resolver: &fakeResolver{}}
 	value := []byte(`{"t":"` + realtime.EventMessageCreated + `","d":{"id":"1","channel_id":"7001"},"idempotency_key":"4"}`)

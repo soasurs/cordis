@@ -26,7 +26,7 @@ func TestRegisterUserSession(t *testing.T) {
 	req.SetGatewayId("gw-a")
 	req.SetGeneration("gen-1")
 	req.SetDeviceType("desktop")
-	req.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_DND)
+	req.SetInitialStatus(presencev1.PresenceStatus_PRESENCE_STATUS_DND)
 	req.SetClientState(presencev1.ClientState_CLIENT_STATE_BACKGROUND)
 
 	resp, err := server.RegisterUserSession(t.Context(), req)
@@ -38,9 +38,32 @@ func TestRegisterUserSession(t *testing.T) {
 		GatewayID:   "gw-a",
 		Generation:  "gen-1",
 		DeviceType:  "desktop",
-		Status:      store.PresenceStatusDND,
 		ClientState: store.ClientStateBackground,
 	}, fake.upsertedSession)
+	require.Equal(t, store.PresenceStatusDND, fake.preference.Status)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_DND, resp.GetPreference().GetStatus())
+}
+
+func TestRegisterUserSessionPreservesExistingPreference(t *testing.T) {
+	server, fake := newTestServer()
+	fake.preference = &store.UserPresencePreference{
+		UserID: 1001, Status: store.PresenceStatusDND, Version: 100,
+	}
+
+	req := new(presencev1.RegisterUserSessionRequest)
+	req.SetUserId(1001)
+	req.SetSessionId("sess-a")
+	req.SetGatewayId("gw-a")
+	req.SetGeneration("gen-1")
+	req.SetInitialStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
+	req.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
+
+	resp, err := server.RegisterUserSession(t.Context(), req)
+
+	require.NoError(t, err)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_DND, resp.GetPreference().GetStatus())
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_DND, resp.GetPresence().GetStatus())
+	require.Equal(t, store.PresenceStatusDND, fake.preference.Status)
 }
 
 func TestRefreshUserSessions(t *testing.T) {
@@ -54,7 +77,6 @@ func TestRefreshUserSessions(t *testing.T) {
 		item.SetSessionId(sessionID)
 		item.SetGatewayId("gw-a")
 		item.SetGeneration("gen-1")
-		item.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
 		item.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 		items = append(items, item)
 	}
@@ -81,7 +103,7 @@ func TestPresenceMutationsRejectInvalidEnums(t *testing.T) {
 	register.SetSessionId("sess-a")
 	register.SetGatewayId("gw-a")
 	register.SetGeneration("gen-1")
-	register.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE)
+	register.SetInitialStatus(presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE)
 	register.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 	_, err := server.RegisterUserSession(t.Context(), register)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -91,7 +113,6 @@ func TestPresenceMutationsRejectInvalidEnums(t *testing.T) {
 	refresh.SetSessionId("sess-a")
 	refresh.SetGatewayId("gw-a")
 	refresh.SetGeneration("gen-1")
-	refresh.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
 	refresh.SetClientState(presencev1.ClientState_CLIENT_STATE_UNSPECIFIED)
 	_, err = server.RefreshUserSession(t.Context(), refresh)
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
@@ -125,9 +146,39 @@ func TestUpdateUserPresence(t *testing.T) {
 	require.Equal(t, store.UserSession{
 		UserID:      1001,
 		SessionID:   "sess-a",
-		Status:      store.PresenceStatusIdle,
 		ClientState: store.ClientStateBackground,
 	}, fake.updatedSession)
+	require.Equal(t, store.PresenceStatusIdle, fake.preference.Status)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_IDLE, resp.GetPreference().GetStatus())
+}
+
+func TestUpdateUserPresenceInvisibleHidesAllLiveSessions(t *testing.T) {
+	server, fake := newTestServer()
+	fake.preference = &store.UserPresencePreference{
+		UserID: 1001, Status: store.PresenceStatusOnline, Version: 100,
+	}
+	fake.snapshot = &store.UserPresence{
+		UserID: 1001, Status: store.PresenceStatusOnline, Version: 200,
+	}
+	fake.presences = []store.UserPresence{{
+		UserID: 1001, Status: store.PresenceStatusOnline,
+		Sessions: []store.UserSession{
+			{UserID: 1001, SessionID: "sess-a"},
+			{UserID: 1001, SessionID: "sess-b"},
+		},
+	}}
+
+	req := new(presencev1.UpdateUserPresenceRequest)
+	req.SetUserId(1001)
+	req.SetSessionId("sess-a")
+	req.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE)
+
+	resp, err := server.UpdateUserPresence(t.Context(), req)
+
+	require.NoError(t, err)
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE, resp.GetPreference().GetStatus())
+	require.Equal(t, presencev1.PresenceStatus_PRESENCE_STATUS_OFFLINE, resp.GetPresence().GetStatus())
+	require.Len(t, resp.GetPresence().GetSessions(), 2)
 }
 
 func TestRemoveUserSession(t *testing.T) {
@@ -158,7 +209,6 @@ func TestResolveUsersPresence(t *testing.T) {
 					GatewayID:   "gw-a",
 					Generation:  "gen-1",
 					DeviceType:  "desktop",
-					Status:      store.PresenceStatusOnline,
 					ClientState: store.ClientStateForeground,
 					LastSeenAt:  123,
 					ExpiresAt:   456,
@@ -271,6 +321,7 @@ type fakeStore struct {
 	presenceSequence  [][]store.UserPresence
 	missingSessionIDs []string
 	refreshedSessions []store.UserSession
+	preference        *store.UserPresencePreference
 	snapshot          *store.UserPresence
 }
 
@@ -285,9 +336,13 @@ func (s *fakeStore) UpsertUserSession(_ context.Context, session store.UserSessi
 		return store.UserPresence{}, s.err
 	}
 	s.upsertedSession = session
+	status := store.PresenceStatusOffline
+	if s.preference != nil && s.preference.Status != store.PresenceStatusInvisible {
+		status = s.preference.Status
+	}
 	return store.UserPresence{
 		UserID: session.UserID,
-		Status: session.Status,
+		Status: status,
 		Sessions: []store.UserSession{
 			session,
 		},
@@ -307,14 +362,53 @@ func (s *fakeStore) UpdateUserSession(_ context.Context, session store.UserSessi
 		return store.UserPresence{}, s.err
 	}
 	s.updatedSession = session
-	s.presences = []store.UserPresence{{UserID: session.UserID, Status: session.Status}}
+	status := store.PresenceStatusOffline
+	if s.preference != nil && s.preference.Status != store.PresenceStatusInvisible {
+		status = s.preference.Status
+	}
+	s.presences = []store.UserPresence{{UserID: session.UserID, Status: status}}
 	return store.UserPresence{
 		UserID: session.UserID,
-		Status: session.Status,
+		Status: status,
 		Sessions: []store.UserSession{
 			session,
 		},
 	}, nil
+}
+
+func (s *fakeStore) GetUserPresencePreference(
+	_ context.Context,
+	userID int64,
+) (store.UserPresencePreference, bool, error) {
+	if s.err != nil {
+		return store.UserPresencePreference{}, false, s.err
+	}
+	if s.preference == nil || s.preference.UserID != userID {
+		return store.UserPresencePreference{}, false, nil
+	}
+	return *s.preference, true, nil
+}
+
+func (s *fakeStore) SaveUserPresencePreference(
+	_ context.Context,
+	preference store.UserPresencePreference,
+) error {
+	if s.err != nil {
+		return s.err
+	}
+	value := preference
+	s.preference = &value
+	for i := range s.presences {
+		if len(s.presences[i].Sessions) == 0 {
+			continue
+		}
+		if preference.Status == store.PresenceStatusInvisible {
+			s.presences[i].Status = store.PresenceStatusOffline
+		} else {
+			s.presences[i].Status = preference.Status
+		}
+	}
+	return nil
 }
 
 func (s *fakeStore) RemoveUserSession(_ context.Context, userID int64, sessionID string) error {

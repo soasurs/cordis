@@ -67,7 +67,7 @@ func registerRequest(userID int64, status presencev1.PresenceStatus, guildIDs ..
 	req.SetSessionId("sess-1")
 	req.SetGatewayId("gateway-a")
 	req.SetGeneration("gen-1")
-	req.SetStatus(status)
+	req.SetInitialStatus(status)
 	req.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 	req.SetGuildIds(guildIDs)
 	return req
@@ -111,13 +111,16 @@ func mustParseVersion(t *testing.T, value string) int64 {
 func TestRefreshWithUnchangedAggregateStaysSilent(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
 	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOnline, Version: 100}
+	fake.presences = []store.UserPresence{{
+		UserID: 601, Status: store.PresenceStatusOnline,
+		Sessions: []store.UserSession{{UserID: 601, SessionID: "sess-1"}},
+	}}
 
 	req := new(presencev1.RefreshUserSessionRequest)
 	req.SetUserId(601)
 	req.SetSessionId("sess-1")
 	req.SetGatewayId("gateway-a")
 	req.SetGeneration("gen-1")
-	req.SetStatus(presencev1.PresenceStatus_PRESENCE_STATUS_ONLINE)
 	req.SetClientState(presencev1.ClientState_CLIENT_STATE_FOREGROUND)
 	_, err := server.RefreshUserSession(context.Background(), req)
 	require.NoError(t, err)
@@ -136,7 +139,18 @@ func TestUpdatePresencePublishesStatusChange(t *testing.T) {
 	req.SetGuildIds([]int64{11})
 	_, err := server.UpdateUserPresence(context.Background(), req)
 	require.NoError(t, err)
-	require.Len(t, publisher.records, 1)
+	require.Len(t, publisher.records, 2)
+	var types []string
+	for _, record := range publisher.records {
+		var envelope struct {
+			Type string `json:"t"`
+		}
+		require.NoError(t, json.Unmarshal(record.payload, &envelope))
+		types = append(types, envelope.Type)
+	}
+	require.Equal(t, []string{
+		realtime.EventPresencePreferenceUpdated, realtime.EventPresenceUpdated,
+	}, types)
 }
 
 func TestRemoveUserSessionPublishesOffline(t *testing.T) {
@@ -180,6 +194,10 @@ func TestRemoveUserSessionWithoutTransitionStaysSilent(t *testing.T) {
 func TestConcurrentUpdatesPublishInMutationOrder(t *testing.T) {
 	server, fake, publisher := newTestServerWithPublisher()
 	fake.snapshot = &store.UserPresence{UserID: 601, Status: store.PresenceStatusOnline, Version: 100}
+	fake.presences = []store.UserPresence{{
+		UserID: 601, Status: store.PresenceStatusOnline,
+		Sessions: []store.UserSession{{UserID: 601, SessionID: "sess-1"}},
+	}}
 	publisher.publishStart = make(chan struct{}, 1)
 	publisher.publishBlock = make(chan struct{})
 
@@ -219,7 +237,7 @@ func TestConcurrentUpdatesPublishInMutationOrder(t *testing.T) {
 	publisher.mu.Lock()
 	records := append([]publishedPresenceRecord(nil), publisher.records...)
 	publisher.mu.Unlock()
-	require.Len(t, records, 2)
+	require.Len(t, records, 4)
 	require.Equal(t, []int32{int32(store.PresenceStatusDND), int32(store.PresenceStatusIdle)}, publishedStatuses(t, records))
 }
 
@@ -228,12 +246,18 @@ func publishedStatuses(t *testing.T, records []publishedPresenceRecord) []int32 
 	statuses := make([]int32, 0, len(records))
 	for _, record := range records {
 		var envelope struct {
-			Data struct {
-				Status int32 `json:"status"`
-			} `json:"d"`
+			Type string          `json:"t"`
+			Data json.RawMessage `json:"d"`
 		}
 		require.NoError(t, json.Unmarshal(record.payload, &envelope))
-		statuses = append(statuses, envelope.Data.Status)
+		if envelope.Type != realtime.EventPresenceUpdated {
+			continue
+		}
+		var payload struct {
+			Status int32 `json:"status"`
+		}
+		require.NoError(t, json.Unmarshal(envelope.Data, &payload))
+		statuses = append(statuses, payload.Status)
 	}
 	return statuses
 }

@@ -317,12 +317,22 @@ func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (perman
 			return true, errors.New("message event aggregate route is invalid")
 		}
 	default:
-		if strings.HasPrefix(event.Type, "presence.") {
+		if event.Type == realtime.EventPresencePreferenceUpdated {
+			userID := int64(routing.UserID)
+			if userID <= 0 {
+				return true, errors.New("presence preference event user id is invalid")
+			}
+			return false, s.dispatchUser(ctx, userID, event, idempotencyKey)
+		}
+		if event.Type == realtime.EventPresenceUpdated {
 			userID := int64(routing.UserID)
 			if userID <= 0 {
 				return true, errors.New("presence event user id is invalid")
 			}
 			return false, s.dispatchPresence(ctx, userID, event, routing, idempotencyKey)
+		}
+		if strings.HasPrefix(event.Type, "presence.") {
+			return true, errors.New("unsupported presence event type")
 		}
 		// relationship.* and dm.* records are user-routed: the payload
 		// user_id names the recipient.
@@ -592,7 +602,8 @@ func isCanonicalEventType(eventType string) bool {
 		realtime.EventRelationshipRemoved,
 		realtime.EventUserProfileUpdated,
 		realtime.EventDmChannelCreated,
-		realtime.EventPresenceUpdated:
+		realtime.EventPresenceUpdated,
+		realtime.EventPresencePreferenceUpdated:
 		return true
 	default:
 		return false

@@ -16,15 +16,16 @@ import (
 )
 
 type readyPayload struct {
-	UserID               string           `json:"user_id"`
-	AuthSessionID        string           `json:"auth_session_id"`
-	SessionID            string           `json:"session_id"`
-	SessionNodeID        string           `json:"session_node_id"`
-	AccessTokenExpiresAt int64            `json:"access_token_expires_at"`
-	Guilds               []readyGuild     `json:"guilds"`
-	DmChannels           []readyDmChannel `json:"dm_channels"`
-	ReadStates           []readyReadState `json:"read_states"`
-	Presences            []readyPresence  `json:"presences"`
+	UserID               string                  `json:"user_id"`
+	AuthSessionID        string                  `json:"auth_session_id"`
+	SessionID            string                  `json:"session_id"`
+	SessionNodeID        string                  `json:"session_node_id"`
+	AccessTokenExpiresAt int64                   `json:"access_token_expires_at"`
+	Guilds               []readyGuild            `json:"guilds"`
+	DmChannels           []readyDmChannel        `json:"dm_channels"`
+	ReadStates           []readyReadState        `json:"read_states"`
+	Presences            []readyPresence         `json:"presences"`
+	PresencePreference   readyPresencePreference `json:"presence_preference"`
 }
 
 type readyGuild struct {
@@ -111,6 +112,11 @@ type readyPresence struct {
 	Version    string `json:"version"`
 }
 
+type readyPresencePreference struct {
+	Status  string `json:"status"`
+	Version string `json:"version"`
+}
+
 func marshalReady(
 	session *logicalSession,
 	accessTokenExpiresAt int64,
@@ -118,6 +124,7 @@ func marshalReady(
 	messages *messagev1.GetUserReadyStateResponse,
 	profiles map[int64]*userv1.UserProfile,
 	presences []*presencev1.UserPresence,
+	preference *presencev1.UserPresencePreference,
 	nodeID string,
 ) ([]byte, error) {
 	payload := readyPayload{
@@ -130,8 +137,24 @@ func marshalReady(
 		DmChannels:           readyDmChannelValues(session.userID, messages.GetDmChannels(), profiles),
 		ReadStates:           readyReadStateValues(messages.GetReadStates()),
 		Presences:            readyPresenceValues(presences),
+		PresencePreference: readyPresencePreference{
+			Status: presencePreferenceName(preference.GetStatus()), Version: idString(preference.GetVersion()),
+		},
 	}
 	return json.Marshal(payload)
+}
+
+func presencePreferenceName(statusValue presencev1.PresenceStatus) string {
+	switch statusValue {
+	case presencev1.PresenceStatus_PRESENCE_STATUS_IDLE:
+		return "idle"
+	case presencev1.PresenceStatus_PRESENCE_STATUS_DND:
+		return "dnd"
+	case presencev1.PresenceStatus_PRESENCE_STATUS_INVISIBLE:
+		return "invisible"
+	default:
+		return "online"
+	}
 }
 
 func readyPresenceValues(values []*presencev1.UserPresence) []readyPresence {

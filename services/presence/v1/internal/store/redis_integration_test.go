@@ -23,8 +23,12 @@ func TestRedisStoreUserPresenceLifecycle(t *testing.T) {
 	sessionA := "sess-a-" + time.Now().Format("150405.000000000")
 	sessionB := "sess-b-" + time.Now().Format("150405.000000000")
 	t.Cleanup(func() {
-		_, _ = rds.DelCtx(ctx, userSessionsKey(userID), userSessionKey(sessionA), userSessionKey(sessionB))
+		_, _ = rds.DelCtx(ctx, userSessionsKey(userID), userSessionKey(sessionA), userSessionKey(sessionB),
+			userPresencePreferenceKey(userID))
 	})
+	require.NoError(t, store.SaveUserPresencePreference(ctx, UserPresencePreference{
+		UserID: userID, Status: PresenceStatusOnline, Version: 1,
+	}))
 
 	presence, err := store.UpsertUserSession(ctx, UserSession{
 		UserID:      userID,
@@ -32,7 +36,6 @@ func TestRedisStoreUserPresenceLifecycle(t *testing.T) {
 		GatewayID:   "gw-a",
 		Generation:  "gen-1",
 		DeviceType:  "desktop",
-		Status:      PresenceStatusOnline,
 		ClientState: ClientStateForeground,
 	})
 	require.NoError(t, err)
@@ -46,12 +49,14 @@ func TestRedisStoreUserPresenceLifecycle(t *testing.T) {
 		GatewayID:   "gw-b",
 		Generation:  "gen-1",
 		DeviceType:  "mobile",
-		Status:      PresenceStatusDND,
 		ClientState: ClientStateBackground,
 	})
 	require.NoError(t, err)
-	require.Equal(t, PresenceStatusDND, presence.Status)
+	require.Equal(t, PresenceStatusOnline, presence.Status)
 	require.Len(t, presence.Sessions, 2)
+	require.NoError(t, store.SaveUserPresencePreference(ctx, UserPresencePreference{
+		UserID: userID, Status: PresenceStatusDND, Version: 2,
+	}))
 	missing, err := store.RefreshUserSessions(ctx, []UserSession{
 		{UserID: userID, SessionID: sessionA, GatewayID: "gw-a", Generation: "gen-1"},
 		{UserID: userID, SessionID: "missing", GatewayID: "gw-a", Generation: "gen-1"},
@@ -69,18 +74,17 @@ func TestRedisStoreUserPresenceLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	resolved, err = store.ResolveUsersPresence(ctx, []int64{userID})
 	require.NoError(t, err)
-	require.Equal(t, PresenceStatusOnline, resolved[0].Status)
+	require.Equal(t, PresenceStatusDND, resolved[0].Status)
 	require.Len(t, resolved[0].Sessions, 1)
 	require.Equal(t, sessionA, resolved[0].Sessions[0].SessionID)
 
 	presence, err = store.UpdateUserSession(ctx, UserSession{
 		UserID:      userID,
 		SessionID:   sessionA,
-		Status:      PresenceStatusIdle,
 		ClientState: ClientStateBackground,
 	})
 	require.NoError(t, err)
-	require.Equal(t, PresenceStatusIdle, presence.Status)
+	require.Equal(t, PresenceStatusDND, presence.Status)
 	require.Len(t, presence.Sessions, 1)
 	require.Equal(t, "gw-a", presence.Sessions[0].GatewayID)
 	require.Equal(t, "desktop", presence.Sessions[0].DeviceType)
@@ -94,15 +98,18 @@ func TestRedisStoreInvisiblePresenceResolvesOffline(t *testing.T) {
 	userID := time.Now().UnixNano()
 	sessionID := "sess-invisible-" + time.Now().Format("150405.000000000")
 	t.Cleanup(func() {
-		_, _ = rds.DelCtx(ctx, userSessionsKey(userID), userSessionKey(sessionID))
+		_, _ = rds.DelCtx(ctx, userSessionsKey(userID), userSessionKey(sessionID),
+			userPresencePreferenceKey(userID))
 	})
+	require.NoError(t, store.SaveUserPresencePreference(ctx, UserPresencePreference{
+		UserID: userID, Status: PresenceStatusInvisible, Version: 1,
+	}))
 
 	_, err := store.UpsertUserSession(ctx, UserSession{
 		UserID:      userID,
 		SessionID:   sessionID,
 		GatewayID:   "gw-a",
 		Generation:  "gen-1",
-		Status:      PresenceStatusInvisible,
 		ClientState: ClientStateForeground,
 	})
 	require.NoError(t, err)
@@ -111,7 +118,7 @@ func TestRedisStoreInvisiblePresenceResolvesOffline(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resolved, 1)
 	require.Equal(t, PresenceStatusOffline, resolved[0].Status)
-	require.Empty(t, resolved[0].Sessions)
+	require.Len(t, resolved[0].Sessions, 1)
 }
 
 func TestRedisStoreFiltersExpiredUserSessions(t *testing.T) {
@@ -121,8 +128,12 @@ func TestRedisStoreFiltersExpiredUserSessions(t *testing.T) {
 	userID := time.Now().UnixNano()
 	sessionID := "sess-expired-" + time.Now().Format("150405.000000000")
 	t.Cleanup(func() {
-		_, _ = rds.DelCtx(ctx, userSessionsKey(userID), userSessionKey(sessionID))
+		_, _ = rds.DelCtx(ctx, userSessionsKey(userID), userSessionKey(sessionID),
+			userPresencePreferenceKey(userID))
 	})
+	require.NoError(t, store.SaveUserPresencePreference(ctx, UserPresencePreference{
+		UserID: userID, Status: PresenceStatusOnline, Version: 1,
+	}))
 
 	base := time.UnixMilli(1000)
 	store.now = func() time.Time { return base }
@@ -131,7 +142,6 @@ func TestRedisStoreFiltersExpiredUserSessions(t *testing.T) {
 		SessionID:   sessionID,
 		GatewayID:   "gw-a",
 		Generation:  "gen-1",
-		Status:      PresenceStatusOnline,
 		ClientState: ClientStateForeground,
 	})
 	require.NoError(t, err)

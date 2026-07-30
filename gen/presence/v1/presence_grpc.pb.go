@@ -31,7 +31,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// PresenceService tracks per-device user presence and aggregate status.
+// PresenceService tracks per-device liveness and a user-level presence
+// preference projected into a public status.
 type PresenceServiceClient interface {
 	// RegisterUserSession records one logical Session device for a user.
 	// Session calls this after IDENTIFY authenticates the user.
@@ -43,7 +44,8 @@ type PresenceServiceClient interface {
 	// Missing leases are returned so Session can register them through the
 	// transition-aware single-session path.
 	RefreshUserSessions(ctx context.Context, in *RefreshUserSessionsRequest, opts ...grpc.CallOption) (*RefreshUserSessionsResponse, error)
-	// UpdateUserPresence updates a websocket session's visible presence state.
+	// UpdateUserPresence updates the user's presence preference and/or the
+	// websocket session's client state.
 	UpdateUserPresence(ctx context.Context, in *UpdateUserPresenceRequest, opts ...grpc.CallOption) (*UpdateUserPresenceResponse, error)
 	// RemoveUserSession removes a logical Session when its resume window ends.
 	// Sessions lost with their node are cleaned up by TTL.
@@ -126,7 +128,8 @@ func (c *presenceServiceClient) ResolveUsersPresence(ctx context.Context, in *Re
 // All implementations should embed UnimplementedPresenceServiceServer
 // for forward compatibility.
 //
-// PresenceService tracks per-device user presence and aggregate status.
+// PresenceService tracks per-device liveness and a user-level presence
+// preference projected into a public status.
 type PresenceServiceServer interface {
 	// RegisterUserSession records one logical Session device for a user.
 	// Session calls this after IDENTIFY authenticates the user.
@@ -138,7 +141,8 @@ type PresenceServiceServer interface {
 	// Missing leases are returned so Session can register them through the
 	// transition-aware single-session path.
 	RefreshUserSessions(context.Context, *RefreshUserSessionsRequest) (*RefreshUserSessionsResponse, error)
-	// UpdateUserPresence updates a websocket session's visible presence state.
+	// UpdateUserPresence updates the user's presence preference and/or the
+	// websocket session's client state.
 	UpdateUserPresence(context.Context, *UpdateUserPresenceRequest) (*UpdateUserPresenceResponse, error)
 	// RemoveUserSession removes a logical Session when its resume window ends.
 	// Sessions lost with their node are cleaned up by TTL.

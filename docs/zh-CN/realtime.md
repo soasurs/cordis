@@ -29,9 +29,9 @@ Gateway 实例身份包含 ID 与 generation，可区分同名进程重启。逻
 }
 ```
 
-`status` 缺失时默认为 `online`，`client_state` 缺失时默认为 `foreground`。显式提供时，`status` 只接受 `online`、`idle`、`dnd`、`invisible`，`client_state` 只接受 `foreground`、`background`。`offline`、`null`、非字符串、空字符串和未知值均无效；`invisible` 在对其他用户公开的聚合结果中表现为 offline。
+`status` 缺失时保留已有的用户级偏好，仅在偏好尚不存在时初始化为 `online`；`client_state` 缺失时默认为 `foreground`。显式提供时，`status` 只接受 `online`、`idle`、`dnd`、`invisible`，`client_state` 只接受 `foreground`、`background`。`offline`、`null`、非字符串、空字符串和未知值均无效。IDENTIFY 中的 status 只作为首次初始化提示，不能覆盖已有偏好。
 
-连接建立后，客户端发送 opcode `3` 部分更新当前逻辑 Session。缺失字段保留现值，至少必须提供一个字段：
+连接建立后，客户端发送 opcode `3`，部分更新用户级 status 偏好和/或当前逻辑 Session 的 client state。缺失字段保留现值，至少必须提供一个字段：
 
 ```json
 {"op":3,"d":{"status":"idle"}}
@@ -39,11 +39,13 @@ Gateway 实例身份包含 ID 与 generation，可区分同名进程重启。逻
 {"op":3,"d":{"status":"invisible","client_state":"foreground"}}
 ```
 
-`status` 通常来自用户的状态选择；`client_state` 应由客户端根据页面可见性、窗口焦点或应用生命周期自动维护。每个设备或页面的逻辑 Session 独立保存这两个值，Presence 服务再聚合用户的所有活动 Session。`RESUME` 保留原逻辑 Session 的值，需要改变时再发送 opcode `3`。
+`status` 通常来自用户的状态选择，并由该用户的所有 Session 共享；Session 不再独立保存 status。`client_state` 仍由每个客户端根据页面可见性、窗口焦点或应用生命周期独立维护。没有活动 Session 时公开状态为 offline；偏好为 `invisible` 时公开状态也为 offline；其他情况下公开状态等于用户偏好。`RESUME` 保留当前逻辑 Session 的 client state。
 
 Gateway 对非法输入返回带稳定 code 的 `error` 事件：空更新为 `presence_update_empty`，非法 status 为 `presence_status_invalid`，非法 client state 为 `presence_client_state_invalid`。Session 和 Presence 内部服务也会以 `InvalidArgument` 拒绝绕过 Gateway 的非法值。
 
-`ready` payload 的 `presences` 数组包含用户本人和所有去重后的 DM 对端，但不包含全部 Guild 成员。每项提供 `user_id`、聚合 `status`、`last_seen_at` 和 `version`；WebSocket JSON 中的 ID 与 version 都是十进制字符串。客户端应为每个用户保留已见过的最大 version，仅当后续 `presence.updated` 的 version 更大时应用事件。这样即使 READY 组装期间缓冲的事件与快照代表同一次聚合变化，也不会回退状态。
+`ready` payload 的 `presence_preference` 提供当前用户私有的 `status` 和偏好 `version`；`presences` 数组包含用户本人和所有去重后的 DM 对端，但不包含全部 Guild 成员。每项提供 `user_id`、公开 `status`、`last_seen_at` 和公开状态 `version`；WebSocket JSON 中的 ID 与 version 都是十进制字符串。客户端应分别维护偏好 version，并为每个用户保留已见过的最大公开状态 version，仅当后续事件 version 更大时应用。这样即使 READY 组装期间缓冲的事件与快照代表同一次变化，也不会回退状态。
+
+用户偏好变化后，私有的 `presence.preference.updated` 只沿 user route 同步到该用户的全部 Session，携带真实 `status` 和独立单调递增的 `version`，不会暴露给 Guild 成员或好友。公开的 `presence.updated` 仍将 `invisible` 投影为 offline。Session 节点会在 WebSocket 投递前按用户和事件幂等键消除 Guild 与 user 重叠路由造成的重复；客户端仍需按 version 处理回放和至少一次投递。
 
 ## Sequence、ACK 与回放
 

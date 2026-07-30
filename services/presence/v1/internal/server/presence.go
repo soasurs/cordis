@@ -15,21 +15,40 @@ func (s *presenceServer) RegisterUserSession(ctx context.Context, req *presencev
 	if err := validateUserSessionRequest(req.GetUserId(), req.GetSessionId(), req.GetGatewayId(), req.GetGeneration()); err != nil {
 		return nil, err
 	}
-	statusValue, clientState, err := presenceValuesToStore(req.GetStatus(), req.GetClientState())
+	clientState, err := protoClientStateToStore(req.GetClientState())
 	if err != nil {
 		return nil, err
 	}
+	initialStatus := store.PresenceStatusOnline
+	if req.HasInitialStatus() {
+		initialStatus, err = protoStatusToStore(req.GetInitialStatus())
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
-		return s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
+	var (
+		presence   store.UserPresence
+		preference store.UserPresencePreference
+	)
+	err = s.svcCtx.Store.WithUserMutation(ctx, req.GetUserId(), func(ctx context.Context) error {
+		preference, err = s.ensureUserPresencePreference(ctx, req.GetUserId(), initialStatus)
+		if err != nil {
+			return err
+		}
+		live, err := s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
 			UserID:      req.GetUserId(),
 			SessionID:   req.GetSessionId(),
 			GatewayID:   req.GetGatewayId(),
 			Generation:  req.GetGeneration(),
 			DeviceType:  req.GetDeviceType(),
-			Status:      statusValue,
 			ClientState: clientState,
 		})
+		if err != nil {
+			return err
+		}
+		presence, err = s.reconcileAndPublish(ctx, req.GetUserId(), req.GetGuildIds(), live)
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -37,6 +56,7 @@ func (s *presenceServer) RegisterUserSession(ctx context.Context, req *presencev
 
 	resp := new(presencev1.RegisterUserSessionResponse)
 	resp.SetPresence(userPresenceToProto(presence))
+	resp.SetPreference(userPresencePreferenceToProto(preference))
 	return resp, nil
 }
 
@@ -44,21 +64,29 @@ func (s *presenceServer) RefreshUserSession(ctx context.Context, req *presencev1
 	if err := validateUserSessionRequest(req.GetUserId(), req.GetSessionId(), req.GetGatewayId(), req.GetGeneration()); err != nil {
 		return nil, err
 	}
-	statusValue, clientState, err := presenceValuesToStore(req.GetStatus(), req.GetClientState())
+	clientState, err := protoClientStateToStore(req.GetClientState())
 	if err != nil {
 		return nil, err
 	}
 
-	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
-		return s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
+	var presence store.UserPresence
+	err = s.svcCtx.Store.WithUserMutation(ctx, req.GetUserId(), func(ctx context.Context) error {
+		if _, err := s.ensureUserPresencePreference(ctx, req.GetUserId(), store.PresenceStatusOnline); err != nil {
+			return err
+		}
+		live, err := s.svcCtx.Store.UpsertUserSession(ctx, store.UserSession{
 			UserID:      req.GetUserId(),
 			SessionID:   req.GetSessionId(),
 			GatewayID:   req.GetGatewayId(),
 			Generation:  req.GetGeneration(),
 			DeviceType:  req.GetDeviceType(),
-			Status:      statusValue,
 			ClientState: clientState,
 		})
+		if err != nil {
+			return err
+		}
+		presence, err = s.reconcileAndPublish(ctx, req.GetUserId(), req.GetGuildIds(), live)
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -82,7 +110,7 @@ func (s *presenceServer) RefreshUserSessions(ctx context.Context, req *presencev
 		if err := validateUserSessionRequest(item.GetUserId(), item.GetSessionId(), item.GetGatewayId(), item.GetGeneration()); err != nil {
 			return nil, err
 		}
-		statusValue, clientState, err := presenceValuesToStore(item.GetStatus(), item.GetClientState())
+		clientState, err := protoClientStateToStore(item.GetClientState())
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +121,7 @@ func (s *presenceServer) RefreshUserSessions(ctx context.Context, req *presencev
 		sessions = append(sessions, store.UserSession{
 			UserID: item.GetUserId(), SessionID: item.GetSessionId(), GatewayID: item.GetGatewayId(),
 			Generation: item.GetGeneration(), DeviceType: item.GetDeviceType(),
-			Status: statusValue, ClientState: clientState,
+			ClientState: clientState,
 		})
 	}
 	missing, err := s.svcCtx.Store.RefreshUserSessions(ctx, sessions)
@@ -112,18 +140,68 @@ func (s *presenceServer) UpdateUserPresence(ctx context.Context, req *presencev1
 	if req.GetSessionId() == "" {
 		return nil, errSessionIDRequired
 	}
-	statusValue, clientState, err := presenceValuesToStore(req.GetStatus(), req.GetClientState())
-	if err != nil {
-		return nil, err
+	if !req.HasStatus() && !req.HasClientState() {
+		return nil, status.Error(codes.InvalidArgument, "presence update must include status or client_state")
+	}
+	var (
+		statusValue store.PresenceStatus
+		clientState store.ClientState
+		err         error
+	)
+	if req.HasStatus() {
+		statusValue, err = protoStatusToStore(req.GetStatus())
+		if err != nil {
+			return nil, err
+		}
+	}
+	if req.HasClientState() {
+		clientState, err = protoClientStateToStore(req.GetClientState())
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	presence, err := s.mutateUserPresence(ctx, req.GetUserId(), req.GetGuildIds(), func(ctx context.Context) (store.UserPresence, error) {
-		return s.svcCtx.Store.UpdateUserSession(ctx, store.UserSession{
-			UserID:      req.GetUserId(),
-			SessionID:   req.GetSessionId(),
-			Status:      statusValue,
-			ClientState: clientState,
-		})
+	var (
+		presence   store.UserPresence
+		preference store.UserPresencePreference
+	)
+	err = s.svcCtx.Store.WithUserMutation(ctx, req.GetUserId(), func(ctx context.Context) error {
+		preference, err = s.ensureUserPresencePreference(ctx, req.GetUserId(), store.PresenceStatusOnline)
+		if err != nil {
+			return err
+		}
+		if req.HasStatus() && preference.Status != statusValue {
+			preference.Status = statusValue
+			preference.Version, err = s.nextVersion(preference.Version)
+			if err != nil {
+				return err
+			}
+			if err := s.svcCtx.Store.SaveUserPresencePreference(ctx, preference); err != nil {
+				return err
+			}
+			s.publishPreferenceTransition(ctx, preference)
+		}
+
+		var live store.UserPresence
+		if req.HasClientState() {
+			live, err = s.svcCtx.Store.UpdateUserSession(ctx, store.UserSession{
+				UserID: req.GetUserId(), SessionID: req.GetSessionId(), ClientState: clientState,
+			})
+		} else {
+			var values []store.UserPresence
+			values, err = s.svcCtx.Store.ResolveUsersPresence(ctx, []int64{req.GetUserId()})
+			if err == nil && len(values) != 1 {
+				return status.Error(codes.Internal, "presence store returned an invalid response")
+			}
+			if err == nil {
+				live = values[0]
+			}
+		}
+		if err != nil {
+			return err
+		}
+		presence, err = s.reconcileAndPublish(ctx, req.GetUserId(), req.GetGuildIds(), live)
+		return err
 	})
 	if err != nil {
 		return nil, err
@@ -131,6 +209,7 @@ func (s *presenceServer) UpdateUserPresence(ctx context.Context, req *presencev1
 
 	resp := new(presencev1.UpdateUserPresenceResponse)
 	resp.SetPresence(userPresenceToProto(presence))
+	resp.SetPreference(userPresencePreferenceToProto(preference))
 	return resp, nil
 }
 
@@ -171,29 +250,56 @@ func (s *presenceServer) RemoveUserSession(ctx context.Context, req *presencev1.
 	return resp, nil
 }
 
-func (s *presenceServer) mutateUserPresence(
+func (s *presenceServer) reconcileAndPublish(
 	ctx context.Context,
 	userID int64,
 	guildIDs []int64,
-	mutate func(context.Context) (store.UserPresence, error),
+	live store.UserPresence,
 ) (store.UserPresence, error) {
-	var presence store.UserPresence
-	err := s.svcCtx.Store.WithUserMutation(ctx, userID, func(ctx context.Context) error {
-		live, err := mutate(ctx)
-		if err != nil {
-			return err
-		}
-		var changed bool
-		presence, changed, err = s.reconcileUserPresence(ctx, userID, live)
-		if err != nil {
-			return err
-		}
-		if changed {
-			s.publishTransition(ctx, presence, guildIDs)
-		}
-		return nil
-	})
-	return presence, err
+	presence, changed, err := s.reconcileUserPresence(ctx, userID, live)
+	if err != nil {
+		return store.UserPresence{}, err
+	}
+	if changed {
+		s.publishTransition(ctx, presence, guildIDs)
+	}
+	return presence, nil
+}
+
+func (s *presenceServer) ensureUserPresencePreference(
+	ctx context.Context,
+	userID int64,
+	initialStatus store.PresenceStatus,
+) (store.UserPresencePreference, error) {
+	preference, known, err := s.svcCtx.Store.GetUserPresencePreference(ctx, userID)
+	if err != nil {
+		return store.UserPresencePreference{}, err
+	}
+	if known {
+		return preference, nil
+	}
+	version, err := s.nextVersion(0)
+	if err != nil {
+		return store.UserPresencePreference{}, err
+	}
+	preference = store.UserPresencePreference{
+		UserID: userID, Status: initialStatus, Version: version,
+	}
+	if err := s.svcCtx.Store.SaveUserPresencePreference(ctx, preference); err != nil {
+		return store.UserPresencePreference{}, err
+	}
+	return preference, nil
+}
+
+func (s *presenceServer) nextVersion(previous int64) (int64, error) {
+	version := s.svcCtx.Snowflake.Generate().Int64()
+	if version > previous {
+		return version, nil
+	}
+	if previous == math.MaxInt64 {
+		return 0, status.Error(codes.Internal, "presence version is exhausted")
+	}
+	return previous + 1, nil
 }
 
 func (s *presenceServer) ResolveUsersPresence(ctx context.Context, req *presencev1.ResolveUsersPresenceRequest) (*presencev1.ResolveUsersPresenceResponse, error) {
@@ -243,12 +349,9 @@ func (s *presenceServer) reconcileUserPresence(
 	}
 	changed := !known || previous.Status != live.Status
 	if changed {
-		live.Version = s.svcCtx.Snowflake.Generate().Int64()
-		if known && live.Version <= previous.Version {
-			if previous.Version == math.MaxInt64 {
-				return store.UserPresence{}, false, status.Error(codes.Internal, "presence version is exhausted")
-			}
-			live.Version = previous.Version + 1
+		live.Version, err = s.nextVersion(previous.Version)
+		if err != nil {
+			return store.UserPresence{}, false, err
 		}
 	} else {
 		live.Version = previous.Version
@@ -284,10 +387,19 @@ func userSessionToProto(session store.UserSession) *presencev1.UserSession {
 	msg.SetGatewayId(session.GatewayID)
 	msg.SetGeneration(session.Generation)
 	msg.SetDeviceType(session.DeviceType)
-	msg.SetStatus(storeStatusToProto(session.Status))
 	msg.SetClientState(storeClientStateToProto(session.ClientState))
 	msg.SetLastSeenAt(session.LastSeenAt)
 	msg.SetExpiresAt(session.ExpiresAt)
+	return msg
+}
+
+func userPresencePreferenceToProto(
+	preference store.UserPresencePreference,
+) *presencev1.UserPresencePreference {
+	msg := new(presencev1.UserPresencePreference)
+	msg.SetUserId(preference.UserID)
+	msg.SetStatus(storeStatusToProto(preference.Status))
+	msg.SetVersion(preference.Version)
 	return msg
 }
 
@@ -311,21 +423,6 @@ func userPresencesToProto(presences []store.UserPresence) []*presencev1.UserPres
 		values = append(values, userPresenceToProto(presence))
 	}
 	return values
-}
-
-func presenceValuesToStore(
-	status presencev1.PresenceStatus,
-	clientState presencev1.ClientState,
-) (store.PresenceStatus, store.ClientState, error) {
-	statusValue, err := protoStatusToStore(status)
-	if err != nil {
-		return 0, 0, err
-	}
-	clientStateValue, err := protoClientStateToStore(clientState)
-	if err != nil {
-		return 0, 0, err
-	}
-	return statusValue, clientStateValue, nil
 }
 
 func protoStatusToStore(status presencev1.PresenceStatus) (store.PresenceStatus, error) {

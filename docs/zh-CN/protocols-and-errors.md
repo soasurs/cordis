@@ -29,11 +29,14 @@ layout revision；Resume 继续使用现有 event replay 协议，不额外携�
 ## 创建请求幂等
 
 创建类 RPC `CreateMessage`、`CreateGuild`、`CreateGuildRole`、
-`CreateGuildChannel` 和 `CreateGuildInvite` 支持可选的 `idempotency_key`。
-存在时不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。key 的作用域
-由认证 actor 和 operation 共同决定，包括 `message.create`、`guild.create`、
-`guild.role.create`、`guild.channel.create` 和 `guild.invite.create`。客户端
-应为每次业务意图生成新 key，仅在重试同一意图时复用。
+`CreateGuildChannel`、`CreateGuildInvite`、`CreateAvatarUpload`、
+`CreateGuildIconUpload` 和 `CreateAttachmentUpload` 支持可选的
+`idempotency_key`。存在时不得为空、首尾不得有空白，长度最多为 255 个
+UTF-8 字节。key 的作用域由认证 actor 和 operation 共同决定，包括
+`message.create`、`guild.create`、`guild.role.create`、
+`guild.channel.create`、`guild.invite.create`、`media.create.user_avatar`、
+`media.create.guild_icon` 和 `media.create.message_attachment`。客户端应为
+每次业务意图生成新 key，仅在重试同一意图时复用。
 
 资源所属服务会保存规范化请求的 SHA-256 指纹。消息指纹包含 channel、正文、
 规范化后的 type、flags、引用消息、按提交顺序排列的附件 asset ID 和规范化后
@@ -42,10 +45,20 @@ layout revision；Resume 继续使用现有 event replay 协议，不额外携�
 `expires_in_ms`（邀请）。相同 key 与相同指纹会返回第一次创建的资源；相同
 key 搭配不同参数时返回 `InvalidArgument`，公开 code 为
 `request.idempotency_key_reused`。记录按 operation 保留（CreateMessage 默认
-30 分钟，Guild 创建类 RPC 默认 24 小时）；不携带 key 的请求继续兼容旧客户
-端。重试仍会执行正常的认证、授权和请求校验；这些检查可以返回原有错误，但
-不会创建新资源。TTL 按 operation 独立配置，因为不同创建类 RPC 的重试窗口
-可能不同。
+30 分钟，Guild 创建类 RPC 和上传类 RPC 默认 24 小时）；不携带 key 的请求
+继续兼容旧客户端。上传 key 的保留时间不会低于 upload session TTL，保证
+整个上传窗口内重试仍然有效。重试仍会执行正常的认证、授权和请求校验；这些
+检查可以返回原有错误，但不会创建新资源。TTL 按 operation 独立配置，因为
+不同创建类 RPC 的重试窗口可能不同。
+
+上传指纹包含 actor、上传 purpose 及其目标（用户、Guild 或频道）、期望大小、
+规范化后的 content type，以及附件存在时的 filename。相同 key 的重试返回
+同一个 `upload_id`，不会再次创建 asset 或重复消耗上传配额。asset 仍处于
+`CREATED` 时，Media 会为同一个 object key 重新签发 presigned PUT URL；
+不同重试之间 URL 和过期时间可能变化，但 asset ID 永远不变。重试时 asset
+已处于 `COMPLETING`、`READY`、`FAILED`、`ABORTED` 或 `EXPIRED` 的，返回
+同一个 `upload_id` 且不附带 presigned URL，也不会改变 asset 状态；客户端
+继续使用 `CompleteUpload` 或 `AbortUpload`，二者已按 upload ID 幂等。
 
 ## 可用性检查与头像约束
 

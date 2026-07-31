@@ -168,6 +168,15 @@ retain their existing behavior, and different actors never share key scope.
 The idempotency record and the resource writes are transactional; each
 operation's retention period is configurable independently.
 
+`CreateAvatarUpload`, `CreateGuildIconUpload`, and `CreateAttachmentUpload`
+accept the same optional key, forwarded from the API through the owning domain
+service to Media. Keys are scoped per kind (`media.create.user_avatar`,
+`media.create.guild_icon`, `media.create.message_attachment`) and retained for
+24 hours by default, never below the upload session TTL. A retry returns the
+same upload ID and, while the asset is still `CREATED`, a fresh presigned PUT
+URL for the same object key; it never creates another asset or consumes the
+upload quota again. See the protocol documentation for the full semantics.
+
 Internal `GetUserReadyState` returns the user's complete READY Guild bootstrap
 in one call: Guild metadata, all roles, the member's explicit role IDs, and
 visible channels together with their permission overwrites and the

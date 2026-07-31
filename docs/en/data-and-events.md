@@ -65,3 +65,10 @@ and `CreateGuildInvite`) commit their idempotency record in the same
 transaction as the resource writes. A same-key retry returns the originally
 created resource without republishing creation, channel-shift, or overwrite
 events. The same best-effort publication window applies.
+
+Upload creation RPCs (`CreateAvatarUpload`, `CreateGuildIconUpload`,
+`CreateAttachmentUpload`) commit their idempotency record in the same
+transaction as the asset write. A same-key retry returns the same upload
+without creating another asset or consuming the quota again; Media publishes
+no creation events itself, so upload idempotency has no event-suppression
+concerns.

@@ -54,8 +54,9 @@ retrying that intent.
 
 The owning service stores a SHA-256 fingerprint of the normalized request. For
 messages it includes the channel, content, normalized type, flags, references,
-attachment asset IDs in their submitted order, and normalized mention IDs. For
-Guild resources it covers the normalized name (Guilds, roles, channels) and
+attachment asset IDs in their submitted order, and the parsed mention set
+(user IDs, role IDs, and the everyone flag; fingerprint version 2). For Guild
+resources it covers the normalized name (Guilds, roles, channels) and
 channel type, the submitted topic and parent (channels), permissions (roles),
 and the original relative `expires_in_ms` (invites). The same key and fingerprint
 returns the originally created resource; the same key with different

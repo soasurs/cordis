@@ -1,6 +1,6 @@
 # 服务端 Mention 解析与展开设计
 
-> 状态：设计提案，等待评审。评审通过后按本文实现，并同步英文文档及 `services.md`、`protocols-and-errors.md`、`data-and-events.md` 的相关章节。
+> 状态：已实现。本文描述当前代码库行为，英文版见 [mention-expansion.md](../en/mention-expansion.md)。
 
 ## 1. 背景与目标
 
@@ -177,7 +177,9 @@ message ListGuildMentionTargetsResponse {
 4. 最终有效权限含 `VIEW_CHANNEL` 才可见；
 5. `deleted_at = 0` 的活跃成员才参与。
 
-实现建议：在 Guild store 增加 SQL 批量查询，overwrite 聚合语义与现有 Go 实现保持一致；集成测试将“批量接口结果”与“对同一批成员逐个执行现有单用户权限计算”的结果做全量对照，防止语义漂移。
+实现：Guild store 增加按 user ID 升序的成员/角色目标分页查询，server 层复用 `memberAuthorityFromRoles` 与 `channelPermissions` 逐窗口计算可见性，与单用户授权共用同一套规则；集成测试将“批量接口结果”与“对同一批成员逐个执行现有单用户权限计算”的结果做全量对照。
+
+分页语义：每次返回一个候选窗口（窗口为 `limit + 1` 个候选，最多返回 `limit` 个可见成员），游标始终推进到窗口最后一个候选 user ID；窗口内没有可见成员时返回空页，调用方继续翻页直到 `next_cursor` 缺失。
 
 ## 7. 异步展开
 
@@ -196,15 +198,13 @@ message ListGuildMentionTargetsResponse {
 2. 查询消息（id、channel_id、guild_id、revision、deleted_at）；消息不存在、已删除或 `revision` 与事件不一致时直接跳过并提交（防止旧事件覆盖新状态；`message.deleted` 事件无需处理，删除事务已清理展开行）；
 3. 分页调用 `ListGuildMentionTargets` 拉取全部目标；
 4. 以事件 revision 为守卫，在同一事务内删除旧 source=2 行并按批（建议 ≤ 10000）写入新集合，保证与并发编辑/删除互斥且结果收敛；
-5. 全部成功才提交消费位点；失败按指数退避重试（复用 Dispatcher 的 retry 模式），超过上限记录告警并进入死信处理。
+5. 全部成功才提交消费位点；失败按指数退避重试（100ms 起步、5s 封顶、最多 8 次），超过上限记录告警并提交跳过。
 
 ### 7.3 一致性窗口
 
-事件发布本身是 best-effort（现有语义）：事件丢失时展开同样不会发生，`mention_count` 相应缺失，与消息事件对客户端的影响同源，不引入新的可靠性要求。幂等重试只在真正创建/更新时发布事件，不会重复触发展开；消费组重放历史事件时，旧事件因缺少 mention 字段被跳过，新事件因 `ON CONFLICT DO NOTHING` 与 revision 校验安全重放。
-
-### 7.4 一致性窗口
-
 消息事件先于展开完成发布：客户端先看到消息，服务端 `mention_count` 稍后（通常毫秒到秒级）就绪。READY / GetReadStates / AckMessage 返回的计数以存储中的物化行为准，天然最终一致。实时高亮由客户端在收到 guild 级消息事件时本地判断（客户端已知自身角色），服务端不按用户 fan-out 展开结果。
+
+事件发布本身是 best-effort（现有语义）：事件丢失时展开同样不会发生，`mention_count` 相应缺失，与消息事件对客户端的影响同源，不引入新的可靠性要求。幂等重试只在真正创建/更新时发布事件，不会重复触发展开；消费组重放历史事件时，旧事件因缺少 mention 字段被跳过，新事件因 `ON CONFLICT DO NOTHING` 与 revision 校验安全重放。
 
 ## 8. mention_count 语义
 
@@ -279,15 +279,18 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 
 ## 15. 实施步骤
 
+以上步骤已全部完成并随 PR 链落地：
+
 1. Guild：`MENTION_EVERYONE` 权限位 + `ListGuildMentionTargets` 批量接口（含可见性对照测试）；
-2. Message：migration、model/Store、mention 解析器（新包 `services/message/v1/internal/mention`）；
+2. Message：migration、model/Store、mention 解析器（`services/message/v1/internal/mention`）；
 3. Message：Create/Update/Delete/Get/List、事件、幂等指纹 v2；
 4. Message：展开 worker（消费 `cordis.message.events.v1`、分批 upsert、重试）；
 5. proto 与 API adapter；
 6. 全量测试与文档同步。
 
-## 16. 待确认决策
+## 16. 已确认决策
 
-- 权限位取值 2048 是否可接受（当前枚举最大 1024）；
+- 权限位取值 `2048`（当前枚举最大 1024）；
 - 破坏性协议变更直接移除请求字段（`reserved`），不做 deprecated 兼容层；
+- 展开 worker 直接消费消息事件 topic，不引入独立任务 topic；
 - 第一版角色 mention 不做 `mentionable` 校验。

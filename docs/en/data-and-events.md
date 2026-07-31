@@ -35,6 +35,12 @@ Kafka events use:
 ```
 
 Stable names live in `pkg/realtime` and use dot-separated hierarchy.
+Message created/updated events carry the parsed mention set
+(`mention_user_ids`, `mention_role_ids`, `mention_everyone`) and, for updates,
+a best-effort previous set. The Message service's mention expansion consumer
+(`cordis.message.mentions.v1`) reads the same event topic, so role and
+`@everyone` targets are materialized from the same best-effort stream that
+delivers events to clients; see [mention-expansion.md](mention-expansion.md).
 Guild channel list responses expose a Guild-level `channel_layout_revision`.
 Create, delete, parent-move, and reorder events carry the committed layout
 revision in addition to each channel's own `revision`; stale structural

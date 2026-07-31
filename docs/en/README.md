@@ -13,3 +13,4 @@ repository contribution constraints and links back here.
 - [Authentication and token rotation](authentication.md)
 - [Configuration, observability, and development](operations-and-development.md)
 - [Current limitations and evolution](limitations.md)
+- [Server-side mention parsing and expansion](mention-expansion.md)

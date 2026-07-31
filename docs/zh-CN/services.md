@@ -80,6 +80,8 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `cordis.message.events.v1` 发布事件；发布失败只记录日志。
 
+`CreateMessage` 支持可选的 opaque `idempotency_key`，用于标识一次客户端创建意图。key 的作用域是认证用户和 `message.create` 操作，默认保留 30 分钟；不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。请求指纹包含 channel、正文、规范化后的 type、flags、引用消息、附件 asset ID 及其顺序，以及规范化后的 mentions。相同指纹重用 key 时返回第一次创建的消息，不再次写入 mentions、推进 read state 或发布创建事件；不同参数重用 key 时返回 `request.idempotency_key_reused`。未携带 key 的请求保持原有行为。重试仍会执行正常的认证、授权和请求校验；这些检查或其依赖失败时，重试可以返回对应错误，但不会创建新消息。幂等记录与消息侧写入在同一事务内完成，但现有提交后 best-effort 发布 Kafka 的窗口仍然存在。TTL 按 operation 独立配置，其他创建类 RPC 可以使用不同的保留时间。
+
 ## Gateway
 
 监听 `:8081`，在根路径 `/` 提供 WebSocket；运维探针由单独的 probe server 提供。连接后发送 `hello`，首个客户端消息必须是 `identify` 或 `resume`。原生客户端在 JSON `token` 中发送 access token；浏览器发送 API 签发的单次 `gateway_ticket`，两个字段必须且只能出现一个。Gateway 从 etcd 发现 Session 节点；Resume owner 仍从 Redis 读取。建立 `SessionService.Connect` 双向 gRPC 流后，它只负责 WebSocket 与 gRPC 消息互转，不保存逻辑路由状态，也不消费 Kafka。WebSocket 握手会按照配置的 `originPatterns` 校验跨来源请求，生产环境应配置前端页面的 Origin。

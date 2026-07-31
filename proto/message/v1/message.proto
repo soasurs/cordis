@@ -228,6 +228,8 @@ message CreateMessageRequest {
 
   // User IDs mentioned in this message. Parsed by the caller from content.
   repeated int64 mention_user_ids = 9;
+  // Optional opaque key identifying one client-side message creation intent.
+  string idempotency_key = 10;
 }
 
 message CreateMessageResponse {

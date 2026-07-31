@@ -84,6 +84,77 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), readEnvelope.Data.LastReadMessageID)
 }
 
+func TestCreateMessageIdempotentRetryReturnsSameMessageWithoutSideEffects(t *testing.T) {
+	fakeStore := newFakeStore()
+	publisher := new(fakePublisher)
+	server := newTestMessageServer(t, fakeStore, publisher)
+
+	req := new(messagev1.CreateMessageRequest)
+	req.SetChannelId(10)
+	req.SetAuthorId(20)
+	req.SetContent("hello")
+	req.SetMentionUserIds([]int64{31, 30})
+	req.SetIdempotencyKey("message-intent-1")
+
+	first, err := server.CreateMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.Len(t, publisher.records, 2)
+	require.Equal(t, []int64{30, 31}, fakeStore.mentions[first.GetMessage().GetId()])
+	require.Equal(t, 1, fakeStore.listReadyCalls)
+
+	retry := new(messagev1.CreateMessageRequest)
+	retry.SetChannelId(10)
+	retry.SetAuthorId(20)
+	retry.SetContent("hello")
+	retry.SetMentionUserIds([]int64{30, 31})
+	retry.SetIdempotencyKey("message-intent-1")
+
+	second, err := server.CreateMessage(t.Context(), retry)
+	require.NoError(t, err)
+	require.Equal(t, first.GetMessage().GetId(), second.GetMessage().GetId())
+	require.Equal(t, first.GetMessage().GetCreatedAt(), second.GetMessage().GetCreatedAt())
+	require.Len(t, fakeStore.messages, 1)
+	require.Len(t, publisher.records, 2)
+	require.Equal(t, 1, fakeStore.listReadyCalls)
+}
+
+func TestCreateMessageRejectsIdempotencyKeyReuseWithDifferentRequest(t *testing.T) {
+	fakeStore := newFakeStore()
+	publisher := new(fakePublisher)
+	server := newTestMessageServer(t, fakeStore, publisher)
+
+	req := new(messagev1.CreateMessageRequest)
+	req.SetChannelId(10)
+	req.SetAuthorId(20)
+	req.SetContent("hello")
+	req.SetIdempotencyKey("message-intent-1")
+	_, err := server.CreateMessage(t.Context(), req)
+	require.NoError(t, err)
+
+	req.SetContent("different")
+	_, err = server.CreateMessage(t.Context(), req)
+	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageIdempotencyKeyReused))
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+	require.Len(t, fakeStore.messages, 1)
+	require.Len(t, publisher.records, 2)
+}
+
+func TestCreateMessageRejectsMalformedIdempotencyKey(t *testing.T) {
+	for _, key := range []string{"", " leading", "trailing ", " \t"} {
+		t.Run(strconv.Quote(key), func(t *testing.T) {
+			req := new(messagev1.CreateMessageRequest)
+			req.SetChannelId(10)
+			req.SetAuthorId(20)
+			req.SetContent("hello")
+			req.SetIdempotencyKey(key)
+
+			server := newTestMessageServer(t, newFakeStore(), new(fakePublisher))
+			_, err := server.CreateMessage(t.Context(), req)
+			require.Equal(t, codes.InvalidArgument, status.Code(err))
+		})
+	}
+}
+
 func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 	message := &model.Message{
 		ID: 9007199254740993, ChannelID: 9007199254740994, AuthorID: 9007199254740995,
@@ -758,17 +829,25 @@ type fakeStore struct {
 	mentions        map[int64][]int64
 	dmChannels      map[int64]*model.DmChannel
 	readStates      map[int64]map[int64]int64 // userID -> channelID -> lastReadID
+	idempotency     map[string]fakeIdempotencyRecord
 	listReadyCalls  int
 	readyBatchSizes []int
 	transactErr     error
 }
 
+type fakeIdempotencyRecord struct {
+	messageID   int64
+	requestHash []byte
+	expiresAt   int64
+}
+
 func newFakeStore() *fakeStore {
 	return &fakeStore{
-		messages:   make(map[int64]*model.Message),
-		mentions:   make(map[int64][]int64),
-		dmChannels: make(map[int64]*model.DmChannel),
-		readStates: make(map[int64]map[int64]int64),
+		messages:    make(map[int64]*model.Message),
+		mentions:    make(map[int64][]int64),
+		dmChannels:  make(map[int64]*model.DmChannel),
+		readStates:  make(map[int64]map[int64]int64),
+		idempotency: make(map[string]fakeIdempotencyRecord),
 	}
 }
 
@@ -777,6 +856,33 @@ func (s *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) err
 		return err
 	}
 	return s.transactErr
+}
+
+func (s *fakeStore) ClaimMessageIdempotency(
+	_ context.Context,
+	params store.ClaimMessageIdempotencyParams,
+) (*store.MessageIdempotencyClaim, error) {
+	key := strconv.FormatInt(params.ActorUserID, 10) + "\x1f" + params.Operation + "\x1f" + params.IdempotencyKey
+	if existing, ok := s.idempotency[key]; ok {
+		if existing.expiresAt <= params.CreatedAt {
+			delete(s.idempotency, key)
+		} else {
+			return &store.MessageIdempotencyClaim{
+				MessageID:   existing.messageID,
+				RequestHash: append([]byte(nil), existing.requestHash...),
+			}, nil
+		}
+	}
+	s.idempotency[key] = fakeIdempotencyRecord{
+		messageID:   params.MessageID,
+		requestHash: append([]byte(nil), params.RequestHash...),
+		expiresAt:   params.ExpiresAt,
+	}
+	return &store.MessageIdempotencyClaim{
+		MessageID:   params.MessageID,
+		RequestHash: append([]byte(nil), params.RequestHash...),
+		Claimed:     true,
+	}, nil
 }
 
 func (s *fakeStore) CreateMessage(_ context.Context, params store.CreateMessageParams) (*model.Message, error) {

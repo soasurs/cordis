@@ -41,6 +41,23 @@ func validateContent(content string) error {
 	return nil
 }
 
+func validateIdempotencyKey(req *messagev1.CreateMessageRequest, maxLength int) error {
+	if !req.HasIdempotencyKey() {
+		return nil
+	}
+	key := req.GetIdempotencyKey()
+	switch {
+	case key == "":
+		return invalidRequest("idempotency key must not be empty")
+	case len(key) > maxLength:
+		return invalidRequest("idempotency key is too long")
+	case strings.TrimSpace(key) != key:
+		return invalidRequest("idempotency key must not have leading or trailing whitespace")
+	default:
+		return nil
+	}
+}
+
 func validateAttachments(attachments []model.Attachment, limit int) error {
 	if len(attachments) > limit {
 		return resourceLimitExceeded("attachment limit exceeded")

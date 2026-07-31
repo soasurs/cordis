@@ -3,6 +3,7 @@ package config
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/conf"
 )
@@ -38,5 +39,8 @@ func TestLoadConfig(t *testing.T) {
 	}
 	if cfg.Limits.Attachments() != 10 || cfg.Limits.Mentions() != 100 {
 		t.Fatalf("unexpected resource limits: %+v", cfg.Limits)
+	}
+	if cfg.Idempotency.KeyLength() != 255 || cfg.Idempotency.CreateMessageTTL() != 30*time.Minute {
+		t.Fatalf("unexpected idempotency config: %+v", cfg.Idempotency)
 	}
 }

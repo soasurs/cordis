@@ -68,12 +68,16 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	req.SetChannelId(2001)
 	req.SetAuthorId(3001)
 	req.SetContent("hello")
+	req.SetIdempotencyKey("message-intent-1")
 	created, err := service.CreateMessage(t.Context(), req)
 	require.NoError(t, err)
+	retried, err := service.CreateMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, created.GetMessage().GetId(), retried.GetMessage().GetId())
 
 	readCtx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
-	records := consumer.PollRecords(readCtx, 2)
+	records := consumer.PollRecords(readCtx, 4)
 	require.Empty(t, records.Errors())
 	require.Len(t, records.Records(), 2)
 	var foundCreated, foundRead bool

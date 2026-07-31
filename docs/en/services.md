@@ -213,6 +213,23 @@ on a best-effort basis; failures are logged. Guild message records carry
 `guild_id` and use the Guild ID as the Kafka key. DM message records carry
 `user_id` and emit one user-keyed record per participant.
 
+`CreateMessage` accepts an optional opaque `idempotency_key` for one client
+creation intent. The key is scoped to the authenticated user and the
+`message.create` operation, is retained for 30 minutes by default, and must be
+non-empty, have no leading or trailing whitespace, and be at most 255 UTF-8
+bytes. Its fingerprint includes the channel, content, normalized type, flags,
+references, attachment asset IDs and order, and normalized mentions. Reusing a
+key with the same fingerprint returns the original message without writing
+mentions, advancing read state, or publishing another creation event. Reusing
+it with different parameters returns `request.idempotency_key_reused`.
+Requests without a key retain their existing behavior. A retry still passes
+through normal authentication, authorization, and request validation; if
+those checks or their dependencies fail, the retry may return that error
+without creating another message. The idempotency record and message-side
+writes are transactional, while the existing commit-to-Kafka best-effort
+publication window remains. TTLs are operation-specific so other creation RPCs
+can use different retention periods.
+
 ## Gateway
 
 HTTP/WebSocket on `:8081`, exposing the WebSocket at `/`; operational probes are

@@ -2002,6 +2002,7 @@ type CreateMessageRequest struct {
 	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,7,opt,name=referenced_channel_id,json=referencedChannelId"`
 	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,8,rep,name=attachments"`
 	xxx_hidden_MentionUserIds      []int64                `protobuf:"varint,9,rep,packed,name=mention_user_ids,json=mentionUserIds"`
+	xxx_hidden_IdempotencyKey      *string                `protobuf:"bytes,10,opt,name=idempotency_key,json=idempotencyKey"`
 	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
 	XXX_presence                   [1]uint32
 	unknownFields                  protoimpl.UnknownFields
@@ -2103,39 +2104,49 @@ func (x *CreateMessageRequest) GetMentionUserIds() []int64 {
 	return nil
 }
 
+func (x *CreateMessageRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateMessageRequest) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
 }
 
 func (x *CreateMessageRequest) SetAuthorId(v int64) {
 	x.xxx_hidden_AuthorId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
 }
 
 func (x *CreateMessageRequest) SetContent(v string) {
 	x.xxx_hidden_Content = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
 }
 
 func (x *CreateMessageRequest) SetType(v MessageType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
 }
 
 func (x *CreateMessageRequest) SetFlags(v int32) {
 	x.xxx_hidden_Flags = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
 }
 
 func (x *CreateMessageRequest) SetReferencedMessageId(v int64) {
 	x.xxx_hidden_ReferencedMessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
 }
 
 func (x *CreateMessageRequest) SetReferencedChannelId(v int64) {
 	x.xxx_hidden_ReferencedChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
 }
 
 func (x *CreateMessageRequest) SetAttachments(v []*Attachment) {
@@ -2144,6 +2155,11 @@ func (x *CreateMessageRequest) SetAttachments(v []*Attachment) {
 
 func (x *CreateMessageRequest) SetMentionUserIds(v []int64) {
 	x.xxx_hidden_MentionUserIds = v
+}
+
+func (x *CreateMessageRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
 }
 
 func (x *CreateMessageRequest) HasChannelId() bool {
@@ -2195,6 +2211,13 @@ func (x *CreateMessageRequest) HasReferencedChannelId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
+func (x *CreateMessageRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
 func (x *CreateMessageRequest) ClearChannelId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChannelId = 0
@@ -2230,6 +2253,11 @@ func (x *CreateMessageRequest) ClearReferencedChannelId() {
 	x.xxx_hidden_ReferencedChannelId = 0
 }
 
+func (x *CreateMessageRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2246,6 +2274,8 @@ type CreateMessageRequest_builder struct {
 	Attachments         []*Attachment
 	// User IDs mentioned in this message. Parsed by the caller from content.
 	MentionUserIds []int64
+	// Optional opaque key identifying one client-side message creation intent.
+	IdempotencyKey *string
 }
 
 func (b0 CreateMessageRequest_builder) Build() *CreateMessageRequest {
@@ -2253,35 +2283,39 @@ func (b0 CreateMessageRequest_builder) Build() *CreateMessageRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.AuthorId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
 		x.xxx_hidden_AuthorId = *b.AuthorId
 	}
 	if b.Content != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
 		x.xxx_hidden_Content = b.Content
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.Flags != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
 		x.xxx_hidden_Flags = *b.Flags
 	}
 	if b.ReferencedMessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
 		x.xxx_hidden_ReferencedMessageId = *b.ReferencedMessageId
 	}
 	if b.ReferencedChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
 		x.xxx_hidden_ReferencedChannelId = *b.ReferencedChannelId
 	}
 	x.xxx_hidden_Attachments = &b.Attachments
 	x.xxx_hidden_MentionUserIds = b.MentionUserIds
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
+	}
 	return m0
 }
 
@@ -4742,7 +4776,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x0eAttachmentList\x128\n" +
 	"\vattachments\x18\x01 \x03(\v2\x16.message.v1.AttachmentR\vattachments\"(\n" +
 	"\vMentionList\x12\x19\n" +
-	"\buser_ids\x18\x01 \x03(\x03R\auserIds\"\xfb\x02\n" +
+	"\buser_ids\x18\x01 \x03(\x03R\auserIds\"\xa4\x03\n" +
 	"\x14CreateMessageRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x1b\n" +
@@ -4753,7 +4787,9 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x15referenced_message_id\x18\x06 \x01(\x03R\x13referencedMessageId\x122\n" +
 	"\x15referenced_channel_id\x18\a \x01(\x03R\x13referencedChannelId\x128\n" +
 	"\vattachments\x18\b \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12(\n" +
-	"\x10mention_user_ids\x18\t \x03(\x03R\x0ementionUserIds\"t\n" +
+	"\x10mention_user_ids\x18\t \x03(\x03R\x0ementionUserIds\x12'\n" +
+	"\x0fidempotency_key\x18\n" +
+	" \x01(\tR\x0eidempotencyKey\"t\n" +
 	"\x15CreateMessageResponse\x12-\n" +
 	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\x12,\n" +
 	"\x06author\x18\x02 \x01(\v2\x14.user.v1.UserProfileR\x06author\"\xfc\x01\n" +

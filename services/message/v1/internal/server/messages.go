@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"context"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
@@ -19,6 +21,9 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	}
 	if req.GetAuthorId() <= 0 {
 		return nil, invalidRequest("author id is required")
+	}
+	if err := validateIdempotencyKey(req, s.svcCtx.Cfg.Idempotency.KeyLength()); err != nil {
+		return nil, err
 	}
 	if err := validateContent(req.GetContent()); err != nil {
 		return nil, err
@@ -58,6 +63,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if err := validateMentionUserIDs(req.GetMentionUserIds(), s.svcCtx.Cfg.Limits.Mentions()); err != nil {
 		return nil, err
 	}
+	mentionUserIDs := normalizeMentionUserIDs(req.GetMentionUserIds())
 	audience, err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetAuthorId(), permissionSendMessages)
 	if err != nil {
 		return nil, err
@@ -80,12 +86,57 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		return nil, err
 	}
 
+	var requestHash []byte
+	if req.HasIdempotencyKey() {
+		requestHash, err = createMessageRequestHash(
+			req.GetChannelId(),
+			req.GetContent(),
+			messageType,
+			req.GetFlags(),
+			req.GetReferencedMessageId(),
+			req.GetReferencedChannelId(),
+			attachments,
+			mentionUserIDs,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	messageID := s.svcCtx.Snowflake.Generate().Int64()
 	var created *model.Message
 	var authorReadState *model.ChannelReadState
 	var authorReadAdvanced bool
+	createdNewMessage := !req.HasIdempotencyKey()
 
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		if req.HasIdempotencyKey() {
+			now := time.Now().UnixMilli()
+			claim, err := txStore.ClaimMessageIdempotency(ctx, store.ClaimMessageIdempotencyParams{
+				ActorUserID:    req.GetAuthorId(),
+				Operation:      createMessageOperation,
+				IdempotencyKey: req.GetIdempotencyKey(),
+				RequestHash:    requestHash,
+				MessageID:      messageID,
+				CreatedAt:      now,
+				ExpiresAt:      now + s.svcCtx.Cfg.Idempotency.CreateMessageTTL().Milliseconds(),
+			})
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(claim.RequestHash, requestHash) {
+				return idempotencyKeyReused()
+			}
+			if !claim.Claimed {
+				created, err = txStore.GetMessage(ctx, claim.MessageID)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+			createdNewMessage = true
+		}
+
 		message, err := txStore.CreateMessage(ctx, store.CreateMessageParams{
 			MessageID:           messageID,
 			ChannelID:           req.GetChannelId(),
@@ -102,7 +153,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		}
 		created = message
 
-		if err := txStore.ReplaceMessageMentions(ctx, messageID, req.GetMentionUserIds()); err != nil {
+		if err := txStore.ReplaceMessageMentions(ctx, messageID, mentionUserIDs); err != nil {
 			return err
 		}
 		authorReadAdvanced, err = txStore.AckMessage(ctx, req.GetAuthorId(), req.GetChannelId(), messageID)
@@ -125,12 +176,18 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	copyAttachmentURLs(created.Attachments, attachments)
+	if createdNewMessage {
+		copyAttachmentURLs(created.Attachments, attachments)
+	} else if err := s.hydrateAttachmentURLs(ctx, created); err != nil {
+		return nil, err
+	}
 
-	events, eventErr := newMessageCreatedEvents(created, author, req.GetMentionUserIds(), audience, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvents(ctx, events, eventErr)
-	if authorReadAdvanced {
-		s.publishReadStateUpdated(ctx, authorReadState)
+	if createdNewMessage {
+		events, eventErr := newMessageCreatedEvents(created, author, mentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
+		s.publishEvents(ctx, events, eventErr)
+		if authorReadAdvanced {
+			s.publishReadStateUpdated(ctx, authorReadState)
+		}
 	}
 
 	resp := new(messagev1.CreateMessageResponse)

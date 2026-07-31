@@ -24,6 +24,22 @@ type CreateMessageParams struct {
 	Attachments         []model.Attachment
 }
 
+type ClaimMessageIdempotencyParams struct {
+	ActorUserID    int64
+	Operation      string
+	IdempotencyKey string
+	RequestHash    []byte
+	MessageID      int64
+	CreatedAt      int64
+	ExpiresAt      int64
+}
+
+type MessageIdempotencyClaim struct {
+	MessageID   int64
+	RequestHash []byte
+	Claimed     bool
+}
+
 type UpdateMessageParams struct {
 	MessageID        int64
 	ActorUserID      int64
@@ -43,6 +59,7 @@ type ListMessagesParams struct {
 
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
+	ClaimMessageIdempotency(ctx context.Context, params ClaimMessageIdempotencyParams) (*MessageIdempotencyClaim, error)
 	CreateMessage(ctx context.Context, params CreateMessageParams) (*model.Message, error)
 	GetMessage(ctx context.Context, messageID int64) (*model.Message, error)
 	ListMessages(ctx context.Context, params ListMessagesParams) ([]*model.Message, error)

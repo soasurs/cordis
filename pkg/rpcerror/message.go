@@ -8,4 +8,5 @@ const (
 	MessageInvalidRequest        = "message_invalid_request"
 	MessageDmRequiresFriendship  = "dm_requires_friendship"
 	MessageResourceLimitExceeded = "message_resource_limit_exceeded"
+	MessageIdempotencyKeyReused  = "message_idempotency_key_reused"
 )

@@ -51,3 +51,11 @@ version as the event idempotency key. The aggregate ID is used as the Kafka key 
 per-user, per-channel, or per-guild partition order. With Kafka disabled, no
 producer is created. Publish failure is logged and does not fail the already
 committed RPC, so database and Kafka delivery are not atomic.
+
+For `CreateMessage`, an optional request idempotency record is committed with
+the message, mentions, and author read state. A same-key retry therefore
+returns the existing message without publishing another creation or read-state
+event when normal authentication, authorization, and request validation
+succeed. Those checks may still return their usual error without creating
+another message. This does not remove the general crash window between a
+successful database commit and best-effort Kafka publication.

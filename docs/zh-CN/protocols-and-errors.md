@@ -26,6 +26,21 @@ API 对应 HTTP `409 Conflict`。服务端不会自动刷新列表或重放过�
 内部 READY 的每个 Guild 条目和公开 `ready` event 都会携带其频道快照对应的
 layout revision；Resume 继续使用现有 event replay 协议，不额外携带 layout token。
 
+## 创建请求幂等
+
+`CreateMessageRequest.idempotency_key` 是可选的不透明字符串。存在时不得为空、
+首尾不得有空白，长度最多为 255 个 UTF-8 字节。key 的作用域由认证 actor 和
+operation 共同决定；消息创建使用 `message.create`。客户端应为每次业务意图
+生成新 key，仅在重试同一意图时复用。
+
+Message 会保存规范化请求的 SHA-256 指纹，包含 channel、正文、规范化后的 type、
+flags、引用消息、按提交顺序排列的附件 asset ID 和规范化后的 mention ID。相同
+key 与相同指纹会返回第一次创建的消息；相同 key 搭配不同参数时返回
+`InvalidArgument`，公开 code 为 `request.idempotency_key_reused`。CreateMessage
+的记录默认保留 30 分钟；不携带 key 的请求继续兼容旧客户端。重试仍会执行正常
+的认证、授权和请求校验；这些检查可以返回原有错误，但不会创建新消息。TTL 按
+operation 独立配置，因为不同创建类 RPC 的重试窗口可能不同。
+
 ## 可用性检查与头像约束
 
 `CheckUsernameAvailability` 复用与 `UpdateUsername` 相同的用户名规范化与格式规则。非法用户名返回 `InvalidArgument`；合法但已占用返回 `available=false`。最终改名仍以数据库唯一约束为准。Media 使用稳定的内部 `media.cordis` reason 表示头像校验失败；API 将它们映射为公开 code：`profile.avatar_file_too_large`、`profile.avatar_content_type_invalid`、`profile.avatar_dimensions_exceeded`、`profile.avatar_pixels_exceeded`。`GetAvatarUploadConstraints` 返回 Media 当前 `userAvatar` 图片上传限制，供客户端在申请预签名 PUT 前遵守。

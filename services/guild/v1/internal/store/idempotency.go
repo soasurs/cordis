@@ -3,9 +3,14 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/jmoiron/sqlx"
 )
+
+// ErrIdempotencyContention reports that an idempotency claim could not be
+// settled after repeated attempts and the caller should retry the request.
+var ErrIdempotencyContention = errors.New("idempotency claim contention")
 
 type guildIdempotencyRow struct {
 	ResourceID  int64  `db:"resource_id"`
@@ -88,5 +93,5 @@ func (s *SQLStore) ClaimGuildIdempotency(
 			RequestHash: append([]byte(nil), row.RequestHash...),
 		}, nil
 	}
-	return nil, sql.ErrNoRows
+	return nil, ErrIdempotencyContention
 }

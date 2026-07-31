@@ -55,9 +55,9 @@ retrying that intent.
 The owning service stores a SHA-256 fingerprint of the normalized request. For
 messages it includes the channel, content, normalized type, flags, references,
 attachment asset IDs in their submitted order, and normalized mention IDs. For
-Guild resources it covers the normalized name (Guilds, roles, channels),
-permissions (roles), channel type, topic, and parent (channels), and the
-original relative `expires_in_ms` (invites). The same key and fingerprint
+Guild resources it covers the normalized name (Guilds, roles, channels) and
+channel type, the submitted topic and parent (channels), permissions (roles),
+and the original relative `expires_in_ms` (invites). The same key and fingerprint
 returns the originally created resource; the same key with different
 parameters returns `InvalidArgument` with public code
 `request.idempotency_key_reused`. Records are retained per operation (30
@@ -69,6 +69,13 @@ normal authentication, authorization, and request validation; those checks
 may return their usual error without creating another resource. Idempotency
 retention is configured per operation because different creation RPCs have
 different retry windows.
+
+Deleting the resource after its creation does not release the key. A same-key
+retry then returns `NotFound` for the deleted resource instead of creating a
+new one, and the key stays reserved until its retention expires because
+idempotency records are not removed when the resource is deleted. Clients
+should treat a deleted resource as a completed intent and use a fresh key for
+a new creation.
 
 Upload fingerprints cover the actor, the upload purpose and its target
 (user, Guild, or channel), the expected size, the normalized content type, and

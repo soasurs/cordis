@@ -40,8 +40,8 @@ UTF-8 字节。key 的作用域由认证 actor 和 operation 共同决定，包�
 
 资源所属服务会保存规范化请求的 SHA-256 指纹。消息指纹包含 channel、正文、
 规范化后的 type、flags、引用消息、按提交顺序排列的附件 asset ID 和规范化后
-的 mention ID。Guild 资源指纹覆盖规范化名称（Guild、角色、频道）、权限
-（角色）、频道类型、topic 和 parent（频道），以及原始相对值
+的 mention ID。Guild 资源指纹覆盖规范化名称（Guild、角色、频道）和频道
+类型、按提交值计算的 topic 与 parent（频道）、权限（角色），以及原始相对值
 `expires_in_ms`（邀请）。相同 key 与相同指纹会返回第一次创建的资源；相同
 key 搭配不同参数时返回 `InvalidArgument`，公开 code 为
 `request.idempotency_key_reused`。记录按 operation 保留（CreateMessage 默认
@@ -50,6 +50,10 @@ key 搭配不同参数时返回 `InvalidArgument`，公开 code 为
 整个上传窗口内重试仍然有效。重试仍会执行正常的认证、授权和请求校验；这些
 检查可以返回原有错误，但不会创建新资源。TTL 按 operation 独立配置，因为
 不同创建类 RPC 的重试窗口可能不同。
+
+首次创建的资源被删除后，重放同一 key 不会重新创建资源：服务端按已删除资源
+返回 `NotFound`，且该 key 在保留期内仍然占用，因为幂等记录不会随资源删除
+而清除。客户端应把已删除的资源视为已完成的意图，新的创建使用新 key。
 
 上传指纹包含 actor、上传 purpose 及其目标（用户、Guild 或频道）、期望大小、
 规范化后的 content type，以及附件存在时的 filename。相同 key 的重试返回

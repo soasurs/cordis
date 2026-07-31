@@ -15,6 +15,16 @@ type Message struct {
 	UpdatedAt           int64
 	Revision            int64
 	DeletedAt           int64
+	Mentions            MessageMentions
+}
+
+// MessageMentions is the parsed mention set stored with a message. UserIDs
+// are written synchronously; RoleIDs and Everyone are definitions that the
+// expansion worker additionally materializes per visible member.
+type MessageMentions struct {
+	UserIDs  []int64
+	RoleIDs  []int64
+	Everyone bool
 }
 
 type Attachment struct {

@@ -97,6 +97,13 @@ message Message {
   int64 updated_at = 12;
   // Monotonically increasing version used to discard stale events.
   int64 revision = 13;
+
+  // User IDs parsed from mentions in content, in ascending user ID order.
+  repeated int64 mention_user_ids = 14;
+  // Role IDs parsed from mentions in content, in ascending role ID order.
+  repeated int64 mention_role_ids = 15;
+  // Whether the content mentions @everyone.
+  bool mention_everyone = 16;
 }
 
 // Attachment describes a file uploaded before the message is created.
@@ -186,11 +193,6 @@ message AttachmentList {
   repeated Attachment attachments = 1;
 }
 
-// MentionList distinguishes an omitted update from removing every mention.
-message MentionList {
-  repeated int64 user_ids = 1;
-}
-
 message CreateMessageRequest {
   int64 channel_id = 1;
   string content = 2;
@@ -203,8 +205,7 @@ message CreateMessageRequest {
   int64 referenced_channel_id = 6;
 
   repeated Attachment attachments = 7;
-  // User IDs parsed from mentions in content.
-  repeated int64 mention_user_ids = 8;
+  reserved 8;
   // Optional opaque key identifying one client-side message creation intent.
   string idempotency_key = 9;
 }
@@ -221,8 +222,7 @@ message UpdateMessageRequest {
   int32 flags = 3;
   // When present, replaces the complete attachment list.
   AttachmentList attachments = 4;
-  // When present, replaces the complete mention list.
-  MentionList mentions = 5;
+  reserved 5;
 }
 
 message UpdateMessageResponse {

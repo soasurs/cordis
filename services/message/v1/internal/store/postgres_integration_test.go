@@ -211,20 +211,89 @@ func testMessageMentions(t *testing.T, store Store) {
 	})
 	require.NoError(t, err)
 
-	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, []int64{4002, 4001, 4002, 0, -1}))
-	mentions, err := store.ListMentionUserIDs(ctx, 5401)
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{UserIDs: []int64{4002, 4001, 4002, 0, -1}}))
+	full, err := store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
-	require.Equal(t, []int64{4001, 4002}, mentions)
+	require.Equal(t, []int64{4001, 4002}, full.UserIDs)
 
-	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, []int64{4003}))
-	mentions, err = store.ListMentionUserIDs(ctx, 5401)
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{UserIDs: []int64{4003}}))
+	full, err = store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
-	require.Equal(t, []int64{4003}, mentions)
+	require.Equal(t, []int64{4003}, full.UserIDs)
 
-	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, nil))
-	mentions, err = store.ListMentionUserIDs(ctx, 5401)
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{}))
+	full, err = store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
-	require.Empty(t, mentions)
+	require.Empty(t, full.UserIDs)
+
+	// Roles and @everyone are definitions stored beside direct user mentions.
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{
+		UserIDs: []int64{4001}, RoleIDs: []int64{5002, 5001, 5002}, Everyone: true,
+	}))
+	full, err = store.ListMessageMentions(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001}, full.UserIDs)
+	require.Equal(t, []int64{5001, 5002}, full.RoleIDs)
+	require.True(t, full.Everyone)
+
+	// Expanded rows for roles/everyone are replaced atomically under a
+	// revision guard, leaving direct user mentions untouched.
+	applied, err := store.RebuildExpandedMessageMentions(ctx, 5401, 1, []int64{6001, 6002, 6001})
+	require.NoError(t, err)
+	require.True(t, applied)
+	full, err = store.ListMessageMentions(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001, 6001, 6002}, full.UserIDs)
+
+	// A stale rebuild (message edited since the event) is skipped.
+	applied, err = store.RebuildExpandedMessageMentions(ctx, 5401, 2, []int64{7001})
+	require.NoError(t, err)
+	require.False(t, applied)
+	full, err = store.ListMessageMentions(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001, 6001, 6002}, full.UserIDs)
+
+	// A current rebuild replaces the whole expanded set.
+	applied, err = store.RebuildExpandedMessageMentions(ctx, 5401, 1, []int64{7001, 7002})
+	require.NoError(t, err)
+	require.True(t, applied)
+	full, err = store.ListMessageMentions(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001, 7001, 7002}, full.UserIDs)
+	require.Equal(t, []int64{5001, 5002}, full.RoleIDs)
+	require.True(t, full.Everyone)
+
+	// Deleted messages never accept a rebuild.
+	_, err = store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5403, ChannelID: channelID, AuthorID: 3001,
+		Content: "gone", Type: 1,
+	})
+	require.NoError(t, err)
+	_, err = store.DeleteMessage(ctx, 5403, 3001, false)
+	require.NoError(t, err)
+	applied, err = store.RebuildExpandedMessageMentions(ctx, 5403, 2, []int64{8001})
+	require.NoError(t, err)
+	require.False(t, applied)
+
+	// Batch loading returns one mentions struct per message.
+	_, err = store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5402, ChannelID: channelID, AuthorID: 3001,
+		Content: "m2", Type: 1,
+	})
+	require.NoError(t, err)
+	require.NoError(t, store.ReplaceMessageMentions(ctx, 5402, model.MessageMentions{
+		UserIDs: []int64{4009}, RoleIDs: []int64{5009}, Everyone: false,
+	}))
+	byMessage, err := store.ListMessagesMentions(ctx, []int64{5401, 5402, 9999})
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001, 7001, 7002}, byMessage[5401].UserIDs)
+	require.Equal(t, []int64{5001, 5002}, byMessage[5401].RoleIDs)
+	require.True(t, byMessage[5401].Everyone)
+	require.Equal(t, []int64{4009}, byMessage[5402].UserIDs)
+	require.Equal(t, []int64{5009}, byMessage[5402].RoleIDs)
+	require.False(t, byMessage[5402].Everyone)
+	require.NotNil(t, byMessage[9999])
+	require.Empty(t, byMessage[9999].UserIDs)
 }
 
 func testMessageIdempotency(t *testing.T, store Store) {
@@ -375,7 +444,7 @@ func testTransactRollback(t *testing.T, store Store) {
 		}); err != nil {
 			return err
 		}
-		return tx.ReplaceMessageMentions(ctx, 5501, []int64{4001})
+		return tx.ReplaceMessageMentions(ctx, 5501, model.MessageMentions{UserIDs: []int64{4001}})
 	}))
 	loaded, err := store.GetMessage(ctx, 5501)
 	require.NoError(t, err)
@@ -611,7 +680,7 @@ func testReadStates(t *testing.T, store Store) {
 			Content: "unread mention", Type: 1,
 		})
 		require.NoError(t, err)
-		require.NoError(t, store.ReplaceMessageMentions(ctx, 9901, []int64{batchUserID}))
+		require.NoError(t, store.ReplaceMessageMentions(ctx, 9901, model.MessageMentions{UserIDs: []int64{batchUserID}}))
 
 		_, err = store.CreateMessage(ctx, CreateMessageParams{
 			MessageID: 9902, ChannelID: channel2ID, AuthorID: 9512,
@@ -627,7 +696,7 @@ func testReadStates(t *testing.T, store Store) {
 			Content: "new unread mention", Type: 1,
 		})
 		require.NoError(t, err)
-		require.NoError(t, store.ReplaceMessageMentions(ctx, 9903, []int64{batchUserID}))
+		require.NoError(t, store.ReplaceMessageMentions(ctx, 9903, model.MessageMentions{UserIDs: []int64{batchUserID}}))
 
 		states, err := store.ListReadyChannelReadStates(
 			ctx, batchUserID, []int64{channel2ID, channel1ID, channel3ID},

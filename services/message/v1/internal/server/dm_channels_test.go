@@ -31,6 +31,7 @@ type fakeUserClient struct {
 	getProfileRequests   []int64
 	batchProfileRequests [][]int64
 	getProfileErr        error
+	missingUsers         map[int64]bool
 }
 
 func newFakeUserClient() *fakeUserClient {
@@ -87,6 +88,9 @@ func (f *fakeUserClient) BatchGetUserProfiles(_ context.Context, req *userv1.Bat
 	}
 	profiles := make([]*userv1.UserProfile, 0, len(userIDs))
 	for _, userID := range userIDs {
+		if f.missingUsers[userID] {
+			continue
+		}
 		profiles = append(profiles, testUserProfile(userID))
 	}
 	resp := new(userv1.BatchGetUserProfilesResponse)

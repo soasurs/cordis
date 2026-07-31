@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	req := new(messagev1.CreateMessageRequest)
 	req.SetChannelId(10)
 	req.SetAuthorId(20)
-	req.SetContent("hello")
+	req.SetContent("hello <@30> <@31>")
 	req.SetType(messagev1.MessageType_MESSAGE_TYPE_DEFAULT)
 	req.SetFlags(int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS))
 	attachment := pbAttachment(101)
@@ -47,12 +48,11 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	attachment.SetHeight(999)
 	attachment.SetBlurhash("client-forged")
 	req.SetAttachments([]*messagev1.Attachment{attachment})
-	req.SetMentionUserIds([]int64{30, 31})
 
 	resp, err := server.CreateMessage(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), resp.GetMessage().GetRevision())
-	require.Equal(t, []int64{30, 31}, fakeStore.mentions[resp.GetMessage().GetId()])
+	require.Equal(t, []int64{30, 31}, fakeStore.mentions[resp.GetMessage().GetId()].UserIDs)
 	require.Equal(t, 1, fakeStore.listReadyCalls, "create must reload persisted read state instead of constructing it")
 
 	require.Len(t, publisher.records, 2)
@@ -92,21 +92,19 @@ func TestCreateMessageIdempotentRetryReturnsSameMessageWithoutSideEffects(t *tes
 	req := new(messagev1.CreateMessageRequest)
 	req.SetChannelId(10)
 	req.SetAuthorId(20)
-	req.SetContent("hello")
-	req.SetMentionUserIds([]int64{31, 30})
+	req.SetContent("hello <@30> <@31>")
 	req.SetIdempotencyKey("message-intent-1")
 
 	first, err := server.CreateMessage(t.Context(), req)
 	require.NoError(t, err)
 	require.Len(t, publisher.records, 2)
-	require.Equal(t, []int64{30, 31}, fakeStore.mentions[first.GetMessage().GetId()])
+	require.Equal(t, []int64{30, 31}, fakeStore.mentions[first.GetMessage().GetId()].UserIDs)
 	require.Equal(t, 1, fakeStore.listReadyCalls)
 
 	retry := new(messagev1.CreateMessageRequest)
 	retry.SetChannelId(10)
 	retry.SetAuthorId(20)
-	retry.SetContent("hello")
-	retry.SetMentionUserIds([]int64{30, 31})
+	retry.SetContent("hello <@30> <@31>")
 	retry.SetIdempotencyKey("message-intent-1")
 
 	second, err := server.CreateMessage(t.Context(), retry)
@@ -162,7 +160,7 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 		Revision: 1,
 	}
 	author := testUserProfile(message.AuthorID)
-	events, err := newMessageCreatedEvents(message, author, []int64{9007199254740998}, messageAudience{guildID: 9007199254740999}, 0)
+	events, err := newMessageCreatedEvents(message, author, model.MessageMentions{UserIDs: []int64{9007199254740998}}, messageAudience{guildID: 9007199254740999}, 0)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	require.Equal(t, "9007199254740994", string(events[0].Key))
@@ -183,7 +181,7 @@ func TestMessageEventEncodesSnowflakeIDsAsStrings(t *testing.T) {
 
 func TestMessageEventRejectsEmptyDmAudience(t *testing.T) {
 	message := &model.Message{ID: 1, ChannelID: 2, AuthorID: 3}
-	_, err := newMessageCreatedEvents(message, testUserProfile(message.AuthorID), nil, messageAudience{}, 0)
+	_, err := newMessageCreatedEvents(message, testUserProfile(message.AuthorID), model.MessageMentions{}, messageAudience{}, 0)
 	require.Error(t, err)
 }
 
@@ -255,12 +253,11 @@ func TestMessageResourceLimits(t *testing.T) {
 	attachments := make([]model.Attachment, 11)
 	require.Equal(t, codes.ResourceExhausted, status.Code(validateAttachments(attachments, 10)))
 
-	mentions := make([]int64, 101)
-	for i := range mentions {
-		mentions[i] = int64(i + 1)
+	mentionUsers := make([]int64, 101)
+	for i := range mentionUsers {
+		mentionUsers[i] = int64(i + 1)
 	}
-	require.Equal(t, codes.ResourceExhausted, status.Code(validateMentionUserIDs(mentions, 100)))
-	require.Equal(t, codes.InvalidArgument, status.Code(validateMentionUserIDs([]int64{1, 1}, 100)))
+	require.Equal(t, codes.ResourceExhausted, status.Code(validateMentionsSet(model.MessageMentions{UserIDs: mentionUsers}, 100)))
 }
 
 func TestAttachmentUploadLifecycle(t *testing.T) {
@@ -353,21 +350,18 @@ func TestUpdateMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 		ID: 100, ChannelID: 10, AuthorID: 20, Content: "old",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
 	}
-	fakeStore.mentions[100] = []int64{40}
+	fakeStore.mentions[100] = model.MessageMentions{UserIDs: []int64{40}}
 	publisher := new(fakePublisher)
 	server := newTestMessageServer(t, fakeStore, publisher)
 
 	req := new(messagev1.UpdateMessageRequest)
 	req.SetMessageId(100)
 	req.SetActorUserId(20)
-	req.SetContent("edited")
-	mentionList := new(messagev1.MentionList)
-	mentionList.SetUserIds([]int64{30})
-	req.SetMentions(mentionList)
+	req.SetContent("edited <@30>")
 
 	resp, err := server.UpdateMessage(t.Context(), req)
 	require.NoError(t, err)
-	require.Equal(t, "edited", resp.GetMessage().GetContent())
+	require.Equal(t, "edited <@30>", resp.GetMessage().GetContent())
 	require.Equal(t, int64(2), resp.GetMessage().GetRevision())
 
 	var envelope eventEnvelope[messagePayload]
@@ -433,7 +427,7 @@ func TestDeleteMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 		ID: 99, ChannelID: 10, AuthorID: 20, Content: "previous",
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
 	}
-	fakeStore.mentions[100] = []int64{30}
+	fakeStore.mentions[100] = model.MessageMentions{UserIDs: []int64{30}}
 	publisher := new(fakePublisher)
 	server := newTestMessageServer(t, fakeStore, publisher)
 
@@ -542,17 +536,6 @@ func TestCreateMessageValidation(t *testing.T) {
 				return req
 			},
 		},
-		{
-			name: "invalid mention user id",
-			req: func() *messagev1.CreateMessageRequest {
-				req := new(messagev1.CreateMessageRequest)
-				req.SetChannelId(1)
-				req.SetAuthorId(1)
-				req.SetContent("hi")
-				req.SetMentionUserIds([]int64{-1})
-				return req
-			},
-		},
 	}
 
 	for _, tt := range tests {
@@ -562,6 +545,23 @@ func TestCreateMessageValidation(t *testing.T) {
 			require.Equal(t, codes.InvalidArgument, status.Code(err))
 		})
 	}
+}
+
+func TestCreateMessageMentionLimitExceeded(t *testing.T) {
+	req := new(messagev1.CreateMessageRequest)
+	req.SetChannelId(1)
+	req.SetAuthorId(1)
+	var content strings.Builder
+	for i := 1; i <= 101; i++ {
+		content.WriteString("<@")
+		content.WriteString(strconv.Itoa(i))
+		content.WriteString("> ")
+	}
+	req.SetContent(content.String())
+
+	server := newTestMessageServer(t, newFakeStore(), new(fakePublisher))
+	_, err := server.CreateMessage(t.Context(), req)
+	require.Equal(t, codes.ResourceExhausted, status.Code(err))
 }
 
 func newTestMessageServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher) messagev1.MessageServiceServer {
@@ -640,6 +640,10 @@ type fakeGuildClient struct {
 	mu                    sync.Mutex
 	allowManageMessages   bool
 	denyAll               bool
+	permissions           uint64
+	roles                 []*guildv1.GuildRole
+	mentionTargets        []int64
+	mentionTargetPages    [][]int64
 	channelType           guildv1.GuildChannelType
 	authorizeRequests     []*guildv1.AuthorizeGuildChannelRequest
 	visibleTextChannelIDs []int64
@@ -776,8 +780,45 @@ func (f *fakeGuildClient) AuthorizeGuildChannel(
 	resp := new(guildv1.AuthorizeGuildChannelResponse)
 	resp.SetAllowed(!f.denyAll && (req.GetPermission()&permissionManageMessages == 0 || f.allowManageMessages))
 	resp.SetGuildId(9001)
-	resp.SetPermissions(permissionViewChannel | permissionSendMessages)
+	permissions := f.permissions
+	if permissions == 0 {
+		permissions = permissionViewChannel | permissionSendMessages
+	}
+	resp.SetPermissions(permissions)
 	resp.SetChannelType(f.channelType)
+	return resp, nil
+}
+
+func (f *fakeGuildClient) ListGuildRoles(
+	_ context.Context,
+	_ *guildv1.ListGuildRolesRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.ListGuildRolesResponse, error) {
+	resp := new(guildv1.ListGuildRolesResponse)
+	resp.SetRoles(f.roles)
+	return resp, nil
+}
+
+func (f *fakeGuildClient) ListGuildMentionTargets(
+	_ context.Context,
+	req *guildv1.ListGuildMentionTargetsRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.ListGuildMentionTargetsResponse, error) {
+	resp := new(guildv1.ListGuildMentionTargetsResponse)
+	if len(f.mentionTargetPages) > 0 {
+		index := 0
+		if req.HasCursor() {
+			index, _ = strconv.Atoi(req.GetCursor())
+		}
+		if index >= 0 && index < len(f.mentionTargetPages) {
+			resp.SetUserIds(f.mentionTargetPages[index])
+			if index+1 < len(f.mentionTargetPages) {
+				resp.SetNextCursor(strconv.Itoa(index + 1))
+			}
+		}
+		return resp, nil
+	}
+	resp.SetUserIds(f.mentionTargets)
 	return resp, nil
 }
 
@@ -828,13 +869,16 @@ func (p *fakePublisher) onlyRecord(t *testing.T) publishedRecord {
 
 type fakeStore struct {
 	messages        map[int64]*model.Message
-	mentions        map[int64][]int64
+	mentions        map[int64]model.MessageMentions
 	dmChannels      map[int64]*model.DmChannel
 	readStates      map[int64]map[int64]int64 // userID -> channelID -> lastReadID
 	idempotency     map[string]fakeIdempotencyRecord
 	listReadyCalls  int
 	readyBatchSizes []int
+	rebuildBatches  [][]int64
+	rebuildStale    bool
 	transactErr     error
+	getMessageErr   error
 }
 
 type fakeIdempotencyRecord struct {
@@ -846,7 +890,7 @@ type fakeIdempotencyRecord struct {
 func newFakeStore() *fakeStore {
 	return &fakeStore{
 		messages:    make(map[int64]*model.Message),
-		mentions:    make(map[int64][]int64),
+		mentions:    make(map[int64]model.MessageMentions),
 		dmChannels:  make(map[int64]*model.DmChannel),
 		readStates:  make(map[int64]map[int64]int64),
 		idempotency: make(map[string]fakeIdempotencyRecord),
@@ -909,6 +953,9 @@ func (s *fakeStore) CreateMessage(_ context.Context, params store.CreateMessageP
 }
 
 func (s *fakeStore) GetMessage(_ context.Context, messageID int64) (*model.Message, error) {
+	if s.getMessageErr != nil {
+		return nil, s.getMessageErr
+	}
 	message, ok := s.messages[messageID]
 	if !ok || message.DeletedAt != 0 {
 		return nil, sql.ErrNoRows
@@ -976,14 +1023,53 @@ func (s *fakeStore) DeleteMessage(_ context.Context, messageID, actorUserID int6
 	return cloneMessage(message), nil
 }
 
-func (s *fakeStore) ReplaceMessageMentions(_ context.Context, messageID int64, userIDs []int64) error {
-	s.mentions[messageID] = append([]int64(nil), userIDs...)
-	slices.Sort(s.mentions[messageID])
+func (s *fakeStore) ReplaceMessageMentions(_ context.Context, messageID int64, mentions model.MessageMentions) error {
+	value := model.MessageMentions{
+		UserIDs:  append([]int64(nil), mentions.UserIDs...),
+		RoleIDs:  append([]int64(nil), mentions.RoleIDs...),
+		Everyone: mentions.Everyone,
+	}
+	slices.Sort(value.UserIDs)
+	slices.Sort(value.RoleIDs)
+	s.mentions[messageID] = value
 	return nil
 }
 
-func (s *fakeStore) ListMentionUserIDs(_ context.Context, messageID int64) ([]int64, error) {
-	return append([]int64(nil), s.mentions[messageID]...), nil
+func (s *fakeStore) ListMessageMentions(_ context.Context, messageID int64) (*model.MessageMentions, error) {
+	value := s.mentions[messageID]
+	return &model.MessageMentions{
+		UserIDs:  append([]int64(nil), value.UserIDs...),
+		RoleIDs:  append([]int64(nil), value.RoleIDs...),
+		Everyone: value.Everyone,
+	}, nil
+}
+
+func (s *fakeStore) ListMessagesMentions(_ context.Context, messageIDs []int64) (map[int64]*model.MessageMentions, error) {
+	byMessage := make(map[int64]*model.MessageMentions, len(messageIDs))
+	for _, messageID := range messageIDs {
+		value, err := s.ListMessageMentions(context.Background(), messageID)
+		if err != nil {
+			return nil, err
+		}
+		byMessage[messageID] = value
+	}
+	return byMessage, nil
+}
+
+func (s *fakeStore) RebuildExpandedMessageMentions(_ context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error) {
+	if s.rebuildStale {
+		return false, nil
+	}
+	message, ok := s.messages[messageID]
+	if !ok || message.DeletedAt != 0 || message.Revision != expectedRevision {
+		return false, nil
+	}
+	s.rebuildBatches = append(s.rebuildBatches, append([]int64(nil), userIDs...))
+	value := s.mentions[messageID]
+	value.UserIDs = append([]int64(nil), userIDs...)
+	slices.Sort(value.UserIDs)
+	s.mentions[messageID] = value
+	return true, nil
 }
 
 func (s *fakeStore) CreateDmChannel(_ context.Context, channel *model.DmChannel) error {
@@ -1088,7 +1174,7 @@ func (s *fakeStore) ListReadyChannelReadStates(_ context.Context, userID int64, 
 			if message.ID <= lastReadID {
 				continue
 			}
-			if slices.Contains(s.mentions[message.ID], userID) {
+			if slices.Contains(s.mentions[message.ID].UserIDs, userID) {
 				state.MentionCount++
 			}
 		}
@@ -1179,7 +1265,7 @@ func TestGetUserReadyStateIncludesGuildChannelsAndAllDMs(t *testing.T) {
 	fakeStore.readStates[1] = map[int64]int64{10: 50}
 	fakeStore.messages[51] = &model.Message{ID: 51, ChannelID: 10, AuthorID: 2}
 	fakeStore.messages[52] = &model.Message{ID: 52, ChannelID: 20, AuthorID: 2}
-	fakeStore.mentions[52] = []int64{1}
+	fakeStore.mentions[52] = model.MessageMentions{UserIDs: []int64{1}}
 	fakeStore.dmChannels[20] = &model.DmChannel{ID: 20, UserLo: 1, UserHi: 2}
 	fakeStore.dmChannels[30] = &model.DmChannel{ID: 30, UserLo: 2, UserHi: 3}
 	server := newTestMessageServer(t, fakeStore, new(fakePublisher))

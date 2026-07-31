@@ -348,6 +348,9 @@ type Message struct {
 	xxx_hidden_UpdatedAt           int64                  `protobuf:"varint,12,opt,name=updated_at,json=updatedAt"`
 	xxx_hidden_Revision            int64                  `protobuf:"varint,13,opt,name=revision"`
 	xxx_hidden_AuthorId            int64                  `protobuf:"varint,14,opt,name=author_id,json=authorId"`
+	xxx_hidden_MentionUserIds      []int64                `protobuf:"varint,15,rep,packed,name=mention_user_ids,json=mentionUserIds"`
+	xxx_hidden_MentionRoleIds      []int64                `protobuf:"varint,16,rep,packed,name=mention_role_ids,json=mentionRoleIds"`
+	xxx_hidden_MentionEveryone     bool                   `protobuf:"varint,17,opt,name=mention_everyone,json=mentionEveryone"`
 	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
 	XXX_presence                   [1]uint32
 	unknownFields                  protoimpl.UnknownFields
@@ -477,39 +480,60 @@ func (x *Message) GetAuthorId() int64 {
 	return 0
 }
 
+func (x *Message) GetMentionUserIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_MentionUserIds
+	}
+	return nil
+}
+
+func (x *Message) GetMentionRoleIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_MentionRoleIds
+	}
+	return nil
+}
+
+func (x *Message) GetMentionEveryone() bool {
+	if x != nil {
+		return x.xxx_hidden_MentionEveryone
+	}
+	return false
+}
+
 func (x *Message) SetId(v int64) {
 	x.xxx_hidden_Id = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 16)
 }
 
 func (x *Message) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 16)
 }
 
 func (x *Message) SetContent(v string) {
 	x.xxx_hidden_Content = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 16)
 }
 
 func (x *Message) SetType(v MessageType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 16)
 }
 
 func (x *Message) SetFlags(v int32) {
 	x.xxx_hidden_Flags = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 16)
 }
 
 func (x *Message) SetReferencedMessageId(v int64) {
 	x.xxx_hidden_ReferencedMessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 16)
 }
 
 func (x *Message) SetReferencedChannelId(v int64) {
 	x.xxx_hidden_ReferencedChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 16)
 }
 
 func (x *Message) SetAttachments(v []*Attachment) {
@@ -518,27 +542,40 @@ func (x *Message) SetAttachments(v []*Attachment) {
 
 func (x *Message) SetEditedAt(v int64) {
 	x.xxx_hidden_EditedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 16)
 }
 
 func (x *Message) SetCreatedAt(v int64) {
 	x.xxx_hidden_CreatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 16)
 }
 
 func (x *Message) SetUpdatedAt(v int64) {
 	x.xxx_hidden_UpdatedAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 16)
 }
 
 func (x *Message) SetRevision(v int64) {
 	x.xxx_hidden_Revision = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 16)
 }
 
 func (x *Message) SetAuthorId(v int64) {
 	x.xxx_hidden_AuthorId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 16)
+}
+
+func (x *Message) SetMentionUserIds(v []int64) {
+	x.xxx_hidden_MentionUserIds = v
+}
+
+func (x *Message) SetMentionRoleIds(v []int64) {
+	x.xxx_hidden_MentionRoleIds = v
+}
+
+func (x *Message) SetMentionEveryone(v bool) {
+	x.xxx_hidden_MentionEveryone = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 16)
 }
 
 func (x *Message) HasId() bool {
@@ -625,6 +662,13 @@ func (x *Message) HasAuthorId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
 }
 
+func (x *Message) HasMentionEveryone() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
+}
+
 func (x *Message) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = 0
@@ -685,6 +729,11 @@ func (x *Message) ClearAuthorId() {
 	x.xxx_hidden_AuthorId = 0
 }
 
+func (x *Message) ClearMentionEveryone() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
+	x.xxx_hidden_MentionEveryone = false
+}
+
 type Message_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -713,6 +762,12 @@ type Message_builder struct {
 	Revision *int64
 	// Stable reference to the user who sent this message.
 	AuthorId *int64
+	// User IDs parsed from mentions in content, in ascending user ID order.
+	MentionUserIds []int64
+	// Role IDs parsed from mentions in content, in ascending role ID order.
+	MentionRoleIds []int64
+	// Whether the content mentions @everyone.
+	MentionEveryone *bool
 }
 
 func (b0 Message_builder) Build() *Message {
@@ -720,53 +775,59 @@ func (b0 Message_builder) Build() *Message {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 16)
 		x.xxx_hidden_Id = *b.Id
 	}
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 16)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.Content != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 16)
 		x.xxx_hidden_Content = b.Content
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 16)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.Flags != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 16)
 		x.xxx_hidden_Flags = *b.Flags
 	}
 	if b.ReferencedMessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 16)
 		x.xxx_hidden_ReferencedMessageId = *b.ReferencedMessageId
 	}
 	if b.ReferencedChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 16)
 		x.xxx_hidden_ReferencedChannelId = *b.ReferencedChannelId
 	}
 	x.xxx_hidden_Attachments = &b.Attachments
 	if b.EditedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 16)
 		x.xxx_hidden_EditedAt = *b.EditedAt
 	}
 	if b.CreatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 16)
 		x.xxx_hidden_CreatedAt = *b.CreatedAt
 	}
 	if b.UpdatedAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 16)
 		x.xxx_hidden_UpdatedAt = *b.UpdatedAt
 	}
 	if b.Revision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 16)
 		x.xxx_hidden_Revision = *b.Revision
 	}
 	if b.AuthorId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 16)
 		x.xxx_hidden_AuthorId = *b.AuthorId
+	}
+	x.xxx_hidden_MentionUserIds = b.MentionUserIds
+	x.xxx_hidden_MentionRoleIds = b.MentionRoleIds
+	if b.MentionEveryone != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 16)
+		x.xxx_hidden_MentionEveryone = *b.MentionEveryone
 	}
 	return m0
 }
@@ -1966,66 +2027,6 @@ func (b0 AttachmentList_builder) Build() *AttachmentList {
 	return m0
 }
 
-// MentionList is used on updates to distinguish "leave unchanged" from
-// "replace with no mentions".
-type MentionList struct {
-	state              protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *MentionList) Reset() {
-	*x = MentionList{}
-	mi := &file_message_v1_message_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MentionList) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MentionList) ProtoMessage() {}
-
-func (x *MentionList) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *MentionList) GetUserIds() []int64 {
-	if x != nil {
-		return x.xxx_hidden_UserIds
-	}
-	return nil
-}
-
-func (x *MentionList) SetUserIds(v []int64) {
-	x.xxx_hidden_UserIds = v
-}
-
-type MentionList_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// User IDs mentioned after parsing the edited message content.
-	UserIds []int64
-}
-
-func (b0 MentionList_builder) Build() *MentionList {
-	m0 := &MentionList{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_UserIds = b.UserIds
-	return m0
-}
-
 type CreateMessageRequest struct {
 	state                          protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId           int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -2036,7 +2037,6 @@ type CreateMessageRequest struct {
 	xxx_hidden_ReferencedMessageId int64                  `protobuf:"varint,6,opt,name=referenced_message_id,json=referencedMessageId"`
 	xxx_hidden_ReferencedChannelId int64                  `protobuf:"varint,7,opt,name=referenced_channel_id,json=referencedChannelId"`
 	xxx_hidden_Attachments         *[]*Attachment         `protobuf:"bytes,8,rep,name=attachments"`
-	xxx_hidden_MentionUserIds      []int64                `protobuf:"varint,9,rep,packed,name=mention_user_ids,json=mentionUserIds"`
 	xxx_hidden_IdempotencyKey      *string                `protobuf:"bytes,10,opt,name=idempotency_key,json=idempotencyKey"`
 	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
 	XXX_presence                   [1]uint32
@@ -2046,7 +2046,7 @@ type CreateMessageRequest struct {
 
 func (x *CreateMessageRequest) Reset() {
 	*x = CreateMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[11]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2058,7 +2058,7 @@ func (x *CreateMessageRequest) String() string {
 func (*CreateMessageRequest) ProtoMessage() {}
 
 func (x *CreateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[11]
+	mi := &file_message_v1_message_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2132,13 +2132,6 @@ func (x *CreateMessageRequest) GetAttachments() []*Attachment {
 	return nil
 }
 
-func (x *CreateMessageRequest) GetMentionUserIds() []int64 {
-	if x != nil {
-		return x.xxx_hidden_MentionUserIds
-	}
-	return nil
-}
-
 func (x *CreateMessageRequest) GetIdempotencyKey() string {
 	if x != nil {
 		if x.xxx_hidden_IdempotencyKey != nil {
@@ -2151,50 +2144,46 @@ func (x *CreateMessageRequest) GetIdempotencyKey() string {
 
 func (x *CreateMessageRequest) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
 }
 
 func (x *CreateMessageRequest) SetAuthorId(v int64) {
 	x.xxx_hidden_AuthorId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
 func (x *CreateMessageRequest) SetContent(v string) {
 	x.xxx_hidden_Content = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
 func (x *CreateMessageRequest) SetType(v MessageType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
 }
 
 func (x *CreateMessageRequest) SetFlags(v int32) {
 	x.xxx_hidden_Flags = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
 }
 
 func (x *CreateMessageRequest) SetReferencedMessageId(v int64) {
 	x.xxx_hidden_ReferencedMessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
 }
 
 func (x *CreateMessageRequest) SetReferencedChannelId(v int64) {
 	x.xxx_hidden_ReferencedChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
 }
 
 func (x *CreateMessageRequest) SetAttachments(v []*Attachment) {
 	x.xxx_hidden_Attachments = &v
 }
 
-func (x *CreateMessageRequest) SetMentionUserIds(v []int64) {
-	x.xxx_hidden_MentionUserIds = v
-}
-
 func (x *CreateMessageRequest) SetIdempotencyKey(v string) {
 	x.xxx_hidden_IdempotencyKey = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
 }
 
 func (x *CreateMessageRequest) HasChannelId() bool {
@@ -2250,7 +2239,7 @@ func (x *CreateMessageRequest) HasIdempotencyKey() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
 func (x *CreateMessageRequest) ClearChannelId() {
@@ -2289,7 +2278,7 @@ func (x *CreateMessageRequest) ClearReferencedChannelId() {
 }
 
 func (x *CreateMessageRequest) ClearIdempotencyKey() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
 	x.xxx_hidden_IdempotencyKey = nil
 }
 
@@ -2307,8 +2296,6 @@ type CreateMessageRequest_builder struct {
 	// Channel of the referenced message. Required when referenced_message_id is set.
 	ReferencedChannelId *int64
 	Attachments         []*Attachment
-	// User IDs mentioned in this message. Parsed by the caller from content.
-	MentionUserIds []int64
 	// Optional opaque key identifying one client-side message creation intent.
 	IdempotencyKey *string
 }
@@ -2318,37 +2305,36 @@ func (b0 CreateMessageRequest_builder) Build() *CreateMessageRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.AuthorId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
 		x.xxx_hidden_AuthorId = *b.AuthorId
 	}
 	if b.Content != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
 		x.xxx_hidden_Content = b.Content
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.Flags != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
 		x.xxx_hidden_Flags = *b.Flags
 	}
 	if b.ReferencedMessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
 		x.xxx_hidden_ReferencedMessageId = *b.ReferencedMessageId
 	}
 	if b.ReferencedChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
 		x.xxx_hidden_ReferencedChannelId = *b.ReferencedChannelId
 	}
 	x.xxx_hidden_Attachments = &b.Attachments
-	x.xxx_hidden_MentionUserIds = b.MentionUserIds
 	if b.IdempotencyKey != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
 		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
@@ -2364,7 +2350,7 @@ type CreateMessageResponse struct {
 
 func (x *CreateMessageResponse) Reset() {
 	*x = CreateMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[12]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2376,7 +2362,7 @@ func (x *CreateMessageResponse) String() string {
 func (*CreateMessageResponse) ProtoMessage() {}
 
 func (x *CreateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[12]
+	mi := &file_message_v1_message_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2455,7 +2441,6 @@ type UpdateMessageRequest struct {
 	xxx_hidden_ActorUserId int64                  `protobuf:"varint,3,opt,name=actor_user_id,json=actorUserId"`
 	xxx_hidden_Flags       int32                  `protobuf:"varint,4,opt,name=flags"`
 	xxx_hidden_Attachments *AttachmentList        `protobuf:"bytes,5,opt,name=attachments"`
-	xxx_hidden_Mentions    *MentionList           `protobuf:"bytes,6,opt,name=mentions"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2464,7 +2449,7 @@ type UpdateMessageRequest struct {
 
 func (x *UpdateMessageRequest) Reset() {
 	*x = UpdateMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[13]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2476,7 +2461,7 @@ func (x *UpdateMessageRequest) String() string {
 func (*UpdateMessageRequest) ProtoMessage() {}
 
 func (x *UpdateMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[13]
+	mi := &file_message_v1_message_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2525,39 +2510,28 @@ func (x *UpdateMessageRequest) GetAttachments() *AttachmentList {
 	return nil
 }
 
-func (x *UpdateMessageRequest) GetMentions() *MentionList {
-	if x != nil {
-		return x.xxx_hidden_Mentions
-	}
-	return nil
-}
-
 func (x *UpdateMessageRequest) SetMessageId(v int64) {
 	x.xxx_hidden_MessageId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *UpdateMessageRequest) SetContent(v string) {
 	x.xxx_hidden_Content = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *UpdateMessageRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *UpdateMessageRequest) SetFlags(v int32) {
 	x.xxx_hidden_Flags = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
 }
 
 func (x *UpdateMessageRequest) SetAttachments(v *AttachmentList) {
 	x.xxx_hidden_Attachments = v
-}
-
-func (x *UpdateMessageRequest) SetMentions(v *MentionList) {
-	x.xxx_hidden_Mentions = v
 }
 
 func (x *UpdateMessageRequest) HasMessageId() bool {
@@ -2595,13 +2569,6 @@ func (x *UpdateMessageRequest) HasAttachments() bool {
 	return x.xxx_hidden_Attachments != nil
 }
 
-func (x *UpdateMessageRequest) HasMentions() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_Mentions != nil
-}
-
 func (x *UpdateMessageRequest) ClearMessageId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_MessageId = 0
@@ -2626,10 +2593,6 @@ func (x *UpdateMessageRequest) ClearAttachments() {
 	x.xxx_hidden_Attachments = nil
 }
 
-func (x *UpdateMessageRequest) ClearMentions() {
-	x.xxx_hidden_Mentions = nil
-}
-
 type UpdateMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2642,9 +2605,6 @@ type UpdateMessageRequest_builder struct {
 	Flags *int32
 	// If present, replaces the attachment list with this complete list.
 	Attachments *AttachmentList
-	// If present, replaces stored mentions with the parsed mentions for the
-	// edited message content.
-	Mentions *MentionList
 }
 
 func (b0 UpdateMessageRequest_builder) Build() *UpdateMessageRequest {
@@ -2652,23 +2612,22 @@ func (b0 UpdateMessageRequest_builder) Build() *UpdateMessageRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.MessageId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_MessageId = *b.MessageId
 	}
 	if b.Content != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_Content = b.Content
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.Flags != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_Flags = *b.Flags
 	}
 	x.xxx_hidden_Attachments = b.Attachments
-	x.xxx_hidden_Mentions = b.Mentions
 	return m0
 }
 
@@ -2682,7 +2641,7 @@ type UpdateMessageResponse struct {
 
 func (x *UpdateMessageResponse) Reset() {
 	*x = UpdateMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[14]
+	mi := &file_message_v1_message_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2694,7 +2653,7 @@ func (x *UpdateMessageResponse) String() string {
 func (*UpdateMessageResponse) ProtoMessage() {}
 
 func (x *UpdateMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[14]
+	mi := &file_message_v1_message_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2778,7 +2737,7 @@ type DeleteMessageRequest struct {
 
 func (x *DeleteMessageRequest) Reset() {
 	*x = DeleteMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[15]
+	mi := &file_message_v1_message_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2790,7 +2749,7 @@ func (x *DeleteMessageRequest) String() string {
 func (*DeleteMessageRequest) ProtoMessage() {}
 
 func (x *DeleteMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[15]
+	mi := &file_message_v1_message_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2883,7 +2842,7 @@ type DeleteMessageResponse struct {
 
 func (x *DeleteMessageResponse) Reset() {
 	*x = DeleteMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[16]
+	mi := &file_message_v1_message_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2895,7 +2854,7 @@ func (x *DeleteMessageResponse) String() string {
 func (*DeleteMessageResponse) ProtoMessage() {}
 
 func (x *DeleteMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[16]
+	mi := &file_message_v1_message_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2959,7 +2918,7 @@ type GetMessageRequest struct {
 
 func (x *GetMessageRequest) Reset() {
 	*x = GetMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[17]
+	mi := &file_message_v1_message_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2971,7 +2930,7 @@ func (x *GetMessageRequest) String() string {
 func (*GetMessageRequest) ProtoMessage() {}
 
 func (x *GetMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[17]
+	mi := &file_message_v1_message_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3062,7 +3021,7 @@ type GetMessageResponse struct {
 
 func (x *GetMessageResponse) Reset() {
 	*x = GetMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[18]
+	mi := &file_message_v1_message_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3074,7 +3033,7 @@ func (x *GetMessageResponse) String() string {
 func (*GetMessageResponse) ProtoMessage() {}
 
 func (x *GetMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[18]
+	mi := &file_message_v1_message_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3159,7 +3118,7 @@ type ListMessagesRequest struct {
 
 func (x *ListMessagesRequest) Reset() {
 	*x = ListMessagesRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[19]
+	mi := &file_message_v1_message_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3171,7 +3130,7 @@ func (x *ListMessagesRequest) String() string {
 func (*ListMessagesRequest) ProtoMessage() {}
 
 func (x *ListMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[19]
+	mi := &file_message_v1_message_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3417,7 +3376,7 @@ func (b0 ListMessagesRequest_builder) Build() *ListMessagesRequest {
 type case_ListMessagesRequest_Cursor protoreflect.FieldNumber
 
 func (x case_ListMessagesRequest_Cursor) String() string {
-	md := file_message_v1_message_proto_msgTypes[19].Descriptor()
+	md := file_message_v1_message_proto_msgTypes[18].Descriptor()
 	if x == 0 {
 		return "not set"
 	}
@@ -3462,7 +3421,7 @@ type ListMessagesResponse struct {
 
 func (x *ListMessagesResponse) Reset() {
 	*x = ListMessagesResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[20]
+	mi := &file_message_v1_message_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3474,7 +3433,7 @@ func (x *ListMessagesResponse) String() string {
 func (*ListMessagesResponse) ProtoMessage() {}
 
 func (x *ListMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[20]
+	mi := &file_message_v1_message_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3586,7 +3545,7 @@ type CreateDmChannelRequest struct {
 
 func (x *CreateDmChannelRequest) Reset() {
 	*x = CreateDmChannelRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[21]
+	mi := &file_message_v1_message_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3598,7 +3557,7 @@ func (x *CreateDmChannelRequest) String() string {
 func (*CreateDmChannelRequest) ProtoMessage() {}
 
 func (x *CreateDmChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[21]
+	mi := &file_message_v1_message_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3688,7 +3647,7 @@ type CreateDmChannelResponse struct {
 
 func (x *CreateDmChannelResponse) Reset() {
 	*x = CreateDmChannelResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[22]
+	mi := &file_message_v1_message_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3700,7 +3659,7 @@ func (x *CreateDmChannelResponse) String() string {
 func (*CreateDmChannelResponse) ProtoMessage() {}
 
 func (x *CreateDmChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[22]
+	mi := &file_message_v1_message_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3760,7 +3719,7 @@ type ListDmChannelsRequest struct {
 
 func (x *ListDmChannelsRequest) Reset() {
 	*x = ListDmChannelsRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[23]
+	mi := &file_message_v1_message_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3772,7 +3731,7 @@ func (x *ListDmChannelsRequest) String() string {
 func (*ListDmChannelsRequest) ProtoMessage() {}
 
 func (x *ListDmChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[23]
+	mi := &file_message_v1_message_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3900,7 +3859,7 @@ type ListDmChannelsResponse struct {
 
 func (x *ListDmChannelsResponse) Reset() {
 	*x = ListDmChannelsResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[24]
+	mi := &file_message_v1_message_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3912,7 +3871,7 @@ func (x *ListDmChannelsResponse) String() string {
 func (*ListDmChannelsResponse) ProtoMessage() {}
 
 func (x *ListDmChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[24]
+	mi := &file_message_v1_message_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3999,7 +3958,7 @@ type AckMessageRequest struct {
 
 func (x *AckMessageRequest) Reset() {
 	*x = AckMessageRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[25]
+	mi := &file_message_v1_message_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4011,7 +3970,7 @@ func (x *AckMessageRequest) String() string {
 func (*AckMessageRequest) ProtoMessage() {}
 
 func (x *AckMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[25]
+	mi := &file_message_v1_message_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4132,7 +4091,7 @@ type AckMessageResponse struct {
 
 func (x *AckMessageResponse) Reset() {
 	*x = AckMessageResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[26]
+	mi := &file_message_v1_message_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4144,7 +4103,7 @@ func (x *AckMessageResponse) String() string {
 func (*AckMessageResponse) ProtoMessage() {}
 
 func (x *AckMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[26]
+	mi := &file_message_v1_message_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4203,7 +4162,7 @@ type GetUserReadyStateRequest struct {
 
 func (x *GetUserReadyStateRequest) Reset() {
 	*x = GetUserReadyStateRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[27]
+	mi := &file_message_v1_message_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4215,7 +4174,7 @@ func (x *GetUserReadyStateRequest) String() string {
 func (*GetUserReadyStateRequest) ProtoMessage() {}
 
 func (x *GetUserReadyStateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[27]
+	mi := &file_message_v1_message_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4296,7 +4255,7 @@ type ChannelReadState struct {
 
 func (x *ChannelReadState) Reset() {
 	*x = ChannelReadState{}
-	mi := &file_message_v1_message_proto_msgTypes[28]
+	mi := &file_message_v1_message_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4308,7 +4267,7 @@ func (x *ChannelReadState) String() string {
 func (*ChannelReadState) ProtoMessage() {}
 
 func (x *ChannelReadState) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[28]
+	mi := &file_message_v1_message_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4457,7 +4416,7 @@ type GetUserReadyStateResponse struct {
 
 func (x *GetUserReadyStateResponse) Reset() {
 	*x = GetUserReadyStateResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[29]
+	mi := &file_message_v1_message_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4469,7 +4428,7 @@ func (x *GetUserReadyStateResponse) String() string {
 func (*GetUserReadyStateResponse) ProtoMessage() {}
 
 func (x *GetUserReadyStateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[29]
+	mi := &file_message_v1_message_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4535,7 +4494,7 @@ type GetReadStatesRequest struct {
 
 func (x *GetReadStatesRequest) Reset() {
 	*x = GetReadStatesRequest{}
-	mi := &file_message_v1_message_proto_msgTypes[30]
+	mi := &file_message_v1_message_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4547,7 +4506,7 @@ func (x *GetReadStatesRequest) String() string {
 func (*GetReadStatesRequest) ProtoMessage() {}
 
 func (x *GetReadStatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[30]
+	mi := &file_message_v1_message_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4670,7 +4629,7 @@ type GetReadStatesResponse struct {
 
 func (x *GetReadStatesResponse) Reset() {
 	*x = GetReadStatesResponse{}
-	mi := &file_message_v1_message_proto_msgTypes[31]
+	mi := &file_message_v1_message_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4682,7 +4641,7 @@ func (x *GetReadStatesResponse) String() string {
 func (*GetReadStatesResponse) ProtoMessage() {}
 
 func (x *GetReadStatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_message_v1_message_proto_msgTypes[31]
+	mi := &file_message_v1_message_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4747,7 +4706,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\auser_lo\x18\x02 \x01(\x03R\x06userLo\x12\x17\n" +
 	"\auser_hi\x18\x03 \x01(\x03R\x06userHi\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xd9\x03\n" +
+	"created_at\x18\x04 \x01(\x03R\tcreatedAt\"\xd8\x04\n" +
 	"\aMessage\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
 	"\n" +
@@ -4765,7 +4724,10 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\f \x01(\x03R\tupdatedAt\x12\x1a\n" +
 	"\brevision\x18\r \x01(\x03R\brevision\x12\x1b\n" +
-	"\tauthor_id\x18\x0e \x01(\x03R\bauthorIdJ\x04\b\x03\x10\x04R\x06author\"\xfc\x01\n" +
+	"\tauthor_id\x18\x0e \x01(\x03R\bauthorId\x12(\n" +
+	"\x10mention_user_ids\x18\x0f \x03(\x03R\x0ementionUserIds\x12(\n" +
+	"\x10mention_role_ids\x18\x10 \x03(\x03R\x0ementionRoleIds\x12)\n" +
+	"\x10mention_everyone\x18\x11 \x01(\bR\x0fmentionEveryoneJ\x04\b\x03\x10\x04R\x06author\"\xfc\x01\n" +
 	"\n" +
 	"Attachment\x12\x19\n" +
 	"\basset_id\x18\x01 \x01(\x03R\aassetId\x12\x1a\n" +
@@ -4810,9 +4772,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\tupload_id\x18\x03 \x01(\x03R\buploadId\"\x1f\n" +
 	"\x1dAbortAttachmentUploadResponse\"J\n" +
 	"\x0eAttachmentList\x128\n" +
-	"\vattachments\x18\x01 \x03(\v2\x16.message.v1.AttachmentR\vattachments\"(\n" +
-	"\vMentionList\x12\x19\n" +
-	"\buser_ids\x18\x01 \x03(\x03R\auserIds\"\xa4\x03\n" +
+	"\vattachments\x18\x01 \x03(\v2\x16.message.v1.AttachmentR\vattachments\"\x80\x03\n" +
 	"\x14CreateMessageRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x1b\n" +
@@ -4822,21 +4782,20 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"\x05flags\x18\x05 \x01(\x05R\x05flags\x122\n" +
 	"\x15referenced_message_id\x18\x06 \x01(\x03R\x13referencedMessageId\x122\n" +
 	"\x15referenced_channel_id\x18\a \x01(\x03R\x13referencedChannelId\x128\n" +
-	"\vattachments\x18\b \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12(\n" +
-	"\x10mention_user_ids\x18\t \x03(\x03R\x0ementionUserIds\x12'\n" +
+	"\vattachments\x18\b \x03(\v2\x16.message.v1.AttachmentR\vattachments\x12'\n" +
 	"\x0fidempotency_key\x18\n" +
-	" \x01(\tR\x0eidempotencyKey\"t\n" +
+	" \x01(\tR\x0eidempotencyKeyJ\x04\b\t\x10\n" +
+	"\"t\n" +
 	"\x15CreateMessageResponse\x12-\n" +
 	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\x12,\n" +
-	"\x06author\x18\x02 \x01(\v2\x14.user.v1.UserProfileR\x06author\"\xfc\x01\n" +
+	"\x06author\x18\x02 \x01(\v2\x14.user.v1.UserProfileR\x06author\"\xcd\x01\n" +
 	"\x14UpdateMessageRequest\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x01 \x01(\x03R\tmessageId\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\"\n" +
 	"\ractor_user_id\x18\x03 \x01(\x03R\vactorUserId\x12\x14\n" +
 	"\x05flags\x18\x04 \x01(\x05R\x05flags\x12<\n" +
-	"\vattachments\x18\x05 \x01(\v2\x1a.message.v1.AttachmentListR\vattachments\x123\n" +
-	"\bmentions\x18\x06 \x01(\v2\x17.message.v1.MentionListR\bmentions\"t\n" +
+	"\vattachments\x18\x05 \x01(\v2\x1a.message.v1.AttachmentListR\vattachmentsJ\x04\b\x06\x10\a\"t\n" +
 	"\x15UpdateMessageResponse\x12-\n" +
 	"\amessage\x18\x01 \x01(\v2\x13.message.v1.MessageR\amessage\x12,\n" +
 	"\x06author\x18\x02 \x01(\v2\x14.user.v1.UserProfileR\x06author\"Y\n" +
@@ -4945,7 +4904,7 @@ const file_message_v1_message_proto_rawDesc = "" +
 	"Message\\V1\xe2\x02\x16Message\\V1\\GPBMetadata\xea\x02\vMessage::V1b\beditionsp\xe8\a"
 
 var file_message_v1_message_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_message_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_message_v1_message_proto_goTypes = []any{
 	(MessageType)(0),                         // 0: message.v1.MessageType
 	(MessageFlag)(0),                         // 1: message.v1.MessageFlag
@@ -4960,87 +4919,85 @@ var file_message_v1_message_proto_goTypes = []any{
 	(*AbortAttachmentUploadRequest)(nil),     // 10: message.v1.AbortAttachmentUploadRequest
 	(*AbortAttachmentUploadResponse)(nil),    // 11: message.v1.AbortAttachmentUploadResponse
 	(*AttachmentList)(nil),                   // 12: message.v1.AttachmentList
-	(*MentionList)(nil),                      // 13: message.v1.MentionList
-	(*CreateMessageRequest)(nil),             // 14: message.v1.CreateMessageRequest
-	(*CreateMessageResponse)(nil),            // 15: message.v1.CreateMessageResponse
-	(*UpdateMessageRequest)(nil),             // 16: message.v1.UpdateMessageRequest
-	(*UpdateMessageResponse)(nil),            // 17: message.v1.UpdateMessageResponse
-	(*DeleteMessageRequest)(nil),             // 18: message.v1.DeleteMessageRequest
-	(*DeleteMessageResponse)(nil),            // 19: message.v1.DeleteMessageResponse
-	(*GetMessageRequest)(nil),                // 20: message.v1.GetMessageRequest
-	(*GetMessageResponse)(nil),               // 21: message.v1.GetMessageResponse
-	(*ListMessagesRequest)(nil),              // 22: message.v1.ListMessagesRequest
-	(*ListMessagesResponse)(nil),             // 23: message.v1.ListMessagesResponse
-	(*CreateDmChannelRequest)(nil),           // 24: message.v1.CreateDmChannelRequest
-	(*CreateDmChannelResponse)(nil),          // 25: message.v1.CreateDmChannelResponse
-	(*ListDmChannelsRequest)(nil),            // 26: message.v1.ListDmChannelsRequest
-	(*ListDmChannelsResponse)(nil),           // 27: message.v1.ListDmChannelsResponse
-	(*AckMessageRequest)(nil),                // 28: message.v1.AckMessageRequest
-	(*AckMessageResponse)(nil),               // 29: message.v1.AckMessageResponse
-	(*GetUserReadyStateRequest)(nil),         // 30: message.v1.GetUserReadyStateRequest
-	(*ChannelReadState)(nil),                 // 31: message.v1.ChannelReadState
-	(*GetUserReadyStateResponse)(nil),        // 32: message.v1.GetUserReadyStateResponse
-	(*GetReadStatesRequest)(nil),             // 33: message.v1.GetReadStatesRequest
-	(*GetReadStatesResponse)(nil),            // 34: message.v1.GetReadStatesResponse
-	nil,                                      // 35: message.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
-	(*v1.UserProfile)(nil),                   // 36: user.v1.UserProfile
+	(*CreateMessageRequest)(nil),             // 13: message.v1.CreateMessageRequest
+	(*CreateMessageResponse)(nil),            // 14: message.v1.CreateMessageResponse
+	(*UpdateMessageRequest)(nil),             // 15: message.v1.UpdateMessageRequest
+	(*UpdateMessageResponse)(nil),            // 16: message.v1.UpdateMessageResponse
+	(*DeleteMessageRequest)(nil),             // 17: message.v1.DeleteMessageRequest
+	(*DeleteMessageResponse)(nil),            // 18: message.v1.DeleteMessageResponse
+	(*GetMessageRequest)(nil),                // 19: message.v1.GetMessageRequest
+	(*GetMessageResponse)(nil),               // 20: message.v1.GetMessageResponse
+	(*ListMessagesRequest)(nil),              // 21: message.v1.ListMessagesRequest
+	(*ListMessagesResponse)(nil),             // 22: message.v1.ListMessagesResponse
+	(*CreateDmChannelRequest)(nil),           // 23: message.v1.CreateDmChannelRequest
+	(*CreateDmChannelResponse)(nil),          // 24: message.v1.CreateDmChannelResponse
+	(*ListDmChannelsRequest)(nil),            // 25: message.v1.ListDmChannelsRequest
+	(*ListDmChannelsResponse)(nil),           // 26: message.v1.ListDmChannelsResponse
+	(*AckMessageRequest)(nil),                // 27: message.v1.AckMessageRequest
+	(*AckMessageResponse)(nil),               // 28: message.v1.AckMessageResponse
+	(*GetUserReadyStateRequest)(nil),         // 29: message.v1.GetUserReadyStateRequest
+	(*ChannelReadState)(nil),                 // 30: message.v1.ChannelReadState
+	(*GetUserReadyStateResponse)(nil),        // 31: message.v1.GetUserReadyStateResponse
+	(*GetReadStatesRequest)(nil),             // 32: message.v1.GetReadStatesRequest
+	(*GetReadStatesResponse)(nil),            // 33: message.v1.GetReadStatesResponse
+	nil,                                      // 34: message.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
+	(*v1.UserProfile)(nil),                   // 35: user.v1.UserProfile
 }
 var file_message_v1_message_proto_depIdxs = []int32{
 	0,  // 0: message.v1.Message.type:type_name -> message.v1.MessageType
 	5,  // 1: message.v1.Message.attachments:type_name -> message.v1.Attachment
-	35, // 2: message.v1.CreateAttachmentUploadResponse.request_headers:type_name -> message.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
+	34, // 2: message.v1.CreateAttachmentUploadResponse.request_headers:type_name -> message.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
 	5,  // 3: message.v1.CompleteAttachmentUploadResponse.attachment:type_name -> message.v1.Attachment
 	5,  // 4: message.v1.AttachmentList.attachments:type_name -> message.v1.Attachment
 	0,  // 5: message.v1.CreateMessageRequest.type:type_name -> message.v1.MessageType
 	5,  // 6: message.v1.CreateMessageRequest.attachments:type_name -> message.v1.Attachment
 	4,  // 7: message.v1.CreateMessageResponse.message:type_name -> message.v1.Message
-	36, // 8: message.v1.CreateMessageResponse.author:type_name -> user.v1.UserProfile
+	35, // 8: message.v1.CreateMessageResponse.author:type_name -> user.v1.UserProfile
 	12, // 9: message.v1.UpdateMessageRequest.attachments:type_name -> message.v1.AttachmentList
-	13, // 10: message.v1.UpdateMessageRequest.mentions:type_name -> message.v1.MentionList
-	4,  // 11: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
-	36, // 12: message.v1.UpdateMessageResponse.author:type_name -> user.v1.UserProfile
-	4,  // 13: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
-	36, // 14: message.v1.GetMessageResponse.author:type_name -> user.v1.UserProfile
-	4,  // 15: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
-	3,  // 16: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
-	3,  // 17: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
-	31, // 18: message.v1.AckMessageResponse.read_state:type_name -> message.v1.ChannelReadState
-	3,  // 19: message.v1.GetUserReadyStateResponse.dm_channels:type_name -> message.v1.DmChannel
-	31, // 20: message.v1.GetUserReadyStateResponse.read_states:type_name -> message.v1.ChannelReadState
-	2,  // 21: message.v1.GetReadStatesRequest.scope:type_name -> message.v1.ReadStateScopeType
-	3,  // 22: message.v1.GetReadStatesResponse.dm_channels:type_name -> message.v1.DmChannel
-	31, // 23: message.v1.GetReadStatesResponse.read_states:type_name -> message.v1.ChannelReadState
-	14, // 24: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
-	16, // 25: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
-	18, // 26: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
-	20, // 27: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
-	22, // 28: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
-	6,  // 29: message.v1.MessageService.CreateAttachmentUpload:input_type -> message.v1.CreateAttachmentUploadRequest
-	8,  // 30: message.v1.MessageService.CompleteAttachmentUpload:input_type -> message.v1.CompleteAttachmentUploadRequest
-	10, // 31: message.v1.MessageService.AbortAttachmentUpload:input_type -> message.v1.AbortAttachmentUploadRequest
-	24, // 32: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
-	26, // 33: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
-	28, // 34: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
-	30, // 35: message.v1.MessageService.GetUserReadyState:input_type -> message.v1.GetUserReadyStateRequest
-	33, // 36: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
-	15, // 37: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
-	17, // 38: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
-	19, // 39: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
-	21, // 40: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
-	23, // 41: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
-	7,  // 42: message.v1.MessageService.CreateAttachmentUpload:output_type -> message.v1.CreateAttachmentUploadResponse
-	9,  // 43: message.v1.MessageService.CompleteAttachmentUpload:output_type -> message.v1.CompleteAttachmentUploadResponse
-	11, // 44: message.v1.MessageService.AbortAttachmentUpload:output_type -> message.v1.AbortAttachmentUploadResponse
-	25, // 45: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
-	27, // 46: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
-	29, // 47: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
-	32, // 48: message.v1.MessageService.GetUserReadyState:output_type -> message.v1.GetUserReadyStateResponse
-	34, // 49: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
-	37, // [37:50] is the sub-list for method output_type
-	24, // [24:37] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	4,  // 10: message.v1.UpdateMessageResponse.message:type_name -> message.v1.Message
+	35, // 11: message.v1.UpdateMessageResponse.author:type_name -> user.v1.UserProfile
+	4,  // 12: message.v1.GetMessageResponse.message:type_name -> message.v1.Message
+	35, // 13: message.v1.GetMessageResponse.author:type_name -> user.v1.UserProfile
+	4,  // 14: message.v1.ListMessagesResponse.messages:type_name -> message.v1.Message
+	3,  // 15: message.v1.CreateDmChannelResponse.channel:type_name -> message.v1.DmChannel
+	3,  // 16: message.v1.ListDmChannelsResponse.channels:type_name -> message.v1.DmChannel
+	30, // 17: message.v1.AckMessageResponse.read_state:type_name -> message.v1.ChannelReadState
+	3,  // 18: message.v1.GetUserReadyStateResponse.dm_channels:type_name -> message.v1.DmChannel
+	30, // 19: message.v1.GetUserReadyStateResponse.read_states:type_name -> message.v1.ChannelReadState
+	2,  // 20: message.v1.GetReadStatesRequest.scope:type_name -> message.v1.ReadStateScopeType
+	3,  // 21: message.v1.GetReadStatesResponse.dm_channels:type_name -> message.v1.DmChannel
+	30, // 22: message.v1.GetReadStatesResponse.read_states:type_name -> message.v1.ChannelReadState
+	13, // 23: message.v1.MessageService.CreateMessage:input_type -> message.v1.CreateMessageRequest
+	15, // 24: message.v1.MessageService.UpdateMessage:input_type -> message.v1.UpdateMessageRequest
+	17, // 25: message.v1.MessageService.DeleteMessage:input_type -> message.v1.DeleteMessageRequest
+	19, // 26: message.v1.MessageService.GetMessage:input_type -> message.v1.GetMessageRequest
+	21, // 27: message.v1.MessageService.ListMessages:input_type -> message.v1.ListMessagesRequest
+	6,  // 28: message.v1.MessageService.CreateAttachmentUpload:input_type -> message.v1.CreateAttachmentUploadRequest
+	8,  // 29: message.v1.MessageService.CompleteAttachmentUpload:input_type -> message.v1.CompleteAttachmentUploadRequest
+	10, // 30: message.v1.MessageService.AbortAttachmentUpload:input_type -> message.v1.AbortAttachmentUploadRequest
+	23, // 31: message.v1.MessageService.CreateDmChannel:input_type -> message.v1.CreateDmChannelRequest
+	25, // 32: message.v1.MessageService.ListDmChannels:input_type -> message.v1.ListDmChannelsRequest
+	27, // 33: message.v1.MessageService.AckMessage:input_type -> message.v1.AckMessageRequest
+	29, // 34: message.v1.MessageService.GetUserReadyState:input_type -> message.v1.GetUserReadyStateRequest
+	32, // 35: message.v1.MessageService.GetReadStates:input_type -> message.v1.GetReadStatesRequest
+	14, // 36: message.v1.MessageService.CreateMessage:output_type -> message.v1.CreateMessageResponse
+	16, // 37: message.v1.MessageService.UpdateMessage:output_type -> message.v1.UpdateMessageResponse
+	18, // 38: message.v1.MessageService.DeleteMessage:output_type -> message.v1.DeleteMessageResponse
+	20, // 39: message.v1.MessageService.GetMessage:output_type -> message.v1.GetMessageResponse
+	22, // 40: message.v1.MessageService.ListMessages:output_type -> message.v1.ListMessagesResponse
+	7,  // 41: message.v1.MessageService.CreateAttachmentUpload:output_type -> message.v1.CreateAttachmentUploadResponse
+	9,  // 42: message.v1.MessageService.CompleteAttachmentUpload:output_type -> message.v1.CompleteAttachmentUploadResponse
+	11, // 43: message.v1.MessageService.AbortAttachmentUpload:output_type -> message.v1.AbortAttachmentUploadResponse
+	24, // 44: message.v1.MessageService.CreateDmChannel:output_type -> message.v1.CreateDmChannelResponse
+	26, // 45: message.v1.MessageService.ListDmChannels:output_type -> message.v1.ListDmChannelsResponse
+	28, // 46: message.v1.MessageService.AckMessage:output_type -> message.v1.AckMessageResponse
+	31, // 47: message.v1.MessageService.GetUserReadyState:output_type -> message.v1.GetUserReadyStateResponse
+	33, // 48: message.v1.MessageService.GetReadStates:output_type -> message.v1.GetReadStatesResponse
+	36, // [36:49] is the sub-list for method output_type
+	23, // [23:36] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_message_v1_message_proto_init() }
@@ -5048,7 +5005,7 @@ func file_message_v1_message_proto_init() {
 	if File_message_v1_message_proto != nil {
 		return
 	}
-	file_message_v1_message_proto_msgTypes[19].OneofWrappers = []any{
+	file_message_v1_message_proto_msgTypes[18].OneofWrappers = []any{
 		(*listMessagesRequest_Before)(nil),
 		(*listMessagesRequest_After)(nil),
 		(*listMessagesRequest_Around)(nil),
@@ -5059,7 +5016,7 @@ func file_message_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_message_v1_message_proto_rawDesc), len(file_message_v1_message_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   33,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

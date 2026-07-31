@@ -116,7 +116,6 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	req.SetReferencedMessageId(3000)
 	req.SetReferencedChannelId(2001)
 	req.SetAttachments([]*apiv1.Attachment{attachment})
-	req.SetMentionUserIds([]int64{1002})
 	req.SetIdempotencyKey("message-intent-1")
 
 	resp, err := client.CreateMessage(context.Background(), req)
@@ -127,7 +126,6 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	require.Equal(t, messagev1.MessageType_MESSAGE_TYPE_REPLY, messageClient.createRequest.GetType())
 	require.Equal(t, int32(messagev1.MessageFlag_MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS), messageClient.createRequest.GetFlags())
 	require.Equal(t, int64(3000), messageClient.createRequest.GetReferencedMessageId())
-	require.Equal(t, []int64{1002}, messageClient.createRequest.GetMentionUserIds())
 	require.Equal(t, int64(101), messageClient.createRequest.GetAttachments()[0].GetAssetId())
 	require.True(t, messageClient.createRequest.HasIdempotencyKey())
 	require.Equal(t, "message-intent-1", messageClient.createRequest.GetIdempotencyKey())
@@ -207,7 +205,6 @@ func TestUpdateMessagePreservesFieldPresence(t *testing.T) {
 	req.SetMessageId(4001)
 	req.SetContent("")
 	req.SetAttachments(new(apiv1.AttachmentList))
-	req.SetMentions(new(apiv1.MentionList))
 	resp, err := client.UpdateMessage(context.Background(), req)
 	require.NoError(t, err)
 
@@ -217,8 +214,6 @@ func TestUpdateMessagePreservesFieldPresence(t *testing.T) {
 	require.False(t, messageClient.updateRequest.HasFlags())
 	require.True(t, messageClient.updateRequest.HasAttachments())
 	require.Empty(t, messageClient.updateRequest.GetAttachments().GetAttachments())
-	require.True(t, messageClient.updateRequest.HasMentions())
-	require.Empty(t, messageClient.updateRequest.GetMentions().GetUserIds())
 	require.Equal(t, int64(4001), resp.GetMessage().GetId())
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -41,6 +42,18 @@ func main() {
 	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
+	expander, err := server.NewMentionExpander(svcCtx)
+	if err != nil {
+		panic(err)
+	}
+	if expander != nil {
+		expanderCtx, cancelExpander := context.WithCancel(context.Background())
+		proc.AddShutdownListener(func() {
+			cancelExpander()
+			expander.Close()
+		})
+		go expander.Run(expanderCtx)
+	}
 	probeState := probe.New()
 	probeState.SetLiveness(true)
 	proc.AddWrapUpListener(func() {

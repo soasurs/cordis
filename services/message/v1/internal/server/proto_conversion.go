@@ -20,6 +20,9 @@ func messageToProto(message *model.Message) *messagev1.Message {
 	result.SetCreatedAt(message.CreatedAt)
 	result.SetUpdatedAt(message.UpdatedAt)
 	result.SetRevision(message.Revision)
+	result.SetMentionUserIds(message.Mentions.UserIDs)
+	result.SetMentionRoleIds(message.Mentions.RoleIDs)
+	result.SetMentionEveryone(message.Mentions.Everyone)
 	return result
 }
 

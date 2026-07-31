@@ -38,6 +38,8 @@ const (
 	GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES GuildPermission = 256
 	GuildPermission_GUILD_PERMISSION_BAN_MEMBERS     GuildPermission = 512
 	GuildPermission_GUILD_PERMISSION_CREATE_INVITE   GuildPermission = 1024
+	// Allows the message author to mention @everyone in a channel.
+	GuildPermission_GUILD_PERMISSION_MENTION_EVERYONE GuildPermission = 2048
 )
 
 // Enum value maps for GuildPermission.
@@ -55,20 +57,22 @@ var (
 		256:  "GUILD_PERMISSION_MANAGE_MESSAGES",
 		512:  "GUILD_PERMISSION_BAN_MEMBERS",
 		1024: "GUILD_PERMISSION_CREATE_INVITE",
+		2048: "GUILD_PERMISSION_MENTION_EVERYONE",
 	}
 	GuildPermission_value = map[string]int32{
-		"GUILD_PERMISSION_UNSPECIFIED":     0,
-		"GUILD_PERMISSION_ADMINISTRATOR":   1,
-		"GUILD_PERMISSION_MANAGE_GUILD":    2,
-		"GUILD_PERMISSION_MANAGE_ROLES":    4,
-		"GUILD_PERMISSION_MANAGE_MEMBERS":  8,
-		"GUILD_PERMISSION_KICK_MEMBERS":    16,
-		"GUILD_PERMISSION_VIEW_CHANNEL":    32,
-		"GUILD_PERMISSION_SEND_MESSAGES":   64,
-		"GUILD_PERMISSION_MANAGE_CHANNELS": 128,
-		"GUILD_PERMISSION_MANAGE_MESSAGES": 256,
-		"GUILD_PERMISSION_BAN_MEMBERS":     512,
-		"GUILD_PERMISSION_CREATE_INVITE":   1024,
+		"GUILD_PERMISSION_UNSPECIFIED":      0,
+		"GUILD_PERMISSION_ADMINISTRATOR":    1,
+		"GUILD_PERMISSION_MANAGE_GUILD":     2,
+		"GUILD_PERMISSION_MANAGE_ROLES":     4,
+		"GUILD_PERMISSION_MANAGE_MEMBERS":   8,
+		"GUILD_PERMISSION_KICK_MEMBERS":     16,
+		"GUILD_PERMISSION_VIEW_CHANNEL":     32,
+		"GUILD_PERMISSION_SEND_MESSAGES":    64,
+		"GUILD_PERMISSION_MANAGE_CHANNELS":  128,
+		"GUILD_PERMISSION_MANAGE_MESSAGES":  256,
+		"GUILD_PERMISSION_BAN_MEMBERS":      512,
+		"GUILD_PERMISSION_CREATE_INVITE":    1024,
+		"GUILD_PERMISSION_MENTION_EVERYONE": 2048,
 	}
 )
 
@@ -14115,6 +14119,352 @@ func (b0 AuthorizeGuildChannelResponse_builder) Build() *AuthorizeGuildChannelRe
 	return m0
 }
 
+type ListGuildMentionTargetsRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_ChannelId   int64                  `protobuf:"varint,3,opt,name=channel_id,json=channelId"`
+	xxx_hidden_RoleIds     []int64                `protobuf:"varint,4,rep,packed,name=role_ids,json=roleIds"`
+	xxx_hidden_Everyone    bool                   `protobuf:"varint,5,opt,name=everyone"`
+	xxx_hidden_Cursor      *string                `protobuf:"bytes,6,opt,name=cursor"`
+	xxx_hidden_Limit       int32                  `protobuf:"varint,7,opt,name=limit"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ListGuildMentionTargetsRequest) Reset() {
+	*x = ListGuildMentionTargetsRequest{}
+	mi := &file_guild_v1_guild_proto_msgTypes[110]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGuildMentionTargetsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGuildMentionTargetsRequest) ProtoMessage() {}
+
+func (x *ListGuildMentionTargetsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_guild_v1_guild_proto_msgTypes[110]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListGuildMentionTargetsRequest) GetGuildId() int64 {
+	if x != nil {
+		return x.xxx_hidden_GuildId
+	}
+	return 0
+}
+
+func (x *ListGuildMentionTargetsRequest) GetActorUserId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ActorUserId
+	}
+	return 0
+}
+
+func (x *ListGuildMentionTargetsRequest) GetChannelId() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelId
+	}
+	return 0
+}
+
+func (x *ListGuildMentionTargetsRequest) GetRoleIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_RoleIds
+	}
+	return nil
+}
+
+func (x *ListGuildMentionTargetsRequest) GetEveryone() bool {
+	if x != nil {
+		return x.xxx_hidden_Everyone
+	}
+	return false
+}
+
+func (x *ListGuildMentionTargetsRequest) GetCursor() string {
+	if x != nil {
+		if x.xxx_hidden_Cursor != nil {
+			return *x.xxx_hidden_Cursor
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ListGuildMentionTargetsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.xxx_hidden_Limit
+	}
+	return 0
+}
+
+func (x *ListGuildMentionTargetsRequest) SetGuildId(v int64) {
+	x.xxx_hidden_GuildId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+}
+
+func (x *ListGuildMentionTargetsRequest) SetActorUserId(v int64) {
+	x.xxx_hidden_ActorUserId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+}
+
+func (x *ListGuildMentionTargetsRequest) SetChannelId(v int64) {
+	x.xxx_hidden_ChannelId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+}
+
+func (x *ListGuildMentionTargetsRequest) SetRoleIds(v []int64) {
+	x.xxx_hidden_RoleIds = v
+}
+
+func (x *ListGuildMentionTargetsRequest) SetEveryone(v bool) {
+	x.xxx_hidden_Everyone = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+}
+
+func (x *ListGuildMentionTargetsRequest) SetCursor(v string) {
+	x.xxx_hidden_Cursor = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *ListGuildMentionTargetsRequest) SetLimit(v int32) {
+	x.xxx_hidden_Limit = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
+func (x *ListGuildMentionTargetsRequest) HasGuildId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListGuildMentionTargetsRequest) HasActorUserId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildMentionTargetsRequest) HasChannelId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListGuildMentionTargetsRequest) HasEveryone() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *ListGuildMentionTargetsRequest) HasCursor() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *ListGuildMentionTargetsRequest) HasLimit() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *ListGuildMentionTargetsRequest) ClearGuildId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_GuildId = 0
+}
+
+func (x *ListGuildMentionTargetsRequest) ClearActorUserId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ActorUserId = 0
+}
+
+func (x *ListGuildMentionTargetsRequest) ClearChannelId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ChannelId = 0
+}
+
+func (x *ListGuildMentionTargetsRequest) ClearEveryone() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Everyone = false
+}
+
+func (x *ListGuildMentionTargetsRequest) ClearCursor() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Cursor = nil
+}
+
+func (x *ListGuildMentionTargetsRequest) ClearLimit() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Limit = 0
+}
+
+type ListGuildMentionTargetsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	GuildId     *int64
+	ActorUserId *int64
+	ChannelId   *int64
+	// Explicitly mentioned roles. Empty when only everyone or user mentions
+	// are being expanded.
+	RoleIds []int64
+	// Whether @everyone is part of the mention set.
+	Everyone *bool
+	// Opaque continuation from ListGuildMentionTargetsResponse.next_cursor.
+	// Omit (unset) to start from the first page. Pass the value through
+	// unchanged; do not parse it.
+	Cursor *string
+	// Maximum results per page. Zero uses the default of 100; maximum is 1000.
+	Limit *int32
+}
+
+func (b0 ListGuildMentionTargetsRequest_builder) Build() *ListGuildMentionTargetsRequest {
+	m0 := &ListGuildMentionTargetsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.GuildId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		x.xxx_hidden_GuildId = *b.GuildId
+	}
+	if b.ActorUserId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		x.xxx_hidden_ActorUserId = *b.ActorUserId
+	}
+	if b.ChannelId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		x.xxx_hidden_ChannelId = *b.ChannelId
+	}
+	x.xxx_hidden_RoleIds = b.RoleIds
+	if b.Everyone != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		x.xxx_hidden_Everyone = *b.Everyone
+	}
+	if b.Cursor != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		x.xxx_hidden_Cursor = b.Cursor
+	}
+	if b.Limit != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_Limit = *b.Limit
+	}
+	return m0
+}
+
+type ListGuildMentionTargetsResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserIds     []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
+	xxx_hidden_NextCursor  *string                `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ListGuildMentionTargetsResponse) Reset() {
+	*x = ListGuildMentionTargetsResponse{}
+	mi := &file_guild_v1_guild_proto_msgTypes[111]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListGuildMentionTargetsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListGuildMentionTargetsResponse) ProtoMessage() {}
+
+func (x *ListGuildMentionTargetsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_guild_v1_guild_proto_msgTypes[111]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListGuildMentionTargetsResponse) GetUserIds() []int64 {
+	if x != nil {
+		return x.xxx_hidden_UserIds
+	}
+	return nil
+}
+
+func (x *ListGuildMentionTargetsResponse) GetNextCursor() string {
+	if x != nil {
+		if x.xxx_hidden_NextCursor != nil {
+			return *x.xxx_hidden_NextCursor
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ListGuildMentionTargetsResponse) SetUserIds(v []int64) {
+	x.xxx_hidden_UserIds = v
+}
+
+func (x *ListGuildMentionTargetsResponse) SetNextCursor(v string) {
+	x.xxx_hidden_NextCursor = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildMentionTargetsResponse) HasNextCursor() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildMentionTargetsResponse) ClearNextCursor() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_NextCursor = nil
+}
+
+type ListGuildMentionTargetsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// Active members that can view the channel and match at least one requested
+	// mention source, ordered by user ID ascending.
+	UserIds []int64
+	// Opaque cursor for the next page. Leave unset when there is no next page;
+	// do not set an empty string. Pass through unchanged as the next request's
+	// cursor. End of list is field absence.
+	NextCursor *string
+}
+
+func (b0 ListGuildMentionTargetsResponse_builder) Build() *ListGuildMentionTargetsResponse {
+	m0 := &ListGuildMentionTargetsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_UserIds = b.UserIds
+	if b.NextCursor != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_NextCursor = b.NextCursor
+	}
+	return m0
+}
+
 var File_guild_v1_guild_proto protoreflect.FileDescriptor
 
 const file_guild_v1_guild_proto_rawDesc = "" +
@@ -14581,7 +14931,20 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\aallowed\x18\x01 \x01(\bR\aallowed\x12\x19\n" +
 	"\bguild_id\x18\x02 \x01(\x03R\aguildId\x12 \n" +
 	"\vpermissions\x18\x03 \x01(\x04R\vpermissions\x12=\n" +
-	"\fchannel_type\x18\x04 \x01(\x0e2\x1a.guild.v1.GuildChannelTypeR\vchannelType*\xc2\x03\n" +
+	"\fchannel_type\x18\x04 \x01(\x0e2\x1a.guild.v1.GuildChannelTypeR\vchannelType\"\xe3\x01\n" +
+	"\x1eListGuildMentionTargetsRequest\x12\x19\n" +
+	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x1d\n" +
+	"\n" +
+	"channel_id\x18\x03 \x01(\x03R\tchannelId\x12\x19\n" +
+	"\brole_ids\x18\x04 \x03(\x03R\aroleIds\x12\x1a\n" +
+	"\beveryone\x18\x05 \x01(\bR\beveryone\x12\x16\n" +
+	"\x06cursor\x18\x06 \x01(\tR\x06cursor\x12\x14\n" +
+	"\x05limit\x18\a \x01(\x05R\x05limit\"]\n" +
+	"\x1fListGuildMentionTargetsResponse\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\x03R\auserIds\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor*\xea\x03\n" +
 	"\x0fGuildPermission\x12 \n" +
 	"\x1cGUILD_PERMISSION_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eGUILD_PERMISSION_ADMINISTRATOR\x10\x01\x12!\n" +
@@ -14594,7 +14957,8 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	" GUILD_PERMISSION_MANAGE_CHANNELS\x10\x80\x01\x12%\n" +
 	" GUILD_PERMISSION_MANAGE_MESSAGES\x10\x80\x02\x12!\n" +
 	"\x1cGUILD_PERMISSION_BAN_MEMBERS\x10\x80\x04\x12#\n" +
-	"\x1eGUILD_PERMISSION_CREATE_INVITE\x10\x80\b*\x92\x01\n" +
+	"\x1eGUILD_PERMISSION_CREATE_INVITE\x10\x80\b\x12&\n" +
+	"!GUILD_PERMISSION_MENTION_EVERYONE\x10\x80\x10*\x92\x01\n" +
 	"\x10GuildChannelType\x12\"\n" +
 	"\x1eGUILD_CHANNEL_TYPE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17GUILD_CHANNEL_TYPE_TEXT\x10\x01\x12\x1f\n" +
@@ -14603,7 +14967,7 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x1cGuildPermissionOverwriteType\x12/\n" +
 	"+GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$GUILD_PERMISSION_OVERWRITE_TYPE_ROLE\x10\x01\x12*\n" +
-	"&GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER\x10\x022\xc4%\n" +
+	"&GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER\x10\x022\xb4&\n" +
 	"\fGuildService\x12J\n" +
 	"\vCreateGuild\x12\x1c.guild.v1.CreateGuildRequest\x1a\x1d.guild.v1.CreateGuildResponse\x12A\n" +
 	"\bGetGuild\x12\x19.guild.v1.GetGuildRequest\x1a\x1a.guild.v1.GetGuildResponse\x12S\n" +
@@ -14654,12 +15018,13 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"%UpsertGuildChannelPermissionOverwrite\x126.guild.v1.UpsertGuildChannelPermissionOverwriteRequest\x1a7.guild.v1.UpsertGuildChannelPermissionOverwriteResponse\x12\x98\x01\n" +
 	"%DeleteGuildChannelPermissionOverwrite\x126.guild.v1.DeleteGuildChannelPermissionOverwriteRequest\x1a7.guild.v1.DeleteGuildChannelPermissionOverwriteResponse\x12\x95\x01\n" +
 	"$ListGuildChannelPermissionOverwrites\x125.guild.v1.ListGuildChannelPermissionOverwritesRequest\x1a6.guild.v1.ListGuildChannelPermissionOverwritesResponse\x12h\n" +
-	"\x15AuthorizeGuildChannel\x12&.guild.v1.AuthorizeGuildChannelRequest\x1a'.guild.v1.AuthorizeGuildChannelResponseB\x8b\x01\n" +
+	"\x15AuthorizeGuildChannel\x12&.guild.v1.AuthorizeGuildChannelRequest\x1a'.guild.v1.AuthorizeGuildChannelResponse\x12n\n" +
+	"\x17ListGuildMentionTargets\x12(.guild.v1.ListGuildMentionTargetsRequest\x1a).guild.v1.ListGuildMentionTargetsResponseB\x8b\x01\n" +
 	"\fcom.guild.v1B\n" +
 	"GuildProtoP\x01Z.github.com/soasurs/cordis/gen/guild/v1;guildv1\xa2\x02\x03GXX\xaa\x02\bGuild.V1\xca\x02\bGuild\\V1\xe2\x02\x14Guild\\V1\\GPBMetadata\xea\x02\tGuild::V1b\beditionsp\xe8\a"
 
 var file_guild_v1_guild_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_guild_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 111)
+var file_guild_v1_guild_proto_msgTypes = make([]protoimpl.MessageInfo, 113)
 var file_guild_v1_guild_proto_goTypes = []any{
 	(GuildPermission)(0),                                  // 0: guild.v1.GuildPermission
 	(GuildChannelType)(0),                                 // 1: guild.v1.GuildChannelType
@@ -14774,7 +15139,9 @@ var file_guild_v1_guild_proto_goTypes = []any{
 	(*ListGuildChannelPermissionOverwritesResponse)(nil),  // 110: guild.v1.ListGuildChannelPermissionOverwritesResponse
 	(*AuthorizeGuildChannelRequest)(nil),                  // 111: guild.v1.AuthorizeGuildChannelRequest
 	(*AuthorizeGuildChannelResponse)(nil),                 // 112: guild.v1.AuthorizeGuildChannelResponse
-	nil,                                                   // 113: guild.v1.CreateGuildIconUploadResponse.RequestHeadersEntry
+	(*ListGuildMentionTargetsRequest)(nil),                // 113: guild.v1.ListGuildMentionTargetsRequest
+	(*ListGuildMentionTargetsResponse)(nil),               // 114: guild.v1.ListGuildMentionTargetsResponse
+	nil,                                                   // 115: guild.v1.CreateGuildIconUploadResponse.RequestHeadersEntry
 }
 var file_guild_v1_guild_proto_depIdxs = []int32{
 	1,   // 0: guild.v1.GuildChannel.type:type_name -> guild.v1.GuildChannelType
@@ -14789,7 +15156,7 @@ var file_guild_v1_guild_proto_depIdxs = []int32{
 	18,  // 9: guild.v1.GetUserReadyStateResponse.guilds:type_name -> guild.v1.ReadyGuild
 	17,  // 10: guild.v1.GetUserGuildChannelVisibilityResponse.visibility:type_name -> guild.v1.GuildChannelVisibility
 	5,   // 11: guild.v1.UpdateGuildResponse.guild:type_name -> guild.v1.Guild
-	113, // 12: guild.v1.CreateGuildIconUploadResponse.request_headers:type_name -> guild.v1.CreateGuildIconUploadResponse.RequestHeadersEntry
+	115, // 12: guild.v1.CreateGuildIconUploadResponse.request_headers:type_name -> guild.v1.CreateGuildIconUploadResponse.RequestHeadersEntry
 	5,   // 13: guild.v1.CompleteGuildIconUploadResponse.guild:type_name -> guild.v1.Guild
 	6,   // 14: guild.v1.AddGuildMemberResponse.member:type_name -> guild.v1.GuildMember
 	6,   // 15: guild.v1.GetGuildMemberResponse.member:type_name -> guild.v1.GuildMember
@@ -14872,57 +15239,59 @@ var file_guild_v1_guild_proto_depIdxs = []int32{
 	107, // 92: guild.v1.GuildService.DeleteGuildChannelPermissionOverwrite:input_type -> guild.v1.DeleteGuildChannelPermissionOverwriteRequest
 	109, // 93: guild.v1.GuildService.ListGuildChannelPermissionOverwrites:input_type -> guild.v1.ListGuildChannelPermissionOverwritesRequest
 	111, // 94: guild.v1.GuildService.AuthorizeGuildChannel:input_type -> guild.v1.AuthorizeGuildChannelRequest
-	12,  // 95: guild.v1.GuildService.CreateGuild:output_type -> guild.v1.CreateGuildResponse
-	14,  // 96: guild.v1.GuildService.GetGuild:output_type -> guild.v1.GetGuildResponse
-	16,  // 97: guild.v1.GuildService.ListUserGuilds:output_type -> guild.v1.ListUserGuildsResponse
-	4,   // 98: guild.v1.GuildService.FilterUsersWithCommonGuild:output_type -> guild.v1.FilterUsersWithCommonGuildResponse
-	20,  // 99: guild.v1.GuildService.GetUserReadyState:output_type -> guild.v1.GetUserReadyStateResponse
-	22,  // 100: guild.v1.GuildService.GetUserGuildChannelVisibility:output_type -> guild.v1.GetUserGuildChannelVisibilityResponse
-	24,  // 101: guild.v1.GuildService.UpdateGuild:output_type -> guild.v1.UpdateGuildResponse
-	26,  // 102: guild.v1.GuildService.CreateGuildIconUpload:output_type -> guild.v1.CreateGuildIconUploadResponse
-	28,  // 103: guild.v1.GuildService.CompleteGuildIconUpload:output_type -> guild.v1.CompleteGuildIconUploadResponse
-	30,  // 104: guild.v1.GuildService.AbortGuildIconUpload:output_type -> guild.v1.AbortGuildIconUploadResponse
-	32,  // 105: guild.v1.GuildService.DeleteGuild:output_type -> guild.v1.DeleteGuildResponse
-	34,  // 106: guild.v1.GuildService.AddGuildMember:output_type -> guild.v1.AddGuildMemberResponse
-	36,  // 107: guild.v1.GuildService.GetGuildMember:output_type -> guild.v1.GetGuildMemberResponse
-	38,  // 108: guild.v1.GuildService.ListGuildMembers:output_type -> guild.v1.ListGuildMembersResponse
-	40,  // 109: guild.v1.GuildService.UpdateGuildMember:output_type -> guild.v1.UpdateGuildMemberResponse
-	42,  // 110: guild.v1.GuildService.KickGuildMember:output_type -> guild.v1.KickGuildMemberResponse
-	44,  // 111: guild.v1.GuildService.BanGuildMember:output_type -> guild.v1.BanGuildMemberResponse
-	46,  // 112: guild.v1.GuildService.UnbanGuildMember:output_type -> guild.v1.UnbanGuildMemberResponse
-	48,  // 113: guild.v1.GuildService.ListGuildBans:output_type -> guild.v1.ListGuildBansResponse
-	50,  // 114: guild.v1.GuildService.LeaveGuild:output_type -> guild.v1.LeaveGuildResponse
-	52,  // 115: guild.v1.GuildService.TransferGuildOwnership:output_type -> guild.v1.TransferGuildOwnershipResponse
-	56,  // 116: guild.v1.GuildService.CreateGuildInvite:output_type -> guild.v1.CreateGuildInviteResponse
-	58,  // 117: guild.v1.GuildService.GetGuildInvite:output_type -> guild.v1.GetGuildInviteResponse
-	60,  // 118: guild.v1.GuildService.ListGuildInvites:output_type -> guild.v1.ListGuildInvitesResponse
-	62,  // 119: guild.v1.GuildService.DeleteGuildInvite:output_type -> guild.v1.DeleteGuildInviteResponse
-	64,  // 120: guild.v1.GuildService.JoinGuildByInvite:output_type -> guild.v1.JoinGuildByInviteResponse
-	66,  // 121: guild.v1.GuildService.CreateGuildRole:output_type -> guild.v1.CreateGuildRoleResponse
-	68,  // 122: guild.v1.GuildService.GetGuildRole:output_type -> guild.v1.GetGuildRoleResponse
-	70,  // 123: guild.v1.GuildService.ListGuildRoles:output_type -> guild.v1.ListGuildRolesResponse
-	72,  // 124: guild.v1.GuildService.UpdateGuildRole:output_type -> guild.v1.UpdateGuildRoleResponse
-	74,  // 125: guild.v1.GuildService.DeleteGuildRole:output_type -> guild.v1.DeleteGuildRoleResponse
-	77,  // 126: guild.v1.GuildService.ReorderGuildRoles:output_type -> guild.v1.ReorderGuildRolesResponse
-	79,  // 127: guild.v1.GuildService.AddGuildMemberRole:output_type -> guild.v1.AddGuildMemberRoleResponse
-	81,  // 128: guild.v1.GuildService.RemoveGuildMemberRole:output_type -> guild.v1.RemoveGuildMemberRoleResponse
-	83,  // 129: guild.v1.GuildService.AddGuildRoleMembers:output_type -> guild.v1.AddGuildRoleMembersResponse
-	85,  // 130: guild.v1.GuildService.RemoveGuildRoleMembers:output_type -> guild.v1.RemoveGuildRoleMembersResponse
-	87,  // 131: guild.v1.GuildService.ListGuildMemberRoles:output_type -> guild.v1.ListGuildMemberRolesResponse
-	89,  // 132: guild.v1.GuildService.ListGuildRoleMembers:output_type -> guild.v1.ListGuildRoleMembersResponse
-	91,  // 133: guild.v1.GuildService.GetGuildMemberPermissions:output_type -> guild.v1.GetGuildMemberPermissionsResponse
-	93,  // 134: guild.v1.GuildService.CreateGuildChannel:output_type -> guild.v1.CreateGuildChannelResponse
-	95,  // 135: guild.v1.GuildService.GetGuildChannel:output_type -> guild.v1.GetGuildChannelResponse
-	97,  // 136: guild.v1.GuildService.ListGuildChannels:output_type -> guild.v1.ListGuildChannelsResponse
-	99,  // 137: guild.v1.GuildService.UpdateGuildChannel:output_type -> guild.v1.UpdateGuildChannelResponse
-	101, // 138: guild.v1.GuildService.DeleteGuildChannel:output_type -> guild.v1.DeleteGuildChannelResponse
-	104, // 139: guild.v1.GuildService.ReorderGuildChannels:output_type -> guild.v1.ReorderGuildChannelsResponse
-	106, // 140: guild.v1.GuildService.UpsertGuildChannelPermissionOverwrite:output_type -> guild.v1.UpsertGuildChannelPermissionOverwriteResponse
-	108, // 141: guild.v1.GuildService.DeleteGuildChannelPermissionOverwrite:output_type -> guild.v1.DeleteGuildChannelPermissionOverwriteResponse
-	110, // 142: guild.v1.GuildService.ListGuildChannelPermissionOverwrites:output_type -> guild.v1.ListGuildChannelPermissionOverwritesResponse
-	112, // 143: guild.v1.GuildService.AuthorizeGuildChannel:output_type -> guild.v1.AuthorizeGuildChannelResponse
-	95,  // [95:144] is the sub-list for method output_type
-	46,  // [46:95] is the sub-list for method input_type
+	113, // 95: guild.v1.GuildService.ListGuildMentionTargets:input_type -> guild.v1.ListGuildMentionTargetsRequest
+	12,  // 96: guild.v1.GuildService.CreateGuild:output_type -> guild.v1.CreateGuildResponse
+	14,  // 97: guild.v1.GuildService.GetGuild:output_type -> guild.v1.GetGuildResponse
+	16,  // 98: guild.v1.GuildService.ListUserGuilds:output_type -> guild.v1.ListUserGuildsResponse
+	4,   // 99: guild.v1.GuildService.FilterUsersWithCommonGuild:output_type -> guild.v1.FilterUsersWithCommonGuildResponse
+	20,  // 100: guild.v1.GuildService.GetUserReadyState:output_type -> guild.v1.GetUserReadyStateResponse
+	22,  // 101: guild.v1.GuildService.GetUserGuildChannelVisibility:output_type -> guild.v1.GetUserGuildChannelVisibilityResponse
+	24,  // 102: guild.v1.GuildService.UpdateGuild:output_type -> guild.v1.UpdateGuildResponse
+	26,  // 103: guild.v1.GuildService.CreateGuildIconUpload:output_type -> guild.v1.CreateGuildIconUploadResponse
+	28,  // 104: guild.v1.GuildService.CompleteGuildIconUpload:output_type -> guild.v1.CompleteGuildIconUploadResponse
+	30,  // 105: guild.v1.GuildService.AbortGuildIconUpload:output_type -> guild.v1.AbortGuildIconUploadResponse
+	32,  // 106: guild.v1.GuildService.DeleteGuild:output_type -> guild.v1.DeleteGuildResponse
+	34,  // 107: guild.v1.GuildService.AddGuildMember:output_type -> guild.v1.AddGuildMemberResponse
+	36,  // 108: guild.v1.GuildService.GetGuildMember:output_type -> guild.v1.GetGuildMemberResponse
+	38,  // 109: guild.v1.GuildService.ListGuildMembers:output_type -> guild.v1.ListGuildMembersResponse
+	40,  // 110: guild.v1.GuildService.UpdateGuildMember:output_type -> guild.v1.UpdateGuildMemberResponse
+	42,  // 111: guild.v1.GuildService.KickGuildMember:output_type -> guild.v1.KickGuildMemberResponse
+	44,  // 112: guild.v1.GuildService.BanGuildMember:output_type -> guild.v1.BanGuildMemberResponse
+	46,  // 113: guild.v1.GuildService.UnbanGuildMember:output_type -> guild.v1.UnbanGuildMemberResponse
+	48,  // 114: guild.v1.GuildService.ListGuildBans:output_type -> guild.v1.ListGuildBansResponse
+	50,  // 115: guild.v1.GuildService.LeaveGuild:output_type -> guild.v1.LeaveGuildResponse
+	52,  // 116: guild.v1.GuildService.TransferGuildOwnership:output_type -> guild.v1.TransferGuildOwnershipResponse
+	56,  // 117: guild.v1.GuildService.CreateGuildInvite:output_type -> guild.v1.CreateGuildInviteResponse
+	58,  // 118: guild.v1.GuildService.GetGuildInvite:output_type -> guild.v1.GetGuildInviteResponse
+	60,  // 119: guild.v1.GuildService.ListGuildInvites:output_type -> guild.v1.ListGuildInvitesResponse
+	62,  // 120: guild.v1.GuildService.DeleteGuildInvite:output_type -> guild.v1.DeleteGuildInviteResponse
+	64,  // 121: guild.v1.GuildService.JoinGuildByInvite:output_type -> guild.v1.JoinGuildByInviteResponse
+	66,  // 122: guild.v1.GuildService.CreateGuildRole:output_type -> guild.v1.CreateGuildRoleResponse
+	68,  // 123: guild.v1.GuildService.GetGuildRole:output_type -> guild.v1.GetGuildRoleResponse
+	70,  // 124: guild.v1.GuildService.ListGuildRoles:output_type -> guild.v1.ListGuildRolesResponse
+	72,  // 125: guild.v1.GuildService.UpdateGuildRole:output_type -> guild.v1.UpdateGuildRoleResponse
+	74,  // 126: guild.v1.GuildService.DeleteGuildRole:output_type -> guild.v1.DeleteGuildRoleResponse
+	77,  // 127: guild.v1.GuildService.ReorderGuildRoles:output_type -> guild.v1.ReorderGuildRolesResponse
+	79,  // 128: guild.v1.GuildService.AddGuildMemberRole:output_type -> guild.v1.AddGuildMemberRoleResponse
+	81,  // 129: guild.v1.GuildService.RemoveGuildMemberRole:output_type -> guild.v1.RemoveGuildMemberRoleResponse
+	83,  // 130: guild.v1.GuildService.AddGuildRoleMembers:output_type -> guild.v1.AddGuildRoleMembersResponse
+	85,  // 131: guild.v1.GuildService.RemoveGuildRoleMembers:output_type -> guild.v1.RemoveGuildRoleMembersResponse
+	87,  // 132: guild.v1.GuildService.ListGuildMemberRoles:output_type -> guild.v1.ListGuildMemberRolesResponse
+	89,  // 133: guild.v1.GuildService.ListGuildRoleMembers:output_type -> guild.v1.ListGuildRoleMembersResponse
+	91,  // 134: guild.v1.GuildService.GetGuildMemberPermissions:output_type -> guild.v1.GetGuildMemberPermissionsResponse
+	93,  // 135: guild.v1.GuildService.CreateGuildChannel:output_type -> guild.v1.CreateGuildChannelResponse
+	95,  // 136: guild.v1.GuildService.GetGuildChannel:output_type -> guild.v1.GetGuildChannelResponse
+	97,  // 137: guild.v1.GuildService.ListGuildChannels:output_type -> guild.v1.ListGuildChannelsResponse
+	99,  // 138: guild.v1.GuildService.UpdateGuildChannel:output_type -> guild.v1.UpdateGuildChannelResponse
+	101, // 139: guild.v1.GuildService.DeleteGuildChannel:output_type -> guild.v1.DeleteGuildChannelResponse
+	104, // 140: guild.v1.GuildService.ReorderGuildChannels:output_type -> guild.v1.ReorderGuildChannelsResponse
+	106, // 141: guild.v1.GuildService.UpsertGuildChannelPermissionOverwrite:output_type -> guild.v1.UpsertGuildChannelPermissionOverwriteResponse
+	108, // 142: guild.v1.GuildService.DeleteGuildChannelPermissionOverwrite:output_type -> guild.v1.DeleteGuildChannelPermissionOverwriteResponse
+	110, // 143: guild.v1.GuildService.ListGuildChannelPermissionOverwrites:output_type -> guild.v1.ListGuildChannelPermissionOverwritesResponse
+	112, // 144: guild.v1.GuildService.AuthorizeGuildChannel:output_type -> guild.v1.AuthorizeGuildChannelResponse
+	114, // 145: guild.v1.GuildService.ListGuildMentionTargets:output_type -> guild.v1.ListGuildMentionTargetsResponse
+	96,  // [96:146] is the sub-list for method output_type
+	46,  // [46:96] is the sub-list for method input_type
 	46,  // [46:46] is the sub-list for extension type_name
 	46,  // [46:46] is the sub-list for extension extendee
 	0,   // [0:46] is the sub-list for field type_name
@@ -14939,7 +15308,7 @@ func file_guild_v1_guild_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_guild_v1_guild_proto_rawDesc), len(file_guild_v1_guild_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   111,
+			NumMessages:   113,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

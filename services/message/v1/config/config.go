@@ -92,6 +92,10 @@ type KafkaConfig struct {
 	// Topic is the Kafka topic for message events.
 	Topic string `json:",default=cordis.message.events.v1"`
 
+	// MentionsConsumerGroup is the consumer group of the mention expansion
+	// worker, which consumes the message event topic.
+	MentionsConsumerGroup string `json:",default=cordis.message.mentions.v1"`
+
 	// PublishTimeoutMs bounds how long a handler waits for a broker
 	// acknowledgement. Publication failure does not fail the message RPC.
 	PublishTimeoutMs int `json:",default=1000"`

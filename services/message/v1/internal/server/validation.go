@@ -76,19 +76,9 @@ func validateAttachments(attachments []model.Attachment, limit int) error {
 	return nil
 }
 
-func validateMentionUserIDs(userIDs []int64, limit int) error {
-	if len(userIDs) > limit {
+func validateMentionsSet(mentions model.MessageMentions, limit int) error {
+	if len(mentions.UserIDs)+len(mentions.RoleIDs) > limit {
 		return resourceLimitExceeded("mention limit exceeded")
-	}
-	seen := make(map[int64]struct{}, len(userIDs))
-	for _, userID := range userIDs {
-		if userID <= 0 {
-			return invalidRequest("mention user id must be positive")
-		}
-		if _, ok := seen[userID]; ok {
-			return invalidRequest("mention user ids must be unique")
-		}
-		seen[userID] = struct{}{}
 	}
 	return nil
 }

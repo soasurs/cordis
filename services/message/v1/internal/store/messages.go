@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -40,6 +41,17 @@ type messageRow struct {
 	UpdatedAt           int64         `db:"updated_at"`
 	Revision            int64         `db:"revision"`
 	DeletedAt           int64         `db:"deleted_at"`
+	MentionEveryone     bool          `db:"mention_everyone"`
+}
+
+type messageMentionRow struct {
+	MessageID int64 `db:"message_id"`
+	TargetID  int64 `db:"user_id"`
+}
+
+type messageEveryoneRow struct {
+	MessageID int64 `db:"id"`
+	Everyone  bool  `db:"mention_everyone"`
 }
 
 type queryArgs struct {
@@ -204,28 +216,129 @@ func (s *SQLStore) DeleteMessage(ctx context.Context, messageID, actorUserID int
 	return row.toModel()
 }
 
-func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, userIDs []int64) error {
+func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, mentions model.MessageMentions) error {
 	if _, err := s.q.ExecContext(ctx, DeleteMessageMentionsStatement, messageID); err != nil {
 		return err
 	}
+	if _, err := s.q.ExecContext(ctx, DeleteMessageRoleMentionsStatement, messageID); err != nil {
+		return err
+	}
+	if _, err := s.q.ExecContext(ctx, UpdateMessageMentionEveryoneStatement, messageID, mentions.Everyone); err != nil {
+		return err
+	}
+	if err := s.batchInsertMentions(ctx, messageID, mentions.UserIDs, 1); err != nil {
+		return err
+	}
+	return s.batchInsertRoleMentions(ctx, messageID, mentions.RoleIDs)
+}
+
+func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, userIDs []int64, source int) error {
 	ids := uniquePositiveIDs(userIDs)
 	if len(ids) == 0 {
 		return nil
 	}
-	return s.batchInsertMentions(ctx, messageID, ids)
-}
-
-func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, userIDs []int64) error {
-	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, userIDs)
+	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, ids, source)
 	return err
 }
 
-func (s *SQLStore) ListMentionUserIDs(ctx context.Context, messageID int64) ([]int64, error) {
-	var userIDs []int64
-	if err := sqlx.SelectContext(ctx, s.q, &userIDs, ListMessageMentionsQuery, messageID); err != nil {
+func (s *SQLStore) batchInsertRoleMentions(ctx context.Context, messageID int64, roleIDs []int64) error {
+	ids := uniquePositiveIDs(roleIDs)
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := s.q.ExecContext(ctx, InsertMessageRoleMentionsStatement, messageID, ids)
+	return err
+}
+
+func (s *SQLStore) ListMessageMentions(ctx context.Context, messageID int64) (*model.MessageMentions, error) {
+	mentions, err := s.ListMessagesMentions(ctx, []int64{messageID})
+	if err != nil {
 		return nil, err
 	}
-	return userIDs, nil
+	if value, ok := mentions[messageID]; ok {
+		return value, nil
+	}
+	return &model.MessageMentions{}, nil
+}
+
+func (s *SQLStore) ListMessagesMentions(ctx context.Context, messageIDs []int64) (map[int64]*model.MessageMentions, error) {
+	if len(messageIDs) == 0 {
+		return map[int64]*model.MessageMentions{}, nil
+	}
+	byMessage := make(map[int64]*model.MessageMentions, len(messageIDs))
+	for _, messageID := range messageIDs {
+		byMessage[messageID] = &model.MessageMentions{}
+	}
+
+	var userRows []messageMentionRow
+	if err := sqlx.SelectContext(ctx, s.q, &userRows, ListMessagesMentionsQuery, messageIDs); err != nil {
+		return nil, err
+	}
+	for _, row := range userRows {
+		byMessage[row.MessageID].UserIDs = append(byMessage[row.MessageID].UserIDs, row.TargetID)
+	}
+
+	var roleRows []messageMentionRow
+	if err := sqlx.SelectContext(ctx, s.q, &roleRows, ListMessagesRoleMentionsQuery, messageIDs); err != nil {
+		return nil, err
+	}
+	for _, row := range roleRows {
+		byMessage[row.MessageID].RoleIDs = append(byMessage[row.MessageID].RoleIDs, row.TargetID)
+	}
+
+	var everyoneRows []messageEveryoneRow
+	if err := sqlx.SelectContext(ctx, s.q, &everyoneRows, ListMessagesMentionEveryoneQuery, messageIDs); err != nil {
+		return nil, err
+	}
+	for _, row := range everyoneRows {
+		byMessage[row.MessageID].Everyone = row.Everyone
+	}
+	return byMessage, nil
+}
+
+// expandedMentionInsertBatchSize bounds each unnest insert inside a rebuild
+// transaction.
+const expandedMentionInsertBatchSize = 10_000
+
+// RebuildExpandedMessageMentions atomically replaces the source-2 rows of a
+// message, but only while the stored revision still matches
+// expectedRevision. Locking the message row keeps the rebuild mutually
+// exclusive with edits and deletes, so an in-flight expansion cannot
+// resurrect rows after an edit removed them. It reports whether the rebuild
+// was applied; a missing, deleted, or newer message is skipped without error.
+func (s *SQLStore) RebuildExpandedMessageMentions(ctx context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error) {
+	ids := uniquePositiveIDs(userIDs)
+	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	var revision int64
+	if err := tx.GetContext(ctx, &revision, LockMessageRevisionStatement, messageID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	if revision != expectedRevision {
+		return false, nil
+	}
+	if _, err := tx.ExecContext(ctx, DeleteExpandedMessageMentionsStatement, messageID); err != nil {
+		return false, err
+	}
+	for start := 0; start < len(ids); start += expandedMentionInsertBatchSize {
+		end := min(start+expandedMentionInsertBatchSize, len(ids))
+		if _, err := tx.ExecContext(ctx, InsertExpandedMessageMentionsStatement, messageID, ids[start:end]); err != nil {
+			return false, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *SQLStore) selectMessages(ctx context.Context, query string, args ...any) ([]*model.Message, error) {
@@ -313,6 +426,7 @@ func (r *messageRow) toModel() (*model.Message, error) {
 	if r.EditedAt.Valid {
 		message.EditedAt = r.EditedAt.Int64
 	}
+	message.Mentions = model.MessageMentions{Everyone: r.MentionEveryone}
 	return message, nil
 }
 

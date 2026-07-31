@@ -152,6 +152,9 @@ type Store interface {
 	DeleteGuildRoles(ctx context.Context, guildID, deletedAt int64) error
 	GetGuildMember(ctx context.Context, guildID, userID int64) (*model.GuildMember, error)
 	ListGuildMembers(ctx context.Context, params ListGuildMembersParams) ([]*model.GuildMember, error)
+	ListGuildMemberIDsPage(ctx context.Context, guildID, afterUserID int64, limit int) ([]int64, error)
+	ListGuildRoleTargetIDsPage(ctx context.Context, guildID int64, roleIDs []int64, afterUserID int64, limit int) ([]int64, error)
+	ListGuildMemberRolesByUsers(ctx context.Context, guildID int64, userIDs []int64) (map[int64][]*model.Role, error)
 	ListUsersWithCommonGuild(ctx context.Context, userID int64, targetUserIDs []int64) ([]int64, error)
 	ListGuildRoleMembers(ctx context.Context, params ListGuildRoleMembersParams) ([]*model.GuildMember, error)
 	UpdateGuildMemberNickname(ctx context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error)

@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"slices"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -35,6 +36,17 @@ type guildRoleTimeIDPayload struct {
 	RoleID  int64 `json:"rid"`
 	Time    int64 `json:"t"`
 	ID      int64 `json:"i"`
+}
+
+// mentionTargetsPayload continues ListGuildMentionTargets and binds the
+// pagination to the request parameters so a cursor cannot be reused with a
+// different channel, role set, or everyone flag.
+type mentionTargetsPayload struct {
+	GuildID     int64   `json:"gid"`
+	ChannelID   int64   `json:"cid"`
+	RoleIDs     []int64 `json:"rids,omitempty"`
+	Everyone    bool    `json:"all,omitempty"`
+	AfterUserID int64   `json:"uid"`
 }
 
 func readCursor(has bool, value string) (string, error) {
@@ -94,6 +106,55 @@ func decodeGuildTimeIDCursor(c *cursor.Codec, kind, token string, guildID int64)
 		return 0, 0, false, invalidRequest("cursor is invalid")
 	}
 	return payload.Time, payload.ID, true, nil
+}
+
+func decodeMentionTargetsCursor(
+	c *cursor.Codec,
+	token string,
+	guildID, channelID int64,
+	roleIDs []int64,
+	everyone bool,
+) (afterUserID int64, ok bool, err error) {
+	payload, ok, err := cursor.Decode[mentionTargetsPayload](c, cursor.KindGuildMentionTargets, token)
+	if err != nil {
+		return 0, false, mapCursorErr(err)
+	}
+	if !ok {
+		return 0, false, nil
+	}
+	if payload.GuildID != guildID ||
+		payload.ChannelID != channelID ||
+		payload.AfterUserID <= 0 ||
+		payload.Everyone != everyone ||
+		!slices.Equal(payload.RoleIDs, roleIDs) {
+		return 0, false, invalidRequest("cursor is invalid")
+	}
+	return payload.AfterUserID, true, nil
+}
+
+func setNextMentionTargetsCursor(
+	c *cursor.Codec,
+	set func(string),
+	hasMore bool,
+	afterUserID, guildID, channelID int64,
+	roleIDs []int64,
+	everyone bool,
+) error {
+	if !hasMore || afterUserID <= 0 {
+		return nil
+	}
+	token, err := c.Encode(cursor.KindGuildMentionTargets, mentionTargetsPayload{
+		GuildID:     guildID,
+		ChannelID:   channelID,
+		RoleIDs:     roleIDs,
+		Everyone:    everyone,
+		AfterUserID: afterUserID,
+	})
+	if err != nil {
+		return status.Error(codes.Internal, "failed to encode cursor")
+	}
+	set(token)
+	return nil
 }
 
 func decodeGuildRoleTimeIDCursor(c *cursor.Codec, token string, guildID, roleID int64) (timeMs, id int64, ok bool, err error) {

@@ -10,6 +10,7 @@
 - [认证与令牌轮换](authentication.md)
 - [配置、可观测性与开发](operations-and-development.md)
 - [当前限制与演进方向](limitations.md)
+- [服务端 Mention 解析与展开设计](mention-expansion.md)
 
 ## 阅读建议
 

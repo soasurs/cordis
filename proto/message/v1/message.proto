@@ -109,6 +109,13 @@ message Message {
   int64 revision = 13;
   // Stable reference to the user who sent this message.
   int64 author_id = 14;
+
+  // User IDs parsed from mentions in content, in ascending user ID order.
+  repeated int64 mention_user_ids = 15;
+  // Role IDs parsed from mentions in content, in ascending role ID order.
+  repeated int64 mention_role_ids = 16;
+  // Whether the content mentions @everyone.
+  bool mention_everyone = 17;
 }
 
 // Attachment describes a validated Media asset attached to a message.
@@ -203,13 +210,6 @@ message AttachmentList {
   repeated Attachment attachments = 1;
 }
 
-// MentionList is used on updates to distinguish "leave unchanged" from
-// "replace with no mentions".
-message MentionList {
-  // User IDs mentioned after parsing the edited message content.
-  repeated int64 user_ids = 1;
-}
-
 // ============================================================
 // Message RPCs
 // ============================================================
@@ -229,8 +229,7 @@ message CreateMessageRequest {
 
   repeated Attachment attachments = 8;
 
-  // User IDs mentioned in this message. Parsed by the caller from content.
-  repeated int64 mention_user_ids = 9;
+  reserved 9;
   // Optional opaque key identifying one client-side message creation intent.
   string idempotency_key = 10;
 }
@@ -251,9 +250,7 @@ message UpdateMessageRequest {
   int32 flags = 4;
   // If present, replaces the attachment list with this complete list.
   AttachmentList attachments = 5;
-  // If present, replaces stored mentions with the parsed mentions for the
-  // edited message content.
-  MentionList mentions = 6;
+  reserved 6;
 }
 
 message UpdateMessageResponse {

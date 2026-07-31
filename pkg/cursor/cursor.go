@@ -20,13 +20,14 @@ const (
 	// MinSecretLen is the minimum accepted HMAC secret length.
 	MinSecretLen = 32
 
-	KindUserGuilds       = "user_guilds"
-	KindGuildMembers     = "guild_members"
-	KindGuildBans        = "guild_bans"
-	KindGuildInvites     = "guild_invites"
-	KindGuildRoleMembers = "guild_role_members"
-	KindDmChannels       = "dm_channels"
-	KindRelationships    = "relationships"
+	KindUserGuilds          = "user_guilds"
+	KindGuildMembers        = "guild_members"
+	KindGuildBans           = "guild_bans"
+	KindGuildInvites        = "guild_invites"
+	KindGuildRoleMembers    = "guild_role_members"
+	KindGuildMentionTargets = "guild_mention_targets"
+	KindDmChannels          = "dm_channels"
+	KindRelationships       = "relationships"
 )
 
 // ErrInvalid is returned when a cursor string cannot be decoded or verified.

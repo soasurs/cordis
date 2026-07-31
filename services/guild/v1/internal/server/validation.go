@@ -77,3 +77,13 @@ func normalizeLimit(value int32) (int, error) {
 	}
 	return int(value), nil
 }
+
+func normalizeMentionTargetsLimit(value int32) (int, error) {
+	if value == 0 {
+		return defaultMentionTargetsLimit, nil
+	}
+	if value < 0 || int(value) > maxMentionTargetsLimit {
+		return 0, invalidRequest("limit is out of range")
+	}
+	return int(value), nil
+}

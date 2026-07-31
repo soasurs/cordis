@@ -9,14 +9,16 @@ import (
 )
 
 const (
-	permissionViewChannel    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL)
-	permissionSendMessages   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_SEND_MESSAGES)
-	permissionManageMessages = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES)
+	permissionViewChannel     = uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL)
+	permissionSendMessages    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_SEND_MESSAGES)
+	permissionManageMessages  = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES)
+	permissionMentionEveryone = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MENTION_EVERYONE)
 )
 
 type messageAudience struct {
-	guildID int64
-	userIDs []int64
+	guildID     int64
+	userIDs     []int64
+	permissions uint64
 }
 
 func (s *messageServer) requireChannelPermission(
@@ -55,5 +57,5 @@ func (s *messageServer) requireChannelPermission(
 	if resp.GetGuildId() <= 0 {
 		return messageAudience{}, errors.New("guild channel authorization returned invalid guild id")
 	}
-	return messageAudience{guildID: resp.GetGuildId()}, nil
+	return messageAudience{guildID: resp.GetGuildId(), permissions: resp.GetPermissions()}, nil
 }

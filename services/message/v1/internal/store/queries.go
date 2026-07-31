@@ -2,7 +2,8 @@ package store
 
 const messageColumns = `
 	id, channel_id, author_id, content, type, flags, referenced_message_id,
-	referenced_channel_id, attachments, edited_at, created_at, updated_at, revision, deleted_at
+	referenced_channel_id, attachments, edited_at, created_at, updated_at, revision,
+	deleted_at, mention_everyone
 `
 
 const (
@@ -50,17 +51,19 @@ const (
 	INSERT INTO
 		messages (
 			id, channel_id, author_id, content, type, flags, referenced_message_id,
-			referenced_channel_id, attachments, edited_at, created_at, updated_at, revision, deleted_at
+			referenced_channel_id, attachments, edited_at, created_at, updated_at, revision,
+			deleted_at, mention_everyone
 		)
 	VALUES
 		(
 			:id, :channel_id, :author_id, :content, :type, :flags,
 			:referenced_message_id, :referenced_channel_id, CAST(:attachments AS JSONB),
-			:edited_at, :created_at, :updated_at, :revision, :deleted_at
+			:edited_at, :created_at, :updated_at, :revision, :deleted_at, :mention_everyone
 		)
 	RETURNING
 		id, channel_id, author_id, content, type, flags, referenced_message_id,
-		referenced_channel_id, attachments, edited_at, created_at, updated_at, revision, deleted_at
+		referenced_channel_id, attachments, edited_at, created_at, updated_at, revision,
+		deleted_at, mention_everyone
 	`
 
 	GetMessageQuery = `
@@ -215,23 +218,102 @@ const (
 
 	InsertMessageMentionsStatement = `
 	INSERT INTO
-		message_mentions (message_id, user_id)
+		message_mentions (message_id, user_id, source)
 	SELECT
-		$1, mention.user_id
+		$1, mention.user_id, $3
 	FROM
 		unnest($2::BIGINT[]) AS mention(user_id)
 	ON CONFLICT DO NOTHING
 	`
 
-	ListMessageMentionsQuery = `
+	// InsertExpandedMessageMentionsStatement writes worker-expanded rows for
+	// role and @everyone mentions. Direct user mentions use source 1.
+	InsertExpandedMessageMentionsStatement = `
+	INSERT INTO
+		message_mentions (message_id, user_id, source)
 	SELECT
-		user_id
+		$1, mention.user_id, 2
 	FROM
+		unnest($2::BIGINT[]) AS mention(user_id)
+	ON CONFLICT DO NOTHING
+	`
+
+	LockMessageRevisionStatement = `
+	SELECT
+		revision
+	FROM
+		messages
+	WHERE
+		id = $1
+	AND
+		deleted_at = 0
+	FOR UPDATE
+	`
+
+	DeleteExpandedMessageMentionsStatement = `
+	DELETE FROM
 		message_mentions
 	WHERE
 		message_id = $1
+	AND
+		source = 2
+	`
+
+	DeleteMessageRoleMentionsStatement = `
+	DELETE FROM
+		message_role_mentions
+	WHERE
+		message_id = $1
+	`
+
+	UpdateMessageMentionEveryoneStatement = `
+	UPDATE
+		messages
+	SET
+		mention_everyone = $2
+	WHERE
+		id = $1
+	`
+
+	InsertMessageRoleMentionsStatement = `
+	INSERT INTO
+		message_role_mentions (message_id, role_id)
+	SELECT
+		$1, mention.role_id
+	FROM
+		unnest($2::BIGINT[]) AS mention(role_id)
+	ON CONFLICT DO NOTHING
+	`
+
+	ListMessagesMentionsQuery = `
+	SELECT
+		message_id, user_id
+	FROM
+		message_mentions
+	WHERE
+		message_id = ANY($1)
 	ORDER BY
-		user_id ASC
+		message_id ASC, user_id ASC
+	`
+
+	ListMessagesRoleMentionsQuery = `
+	SELECT
+		message_id, role_id AS user_id
+	FROM
+		message_role_mentions
+	WHERE
+		message_id = ANY($1)
+	ORDER BY
+		message_id ASC, role_id ASC
+	`
+
+	ListMessagesMentionEveryoneQuery = `
+	SELECT
+		id, mention_everyone
+	FROM
+		messages
+	WHERE
+		id = ANY($1)
 	`
 )
 

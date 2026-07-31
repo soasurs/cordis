@@ -6,6 +6,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
@@ -42,6 +43,9 @@ func mapStoreError(err error) error {
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return notFound()
+	}
+	if errors.Is(err, store.ErrIdempotencyContention) {
+		return status.Error(codes.Unavailable, "idempotency claim contention, retry request")
 	}
 	if errors.Is(err, store.ErrPermissionDenied) {
 		return permissionDenied()

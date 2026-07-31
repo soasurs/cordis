@@ -36,7 +36,7 @@
 - 出现在 content 任意位置；ID 必须是非负十进制整数，溢出或非法则保持原文不解析；
 - 反斜杠转义：`\<@123>`、`\@everyone` 不解析（连续反斜杠按常规转义规则处理）；
 - `@everyone` 要求单词边界：后一字符不得是字母、数字或下划线；
-- 去重并保留首次出现顺序；
+- 去重并统一按 user ID / role ID 升序输出（存储、响应与事件均不保留内容出现顺序）；
 - 上限：user mention 与 role mention 合计不超过 `mentionsPerMessage`（默认 100），`@everyone` 不计入；
 - DM 频道：只解析 `<@>`；`<@&>` 和 `@everyone` 保持文本，不触发权限校验、不存储；
 - 无效实体（不存在的用户/角色）从解析结果中剔除，不报错（对齐 Discord）。
@@ -192,10 +192,10 @@ message ListGuildMentionTargetsResponse {
 
 ### 7.2 Worker 处理
 
-1. 按事件类型过滤，只处理 `message.created` 与 `message.updated`；payload 中 `mention_role_ids` 为空且 `mention_everyone` 为 false 时直接跳过（历史事件缺少这两个字段，反序列化后为空，天然不会触发）；
+1. 按事件类型过滤，只处理 `message.created`，以及 mentions 已重建（`rebuild_mentions` 为 true）的 `message.updated`；payload 中 `mention_role_ids` 为空且 `mention_everyone` 为 false 时直接跳过（历史事件缺少这些字段，反序列化后为空，天然不会触发）；
 2. 查询消息（id、channel_id、guild_id、revision、deleted_at）；消息不存在、已删除或 `revision` 与事件不一致时直接跳过并提交（防止旧事件覆盖新状态；`message.deleted` 事件无需处理，删除事务已清理展开行）；
 3. 分页调用 `ListGuildMentionTargets` 拉取全部目标；
-4. 每批（建议 ≤ 10000）`UpsertExpandedMessageMentions` 写入 source=2 行；
+4. 以事件 revision 为守卫，在同一事务内删除旧 source=2 行并按批（建议 ≤ 10000）写入新集合，保证与并发编辑/删除互斥且结果收敛；
 5. 全部成功才提交消费位点；失败按指数退避重试（复用 Dispatcher 的 retry 模式），超过上限记录告警并进入死信处理。
 
 ### 7.3 一致性窗口
@@ -221,11 +221,12 @@ message ListGuildMentionTargetsResponse {
 ```go
 MentionRoleIDs          []string `json:"mention_role_ids"`
 MentionEveryone         bool     `json:"mention_everyone"`
+RebuildMentions         bool     `json:"rebuild_mentions,omitempty"`
 PreviousMentionRoleIDs  []string `json:"previous_mention_role_ids,omitempty"`
 PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 ```
 
-保留现有 `MentionUserIDs` / `PreviousMentionUserIDs`。删除事件的 `messageDeletedPayload` 同样新增 role/everyone 字段。事件路由不变：Guild 消息单条 guild-keyed，DM 消息逐用户。
+保留现有 `MentionUserIDs` / `PreviousMentionUserIDs`。`RebuildMentions` 仅在 `message.updated` 且 content 变更（mentions 随 content 重建）时置位，flags/附件-only 更新不会触发展开。删除事件的 `messageDeletedPayload` 同样新增 role/everyone 字段。事件路由不变：Guild 消息单条 guild-keyed，DM 消息逐用户。
 
 ## 10. 幂等
 
@@ -271,7 +272,7 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 - 权限测试：`@everyone` 无 `MENTION_EVERYONE` 拒绝、角色/用户存在性过滤；
 - Store 集成测试：source 列迁移、role/everyone 读写、批量加载、编辑删除 source=2、未读计数不受影响；
 - Guild 批量接口集成测试：批量结果与逐人单用户权限计算全量对照；
-- Worker 测试：事件类型过滤、无展开需求跳过、分页拉取、分批 upsert、revision 过期事件丢弃、消息删除跳过、失败重试；
+- Worker 测试：事件类型过滤、无展开需求跳过、分页拉取、revision 守卫下的原子重建、过期事件丢弃、消息删除跳过、失败重试；
 - 服务端测试：Create/Update/Delete/Get/List 的 mentions 行为、编辑重建与 previous、事件 payload、幂等指纹 v2；
 - API 测试：字段透传、请求字段移除；
 - 文档同步：`services.md`、`protocols-and-errors.md`、`data-and-events.md`（en + zh-CN）。

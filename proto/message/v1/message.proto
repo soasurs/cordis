@@ -150,6 +150,9 @@ message CreateAttachmentUploadRequest {
   // Original filename displayed to users and used as the safe object-key
   // suffix.
   string filename = 5;
+  // Optional opaque key identifying one client-side attachment upload intent.
+  // Retrying with the same key returns the same upload.
+  string idempotency_key = 6;
 }
 
 // CreateAttachmentUploadResponse forwards Media's direct-upload contract.

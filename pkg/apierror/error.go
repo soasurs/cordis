@@ -234,6 +234,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeIdempotencyKeyReused,
 		message:     "Idempotency key was already used with different request parameters.",
 	},
+	{Domain: rpcerror.MediaDomain, Reason: rpcerror.MediaIdempotencyKeyReused}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeIdempotencyKeyReused,
+		message:     "Idempotency key was already used with different request parameters.",
+	},
 }
 
 var codeMappings = map[codes.Code]mapping{

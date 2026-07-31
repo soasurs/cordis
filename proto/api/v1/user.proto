@@ -158,6 +158,9 @@ message CreateAvatarUploadRequest {
   // Canonical image/jpeg, image/png, or image/webp media type. The same value
   // must be sent as the PUT Content-Type.
   string content_type = 2;
+  // Optional opaque key identifying one client-side avatar upload intent.
+  // Retrying with the same key returns the same upload.
+  string idempotency_key = 3;
 }
 
 // CreateAvatarUploadResponse contains a one-shot direct-upload contract.

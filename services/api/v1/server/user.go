@@ -187,6 +187,9 @@ func (s *userServer) CreateAvatarUpload(
 	svcReq.SetUserId(auth.GetUserId())
 	svcReq.SetExpectedSize(req.GetExpectedSize())
 	svcReq.SetContentType(req.GetContentType())
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	svcResp, err := s.svcCtx.UserClient.CreateAvatarUpload(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

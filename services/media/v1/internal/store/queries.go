@@ -79,3 +79,45 @@ const lockAssetStatement = `
 const unlockAssetStatement = `
 	SELECT pg_advisory_unlock(hashtextextended($1, 0))
 `
+
+const (
+	ClaimMediaIdempotencyQuery = `
+	INSERT INTO
+		media_idempotency_keys (
+			actor_user_id, operation, idempotency_key, request_hash,
+			asset_id, created_at, expires_at
+		)
+	VALUES
+		(:actor_user_id, :operation, :idempotency_key, :request_hash,
+		 :asset_id, :created_at, :expires_at)
+	ON CONFLICT (actor_user_id, operation, idempotency_key) DO NOTHING
+	RETURNING
+		asset_id, request_hash
+	`
+
+	GetMediaIdempotencyQuery = `
+	SELECT
+		asset_id, request_hash, expires_at
+	FROM
+		media_idempotency_keys
+	WHERE
+		actor_user_id = $1
+	AND
+		operation = $2
+	AND
+		idempotency_key = $3
+	`
+
+	DeleteExpiredMediaIdempotencyStatement = `
+	DELETE FROM
+		media_idempotency_keys
+	WHERE
+		actor_user_id = $1
+	AND
+		operation = $2
+	AND
+		idempotency_key = $3
+	AND
+		expires_at <= $4
+	`
+)

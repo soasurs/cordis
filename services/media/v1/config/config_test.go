@@ -2,9 +2,20 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestIdempotencyConfigDefaults(t *testing.T) {
+	cfg := IdempotencyConfig{}
+	require.Equal(t, 255, cfg.KeyLength())
+	require.Equal(t, 24*time.Hour, cfg.CreateUploadTTL())
+
+	cfg = IdempotencyConfig{KeyMaxLength: 128, CreateUploadTTLSeconds: 3600}
+	require.Equal(t, 128, cfg.KeyLength())
+	require.Equal(t, time.Hour, cfg.CreateUploadTTL())
+}
 
 func TestConfigValidateAttachmentAccess(t *testing.T) {
 	base := Config{

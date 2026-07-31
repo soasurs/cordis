@@ -44,6 +44,9 @@ func (s *userServer) CreateAvatarUpload(
 	mediaReq.SetExpectedSize(req.GetExpectedSize())
 	mediaReq.SetContentType(req.GetContentType())
 	mediaReq.SetUserAvatar(new(mediav1.UserAvatarUploadPurpose))
+	if req.HasIdempotencyKey() {
+		mediaReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	mediaResp, err := s.svcCtx.MediaClient.CreateUpload(ctx, mediaReq)
 	if err != nil {
 		return nil, err

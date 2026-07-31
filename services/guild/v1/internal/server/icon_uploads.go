@@ -26,6 +26,9 @@ func (s *guildServer) CreateGuildIconUpload(
 	purpose := new(mediav1.GuildIconUploadPurpose)
 	purpose.SetGuildId(req.GetGuildId())
 	mediaReq.SetGuildIcon(purpose)
+	if req.HasIdempotencyKey() {
+		mediaReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	mediaResp, err := s.svcCtx.MediaClient.CreateUpload(ctx, mediaReq)
 	if err != nil {
 		return nil, err

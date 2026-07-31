@@ -3581,15 +3581,16 @@ func (b0 UpdateGuildResponse_builder) Build() *UpdateGuildResponse {
 // CreateGuildIconUploadRequest carries an authenticated actor, target Guild,
 // and exact image upload contract to Media.
 type CreateGuildIconUploadRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GuildId      int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId  int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_ExpectedSize int64                  `protobuf:"varint,3,opt,name=expected_size,json=expectedSize"`
-	xxx_hidden_ContentType  *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId        int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId    int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_ExpectedSize   int64                  `protobuf:"varint,3,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType    *string                `protobuf:"bytes,4,opt,name=content_type,json=contentType"`
+	xxx_hidden_IdempotencyKey *string                `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateGuildIconUploadRequest) Reset() {
@@ -3648,24 +3649,39 @@ func (x *CreateGuildIconUploadRequest) GetContentType() string {
 	return ""
 }
 
+func (x *CreateGuildIconUploadRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateGuildIconUploadRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *CreateGuildIconUploadRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *CreateGuildIconUploadRequest) SetExpectedSize(v int64) {
 	x.xxx_hidden_ExpectedSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *CreateGuildIconUploadRequest) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *CreateGuildIconUploadRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *CreateGuildIconUploadRequest) HasGuildId() bool {
@@ -3696,6 +3712,13 @@ func (x *CreateGuildIconUploadRequest) HasContentType() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *CreateGuildIconUploadRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *CreateGuildIconUploadRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -3716,6 +3739,11 @@ func (x *CreateGuildIconUploadRequest) ClearContentType() {
 	x.xxx_hidden_ContentType = nil
 }
 
+func (x *CreateGuildIconUploadRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateGuildIconUploadRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -3727,6 +3755,9 @@ type CreateGuildIconUploadRequest_builder struct {
 	ExpectedSize *int64
 	// Canonical image/jpeg, image/png, or image/webp media type.
 	ContentType *string
+	// Optional opaque key identifying one client-side Guild icon upload intent.
+	// Retrying with the same key returns the same upload.
+	IdempotencyKey *string
 }
 
 func (b0 CreateGuildIconUploadRequest_builder) Build() *CreateGuildIconUploadRequest {
@@ -3734,20 +3765,24 @@ func (b0 CreateGuildIconUploadRequest_builder) Build() *CreateGuildIconUploadReq
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.ExpectedSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_ContentType = b.ContentType
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -14207,12 +14242,13 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\"<\n" +
 	"\x13UpdateGuildResponse\x12%\n" +
-	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\"\xa5\x01\n" +
+	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\"\xce\x01\n" +
 	"\x1cCreateGuildIconUploadRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12#\n" +
 	"\rexpected_size\x18\x03 \x01(\x03R\fexpectedSize\x12!\n" +
-	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\"\xa9\x02\n" +
+	"\fcontent_type\x18\x04 \x01(\tR\vcontentType\x12'\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"\xa9\x02\n" +
 	"\x1dCreateGuildIconUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +

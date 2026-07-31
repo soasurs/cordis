@@ -281,6 +281,7 @@ func TestAttachmentUploadLifecycle(t *testing.T) {
 	createReq.SetExpectedSize(123)
 	createReq.SetContentType("application/pdf")
 	createReq.SetFilename("report.pdf")
+	createReq.SetIdempotencyKey("attachment-intent-1")
 	createResp, err := server.CreateAttachmentUpload(t.Context(), createReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(7001), createResp.GetUploadId())
@@ -288,6 +289,7 @@ func TestAttachmentUploadLifecycle(t *testing.T) {
 	require.Equal(t, int64(20), mediaClient.createRequest.GetActorUserId())
 	require.Equal(t, int64(10), mediaClient.createRequest.GetMessageAttachment().GetChannelId())
 	require.Equal(t, "report.pdf", mediaClient.createRequest.GetMessageAttachment().GetFilename())
+	require.Equal(t, "attachment-intent-1", mediaClient.createRequest.GetIdempotencyKey())
 
 	completeReq := new(messagev1.CompleteAttachmentUploadRequest)
 	completeReq.SetChannelId(10)

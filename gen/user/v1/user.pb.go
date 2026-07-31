@@ -2446,14 +2446,15 @@ func (b0 UpdateUserProfileResponse_builder) Build() *UpdateUserProfileResponse {
 // CreateAvatarUploadRequest carries an authenticated user identity and the
 // exact image upload contract to Media.
 type CreateAvatarUploadRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UserId       int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
-	xxx_hidden_ExpectedSize int64                  `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
-	xxx_hidden_ContentType  *string                `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UserId         int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
+	xxx_hidden_ExpectedSize   int64                  `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType    *string                `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
+	xxx_hidden_IdempotencyKey *string                `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateAvatarUploadRequest) Reset() {
@@ -2505,19 +2506,34 @@ func (x *CreateAvatarUploadRequest) GetContentType() string {
 	return ""
 }
 
+func (x *CreateAvatarUploadRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateAvatarUploadRequest) SetUserId(v int64) {
 	x.xxx_hidden_UserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *CreateAvatarUploadRequest) SetExpectedSize(v int64) {
 	x.xxx_hidden_ExpectedSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *CreateAvatarUploadRequest) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *CreateAvatarUploadRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *CreateAvatarUploadRequest) HasUserId() bool {
@@ -2541,6 +2557,13 @@ func (x *CreateAvatarUploadRequest) HasContentType() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *CreateAvatarUploadRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *CreateAvatarUploadRequest) ClearUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UserId = 0
@@ -2556,6 +2579,11 @@ func (x *CreateAvatarUploadRequest) ClearContentType() {
 	x.xxx_hidden_ContentType = nil
 }
 
+func (x *CreateAvatarUploadRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateAvatarUploadRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2565,6 +2593,9 @@ type CreateAvatarUploadRequest_builder struct {
 	ExpectedSize *int64
 	// Canonical image/jpeg, image/png, or image/webp media type.
 	ContentType *string
+	// Optional opaque key identifying one client-side avatar upload intent.
+	// Retrying with the same key returns the same upload.
+	IdempotencyKey *string
 }
 
 func (b0 CreateAvatarUploadRequest_builder) Build() *CreateAvatarUploadRequest {
@@ -2572,16 +2603,20 @@ func (b0 CreateAvatarUploadRequest_builder) Build() *CreateAvatarUploadRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_UserId = *b.UserId
 	}
 	if b.ExpectedSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_ContentType = b.ContentType
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -5284,11 +5319,12 @@ const file_user_v1_user_proto_rawDesc = "" +
 	"\x03bio\x18\x03 \x01(\tR\x03bio\x12&\n" +
 	"\x0favatar_asset_id\x18\x04 \x01(\x03R\ravatarAssetId\"K\n" +
 	"\x19UpdateUserProfileResponse\x12.\n" +
-	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"|\n" +
+	"\aprofile\x18\x01 \x01(\v2\x14.user.v1.UserProfileR\aprofile\"\xa5\x01\n" +
 	"\x19CreateAvatarUploadRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\x12#\n" +
 	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
-	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"\xa2\x02\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKey\"\xa2\x02\n" +
 	"\x1aCreateAvatarUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +

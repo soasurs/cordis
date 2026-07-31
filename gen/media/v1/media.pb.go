@@ -144,15 +144,16 @@ func (x AssetStatus) Number() protoreflect.EnumNumber {
 // CreateUploadRequest describes the actor, typed purpose, and exact object the
 // client will PUT.
 type CreateUploadRequest struct {
-	state                   protoimpl.MessageState        `protogen:"opaque.v1"`
-	xxx_hidden_ActorUserId  int64                         `protobuf:"varint,1,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_ExpectedSize int64                         `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
-	xxx_hidden_ContentType  *string                       `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
-	xxx_hidden_Purpose      isCreateUploadRequest_Purpose `protobuf_oneof:"purpose"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                     protoimpl.MessageState        `protogen:"opaque.v1"`
+	xxx_hidden_ActorUserId    int64                         `protobuf:"varint,1,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_ExpectedSize   int64                         `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType    *string                       `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
+	xxx_hidden_Purpose        isCreateUploadRequest_Purpose `protobuf_oneof:"purpose"`
+	xxx_hidden_IdempotencyKey *string                       `protobuf:"bytes,4,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateUploadRequest) Reset() {
@@ -231,19 +232,29 @@ func (x *CreateUploadRequest) GetMessageAttachment() *MessageAttachmentUploadPur
 	return nil
 }
 
+func (x *CreateUploadRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateUploadRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *CreateUploadRequest) SetExpectedSize(v int64) {
 	x.xxx_hidden_ExpectedSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *CreateUploadRequest) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *CreateUploadRequest) SetUserAvatar(v *UserAvatarUploadPurpose) {
@@ -268,6 +279,11 @@ func (x *CreateUploadRequest) SetMessageAttachment(v *MessageAttachmentUploadPur
 		return
 	}
 	x.xxx_hidden_Purpose = &createUploadRequest_MessageAttachment{v}
+}
+
+func (x *CreateUploadRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *CreateUploadRequest) HasActorUserId() bool {
@@ -322,6 +338,13 @@ func (x *CreateUploadRequest) HasMessageAttachment() bool {
 	return ok
 }
 
+func (x *CreateUploadRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *CreateUploadRequest) ClearActorUserId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ActorUserId = 0
@@ -357,6 +380,11 @@ func (x *CreateUploadRequest) ClearMessageAttachment() {
 	if _, ok := x.xxx_hidden_Purpose.(*createUploadRequest_MessageAttachment); ok {
 		x.xxx_hidden_Purpose = nil
 	}
+}
+
+func (x *CreateUploadRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_IdempotencyKey = nil
 }
 
 const CreateUploadRequest_Purpose_not_set_case case_CreateUploadRequest_Purpose = 0
@@ -406,6 +434,11 @@ type CreateUploadRequest_builder struct {
 	// message_attachment targets the channel identified inside this purpose.
 	MessageAttachment *MessageAttachmentUploadPurpose
 	// -- end of xxx_hidden_Purpose
+	// Optional opaque key identifying one client-side upload creation intent.
+	// Retrying with the same key returns the same upload asset; while the asset
+	// is still CREATED, a new presigned PUT URL may be issued for the same
+	// object key.
+	IdempotencyKey *string
 }
 
 func (b0 CreateUploadRequest_builder) Build() *CreateUploadRequest {
@@ -413,15 +446,15 @@ func (b0 CreateUploadRequest_builder) Build() *CreateUploadRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.ExpectedSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_ContentType = b.ContentType
 	}
 	if b.UserAvatar != nil {
@@ -432,6 +465,10 @@ func (b0 CreateUploadRequest_builder) Build() *CreateUploadRequest {
 	}
 	if b.MessageAttachment != nil {
 		x.xxx_hidden_Purpose = &createUploadRequest_MessageAttachment{b.MessageAttachment}
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -2947,7 +2984,7 @@ var File_media_v1_media_proto protoreflect.FileDescriptor
 
 const file_media_v1_media_proto_rawDesc = "" +
 	"\n" +
-	"\x14media/v1/media.proto\x12\bmedia.v1\"\xf0\x02\n" +
+	"\x14media/v1/media.proto\x12\bmedia.v1\"\x99\x03\n" +
 	"\x13CreateUploadRequest\x12\"\n" +
 	"\ractor_user_id\x18\x01 \x01(\x03R\vactorUserId\x12#\n" +
 	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
@@ -2957,7 +2994,8 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"userAvatar\x12A\n" +
 	"\n" +
 	"guild_icon\x18\v \x01(\v2 .media.v1.GuildIconUploadPurposeH\x00R\tguildIcon\x12Y\n" +
-	"\x12message_attachment\x18\f \x01(\v2(.media.v1.MessageAttachmentUploadPurposeH\x00R\x11messageAttachmentB\t\n" +
+	"\x12message_attachment\x18\f \x01(\v2(.media.v1.MessageAttachmentUploadPurposeH\x00R\x11messageAttachment\x12'\n" +
+	"\x0fidempotency_key\x18\x04 \x01(\tR\x0eidempotencyKeyB\t\n" +
 	"\apurpose\"\x19\n" +
 	"\x17UserAvatarUploadPurpose\"3\n" +
 	"\x16GuildIconUploadPurpose\x12\x19\n" +

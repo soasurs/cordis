@@ -342,6 +342,9 @@ message CreateGuildIconUploadRequest {
   int64 expected_size = 3;
   // Canonical image/jpeg, image/png, or image/webp media type.
   string content_type = 4;
+  // Optional opaque key identifying one client-side Guild icon upload intent.
+  // Retrying with the same key returns the same upload.
+  string idempotency_key = 5;
 }
 
 // CreateGuildIconUploadResponse forwards Media's direct-upload contract.

@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -15,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
@@ -64,15 +67,28 @@ func (s *MediaServer) CreateUpload(
 			return nil, imageTooLargeError(kind)
 		}
 	}
-	var storageToken string
 	if kind == store.KindMessageAttachment {
 		filename, err = validateAttachmentFilename(filename)
 		if err != nil {
 			return nil, err
 		}
-		storageToken, err = newStorageToken()
+	}
+
+	var requestHash []byte
+	if req.HasIdempotencyKey() {
+		if err := validateIdempotencyKey(req.GetIdempotencyKey(), s.svcCtx.Cfg.Idempotency.KeyLength()); err != nil {
+			return nil, err
+		}
+		requestHash, err = createUploadRequestHash(
+			actorUserID,
+			kind,
+			subjectID,
+			expectedSize,
+			contentType,
+			filename,
+		)
 		if err != nil {
-			return nil, fmt.Errorf("generate attachment storage token: %w", err)
+			return nil, err
 		}
 	}
 
@@ -80,13 +96,124 @@ func (s *MediaServer) CreateUpload(
 	now := time.Now().UnixMilli()
 	uploadTTL := s.svcCtx.Cfg.Media.UploadSessionTTL()
 	presignedTTL := s.svcCtx.Cfg.Media.PresignedURLTTL()
+
+	var created *store.Asset
+	var idempotentReplay bool
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		if req.HasIdempotencyKey() {
+			operation, err := uploadOperation(kind)
+			if err != nil {
+				return err
+			}
+			claim, err := txStore.ClaimMediaIdempotency(ctx, store.ClaimMediaIdempotencyParams{
+				ActorUserID:    actorUserID,
+				Operation:      operation,
+				IdempotencyKey: req.GetIdempotencyKey(),
+				RequestHash:    requestHash,
+				AssetID:        id,
+				CreatedAt:      now,
+				ExpiresAt:      idempotencyExpiry(now, s.svcCtx.Cfg),
+			})
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(claim.RequestHash, requestHash) {
+				return idempotencyKeyReused()
+			}
+			if !claim.Claimed {
+				existing, err := txStore.GetAsset(ctx, claim.AssetID)
+				if err != nil {
+					if errors.Is(err, store.ErrNotFound) {
+						return errUploadNotFound
+					}
+					return err
+				}
+				created = existing
+				idempotentReplay = true
+				return nil
+			}
+		}
+
+		asset, err := newUploadAsset(
+			id,
+			actorUserID,
+			kind,
+			subjectID,
+			expectedSize,
+			contentType,
+			filename,
+			now,
+			uploadTTL,
+			s.storageBackend(),
+		)
+		if err != nil {
+			return err
+		}
+		if err := txStore.CreateAssetWithQuota(
+			ctx,
+			asset,
+			s.svcCtx.Cfg.Media.MaxActiveUploads(),
+		); err != nil {
+			return err
+		}
+		created = asset
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, store.ErrActiveUploadLimit) {
+			return nil, errUploadLimit
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Error(codes.Unavailable, "idempotency claim contention, retry request")
+		}
+		return nil, err
+	}
+
+	resp := new(mediav1.CreateUploadResponse)
+	resp.SetUploadId(created.ID)
+	if idempotentReplay && created.Status != store.StatusCreated {
+		return resp, nil
+	}
+	presignedRequest, err := s.uploadObjectStore(created).CreatePresignedPutRequest(
+		ctx,
+		uploadObjectKey(created),
+		created.ContentType,
+		created.ExpectedSize,
+		presignedTTL,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("create presigned url: %w", err)
+	}
+	resp.SetPresignedUrl(presignedRequest.URL)
+	resp.SetExpiresAt(now + presignedTTL*1000)
+	resp.SetRequestHeaders(presignedRequest.RequestHeaders)
+	return resp, nil
+}
+
+func newUploadAsset(
+	id, actorUserID int64,
+	kind store.Kind,
+	subjectID int64,
+	expectedSize int64,
+	contentType, filename string,
+	now, uploadTTL int64,
+	storageBackend string,
+) (*store.Asset, error) {
+	var storageToken string
+	if kind == store.KindMessageAttachment {
+		var err error
+		storageToken, err = newStorageToken()
+		if err != nil {
+			return nil, fmt.Errorf("generate attachment storage token: %w", err)
+		}
+	}
 	asset := &store.Asset{
 		ID:              id,
 		CreatedByUserID: actorUserID,
 		SubjectID:       subjectID,
 		Kind:            kind,
 		Status:          store.StatusCreated,
-		StorageBackend:  s.storageBackend(),
+		StorageBackend:  storageBackend,
 		ExpectedSize:    expectedSize,
 		ContentType:     contentType,
 		Filename:        filename,
@@ -106,34 +233,7 @@ func (s *MediaServer) CreateUpload(
 			filename,
 		)
 	}
-
-	presignedRequest, err := s.uploadObjectStore(asset).CreatePresignedPutRequest(
-		ctx,
-		uploadObjectKey(asset),
-		contentType,
-		expectedSize,
-		presignedTTL,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("create presigned url: %w", err)
-	}
-	if err := s.svcCtx.Store.CreateAssetWithQuota(
-		ctx,
-		asset,
-		s.svcCtx.Cfg.Media.MaxActiveUploads(),
-	); err != nil {
-		if errors.Is(err, store.ErrActiveUploadLimit) {
-			return nil, errUploadLimit
-		}
-		return nil, fmt.Errorf("create asset: %w", err)
-	}
-
-	resp := new(mediav1.CreateUploadResponse)
-	resp.SetUploadId(id)
-	resp.SetPresignedUrl(presignedRequest.URL)
-	resp.SetExpiresAt(now + presignedTTL*1000)
-	resp.SetRequestHeaders(presignedRequest.RequestHeaders)
-	return resp, nil
+	return asset, nil
 }
 
 func (s *MediaServer) CompleteUpload(

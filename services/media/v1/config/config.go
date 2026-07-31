@@ -19,6 +19,31 @@ type Config struct {
 	Database    database.Config   `json:",optional"`
 	ObjectStore ObjectStoreConfig `json:",optional"`
 	Media       MediaConfig       `json:",optional"`
+	Idempotency IdempotencyConfig `json:",optional"`
+}
+
+// IdempotencyConfig controls request-level idempotency retention and key
+// validation for upload creation RPCs.
+type IdempotencyConfig struct {
+	KeyMaxLength           int `json:",default=255"`
+	CreateUploadTTLSeconds int `json:",default=86400"`
+}
+
+// KeyLength returns the maximum accepted idempotency key length in bytes.
+func (c IdempotencyConfig) KeyLength() int {
+	if c.KeyMaxLength <= 0 {
+		return 255
+	}
+	return c.KeyMaxLength
+}
+
+// CreateUploadTTL returns the retention period for CreateUpload idempotency
+// keys.
+func (c IdempotencyConfig) CreateUploadTTL() time.Duration {
+	if c.CreateUploadTTLSeconds <= 0 {
+		return 24 * time.Hour
+	}
+	return time.Duration(c.CreateUploadTTLSeconds) * time.Second
 }
 
 type ObjectStoreConfig struct {

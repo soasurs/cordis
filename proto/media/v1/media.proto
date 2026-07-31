@@ -52,6 +52,11 @@ message CreateUploadRequest {
     // message_attachment targets the channel identified inside this purpose.
     MessageAttachmentUploadPurpose message_attachment = 12;
   }
+  // Optional opaque key identifying one client-side upload creation intent.
+  // Retrying with the same key returns the same upload asset; while the asset
+  // is still CREATED, a new presigned PUT URL may be issued for the same
+  // object key.
+  string idempotency_key = 4;
 }
 
 // UserAvatarUploadPurpose selects a user avatar upload. The target user is the

@@ -72,3 +72,6 @@ media:
       - image/webp
   attachmentAccessMode: public
   attachmentDownloadTTLSeconds: 86400
+idempotency:
+  keyMaxLength: 255
+  createUploadTTLSeconds: 86400

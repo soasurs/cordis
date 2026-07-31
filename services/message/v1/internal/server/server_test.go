@@ -642,6 +642,8 @@ type fakeGuildClient struct {
 	denyAll               bool
 	permissions           uint64
 	roles                 []*guildv1.GuildRole
+	mentionTargets        []int64
+	mentionTargetPages    [][]int64
 	channelType           guildv1.GuildChannelType
 	authorizeRequests     []*guildv1.AuthorizeGuildChannelRequest
 	visibleTextChannelIDs []int64
@@ -797,6 +799,29 @@ func (f *fakeGuildClient) ListGuildRoles(
 	return resp, nil
 }
 
+func (f *fakeGuildClient) ListGuildMentionTargets(
+	_ context.Context,
+	req *guildv1.ListGuildMentionTargetsRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.ListGuildMentionTargetsResponse, error) {
+	resp := new(guildv1.ListGuildMentionTargetsResponse)
+	if len(f.mentionTargetPages) > 0 {
+		index := 0
+		if req.HasCursor() {
+			index, _ = strconv.Atoi(req.GetCursor())
+		}
+		if index >= 0 && index < len(f.mentionTargetPages) {
+			resp.SetUserIds(f.mentionTargetPages[index])
+			if index+1 < len(f.mentionTargetPages) {
+				resp.SetNextCursor(strconv.Itoa(index + 1))
+			}
+		}
+		return resp, nil
+	}
+	resp.SetUserIds(f.mentionTargets)
+	return resp, nil
+}
+
 func pbAttachment(assetID int64) *messagev1.Attachment {
 	attachment := new(messagev1.Attachment)
 	attachment.SetAssetId(assetID)
@@ -850,7 +875,9 @@ type fakeStore struct {
 	idempotency     map[string]fakeIdempotencyRecord
 	listReadyCalls  int
 	readyBatchSizes []int
+	upsertBatches   [][]int64
 	transactErr     error
+	getMessageErr   error
 }
 
 type fakeIdempotencyRecord struct {
@@ -925,6 +952,9 @@ func (s *fakeStore) CreateMessage(_ context.Context, params store.CreateMessageP
 }
 
 func (s *fakeStore) GetMessage(_ context.Context, messageID int64) (*model.Message, error) {
+	if s.getMessageErr != nil {
+		return nil, s.getMessageErr
+	}
 	message, ok := s.messages[messageID]
 	if !ok || message.DeletedAt != 0 {
 		return nil, sql.ErrNoRows
@@ -1033,6 +1063,7 @@ func (s *fakeStore) DeleteExpandedMessageMentions(_ context.Context, messageID i
 }
 
 func (s *fakeStore) UpsertExpandedMessageMentions(_ context.Context, messageID int64, userIDs []int64) error {
+	s.upsertBatches = append(s.upsertBatches, append([]int64(nil), userIDs...))
 	value := s.mentions[messageID]
 	seen := make(map[int64]struct{}, len(value.UserIDs))
 	for _, userID := range value.UserIDs {

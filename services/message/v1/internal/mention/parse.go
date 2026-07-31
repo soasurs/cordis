@@ -6,7 +6,8 @@ package mention
 import "strconv"
 
 // Set is the parsed mention result for one message body. UserIDs and RoleIDs
-// keep first-appearance order and contain no duplicates.
+// are deduplicated in content order; the Message service normalizes them to
+// ascending ID order before persistence.
 type Set struct {
 	UserIDs  []int64
 	RoleIDs  []int64

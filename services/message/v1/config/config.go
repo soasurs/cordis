@@ -11,12 +11,13 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database   database.Config `json:",optional"`
-	Kafka      KafkaConfig     `json:",optional"`
-	Cursor     CursorConfig
-	ReadStates ReadStatesConfig
-	Limits     ResourceLimitsConfig
-	Services   ServiceConfig
+	Database    database.Config `json:",optional"`
+	Kafka       KafkaConfig     `json:",optional"`
+	Cursor      CursorConfig
+	ReadStates  ReadStatesConfig
+	Limits      ResourceLimitsConfig
+	Idempotency IdempotencyConfig
+	Services    ServiceConfig
 }
 
 // CursorConfig holds the HMAC secret for opaque list continuation tokens.
@@ -49,6 +50,30 @@ func (c ResourceLimitsConfig) Mentions() int {
 // ReadStatesConfig controls read-state query batch size and aggregate concurrency.
 type ReadStatesConfig struct {
 	MaxConcurrentChannels int64 `json:",default=800"`
+}
+
+// IdempotencyConfig controls request-level idempotency retention and key
+// validation for resource creation RPCs.
+type IdempotencyConfig struct {
+	KeyMaxLength            int `json:",default=255"`
+	CreateMessageTTLSeconds int `json:",default=1800"`
+}
+
+// KeyLength returns the maximum accepted idempotency key length in bytes.
+func (c IdempotencyConfig) KeyLength() int {
+	if c.KeyMaxLength <= 0 {
+		return 255
+	}
+	return c.KeyMaxLength
+}
+
+// CreateMessageTTL returns the retention period for CreateMessage idempotency
+// keys.
+func (c IdempotencyConfig) CreateMessageTTL() time.Duration {
+	if c.CreateMessageTTLSeconds <= 0 {
+		return 30 * time.Minute
+	}
+	return time.Duration(c.CreateMessageTTLSeconds) * time.Second
 }
 
 type ServiceConfig struct {

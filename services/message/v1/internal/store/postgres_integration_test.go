@@ -5,6 +5,7 @@ package store
 import (
 	"database/sql"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -33,6 +34,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("update", func(t *testing.T) { testUpdateMessage(t, store) })
 	t.Run("delete", func(t *testing.T) { testDeleteMessage(t, store) })
 	t.Run("mentions", func(t *testing.T) { testMessageMentions(t, store) })
+	t.Run("idempotency", func(t *testing.T) { testMessageIdempotency(t, store) })
 	t.Run("transact rollback", func(t *testing.T) { testTransactRollback(t, store) })
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("dm channels", func(t *testing.T) { testDmChannels(t, store) })
@@ -223,6 +225,143 @@ func testMessageMentions(t *testing.T, store Store) {
 	mentions, err = store.ListMentionUserIDs(ctx, 5401)
 	require.NoError(t, err)
 	require.Empty(t, mentions)
+}
+
+func testMessageIdempotency(t *testing.T, store Store) {
+	ctx := t.Context()
+	hash := []byte("12345678901234567890123456789012")
+
+	claim, err := store.ClaimMessageIdempotency(ctx, ClaimMessageIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "message.create",
+		IdempotencyKey: "intent-1",
+		RequestHash:    hash,
+		MessageID:      5701,
+		CreatedAt:      1000,
+		ExpiresAt:      2000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	require.Equal(t, int64(5701), claim.MessageID)
+
+	claim, err = store.ClaimMessageIdempotency(ctx, ClaimMessageIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "message.create",
+		IdempotencyKey: "intent-1",
+		RequestHash:    []byte("abcdefghijklmnopqrstuvwxyz123456"),
+		MessageID:      5702,
+		CreatedAt:      1100,
+		ExpiresAt:      2100,
+	})
+	require.NoError(t, err)
+	require.False(t, claim.Claimed)
+	require.Equal(t, int64(5701), claim.MessageID)
+	require.Equal(t, hash, claim.RequestHash)
+
+	err = store.Transact(ctx, func(tx Store) error {
+		claim, err := tx.ClaimMessageIdempotency(ctx, ClaimMessageIdempotencyParams{
+			ActorUserID:    9701,
+			Operation:      "message.create",
+			IdempotencyKey: "intent-rollback",
+			RequestHash:    hash,
+			MessageID:      5703,
+			CreatedAt:      1000,
+			ExpiresAt:      2000,
+		})
+		require.NoError(t, err)
+		require.True(t, claim.Claimed)
+		return errors.New("force idempotency rollback")
+	})
+	require.Error(t, err)
+
+	claim, err = store.ClaimMessageIdempotency(ctx, ClaimMessageIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "message.create",
+		IdempotencyKey: "intent-rollback",
+		RequestHash:    hash,
+		MessageID:      5704,
+		CreatedAt:      1000,
+		ExpiresAt:      2000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	require.Equal(t, int64(5704), claim.MessageID)
+
+	claim, err = store.ClaimMessageIdempotency(ctx, ClaimMessageIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "message.create",
+		IdempotencyKey: "intent-expired",
+		RequestHash:    hash,
+		MessageID:      5705,
+		CreatedAt:      1000,
+		ExpiresAt:      2000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	claim, err = store.ClaimMessageIdempotency(ctx, ClaimMessageIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "message.create",
+		IdempotencyKey: "intent-expired",
+		RequestHash:    hash,
+		MessageID:      5706,
+		CreatedAt:      2000,
+		ExpiresAt:      3000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	require.Equal(t, int64(5706), claim.MessageID)
+
+	const concurrentRequests = 16
+	results := make(chan *MessageIdempotencyClaim, concurrentRequests)
+	errs := make(chan error, concurrentRequests)
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range concurrentRequests {
+		wg.Go(func() {
+			<-start
+			err := store.Transact(ctx, func(tx Store) error {
+				claim, err := tx.ClaimMessageIdempotency(ctx, ClaimMessageIdempotencyParams{
+					ActorUserID:    9701,
+					Operation:      "message.create",
+					IdempotencyKey: "intent-concurrent",
+					RequestHash:    hash,
+					MessageID:      int64(5800 + i),
+					CreatedAt:      1000,
+					ExpiresAt:      2000,
+				})
+				if err == nil {
+					results <- claim
+				}
+				return err
+			})
+			errs <- err
+		})
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	close(errs)
+
+	claims := make([]*MessageIdempotencyClaim, 0, concurrentRequests)
+	for claim := range results {
+		claims = append(claims, claim)
+	}
+	claimedCount := 0
+	var winnerID int64
+	for _, claim := range claims {
+		if claim.Claimed {
+			claimedCount++
+			winnerID = claim.MessageID
+		}
+	}
+	for err := range errs {
+		require.NoError(t, err)
+	}
+	require.Equal(t, 1, claimedCount)
+	require.NotZero(t, winnerID)
+	for _, claim := range claims {
+		require.Equal(t, winnerID, claim.MessageID)
+	}
 }
 
 func testTransactRollback(t *testing.T, store Store) {

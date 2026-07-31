@@ -27,6 +27,15 @@ func resourceLimitExceeded(message string) error {
 	return rpcerror.New(codes.ResourceExhausted, rpcerror.MessageDomain, rpcerror.MessageResourceLimitExceeded, message)
 }
 
+func idempotencyKeyReused() error {
+	return rpcerror.New(
+		codes.InvalidArgument,
+		rpcerror.MessageDomain,
+		rpcerror.MessageIdempotencyKeyReused,
+		"idempotency key was already used with different request parameters",
+	)
+}
+
 func mapStoreError(err error) error {
 	if err == nil {
 		return nil

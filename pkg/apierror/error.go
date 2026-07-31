@@ -37,6 +37,7 @@ const (
 	CodeConflict                   = "resource.conflict"
 	CodePermissionDenied           = "auth.permission_denied"
 	CodeResourceExhausted          = "system.resource_exhausted"
+	CodeIdempotencyKeyReused       = "request.idempotency_key_reused"
 	CodeUnavailable                = "system.unavailable"
 	CodeInternal                   = "system.internal"
 )
@@ -132,6 +133,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		connectCode: connect.CodeResourceExhausted,
 		publicCode:  CodeResourceExhausted,
 		message:     "Resource limit exceeded.",
+	},
+	{Domain: rpcerror.MessageDomain, Reason: rpcerror.MessageIdempotencyKeyReused}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeIdempotencyKeyReused,
+		message:     "Idempotency key was already used with different request parameters.",
 	},
 	{Domain: rpcerror.AuthenticatorDomain, Reason: rpcerror.AuthenticatorInvalidPasswordResetToken}: {
 		connectCode: connect.CodeInvalidArgument,

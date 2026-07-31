@@ -6,6 +6,46 @@ const messageColumns = `
 `
 
 const (
+	ClaimMessageIdempotencyQuery = `
+	INSERT INTO
+		message_idempotency_keys (
+			actor_user_id, operation, idempotency_key, request_hash,
+			message_id, created_at, expires_at
+		)
+	VALUES
+		(:actor_user_id, :operation, :idempotency_key, :request_hash,
+		 :message_id, :created_at, :expires_at)
+	ON CONFLICT (actor_user_id, operation, idempotency_key) DO NOTHING
+	RETURNING
+		message_id, request_hash
+	`
+
+	GetMessageIdempotencyQuery = `
+	SELECT
+		message_id, request_hash, expires_at
+	FROM
+		message_idempotency_keys
+	WHERE
+		actor_user_id = $1
+	AND
+		operation = $2
+	AND
+		idempotency_key = $3
+	`
+
+	DeleteExpiredMessageIdempotencyStatement = `
+	DELETE FROM
+		message_idempotency_keys
+	WHERE
+		actor_user_id = $1
+	AND
+		operation = $2
+	AND
+		idempotency_key = $3
+	AND
+		expires_at <= $4
+	`
+
 	CreateMessageQuery = `
 	INSERT INTO
 		messages (

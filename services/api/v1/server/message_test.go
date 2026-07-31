@@ -116,6 +116,7 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	req.SetReferencedChannelId(2001)
 	req.SetAttachments([]*apiv1.Attachment{attachment})
 	req.SetMentionUserIds([]int64{1002})
+	req.SetIdempotencyKey("message-intent-1")
 
 	resp, err := client.CreateMessage(context.Background(), req)
 	require.NoError(t, err)
@@ -127,11 +128,38 @@ func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {
 	require.Equal(t, int64(3000), messageClient.createRequest.GetReferencedMessageId())
 	require.Equal(t, []int64{1002}, messageClient.createRequest.GetMentionUserIds())
 	require.Equal(t, int64(101), messageClient.createRequest.GetAttachments()[0].GetAssetId())
+	require.True(t, messageClient.createRequest.HasIdempotencyKey())
+	require.Equal(t, "message-intent-1", messageClient.createRequest.GetIdempotencyKey())
 	require.Equal(t, int64(4001), resp.GetMessage().GetId())
 	require.Equal(t, int64(2), resp.GetMessage().GetRevision())
 	require.Equal(t, int64(1001), resp.GetMessage().GetAuthor().GetUserId())
 	require.Equal(t, "https://download.example/101", resp.GetMessage().GetAttachments()[0].GetUrl())
 	require.Equal(t, int64(9001), resp.GetMessage().GetAttachments()[0].GetUrlExpiresAt())
+}
+
+func TestCreateMessageMapsIdempotencyKeyReuse(t *testing.T) {
+	authenticatorClient := &fakeAuthenticatorClient{
+		verifyResponse: verifyAccessTokenResponse(1001),
+	}
+	messageClient := &fakeMessageClient{
+		createError: rpcerror.New(
+			codes.InvalidArgument,
+			rpcerror.MessageDomain,
+			rpcerror.MessageIdempotencyKeyReused,
+			"idempotency key was reused",
+		),
+	}
+	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
+	defer closeServer()
+
+	req := new(apiv1.CreateMessageRequest)
+	req.SetChannelId(2001)
+	req.SetContent("hello")
+	req.SetIdempotencyKey("message-intent-1")
+
+	_, err := client.CreateMessage(context.Background(), req)
+	require.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	require.Equal(t, apierror.CodeIdempotencyKeyReused, publicErrorInfo(t, err).GetCode())
 }
 
 func TestCreateAttachmentUploadForwardsRequestHeaders(t *testing.T) {

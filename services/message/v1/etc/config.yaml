@@ -46,6 +46,10 @@ limits:
   attachmentsPerMessage: 10
   mentionsPerMessage: 100
 
+idempotency:
+  keyMaxLength: 255
+  createMessageTTLSeconds: 1800
+
 services:
   guild:
     endpoints:

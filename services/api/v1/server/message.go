@@ -45,6 +45,9 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *apiv1.CreateMess
 	svcReq.SetReferencedChannelId(req.GetReferencedChannelId())
 	svcReq.SetAttachments(attachmentsToMessageService(req.GetAttachments()))
 	svcReq.SetMentionUserIds(req.GetMentionUserIds())
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 
 	svcResp, err := s.svcCtx.MessageClient.CreateMessage(ctx, svcReq)
 	if err != nil {

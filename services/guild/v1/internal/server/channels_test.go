@@ -294,6 +294,39 @@ func TestReorderGuildChannelsMovesChannelIntoCategoryAndNormalizesPositions(t *t
 	require.Len(t, publisher.records, 3)
 }
 
+func TestUpdateGuildChannelParentUsesMutationLockAndAppendsToParent(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[20] = &model.Channel{
+		ID: 20, GuildID: 10, Name: "category",
+		Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY), Position: 1, Revision: 1,
+	}
+	fakeStore.channels[31] = &model.Channel{
+		ID: 31, GuildID: 10, Name: "existing child",
+		Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT), Position: 2, Revision: 1, ParentID: 20,
+	}
+	fakeStore.channels[30] = &model.Channel{
+		ID: 30, GuildID: 10, Name: "child",
+		Type: int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT), Position: 0, Revision: 1,
+	}
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
+
+	req := new(guildv1.UpdateGuildChannelRequest)
+	req.SetChannelId(30)
+	req.SetActorUserId(1001)
+	req.SetParentId(20)
+	resp, err := server.UpdateGuildChannel(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, int64(20), resp.GetChannel().GetParentId())
+	require.Equal(t, int32(2), resp.GetChannel().GetPosition())
+	require.Equal(t, int32(0), fakeStore.channels[20].Position)
+	require.Equal(t, int32(1), fakeStore.channels[31].Position)
+	require.Equal(t, int32(2), fakeStore.channels[30].Position)
+	require.Equal(t, []int64{10}, fakeStore.channelLocks)
+	require.Equal(t, 1, publisher.batchCalls)
+	require.Len(t, publisher.records, 3)
+}
+
 func TestCategoryAndVoiceChannelMetadata(t *testing.T) {
 	fakeStore := roleTestStore()
 	server := newTestGuildServer(t, fakeStore, nil)

@@ -228,10 +228,22 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 	}
 
 	var updated *model.Channel
+	var updatedChannels []*model.Channel
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		channel, err := txStore.GetGuildChannel(ctx, req.GetChannelId())
 		if err != nil {
 			return err
+		}
+		if params.ParentID != nil {
+			if err := txStore.LockGuildChannelMutations(ctx, channel.GuildID); err != nil {
+				return err
+			}
+			// Re-read after locking so parent validation and the update use a
+			// consistent channel state with category deletion and reordering.
+			channel, err = txStore.GetGuildChannel(ctx, req.GetChannelId())
+			if err != nil {
+				return err
+			}
 		}
 		authority, err := loadMemberAuthority(ctx, txStore, channel.GuildID, req.GetActorUserId())
 		if err != nil {
@@ -245,14 +257,64 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 				return err
 			}
 		}
-		updated, err = txStore.UpdateGuildChannel(ctx, params)
-		return err
+		if params.ParentID != nil && *params.ParentID != channel.ParentID {
+			channels, err := txStore.ListGuildChannels(ctx, channel.GuildID)
+			if err != nil {
+				return err
+			}
+			updates, err := channelParentMoveUpdates(channels, channel.ID, *params.ParentID)
+			if err != nil {
+				return err
+			}
+			updatedChannels, err = txStore.UpdateGuildChannelPositions(ctx, channel.GuildID, updates, params.UpdatedAt)
+			if err != nil {
+				return err
+			}
+			if len(updatedChannels) != len(updates) {
+				return notFound()
+			}
+			for _, candidate := range updatedChannels {
+				if candidate.ID == channel.ID {
+					updated = candidate
+					break
+				}
+			}
+			if updated == nil {
+				return notFound()
+			}
+			params.ParentID = nil
+		}
+		if params.Name != nil || params.Topic != nil || params.ParentID != nil {
+			updated, err = txStore.UpdateGuildChannel(ctx, params)
+			if err != nil {
+				return err
+			}
+			if len(updatedChannels) == 0 {
+				updatedChannels = []*model.Channel{updated}
+			} else {
+				for i, candidate := range updatedChannels {
+					if candidate.ID == updated.ID {
+						updatedChannels[i] = updated
+						break
+					}
+				}
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
+	events := make([]guildEvent, 0, len(updatedChannels))
+	for _, channel := range updatedChannels {
+		event, eventErr := newGuildChannelUpdatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
+		if eventErr != nil {
+			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
+			continue
+		}
+		events = append(events, event)
+	}
+	s.publishEvents(ctx, events)
 	resp := new(guildv1.UpdateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(updated))
 	return resp, nil
@@ -785,6 +847,68 @@ func normalizeGuildChannelPlacements(
 			ChannelID: channel.ID,
 			Position:  position,
 			ParentID:  parentID,
+		})
+	}
+	return updates, nil
+}
+
+func channelParentMoveUpdates(channels []*model.Channel, channelID, parentID int64) ([]store.GuildChannelPositionUpdate, error) {
+	remaining := make([]*model.Channel, 0, len(channels)-1)
+	var moving *model.Channel
+	for _, channel := range channels {
+		if channel.ID == channelID {
+			moving = channel
+			continue
+		}
+		remaining = append(remaining, channel)
+	}
+	if moving == nil {
+		return nil, notFound()
+	}
+
+	destination := len(remaining)
+	if parentID == 0 {
+		for i, channel := range remaining {
+			if !isUncategorizedChannel(channel.Type, channel.ParentID) {
+				destination = i
+				break
+			}
+		}
+	} else {
+		foundParent := false
+		for i, channel := range remaining {
+			if channel.ID == parentID {
+				foundParent = true
+				destination = i + 1
+			}
+			if channel.ParentID == parentID {
+				foundParent = true
+				destination = i + 1
+			}
+		}
+		if !foundParent {
+			return nil, notFound()
+		}
+	}
+
+	ordered := make([]*model.Channel, 0, len(channels))
+	ordered = append(ordered, remaining[:destination]...)
+	ordered = append(ordered, moving)
+	ordered = append(ordered, remaining[destination:]...)
+
+	updates := make([]store.GuildChannelPositionUpdate, 0, len(ordered))
+	for position, channel := range ordered {
+		resolvedParentID := channel.ParentID
+		if channel.ID == moving.ID {
+			resolvedParentID = parentID
+		}
+		if channel.Position == int32(position) && channel.ParentID == resolvedParentID {
+			continue
+		}
+		updates = append(updates, store.GuildChannelPositionUpdate{
+			ChannelID: channel.ID,
+			Position:  int32(position),
+			ParentID:  resolvedParentID,
 		})
 	}
 	return updates, nil

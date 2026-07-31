@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
@@ -53,6 +54,7 @@ func TestCreateAndAuthorizeGuildChannel(t *testing.T) {
 	create := new(guildv1.CreateGuildChannelRequest)
 	create.SetGuildId(10)
 	create.SetActorUserId(1001)
+	create.SetExpectedChannelLayoutRevision(1)
 	create.SetName(" general ")
 	resp, err := server.CreateGuildChannel(t.Context(), create)
 	require.NoError(t, err)
@@ -103,6 +105,7 @@ func TestCreateUncategorizedChannelInsertsBeforeCategories(t *testing.T) {
 	req := new(guildv1.CreateGuildChannelRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
+	req.SetExpectedChannelLayoutRevision(1)
 	req.SetName("uncategorized")
 	resp, err := server.CreateGuildChannel(t.Context(), req)
 	require.NoError(t, err)
@@ -126,6 +129,7 @@ func TestReorderGuildChannelsPublishesChangedChannelsAsBatch(t *testing.T) {
 	req := new(guildv1.ReorderGuildChannelsRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
+	req.SetExpectedChannelLayoutRevision(1)
 	positions := make([]*guildv1.GuildChannelPosition, 0, 3)
 	for channelID, position := range map[int64]int32{30: 1, 31: 0, 32: 2} {
 		item := new(guildv1.GuildChannelPosition)
@@ -158,6 +162,7 @@ func TestReorderGuildChannelsSkipsUnchangedPositions(t *testing.T) {
 	req := new(guildv1.ReorderGuildChannelsRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
+	req.SetExpectedChannelLayoutRevision(1)
 	first := new(guildv1.GuildChannelPosition)
 	first.SetChannelId(30)
 	first.SetPosition(0)
@@ -173,6 +178,84 @@ func TestReorderGuildChannelsSkipsUnchangedPositions(t *testing.T) {
 	require.Equal(t, int64(1), fakeStore.channels[31].Revision)
 	require.Zero(t, publisher.batchCalls)
 	require.Empty(t, publisher.records)
+}
+
+func TestReorderGuildChannelsRejectsStaleLayoutRevision(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[30] = &model.Channel{ID: 30, GuildID: 10, Name: "first", Position: 0, Revision: 1}
+	fakeStore.channels[31] = &model.Channel{ID: 31, GuildID: 10, Name: "second", Position: 1, Revision: 1}
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
+
+	req := new(guildv1.ReorderGuildChannelsRequest)
+	req.SetGuildId(10)
+	req.SetActorUserId(1001)
+	req.SetExpectedChannelLayoutRevision(2)
+	item := new(guildv1.GuildChannelPosition)
+	item.SetChannelId(30)
+	item.SetPosition(1)
+	req.SetPositions([]*guildv1.GuildChannelPosition{item})
+
+	_, err := server.ReorderGuildChannels(t.Context(), req)
+	require.Equal(t, codes.Aborted, status.Code(err))
+	require.True(t, rpcerror.Is(err, rpcerror.GuildDomain, rpcerror.GuildChannelLayoutConflict))
+	require.Equal(t, int32(0), fakeStore.channels[30].Position)
+	require.Equal(t, int64(1), fakeStore.guilds[10].ChannelLayoutRevision)
+	require.Zero(t, publisher.batchCalls)
+	require.Empty(t, publisher.records)
+}
+
+func TestUpdateGuildChannelMetadataDoesNotRequireLayoutRevision(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.channels[30] = &model.Channel{
+		ID: 30, GuildID: 10, Name: "first", Position: 0, Revision: 1,
+	}
+	server := newTestGuildServer(t, fakeStore, new(fakePublisher))
+
+	req := new(guildv1.UpdateGuildChannelRequest)
+	req.SetChannelId(30)
+	req.SetActorUserId(1001)
+	req.SetName("renamed")
+
+	resp, err := server.UpdateGuildChannel(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, "renamed", resp.GetChannel().GetName())
+	require.Equal(t, int64(1), resp.GetChannelLayoutRevision())
+	require.Zero(t, fakeStore.channelLocks)
+}
+
+func TestStructuralGuildChannelMutationsRequireLayoutRevision(t *testing.T) {
+	server := newTestGuildServer(t, roleTestStore(), new(fakePublisher))
+
+	createReq := new(guildv1.CreateGuildChannelRequest)
+	createReq.SetGuildId(10)
+	createReq.SetActorUserId(1001)
+	createReq.SetName("new")
+	_, err := server.CreateGuildChannel(t.Context(), createReq)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	updateReq := new(guildv1.UpdateGuildChannelRequest)
+	updateReq.SetChannelId(30)
+	updateReq.SetActorUserId(1001)
+	updateReq.SetParentId(20)
+	_, err = server.UpdateGuildChannel(t.Context(), updateReq)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	deleteReq := new(guildv1.DeleteGuildChannelRequest)
+	deleteReq.SetChannelId(30)
+	deleteReq.SetActorUserId(1001)
+	_, err = server.DeleteGuildChannel(t.Context(), deleteReq)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
+
+	reorderReq := new(guildv1.ReorderGuildChannelsRequest)
+	reorderReq.SetGuildId(10)
+	reorderReq.SetActorUserId(1001)
+	item := new(guildv1.GuildChannelPosition)
+	item.SetChannelId(30)
+	item.SetPosition(1)
+	reorderReq.SetPositions([]*guildv1.GuildChannelPosition{item})
+	_, err = server.ReorderGuildChannels(t.Context(), reorderReq)
+	require.Equal(t, codes.InvalidArgument, status.Code(err))
 }
 
 func TestReorderGuildChannelsUpdatesParentAndPositionAtomically(t *testing.T) {
@@ -199,6 +282,7 @@ func TestReorderGuildChannelsUpdatesParentAndPositionAtomically(t *testing.T) {
 	req := new(guildv1.ReorderGuildChannelsRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
+	req.SetExpectedChannelLayoutRevision(1)
 	first := new(guildv1.GuildChannelPosition)
 	first.SetChannelId(30)
 	first.SetPosition(3)
@@ -241,6 +325,7 @@ func TestReorderGuildChannelsMovesChannelOutOfCategoryAndNormalizesPositions(t *
 	req := new(guildv1.ReorderGuildChannelsRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
+	req.SetExpectedChannelLayoutRevision(1)
 	item := new(guildv1.GuildChannelPosition)
 	item.SetChannelId(30)
 	item.SetPosition(1)
@@ -277,6 +362,7 @@ func TestReorderGuildChannelsMovesChannelIntoCategoryAndNormalizesPositions(t *t
 	req := new(guildv1.ReorderGuildChannelsRequest)
 	req.SetGuildId(10)
 	req.SetActorUserId(1001)
+	req.SetExpectedChannelLayoutRevision(1)
 	item := new(guildv1.GuildChannelPosition)
 	item.SetChannelId(30)
 	item.SetPosition(2)
@@ -315,6 +401,7 @@ func TestUpdateGuildChannelParentUsesMutationLockAndAppendsToParent(t *testing.T
 	req.SetChannelId(30)
 	req.SetActorUserId(1001)
 	req.SetParentId(20)
+	req.SetExpectedChannelLayoutRevision(1)
 	resp, err := server.UpdateGuildChannel(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(20), resp.GetChannel().GetParentId())
@@ -334,6 +421,7 @@ func TestCategoryAndVoiceChannelMetadata(t *testing.T) {
 	categoryReq := new(guildv1.CreateGuildChannelRequest)
 	categoryReq.SetGuildId(10)
 	categoryReq.SetActorUserId(1001)
+	categoryReq.SetExpectedChannelLayoutRevision(1)
 	categoryReq.SetName("rooms")
 	categoryReq.SetType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_CATEGORY)
 	categoryResp, err := server.CreateGuildChannel(t.Context(), categoryReq)
@@ -342,6 +430,7 @@ func TestCategoryAndVoiceChannelMetadata(t *testing.T) {
 	voiceReq := new(guildv1.CreateGuildChannelRequest)
 	voiceReq.SetGuildId(10)
 	voiceReq.SetActorUserId(1001)
+	voiceReq.SetExpectedChannelLayoutRevision(2)
 	voiceReq.SetName("lounge")
 	voiceReq.SetType(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE)
 	voiceReq.SetParentId(categoryResp.GetChannel().GetId())
@@ -352,6 +441,7 @@ func TestCategoryAndVoiceChannelMetadata(t *testing.T) {
 	deleteReq := new(guildv1.DeleteGuildChannelRequest)
 	deleteReq.SetChannelId(categoryResp.GetChannel().GetId())
 	deleteReq.SetActorUserId(1001)
+	deleteReq.SetExpectedChannelLayoutRevision(3)
 	_, err = server.DeleteGuildChannel(t.Context(), deleteReq)
 	require.NoError(t, err)
 	require.Zero(t, fakeStore.channels[voiceResp.GetChannel().GetId()].ParentID)

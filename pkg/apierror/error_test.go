@@ -92,6 +92,19 @@ func TestFromRPCResourceLimitExceeded(t *testing.T) {
 	}
 }
 
+func TestFromRPCGuildChannelLayoutConflict(t *testing.T) {
+	err := rpcerror.New(
+		codes.Aborted,
+		rpcerror.GuildDomain,
+		rpcerror.GuildChannelLayoutConflict,
+		"guild channel layout changed",
+	)
+	connectErr := FromRPC(err)
+
+	require.Equal(t, connect.CodeAborted, connect.CodeOf(connectErr))
+	require.Equal(t, CodeConflict, publicErrorInfo(t, connectErr).GetCode())
+}
+
 func TestFromRPCStatusCode(t *testing.T) {
 	connectErr := FromRPC(status.Error(codes.InvalidArgument, "bad request"))
 

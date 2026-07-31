@@ -129,8 +129,12 @@ permissions. Channel evaluation applies the default role, member roles, and
 member overwrites. Creating a channel always inserts an empty `@everyone`
 overwrite (`applies_to=ROLE`, `applies_to_id=guild_id`, allow/deny zero) so
 clients receive it without synthesizing one; that overwrite and the default
-role cannot be deleted. Guild publishes dot-separated events directly to
-`cordis.guild.events.v1`.
+role cannot be deleted. Structural channel mutations use the Guild's
+monotonic `channel_layout_revision`; the mutation transaction acquires the
+Guild channel advisory lock, rejects stale revisions without writing, and
+increments the layout revision once after a successful logical mutation.
+Guild publishes dot-separated events directly to `cordis.guild.events.v1`;
+structural channel events carry the committed layout revision.
 
 Role member listing uses the same opaque `cursor` / `next_cursor` pagination as
 Guild member listing (ordered by `joined_at`, then `user_id` descending; omit

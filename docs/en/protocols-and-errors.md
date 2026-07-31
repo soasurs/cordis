@@ -26,6 +26,16 @@ and write unrelated fields back. When present, collection-valued update fields
 replace the complete collection unless dedicated add/remove operations are
 defined.
 
+Channel creation, deletion, parent moves, and reordering use a Guild-level
+`channel_layout_revision` as an optimistic concurrency token. `ListGuildChannels`
+returns the token, and structural requests must send the revision from the
+client's snapshot. The Guild service checks it after acquiring the transaction
+advisory lock; a stale token aborts the transaction with `Aborted`, and the
+public Connect API exposes this as HTTP `409 Conflict`. The server does not
+refresh or replay a stale client operation; clients must explicitly refresh and
+ask the user to retry. Name/topic-only channel updates do not change or require
+the layout revision.
+
 ## Availability checks and avatar constraints
 
 `CheckUsernameAvailability` reuses the same username normalization and format

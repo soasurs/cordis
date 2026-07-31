@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/internal/testkit"
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/migration"
+	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/guild/v1/config"
 	guildmigrations "github.com/soasurs/cordis/services/guild/v1/db/migrations"
@@ -55,14 +58,23 @@ func TestConcurrentGuildChannelParentMovesPreservePositions(t *testing.T) {
 			req.SetChannelId(channelID)
 			req.SetActorUserId(ownerID)
 			req.SetParentId(categoryID)
+			req.SetExpectedChannelLayoutRevision(1)
 			_, err := service.UpdateGuildChannel(ctx, req)
 			results <- err
 		}(channelID)
 	}
 	close(start)
+	successes := 0
 	for range 2 {
-		require.NoError(t, <-results)
+		err := <-results
+		if err == nil {
+			successes++
+			continue
+		}
+		require.Equal(t, codes.Aborted, status.Code(err))
+		require.True(t, rpcerror.Is(err, rpcerror.GuildDomain, rpcerror.GuildChannelLayoutConflict))
 	}
+	require.Equal(t, 1, successes)
 
 	channels, err := guildStore.ListGuildChannels(ctx, guildID)
 	require.NoError(t, err)
@@ -75,10 +87,17 @@ func TestConcurrentGuildChannelParentMovesPreservePositions(t *testing.T) {
 			t.Fatalf("duplicate channel position %d", channel.Position)
 		}
 		seen[channel.Position] = struct{}{}
-		if channel.ID != categoryID {
-			require.Equal(t, categoryID, channel.ParentID)
+	}
+	parented := 0
+	for _, channel := range channels {
+		if channel.ID != categoryID && channel.ParentID == categoryID {
+			parented++
 		}
 	}
+	require.Equal(t, 1, parented)
+	layoutRevision, err := guildStore.GetGuildChannelLayoutRevision(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), layoutRevision)
 }
 
 func TestConcurrentGuildChannelReordersPreservePositions(t *testing.T) {
@@ -120,6 +139,7 @@ func TestConcurrentGuildChannelReordersPreservePositions(t *testing.T) {
 		req := new(guildv1.ReorderGuildChannelsRequest)
 		req.SetGuildId(guildID)
 		req.SetActorUserId(ownerID)
+		req.SetExpectedChannelLayoutRevision(1)
 		req.SetPositions([]*guildv1.GuildChannelPosition{item})
 		_, err := service.ReorderGuildChannels(ctx, req)
 		results <- err
@@ -133,14 +153,23 @@ func TestConcurrentGuildChannelReordersPreservePositions(t *testing.T) {
 		req := new(guildv1.ReorderGuildChannelsRequest)
 		req.SetGuildId(guildID)
 		req.SetActorUserId(ownerID)
+		req.SetExpectedChannelLayoutRevision(1)
 		req.SetPositions([]*guildv1.GuildChannelPosition{item})
 		_, err := service.ReorderGuildChannels(ctx, req)
 		results <- err
 	}()
 	close(start)
+	successes := 0
 	for range 2 {
-		require.NoError(t, <-results)
+		err := <-results
+		if err == nil {
+			successes++
+			continue
+		}
+		require.Equal(t, codes.Aborted, status.Code(err))
+		require.True(t, rpcerror.Is(err, rpcerror.GuildDomain, rpcerror.GuildChannelLayoutConflict))
 	}
+	require.Equal(t, 1, successes)
 
 	channels, err := guildStore.ListGuildChannels(ctx, guildID)
 	require.NoError(t, err)
@@ -157,8 +186,19 @@ func TestConcurrentGuildChannelReordersPreservePositions(t *testing.T) {
 	}
 	require.NotNil(t, byID[firstID])
 	require.NotNil(t, byID[secondID])
-	require.Equal(t, firstCatID, byID[firstID].ParentID)
-	require.Equal(t, secondCatID, byID[secondID].ParentID)
+	parented := 0
+	if byID[firstID].ParentID != 0 {
+		parented++
+	}
+	if byID[secondID].ParentID != 0 {
+		parented++
+	}
+	require.Equal(t, 1, parented)
+	require.Contains(t, []int64{0, firstCatID}, byID[firstID].ParentID)
+	require.Contains(t, []int64{0, secondCatID}, byID[secondID].ParentID)
+	layoutRevision, err := guildStore.GetGuildChannelLayoutRevision(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), layoutRevision)
 }
 
 func newPostgresGuildService(t *testing.T) (store.Store, guildv1.GuildServiceServer) {

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/jmoiron/sqlx"
 
@@ -9,17 +10,19 @@ import (
 )
 
 type channelRow struct {
-	ID        int64  `db:"id"`
-	GuildID   int64  `db:"guild_id"`
-	Name      string `db:"name"`
-	Type      int32  `db:"type"`
-	Position  int32  `db:"position"`
-	Topic     string `db:"topic"`
-	Revision  int64  `db:"revision"`
-	CreatedAt int64  `db:"created_at"`
-	UpdatedAt int64  `db:"updated_at"`
-	DeletedAt int64  `db:"deleted_at"`
-	ParentID  int64  `db:"parent_id"`
+	ID             int64  `db:"id"`
+	GuildID        int64  `db:"guild_id"`
+	Name           string `db:"name"`
+	Type           int32  `db:"type"`
+	Position       int32  `db:"position"`
+	Topic          string `db:"topic"`
+	Revision       int64  `db:"revision"`
+	CreatedAt      int64  `db:"created_at"`
+	UpdatedAt      int64  `db:"updated_at"`
+	DeletedAt      int64  `db:"deleted_at"`
+	ParentID       int64  `db:"parent_id"`
+	LayoutRevision int64  `db:"channel_layout_revision"`
+	HasChannel     bool   `db:"has_channel"`
 }
 
 type channelOverwriteRow struct {
@@ -68,6 +71,26 @@ func (s *SQLStore) ListGuildChannels(ctx context.Context, guildID int64) ([]*mod
 		channels = append(channels, channelFromRow(row))
 	}
 	return channels, nil
+}
+
+func (s *SQLStore) ListGuildChannelsWithRevision(
+	ctx context.Context,
+	guildID int64,
+) ([]*model.Channel, int64, error) {
+	var rows []*channelRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsWithRevisionQuery, guildID); err != nil {
+		return nil, 0, err
+	}
+	if len(rows) == 0 {
+		return nil, 0, sql.ErrNoRows
+	}
+	channels := make([]*model.Channel, 0, len(rows))
+	for _, row := range rows {
+		if row.HasChannel {
+			channels = append(channels, channelFromRow(row))
+		}
+	}
+	return channels, rows[0].LayoutRevision, nil
 }
 
 func (s *SQLStore) ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error) {

@@ -35,6 +35,10 @@ Kafka events use:
 ```
 
 Stable names live in `pkg/realtime` and use dot-separated hierarchy.
+Guild channel list responses expose a Guild-level `channel_layout_revision`.
+Create, delete, parent-move, and reorder events carry the committed layout
+revision in addition to each channel's own `revision`; stale structural
+requests are rejected rather than replayed.
 
 User, Message, Guild, and Presence do not use an outbox. After the business transaction
 commits, User publishes relationship and profile events best-effort to

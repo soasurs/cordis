@@ -39,6 +39,15 @@ func resourceLimitExceeded() error {
 	return rpcerror.New(codes.ResourceExhausted, rpcerror.GuildDomain, rpcerror.GuildResourceLimitExceeded, "resource limit exceeded")
 }
 
+func channelLayoutConflict() error {
+	return rpcerror.New(
+		codes.Aborted,
+		rpcerror.GuildDomain,
+		rpcerror.GuildChannelLayoutConflict,
+		"guild channel layout changed",
+	)
+}
+
 func mapStoreError(err error) error {
 	if err == nil {
 		return nil
@@ -54,6 +63,9 @@ func mapStoreError(err error) error {
 	}
 	if errors.Is(err, store.ErrResourceLimitExceeded) {
 		return resourceLimitExceeded()
+	}
+	if errors.Is(err, store.ErrGuildChannelLayoutRevisionConflict) {
+		return channelLayoutConflict()
 	}
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23514" {

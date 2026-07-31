@@ -1,16 +1,17 @@
 package model
 
 type Guild struct {
-	ID             int64
-	OwnerID        int64
-	Name           string
-	Description    string
-	IconAssetID    int64
-	Revision       int64
-	AccessRevision int64
-	CreatedAt      int64
-	UpdatedAt      int64
-	DeletedAt      int64
+	ID                    int64
+	OwnerID               int64
+	Name                  string
+	Description           string
+	IconAssetID           int64
+	Revision              int64
+	AccessRevision        int64
+	ChannelLayoutRevision int64
+	CreatedAt             int64
+	UpdatedAt             int64
+	DeletedAt             int64
 }
 
 type GuildMember struct {

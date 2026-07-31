@@ -226,10 +226,16 @@ func TestAPIIntegration(t *testing.T) {
 	})
 
 	channelID := func() int64 {
+		listReq := new(apiv1.ListGuildChannelsRequest)
+		listReq.SetGuildId(guildID)
+		listResp, err := guildClientWithToken.ListGuildChannels(ctx, listReq)
+		require.NoError(t, err)
+
 		req := new(apiv1.CreateGuildChannelRequest)
 		req.SetGuildId(guildID)
 		req.SetName("general")
 		req.SetType(apiv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+		req.SetExpectedChannelLayoutRevision(listResp.GetChannelLayoutRevision())
 		resp, err := guildClientWithToken.CreateGuildChannel(ctx, req)
 		require.NoError(t, err)
 		return resp.GetChannel().GetId()

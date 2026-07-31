@@ -34,6 +34,7 @@ const (
 	CodeDeadlineExceeded           = "request.deadline_exceeded"
 	CodeNotFound                   = "resource.not_found"
 	CodeAlreadyExists              = "resource.already_exists"
+	CodeConflict                   = "resource.conflict"
 	CodePermissionDenied           = "auth.permission_denied"
 	CodeResourceExhausted          = "system.resource_exhausted"
 	CodeUnavailable                = "system.unavailable"
@@ -216,6 +217,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		connectCode: connect.CodeResourceExhausted,
 		publicCode:  CodeResourceExhausted,
 		message:     "Resource limit exceeded.",
+	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildChannelLayoutConflict}: {
+		connectCode: connect.CodeAborted,
+		publicCode:  CodeConflict,
+		message:     "The channel layout changed. Refresh the channel list and try again.",
 	},
 }
 

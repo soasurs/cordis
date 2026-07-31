@@ -389,11 +389,18 @@ func createChannel(
 	channelType guildv1.GuildChannelType,
 ) int64 {
 	t.Helper()
+	listReq := new(guildv1.ListGuildChannelsRequest)
+	listReq.SetGuildId(guildID)
+	listReq.SetActorUserId(actorID)
+	listResp, err := client.ListGuildChannels(t.Context(), listReq)
+	require.NoError(t, err)
+
 	req := new(guildv1.CreateGuildChannelRequest)
 	req.SetGuildId(guildID)
 	req.SetActorUserId(actorID)
 	req.SetName(name)
 	req.SetType(channelType)
+	req.SetExpectedChannelLayoutRevision(listResp.GetChannelLayoutRevision())
 	resp, err := client.CreateGuildChannel(t.Context(), req)
 	require.NoError(t, err)
 	return resp.GetChannel().GetId()

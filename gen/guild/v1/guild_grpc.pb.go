@@ -68,6 +68,7 @@ const (
 	GuildService_DeleteGuildChannelPermissionOverwrite_FullMethodName = "/guild.v1.GuildService/DeleteGuildChannelPermissionOverwrite"
 	GuildService_ListGuildChannelPermissionOverwrites_FullMethodName  = "/guild.v1.GuildService/ListGuildChannelPermissionOverwrites"
 	GuildService_AuthorizeGuildChannel_FullMethodName                 = "/guild.v1.GuildService/AuthorizeGuildChannel"
+	GuildService_ListGuildMentionTargets_FullMethodName               = "/guild.v1.GuildService/ListGuildMentionTargets"
 )
 
 // GuildServiceClient is the client API for GuildService service.
@@ -147,6 +148,10 @@ type GuildServiceClient interface {
 	// AuthorizeGuildChannel evaluates one permission for Message or another
 	// internal service and returns the full effective permission set.
 	AuthorizeGuildChannel(ctx context.Context, in *AuthorizeGuildChannelRequest, opts ...grpc.CallOption) (*AuthorizeGuildChannelResponse, error)
+	// ListGuildMentionTargets pages the active members that a message would
+	// reach with the given role and @everyone mentions, restricted to members
+	// who can view the channel. It is an internal Message expansion primitive.
+	ListGuildMentionTargets(ctx context.Context, in *ListGuildMentionTargetsRequest, opts ...grpc.CallOption) (*ListGuildMentionTargetsResponse, error)
 }
 
 type guildServiceClient struct {
@@ -647,6 +652,16 @@ func (c *guildServiceClient) AuthorizeGuildChannel(ctx context.Context, in *Auth
 	return out, nil
 }
 
+func (c *guildServiceClient) ListGuildMentionTargets(ctx context.Context, in *ListGuildMentionTargetsRequest, opts ...grpc.CallOption) (*ListGuildMentionTargetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGuildMentionTargetsResponse)
+	err := c.cc.Invoke(ctx, GuildService_ListGuildMentionTargets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GuildServiceServer is the server API for GuildService service.
 // All implementations should embed UnimplementedGuildServiceServer
 // for forward compatibility.
@@ -724,6 +739,10 @@ type GuildServiceServer interface {
 	// AuthorizeGuildChannel evaluates one permission for Message or another
 	// internal service and returns the full effective permission set.
 	AuthorizeGuildChannel(context.Context, *AuthorizeGuildChannelRequest) (*AuthorizeGuildChannelResponse, error)
+	// ListGuildMentionTargets pages the active members that a message would
+	// reach with the given role and @everyone mentions, restricted to members
+	// who can view the channel. It is an internal Message expansion primitive.
+	ListGuildMentionTargets(context.Context, *ListGuildMentionTargetsRequest) (*ListGuildMentionTargetsResponse, error)
 }
 
 // UnimplementedGuildServiceServer should be embedded to have
@@ -879,6 +898,9 @@ func (UnimplementedGuildServiceServer) ListGuildChannelPermissionOverwrites(cont
 }
 func (UnimplementedGuildServiceServer) AuthorizeGuildChannel(context.Context, *AuthorizeGuildChannelRequest) (*AuthorizeGuildChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AuthorizeGuildChannel not implemented")
+}
+func (UnimplementedGuildServiceServer) ListGuildMentionTargets(context.Context, *ListGuildMentionTargetsRequest) (*ListGuildMentionTargetsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGuildMentionTargets not implemented")
 }
 func (UnimplementedGuildServiceServer) testEmbeddedByValue() {}
 
@@ -1782,6 +1804,24 @@ func _GuildService_AuthorizeGuildChannel_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GuildService_ListGuildMentionTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGuildMentionTargetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).ListGuildMentionTargets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_ListGuildMentionTargets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).ListGuildMentionTargets(ctx, req.(*ListGuildMentionTargetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GuildService_ServiceDesc is the grpc.ServiceDesc for GuildService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1984,6 +2024,10 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AuthorizeGuildChannel",
 			Handler:    _GuildService_AuthorizeGuildChannel_Handler,
+		},
+		{
+			MethodName: "ListGuildMentionTargets",
+			Handler:    _GuildService_ListGuildMentionTargets_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -10,17 +10,18 @@ import (
 )
 
 const (
-	PermissionAdministrator  = uint64(guildv1.GuildPermission_GUILD_PERMISSION_ADMINISTRATOR)
-	PermissionManageGuild    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_GUILD)
-	PermissionManageRoles    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_ROLES)
-	PermissionManageMembers  = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS)
-	PermissionKickMembers    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_KICK_MEMBERS)
-	PermissionViewChannel    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL)
-	PermissionSendMessages   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_SEND_MESSAGES)
-	PermissionManageChannels = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_CHANNELS)
-	PermissionManageMessages = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES)
-	PermissionBanMembers     = uint64(guildv1.GuildPermission_GUILD_PERMISSION_BAN_MEMBERS)
-	PermissionCreateInvite   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_CREATE_INVITE)
+	PermissionAdministrator   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_ADMINISTRATOR)
+	PermissionManageGuild     = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_GUILD)
+	PermissionManageRoles     = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_ROLES)
+	PermissionManageMembers   = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS)
+	PermissionKickMembers     = uint64(guildv1.GuildPermission_GUILD_PERMISSION_KICK_MEMBERS)
+	PermissionViewChannel     = uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL)
+	PermissionSendMessages    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_SEND_MESSAGES)
+	PermissionManageChannels  = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_CHANNELS)
+	PermissionManageMessages  = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES)
+	PermissionBanMembers      = uint64(guildv1.GuildPermission_GUILD_PERMISSION_BAN_MEMBERS)
+	PermissionCreateInvite    = uint64(guildv1.GuildPermission_GUILD_PERMISSION_CREATE_INVITE)
+	PermissionMentionEveryone = uint64(guildv1.GuildPermission_GUILD_PERMISSION_MENTION_EVERYONE)
 )
 
 const AllGuildPermissions = PermissionAdministrator |
@@ -33,12 +34,14 @@ const AllGuildPermissions = PermissionAdministrator |
 	PermissionManageChannels |
 	PermissionManageMessages |
 	PermissionBanMembers |
-	PermissionCreateInvite
+	PermissionCreateInvite |
+	PermissionMentionEveryone
 
 const AllChannelPermissions = PermissionViewChannel |
 	PermissionSendMessages |
 	PermissionManageChannels |
-	PermissionManageMessages
+	PermissionManageMessages |
+	PermissionMentionEveryone
 
 type memberAuthority struct {
 	Guild       *model.Guild

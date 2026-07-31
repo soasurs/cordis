@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -780,6 +781,58 @@ func (s *fakeStore) ListGuildMembers(_ context.Context, params store.ListGuildMe
 		members = members[:params.Limit]
 	}
 	return members, nil
+}
+
+func (s *fakeStore) ListGuildMemberIDsPage(_ context.Context, guildID, afterUserID int64, limit int) ([]int64, error) {
+	var userIDs []int64
+	for _, member := range s.members[guildID] {
+		if member.DeletedAt != 0 || member.UserID <= afterUserID {
+			continue
+		}
+		userIDs = append(userIDs, member.UserID)
+	}
+	slices.Sort(userIDs)
+	if len(userIDs) > limit {
+		userIDs = userIDs[:limit]
+	}
+	return userIDs, nil
+}
+
+func (s *fakeStore) ListGuildRoleTargetIDsPage(_ context.Context, guildID int64, roleIDs []int64, afterUserID int64, limit int) ([]int64, error) {
+	roleSet := make(map[int64]struct{}, len(roleIDs))
+	for _, roleID := range roleIDs {
+		roleSet[roleID] = struct{}{}
+	}
+	var userIDs []int64
+	for userID, assignments := range s.memberRoles[guildID] {
+		member := s.members[guildID][userID]
+		if member == nil || member.DeletedAt != 0 || userID <= afterUserID {
+			continue
+		}
+		for roleID := range assignments {
+			if _, ok := roleSet[roleID]; ok {
+				userIDs = append(userIDs, userID)
+				break
+			}
+		}
+	}
+	slices.Sort(userIDs)
+	if len(userIDs) > limit {
+		userIDs = userIDs[:limit]
+	}
+	return userIDs, nil
+}
+
+func (s *fakeStore) ListGuildMemberRolesByUsers(ctx context.Context, guildID int64, userIDs []int64) (map[int64][]*model.Role, error) {
+	byUser := make(map[int64][]*model.Role, len(userIDs))
+	for _, userID := range userIDs {
+		roles, err := s.ListGuildMemberRoles(ctx, guildID, userID)
+		if err != nil {
+			return nil, err
+		}
+		byUser[userID] = roles
+	}
+	return byUser, nil
 }
 
 func (s *fakeStore) ListUsersWithCommonGuild(_ context.Context, userID int64, targetUserIDs []int64) ([]int64, error) {

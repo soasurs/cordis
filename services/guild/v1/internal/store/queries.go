@@ -166,6 +166,50 @@ const listGuildMembersQuery = `
     LIMIT $4
 `
 
+const listGuildMemberIDsPageQuery = `
+    SELECT user_id
+    FROM guild_members
+    WHERE guild_id = $1
+      AND deleted_at = 0
+      AND user_id > $2
+    ORDER BY user_id
+    LIMIT $3
+`
+
+const listGuildRoleTargetIDsPageQuery = `
+    SELECT DISTINCT gm.user_id
+    FROM guild_member_roles AS gm
+    JOIN guild_members AS m
+      ON m.guild_id = gm.guild_id
+     AND m.user_id = gm.user_id
+     AND m.deleted_at = 0
+    WHERE gm.guild_id = $1
+      AND gm.role_id = ANY($2::BIGINT[])
+      AND gm.user_id > $3
+    ORDER BY gm.user_id
+    LIMIT $4
+`
+
+const listGuildMemberRolesByUsersQuery = `
+    SELECT r.*, assignments.user_id
+    FROM (
+        SELECT guild_id, user_id, role_id
+        FROM guild_member_roles
+        WHERE guild_id = $1
+          AND user_id = ANY($2::BIGINT[])
+        UNION ALL
+        SELECT guild_id, user_id, guild_id AS role_id
+        FROM guild_members
+        WHERE guild_id = $1
+          AND user_id = ANY($2::BIGINT[])
+          AND deleted_at = 0
+    ) AS assignments
+    JOIN roles AS r
+      ON r.guild_id = assignments.guild_id
+     AND r.id = assignments.role_id
+    WHERE r.deleted_at = 0
+`
+
 const listUsersWithCommonGuildQuery = `
     SELECT DISTINCT target.user_id
     FROM guild_members AS actor

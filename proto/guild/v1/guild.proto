@@ -22,6 +22,8 @@ enum GuildPermission {
   GUILD_PERMISSION_MANAGE_MESSAGES = 256;
   GUILD_PERMISSION_BAN_MEMBERS = 512;
   GUILD_PERMISSION_CREATE_INVITE = 1024;
+  // Allows the message author to mention @everyone in a channel.
+  GUILD_PERMISSION_MENTION_EVERYONE = 2048;
 }
 
 // GuildChannelType identifies the behavior and nesting rules of a channel.
@@ -122,6 +124,10 @@ service GuildService {
   // AuthorizeGuildChannel evaluates one permission for Message or another
   // internal service and returns the full effective permission set.
   rpc AuthorizeGuildChannel(AuthorizeGuildChannelRequest) returns (AuthorizeGuildChannelResponse);
+  // ListGuildMentionTargets pages the active members that a message would
+  // reach with the given role and @everyone mentions, restricted to members
+  // who can view the channel. It is an internal Message expansion primitive.
+  rpc ListGuildMentionTargets(ListGuildMentionTargetsRequest) returns (ListGuildMentionTargetsResponse);
 }
 
 // ============================================================
@@ -933,4 +939,31 @@ message AuthorizeGuildChannelResponse {
   // Complete effective permission set after applying channel overwrites.
   uint64 permissions = 3;
   GuildChannelType channel_type = 4;
+}
+
+message ListGuildMentionTargetsRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 channel_id = 3;
+  // Explicitly mentioned roles. Empty when only everyone or user mentions
+  // are being expanded.
+  repeated int64 role_ids = 4;
+  // Whether @everyone is part of the mention set.
+  bool everyone = 5;
+  // Opaque continuation from ListGuildMentionTargetsResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 6;
+  // Maximum results per page. Zero uses the default of 100; maximum is 1000.
+  int32 limit = 7;
+}
+
+message ListGuildMentionTargetsResponse {
+  // Active members that can view the channel and match at least one requested
+  // mention source, ordered by user ID ascending.
+  repeated int64 user_ids = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next page;
+  // do not set an empty string. Pass through unchanged as the next request's
+  // cursor. End of list is field absence.
+  string next_cursor = 2;
 }

@@ -17,7 +17,6 @@ import (
 )
 
 const (
-	mentionExpandBatchSize   = 10_000
 	mentionExpandRetryMin    = 100 * time.Millisecond
 	mentionExpandRetryMax    = 5 * time.Second
 	mentionExpandMaxAttempts = 8
@@ -30,7 +29,7 @@ type mentionExpander struct {
 	consumer *kgo.Client
 	store    interface {
 		GetMessage(ctx context.Context, messageID int64) (*model.Message, error)
-		UpsertExpandedMessageMentions(ctx context.Context, messageID int64, userIDs []int64) error
+		RebuildExpandedMessageMentions(ctx context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error)
 	}
 	guild guildv1.GuildServiceClient
 }
@@ -136,6 +135,12 @@ func (e *mentionExpander) handleRecord(ctx context.Context, record *kgo.Record) 
 		return nil
 	}
 	payload := envelope.Data
+	// Updated events only need expansion when content changed and mentions
+	// were rebuilt; flags/attachment-only updates leave the expanded rows
+	// untouched.
+	if envelope.Type == EventTypeMessageUpdated && !payload.RebuildMentions {
+		return nil
+	}
 	if len(payload.MentionRoleIDs) == 0 && !payload.MentionEveryone {
 		return nil
 	}
@@ -196,13 +201,12 @@ func (e *mentionExpander) expand(
 		}
 		req.SetCursor(resp.GetNextCursor())
 	}
-	for start := 0; start < len(targets); start += mentionExpandBatchSize {
-		end := min(start+mentionExpandBatchSize, len(targets))
-		if err := e.store.UpsertExpandedMessageMentions(ctx, messageID, targets[start:end]); err != nil {
-			return err
-		}
-	}
-	return nil
+	// The store re-checks the revision while holding the message row locked
+	// and replaces the whole source-2 set, so a message edited during paging
+	// cannot be left with stale expanded rows. A skipped rebuild (message
+	// edited or deleted meanwhile) is not an error; the newer event owns it.
+	_, err = e.store.RebuildExpandedMessageMentions(ctx, messageID, revision, targets)
+	return err
 }
 
 func parseIDStrings(values []string) []int64 {

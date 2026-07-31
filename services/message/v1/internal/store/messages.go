@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
@@ -295,18 +296,49 @@ func (s *SQLStore) ListMessagesMentions(ctx context.Context, messageIDs []int64)
 	return byMessage, nil
 }
 
-func (s *SQLStore) DeleteExpandedMessageMentions(ctx context.Context, messageID int64) error {
-	_, err := s.q.ExecContext(ctx, DeleteExpandedMessageMentionsStatement, messageID)
-	return err
-}
+// expandedMentionInsertBatchSize bounds each unnest insert inside a rebuild
+// transaction.
+const expandedMentionInsertBatchSize = 10_000
 
-func (s *SQLStore) UpsertExpandedMessageMentions(ctx context.Context, messageID int64, userIDs []int64) error {
+// RebuildExpandedMessageMentions atomically replaces the source-2 rows of a
+// message, but only while the stored revision still matches
+// expectedRevision. Locking the message row keeps the rebuild mutually
+// exclusive with edits and deletes, so an in-flight expansion cannot
+// resurrect rows after an edit removed them. It reports whether the rebuild
+// was applied; a missing, deleted, or newer message is skipped without error.
+func (s *SQLStore) RebuildExpandedMessageMentions(ctx context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error) {
 	ids := uniquePositiveIDs(userIDs)
-	if len(ids) == 0 {
-		return nil
+	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
+	if err != nil {
+		return false, err
 	}
-	_, err := s.q.ExecContext(ctx, InsertExpandedMessageMentionsStatement, messageID, ids)
-	return err
+	defer func() {
+		_ = tx.Rollback()
+	}()
+
+	var revision int64
+	if err := tx.GetContext(ctx, &revision, LockMessageRevisionStatement, messageID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	if revision != expectedRevision {
+		return false, nil
+	}
+	if _, err := tx.ExecContext(ctx, DeleteExpandedMessageMentionsStatement, messageID); err != nil {
+		return false, err
+	}
+	for start := 0; start < len(ids); start += expandedMentionInsertBatchSize {
+		end := min(start+expandedMentionInsertBatchSize, len(ids))
+		if _, err := tx.ExecContext(ctx, InsertExpandedMessageMentionsStatement, messageID, ids[start:end]); err != nil {
+			return false, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *SQLStore) selectMessages(ctx context.Context, query string, args ...any) ([]*model.Message, error) {

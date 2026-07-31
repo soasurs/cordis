@@ -875,7 +875,8 @@ type fakeStore struct {
 	idempotency     map[string]fakeIdempotencyRecord
 	listReadyCalls  int
 	readyBatchSizes []int
-	upsertBatches   [][]int64
+	rebuildBatches  [][]int64
+	rebuildStale    bool
 	transactErr     error
 	getMessageErr   error
 }
@@ -1055,33 +1056,20 @@ func (s *fakeStore) ListMessagesMentions(_ context.Context, messageIDs []int64) 
 	return byMessage, nil
 }
 
-func (s *fakeStore) DeleteExpandedMessageMentions(_ context.Context, messageID int64) error {
-	value := s.mentions[messageID]
-	value.UserIDs = nil
-	s.mentions[messageID] = value
-	return nil
-}
-
-func (s *fakeStore) UpsertExpandedMessageMentions(_ context.Context, messageID int64, userIDs []int64) error {
-	s.upsertBatches = append(s.upsertBatches, append([]int64(nil), userIDs...))
-	value := s.mentions[messageID]
-	seen := make(map[int64]struct{}, len(value.UserIDs))
-	for _, userID := range value.UserIDs {
-		seen[userID] = struct{}{}
+func (s *fakeStore) RebuildExpandedMessageMentions(_ context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error) {
+	if s.rebuildStale {
+		return false, nil
 	}
-	for _, userID := range userIDs {
-		if userID <= 0 {
-			continue
-		}
-		if _, ok := seen[userID]; ok {
-			continue
-		}
-		seen[userID] = struct{}{}
-		value.UserIDs = append(value.UserIDs, userID)
+	message, ok := s.messages[messageID]
+	if !ok || message.DeletedAt != 0 || message.Revision != expectedRevision {
+		return false, nil
 	}
+	s.rebuildBatches = append(s.rebuildBatches, append([]int64(nil), userIDs...))
+	value := s.mentions[messageID]
+	value.UserIDs = append([]int64(nil), userIDs...)
 	slices.Sort(value.UserIDs)
 	s.mentions[messageID] = value
-	return nil
+	return true, nil
 }
 
 func (s *fakeStore) CreateDmChannel(_ context.Context, channel *model.DmChannel) error {

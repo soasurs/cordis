@@ -45,6 +45,7 @@ type messagePayload struct {
 	MentionUserIDs          []string           `json:"mention_user_ids"`
 	MentionRoleIDs          []string           `json:"mention_role_ids"`
 	MentionEveryone         bool               `json:"mention_everyone"`
+	RebuildMentions         bool               `json:"rebuild_mentions,omitempty"`
 	PreviousMentionUserIDs  []string           `json:"previous_mention_user_ids,omitempty"`
 	PreviousMentionRoleIDs  []string           `json:"previous_mention_role_ids,omitempty"`
 	PreviousMentionEveryone *bool              `json:"previous_mention_everyone,omitempty"`
@@ -101,8 +102,9 @@ func newMessageCreatedEvents(message *model.Message, author *userv1.UserProfile,
 	return newMessageEvents(EventTypeMessageCreated, message.ChannelID, audience, messagePayloadFromModel(message, author, mentions), idempotencyKey)
 }
 
-func newMessageUpdatedEvents(message *model.Message, author *userv1.UserProfile, mentions, previousMentions model.MessageMentions, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
+func newMessageUpdatedEvents(message *model.Message, author *userv1.UserProfile, mentions, previousMentions model.MessageMentions, rebuildMentions bool, audience messageAudience, idempotencyKey int64) ([]messageEvent, error) {
 	payload := messagePayloadFromModel(message, author, mentions)
+	payload.RebuildMentions = rebuildMentions
 	if len(previousMentions.UserIDs) > 0 || len(previousMentions.RoleIDs) > 0 || previousMentions.Everyone {
 		payload.PreviousMentionUserIDs = idStrings(previousMentions.UserIDs)
 		payload.PreviousMentionRoleIDs = idStrings(previousMentions.RoleIDs)

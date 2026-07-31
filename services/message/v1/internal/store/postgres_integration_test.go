@@ -236,13 +236,44 @@ func testMessageMentions(t *testing.T, store Store) {
 	require.Equal(t, []int64{5001, 5002}, full.RoleIDs)
 	require.True(t, full.Everyone)
 
-	// Expanded rows for roles/everyone can be replaced without touching
-	// direct user mentions, then re-populated by the worker.
-	require.NoError(t, store.UpsertExpandedMessageMentions(ctx, 5401, []int64{6001, 6002, 6001}))
-	require.NoError(t, store.DeleteExpandedMessageMentions(ctx, 5401))
+	// Expanded rows for roles/everyone are replaced atomically under a
+	// revision guard, leaving direct user mentions untouched.
+	applied, err := store.RebuildExpandedMessageMentions(ctx, 5401, 1, []int64{6001, 6002, 6001})
+	require.NoError(t, err)
+	require.True(t, applied)
 	full, err = store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
-	require.Equal(t, []int64{4001}, full.UserIDs)
+	require.Equal(t, []int64{4001, 6001, 6002}, full.UserIDs)
+
+	// A stale rebuild (message edited since the event) is skipped.
+	applied, err = store.RebuildExpandedMessageMentions(ctx, 5401, 2, []int64{7001})
+	require.NoError(t, err)
+	require.False(t, applied)
+	full, err = store.ListMessageMentions(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001, 6001, 6002}, full.UserIDs)
+
+	// A current rebuild replaces the whole expanded set.
+	applied, err = store.RebuildExpandedMessageMentions(ctx, 5401, 1, []int64{7001, 7002})
+	require.NoError(t, err)
+	require.True(t, applied)
+	full, err = store.ListMessageMentions(ctx, 5401)
+	require.NoError(t, err)
+	require.Equal(t, []int64{4001, 7001, 7002}, full.UserIDs)
+	require.Equal(t, []int64{5001, 5002}, full.RoleIDs)
+	require.True(t, full.Everyone)
+
+	// Deleted messages never accept a rebuild.
+	_, err = store.CreateMessage(ctx, CreateMessageParams{
+		MessageID: 5403, ChannelID: channelID, AuthorID: 3001,
+		Content: "gone", Type: 1,
+	})
+	require.NoError(t, err)
+	_, err = store.DeleteMessage(ctx, 5403, 3001, false)
+	require.NoError(t, err)
+	applied, err = store.RebuildExpandedMessageMentions(ctx, 5403, 2, []int64{8001})
+	require.NoError(t, err)
+	require.False(t, applied)
 
 	// Batch loading returns one mentions struct per message.
 	_, err = store.CreateMessage(ctx, CreateMessageParams{

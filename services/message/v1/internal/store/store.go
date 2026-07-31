@@ -68,8 +68,7 @@ type Store interface {
 	ReplaceMessageMentions(ctx context.Context, messageID int64, mentions model.MessageMentions) error
 	ListMessageMentions(ctx context.Context, messageID int64) (*model.MessageMentions, error)
 	ListMessagesMentions(ctx context.Context, messageIDs []int64) (map[int64]*model.MessageMentions, error)
-	DeleteExpandedMessageMentions(ctx context.Context, messageID int64) error
-	UpsertExpandedMessageMentions(ctx context.Context, messageID int64, userIDs []int64) error
+	RebuildExpandedMessageMentions(ctx context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error)
 	CreateDmChannel(ctx context.Context, channel *model.DmChannel) error
 	GetDmChannel(ctx context.Context, channelID int64) (*model.DmChannel, error)
 	GetDmChannelByPair(ctx context.Context, userLo, userHi int64) (*model.DmChannel, error)

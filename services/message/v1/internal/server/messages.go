@@ -322,7 +322,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	updated.Mentions = mentions
 	copyAttachmentURLs(updated.Attachments, attachmentURLSource)
 
-	events, eventErr := newMessageUpdatedEvents(updated, author, mentions, previousMentions, audience, s.svcCtx.Snowflake.Generate().Int64())
+	events, eventErr := newMessageUpdatedEvents(updated, author, mentions, previousMentions, req.HasContent(), audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)

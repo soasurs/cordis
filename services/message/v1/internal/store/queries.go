@@ -238,6 +238,18 @@ const (
 	ON CONFLICT DO NOTHING
 	`
 
+	LockMessageRevisionStatement = `
+	SELECT
+		revision
+	FROM
+		messages
+	WHERE
+		id = $1
+	AND
+		deleted_at = 0
+	FOR UPDATE
+	`
+
 	DeleteExpandedMessageMentionsStatement = `
 	DELETE FROM
 		message_mentions

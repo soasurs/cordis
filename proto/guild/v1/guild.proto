@@ -294,6 +294,8 @@ message ReadyGuild {
   repeated GuildChannel channels = 5;
   // Permission overwrites for the returned visible channels.
   repeated GuildChannelPermissionOverwrite permission_overwrites = 6;
+  // Revision of the channel layout represented by channels.
+  int64 channel_layout_revision = 7;
 }
 
 message GetUserReadyStateRequest {

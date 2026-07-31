@@ -2798,17 +2798,18 @@ func (b0 GuildChannelVisibility_builder) Build() *GuildChannelVisibility {
 }
 
 type ReadyGuild struct {
-	state                           protoimpl.MessageState              `protogen:"opaque.v1"`
-	xxx_hidden_Guild                *Guild                              `protobuf:"bytes,1,opt,name=guild"`
-	xxx_hidden_AccessRevision       int64                               `protobuf:"varint,2,opt,name=access_revision,json=accessRevision"`
-	xxx_hidden_Roles                *[]*GuildRole                       `protobuf:"bytes,3,rep,name=roles"`
-	xxx_hidden_MemberRoleIds        []int64                             `protobuf:"varint,4,rep,packed,name=member_role_ids,json=memberRoleIds"`
-	xxx_hidden_Channels             *[]*GuildChannel                    `protobuf:"bytes,5,rep,name=channels"`
-	xxx_hidden_PermissionOverwrites *[]*GuildChannelPermissionOverwrite `protobuf:"bytes,6,rep,name=permission_overwrites,json=permissionOverwrites"`
-	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
-	XXX_presence                    [1]uint32
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	state                            protoimpl.MessageState              `protogen:"opaque.v1"`
+	xxx_hidden_Guild                 *Guild                              `protobuf:"bytes,1,opt,name=guild"`
+	xxx_hidden_AccessRevision        int64                               `protobuf:"varint,2,opt,name=access_revision,json=accessRevision"`
+	xxx_hidden_Roles                 *[]*GuildRole                       `protobuf:"bytes,3,rep,name=roles"`
+	xxx_hidden_MemberRoleIds         []int64                             `protobuf:"varint,4,rep,packed,name=member_role_ids,json=memberRoleIds"`
+	xxx_hidden_Channels              *[]*GuildChannel                    `protobuf:"bytes,5,rep,name=channels"`
+	xxx_hidden_PermissionOverwrites  *[]*GuildChannelPermissionOverwrite `protobuf:"bytes,6,rep,name=permission_overwrites,json=permissionOverwrites"`
+	xxx_hidden_ChannelLayoutRevision int64                               `protobuf:"varint,7,opt,name=channel_layout_revision,json=channelLayoutRevision"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *ReadyGuild) Reset() {
@@ -2884,13 +2885,20 @@ func (x *ReadyGuild) GetPermissionOverwrites() []*GuildChannelPermissionOverwrit
 	return nil
 }
 
+func (x *ReadyGuild) GetChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *ReadyGuild) SetGuild(v *Guild) {
 	x.xxx_hidden_Guild = v
 }
 
 func (x *ReadyGuild) SetAccessRevision(v int64) {
 	x.xxx_hidden_AccessRevision = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *ReadyGuild) SetRoles(v []*GuildRole) {
@@ -2909,6 +2917,11 @@ func (x *ReadyGuild) SetPermissionOverwrites(v []*GuildChannelPermissionOverwrit
 	x.xxx_hidden_PermissionOverwrites = &v
 }
 
+func (x *ReadyGuild) SetChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
 func (x *ReadyGuild) HasGuild() bool {
 	if x == nil {
 		return false
@@ -2923,6 +2936,13 @@ func (x *ReadyGuild) HasAccessRevision() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *ReadyGuild) HasChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
 func (x *ReadyGuild) ClearGuild() {
 	x.xxx_hidden_Guild = nil
 }
@@ -2930,6 +2950,11 @@ func (x *ReadyGuild) ClearGuild() {
 func (x *ReadyGuild) ClearAccessRevision() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_AccessRevision = 0
+}
+
+func (x *ReadyGuild) ClearChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ChannelLayoutRevision = 0
 }
 
 type ReadyGuild_builder struct {
@@ -2947,6 +2972,8 @@ type ReadyGuild_builder struct {
 	Channels []*GuildChannel
 	// Permission overwrites for the returned visible channels.
 	PermissionOverwrites []*GuildChannelPermissionOverwrite
+	// Revision of the channel layout represented by channels.
+	ChannelLayoutRevision *int64
 }
 
 func (b0 ReadyGuild_builder) Build() *ReadyGuild {
@@ -2955,13 +2982,17 @@ func (b0 ReadyGuild_builder) Build() *ReadyGuild {
 	_, _ = b, x
 	x.xxx_hidden_Guild = b.Guild
 	if b.AccessRevision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_AccessRevision = *b.AccessRevision
 	}
 	x.xxx_hidden_Roles = &b.Roles
 	x.xxx_hidden_MemberRoleIds = b.MemberRoleIds
 	x.xxx_hidden_Channels = &b.Channels
 	x.xxx_hidden_PermissionOverwrites = &b.PermissionOverwrites
+	if b.ChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_ChannelLayoutRevision = *b.ChannelLayoutRevision
+	}
 	return m0
 }
 
@@ -14012,7 +14043,7 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12'\n" +
 	"\x0faccess_revision\x18\x02 \x01(\x03R\x0eaccessRevision\x12.\n" +
 	"\x13visible_channel_ids\x18\x03 \x03(\x03R\x11visibleChannelIds\x127\n" +
-	"\x18visible_text_channel_ids\x18\x04 \x03(\x03R\x15visibleTextChannelIds\"\xc3\x02\n" +
+	"\x18visible_text_channel_ids\x18\x04 \x03(\x03R\x15visibleTextChannelIds\"\xfb\x02\n" +
 	"\n" +
 	"ReadyGuild\x12%\n" +
 	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\x12'\n" +
@@ -14020,7 +14051,8 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x05roles\x18\x03 \x03(\v2\x13.guild.v1.GuildRoleR\x05roles\x12&\n" +
 	"\x0fmember_role_ids\x18\x04 \x03(\x03R\rmemberRoleIds\x122\n" +
 	"\bchannels\x18\x05 \x03(\v2\x16.guild.v1.GuildChannelR\bchannels\x12^\n" +
-	"\x15permission_overwrites\x18\x06 \x03(\v2).guild.v1.GuildChannelPermissionOverwriteR\x14permissionOverwrites\"3\n" +
+	"\x15permission_overwrites\x18\x06 \x03(\v2).guild.v1.GuildChannelPermissionOverwriteR\x14permissionOverwrites\x126\n" +
+	"\x17channel_layout_revision\x18\a \x01(\x03R\x15channelLayoutRevision\"3\n" +
 	"\x18GetUserReadyStateRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\"I\n" +
 	"\x19GetUserReadyStateResponse\x12,\n" +

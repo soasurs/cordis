@@ -154,7 +154,8 @@ Quota checks and writes are serialized in the same PostgreSQL transaction.
 
 Internal `GetUserReadyState` returns the user's complete READY Guild bootstrap
 in one call: Guild metadata, all roles, the member's explicit role IDs, and
-visible channels together with their permission overwrites. Every snapshot carries a persistent `access_revision`. PostgreSQL
+visible channels together with their permission overwrites and the
+`channel_layout_revision` represented by those channels. Every snapshot carries a persistent `access_revision`. PostgreSQL
 triggers advance this monotonic revision whenever membership, role permissions
 or assignments, channels, permission overwrites, ownership, or Guild deletion
 can change access. Published Guild events include the committed revision while

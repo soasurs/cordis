@@ -23,6 +23,8 @@ token，结构变更请求必须携带客户端快照中的 revision。Guild 服
 advisory lock 后校验它；token 过期时事务以 `Aborted` 终止并回滚，公开 Connect
 API 对应 HTTP `409 Conflict`。服务端不会自动刷新列表或重放过期操作；客户端应由
 用户主动刷新后重新操作。仅修改频道 name/topic 不改变也不要求 layout revision。
+内部 READY 的每个 Guild 条目也会携带其频道快照对应的 layout revision；
+Resume 继续使用现有 event replay 协议，不额外携带 layout token。
 
 ## 可用性检查与头像约束
 

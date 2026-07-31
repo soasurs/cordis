@@ -14,6 +14,7 @@ func TestGetUserReadyStateReturnsCompleteVisibleGuildState(t *testing.T) {
 	for _, guildID := range []int64{20, 30} {
 		guild := testGuild(guildID, 1001)
 		guild.AccessRevision = guildID + 7
+		guild.ChannelLayoutRevision = guildID + 100
 		fake.guilds[guildID] = guild
 		fake.members[guildID] = testMembers(guildID, 1002)
 		fake.roles[guildID] = map[int64]*model.Role{
@@ -51,12 +52,14 @@ func TestGetUserReadyStateReturnsCompleteVisibleGuildState(t *testing.T) {
 	require.Len(t, resp.GetGuilds(), 2)
 	require.Equal(t, int64(30), resp.GetGuilds()[0].GetGuild().GetId())
 	require.Equal(t, int64(37), resp.GetGuilds()[0].GetAccessRevision())
+	require.Equal(t, int64(130), resp.GetGuilds()[0].GetChannelLayoutRevision())
 	require.Len(t, resp.GetGuilds()[0].GetRoles(), 2)
 	require.Equal(t, []int64{31}, resp.GetGuilds()[0].GetMemberRoleIds())
 	require.Equal(t, []int64{301}, channelIDs(resp.GetGuilds()[0].GetChannels()))
 	require.Len(t, resp.GetGuilds()[0].GetPermissionOverwrites(), 1)
 	require.Equal(t, int64(301), resp.GetGuilds()[0].GetPermissionOverwrites()[0].GetChannelId())
 	require.Equal(t, int64(20), resp.GetGuilds()[1].GetGuild().GetId())
+	require.Equal(t, int64(120), resp.GetGuilds()[1].GetChannelLayoutRevision())
 	require.Equal(t, []int64{201, 202}, channelIDs(resp.GetGuilds()[1].GetChannels()))
 }
 

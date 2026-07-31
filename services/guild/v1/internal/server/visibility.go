@@ -70,6 +70,7 @@ func (s *guildServer) GetUserReadyState(
 		ready := new(guildv1.ReadyGuild)
 		ready.SetGuild(guildToProto(guild))
 		ready.SetAccessRevision(guild.AccessRevision)
+		ready.SetChannelLayoutRevision(guild.ChannelLayoutRevision)
 		ready.SetRoles(guildRolesToProto(rolesByGuild[guild.ID]))
 		ready.SetMemberRoleIds(memberRoleIDs)
 		ready.SetChannels(guildChannelsToProto(visible))

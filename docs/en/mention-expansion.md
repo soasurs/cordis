@@ -48,7 +48,8 @@ toggles, `@here`, `<#channel>`, and per-user suppression settings.
   backslashes follow regular escaping rules);
 - `@everyone` requires word boundaries: the character before and after may
   not be a letter, digit, or underscore;
-- results are deduplicated and keep first-appearance order;
+- results are deduplicated and returned in ascending user/role ID order
+  (storage, responses, and events do not preserve content order);
 - limits: user plus role mentions must not exceed `mentionsPerMessage`
   (default 100); `@everyone` is not counted;
 - DM channels only parse `<@>`; `<@&>` and `@everyone` remain plain text and
@@ -127,9 +128,9 @@ unread-count SQL needs no modification.
   - `ListMessageMentions(ctx, messageID)` reads the full mention set;
   - `ListMessagesMentions(ctx, messageIDs)` batch-loads mentions for
     `ListMessages` without N+1 queries;
-  - `DeleteExpandedMessageMentions(ctx, messageID)` deletes source 2 rows;
-  - `UpsertExpandedMessageMentions(ctx, messageID, userIDs)` batch-inserts
-    source 2 rows with `ON CONFLICT DO NOTHING`.
+  - `RebuildExpandedMessageMentions(ctx, messageID, expectedRevision,
+    userIDs)` atomically replaces source 2 rows in one transaction, but only
+    while the stored revision still matches `expectedRevision`.
 
 ## 5. Message Service Flow
 
@@ -245,7 +246,7 @@ page and the caller keeps paging until `next_cursor` is absent.
 No separate task topic: the worker consumes the existing message event topic
 `cordis.message.events.v1`. The event payload already carries everything the
 worker needs (`message_id`, `channel_id`, `guild_id`, `revision`, plus the new
-`mention_role_ids` and `mention_everyone`).
+`mention_role_ids`, `mention_everyone`, and for updates `rebuild_mentions`).
 
 - consumer group: `cordis.message.mentions.v1` (the `cordis.<consumer>.<source>.v1`
   convention; the consumer is the Message service's own mentions expansion);
@@ -260,16 +261,21 @@ worker needs (`message_id`, `channel_id`, `guild_id`, `revision`, plus the new
 
 ### 7.2 Worker Processing
 
-1. filter by event type; only `message.created` and `message.updated` are
-   handled; events without role/everyone mentions are skipped (historical
-   events lack these fields and deserialize empty, so they never trigger);
+1. filter by event type; `message.created` and `message.updated` events whose
+   mentions were rebuilt (`rebuild_mentions` true) are handled; events without
+   role/everyone mentions are skipped (historical events lack these fields
+   and deserialize empty, so they never trigger);
 2. load the message (id, channel_id, guild_id, revision, deleted_at); skip
    and commit when the message is missing, deleted, or the revision does not
    match the event (`message.deleted` needs no handling because the delete
    transaction already clears expanded rows);
 3. page through `ListGuildMentionTargets` to collect every target;
-4. write source 2 rows in batches (default 10,000) via
-   `UpsertExpandedMessageMentions`;
+4. replace source 2 rows through
+   `RebuildExpandedMessageMentions(message_id, event revision, targets)`;
+   the store locks the message row, re-checks the revision, deletes the old
+   expanded rows, and re-inserts the new set in 10,000-row batches inside one
+   transaction, so an edit or delete racing with the expansion cannot leave
+   stale rows behind;
 5. commit only after success; failures retry with exponential backoff
    (100 ms initial, 5 s cap, at most 8 attempts), then log an alert and
    commit past the record.
@@ -311,13 +317,17 @@ group replays skip historical events and safely re-run new ones thanks to
 ```go
 MentionRoleIDs          []string `json:"mention_role_ids"`
 MentionEveryone         bool     `json:"mention_everyone"`
+RebuildMentions         bool     `json:"rebuild_mentions,omitempty"`
 PreviousMentionRoleIDs  []string `json:"previous_mention_role_ids,omitempty"`
 PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 ```
 
 `MentionUserIDs`/`PreviousMentionUserIDs` are retained. The deleted-event
-payload gains the same role/everyone fields. Routing is unchanged: Guild
-messages publish one guild-keyed record, DM messages one record per user.
+payload gains the same role/everyone fields. `RebuildMentions` is set only on
+`message.updated` events whose content changed (mentions were rebuilt);
+flags/attachment-only updates do not trigger expansion. Routing is unchanged:
+Guild messages publish one guild-keyed record, DM messages one record per
+user.
 
 ## 10. Idempotency
 

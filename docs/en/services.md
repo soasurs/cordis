@@ -249,11 +249,12 @@ on a best-effort basis; failures are logged. Guild message records carry
 also carry the best-effort previous mention set for client-side cleanup. The
 Message service runs a background expansion consumer
 (`cordis.message.mentions.v1`) over the same event topic; it only handles
-created/updated events that contain role or everyone mentions, checks the
-stored revision, pages channel-visible members through Guild, and batch-writes
-expanded rows. Expansion is eventually consistent: a message may be visible
-before its `mention_count` contribution lands, and a best-effort event loss
-also loses the expansion.
+created events and updated events whose mentions were rebuilt, when they
+contain role or everyone mentions; it checks the stored revision, pages
+channel-visible members through Guild, and atomically replaces expanded rows
+under a revision guard. Expansion is eventually consistent: a message may be
+visible before its `mention_count` contribution lands, and a best-effort
+event loss also loses the expansion.
 
 `CreateMessage` accepts an optional opaque `idempotency_key` for one client
 creation intent. The key is scoped to the authenticated user and the

@@ -96,8 +96,7 @@ ALTER TABLE messages
   - `ReplaceMessageMentions(ctx, messageID, params)`：一次替换 users（source=1）、roles、everyone，事务内调用；
   - `ListMessageMentions(ctx, messageID)`：读取完整 mentions（user、role、everyone）；
   - `ListMessagesMentions(ctx, messageIDs)`：ListMessages 批量加载，避免 N+1；
-  - `DeleteExpandedMessageMentions(ctx, messageID)`：删除 source=2 行，编辑重建时使用；
-  - `UpsertExpandedMessageMentions(ctx, messageID, userIDs)`：异步 worker 分批写入 source=2 行，`ON CONFLICT DO NOTHING`；
+  - `RebuildExpandedMessageMentions(ctx, messageID, expectedRevision, userIDs)`：在同一事务内以 revision 守卫原子替换 source=2 行；
 - `messageRow` 增加 `mention_everyone` 列扫描。
 
 ## 5. 消息服务处理流程

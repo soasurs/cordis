@@ -912,9 +912,9 @@ type Message_builder struct {
 	UpdatedAt *int64
 	// Monotonically increasing version used to discard stale events.
 	Revision *int64
-	// User IDs parsed from mentions in content, in first-appearance order.
+	// User IDs parsed from mentions in content, in ascending user ID order.
 	MentionUserIds []int64
-	// Role IDs parsed from mentions in content, in first-appearance order.
+	// Role IDs parsed from mentions in content, in ascending role ID order.
 	MentionRoleIds []int64
 	// Whether the content mentions @everyone.
 	MentionEveryone *bool

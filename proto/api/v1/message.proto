@@ -98,9 +98,9 @@ message Message {
   // Monotonically increasing version used to discard stale events.
   int64 revision = 13;
 
-  // User IDs parsed from mentions in content, in first-appearance order.
+  // User IDs parsed from mentions in content, in ascending user ID order.
   repeated int64 mention_user_ids = 14;
-  // Role IDs parsed from mentions in content, in first-appearance order.
+  // Role IDs parsed from mentions in content, in ascending role ID order.
   repeated int64 mention_role_ids = 15;
   // Whether the content mentions @everyone.
   bool mention_everyone = 16;

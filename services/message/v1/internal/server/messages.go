@@ -135,6 +135,11 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 				if err != nil {
 					return err
 				}
+				stored, err := txStore.ListMessageMentions(ctx, claim.MessageID)
+				if err != nil {
+					return err
+				}
+				created.Mentions = *stored
 				return nil
 			}
 			createdNewMessage = true
@@ -159,6 +164,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		if err := txStore.ReplaceMessageMentions(ctx, messageID, mentions); err != nil {
 			return err
 		}
+		created.Mentions = mentions
 		authorReadAdvanced, err = txStore.AckMessage(ctx, req.GetAuthorId(), req.GetChannelId(), messageID)
 		if err != nil {
 			return err
@@ -313,6 +319,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
+	updated.Mentions = mentions
 	copyAttachmentURLs(updated.Attachments, attachmentURLSource)
 
 	events, eventErr := newMessageUpdatedEvents(updated, author, mentions, previousMentions, audience, s.svcCtx.Snowflake.Generate().Int64())

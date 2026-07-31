@@ -41,6 +41,9 @@ func TestCreateMessageParsesUserRoleAndEveryoneMentions(t *testing.T) {
 
 	resp, err := server.CreateMessage(t.Context(), createMentionRequest("hi <@30> <@&40> @everyone"))
 	require.NoError(t, err)
+	require.Equal(t, []int64{30}, resp.GetMessage().GetMentionUserIds())
+	require.Equal(t, []int64{40}, resp.GetMessage().GetMentionRoleIds())
+	require.True(t, resp.GetMessage().GetMentionEveryone())
 	mentions := fakeStore.mentions[resp.GetMessage().GetId()]
 	require.Equal(t, []int64{30}, mentions.UserIDs)
 	require.Equal(t, []int64{40}, mentions.RoleIDs)
@@ -51,6 +54,26 @@ func TestCreateMessageParsesUserRoleAndEveryoneMentions(t *testing.T) {
 	require.Equal(t, []string{"30"}, envelope.Data.MentionUserIDs)
 	require.Equal(t, []string{"40"}, envelope.Data.MentionRoleIDs)
 	require.True(t, envelope.Data.MentionEveryone)
+}
+
+func TestCreateMessageResponseMentionsSortedAscending(t *testing.T) {
+	fakeStore := newFakeStore()
+	publisher := new(fakePublisher)
+	guildClient := &fakeGuildClient{
+		roles:       []*guildv1.GuildRole{guildRole(50), guildRole(40)},
+		permissions: permissionViewChannel | permissionSendMessages | permissionMentionEveryone,
+	}
+	server := newTestMessageServerWithGuild(t, fakeStore, publisher, guildClient)
+
+	resp, err := server.CreateMessage(t.Context(), createMentionRequest("<@200> <@100> <@&50> <@&40> @everyone"))
+	require.NoError(t, err)
+	require.Equal(t, []int64{100, 200}, resp.GetMessage().GetMentionUserIds())
+	require.Equal(t, []int64{40, 50}, resp.GetMessage().GetMentionRoleIds())
+
+	var envelope eventEnvelope[messagePayload]
+	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
+	require.Equal(t, []string{"100", "200"}, envelope.Data.MentionUserIDs)
+	require.Equal(t, []string{"40", "50"}, envelope.Data.MentionRoleIDs)
 }
 
 func TestCreateMessageEveryoneRequiresPermission(t *testing.T) {
@@ -80,6 +103,19 @@ func TestCreateMessageDmKeepsOnlyUserMentions(t *testing.T) {
 	require.Equal(t, []int64{21}, mentions.UserIDs)
 	require.Empty(t, mentions.RoleIDs)
 	require.False(t, mentions.Everyone)
+}
+
+func TestCreateMessageDmFiltersUnknownUsers(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.dmChannels[10] = &model.DmChannel{ID: 10, UserLo: 20, UserHi: 21}
+	userClient := newFakeUserClient()
+	userClient.missingUsers = map[int64]bool{30: true}
+	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), &fakeGuildClient{}, userClient)
+
+	resp, err := server.CreateMessage(t.Context(), createMentionRequest("hi <@30> <@31>"))
+	require.NoError(t, err)
+	mentions := fakeStore.mentions[resp.GetMessage().GetId()]
+	require.Equal(t, []int64{31}, mentions.UserIDs)
 }
 
 func TestCreateMessageFiltersUnknownRolesAndUsers(t *testing.T) {
@@ -113,6 +149,8 @@ func TestUpdateMessageRebuildsMentionsFromContent(t *testing.T) {
 	req.SetContent("edited <@30> <@&50>")
 	resp, err := server.UpdateMessage(t.Context(), req)
 	require.NoError(t, err)
+	require.Equal(t, []int64{30}, resp.GetMessage().GetMentionUserIds())
+	require.Equal(t, []int64{50}, resp.GetMessage().GetMentionRoleIds())
 
 	mentions := fakeStore.mentions[100]
 	require.Equal(t, []int64{30}, mentions.UserIDs)
@@ -125,6 +163,25 @@ func TestUpdateMessageRebuildsMentionsFromContent(t *testing.T) {
 	require.Equal(t, []string{"50"}, envelope.Data.MentionRoleIDs)
 	require.Equal(t, []string{"40"}, envelope.Data.PreviousMentionUserIDs)
 	require.Equal(t, int64(2), resp.GetMessage().GetRevision())
+}
+
+func TestUpdateMessageResponseClearsEveryone(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.messages[100] = &model.Message{
+		ID: 100, ChannelID: 10, AuthorID: 20, Content: "@everyone old",
+		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
+	}
+	fakeStore.mentions[100] = model.MessageMentions{Everyone: true}
+	server := newTestMessageServer(t, fakeStore, new(fakePublisher))
+
+	req := new(messagev1.UpdateMessageRequest)
+	req.SetMessageId(100)
+	req.SetActorUserId(20)
+	req.SetContent("hi <@30>")
+	resp, err := server.UpdateMessage(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, []int64{30}, resp.GetMessage().GetMentionUserIds())
+	require.False(t, resp.GetMessage().GetMentionEveryone())
 }
 
 func TestGetAndListMessagesIncludeMentions(t *testing.T) {

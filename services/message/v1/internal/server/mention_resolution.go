@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"slices"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -20,7 +22,7 @@ func (s *messageServer) resolveMentions(ctx context.Context, content string, aud
 	if audience.guildID == 0 {
 		parsed.RoleIDs = nil
 		parsed.Everyone = false
-		return toMessageMentions(parsed), nil
+		return s.filterMentionUsers(ctx, parsed)
 	}
 	if parsed.Everyone && audience.permissions&permissionMentionEveryone == 0 {
 		return model.MessageMentions{}, permissionDenied()
@@ -38,6 +40,12 @@ func (s *messageServer) resolveMentions(ctx context.Context, content string, aud
 		}
 		parsed.RoleIDs = kept
 	}
+	return s.filterMentionUsers(ctx, parsed)
+}
+
+// filterMentionUsers drops user mentions whose profiles no longer exist and
+// normalizes the resulting set to ascending ID order.
+func (s *messageServer) filterMentionUsers(ctx context.Context, parsed mention.Set) (model.MessageMentions, error) {
 	if len(parsed.UserIDs) > 0 {
 		users, err := s.filterExistingUsers(ctx, parsed.UserIDs)
 		if err != nil {
@@ -49,6 +57,8 @@ func (s *messageServer) resolveMentions(ctx context.Context, content string, aud
 }
 
 func toMessageMentions(set mention.Set) model.MessageMentions {
+	slices.Sort(set.UserIDs)
+	slices.Sort(set.RoleIDs)
 	return model.MessageMentions{
 		UserIDs:  set.UserIDs,
 		RoleIDs:  set.RoleIDs,

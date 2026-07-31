@@ -762,9 +762,9 @@ type Message_builder struct {
 	Revision *int64
 	// Stable reference to the user who sent this message.
 	AuthorId *int64
-	// User IDs parsed from mentions in content, in first-appearance order.
+	// User IDs parsed from mentions in content, in ascending user ID order.
 	MentionUserIds []int64
-	// Role IDs parsed from mentions in content, in first-appearance order.
+	// Role IDs parsed from mentions in content, in ascending role ID order.
 	MentionRoleIds []int64
 	// Whether the content mentions @everyone.
 	MentionEveryone *bool

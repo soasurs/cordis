@@ -66,7 +66,6 @@ type Store interface {
 	UpdateMessage(ctx context.Context, params UpdateMessageParams) (*model.Message, error)
 	DeleteMessage(ctx context.Context, messageID, actorUserID int64, hasModPermission bool) (*model.Message, error)
 	ReplaceMessageMentions(ctx context.Context, messageID int64, mentions model.MessageMentions) error
-	ListMentionUserIDs(ctx context.Context, messageID int64) ([]int64, error)
 	ListMessageMentions(ctx context.Context, messageID int64) (*model.MessageMentions, error)
 	ListMessagesMentions(ctx context.Context, messageIDs []int64) (map[int64]*model.MessageMentions, error)
 	DeleteExpandedMessageMentions(ctx context.Context, messageID int64) error

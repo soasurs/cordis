@@ -273,28 +273,6 @@ const (
 	ON CONFLICT DO NOTHING
 	`
 
-	ListMessageMentionsQuery = `
-	SELECT
-		user_id
-	FROM
-		message_mentions
-	WHERE
-		message_id = $1
-	ORDER BY
-		user_id ASC
-	`
-
-	ListMessageRoleMentionsQuery = `
-	SELECT
-		role_id
-	FROM
-		message_role_mentions
-	WHERE
-		message_id = $1
-	ORDER BY
-		role_id ASC
-	`
-
 	ListMessagesMentionsQuery = `
 	SELECT
 		message_id, user_id

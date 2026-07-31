@@ -253,12 +253,11 @@ func TestMessageResourceLimits(t *testing.T) {
 	attachments := make([]model.Attachment, 11)
 	require.Equal(t, codes.ResourceExhausted, status.Code(validateAttachments(attachments, 10)))
 
-	mentions := make([]int64, 101)
-	for i := range mentions {
-		mentions[i] = int64(i + 1)
+	mentionUsers := make([]int64, 101)
+	for i := range mentionUsers {
+		mentionUsers[i] = int64(i + 1)
 	}
-	require.Equal(t, codes.ResourceExhausted, status.Code(validateMentionUserIDs(mentions, 100)))
-	require.Equal(t, codes.InvalidArgument, status.Code(validateMentionUserIDs([]int64{1, 1}, 100)))
+	require.Equal(t, codes.ResourceExhausted, status.Code(validateMentionsSet(model.MessageMentions{UserIDs: mentionUsers}, 100)))
 }
 
 func TestAttachmentUploadLifecycle(t *testing.T) {
@@ -1003,10 +1002,6 @@ func (s *fakeStore) ReplaceMessageMentions(_ context.Context, messageID int64, m
 	slices.Sort(value.RoleIDs)
 	s.mentions[messageID] = value
 	return nil
-}
-
-func (s *fakeStore) ListMentionUserIDs(_ context.Context, messageID int64) ([]int64, error) {
-	return append([]int64(nil), s.mentions[messageID].UserIDs...), nil
 }
 
 func (s *fakeStore) ListMessageMentions(_ context.Context, messageID int64) (*model.MessageMentions, error) {

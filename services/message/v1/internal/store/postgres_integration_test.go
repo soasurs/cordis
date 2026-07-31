@@ -212,25 +212,25 @@ func testMessageMentions(t *testing.T, store Store) {
 	require.NoError(t, err)
 
 	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{UserIDs: []int64{4002, 4001, 4002, 0, -1}}))
-	mentions, err := store.ListMentionUserIDs(ctx, 5401)
+	full, err := store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
-	require.Equal(t, []int64{4001, 4002}, mentions)
+	require.Equal(t, []int64{4001, 4002}, full.UserIDs)
 
 	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{UserIDs: []int64{4003}}))
-	mentions, err = store.ListMentionUserIDs(ctx, 5401)
+	full, err = store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
-	require.Equal(t, []int64{4003}, mentions)
+	require.Equal(t, []int64{4003}, full.UserIDs)
 
 	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{}))
-	mentions, err = store.ListMentionUserIDs(ctx, 5401)
+	full, err = store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
-	require.Empty(t, mentions)
+	require.Empty(t, full.UserIDs)
 
 	// Roles and @everyone are definitions stored beside direct user mentions.
 	require.NoError(t, store.ReplaceMessageMentions(ctx, 5401, model.MessageMentions{
 		UserIDs: []int64{4001}, RoleIDs: []int64{5002, 5001, 5002}, Everyone: true,
 	}))
-	full, err := store.ListMessageMentions(ctx, 5401)
+	full, err = store.ListMessageMentions(ctx, 5401)
 	require.NoError(t, err)
 	require.Equal(t, []int64{4001}, full.UserIDs)
 	require.Equal(t, []int64{5001, 5002}, full.RoleIDs)

@@ -249,14 +249,6 @@ func (s *SQLStore) batchInsertRoleMentions(ctx context.Context, messageID int64,
 	return err
 }
 
-func (s *SQLStore) ListMentionUserIDs(ctx context.Context, messageID int64) ([]int64, error) {
-	var userIDs []int64
-	if err := sqlx.SelectContext(ctx, s.q, &userIDs, ListMessageMentionsQuery, messageID); err != nil {
-		return nil, err
-	}
-	return userIDs, nil
-}
-
 func (s *SQLStore) ListMessageMentions(ctx context.Context, messageID int64) (*model.MessageMentions, error) {
 	mentions, err := s.ListMessagesMentions(ctx, []int64{messageID})
 	if err != nil {

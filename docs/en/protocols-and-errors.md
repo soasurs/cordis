@@ -40,23 +40,30 @@ existing event replay protocol and does not add a separate layout token.
 
 ## Create request idempotency
 
-`CreateMessageRequest.idempotency_key` is optional and opaque. When present, it
-must be non-empty, contain no leading or trailing whitespace, and be no longer
-than 255 UTF-8 bytes. The key is scoped by authenticated actor and operation;
-for messages the operation is `message.create`. Clients should generate a new
-key for each business intent and reuse it only when retrying that intent.
+The creation RPCs `CreateMessage`, `CreateGuild`, `CreateGuildRole`,
+`CreateGuildChannel`, and `CreateGuildInvite` accept an optional opaque
+`idempotency_key`. When present, it must be non-empty, contain no leading or
+trailing whitespace, and be no longer than 255 UTF-8 bytes. The key is scoped
+by authenticated actor and operation: `message.create`, `guild.create`,
+`guild.role.create`, `guild.channel.create`, and `guild.invite.create`.
+Clients should generate a new key for each business intent and reuse it only
+when retrying that intent.
 
-Message stores a SHA-256 fingerprint of the normalized request. It includes the
-channel, content, normalized type, flags, references, attachment asset IDs in
-their submitted order, and normalized mention IDs. The same key and
-fingerprint returns the original message; the same key with different
+The owning service stores a SHA-256 fingerprint of the normalized request. For
+messages it includes the channel, content, normalized type, flags, references,
+attachment asset IDs in their submitted order, and normalized mention IDs. For
+Guild resources it covers the normalized name (Guilds, roles, channels),
+permissions (roles), channel type, topic, and parent (channels), and the
+original relative `expires_in_ms` (invites). The same key and fingerprint
+returns the originally created resource; the same key with different
 parameters returns `InvalidArgument` with public code
-`request.idempotency_key_reused`. The record is retained for 30 minutes by
-default for CreateMessage, and requests without a key remain compatible with
-older clients. Retries still pass through normal authentication,
-authorization, and request validation; those checks may return their usual
-error without creating another message. Idempotency retention is configured
-per operation because different creation RPCs have different retry windows.
+`request.idempotency_key_reused`. Records are retained per operation (30
+minutes by default for CreateMessage, 24 hours by default for Guild creation
+RPCs), and requests without a key remain compatible with older clients.
+Retries still pass through normal authentication, authorization, and request
+validation; those checks may return their usual error without creating another
+resource. Idempotency retention is configured per operation because different
+creation RPCs have different retry windows.
 
 ## Availability checks and avatar constraints
 

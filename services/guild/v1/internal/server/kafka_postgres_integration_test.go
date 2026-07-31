@@ -67,8 +67,12 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	req := new(guildv1.CreateGuildRequest)
 	req.SetOwnerId(1001)
 	req.SetName("Cordis")
+	req.SetIdempotencyKey("guild-intent-1")
 	created, err := service.CreateGuild(t.Context(), req)
 	require.NoError(t, err)
+	retried, err := service.CreateGuild(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, created.GetGuild().GetId(), retried.GetGuild().GetId(), "same-key retry must return the same guild")
 	channels, err := guildStore.ListGuildChannels(t.Context(), created.GetGuild().GetId())
 	require.NoError(t, err)
 	require.Len(t, channels, 4)
@@ -79,9 +83,9 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 
 	readCtx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 	defer cancel()
-	records := consumer.PollRecords(readCtx, 1)
+	records := consumer.PollRecords(readCtx, 10)
 	require.Empty(t, records.Errors())
-	require.Len(t, records.Records(), 1)
+	require.Len(t, records.Records(), 1, "the retry must not republish the creation event")
 	record := records.Records()[0]
 	require.Equal(t, strconv.FormatInt(created.GetGuild().GetId(), 10), string(record.Key))
 

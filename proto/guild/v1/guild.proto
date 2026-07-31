@@ -237,6 +237,8 @@ message GuildChannelPermissionOverwrite {
 message CreateGuildRequest {
   int64 owner_id = 1;
   string name = 2;
+  // Optional opaque key identifying one client-side Guild creation intent.
+  string idempotency_key = 3;
 }
 
 message CreateGuildResponse {
@@ -557,6 +559,8 @@ message CreateGuildInviteRequest {
   int32 max_uses = 3;
   // Relative lifetime in milliseconds. Zero means the invite never expires.
   int64 expires_in_ms = 4;
+  // Optional opaque key identifying one client-side invite creation intent.
+  string idempotency_key = 5;
 }
 
 message CreateGuildInviteResponse {
@@ -621,6 +625,8 @@ message CreateGuildRoleRequest {
   // Bitwise OR of GuildPermission values. The actor may grant only
   // permissions they hold.
   uint64 permissions = 4;
+  // Optional opaque key identifying one client-side role creation intent.
+  string idempotency_key = 5;
 }
 
 message CreateGuildRoleResponse {
@@ -794,6 +800,8 @@ message CreateGuildChannelRequest {
   int64 parent_id = 6;
   // Expected Guild channel layout revision from the caller's snapshot.
   int64 expected_channel_layout_revision = 7;
+  // Optional opaque key identifying one client-side channel creation intent.
+  string idempotency_key = 8;
 }
 
 message CreateGuildChannelResponse {

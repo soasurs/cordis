@@ -21,6 +21,9 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *apiv1.CreateGuil
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetName(req.GetName())
 	svcReq.SetPermissions(req.GetPermissions())
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	svcResp, err := s.svcCtx.GuildClient.CreateGuildRole(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

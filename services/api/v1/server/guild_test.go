@@ -23,6 +23,7 @@ import (
 type fakeGuildClient struct {
 	guildv1.GuildServiceClient
 	createRequest         *guildv1.CreateGuildRequest
+	createFn              func(*guildv1.CreateGuildRequest) (*guildv1.CreateGuildResponse, error)
 	updateRequest         *guildv1.UpdateGuildRequest
 	createIconRequest     *guildv1.CreateGuildIconUploadRequest
 	createIconResponse    *guildv1.CreateGuildIconUploadResponse
@@ -31,7 +32,9 @@ type fakeGuildClient struct {
 	leaveRequest          *guildv1.LeaveGuildRequest
 	transferRequest       *guildv1.TransferGuildOwnershipRequest
 	createRoleRequest     *guildv1.CreateGuildRoleRequest
+	createRoleFn          func(*guildv1.CreateGuildRoleRequest) (*guildv1.CreateGuildRoleResponse, error)
 	createChannelRequest  *guildv1.CreateGuildChannelRequest
+	createChannelFn       func(*guildv1.CreateGuildChannelRequest) (*guildv1.CreateGuildChannelResponse, error)
 	createResponse        *guildv1.CreateGuildResponse
 	updateResponse        *guildv1.UpdateGuildResponse
 	addMemberResponse     *guildv1.AddGuildMemberResponse
@@ -117,11 +120,17 @@ type fakeGuildClient struct {
 
 func (f *fakeGuildClient) CreateGuildRole(_ context.Context, req *guildv1.CreateGuildRoleRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildRoleResponse, error) {
 	f.createRoleRequest = req
+	if f.createRoleFn != nil {
+		return f.createRoleFn(req)
+	}
 	return f.createRoleResponse, nil
 }
 
 func (f *fakeGuildClient) CreateGuildChannel(_ context.Context, req *guildv1.CreateGuildChannelRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildChannelResponse, error) {
 	f.createChannelRequest = req
+	if f.createChannelFn != nil {
+		return f.createChannelFn(req)
+	}
 	return f.createChannelResponse, nil
 }
 
@@ -379,6 +388,9 @@ func (f *fakeGuildClient) ListGuildChannelPermissionOverwrites(_ context.Context
 
 func (f *fakeGuildClient) CreateGuild(_ context.Context, req *guildv1.CreateGuildRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildResponse, error) {
 	f.createRequest = req
+	if f.createFn != nil {
+		return f.createFn(req)
+	}
 	return f.createResponse, nil
 }
 

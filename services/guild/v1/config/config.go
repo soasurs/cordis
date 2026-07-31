@@ -11,11 +11,12 @@ import (
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database database.Config `json:",optional"`
-	Kafka    KafkaConfig     `json:",optional"`
-	Cursor   CursorConfig
-	Limits   ResourceLimitsConfig
-	Services ServiceConfig
+	Database    database.Config `json:",optional"`
+	Kafka       KafkaConfig     `json:",optional"`
+	Cursor      CursorConfig
+	Limits      ResourceLimitsConfig
+	Idempotency IdempotencyConfig
+	Services    ServiceConfig
 }
 
 // CursorConfig holds the HMAC secret for opaque list continuation tokens.
@@ -79,6 +80,55 @@ func (c ResourceLimitsConfig) Overwrites() int {
 		return 100
 	}
 	return c.OverwritesPerChannel
+}
+
+// IdempotencyConfig controls request-level idempotency retention and key
+// validation for resource creation RPCs. Each operation has its own retention
+// period so that high-cost creations can outlive short-lived ones.
+type IdempotencyConfig struct {
+	KeyMaxLength                 int `json:",default=255"`
+	CreateGuildTTLSeconds        int `json:",default=86400"`
+	CreateGuildRoleTTLSeconds    int `json:",default=86400"`
+	CreateGuildChannelTTLSeconds int `json:",default=86400"`
+	CreateGuildInviteTTLSeconds  int `json:",default=86400"`
+}
+
+// KeyLength returns the maximum accepted idempotency key length in bytes.
+func (c IdempotencyConfig) KeyLength() int {
+	if c.KeyMaxLength <= 0 {
+		return 255
+	}
+	return c.KeyMaxLength
+}
+
+// CreateGuildTTL returns the retention period for CreateGuild idempotency keys.
+func (c IdempotencyConfig) CreateGuildTTL() time.Duration {
+	return idempotencyTTL(c.CreateGuildTTLSeconds, 24*time.Hour)
+}
+
+// CreateGuildRoleTTL returns the retention period for CreateGuildRole
+// idempotency keys.
+func (c IdempotencyConfig) CreateGuildRoleTTL() time.Duration {
+	return idempotencyTTL(c.CreateGuildRoleTTLSeconds, 24*time.Hour)
+}
+
+// CreateGuildChannelTTL returns the retention period for CreateGuildChannel
+// idempotency keys.
+func (c IdempotencyConfig) CreateGuildChannelTTL() time.Duration {
+	return idempotencyTTL(c.CreateGuildChannelTTLSeconds, 24*time.Hour)
+}
+
+// CreateGuildInviteTTL returns the retention period for CreateGuildInvite
+// idempotency keys.
+func (c IdempotencyConfig) CreateGuildInviteTTL() time.Duration {
+	return idempotencyTTL(c.CreateGuildInviteTTLSeconds, 24*time.Hour)
+}
+
+func idempotencyTTL(seconds int, fallback time.Duration) time.Duration {
+	if seconds <= 0 {
+		return fallback
+	}
+	return time.Duration(seconds) * time.Second
 }
 
 type ServiceConfig struct {

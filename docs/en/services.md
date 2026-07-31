@@ -152,6 +152,22 @@ are 10 owned and 100 joined guilds per user, 250 roles and 500 channels per
 guild, 100 active invites per guild, and 100 permission overwrites per channel.
 Quota checks and writes are serialized in the same PostgreSQL transaction.
 
+`CreateGuild`, `CreateGuildRole`, `CreateGuildChannel`, and `CreateGuildInvite`
+accept an optional opaque `idempotency_key` for one client creation intent.
+Keys are scoped to the authenticated actor and the per-RPC operation
+(`guild.create`, `guild.role.create`, `guild.channel.create`,
+`guild.invite.create`) and are retained for 24 hours by default. Replaying a
+key with the same request fingerprint returns the originally created resource
+without duplicating any writes: `CreateGuild` does not rebuild the default
+role, channels, or overwrites, `CreateGuildRole` does not consume another
+position, `CreateGuildChannel` does not shift other channels or republish
+channel or overwrite events, and `CreateGuildInvite` returns the first invite
+code with its originally computed expiration. Reusing a key with different
+parameters returns `request.idempotency_key_reused`. Requests without a key
+retain their existing behavior, and different actors never share key scope.
+The idempotency record and the resource writes are transactional; each
+operation's retention period is configurable independently.
+
 Internal `GetUserReadyState` returns the user's complete READY Guild bootstrap
 in one call: Guild metadata, all roles, the member's explicit role IDs, and
 visible channels together with their permission overwrites and the

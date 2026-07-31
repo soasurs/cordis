@@ -567,8 +567,15 @@ type fakeStore struct {
 	quotas       []store.ResourceQuota
 	channelLocks []int64
 
+	idempotency map[string]fakeIdempotencyClaim
+
 	listOverwritesByChannelCalls int
 	listOverwritesByGuildCalls   int
+}
+
+type fakeIdempotencyClaim struct {
+	resourceID  int64
+	requestHash []byte
 }
 
 func newFakeStore() *fakeStore {
@@ -579,6 +586,7 @@ func newFakeStore() *fakeStore {
 		defaultRoles: make(map[int64]bool),
 		bans:         make(map[int64]map[int64]*model.GuildBan),
 		invites:      make(map[string]*model.GuildInvite),
+		idempotency:  make(map[string]fakeIdempotencyClaim),
 	}
 }
 
@@ -587,6 +595,25 @@ func (s *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) err
 		return err
 	}
 	return s.transactErr
+}
+
+func (s *fakeStore) ClaimGuildIdempotency(_ context.Context, params store.ClaimGuildIdempotencyParams) (*store.GuildIdempotencyClaim, error) {
+	key := strconv.FormatInt(params.ActorUserID, 10) + "/" + params.Operation + "/" + params.IdempotencyKey
+	if existing, ok := s.idempotency[key]; ok {
+		return &store.GuildIdempotencyClaim{
+			ResourceID:  existing.resourceID,
+			RequestHash: append([]byte(nil), existing.requestHash...),
+		}, nil
+	}
+	s.idempotency[key] = fakeIdempotencyClaim{
+		resourceID:  params.ResourceID,
+		requestHash: append([]byte(nil), params.RequestHash...),
+	}
+	return &store.GuildIdempotencyClaim{
+		ResourceID:  params.ResourceID,
+		RequestHash: append([]byte(nil), params.RequestHash...),
+		Claimed:     true,
+	}, nil
 }
 
 func (s *fakeStore) CheckResourceQuota(_ context.Context, quota store.ResourceQuota) error {
@@ -940,6 +967,16 @@ func (s *fakeStore) GetGuildInvite(_ context.Context, code string) (*model.Guild
 	}
 	value := *invite
 	return &value, nil
+}
+
+func (s *fakeStore) GetGuildInviteByID(_ context.Context, inviteID int64) (*model.GuildInvite, error) {
+	for _, invite := range s.invites {
+		if invite.ID == inviteID {
+			value := *invite
+			return &value, nil
+		}
+	}
+	return nil, sql.ErrNoRows
 }
 
 func (s *fakeStore) ListGuildInvites(_ context.Context, params store.ListGuildInvitesParams) ([]*model.GuildInvite, error) {

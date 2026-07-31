@@ -229,6 +229,11 @@ var reasonMappings = map[rpcerror.Key]mapping{
 		publicCode:  CodeConflict,
 		message:     "The channel layout changed. Refresh the channel list and try again.",
 	},
+	{Domain: rpcerror.GuildDomain, Reason: rpcerror.GuildIdempotencyKeyReused}: {
+		connectCode: connect.CodeInvalidArgument,
+		publicCode:  CodeIdempotencyKeyReused,
+		message:     "Idempotency key was already used with different request parameters.",
+	},
 }
 
 var codeMappings = map[codes.Code]mapping{

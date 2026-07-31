@@ -33,6 +33,13 @@ limits:
   activeInvitesPerGuild: 100
   overwritesPerChannel: 100
 
+idempotency:
+  keyMaxLength: 255
+  createGuildTTLSeconds: 86400
+  createGuildRoleTTLSeconds: 86400
+  createGuildChannelTTLSeconds: 86400
+  createGuildInviteTTLSeconds: 86400
+
 services:
   user:
     endpoints:

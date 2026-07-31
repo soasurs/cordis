@@ -52,6 +52,22 @@ func normalizeNickname(nickname string) (string, error) {
 	return nickname, nil
 }
 
+func validateIdempotencyKey(hasKey bool, key string, maxLength int) error {
+	if !hasKey {
+		return nil
+	}
+	switch {
+	case key == "":
+		return invalidRequest("idempotency key must not be empty")
+	case len(key) > maxLength:
+		return invalidRequest("idempotency key is too long")
+	case strings.TrimSpace(key) != key:
+		return invalidRequest("idempotency key must not have leading or trailing whitespace")
+	default:
+		return nil
+	}
+}
+
 func normalizeLimit(value int32) (int, error) {
 	if value == 0 {
 		return defaultGuildLimit, nil

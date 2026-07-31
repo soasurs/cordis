@@ -64,3 +64,7 @@ media:
       - image/webp
   attachmentAccessMode: presigned
   attachmentDownloadTTLSeconds: 86400
+
+idempotency:
+  keyMaxLength: 255
+  createUploadTTLSeconds: 86400

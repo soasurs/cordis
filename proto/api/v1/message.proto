@@ -138,6 +138,9 @@ message CreateAttachmentUploadRequest {
   string content_type = 3;
   // Original filename displayed to users.
   string filename = 4;
+  // Optional opaque key identifying one client-side attachment upload intent.
+  // Retrying with the same key returns the same upload.
+  string idempotency_key = 5;
 }
 
 // CreateAttachmentUploadResponse contains a one-shot direct-upload contract.

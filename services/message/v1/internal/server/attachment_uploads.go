@@ -31,6 +31,9 @@ func (s *messageServer) CreateAttachmentUpload(
 	purpose.SetChannelId(req.GetChannelId())
 	purpose.SetFilename(req.GetFilename())
 	mediaReq.SetMessageAttachment(purpose)
+	if req.HasIdempotencyKey() {
+		mediaReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	mediaResp, err := s.svcCtx.MediaClient.CreateUpload(ctx, mediaReq)
 	if err != nil {
 		return nil, err

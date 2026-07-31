@@ -41,13 +41,16 @@ existing event replay protocol and does not add a separate layout token.
 ## Create request idempotency
 
 The creation RPCs `CreateMessage`, `CreateGuild`, `CreateGuildRole`,
-`CreateGuildChannel`, and `CreateGuildInvite` accept an optional opaque
-`idempotency_key`. When present, it must be non-empty, contain no leading or
-trailing whitespace, and be no longer than 255 UTF-8 bytes. The key is scoped
-by authenticated actor and operation: `message.create`, `guild.create`,
-`guild.role.create`, `guild.channel.create`, and `guild.invite.create`.
-Clients should generate a new key for each business intent and reuse it only
-when retrying that intent.
+`CreateGuildChannel`, `CreateGuildInvite`, `CreateAvatarUpload`,
+`CreateGuildIconUpload`, and `CreateAttachmentUpload` accept an optional
+opaque `idempotency_key`. When present, it must be non-empty, contain no
+leading or trailing whitespace, and be no longer than 255 UTF-8 bytes. The key
+is scoped by authenticated actor and operation: `message.create`,
+`guild.create`, `guild.role.create`, `guild.channel.create`,
+`guild.invite.create`, `media.create.user_avatar`,
+`media.create.guild_icon`, and `media.create.message_attachment`. Clients
+should generate a new key for each business intent and reuse it only when
+retrying that intent.
 
 The owning service stores a SHA-256 fingerprint of the normalized request. For
 messages it includes the channel, content, normalized type, flags, references,
@@ -59,11 +62,25 @@ returns the originally created resource; the same key with different
 parameters returns `InvalidArgument` with public code
 `request.idempotency_key_reused`. Records are retained per operation (30
 minutes by default for CreateMessage, 24 hours by default for Guild creation
-RPCs), and requests without a key remain compatible with older clients.
-Retries still pass through normal authentication, authorization, and request
-validation; those checks may return their usual error without creating another
-resource. Idempotency retention is configured per operation because different
-creation RPCs have different retry windows.
+RPCs and upload RPCs), and requests without a key remain compatible with older
+clients. Upload key retention never drops below the upload session TTL so a
+retry stays valid for the whole upload window. Retries still pass through
+normal authentication, authorization, and request validation; those checks
+may return their usual error without creating another resource. Idempotency
+retention is configured per operation because different creation RPCs have
+different retry windows.
+
+Upload fingerprints cover the actor, the upload purpose and its target
+(user, Guild, or channel), the expected size, the normalized content type, and
+the attachment filename when present. A same-key retry returns the same
+`upload_id` and never creates another asset or consumes the upload quota
+again. While the asset is still `CREATED`, Media issues a fresh presigned PUT
+URL for the same object key; the URL and its expiration may change between
+retries, but the asset ID never does. Retrying a key whose asset is already
+`COMPLETING`, `READY`, `FAILED`, `ABORTED`, or `EXPIRED` returns the same
+`upload_id` without a presigned URL and never changes the asset state; the
+client continues with `CompleteUpload` or `AbortUpload`, which are already
+idempotent by upload ID.
 
 ## Availability checks and avatar constraints
 

@@ -122,6 +122,9 @@ func (s *guildServer) CreateGuildIconUpload(
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetExpectedSize(req.GetExpectedSize())
 	svcReq.SetContentType(req.GetContentType())
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	svcResp, err := s.svcCtx.GuildClient.CreateGuildIconUpload(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

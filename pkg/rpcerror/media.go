@@ -7,4 +7,5 @@ const (
 	MediaAvatarContentTypeInvalid = "avatar_content_type_invalid"
 	MediaAvatarDimensionsExceeded = "avatar_dimensions_exceeded"
 	MediaAvatarPixelsExceeded     = "avatar_pixels_exceeded"
+	MediaIdempotencyKeyReused     = "idempotency_key_reused"
 )

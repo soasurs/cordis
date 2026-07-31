@@ -27,6 +27,7 @@ type fakeGuildClient struct {
 	updateRequest         *guildv1.UpdateGuildRequest
 	createIconRequest     *guildv1.CreateGuildIconUploadRequest
 	createIconResponse    *guildv1.CreateGuildIconUploadResponse
+	createIconError       error
 	addMemberRequest      *guildv1.AddGuildMemberRequest
 	updateMemberRequest   *guildv1.UpdateGuildMemberRequest
 	leaveRequest          *guildv1.LeaveGuildRequest
@@ -456,7 +457,7 @@ func (f *fakeGuildClient) CreateGuildIconUpload(
 	_ ...grpc.CallOption,
 ) (*guildv1.CreateGuildIconUploadResponse, error) {
 	f.createIconRequest = req
-	return f.createIconResponse, nil
+	return f.createIconResponse, f.createIconError
 }
 
 func TestCreateGuildUsesAuthenticatedOwner(t *testing.T) {

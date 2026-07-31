@@ -42,9 +42,158 @@ func TestMediaStoreWithPostgres(t *testing.T) {
 	t.Run("asset advisory lock", func(t *testing.T) {
 		testAssetAdvisoryLock(t, assetStore)
 	})
+	t.Run("media idempotency claims", func(t *testing.T) {
+		testMediaIdempotency(t, assetStore)
+	})
 	t.Run("constraints", func(t *testing.T) {
 		testConstraints(t, assetStore)
 	})
+}
+
+func testMediaIdempotency(t *testing.T, store Store) {
+	ctx := t.Context()
+	hash := []byte("12345678901234567890123456789012")
+
+	claim, err := store.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "media.create.user_avatar",
+		IdempotencyKey: "intent-1",
+		RequestHash:    hash,
+		AssetID:        5701,
+		CreatedAt:      1000,
+		ExpiresAt:      2000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	require.Equal(t, int64(5701), claim.AssetID)
+
+	claim, err = store.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "media.create.user_avatar",
+		IdempotencyKey: "intent-1",
+		RequestHash:    []byte("abcdefghijklmnopqrstuvwxyz123456"),
+		AssetID:        5702,
+		CreatedAt:      1100,
+		ExpiresAt:      2100,
+	})
+	require.NoError(t, err)
+	require.False(t, claim.Claimed)
+	require.Equal(t, int64(5701), claim.AssetID)
+	require.Equal(t, hash, claim.RequestHash)
+
+	err = store.Transact(ctx, func(tx Store) error {
+		claim, err := tx.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+			ActorUserID:    9701,
+			Operation:      "media.create.user_avatar",
+			IdempotencyKey: "intent-rollback",
+			RequestHash:    hash,
+			AssetID:        5703,
+			CreatedAt:      1000,
+			ExpiresAt:      2000,
+		})
+		require.NoError(t, err)
+		require.True(t, claim.Claimed)
+		return errors.New("force idempotency rollback")
+	})
+	require.Error(t, err)
+
+	claim, err = store.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "media.create.user_avatar",
+		IdempotencyKey: "intent-rollback",
+		RequestHash:    hash,
+		AssetID:        5704,
+		CreatedAt:      1000,
+		ExpiresAt:      2000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	require.Equal(t, int64(5704), claim.AssetID)
+
+	claim, err = store.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "media.create.user_avatar",
+		IdempotencyKey: "intent-expired",
+		RequestHash:    hash,
+		AssetID:        5705,
+		CreatedAt:      1000,
+		ExpiresAt:      2000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	claim, err = store.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "media.create.user_avatar",
+		IdempotencyKey: "intent-expired",
+		RequestHash:    hash,
+		AssetID:        5706,
+		CreatedAt:      2000,
+		ExpiresAt:      3000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+	require.Equal(t, int64(5706), claim.AssetID)
+
+	claim, err = store.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+		ActorUserID:    9701,
+		Operation:      "media.create.guild_icon",
+		IdempotencyKey: "intent-1",
+		RequestHash:    hash,
+		AssetID:        5707,
+		CreatedAt:      1000,
+		ExpiresAt:      2000,
+	})
+	require.NoError(t, err)
+	require.True(t, claim.Claimed)
+
+	const concurrentRequests = 16
+	results := make(chan *MediaIdempotencyClaim, concurrentRequests)
+	errs := make(chan error, concurrentRequests)
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range concurrentRequests {
+		wg.Go(func() {
+			<-start
+			err := store.Transact(ctx, func(tx Store) error {
+				claim, err := tx.ClaimMediaIdempotency(ctx, ClaimMediaIdempotencyParams{
+					ActorUserID:    9701,
+					Operation:      "media.create.user_avatar",
+					IdempotencyKey: "intent-concurrent",
+					RequestHash:    hash,
+					AssetID:        int64(5800 + i),
+					CreatedAt:      1000,
+					ExpiresAt:      2000,
+				})
+				if err == nil {
+					results <- claim
+				}
+				return err
+			})
+			errs <- err
+		})
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	close(errs)
+
+	claims := make([]*MediaIdempotencyClaim, 0, concurrentRequests)
+	for claim := range results {
+		claims = append(claims, claim)
+	}
+	claimedCount := 0
+	var winnerID int64
+	for _, claim := range claims {
+		if claim.Claimed {
+			claimedCount++
+			winnerID = claim.AssetID
+		}
+	}
+	for err := range errs {
+		require.NoError(t, err)
+	}
+	require.Equal(t, 1, claimedCount)
+	require.NotZero(t, winnerID)
 }
 
 func testListAssets(t *testing.T, assetStore Store) {
@@ -102,7 +251,10 @@ func testConcurrentQuota(t *testing.T, assetStore Store) {
 		go func() {
 			defer wg.Done()
 			asset := integrationAsset(2000+int64(index), userID)
-			results <- assetStore.CreateAssetWithQuota(t.Context(), asset, 5)
+			err := assetStore.Transact(t.Context(), func(tx Store) error {
+				return tx.CreateAssetWithQuota(t.Context(), asset, 5)
+			})
+			results <- err
 		}()
 	}
 	wg.Wait()

@@ -15,31 +15,18 @@ func (s *SQLStore) CreateAssetWithQuota(
 	ctx context.Context,
 	asset *Asset,
 	activeUploadLimit int64,
-) (err error) {
+) error {
 	if activeUploadLimit <= 0 {
 		return errors.New("active upload limit must be positive")
 	}
-	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("begin create asset transaction: %w", err)
-	}
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback()
-			panic(p)
-		}
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
-
 	lockKey := fmt.Sprintf("cordis:media:upload-quota:%d", asset.CreatedByUserID)
-	if _, err = tx.ExecContext(ctx, lockUploadQuotaScopeStatement, lockKey); err != nil {
+	if _, err := s.q.ExecContext(ctx, lockUploadQuotaScopeStatement, lockKey); err != nil {
 		return fmt.Errorf("lock upload quota: %w", err)
 	}
 	var count int64
-	if err = tx.GetContext(
+	if err := sqlx.GetContext(
 		ctx,
+		s.q,
 		&count,
 		countActiveUploadsQuery,
 		asset.CreatedByUserID,
@@ -49,11 +36,8 @@ func (s *SQLStore) CreateAssetWithQuota(
 	if count >= activeUploadLimit {
 		return ErrActiveUploadLimit
 	}
-	if _, err = tx.NamedExecContext(ctx, createAssetStatement, asset); err != nil {
+	if _, err := sqlx.NamedExecContext(ctx, s.q, createAssetStatement, asset); err != nil {
 		return fmt.Errorf("create asset: %w", err)
-	}
-	if err = tx.Commit(); err != nil {
-		return fmt.Errorf("commit create asset: %w", err)
 	}
 	return nil
 }
@@ -136,5 +120,5 @@ func (s *SQLStore) AcquireAssetLock(ctx context.Context, id int64) (AssetStore, 
 			_ = conn.Close()
 		})
 	}
-	return &SQLStore{db: s.db, q: conn}, unlock, nil
+	return &assetLockStore{q: conn}, unlock, nil
 }

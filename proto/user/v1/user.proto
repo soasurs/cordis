@@ -194,6 +194,9 @@ message CreateAvatarUploadRequest {
   int64 expected_size = 2;
   // Canonical image/jpeg, image/png, or image/webp media type.
   string content_type = 3;
+  // Optional opaque key identifying one client-side avatar upload intent.
+  // Retrying with the same key returns the same upload.
+  string idempotency_key = 4;
 }
 
 // CreateAvatarUploadResponse forwards Media's one-shot direct-upload contract.

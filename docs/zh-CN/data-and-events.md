@@ -51,3 +51,8 @@ Guild 创建类 RPC（`CreateGuild`、`CreateGuildRole`、`CreateGuildChannel`�
 `CreateGuildInvite`）的幂等记录与资源写入在同一事务内提交。相同 key 的重试
 返回第一次创建的资源，不重复发布创建、频道位移或 overwrite 事件。同样存在
 best-effort 发布窗口。
+
+上传创建类 RPC（`CreateAvatarUpload`、`CreateGuildIconUpload`、
+`CreateAttachmentUpload`）的幂等记录与 asset 写入在同一事务内提交。相同
+key 的重试返回同一个上传，不会再次创建 asset 或消耗配额；Media 自身不发布
+创建事件，因此上传幂等不涉及事件抑制。

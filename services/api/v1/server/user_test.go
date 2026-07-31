@@ -50,6 +50,7 @@ type fakeUserClient struct {
 	updateUserProfileError             error
 	createAvatarUploadRequest          *userv1.CreateAvatarUploadRequest
 	createAvatarUploadResponse         *userv1.CreateAvatarUploadResponse
+	createAvatarUploadError            error
 	getAvatarUploadConstraintsResponse *userv1.GetAvatarUploadConstraintsResponse
 	updateUsernameRequest              *userv1.UpdateUsernameRequest
 	updateUsernameResponse             *userv1.UpdateUsernameResponse
@@ -149,7 +150,7 @@ func (f *fakeUserClient) CreateAvatarUpload(
 	_ ...grpc.CallOption,
 ) (*userv1.CreateAvatarUploadResponse, error) {
 	f.createAvatarUploadRequest = req
-	return f.createAvatarUploadResponse, nil
+	return f.createAvatarUploadResponse, f.createAvatarUploadError
 }
 
 func (f *fakeUserClient) GetAvatarUploadConstraints(

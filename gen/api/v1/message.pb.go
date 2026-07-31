@@ -1265,15 +1265,16 @@ func (b0 Attachment_builder) Build() *Attachment {
 // CreateAttachmentUploadRequest declares the target channel and exact object
 // the client will upload.
 type CreateAttachmentUploadRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChannelId    int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	xxx_hidden_ExpectedSize int64                  `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
-	xxx_hidden_ContentType  *string                `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
-	xxx_hidden_Filename     *string                `protobuf:"bytes,4,opt,name=filename"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId      int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_ExpectedSize   int64                  `protobuf:"varint,2,opt,name=expected_size,json=expectedSize"`
+	xxx_hidden_ContentType    *string                `protobuf:"bytes,3,opt,name=content_type,json=contentType"`
+	xxx_hidden_Filename       *string                `protobuf:"bytes,4,opt,name=filename"`
+	xxx_hidden_IdempotencyKey *string                `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateAttachmentUploadRequest) Reset() {
@@ -1335,24 +1336,39 @@ func (x *CreateAttachmentUploadRequest) GetFilename() string {
 	return ""
 }
 
+func (x *CreateAttachmentUploadRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateAttachmentUploadRequest) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *CreateAttachmentUploadRequest) SetExpectedSize(v int64) {
 	x.xxx_hidden_ExpectedSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *CreateAttachmentUploadRequest) SetContentType(v string) {
 	x.xxx_hidden_ContentType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *CreateAttachmentUploadRequest) SetFilename(v string) {
 	x.xxx_hidden_Filename = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *CreateAttachmentUploadRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *CreateAttachmentUploadRequest) HasChannelId() bool {
@@ -1383,6 +1399,13 @@ func (x *CreateAttachmentUploadRequest) HasFilename() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *CreateAttachmentUploadRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *CreateAttachmentUploadRequest) ClearChannelId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChannelId = 0
@@ -1403,6 +1426,11 @@ func (x *CreateAttachmentUploadRequest) ClearFilename() {
 	x.xxx_hidden_Filename = nil
 }
 
+func (x *CreateAttachmentUploadRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateAttachmentUploadRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1413,6 +1441,9 @@ type CreateAttachmentUploadRequest_builder struct {
 	ContentType *string
 	// Original filename displayed to users.
 	Filename *string
+	// Optional opaque key identifying one client-side attachment upload intent.
+	// Retrying with the same key returns the same upload.
+	IdempotencyKey *string
 }
 
 func (b0 CreateAttachmentUploadRequest_builder) Build() *CreateAttachmentUploadRequest {
@@ -1420,20 +1451,24 @@ func (b0 CreateAttachmentUploadRequest_builder) Build() *CreateAttachmentUploadR
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.ExpectedSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_ExpectedSize = *b.ExpectedSize
 	}
 	if b.ContentType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_ContentType = b.ContentType
 	}
 	if b.Filename != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_Filename = b.Filename
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -4107,13 +4142,14 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\x06height\x18\x06 \x01(\x05R\x06height\x12\x10\n" +
 	"\x03url\x18\a \x01(\tR\x03url\x12$\n" +
 	"\x0eurl_expires_at\x18\b \x01(\x03R\furlExpiresAt\x12\x1a\n" +
-	"\bblurhash\x18\t \x01(\tR\bblurhash\"\xa2\x01\n" +
+	"\bblurhash\x18\t \x01(\tR\bblurhash\"\xcb\x01\n" +
 	"\x1dCreateAttachmentUploadRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12#\n" +
 	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12\x1a\n" +
-	"\bfilename\x18\x04 \x01(\tR\bfilename\"\xa9\x02\n" +
+	"\bfilename\x18\x04 \x01(\tR\bfilename\x12'\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"\xa9\x02\n" +
 	"\x1eCreateAttachmentUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +

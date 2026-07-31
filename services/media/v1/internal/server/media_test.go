@@ -27,13 +27,57 @@ import (
 )
 
 type fakeStore struct {
-	mu     sync.Mutex
-	assets map[int64]*store.Asset
-	locks  map[int64]*sync.Mutex
+	mu          sync.Mutex
+	assets      map[int64]*store.Asset
+	locks       map[int64]*sync.Mutex
+	idempotency map[string]fakeMediaIdempotencyRecord
+}
+
+type fakeMediaIdempotencyRecord struct {
+	assetID     int64
+	requestHash []byte
+	expiresAt   int64
 }
 
 func newFakeStore() *fakeStore {
-	return &fakeStore{assets: make(map[int64]*store.Asset), locks: make(map[int64]*sync.Mutex)}
+	return &fakeStore{
+		assets:      make(map[int64]*store.Asset),
+		locks:       make(map[int64]*sync.Mutex),
+		idempotency: make(map[string]fakeMediaIdempotencyRecord),
+	}
+}
+
+func (f *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) error) error {
+	return fn(f)
+}
+
+func (f *fakeStore) ClaimMediaIdempotency(
+	_ context.Context,
+	params store.ClaimMediaIdempotencyParams,
+) (*store.MediaIdempotencyClaim, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	key := strconv.FormatInt(params.ActorUserID, 10) + "\x1f" + params.Operation + "\x1f" + params.IdempotencyKey
+	if existing, ok := f.idempotency[key]; ok {
+		if existing.expiresAt <= params.CreatedAt {
+			delete(f.idempotency, key)
+		} else {
+			return &store.MediaIdempotencyClaim{
+				AssetID:     existing.assetID,
+				RequestHash: append([]byte(nil), existing.requestHash...),
+			}, nil
+		}
+	}
+	f.idempotency[key] = fakeMediaIdempotencyRecord{
+		assetID:     params.AssetID,
+		requestHash: append([]byte(nil), params.RequestHash...),
+		expiresAt:   params.ExpiresAt,
+	}
+	return &store.MediaIdempotencyClaim{
+		AssetID:     params.AssetID,
+		RequestHash: append([]byte(nil), params.RequestHash...),
+		Claimed:     true,
+	}, nil
 }
 
 func (f *fakeStore) CreateAssetWithQuota(

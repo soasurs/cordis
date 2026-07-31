@@ -282,6 +282,9 @@ message CreateGuildIconUploadRequest {
   // Canonical image/jpeg, image/png, or image/webp media type. The same value
   // must be sent as the PUT Content-Type.
   string content_type = 3;
+  // Optional opaque key identifying one client-side Guild icon upload intent.
+  // Retrying with the same key returns the same upload.
+  string idempotency_key = 4;
 }
 
 // CreateGuildIconUploadResponse contains a one-shot direct-upload contract.

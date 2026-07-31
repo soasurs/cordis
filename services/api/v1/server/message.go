@@ -72,6 +72,9 @@ func (s *messageServer) CreateAttachmentUpload(
 	svcReq.SetExpectedSize(req.GetExpectedSize())
 	svcReq.SetContentType(req.GetContentType())
 	svcReq.SetFilename(req.GetFilename())
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	svcResp, err := s.svcCtx.MessageClient.CreateAttachmentUpload(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

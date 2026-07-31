@@ -39,6 +39,7 @@ type fakeMessageClient struct {
 	listError      error
 	uploadRequest  *messagev1.CreateAttachmentUploadRequest
 	uploadResponse *messagev1.CreateAttachmentUploadResponse
+	uploadError    error
 
 	createDmChannelRequest  *messagev1.CreateDmChannelRequest
 	createDmChannelResponse *messagev1.CreateDmChannelResponse
@@ -86,7 +87,7 @@ func (f *fakeMessageClient) CreateAttachmentUpload(
 	_ ...grpc.CallOption,
 ) (*messagev1.CreateAttachmentUploadResponse, error) {
 	f.uploadRequest = req
-	return f.uploadResponse, nil
+	return f.uploadResponse, f.uploadError
 }
 
 func TestCreateMessageUsesAuthenticatedAuthor(t *testing.T) {

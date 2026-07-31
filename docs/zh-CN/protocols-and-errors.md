@@ -38,9 +38,10 @@ UTF-8 字节。key 的作用域由认证 actor 和 operation 共同决定，包�
 `media.create.guild_icon` 和 `media.create.message_attachment`。客户端应为
 每次业务意图生成新 key，仅在重试同一意图时复用。
 
-资源所属服务会保存规范化请求的 SHA-256 指纹。消息指纹包含 channel、正文、
-规范化后的 type、flags、引用消息、按提交顺序排列的附件 asset ID 和规范化后
-的 mention ID。Guild 资源指纹覆盖规范化名称（Guild、角色、频道）和频道
+资源所属服务会保存规范化请求的 SHA-256 指纹。消息指纹（版本 2）包含
+channel、正文、规范化后的 type、flags、引用消息、按提交顺序排列的附件
+asset ID，以及解析后的 mention 集合（用户 ID、角色 ID 和 everyone 标记）。
+Guild 资源指纹覆盖规范化名称（Guild、角色、频道）和频道
 类型、按提交值计算的 topic 与 parent（频道）、权限（角色），以及原始相对值
 `expires_in_ms`（邀请）。相同 key 与相同指纹会返回第一次创建的资源；相同
 key 搭配不同参数时返回 `InvalidArgument`，公开 code 为

@@ -38,6 +38,12 @@ Guild 频道列表响应携带 Guild 级 `channel_layout_revision`。创建、�
 移动和 reorder 事件除了频道自身的 `revision` 外，还携带提交后的 layout
 revision；过期的结构变更请求会被拒绝，不会自动重放。
 
+消息 created/updated 事件携带解析后的 mention 集合（`mention_user_ids`、
+`mention_role_ids`、`mention_everyone`），更新事件还携带 best-effort 的
+previous 集合。Message 服务的 mention 展开消费组（`cordis.message.mentions.v1`）
+消费同一事件 topic，角色和 `@everyone` 目标与推送给客户端的事件来自同一条
+best-effort 数据流；详见 [mention-expansion.md](mention-expansion.md)。
+
 ## 直接发布 Kafka
 
 User、Message、Guild 和 Presence 都不使用 Outbox。业务事务成功后，User 将关系和资料事件 best-effort 发布到 `cordis.user.events.v1`，Message 发布到 `cordis.message.events.v1`，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布使用聚合 ID 作为 Kafka key，以保持同一用户、频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。

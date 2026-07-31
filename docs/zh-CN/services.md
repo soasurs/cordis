@@ -90,7 +90,7 @@ object key 重新签发 presigned PUT URL；重试不会再次创建 asset 或�
 使创建和更新路径可以复用为实时事件加载的资料。事件不经过 API，因此事件需要的 profile
 仍由 Message 服务自行查询。
 
-消息创建和更新默认最多携带 10 个附件和 100 个不重复的被提及用户 ID；两项上限均由 Message 服务配置。图片附件的 `blurhash` 由 Media 在 CompleteUpload 时生成，Message 写入附件元数据一并返回与广播；非图片或未能生成时为空。客户端在 Create/Update 上携带的 `blurhash` 会被忽略并以 Media 元数据覆盖。
+消息创建和更新默认最多携带 10 个附件和 100 个不重复的用户 + 角色 mention；两项上限均由 Message 服务配置。mention 由服务端从正文解析，使用 `<@user>`、`<@&role>` 和 `@everyone` markup，客户端不再提交 mention ID 列表。`@everyone` 需要 Guild 的 `MENTION_EVERYONE` 频道权限，角色必须属于该 Guild，用户必须存在；未知实体从解析结果中剔除。DM 频道只支持用户 mention。角色/everyone 的展开目标由消费消息事件 topic 的后台 worker 异步物化，未读 `mention_count` 包含展开结果。完整设计见 [mention-expansion.md](mention-expansion.md)。图片附件的 `blurhash` 由 Media 在 CompleteUpload 时生成，Message 写入附件元数据一并返回与广播；非图片或未能生成时为空。客户端在 Create/Update 上携带的 `blurhash` 会被忽略并以 Media 元数据覆盖。
 
 内部 READY RPC 一次加载用户的全部 DM，并针对 Session 提供的可见 Guild 文本频道计算 read state。每项包含 `channel_id`、`last_message_id`、`last_read_message_id` 和未读提及数；客户端用 `last_message_id > last_read_message_id` 判断是否未读，不再计算具体未读消息数。`AckMessage` 只有在 watermark 实际前进时才发布 user-routed `message.read.updated`，CreateMessage 也会在写事务内从数据库读回作者的最终 read state。
 
@@ -100,7 +100,9 @@ object key 重新签发 presigned PUT URL；重试不会再次创建 asset 或�
 
 允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `cordis.message.events.v1` 发布事件；发布失败只记录日志。
 
-`CreateMessage` 支持可选的 opaque `idempotency_key`，用于标识一次客户端创建意图。key 的作用域是认证用户和 `message.create` 操作，默认保留 30 分钟；不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。请求指纹包含 channel、正文、规范化后的 type、flags、引用消息、附件 asset ID 及其顺序，以及规范化后的 mentions。相同指纹重用 key 时返回第一次创建的消息，不再次写入 mentions、推进 read state 或发布创建事件；不同参数重用 key 时返回 `request.idempotency_key_reused`。未携带 key 的请求保持原有行为。重试仍会执行正常的认证、授权和请求校验；这些检查或其依赖失败时，重试可以返回对应错误，但不会创建新消息。幂等记录与消息侧写入在同一事务内完成，但现有提交后 best-effort 发布 Kafka 的窗口仍然存在。TTL 按 operation 独立配置，其他创建类 RPC 可以使用不同的保留时间。
+消息事件携带 `mention_user_ids`、`mention_role_ids` 和 `mention_everyone`；更新事件还会携带 best-effort 的 previous mention 集合，供客户端清理本地高亮。Message 服务内运行一个后台展开消费组（`cordis.message.mentions.v1`）消费同一事件 topic：只处理包含角色或 everyone mention 的 created 事件和 mentions 已重建的 updated 事件，校验存储中的 revision，通过 Guild 分页拉取频道可见成员，并在 revision 守卫下原子重建展开行。展开是最终一致的：消息可能先于其 `mention_count` 贡献可见；best-effort 事件丢失时展开同样丢失。
+
+`CreateMessage` 支持可选的 opaque `idempotency_key`，用于标识一次客户端创建意图。key 的作用域是认证用户和 `message.create` 操作，默认保留 30 分钟；不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。请求指纹（版本 2）包含 channel、正文、规范化后的 type、flags、引用消息、附件 asset ID 及其顺序，以及解析后的 mention 集合（用户 ID、角色 ID 和 everyone 标记）。相同指纹重用 key 时返回第一次创建的消息，不再次写入 mentions、推进 read state 或发布创建事件；不同参数重用 key 时返回 `request.idempotency_key_reused`。未携带 key 的请求保持原有行为。重试仍会执行正常的认证、授权和请求校验；这些检查或其依赖失败时，重试可以返回对应错误，但不会创建新消息。幂等记录与消息侧写入在同一事务内完成，但现有提交后 best-effort 发布 Kafka 的窗口仍然存在。TTL 按 operation 独立配置，其他创建类 RPC 可以使用不同的保留时间。
 
 ## Gateway
 

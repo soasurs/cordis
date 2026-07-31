@@ -44,6 +44,12 @@ func TestListGuildMentionTargetsMatchesPerUserAuthorization(t *testing.T) {
 	require.NoError(t, err)
 
 	allMembers := []int64{ownerID, member2ID, member3ID, member4ID}
+	memberRoles := map[int64][]int64{
+		ownerID:   {},
+		member2ID: {roleAID},
+		member3ID: {roleAID},
+		member4ID: {roleBID},
+	}
 	assertEveryoneMatchesAuthorization := func(t *testing.T) {
 		t.Helper()
 		var want []int64
@@ -76,9 +82,60 @@ func TestListGuildMentionTargetsMatchesPerUserAuthorization(t *testing.T) {
 		}
 		require.Equal(t, want, got)
 	}
+	assertRoleMatchesAuthorization := func(t *testing.T, roleIDs ...int64) {
+		t.Helper()
+		roleSet := make(map[int64]struct{}, len(roleIDs))
+		for _, roleID := range roleIDs {
+			roleSet[roleID] = struct{}{}
+		}
+		var want []int64
+		for _, userID := range allMembers {
+			hasRole := false
+			for _, roleID := range memberRoles[userID] {
+				if _, ok := roleSet[roleID]; ok {
+					hasRole = true
+					break
+				}
+			}
+			if !hasRole {
+				continue
+			}
+			req := new(guildv1.AuthorizeGuildChannelRequest)
+			req.SetChannelId(channelID)
+			req.SetUserId(userID)
+			req.SetPermission(uint64(guildv1.GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL))
+			resp, err := service.AuthorizeGuildChannel(t.Context(), req)
+			require.NoError(t, err)
+			if resp.GetAllowed() {
+				want = append(want, userID)
+			}
+		}
+
+		var got []int64
+		req := new(guildv1.ListGuildMentionTargetsRequest)
+		req.SetGuildId(guildID)
+		req.SetActorUserId(ownerID)
+		req.SetChannelId(channelID)
+		req.SetEveryone(false)
+		req.SetRoleIds(roleIDs)
+		req.SetLimit(2)
+		for {
+			resp, err := service.ListGuildMentionTargets(t.Context(), req)
+			require.NoError(t, err)
+			got = append(got, resp.GetUserIds()...)
+			if !resp.HasNextCursor() {
+				break
+			}
+			req.SetCursor(resp.GetNextCursor())
+		}
+		require.Equal(t, want, got)
+	}
 
 	// Without overwrites every active member can see the channel.
 	assertEveryoneMatchesAuthorization(t)
+	assertRoleMatchesAuthorization(t, roleAID)
+	assertRoleMatchesAuthorization(t, roleBID)
+	assertRoleMatchesAuthorization(t, roleAID, roleBID)
 
 	// A role-level deny hides only role members.
 	_, err = guildStore.UpsertGuildChannelPermissionOverwrite(t.Context(), &model.ChannelPermissionOverwrite{
@@ -92,21 +149,7 @@ func TestListGuildMentionTargetsMatchesPerUserAuthorization(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assertEveryoneMatchesAuthorization(t)
-
-	req := new(guildv1.ListGuildMentionTargetsRequest)
-	req.SetGuildId(guildID)
-	req.SetActorUserId(ownerID)
-	req.SetChannelId(channelID)
-	req.SetEveryone(false)
-	req.SetRoleIds([]int64{roleAID})
-	resp, err := service.ListGuildMentionTargets(t.Context(), req)
-	require.NoError(t, err)
-	require.Empty(t, resp.GetUserIds())
-	require.False(t, resp.HasNextCursor())
-
-	req.SetRoleIds([]int64{roleBID})
-	resp, err = service.ListGuildMentionTargets(t.Context(), req)
-	require.NoError(t, err)
-	require.Equal(t, []int64{member4ID}, resp.GetUserIds())
-	require.False(t, resp.HasNextCursor())
+	assertRoleMatchesAuthorization(t, roleAID)
+	assertRoleMatchesAuthorization(t, roleBID)
+	assertRoleMatchesAuthorization(t, roleAID, roleBID)
 }

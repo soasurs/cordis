@@ -202,6 +202,10 @@ func TestConcurrentGuildChannelReordersPreservePositions(t *testing.T) {
 }
 
 func newPostgresGuildService(t *testing.T) (store.Store, guildv1.GuildServiceServer) {
+	return newPostgresGuildServiceWithPublisher(t, nil)
+}
+
+func newPostgresGuildServiceWithPublisher(t *testing.T, publisher svc.EventPublisher) (store.Store, guildv1.GuildServiceServer) {
 	t.Helper()
 	postgres := testkit.StartPostgres(t)
 	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
@@ -216,6 +220,7 @@ func newPostgresGuildService(t *testing.T) (store.Store, guildv1.GuildServiceSer
 		Store:       guildStore,
 		Snowflake:   node,
 		Cursors:     testCursorCodec(t),
+		Publisher:   publisher,
 		UserClient:  &fakeUserClient{},
 		MediaClient: &fakeMediaClient{},
 	}))

@@ -2073,13 +2073,14 @@ func (b0 GuildChannelPermissionOverwrite_builder) Build() *GuildChannelPermissio
 }
 
 type CreateGuildRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_OwnerId     int64                  `protobuf:"varint,1,opt,name=owner_id,json=ownerId"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,2,opt,name=name"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_OwnerId        int64                  `protobuf:"varint,1,opt,name=owner_id,json=ownerId"`
+	xxx_hidden_Name           *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_IdempotencyKey *string                `protobuf:"bytes,3,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateGuildRequest) Reset() {
@@ -2124,14 +2125,29 @@ func (x *CreateGuildRequest) GetName() string {
 	return ""
 }
 
+func (x *CreateGuildRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateGuildRequest) SetOwnerId(v int64) {
 	x.xxx_hidden_OwnerId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *CreateGuildRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateGuildRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *CreateGuildRequest) HasOwnerId() bool {
@@ -2148,6 +2164,13 @@ func (x *CreateGuildRequest) HasName() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *CreateGuildRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *CreateGuildRequest) ClearOwnerId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_OwnerId = 0
@@ -2158,11 +2181,18 @@ func (x *CreateGuildRequest) ClearName() {
 	x.xxx_hidden_Name = nil
 }
 
+func (x *CreateGuildRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	OwnerId *int64
 	Name    *string
+	// Optional opaque key identifying one client-side Guild creation intent.
+	IdempotencyKey *string
 }
 
 func (b0 CreateGuildRequest_builder) Build() *CreateGuildRequest {
@@ -2170,12 +2200,16 @@ func (b0 CreateGuildRequest_builder) Build() *CreateGuildRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.OwnerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_OwnerId = *b.OwnerId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_Name = b.Name
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -7200,15 +7234,16 @@ func (b0 GuildInvitePreview_builder) Build() *GuildInvitePreview {
 }
 
 type CreateGuildInviteRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_MaxUses     int32                  `protobuf:"varint,3,opt,name=max_uses,json=maxUses"`
-	xxx_hidden_ExpiresInMs int64                  `protobuf:"varint,4,opt,name=expires_in_ms,json=expiresInMs"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId        int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId    int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_MaxUses        int32                  `protobuf:"varint,3,opt,name=max_uses,json=maxUses"`
+	xxx_hidden_ExpiresInMs    int64                  `protobuf:"varint,4,opt,name=expires_in_ms,json=expiresInMs"`
+	xxx_hidden_IdempotencyKey *string                `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateGuildInviteRequest) Reset() {
@@ -7264,24 +7299,39 @@ func (x *CreateGuildInviteRequest) GetExpiresInMs() int64 {
 	return 0
 }
 
+func (x *CreateGuildInviteRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateGuildInviteRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *CreateGuildInviteRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *CreateGuildInviteRequest) SetMaxUses(v int32) {
 	x.xxx_hidden_MaxUses = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *CreateGuildInviteRequest) SetExpiresInMs(v int64) {
 	x.xxx_hidden_ExpiresInMs = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *CreateGuildInviteRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *CreateGuildInviteRequest) HasGuildId() bool {
@@ -7312,6 +7362,13 @@ func (x *CreateGuildInviteRequest) HasExpiresInMs() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *CreateGuildInviteRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *CreateGuildInviteRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -7332,6 +7389,11 @@ func (x *CreateGuildInviteRequest) ClearExpiresInMs() {
 	x.xxx_hidden_ExpiresInMs = 0
 }
 
+func (x *CreateGuildInviteRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateGuildInviteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -7341,6 +7403,8 @@ type CreateGuildInviteRequest_builder struct {
 	MaxUses *int32
 	// Relative lifetime in milliseconds. Zero means the invite never expires.
 	ExpiresInMs *int64
+	// Optional opaque key identifying one client-side invite creation intent.
+	IdempotencyKey *string
 }
 
 func (b0 CreateGuildInviteRequest_builder) Build() *CreateGuildInviteRequest {
@@ -7348,20 +7412,24 @@ func (b0 CreateGuildInviteRequest_builder) Build() *CreateGuildInviteRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.MaxUses != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_MaxUses = *b.MaxUses
 	}
 	if b.ExpiresInMs != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_ExpiresInMs = *b.ExpiresInMs
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -8235,15 +8303,16 @@ func (b0 JoinGuildByInviteResponse_builder) Build() *JoinGuildByInviteResponse {
 }
 
 type CreateGuildRoleRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
-	xxx_hidden_Permissions uint64                 `protobuf:"varint,4,opt,name=permissions"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId        int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId    int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Name           *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Permissions    uint64                 `protobuf:"varint,4,opt,name=permissions"`
+	xxx_hidden_IdempotencyKey *string                `protobuf:"bytes,5,opt,name=idempotency_key,json=idempotencyKey"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreateGuildRoleRequest) Reset() {
@@ -8302,24 +8371,39 @@ func (x *CreateGuildRoleRequest) GetPermissions() uint64 {
 	return 0
 }
 
+func (x *CreateGuildRoleRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateGuildRoleRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *CreateGuildRoleRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *CreateGuildRoleRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *CreateGuildRoleRequest) SetPermissions(v uint64) {
 	x.xxx_hidden_Permissions = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *CreateGuildRoleRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *CreateGuildRoleRequest) HasGuildId() bool {
@@ -8350,6 +8434,13 @@ func (x *CreateGuildRoleRequest) HasPermissions() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *CreateGuildRoleRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *CreateGuildRoleRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -8370,6 +8461,11 @@ func (x *CreateGuildRoleRequest) ClearPermissions() {
 	x.xxx_hidden_Permissions = 0
 }
 
+func (x *CreateGuildRoleRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateGuildRoleRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -8379,6 +8475,8 @@ type CreateGuildRoleRequest_builder struct {
 	// Bitwise OR of GuildPermission values. The actor may grant only
 	// permissions they hold.
 	Permissions *uint64
+	// Optional opaque key identifying one client-side role creation intent.
+	IdempotencyKey *string
 }
 
 func (b0 CreateGuildRoleRequest_builder) Build() *CreateGuildRoleRequest {
@@ -8386,20 +8484,24 @@ func (b0 CreateGuildRoleRequest_builder) Build() *CreateGuildRoleRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Permissions != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_Permissions = *b.Permissions
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -11253,6 +11355,7 @@ type CreateGuildChannelRequest struct {
 	xxx_hidden_Topic                         *string                `protobuf:"bytes,5,opt,name=topic"`
 	xxx_hidden_ParentId                      int64                  `protobuf:"varint,6,opt,name=parent_id,json=parentId"`
 	xxx_hidden_ExpectedChannelLayoutRevision int64                  `protobuf:"varint,7,opt,name=expected_channel_layout_revision,json=expectedChannelLayoutRevision"`
+	xxx_hidden_IdempotencyKey                *string                `protobuf:"bytes,8,opt,name=idempotency_key,json=idempotencyKey"`
 	XXX_raceDetectHookData                   protoimpl.RaceDetectHookData
 	XXX_presence                             [1]uint32
 	unknownFields                            protoimpl.UnknownFields
@@ -11341,39 +11444,54 @@ func (x *CreateGuildChannelRequest) GetExpectedChannelLayoutRevision() int64 {
 	return 0
 }
 
+func (x *CreateGuildChannelRequest) GetIdempotencyKey() string {
+	if x != nil {
+		if x.xxx_hidden_IdempotencyKey != nil {
+			return *x.xxx_hidden_IdempotencyKey
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreateGuildChannelRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *CreateGuildChannelRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *CreateGuildChannelRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *CreateGuildChannelRequest) SetType(v GuildChannelType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *CreateGuildChannelRequest) SetTopic(v string) {
 	x.xxx_hidden_Topic = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *CreateGuildChannelRequest) SetParentId(v int64) {
 	x.xxx_hidden_ParentId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
 func (x *CreateGuildChannelRequest) SetExpectedChannelLayoutRevision(v int64) {
 	x.xxx_hidden_ExpectedChannelLayoutRevision = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *CreateGuildChannelRequest) SetIdempotencyKey(v string) {
+	x.xxx_hidden_IdempotencyKey = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *CreateGuildChannelRequest) HasGuildId() bool {
@@ -11425,6 +11543,13 @@ func (x *CreateGuildChannelRequest) HasExpectedChannelLayoutRevision() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
+func (x *CreateGuildChannelRequest) HasIdempotencyKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *CreateGuildChannelRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -11460,6 +11585,11 @@ func (x *CreateGuildChannelRequest) ClearExpectedChannelLayoutRevision() {
 	x.xxx_hidden_ExpectedChannelLayoutRevision = 0
 }
 
+func (x *CreateGuildChannelRequest) ClearIdempotencyKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_IdempotencyKey = nil
+}
+
 type CreateGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -11472,6 +11602,8 @@ type CreateGuildChannelRequest_builder struct {
 	ParentId *int64
 	// Expected Guild channel layout revision from the caller's snapshot.
 	ExpectedChannelLayoutRevision *int64
+	// Optional opaque key identifying one client-side channel creation intent.
+	IdempotencyKey *string
 }
 
 func (b0 CreateGuildChannelRequest_builder) Build() *CreateGuildChannelRequest {
@@ -11479,32 +11611,36 @@ func (b0 CreateGuildChannelRequest_builder) Build() *CreateGuildChannelRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.Topic != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_Topic = b.Topic
 	}
 	if b.ParentId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
 		x.xxx_hidden_ParentId = *b.ParentId
 	}
 	if b.ExpectedChannelLayoutRevision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
 		x.xxx_hidden_ExpectedChannelLayoutRevision = *b.ExpectedChannelLayoutRevision
+	}
+	if b.IdempotencyKey != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_IdempotencyKey = b.IdempotencyKey
 	}
 	return m0
 }
@@ -14020,10 +14156,11 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\x03R\tupdatedAt\"C\n" +
+	"updated_at\x18\t \x01(\x03R\tupdatedAt\"l\n" +
 	"\x12CreateGuildRequest\x12\x19\n" +
 	"\bowner_id\x18\x01 \x01(\x03R\aownerId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"<\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12'\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\tR\x0eidempotencyKey\"<\n" +
 	"\x13CreateGuildResponse\x12%\n" +
 	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\"E\n" +
 	"\x0fGetGuildRequest\x12\x19\n" +
@@ -14188,12 +14325,13 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\fmember_count\x18\x05 \x01(\x03R\vmemberCount\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x06 \x01(\x03R\texpiresAt\x12+\n" +
-	"\x11guild_description\x18\a \x01(\tR\x10guildDescription\"\x98\x01\n" +
+	"\x11guild_description\x18\a \x01(\tR\x10guildDescription\"\xc1\x01\n" +
 	"\x18CreateGuildInviteRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x19\n" +
 	"\bmax_uses\x18\x03 \x01(\x05R\amaxUses\x12\"\n" +
-	"\rexpires_in_ms\x18\x04 \x01(\x03R\vexpiresInMs\"J\n" +
+	"\rexpires_in_ms\x18\x04 \x01(\x03R\vexpiresInMs\x12'\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"J\n" +
 	"\x19CreateGuildInviteResponse\x12-\n" +
 	"\x06invite\x18\x01 \x01(\v2\x15.guild.v1.GuildInviteR\x06invite\"+\n" +
 	"\x15GetGuildInviteRequest\x12\x12\n" +
@@ -14219,12 +14357,13 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\auser_id\x18\x02 \x01(\x03R\x06userId\"q\n" +
 	"\x19JoinGuildByInviteResponse\x12%\n" +
 	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\x12-\n" +
-	"\x06member\x18\x02 \x01(\v2\x15.guild.v1.GuildMemberR\x06member\"\x8d\x01\n" +
+	"\x06member\x18\x02 \x01(\v2\x15.guild.v1.GuildMemberR\x06member\"\xb6\x01\n" +
 	"\x16CreateGuildRoleRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12 \n" +
-	"\vpermissions\x18\x04 \x01(\x04R\vpermissions\"B\n" +
+	"\vpermissions\x18\x04 \x01(\x04R\vpermissions\x12'\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"B\n" +
 	"\x17CreateGuildRoleResponse\x12'\n" +
 	"\x04role\x18\x01 \x01(\v2\x13.guild.v1.GuildRoleR\x04role\"m\n" +
 	"\x13GetGuildRoleRequest\x12\x19\n" +
@@ -14310,7 +14449,7 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\x03R\x06userId\"E\n" +
 	"!GetGuildMemberPermissionsResponse\x12 \n" +
-	"\vpermissions\x18\x01 \x01(\x04R\vpermissions\"\x9a\x02\n" +
+	"\vpermissions\x18\x01 \x01(\x04R\vpermissions\"\xc3\x02\n" +
 	"\x19CreateGuildChannelRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x12\n" +
@@ -14318,7 +14457,8 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x04type\x18\x04 \x01(\x0e2\x1a.guild.v1.GuildChannelTypeR\x04type\x12\x14\n" +
 	"\x05topic\x18\x05 \x01(\tR\x05topic\x12\x1b\n" +
 	"\tparent_id\x18\x06 \x01(\x03R\bparentId\x12G\n" +
-	" expected_channel_layout_revision\x18\a \x01(\x03R\x1dexpectedChannelLayoutRevision\"\x86\x01\n" +
+	" expected_channel_layout_revision\x18\a \x01(\x03R\x1dexpectedChannelLayoutRevision\x12'\n" +
+	"\x0fidempotency_key\x18\b \x01(\tR\x0eidempotencyKey\"\x86\x01\n" +
 	"\x1aCreateGuildChannelResponse\x120\n" +
 	"\achannel\x18\x01 \x01(\v2\x16.guild.v1.GuildChannelR\achannel\x126\n" +
 	"\x17channel_layout_revision\x18\x02 \x01(\x03R\x15channelLayoutRevision\"[\n" +

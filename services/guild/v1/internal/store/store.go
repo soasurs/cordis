@@ -112,8 +112,32 @@ type GuildChannelPositionUpdate struct {
 	ParentID  int64
 }
 
+// ClaimGuildIdempotencyParams describes one idempotency key reservation for a
+// resource creation request.
+type ClaimGuildIdempotencyParams struct {
+	ActorUserID    int64
+	Operation      string
+	IdempotencyKey string
+	RequestHash    []byte
+	// ResourceID is the ID of the resource created by the request that claimed
+	// the key.
+	ResourceID int64
+	CreatedAt  int64
+	ExpiresAt  int64
+}
+
+// GuildIdempotencyClaim is the outcome of reserving an idempotency key.
+// Claimed is true when the caller created the reservation and may proceed
+// with the resource creation.
+type GuildIdempotencyClaim struct {
+	ResourceID  int64
+	RequestHash []byte
+	Claimed     bool
+}
+
 type Store interface {
 	Transact(ctx context.Context, fn func(txStore Store) error) error
+	ClaimGuildIdempotency(ctx context.Context, params ClaimGuildIdempotencyParams) (*GuildIdempotencyClaim, error)
 	LockGuildChannelMutations(ctx context.Context, guildID int64) error
 	CheckResourceQuota(ctx context.Context, quota ResourceQuota) error
 	CreateGuild(ctx context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error)
@@ -143,6 +167,7 @@ type Store interface {
 	CountGuildMembers(ctx context.Context, guildID int64) (int64, error)
 	CreateGuildInvite(ctx context.Context, invite *model.GuildInvite) (*model.GuildInvite, error)
 	GetGuildInvite(ctx context.Context, code string) (*model.GuildInvite, error)
+	GetGuildInviteByID(ctx context.Context, inviteID int64) (*model.GuildInvite, error)
 	ListGuildInvites(ctx context.Context, params ListGuildInvitesParams) ([]*model.GuildInvite, error)
 	ConsumeGuildInvite(ctx context.Context, code string, now int64) (*model.GuildInvite, error)
 	DeleteGuildInvite(ctx context.Context, code string) error

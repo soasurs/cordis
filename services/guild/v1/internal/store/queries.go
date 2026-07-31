@@ -288,6 +288,13 @@ const getGuildInviteQuery = `
     LIMIT 1
 `
 
+const getGuildInviteByIDQuery = `
+    SELECT ` + guildInviteColumns + `
+    FROM guild_invites
+    WHERE id = $1
+    LIMIT 1
+`
+
 const listGuildInvitesQuery = `
     SELECT ` + guildInviteColumns + `
     FROM guild_invites
@@ -727,3 +734,45 @@ const listGuildChannelPermissionOverwritesByGuildsQuery = `
       )
     ORDER BY guild_id ASC, channel_id ASC, applies_to ASC, applies_to_id ASC
 `
+
+const (
+	claimGuildIdempotencyQuery = `
+	INSERT INTO
+		guild_idempotency_keys (
+			actor_user_id, operation, idempotency_key, request_hash,
+			resource_id, created_at, expires_at
+		)
+	VALUES
+		(:actor_user_id, :operation, :idempotency_key, :request_hash,
+		 :resource_id, :created_at, :expires_at)
+	ON CONFLICT (actor_user_id, operation, idempotency_key) DO NOTHING
+	RETURNING
+		resource_id, request_hash
+	`
+
+	getGuildIdempotencyQuery = `
+	SELECT
+		resource_id, request_hash, expires_at
+	FROM
+		guild_idempotency_keys
+	WHERE
+		actor_user_id = $1
+	AND
+		operation = $2
+	AND
+		idempotency_key = $3
+	`
+
+	deleteExpiredGuildIdempotencyStatement = `
+	DELETE FROM
+		guild_idempotency_keys
+	WHERE
+		actor_user_id = $1
+	AND
+		operation = $2
+	AND
+		idempotency_key = $3
+	AND
+		expires_at <= $4
+	`
+)

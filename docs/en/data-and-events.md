@@ -59,3 +59,9 @@ event when normal authentication, authorization, and request validation
 succeed. Those checks may still return their usual error without creating
 another message. This does not remove the general crash window between a
 successful database commit and best-effort Kafka publication.
+
+Guild creation RPCs (`CreateGuild`, `CreateGuildRole`, `CreateGuildChannel`,
+and `CreateGuildInvite`) commit their idempotency record in the same
+transaction as the resource writes. A same-key retry returns the originally
+created resource without republishing creation, channel-shift, or overwrite
+events. The same best-effort publication window applies.

@@ -25,6 +25,9 @@ func (s *guildServer) CreateGuildInvite(ctx context.Context, req *apiv1.CreateGu
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetMaxUses(req.GetMaxUses())
 	svcReq.SetExpiresInMs(req.GetExpiresInMs())
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	svcResp, err := s.svcCtx.GuildClient.CreateGuildInvite(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

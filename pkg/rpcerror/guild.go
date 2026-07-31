@@ -10,4 +10,5 @@ const (
 	GuildInviteNotFound        = "guild_invite_not_found"
 	GuildResourceLimitExceeded = "guild_resource_limit_exceeded"
 	GuildChannelLayoutConflict = "guild_channel_layout_conflict"
+	GuildIdempotencyKeyReused  = "guild_idempotency_key_reused"
 )

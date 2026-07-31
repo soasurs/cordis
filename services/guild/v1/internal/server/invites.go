@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"database/sql"
@@ -34,10 +35,21 @@ func (s *guildServer) CreateGuildInvite(ctx context.Context, req *guildv1.Create
 	if req.GetExpiresInMs() < 0 {
 		return nil, invalidRequest("expires in must not be negative")
 	}
+	if err := validateIdempotencyKey(req.HasIdempotencyKey(), req.GetIdempotencyKey(), s.svcCtx.Cfg.Idempotency.KeyLength()); err != nil {
+		return nil, err
+	}
 	createdAt := time.Now().UnixMilli()
 	var expiresAt int64
 	if req.GetExpiresInMs() > 0 {
 		expiresAt = createdAt + req.GetExpiresInMs()
+	}
+	var requestHash []byte
+	if req.HasIdempotencyKey() {
+		hash, err := createGuildInviteRequestHash(req.GetGuildId(), req.GetMaxUses(), req.GetExpiresInMs())
+		if err != nil {
+			return nil, err
+		}
+		requestHash = hash
 	}
 
 	var created *model.GuildInvite
@@ -54,13 +66,39 @@ func (s *guildServer) CreateGuildInvite(ctx context.Context, req *guildv1.Create
 			if !authority.has(PermissionCreateInvite) {
 				return permissionDenied()
 			}
+			inviteID := s.svcCtx.Snowflake.Generate().Int64()
+			if req.HasIdempotencyKey() {
+				claim, err := txStore.ClaimGuildIdempotency(ctx, store.ClaimGuildIdempotencyParams{
+					ActorUserID:    req.GetActorUserId(),
+					Operation:      createGuildInviteOperation,
+					IdempotencyKey: req.GetIdempotencyKey(),
+					RequestHash:    requestHash,
+					ResourceID:     inviteID,
+					CreatedAt:      createdAt,
+					ExpiresAt:      createdAt + s.svcCtx.Cfg.Idempotency.CreateGuildInviteTTL().Milliseconds(),
+				})
+				if err != nil {
+					return err
+				}
+				if !bytes.Equal(claim.RequestHash, requestHash) {
+					return idempotencyKeyReused()
+				}
+				if !claim.Claimed {
+					invite, err := txStore.GetGuildInviteByID(ctx, claim.ResourceID)
+					if err != nil {
+						return err
+					}
+					created = invite
+					return nil
+				}
+			}
 			if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
 				Kind: store.QuotaActiveInvites, ScopeID: req.GetGuildId(), Limit: s.svcCtx.Cfg.Limits.ActiveInvites(), Now: createdAt,
 			}); err != nil {
 				return err
 			}
 			created, err = txStore.CreateGuildInvite(ctx, &model.GuildInvite{
-				ID:            s.svcCtx.Snowflake.Generate().Int64(),
+				ID:            inviteID,
 				Code:          code,
 				GuildID:       req.GetGuildId(),
 				CreatorUserID: req.GetActorUserId(),

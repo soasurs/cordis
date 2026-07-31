@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -31,10 +32,47 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 	if err != nil {
 		return nil, err
 	}
+	if err := validateIdempotencyKey(req.HasIdempotencyKey(), req.GetIdempotencyKey(), s.svcCtx.Cfg.Idempotency.KeyLength()); err != nil {
+		return nil, err
+	}
 	guildID := s.svcCtx.Snowflake.Generate().Int64()
 	createdAt := time.Now().UnixMilli()
+	var requestHash []byte
+	if req.HasIdempotencyKey() {
+		requestHash, err = createGuildRequestHash(name)
+		if err != nil {
+			return nil, err
+		}
+	}
 	var created *model.Guild
+	createdNewGuild := !req.HasIdempotencyKey()
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		if req.HasIdempotencyKey() {
+			claim, err := txStore.ClaimGuildIdempotency(ctx, store.ClaimGuildIdempotencyParams{
+				ActorUserID:    req.GetOwnerId(),
+				Operation:      createGuildOperation,
+				IdempotencyKey: req.GetIdempotencyKey(),
+				RequestHash:    requestHash,
+				ResourceID:     guildID,
+				CreatedAt:      createdAt,
+				ExpiresAt:      createdAt + s.svcCtx.Cfg.Idempotency.CreateGuildTTL().Milliseconds(),
+			})
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(claim.RequestHash, requestHash) {
+				return idempotencyKeyReused()
+			}
+			if !claim.Claimed {
+				guild, err := txStore.GetGuild(ctx, claim.ResourceID)
+				if err != nil {
+					return err
+				}
+				created = guild
+				return nil
+			}
+			createdNewGuild = true
+		}
 		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
 			Kind: store.QuotaOwnedGuilds, ScopeID: req.GetOwnerId(), Limit: s.svcCtx.Cfg.Limits.OwnedGuilds(),
 		}); err != nil {
@@ -62,8 +100,10 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildCreatedEvent(created, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
+	if createdNewGuild {
+		event, eventErr := newGuildCreatedEvent(created, s.svcCtx.Snowflake.Generate().Int64())
+		s.publishEvent(ctx, event, eventErr)
+	}
 
 	resp := new(guildv1.CreateGuildResponse)
 	resp.SetGuild(guildToProto(created))

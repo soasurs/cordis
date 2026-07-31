@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"math"
 	"time"
@@ -22,9 +23,21 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *guildv1.CreateGu
 	if err := validatePermissions(req.GetPermissions()); err != nil {
 		return nil, err
 	}
+	if err := validateIdempotencyKey(req.HasIdempotencyKey(), req.GetIdempotencyKey(), s.svcCtx.Cfg.Idempotency.KeyLength()); err != nil {
+		return nil, err
+	}
 
+	var requestHash []byte
+	if req.HasIdempotencyKey() {
+		requestHash, err = createGuildRoleRequestHash(req.GetGuildId(), name, req.GetPermissions())
+		if err != nil {
+			return nil, err
+		}
+	}
 	var role *model.Role
 	createdAt := time.Now().UnixMilli()
+	roleID := s.svcCtx.Snowflake.Generate().Int64()
+	createdNewRole := !req.HasIdempotencyKey()
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
@@ -35,6 +48,32 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *guildv1.CreateGu
 		}
 		if !authority.canGrantPermissions(req.GetPermissions()) {
 			return permissionDenied()
+		}
+		if req.HasIdempotencyKey() {
+			claim, err := txStore.ClaimGuildIdempotency(ctx, store.ClaimGuildIdempotencyParams{
+				ActorUserID:    req.GetActorUserId(),
+				Operation:      createGuildRoleOperation,
+				IdempotencyKey: req.GetIdempotencyKey(),
+				RequestHash:    requestHash,
+				ResourceID:     roleID,
+				CreatedAt:      createdAt,
+				ExpiresAt:      createdAt + s.svcCtx.Cfg.Idempotency.CreateGuildRoleTTL().Milliseconds(),
+			})
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(claim.RequestHash, requestHash) {
+				return idempotencyKeyReused()
+			}
+			if !claim.Claimed {
+				existing, err := txStore.GetGuildRole(ctx, req.GetGuildId(), claim.ResourceID)
+				if err != nil {
+					return err
+				}
+				role = existing
+				return nil
+			}
+			createdNewRole = true
 		}
 		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
 			Kind: store.QuotaGuildRoles, ScopeID: req.GetGuildId(), Limit: s.svcCtx.Cfg.Limits.Roles(),
@@ -56,7 +95,7 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *guildv1.CreateGu
 		}
 		role, err = txStore.CreateGuildRole(
 			ctx,
-			s.svcCtx.Snowflake.Generate().Int64(),
+			roleID,
 			req.GetGuildId(),
 			name,
 			req.GetPermissions(),
@@ -68,8 +107,10 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *guildv1.CreateGu
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildRoleCreatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
+	if createdNewRole {
+		event, eventErr := newGuildRoleCreatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
+		s.publishEvent(ctx, event, eventErr)
+	}
 	resp := new(guildv1.CreateGuildRoleResponse)
 	resp.SetRole(guildRoleToProto(role))
 	return resp, nil

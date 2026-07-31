@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"strings"
 	"time"
@@ -39,12 +40,23 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	); err != nil {
 		return nil, err
 	}
+	if err := validateIdempotencyKey(req.HasIdempotencyKey(), req.GetIdempotencyKey(), s.svcCtx.Cfg.Idempotency.KeyLength()); err != nil {
+		return nil, err
+	}
 
+	var requestHash []byte
+	if req.HasIdempotencyKey() {
+		requestHash, err = createGuildChannelRequestHash(req.GetGuildId(), name, int32(channelType), req.GetTopic(), req.GetParentId())
+		if err != nil {
+			return nil, err
+		}
+	}
 	var channel *model.Channel
 	var everyoneOverwrite *model.ChannelPermissionOverwrite
 	var shifted []*model.Channel
 	var layoutRevision int64
 	var createdAt int64
+	createdNewChannel := !req.HasIdempotencyKey()
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
 		if err != nil {
@@ -52,6 +64,38 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		}
 		if !authority.has(PermissionManageChannels) {
 			return permissionDenied()
+		}
+		createdAt = time.Now().UnixMilli()
+		channelID := s.svcCtx.Snowflake.Generate().Int64()
+		if req.HasIdempotencyKey() {
+			claim, err := txStore.ClaimGuildIdempotency(ctx, store.ClaimGuildIdempotencyParams{
+				ActorUserID:    req.GetActorUserId(),
+				Operation:      createGuildChannelOperation,
+				IdempotencyKey: req.GetIdempotencyKey(),
+				RequestHash:    requestHash,
+				ResourceID:     channelID,
+				CreatedAt:      createdAt,
+				ExpiresAt:      createdAt + s.svcCtx.Cfg.Idempotency.CreateGuildChannelTTL().Milliseconds(),
+			})
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(claim.RequestHash, requestHash) {
+				return idempotencyKeyReused()
+			}
+			if !claim.Claimed {
+				existing, err := txStore.GetGuildChannel(ctx, claim.ResourceID)
+				if err != nil {
+					return err
+				}
+				channel = existing
+				layoutRevision, err = txStore.GetGuildChannelLayoutRevision(ctx, req.GetGuildId())
+				if err != nil {
+					return err
+				}
+				return nil
+			}
+			createdNewChannel = true
 		}
 		if err := txStore.LockGuildChannelMutations(ctx, req.GetGuildId()); err != nil {
 			return err
@@ -69,7 +113,6 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		}); err != nil {
 			return err
 		}
-		createdAt = time.Now().UnixMilli()
 		channels, err := txStore.ListGuildChannels(ctx, req.GetGuildId())
 		if err != nil {
 			return err
@@ -98,7 +141,7 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 			}
 		}
 		channel, err = txStore.CreateGuildChannel(
-			ctx, s.svcCtx.Snowflake.Generate().Int64(), req.GetGuildId(), name,
+			ctx, channelID, req.GetGuildId(), name,
 			int32(channelType), position, req.GetTopic(), req.GetParentId(), createdAt,
 		)
 		if err != nil {
@@ -120,38 +163,40 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	events := make([]guildEvent, 0, len(shifted)+2)
-	for _, existing := range shifted {
-		event, eventErr := newGuildChannelUpdatedEvent(
-			existing,
+	if createdNewChannel {
+		events := make([]guildEvent, 0, len(shifted)+2)
+		for _, existing := range shifted {
+			event, eventErr := newGuildChannelUpdatedEvent(
+				existing,
+				layoutRevision,
+				s.svcCtx.Snowflake.Generate().Int64(),
+			)
+			if eventErr != nil {
+				logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
+				continue
+			}
+			events = append(events, event)
+		}
+		event, eventErr := newGuildChannelCreatedEvent(
+			channel,
 			layoutRevision,
 			s.svcCtx.Snowflake.Generate().Int64(),
 		)
 		if eventErr != nil {
 			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
-			continue
-		}
-		events = append(events, event)
-	}
-	event, eventErr := newGuildChannelCreatedEvent(
-		channel,
-		layoutRevision,
-		s.svcCtx.Snowflake.Generate().Int64(),
-	)
-	if eventErr != nil {
-		logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
-	} else {
-		events = append(events, event)
-	}
-	if everyoneOverwrite != nil {
-		event, eventErr = newGuildChannelOverwriteUpdatedEvent(everyoneOverwrite, s.svcCtx.Snowflake.Generate().Int64())
-		if eventErr != nil {
-			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
 		} else {
 			events = append(events, event)
 		}
+		if everyoneOverwrite != nil {
+			event, eventErr = newGuildChannelOverwriteUpdatedEvent(everyoneOverwrite, s.svcCtx.Snowflake.Generate().Int64())
+			if eventErr != nil {
+				logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
+			} else {
+				events = append(events, event)
+			}
+		}
+		s.publishEvents(ctx, events)
 	}
-	s.publishEvents(ctx, events)
 	resp := new(guildv1.CreateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(channel))
 	resp.SetChannelLayoutRevision(layoutRevision)

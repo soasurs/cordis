@@ -48,6 +48,14 @@ func (s *SQLStore) GetGuildInvite(ctx context.Context, code string) (*model.Guil
 	return guildInviteFromRow(row), nil
 }
 
+func (s *SQLStore) GetGuildInviteByID(ctx context.Context, inviteID int64) (*model.GuildInvite, error) {
+	row := new(guildInviteRow)
+	if err := sqlx.GetContext(ctx, s.q, row, getGuildInviteByIDQuery, inviteID); err != nil {
+		return nil, err
+	}
+	return guildInviteFromRow(row), nil
+}
+
 func (s *SQLStore) ListGuildInvites(ctx context.Context, params ListGuildInvitesParams) ([]*model.GuildInvite, error) {
 	var rows []*guildInviteRow
 	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildInvitesQuery, params.GuildID, params.BeforeID, params.Limit); err != nil {

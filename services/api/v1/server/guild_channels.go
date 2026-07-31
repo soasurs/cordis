@@ -26,6 +26,9 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *apiv1.CreateG
 	if req.HasExpectedChannelLayoutRevision() {
 		svcReq.SetExpectedChannelLayoutRevision(req.GetExpectedChannelLayoutRevision())
 	}
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	svcResp, err := s.svcCtx.GuildClient.CreateGuildChannel(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

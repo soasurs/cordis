@@ -34,6 +34,9 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *apiv1.CreateGuildReq
 	svcReq := new(guildv1.CreateGuildRequest)
 	svcReq.SetOwnerId(auth.GetUserId())
 	svcReq.SetName(req.GetName())
+	if req.HasIdempotencyKey() {
+		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
+	}
 	svcResp, err := s.svcCtx.GuildClient.CreateGuild(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)

@@ -46,3 +46,8 @@ User、Message、Guild 和 Presence 都不使用 Outbox。业务事务成功后�
 一起提交。认证、授权和请求校验正常通过时，相同 key 的重试会返回已有消息，
 不再发布创建或 read-state 事件；这些检查仍可能返回原有错误，但不会创建新消息。
 这不会消除数据库提交成功后、best-effort Kafka 发布前的崩溃窗口。
+
+Guild 创建类 RPC（`CreateGuild`、`CreateGuildRole`、`CreateGuildChannel`、
+`CreateGuildInvite`）的幂等记录与资源写入在同一事务内提交。相同 key 的重试
+返回第一次创建的资源，不重复发布创建、频道位移或 overwrite 事件。同样存在
+best-effort 发布窗口。

@@ -28,18 +28,24 @@ layout revision；Resume 继续使用现有 event replay 协议，不额外携�
 
 ## 创建请求幂等
 
-`CreateMessageRequest.idempotency_key` 是可选的不透明字符串。存在时不得为空、
-首尾不得有空白，长度最多为 255 个 UTF-8 字节。key 的作用域由认证 actor 和
-operation 共同决定；消息创建使用 `message.create`。客户端应为每次业务意图
-生成新 key，仅在重试同一意图时复用。
+创建类 RPC `CreateMessage`、`CreateGuild`、`CreateGuildRole`、
+`CreateGuildChannel` 和 `CreateGuildInvite` 支持可选的 `idempotency_key`。
+存在时不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。key 的作用域
+由认证 actor 和 operation 共同决定，包括 `message.create`、`guild.create`、
+`guild.role.create`、`guild.channel.create` 和 `guild.invite.create`。客户端
+应为每次业务意图生成新 key，仅在重试同一意图时复用。
 
-Message 会保存规范化请求的 SHA-256 指纹，包含 channel、正文、规范化后的 type、
-flags、引用消息、按提交顺序排列的附件 asset ID 和规范化后的 mention ID。相同
-key 与相同指纹会返回第一次创建的消息；相同 key 搭配不同参数时返回
-`InvalidArgument`，公开 code 为 `request.idempotency_key_reused`。CreateMessage
-的记录默认保留 30 分钟；不携带 key 的请求继续兼容旧客户端。重试仍会执行正常
-的认证、授权和请求校验；这些检查可以返回原有错误，但不会创建新消息。TTL 按
-operation 独立配置，因为不同创建类 RPC 的重试窗口可能不同。
+资源所属服务会保存规范化请求的 SHA-256 指纹。消息指纹包含 channel、正文、
+规范化后的 type、flags、引用消息、按提交顺序排列的附件 asset ID 和规范化后
+的 mention ID。Guild 资源指纹覆盖规范化名称（Guild、角色、频道）、权限
+（角色）、频道类型、topic 和 parent（频道），以及原始相对值
+`expires_in_ms`（邀请）。相同 key 与相同指纹会返回第一次创建的资源；相同
+key 搭配不同参数时返回 `InvalidArgument`，公开 code 为
+`request.idempotency_key_reused`。记录按 operation 保留（CreateMessage 默认
+30 分钟，Guild 创建类 RPC 默认 24 小时）；不携带 key 的请求继续兼容旧客户
+端。重试仍会执行正常的认证、授权和请求校验；这些检查可以返回原有错误，但
+不会创建新资源。TTL 按 operation 独立配置，因为不同创建类 RPC 的重试窗口
+可能不同。
 
 ## 可用性检查与头像约束
 

@@ -48,6 +48,15 @@ func channelLayoutConflict() error {
 	)
 }
 
+func idempotencyKeyReused() error {
+	return rpcerror.New(
+		codes.InvalidArgument,
+		rpcerror.GuildDomain,
+		rpcerror.GuildIdempotencyKeyReused,
+		"idempotency key was already used with different request parameters",
+	)
+}
+
 func mapStoreError(err error) error {
 	if err == nil {
 		return nil

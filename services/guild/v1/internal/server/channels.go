@@ -33,10 +33,17 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	if err := validateChannelTopic(req.GetTopic()); err != nil {
 		return nil, err
 	}
+	if err := validateExpectedChannelLayoutRevision(
+		req.HasExpectedChannelLayoutRevision(),
+		req.GetExpectedChannelLayoutRevision(),
+	); err != nil {
+		return nil, err
+	}
 
 	var channel *model.Channel
 	var everyoneOverwrite *model.ChannelPermissionOverwrite
 	var shifted []*model.Channel
+	var layoutRevision int64
 	var createdAt int64
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
@@ -47,6 +54,14 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 			return permissionDenied()
 		}
 		if err := txStore.LockGuildChannelMutations(ctx, req.GetGuildId()); err != nil {
+			return err
+		}
+		if err := requireGuildChannelLayoutRevision(
+			ctx,
+			txStore,
+			req.GetGuildId(),
+			req.GetExpectedChannelLayoutRevision(),
+		); err != nil {
 			return err
 		}
 		if err := txStore.CheckResourceQuota(ctx, store.ResourceQuota{
@@ -92,6 +107,14 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 		everyoneOverwrite, err = upsertDefaultEveryoneOverwrite(
 			ctx, txStore, channel.ID, channel.GuildID, createdAt, s.svcCtx.Cfg.Limits.Overwrites(),
 		)
+		if err != nil {
+			return err
+		}
+		layoutRevision, err = txStore.AdvanceGuildChannelLayoutRevision(
+			ctx,
+			req.GetGuildId(),
+			req.GetExpectedChannelLayoutRevision(),
+		)
 		return err
 	})
 	if err != nil {
@@ -99,14 +122,22 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	}
 	events := make([]guildEvent, 0, len(shifted)+2)
 	for _, existing := range shifted {
-		event, eventErr := newGuildChannelUpdatedEvent(existing, s.svcCtx.Snowflake.Generate().Int64())
+		event, eventErr := newGuildChannelUpdatedEvent(
+			existing,
+			layoutRevision,
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
 		if eventErr != nil {
 			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
 			continue
 		}
 		events = append(events, event)
 	}
-	event, eventErr := newGuildChannelCreatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildChannelCreatedEvent(
+		channel,
+		layoutRevision,
+		s.svcCtx.Snowflake.Generate().Int64(),
+	)
 	if eventErr != nil {
 		logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
 	} else {
@@ -123,6 +154,7 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	s.publishEvents(ctx, events)
 	resp := new(guildv1.CreateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(channel))
+	resp.SetChannelLayoutRevision(layoutRevision)
 	return resp, nil
 }
 
@@ -146,32 +178,42 @@ func (s *guildServer) ListGuildChannels(ctx context.Context, req *guildv1.ListGu
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err
 	}
-	visible, err := loadVisibleGuildChannels(ctx, s.svcCtx.Store, req.GetGuildId(), req.GetActorUserId())
+	visible, layoutRevision, err := loadVisibleGuildChannels(
+		ctx,
+		s.svcCtx.Store,
+		req.GetGuildId(),
+		req.GetActorUserId(),
+	)
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 	resp := new(guildv1.ListGuildChannelsResponse)
 	resp.SetChannels(guildChannelsToProto(visible))
+	resp.SetChannelLayoutRevision(layoutRevision)
 	return resp, nil
 }
 
-func loadVisibleGuildChannels(ctx context.Context, guildStore store.Store, guildID, userID int64) ([]*model.Channel, error) {
+func loadVisibleGuildChannels(
+	ctx context.Context,
+	guildStore store.Store,
+	guildID, userID int64,
+) ([]*model.Channel, int64, error) {
 	authority, roles, err := loadMemberAuthorityAndRoles(ctx, guildStore, guildID, userID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	channels, err := guildStore.ListGuildChannels(ctx, guildID)
+	channels, layoutRevision, err := guildStore.ListGuildChannelsWithRevision(ctx, guildID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if authority.IsOwner || authority.Permissions&PermissionAdministrator != 0 {
-		return channels, nil
+		return channels, layoutRevision, nil
 	}
 	overwrites, err := guildStore.ListGuildChannelPermissionOverwritesByGuild(ctx, guildID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return visibleGuildChannels(authority, roles, channels, overwrites, userID), nil
+	return visibleGuildChannels(authority, roles, channels, overwrites, userID), layoutRevision, nil
 }
 
 func visibleGuildChannels(
@@ -222,6 +264,12 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 			return nil, invalidRequest("parent id must not be negative")
 		}
 		params.ParentID = &parentID
+		if err := validateExpectedChannelLayoutRevision(
+			req.HasExpectedChannelLayoutRevision(),
+			req.GetExpectedChannelLayoutRevision(),
+		); err != nil {
+			return nil, err
+		}
 	}
 	if params.Name == nil && params.Topic == nil && params.ParentID == nil {
 		return nil, invalidRequest("at least one channel field is required")
@@ -229,6 +277,8 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 
 	var updated *model.Channel
 	var updatedChannels []*model.Channel
+	var layoutRevision int64
+	var layoutChanged bool
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		channel, err := txStore.GetGuildChannel(ctx, req.GetChannelId())
 		if err != nil {
@@ -236,6 +286,14 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 		}
 		if params.ParentID != nil {
 			if err := txStore.LockGuildChannelMutations(ctx, channel.GuildID); err != nil {
+				return err
+			}
+			if err := requireGuildChannelLayoutRevision(
+				ctx,
+				txStore,
+				channel.GuildID,
+				req.GetExpectedChannelLayoutRevision(),
+			); err != nil {
 				return err
 			}
 			// Re-read after locking so parent validation and the update use a
@@ -283,6 +341,7 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 				return notFound()
 			}
 			params.ParentID = nil
+			layoutChanged = true
 		}
 		if params.Name != nil || params.Topic != nil || params.ParentID != nil {
 			updated, err = txStore.UpdateGuildChannel(ctx, params)
@@ -300,6 +359,14 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 				}
 			}
 		}
+		if layoutChanged {
+			layoutRevision, err = txStore.AdvanceGuildChannelLayoutRevision(
+				ctx,
+				channel.GuildID,
+				req.GetExpectedChannelLayoutRevision(),
+			)
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -307,7 +374,11 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 	}
 	events := make([]guildEvent, 0, len(updatedChannels))
 	for _, channel := range updatedChannels {
-		event, eventErr := newGuildChannelUpdatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
+		event, eventErr := newGuildChannelUpdatedEvent(
+			channel,
+			layoutRevision,
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
 		if eventErr != nil {
 			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
 			continue
@@ -317,6 +388,9 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 	s.publishEvents(ctx, events)
 	resp := new(guildv1.UpdateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(updated))
+	if layoutChanged {
+		resp.SetChannelLayoutRevision(layoutRevision)
+	}
 	return resp, nil
 }
 
@@ -324,8 +398,15 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 	if err := validateChannelActorRequest(req.GetChannelId(), req.GetActorUserId()); err != nil {
 		return nil, err
 	}
+	if err := validateExpectedChannelLayoutRevision(
+		req.HasExpectedChannelLayoutRevision(),
+		req.GetExpectedChannelLayoutRevision(),
+	); err != nil {
+		return nil, err
+	}
 	var deleted *model.Channel
 	var movedChildren []*model.Channel
+	var layoutRevision int64
 	var deletedAt int64
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		channel, err := txStore.GetGuildChannel(ctx, req.GetChannelId())
@@ -344,6 +425,14 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 		}
 		channel, err = txStore.GetGuildChannel(ctx, req.GetChannelId())
 		if err != nil {
+			return err
+		}
+		if err := requireGuildChannelLayoutRevision(
+			ctx,
+			txStore,
+			channel.GuildID,
+			req.GetExpectedChannelLayoutRevision(),
+		); err != nil {
 			return err
 		}
 		deletedAt = time.Now().UnixMilli()
@@ -377,19 +466,36 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 			return err
 		}
 		deleted, err = txStore.DeleteGuildChannel(ctx, channel.ID, deletedAt)
+		if err != nil {
+			return err
+		}
+		layoutRevision, err = txStore.AdvanceGuildChannelLayoutRevision(
+			ctx,
+			channel.GuildID,
+			req.GetExpectedChannelLayoutRevision(),
+		)
 		return err
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
+	event, eventErr := newGuildChannelDeletedEvent(
+		deleted,
+		layoutRevision,
+		s.svcCtx.Snowflake.Generate().Int64(),
+	)
 	s.publishEvent(ctx, event, eventErr)
 	for _, child := range movedChildren {
-		event, eventErr := newGuildChannelUpdatedEvent(child, s.svcCtx.Snowflake.Generate().Int64())
+		event, eventErr := newGuildChannelUpdatedEvent(
+			child,
+			layoutRevision,
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
 		s.publishEvent(ctx, event, eventErr)
 	}
 	resp := new(guildv1.DeleteGuildChannelResponse)
 	resp.SetOk(true)
+	resp.SetChannelLayoutRevision(layoutRevision)
 	return resp, nil
 }
 
@@ -399,6 +505,12 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 	}
 	if len(req.GetPositions()) == 0 {
 		return nil, invalidRequest("channel positions are required")
+	}
+	if err := validateExpectedChannelLayoutRevision(
+		req.HasExpectedChannelLayoutRevision(),
+		req.GetExpectedChannelLayoutRevision(),
+	); err != nil {
+		return nil, err
 	}
 	positions := make(map[int64]int32, len(req.GetPositions()))
 	for _, item := range req.GetPositions() {
@@ -413,6 +525,7 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 
 	var channels []*model.Channel
 	var updated []*model.Channel
+	var layoutRevision int64
 	var updatedAt int64
 	err := s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		authority, err := loadMemberAuthority(ctx, txStore, req.GetGuildId(), req.GetActorUserId())
@@ -423,6 +536,14 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 			return permissionDenied()
 		}
 		if err := txStore.LockGuildChannelMutations(ctx, req.GetGuildId()); err != nil {
+			return err
+		}
+		if err := requireGuildChannelLayoutRevision(
+			ctx,
+			txStore,
+			req.GetGuildId(),
+			req.GetExpectedChannelLayoutRevision(),
+		); err != nil {
 			return err
 		}
 		updatedAt = time.Now().UnixMilli()
@@ -455,6 +576,7 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 		}
 		if len(updates) == 0 {
 			channels = current
+			layoutRevision = req.GetExpectedChannelLayoutRevision()
 			return nil
 		}
 		updated, err = txStore.UpdateGuildChannelPositions(ctx, req.GetGuildId(), updates, updatedAt)
@@ -464,6 +586,14 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 		if len(updated) != len(updates) {
 			return notFound()
 		}
+		layoutRevision, err = txStore.AdvanceGuildChannelLayoutRevision(
+			ctx,
+			req.GetGuildId(),
+			req.GetExpectedChannelLayoutRevision(),
+		)
+		if err != nil {
+			return err
+		}
 		channels, err = txStore.ListGuildChannels(ctx, req.GetGuildId())
 		return err
 	})
@@ -472,7 +602,11 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 	}
 	events := make([]guildEvent, 0, len(updated))
 	for _, channel := range updated {
-		event, eventErr := newGuildChannelUpdatedEvent(channel, s.svcCtx.Snowflake.Generate().Int64())
+		event, eventErr := newGuildChannelUpdatedEvent(
+			channel,
+			layoutRevision,
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
 		if eventErr != nil {
 			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
 			continue
@@ -482,6 +616,7 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 	s.publishEvents(ctx, events)
 	resp := new(guildv1.ReorderGuildChannelsResponse)
 	resp.SetChannels(guildChannelsToProto(channels))
+	resp.SetChannelLayoutRevision(layoutRevision)
 	return resp, nil
 }
 
@@ -727,6 +862,28 @@ func validateChannelActorRequest(channelID, actorUserID int64) error {
 	}
 	if actorUserID <= 0 {
 		return invalidRequest("actor user id is required")
+	}
+	return nil
+}
+
+func validateExpectedChannelLayoutRevision(present bool, revision int64) error {
+	if !present || revision <= 0 {
+		return invalidRequest("expected channel layout revision is required")
+	}
+	return nil
+}
+
+func requireGuildChannelLayoutRevision(
+	ctx context.Context,
+	guildStore store.Store,
+	guildID, expectedRevision int64,
+) error {
+	currentRevision, err := guildStore.GetGuildChannelLayoutRevision(ctx, guildID)
+	if err != nil {
+		return err
+	}
+	if currentRevision != expectedRevision {
+		return channelLayoutConflict()
 	}
 	return nil
 }

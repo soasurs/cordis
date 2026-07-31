@@ -130,6 +130,7 @@ func TestGatewayPayloadEncodesSnowflakeIDsAsStrings(t *testing.T) {
 func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	server := newTestServer()
 	readyGuild := readyVisibility(9001, 7, 7001)
+	readyGuild.SetChannelLayoutRevision(11)
 	readyGuild.GetGuild().SetOwnerId(1001)
 	readyGuild.GetGuild().SetDescription("Community description")
 	role := new(guildv1.GuildRole)
@@ -171,6 +172,7 @@ func TestIdentifyReadyContainsGuildsDMsAndReadStates(t *testing.T) {
 	var payload readyPayload
 	require.NoError(t, json.Unmarshal([]byte(session.replay[0].frame.GetJsonPayload()), &payload))
 	require.Equal(t, "9001", payload.Guilds[0].ID)
+	require.Equal(t, int64(11), payload.Guilds[0].ChannelLayoutRevision)
 	require.Equal(t, "Community description", payload.Guilds[0].Description)
 	require.Equal(t, "42", payload.Guilds[0].Roles[0].Permissions)
 	require.Equal(t, []string{"9002"}, payload.Guilds[0].MemberRoleIDs)

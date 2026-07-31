@@ -12,16 +12,17 @@ import (
 )
 
 type guildRow struct {
-	ID             int64  `db:"id"`
-	OwnerID        int64  `db:"owner_id"`
-	Name           string `db:"name"`
-	Description    string `db:"description"`
-	IconAssetID    int64  `db:"icon_asset_id"`
-	Revision       int64  `db:"revision"`
-	AccessRevision int64  `db:"access_revision"`
-	CreatedAt      int64  `db:"created_at"`
-	UpdatedAt      int64  `db:"updated_at"`
-	DeletedAt      int64  `db:"deleted_at"`
+	ID                    int64  `db:"id"`
+	OwnerID               int64  `db:"owner_id"`
+	Name                  string `db:"name"`
+	Description           string `db:"description"`
+	IconAssetID           int64  `db:"icon_asset_id"`
+	Revision              int64  `db:"revision"`
+	AccessRevision        int64  `db:"access_revision"`
+	ChannelLayoutRevision int64  `db:"channel_layout_revision"`
+	CreatedAt             int64  `db:"created_at"`
+	UpdatedAt             int64  `db:"updated_at"`
+	DeletedAt             int64  `db:"deleted_at"`
 }
 
 func (s *SQLStore) CreateGuild(ctx context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error) {
@@ -325,17 +326,47 @@ func (s *SQLStore) DeleteGuildRoles(ctx context.Context, guildID, deletedAt int6
 	return err
 }
 
+func (s *SQLStore) GetGuildChannelLayoutRevision(ctx context.Context, guildID int64) (int64, error) {
+	var revision int64
+	if err := sqlx.GetContext(ctx, s.q, &revision, getGuildChannelLayoutRevisionQuery, guildID); err != nil {
+		return 0, err
+	}
+	return revision, nil
+}
+
+func (s *SQLStore) AdvanceGuildChannelLayoutRevision(
+	ctx context.Context,
+	guildID, expectedRevision int64,
+) (int64, error) {
+	var revision int64
+	if err := sqlx.GetContext(
+		ctx,
+		s.q,
+		&revision,
+		advanceGuildChannelLayoutRevisionQuery,
+		guildID,
+		expectedRevision,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrGuildChannelLayoutRevisionConflict
+		}
+		return 0, err
+	}
+	return revision, nil
+}
+
 func guildFromRow(row *guildRow) *model.Guild {
 	return &model.Guild{
-		ID:             row.ID,
-		OwnerID:        row.OwnerID,
-		Name:           row.Name,
-		Description:    row.Description,
-		IconAssetID:    row.IconAssetID,
-		Revision:       row.Revision,
-		AccessRevision: row.AccessRevision,
-		CreatedAt:      row.CreatedAt,
-		UpdatedAt:      row.UpdatedAt,
-		DeletedAt:      row.DeletedAt,
+		ID:                    row.ID,
+		OwnerID:               row.OwnerID,
+		Name:                  row.Name,
+		Description:           row.Description,
+		IconAssetID:           row.IconAssetID,
+		Revision:              row.Revision,
+		AccessRevision:        row.AccessRevision,
+		ChannelLayoutRevision: row.ChannelLayoutRevision,
+		CreatedAt:             row.CreatedAt,
+		UpdatedAt:             row.UpdatedAt,
+		DeletedAt:             row.DeletedAt,
 	}
 }

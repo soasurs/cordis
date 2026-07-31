@@ -50,11 +50,16 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。创建频道时会写入一条空的 `@everyone` overwrite（`applies_to=ROLE`，`applies_to_id=guild_id`，allow/deny 为 0），客户端无需自行补全；该 overwrite 与默认角色均不可删除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 
+频道创建、删除、parent 移动和 reorder 使用 Guild 单调递增的
+`channel_layout_revision`。结构变更事务会先获取 Guild 频道 advisory lock，再拒绝
+过期 revision；冲突时不写入，成功的一个逻辑变更只递增一次。结构变更相关的频道
+事件携带提交后的 layout revision。
+
 按角色列出成员与 Guild 成员列表使用相同的 opaque `cursor` / `next_cursor` 分页（按 `joined_at`、`user_id` 降序；没有下一页时省略 `next_cursor`）。普通角色返回显式分配且有效的成员，默认角色返回全部有效 Guild 成员。同一角色可对最多 100 个成员批量使用 `AddGuildRoleMembers` / `RemoveGuildRoleMembers`；单成员 RPC 仍保留。公开 Guild member 响应始终嵌入成员 profile；封禁响应同时嵌入被封用户和操作者 profile，邀请响应嵌入创建者 profile。成员与封禁事件不经过 API，因此 Guild 自行加载事件需要的 profile。
 
 持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
 
-内部 `GetUserReadyState` 在一次调用中按用户的有效 Guild 成员关系返回完整 READY 数据，包括 Guild、全部角色、当前成员的显式角色 ID、可见频道以及这些频道的 permission overwrites。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
+内部 `GetUserReadyState` 在一次调用中按用户的有效 Guild 成员关系返回完整 READY 数据，包括 Guild、全部角色、当前成员的显式角色 ID、可见频道、这些频道的 permission overwrites，以及与频道列表对应的 `channel_layout_revision`；Session 会将该字段转发到公开 `ready` event。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
 
 ## Message
 

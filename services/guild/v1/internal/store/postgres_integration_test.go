@@ -32,6 +32,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	store := New(db)
 	t.Run("guild CRUD", func(t *testing.T) { testGuildCRUD(t, store) })
 	t.Run("access revision", func(t *testing.T) { testGuildAccessRevision(t, store) })
+	t.Run("channel layout revision", func(t *testing.T) { testGuildChannelLayoutRevision(t, store) })
 	t.Run("member lifecycle", func(t *testing.T) { testGuildMemberLifecycle(t, store) })
 	t.Run("common guild membership", func(t *testing.T) { testCommonGuildMembership(t, store) })
 	t.Run("bans", func(t *testing.T) { testGuildBans(t, store) })
@@ -46,6 +47,46 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("invites", func(t *testing.T) { testGuildInvites(t, store) })
 	t.Run("resource quotas", func(t *testing.T) { testResourceQuotas(t, store) })
 	t.Run("channel mutation lock", func(t *testing.T) { testGuildChannelMutationLock(t, store) })
+}
+
+func testGuildChannelLayoutRevision(t *testing.T, store Store) {
+	const guildID, ownerID = int64(19450), int64(29450)
+	ctx := t.Context()
+	seedGuild(t, store, guildID, ownerID)
+
+	revision, err := store.GetGuildChannelLayoutRevision(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), revision)
+	channels, snapshotRevision, err := store.ListGuildChannelsWithRevision(ctx, guildID)
+	require.NoError(t, err)
+	require.Empty(t, channels)
+	require.Equal(t, revision, snapshotRevision)
+	batchChannels, batchRevisions, err := store.ListGuildChannelsWithRevisionsByGuilds(ctx, []int64{guildID})
+	require.NoError(t, err)
+	require.Empty(t, batchChannels)
+	require.Equal(t, map[int64]int64{guildID: revision}, batchRevisions)
+
+	revision, err = store.AdvanceGuildChannelLayoutRevision(ctx, guildID, revision)
+	require.NoError(t, err)
+	require.Equal(t, int64(2), revision)
+
+	_, err = store.AdvanceGuildChannelLayoutRevision(ctx, guildID, 1)
+	require.ErrorIs(t, err, ErrGuildChannelLayoutRevisionConflict)
+
+	const rollbackRevision = int64(2)
+	sentinel := errors.New("rollback layout revision")
+	err = store.Transact(ctx, func(txStore Store) error {
+		_, err := txStore.AdvanceGuildChannelLayoutRevision(ctx, guildID, rollbackRevision)
+		if err != nil {
+			return err
+		}
+		return sentinel
+	})
+	require.ErrorIs(t, err, sentinel)
+
+	revision, err = store.GetGuildChannelLayoutRevision(ctx, guildID)
+	require.NoError(t, err)
+	require.Equal(t, rollbackRevision, revision)
 }
 
 func testCommonGuildMembership(t *testing.T, store Store) {
@@ -611,6 +652,15 @@ func testGuildChannels(t *testing.T, store Store) {
 
 	_, err = store.CreateGuildChannel(ctx, 10703, guildID, "Voice", 2, 2, "", 0, now)
 	require.NoError(t, err)
+
+	snapshot, layoutRevision, err := store.ListGuildChannelsWithRevision(ctx, guildID)
+	require.NoError(t, err)
+	require.Len(t, snapshot, 3)
+	require.Equal(t, int64(1), layoutRevision)
+	batchSnapshot, batchRevisions, err := store.ListGuildChannelsWithRevisionsByGuilds(ctx, []int64{guildID})
+	require.NoError(t, err)
+	require.Len(t, batchSnapshot, 3)
+	require.Equal(t, map[int64]int64{guildID: layoutRevision}, batchRevisions)
 
 	loaded, err := store.GetGuildChannel(ctx, 10702)
 	require.NoError(t, err)

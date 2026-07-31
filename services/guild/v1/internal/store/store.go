@@ -11,8 +11,9 @@ import (
 )
 
 var (
-	ErrMemberAlreadyExists = errors.New("member already exists")
-	ErrUserBanned          = errors.New("user is banned")
+	ErrMemberAlreadyExists                = errors.New("member already exists")
+	ErrUserBanned                         = errors.New("user is banned")
+	ErrGuildChannelLayoutRevisionConflict = errors.New("guild channel layout revision conflict")
 	// ErrResourceLimitExceeded indicates that a persistent resource quota is full.
 	ErrResourceLimitExceeded = errors.New("resource limit exceeded")
 )
@@ -137,6 +138,8 @@ type Store interface {
 	ListGuildBans(ctx context.Context, params ListGuildBansParams) ([]*model.GuildBan, error)
 	DeleteGuildBans(ctx context.Context, guildID int64) error
 	GetGuild(ctx context.Context, guildID int64) (*model.Guild, error)
+	GetGuildChannelLayoutRevision(ctx context.Context, guildID int64) (int64, error)
+	AdvanceGuildChannelLayoutRevision(ctx context.Context, guildID, expectedRevision int64) (int64, error)
 	CountGuildMembers(ctx context.Context, guildID int64) (int64, error)
 	CreateGuildInvite(ctx context.Context, invite *model.GuildInvite) (*model.GuildInvite, error)
 	GetGuildInvite(ctx context.Context, code string) (*model.GuildInvite, error)
@@ -163,7 +166,9 @@ type Store interface {
 	CreateGuildChannel(ctx context.Context, channelID, guildID int64, name string, channelType, position int32, topic string, parentID, createdAt int64) (*model.Channel, error)
 	GetGuildChannel(ctx context.Context, channelID int64) (*model.Channel, error)
 	ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error)
+	ListGuildChannelsWithRevision(ctx context.Context, guildID int64) ([]*model.Channel, int64, error)
 	ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error)
+	ListGuildChannelsWithRevisionsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, map[int64]int64, error)
 	UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error)
 	UpdateGuildChannelPosition(ctx context.Context, guildID, channelID int64, position int32, updatedAt int64) (*model.Channel, error)
 	UpdateGuildChannelPositions(ctx context.Context, guildID int64, updates []GuildChannelPositionUpdate, updatedAt int64) ([]*model.Channel, error)

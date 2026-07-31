@@ -34,6 +34,9 @@ Kafka 事件统一为：
 ```
 
 事件名常量集中在 `pkg/realtime`，领域事件只使用点分层级，不新增下划线变体。现有事件包括 Guild、成员、角色、频道、权限覆盖、消息、关系、用户资料和 Presence 事件。
+Guild 频道列表响应携带 Guild 级 `channel_layout_revision`。创建、删除、parent
+移动和 reorder 事件除了频道自身的 `revision` 外，还携带提交后的 layout
+revision；过期的结构变更请求会被拒绝，不会自动重放。
 
 ## 直接发布 Kafka
 

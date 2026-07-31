@@ -17,6 +17,15 @@ make lint
 
 公开与内部 protobuf API 都使用 edition 2023 的标量字段 presence。API 适配层只有在入站请求的 `HasFoo` 为 true 时才向内部请求调用对应 setter；服务与 Store 使用指针或等价的 presence-aware 参数把该信息一直传到 SQL，只更新被选中的列。调用方不得先读取资源、拼出完整的新状态，再把无关字段一并写回。集合字段一旦出现，默认替换完整集合，除非 API 已定义专门的增删操作。
 
+频道创建、删除、parent 移动和 reorder 使用 Guild 级
+`channel_layout_revision` 作为乐观并发 token。`ListGuildChannels` 返回该
+token，结构变更请求必须携带客户端快照中的 revision。Guild 服务在获取事务级
+advisory lock 后校验它；token 过期时事务以 `Aborted` 终止并回滚，公开 Connect
+API 对应 HTTP `409 Conflict`。服务端不会自动刷新列表或重放过期操作；客户端应由
+用户主动刷新后重新操作。仅修改频道 name/topic 不改变也不要求 layout revision。
+内部 READY 的每个 Guild 条目和公开 `ready` event 都会携带其频道快照对应的
+layout revision；Resume 继续使用现有 event replay 协议，不额外携带 layout token。
+
 ## 可用性检查与头像约束
 
 `CheckUsernameAvailability` 复用与 `UpdateUsername` 相同的用户名规范化与格式规则。非法用户名返回 `InvalidArgument`；合法但已占用返回 `available=false`。最终改名仍以数据库唯一约束为准。Media 使用稳定的内部 `media.cordis` reason 表示头像校验失败；API 将它们映射为公开 code：`profile.avatar_file_too_large`、`profile.avatar_content_type_invalid`、`profile.avatar_dimensions_exceeded`、`profile.avatar_pixels_exceeded`。`GetAvatarUploadConstraints` 返回 Media 当前 `userAvatar` 图片上传限制，供客户端在申请预签名 PUT 前遵守。

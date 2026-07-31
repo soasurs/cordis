@@ -600,7 +600,10 @@ func (s *fakeStore) LockGuildChannelMutations(_ context.Context, guildID int64) 
 }
 
 func (s *fakeStore) CreateGuild(_ context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error) {
-	guild := &model.Guild{ID: guildID, OwnerID: ownerID, Name: name, Revision: 1, AccessRevision: 1, CreatedAt: createdAt}
+	guild := &model.Guild{
+		ID: guildID, OwnerID: ownerID, Name: name, Revision: 1, AccessRevision: 1,
+		ChannelLayoutRevision: 1, CreatedAt: createdAt,
+	}
 	s.guilds[guildID] = guild
 	return cloneGuild(guild), nil
 }
@@ -885,6 +888,29 @@ func (s *fakeStore) GetGuild(_ context.Context, guildID int64) (*model.Guild, er
 		return nil, sql.ErrNoRows
 	}
 	return cloneGuild(guild), nil
+}
+
+func (s *fakeStore) GetGuildChannelLayoutRevision(_ context.Context, guildID int64) (int64, error) {
+	guild, ok := s.guilds[guildID]
+	if !ok || guild.DeletedAt != 0 {
+		return 0, sql.ErrNoRows
+	}
+	return guild.ChannelLayoutRevision, nil
+}
+
+func (s *fakeStore) AdvanceGuildChannelLayoutRevision(
+	_ context.Context,
+	guildID, expectedRevision int64,
+) (int64, error) {
+	guild, ok := s.guilds[guildID]
+	if !ok || guild.DeletedAt != 0 {
+		return 0, sql.ErrNoRows
+	}
+	if guild.ChannelLayoutRevision != expectedRevision {
+		return 0, store.ErrGuildChannelLayoutRevisionConflict
+	}
+	guild.ChannelLayoutRevision++
+	return guild.ChannelLayoutRevision, nil
 }
 
 func (s *fakeStore) CountGuildMembers(_ context.Context, guildID int64) (int64, error) {
@@ -1183,6 +1209,38 @@ func (s *fakeStore) ListGuildChannels(_ context.Context, guildID int64) ([]*mode
 	return channels, nil
 }
 
+func (s *fakeStore) ListGuildChannelsWithRevision(
+	ctx context.Context,
+	guildID int64,
+) ([]*model.Channel, int64, error) {
+	channels, err := s.ListGuildChannels(ctx, guildID)
+	if err != nil {
+		return nil, 0, err
+	}
+	revision, err := s.GetGuildChannelLayoutRevision(ctx, guildID)
+	if err != nil {
+		return nil, 0, err
+	}
+	return channels, revision, nil
+}
+
+func (s *fakeStore) ListGuildChannelsWithRevisionsByGuilds(
+	ctx context.Context,
+	guildIDs []int64,
+) ([]*model.Channel, map[int64]int64, error) {
+	var channels []*model.Channel
+	revisions := make(map[int64]int64, len(guildIDs))
+	for _, guildID := range guildIDs {
+		values, revision, err := s.ListGuildChannelsWithRevision(ctx, guildID)
+		if err != nil {
+			return nil, nil, err
+		}
+		channels = append(channels, values...)
+		revisions[guildID] = revision
+	}
+	return channels, revisions, nil
+}
+
 func (s *fakeStore) ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error) {
 	var channels []*model.Channel
 	for _, guildID := range guildIDs {
@@ -1381,7 +1439,10 @@ func (s *fakeStore) ListGuildChannelPermissionOverwritesByGuilds(ctx context.Con
 }
 
 func testGuild(id, ownerID int64) *model.Guild {
-	return &model.Guild{ID: id, OwnerID: ownerID, Name: "Guild", IconAssetID: 77, Revision: 1, AccessRevision: 1, CreatedAt: 1}
+	return &model.Guild{
+		ID: id, OwnerID: ownerID, Name: "Guild", IconAssetID: 77,
+		Revision: 1, AccessRevision: 1, ChannelLayoutRevision: 1, CreatedAt: 1,
+	}
 }
 
 func cloneGuild(guild *model.Guild) *model.Guild {

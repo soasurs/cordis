@@ -135,23 +135,25 @@ type guildMemberRolesUpdatedPayload struct {
 }
 
 type guildChannelPayload struct {
-	ID        string `json:"id"`
-	GuildID   string `json:"guild_id"`
-	Name      string `json:"name"`
-	Type      int32  `json:"type"`
-	Position  int32  `json:"position"`
-	Topic     string `json:"topic"`
-	Revision  int64  `json:"revision"`
-	CreatedAt int64  `json:"created_at"`
-	UpdatedAt int64  `json:"updated_at"`
-	ParentID  string `json:"parent_id"`
+	ID                    string `json:"id"`
+	GuildID               string `json:"guild_id"`
+	Name                  string `json:"name"`
+	Type                  int32  `json:"type"`
+	Position              int32  `json:"position"`
+	Topic                 string `json:"topic"`
+	Revision              int64  `json:"revision"`
+	CreatedAt             int64  `json:"created_at"`
+	UpdatedAt             int64  `json:"updated_at"`
+	ParentID              string `json:"parent_id"`
+	ChannelLayoutRevision int64  `json:"channel_layout_revision,omitempty"`
 }
 
 type guildChannelDeletedPayload struct {
-	ID        string `json:"id"`
-	GuildID   string `json:"guild_id"`
-	Revision  int64  `json:"revision"`
-	DeletedAt int64  `json:"deleted_at"`
+	ID                    string `json:"id"`
+	GuildID               string `json:"guild_id"`
+	Revision              int64  `json:"revision"`
+	DeletedAt             int64  `json:"deleted_at"`
+	ChannelLayoutRevision int64  `json:"channel_layout_revision,omitempty"`
 }
 
 type guildChannelOverwritePayload struct {
@@ -325,18 +327,31 @@ func guildRolePayloadFromModel(role *model.Role) guildRolePayload {
 	}
 }
 
-func newGuildChannelCreatedEvent(channel *model.Channel, idempotencyKey int64) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildChannelCreated, channel.GuildID, guildChannelPayloadFromModel(channel), idempotencyKey)
+func newGuildChannelCreatedEvent(channel *model.Channel, layoutRevision, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(
+		EventTypeGuildChannelCreated,
+		channel.GuildID,
+		guildChannelPayloadFromModel(channel, layoutRevision),
+		idempotencyKey,
+	)
 }
 
-func newGuildChannelUpdatedEvent(channel *model.Channel, idempotencyKey int64) (guildEvent, error) {
-	return newGuildEvent(EventTypeGuildChannelUpdated, channel.GuildID, guildChannelPayloadFromModel(channel), idempotencyKey)
+func newGuildChannelUpdatedEvent(channel *model.Channel, layoutRevision, idempotencyKey int64) (guildEvent, error) {
+	return newGuildEvent(
+		EventTypeGuildChannelUpdated,
+		channel.GuildID,
+		guildChannelPayloadFromModel(channel, layoutRevision),
+		idempotencyKey,
+	)
 }
 
-func newGuildChannelDeletedEvent(channel *model.Channel, idempotencyKey int64) (guildEvent, error) {
+func newGuildChannelDeletedEvent(channel *model.Channel, layoutRevision, idempotencyKey int64) (guildEvent, error) {
 	return newGuildEvent(EventTypeGuildChannelDeleted, channel.GuildID, guildChannelDeletedPayload{
-		ID: strconv.FormatInt(channel.ID, 10), GuildID: strconv.FormatInt(channel.GuildID, 10),
-		Revision: channel.Revision, DeletedAt: channel.DeletedAt,
+		ID:                    strconv.FormatInt(channel.ID, 10),
+		GuildID:               strconv.FormatInt(channel.GuildID, 10),
+		Revision:              channel.Revision,
+		DeletedAt:             channel.DeletedAt,
+		ChannelLayoutRevision: layoutRevision,
 	}, idempotencyKey)
 }
 
@@ -360,12 +375,19 @@ func newGuildChannelOverwriteDeletedEvent(guildID, channelID int64, appliesTo in
 	}, idempotencyKey)
 }
 
-func guildChannelPayloadFromModel(channel *model.Channel) guildChannelPayload {
+func guildChannelPayloadFromModel(channel *model.Channel, layoutRevision int64) guildChannelPayload {
 	return guildChannelPayload{
-		ID: strconv.FormatInt(channel.ID, 10), GuildID: strconv.FormatInt(channel.GuildID, 10),
-		Name: channel.Name, Type: channel.Type, Position: channel.Position, Topic: channel.Topic,
-		Revision: channel.Revision, CreatedAt: channel.CreatedAt, UpdatedAt: channel.UpdatedAt,
-		ParentID: strconv.FormatInt(channel.ParentID, 10),
+		ID:                    strconv.FormatInt(channel.ID, 10),
+		GuildID:               strconv.FormatInt(channel.GuildID, 10),
+		Name:                  channel.Name,
+		Type:                  channel.Type,
+		Position:              channel.Position,
+		Topic:                 channel.Topic,
+		Revision:              channel.Revision,
+		CreatedAt:             channel.CreatedAt,
+		UpdatedAt:             channel.UpdatedAt,
+		ParentID:              strconv.FormatInt(channel.ParentID, 10),
+		ChannelLayoutRevision: layoutRevision,
 	}
 }
 

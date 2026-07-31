@@ -547,6 +547,7 @@ func TestCreateGuildChannelUsesAuthenticatedActor(t *testing.T) {
 	createChannelReq.SetGuildId(3001)
 	createChannelReq.SetName("general")
 	createChannelReq.SetType(apiv1.GuildChannelType_GUILD_CHANNEL_TYPE_TEXT)
+	createChannelReq.SetExpectedChannelLayoutRevision(1)
 	result, err := client.CreateGuildChannel(context.Background(), createChannelReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.createChannelRequest.GetActorUserId())
@@ -1090,6 +1091,7 @@ func TestListGuildChannelsMapsResponse(t *testing.T) {
 		listChannelsFn: func(*guildv1.ListGuildChannelsRequest) (*guildv1.ListGuildChannelsResponse, error) {
 			resp := new(guildv1.ListGuildChannelsResponse)
 			resp.SetChannels([]*guildv1.GuildChannel{internalGuildChannel()})
+			resp.SetChannelLayoutRevision(2)
 			return resp, nil
 		},
 	}
@@ -1102,9 +1104,38 @@ func TestListGuildChannelsMapsResponse(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.listChannelsReq.GetActorUserId())
 	require.Len(t, resp.GetChannels(), 1)
+	require.Equal(t, int64(2), resp.GetChannelLayoutRevision())
 }
 
 func TestUpdateGuildChannelPreservesFieldPresence(t *testing.T) {
+	guildClient := &fakeGuildClient{
+		updateChannelFn: func(*guildv1.UpdateGuildChannelRequest) (*guildv1.UpdateGuildChannelResponse, error) {
+			resp := new(guildv1.UpdateGuildChannelResponse)
+			resp.SetChannel(internalGuildChannel())
+			resp.SetChannelLayoutRevision(2)
+			return resp, nil
+		},
+	}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	updateChannelReq := new(apiv1.UpdateGuildChannelRequest)
+	updateChannelReq.SetChannelId(5001)
+	updateChannelReq.SetName("renamed")
+	updateChannelReq.SetParentId(0)
+	updateChannelReq.SetExpectedChannelLayoutRevision(1)
+	resp, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
+	require.NoError(t, err)
+	require.Equal(t, int64(1001), guildClient.updateChannelReq.GetActorUserId())
+	require.True(t, guildClient.updateChannelReq.HasName())
+	require.False(t, guildClient.updateChannelReq.HasTopic())
+	require.True(t, guildClient.updateChannelReq.HasParentId())
+	require.Equal(t, int64(1), guildClient.updateChannelReq.GetExpectedChannelLayoutRevision())
+	require.True(t, resp.HasChannelLayoutRevision())
+	require.Equal(t, int64(2), resp.GetChannelLayoutRevision())
+}
+
+func TestUpdateGuildChannelMetadataDoesNotForwardLayoutRevision(t *testing.T) {
 	guildClient := &fakeGuildClient{
 		updateChannelFn: func(*guildv1.UpdateGuildChannelRequest) (*guildv1.UpdateGuildChannelResponse, error) {
 			resp := new(guildv1.UpdateGuildChannelResponse)
@@ -1118,13 +1149,10 @@ func TestUpdateGuildChannelPreservesFieldPresence(t *testing.T) {
 	updateChannelReq := new(apiv1.UpdateGuildChannelRequest)
 	updateChannelReq.SetChannelId(5001)
 	updateChannelReq.SetName("renamed")
-	updateChannelReq.SetParentId(0)
-	_, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
+	resp, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
 	require.NoError(t, err)
-	require.Equal(t, int64(1001), guildClient.updateChannelReq.GetActorUserId())
-	require.True(t, guildClient.updateChannelReq.HasName())
-	require.False(t, guildClient.updateChannelReq.HasTopic())
-	require.True(t, guildClient.updateChannelReq.HasParentId())
+	require.False(t, guildClient.updateChannelReq.HasExpectedChannelLayoutRevision())
+	require.False(t, resp.HasChannelLayoutRevision())
 }
 
 func TestDeleteGuildChannelMapsRequest(t *testing.T) {
@@ -1140,9 +1168,11 @@ func TestDeleteGuildChannelMapsRequest(t *testing.T) {
 
 	deleteChannelReq := new(apiv1.DeleteGuildChannelRequest)
 	deleteChannelReq.SetChannelId(5001)
+	deleteChannelReq.SetExpectedChannelLayoutRevision(1)
 	resp, err := client.DeleteGuildChannel(context.Background(), deleteChannelReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.deleteChannelReq.GetActorUserId())
+	require.Equal(t, int64(1), guildClient.deleteChannelReq.GetExpectedChannelLayoutRevision())
 	require.True(t, resp.GetOk())
 }
 
@@ -1163,11 +1193,13 @@ func TestReorderGuildChannelsMapsPositions(t *testing.T) {
 	pos.SetParentId(0)
 	reorderChannelsReq := new(apiv1.ReorderGuildChannelsRequest)
 	reorderChannelsReq.SetGuildId(3001)
+	reorderChannelsReq.SetExpectedChannelLayoutRevision(1)
 	reorderChannelsReq.SetPositions([]*apiv1.GuildChannelPosition{pos})
 	resp, err := client.ReorderGuildChannels(context.Background(), reorderChannelsReq)
 	require.NoError(t, err)
 	require.Len(t, resp.GetChannels(), 1)
 	require.Equal(t, int64(1001), guildClient.reorderChannelsReq.GetActorUserId())
+	require.Equal(t, int64(1), guildClient.reorderChannelsReq.GetExpectedChannelLayoutRevision())
 	require.Len(t, guildClient.reorderChannelsReq.GetPositions(), 1)
 	require.Equal(t, int64(5001), guildClient.reorderChannelsReq.GetPositions()[0].GetChannelId())
 	require.True(t, guildClient.reorderChannelsReq.GetPositions()[0].HasParentId())

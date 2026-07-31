@@ -700,10 +700,13 @@ message CreateGuildChannelRequest {
   string topic = 4;
   // Parent category ID, or zero to create the channel at the Guild root.
   int64 parent_id = 5;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 6;
 }
 
 message CreateGuildChannelResponse {
   GuildChannel channel = 1;
+  int64 channel_layout_revision = 2;
 }
 
 message GetGuildChannelRequest {
@@ -720,6 +723,8 @@ message ListGuildChannelsRequest {
 
 message ListGuildChannelsResponse {
   repeated GuildChannel channels = 1;
+  // Revision of the complete Guild channel layout represented by this list.
+  int64 channel_layout_revision = 2;
 }
 
 message UpdateGuildChannelRequest {
@@ -729,18 +734,24 @@ message UpdateGuildChannelRequest {
   string topic = 3;
   // Zero moves the channel to the Guild root. Omission preserves its parent.
   int64 parent_id = 4;
+  // Required when parent_id is present.
+  int64 expected_channel_layout_revision = 5;
 }
 
 message UpdateGuildChannelResponse {
   GuildChannel channel = 1;
+  int64 channel_layout_revision = 2;
 }
 
 message DeleteGuildChannelRequest {
   int64 channel_id = 1;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 2;
 }
 
 message DeleteGuildChannelResponse {
   bool ok = 1;
+  int64 channel_layout_revision = 2;
 }
 
 message GuildChannelPosition {
@@ -757,10 +768,13 @@ message ReorderGuildChannelsRequest {
   // Partial set of channels to move. Final positions must remain unique
   // within each parent.
   repeated GuildChannelPosition positions = 2;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 3;
 }
 
 message ReorderGuildChannelsResponse {
   repeated GuildChannel channels = 1;
+  int64 channel_layout_revision = 2;
 }
 
 message UpsertGuildChannelPermissionOverwriteRequest {

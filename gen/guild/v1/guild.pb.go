@@ -2798,17 +2798,18 @@ func (b0 GuildChannelVisibility_builder) Build() *GuildChannelVisibility {
 }
 
 type ReadyGuild struct {
-	state                           protoimpl.MessageState              `protogen:"opaque.v1"`
-	xxx_hidden_Guild                *Guild                              `protobuf:"bytes,1,opt,name=guild"`
-	xxx_hidden_AccessRevision       int64                               `protobuf:"varint,2,opt,name=access_revision,json=accessRevision"`
-	xxx_hidden_Roles                *[]*GuildRole                       `protobuf:"bytes,3,rep,name=roles"`
-	xxx_hidden_MemberRoleIds        []int64                             `protobuf:"varint,4,rep,packed,name=member_role_ids,json=memberRoleIds"`
-	xxx_hidden_Channels             *[]*GuildChannel                    `protobuf:"bytes,5,rep,name=channels"`
-	xxx_hidden_PermissionOverwrites *[]*GuildChannelPermissionOverwrite `protobuf:"bytes,6,rep,name=permission_overwrites,json=permissionOverwrites"`
-	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
-	XXX_presence                    [1]uint32
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
+	state                            protoimpl.MessageState              `protogen:"opaque.v1"`
+	xxx_hidden_Guild                 *Guild                              `protobuf:"bytes,1,opt,name=guild"`
+	xxx_hidden_AccessRevision        int64                               `protobuf:"varint,2,opt,name=access_revision,json=accessRevision"`
+	xxx_hidden_Roles                 *[]*GuildRole                       `protobuf:"bytes,3,rep,name=roles"`
+	xxx_hidden_MemberRoleIds         []int64                             `protobuf:"varint,4,rep,packed,name=member_role_ids,json=memberRoleIds"`
+	xxx_hidden_Channels              *[]*GuildChannel                    `protobuf:"bytes,5,rep,name=channels"`
+	xxx_hidden_PermissionOverwrites  *[]*GuildChannelPermissionOverwrite `protobuf:"bytes,6,rep,name=permission_overwrites,json=permissionOverwrites"`
+	xxx_hidden_ChannelLayoutRevision int64                               `protobuf:"varint,7,opt,name=channel_layout_revision,json=channelLayoutRevision"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *ReadyGuild) Reset() {
@@ -2884,13 +2885,20 @@ func (x *ReadyGuild) GetPermissionOverwrites() []*GuildChannelPermissionOverwrit
 	return nil
 }
 
+func (x *ReadyGuild) GetChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *ReadyGuild) SetGuild(v *Guild) {
 	x.xxx_hidden_Guild = v
 }
 
 func (x *ReadyGuild) SetAccessRevision(v int64) {
 	x.xxx_hidden_AccessRevision = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *ReadyGuild) SetRoles(v []*GuildRole) {
@@ -2909,6 +2917,11 @@ func (x *ReadyGuild) SetPermissionOverwrites(v []*GuildChannelPermissionOverwrit
 	x.xxx_hidden_PermissionOverwrites = &v
 }
 
+func (x *ReadyGuild) SetChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
+}
+
 func (x *ReadyGuild) HasGuild() bool {
 	if x == nil {
 		return false
@@ -2923,6 +2936,13 @@ func (x *ReadyGuild) HasAccessRevision() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *ReadyGuild) HasChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
 func (x *ReadyGuild) ClearGuild() {
 	x.xxx_hidden_Guild = nil
 }
@@ -2930,6 +2950,11 @@ func (x *ReadyGuild) ClearGuild() {
 func (x *ReadyGuild) ClearAccessRevision() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_AccessRevision = 0
+}
+
+func (x *ReadyGuild) ClearChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ChannelLayoutRevision = 0
 }
 
 type ReadyGuild_builder struct {
@@ -2947,6 +2972,8 @@ type ReadyGuild_builder struct {
 	Channels []*GuildChannel
 	// Permission overwrites for the returned visible channels.
 	PermissionOverwrites []*GuildChannelPermissionOverwrite
+	// Revision of the channel layout represented by channels.
+	ChannelLayoutRevision *int64
 }
 
 func (b0 ReadyGuild_builder) Build() *ReadyGuild {
@@ -2955,13 +2982,17 @@ func (b0 ReadyGuild_builder) Build() *ReadyGuild {
 	_, _ = b, x
 	x.xxx_hidden_Guild = b.Guild
 	if b.AccessRevision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_AccessRevision = *b.AccessRevision
 	}
 	x.xxx_hidden_Roles = &b.Roles
 	x.xxx_hidden_MemberRoleIds = b.MemberRoleIds
 	x.xxx_hidden_Channels = &b.Channels
 	x.xxx_hidden_PermissionOverwrites = &b.PermissionOverwrites
+	if b.ChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_ChannelLayoutRevision = *b.ChannelLayoutRevision
+	}
 	return m0
 }
 
@@ -11214,17 +11245,18 @@ func (b0 GetGuildMemberPermissionsResponse_builder) Build() *GetGuildMemberPermi
 }
 
 type CreateGuildChannelRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
-	xxx_hidden_Type        GuildChannelType       `protobuf:"varint,4,opt,name=type,enum=guild.v1.GuildChannelType"`
-	xxx_hidden_Topic       *string                `protobuf:"bytes,5,opt,name=topic"`
-	xxx_hidden_ParentId    int64                  `protobuf:"varint,6,opt,name=parent_id,json=parentId"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_GuildId                       int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId                   int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Name                          *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Type                          GuildChannelType       `protobuf:"varint,4,opt,name=type,enum=guild.v1.GuildChannelType"`
+	xxx_hidden_Topic                         *string                `protobuf:"bytes,5,opt,name=topic"`
+	xxx_hidden_ParentId                      int64                  `protobuf:"varint,6,opt,name=parent_id,json=parentId"`
+	xxx_hidden_ExpectedChannelLayoutRevision int64                  `protobuf:"varint,7,opt,name=expected_channel_layout_revision,json=expectedChannelLayoutRevision"`
+	XXX_raceDetectHookData                   protoimpl.RaceDetectHookData
+	XXX_presence                             [1]uint32
+	unknownFields                            protoimpl.UnknownFields
+	sizeCache                                protoimpl.SizeCache
 }
 
 func (x *CreateGuildChannelRequest) Reset() {
@@ -11302,34 +11334,46 @@ func (x *CreateGuildChannelRequest) GetParentId() int64 {
 	return 0
 }
 
+func (x *CreateGuildChannelRequest) GetExpectedChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpectedChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *CreateGuildChannelRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
 }
 
 func (x *CreateGuildChannelRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
 }
 
 func (x *CreateGuildChannelRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
 }
 
 func (x *CreateGuildChannelRequest) SetType(v GuildChannelType) {
 	x.xxx_hidden_Type = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
 }
 
 func (x *CreateGuildChannelRequest) SetTopic(v string) {
 	x.xxx_hidden_Topic = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
 }
 
 func (x *CreateGuildChannelRequest) SetParentId(v int64) {
 	x.xxx_hidden_ParentId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 7)
+}
+
+func (x *CreateGuildChannelRequest) SetExpectedChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ExpectedChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 7)
 }
 
 func (x *CreateGuildChannelRequest) HasGuildId() bool {
@@ -11374,6 +11418,13 @@ func (x *CreateGuildChannelRequest) HasParentId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
+func (x *CreateGuildChannelRequest) HasExpectedChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
 func (x *CreateGuildChannelRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -11404,6 +11455,11 @@ func (x *CreateGuildChannelRequest) ClearParentId() {
 	x.xxx_hidden_ParentId = 0
 }
 
+func (x *CreateGuildChannelRequest) ClearExpectedChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ExpectedChannelLayoutRevision = 0
+}
+
 type CreateGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -11414,6 +11470,8 @@ type CreateGuildChannelRequest_builder struct {
 	Topic       *string
 	// Parent category ID, or zero to create the channel at the Guild root.
 	ParentId *int64
+	// Expected Guild channel layout revision from the caller's snapshot.
+	ExpectedChannelLayoutRevision *int64
 }
 
 func (b0 CreateGuildChannelRequest_builder) Build() *CreateGuildChannelRequest {
@@ -11421,37 +11479,44 @@ func (b0 CreateGuildChannelRequest_builder) Build() *CreateGuildChannelRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
 		x.xxx_hidden_Type = *b.Type
 	}
 	if b.Topic != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
 		x.xxx_hidden_Topic = b.Topic
 	}
 	if b.ParentId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 7)
 		x.xxx_hidden_ParentId = *b.ParentId
+	}
+	if b.ExpectedChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 7)
+		x.xxx_hidden_ExpectedChannelLayoutRevision = *b.ExpectedChannelLayoutRevision
 	}
 	return m0
 }
 
 type CreateGuildChannelResponse struct {
-	state              protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Channel *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channel               *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
+	xxx_hidden_ChannelLayoutRevision int64                  `protobuf:"varint,2,opt,name=channel_layout_revision,json=channelLayoutRevision"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *CreateGuildChannelResponse) Reset() {
@@ -11486,8 +11551,20 @@ func (x *CreateGuildChannelResponse) GetChannel() *GuildChannel {
 	return nil
 }
 
+func (x *CreateGuildChannelResponse) GetChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *CreateGuildChannelResponse) SetChannel(v *GuildChannel) {
 	x.xxx_hidden_Channel = v
+}
+
+func (x *CreateGuildChannelResponse) SetChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *CreateGuildChannelResponse) HasChannel() bool {
@@ -11497,14 +11574,27 @@ func (x *CreateGuildChannelResponse) HasChannel() bool {
 	return x.xxx_hidden_Channel != nil
 }
 
+func (x *CreateGuildChannelResponse) HasChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *CreateGuildChannelResponse) ClearChannel() {
 	x.xxx_hidden_Channel = nil
+}
+
+func (x *CreateGuildChannelResponse) ClearChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ChannelLayoutRevision = 0
 }
 
 type CreateGuildChannelResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Channel *GuildChannel
+	Channel               *GuildChannel
+	ChannelLayoutRevision *int64
 }
 
 func (b0 CreateGuildChannelResponse_builder) Build() *CreateGuildChannelResponse {
@@ -11512,6 +11602,10 @@ func (b0 CreateGuildChannelResponse_builder) Build() *CreateGuildChannelResponse
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Channel = b.Channel
+	if b.ChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ChannelLayoutRevision = *b.ChannelLayoutRevision
+	}
 	return m0
 }
 
@@ -11794,10 +11888,13 @@ func (b0 ListGuildChannelsRequest_builder) Build() *ListGuildChannelsRequest {
 }
 
 type ListGuildChannelsResponse struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Channels *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channels              *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
+	xxx_hidden_ChannelLayoutRevision int64                  `protobuf:"varint,2,opt,name=channel_layout_revision,json=channelLayoutRevision"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *ListGuildChannelsResponse) Reset() {
@@ -11834,14 +11931,40 @@ func (x *ListGuildChannelsResponse) GetChannels() []*GuildChannel {
 	return nil
 }
 
+func (x *ListGuildChannelsResponse) GetChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *ListGuildChannelsResponse) SetChannels(v []*GuildChannel) {
 	x.xxx_hidden_Channels = &v
+}
+
+func (x *ListGuildChannelsResponse) SetChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListGuildChannelsResponse) HasChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListGuildChannelsResponse) ClearChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ChannelLayoutRevision = 0
 }
 
 type ListGuildChannelsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	Channels []*GuildChannel
+	// Revision of the complete Guild channel layout represented by this list.
+	ChannelLayoutRevision *int64
 }
 
 func (b0 ListGuildChannelsResponse_builder) Build() *ListGuildChannelsResponse {
@@ -11849,20 +11972,25 @@ func (b0 ListGuildChannelsResponse_builder) Build() *ListGuildChannelsResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Channels = &b.Channels
+	if b.ChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ChannelLayoutRevision = *b.ChannelLayoutRevision
+	}
 	return m0
 }
 
 type UpdateGuildChannelRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,3,opt,name=name"`
-	xxx_hidden_Topic       *string                `protobuf:"bytes,4,opt,name=topic"`
-	xxx_hidden_ParentId    int64                  `protobuf:"varint,5,opt,name=parent_id,json=parentId"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId                     int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_ActorUserId                   int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Name                          *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Topic                         *string                `protobuf:"bytes,4,opt,name=topic"`
+	xxx_hidden_ParentId                      int64                  `protobuf:"varint,5,opt,name=parent_id,json=parentId"`
+	xxx_hidden_ExpectedChannelLayoutRevision int64                  `protobuf:"varint,6,opt,name=expected_channel_layout_revision,json=expectedChannelLayoutRevision"`
+	XXX_raceDetectHookData                   protoimpl.RaceDetectHookData
+	XXX_presence                             [1]uint32
+	unknownFields                            protoimpl.UnknownFields
+	sizeCache                                protoimpl.SizeCache
 }
 
 func (x *UpdateGuildChannelRequest) Reset() {
@@ -11931,29 +12059,41 @@ func (x *UpdateGuildChannelRequest) GetParentId() int64 {
 	return 0
 }
 
+func (x *UpdateGuildChannelRequest) GetExpectedChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpectedChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *UpdateGuildChannelRequest) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *UpdateGuildChannelRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
 func (x *UpdateGuildChannelRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
 }
 
 func (x *UpdateGuildChannelRequest) SetTopic(v string) {
 	x.xxx_hidden_Topic = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
 func (x *UpdateGuildChannelRequest) SetParentId(v int64) {
 	x.xxx_hidden_ParentId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *UpdateGuildChannelRequest) SetExpectedChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ExpectedChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
 func (x *UpdateGuildChannelRequest) HasChannelId() bool {
@@ -11991,6 +12131,13 @@ func (x *UpdateGuildChannelRequest) HasParentId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
+func (x *UpdateGuildChannelRequest) HasExpectedChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
 func (x *UpdateGuildChannelRequest) ClearChannelId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChannelId = 0
@@ -12016,6 +12163,11 @@ func (x *UpdateGuildChannelRequest) ClearParentId() {
 	x.xxx_hidden_ParentId = 0
 }
 
+func (x *UpdateGuildChannelRequest) ClearExpectedChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_ExpectedChannelLayoutRevision = 0
+}
+
 type UpdateGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -12026,6 +12178,8 @@ type UpdateGuildChannelRequest_builder struct {
 	Topic *string
 	// Zero moves the channel to the Guild root. Omission preserves its parent.
 	ParentId *int64
+	// Required when parent_id is present.
+	ExpectedChannelLayoutRevision *int64
 }
 
 func (b0 UpdateGuildChannelRequest_builder) Build() *UpdateGuildChannelRequest {
@@ -12033,33 +12187,40 @@ func (b0 UpdateGuildChannelRequest_builder) Build() *UpdateGuildChannelRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Topic != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
 		x.xxx_hidden_Topic = b.Topic
 	}
 	if b.ParentId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
 		x.xxx_hidden_ParentId = *b.ParentId
+	}
+	if b.ExpectedChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_ExpectedChannelLayoutRevision = *b.ExpectedChannelLayoutRevision
 	}
 	return m0
 }
 
 type UpdateGuildChannelResponse struct {
-	state              protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Channel *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channel               *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
+	xxx_hidden_ChannelLayoutRevision int64                  `protobuf:"varint,2,opt,name=channel_layout_revision,json=channelLayoutRevision"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *UpdateGuildChannelResponse) Reset() {
@@ -12094,8 +12255,20 @@ func (x *UpdateGuildChannelResponse) GetChannel() *GuildChannel {
 	return nil
 }
 
+func (x *UpdateGuildChannelResponse) GetChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *UpdateGuildChannelResponse) SetChannel(v *GuildChannel) {
 	x.xxx_hidden_Channel = v
+}
+
+func (x *UpdateGuildChannelResponse) SetChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *UpdateGuildChannelResponse) HasChannel() bool {
@@ -12105,14 +12278,27 @@ func (x *UpdateGuildChannelResponse) HasChannel() bool {
 	return x.xxx_hidden_Channel != nil
 }
 
+func (x *UpdateGuildChannelResponse) HasChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *UpdateGuildChannelResponse) ClearChannel() {
 	x.xxx_hidden_Channel = nil
+}
+
+func (x *UpdateGuildChannelResponse) ClearChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ChannelLayoutRevision = 0
 }
 
 type UpdateGuildChannelResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Channel *GuildChannel
+	Channel               *GuildChannel
+	ChannelLayoutRevision *int64
 }
 
 func (b0 UpdateGuildChannelResponse_builder) Build() *UpdateGuildChannelResponse {
@@ -12120,17 +12306,22 @@ func (b0 UpdateGuildChannelResponse_builder) Build() *UpdateGuildChannelResponse
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Channel = b.Channel
+	if b.ChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ChannelLayoutRevision = *b.ChannelLayoutRevision
+	}
 	return m0
 }
 
 type DeleteGuildChannelRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
-	xxx_hidden_ActorUserId int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChannelId                     int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
+	xxx_hidden_ActorUserId                   int64                  `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_ExpectedChannelLayoutRevision int64                  `protobuf:"varint,3,opt,name=expected_channel_layout_revision,json=expectedChannelLayoutRevision"`
+	XXX_raceDetectHookData                   protoimpl.RaceDetectHookData
+	XXX_presence                             [1]uint32
+	unknownFields                            protoimpl.UnknownFields
+	sizeCache                                protoimpl.SizeCache
 }
 
 func (x *DeleteGuildChannelRequest) Reset() {
@@ -12172,14 +12363,26 @@ func (x *DeleteGuildChannelRequest) GetActorUserId() int64 {
 	return 0
 }
 
+func (x *DeleteGuildChannelRequest) GetExpectedChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpectedChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *DeleteGuildChannelRequest) SetChannelId(v int64) {
 	x.xxx_hidden_ChannelId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *DeleteGuildChannelRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *DeleteGuildChannelRequest) SetExpectedChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ExpectedChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *DeleteGuildChannelRequest) HasChannelId() bool {
@@ -12196,6 +12399,13 @@ func (x *DeleteGuildChannelRequest) HasActorUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *DeleteGuildChannelRequest) HasExpectedChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *DeleteGuildChannelRequest) ClearChannelId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChannelId = 0
@@ -12206,11 +12416,18 @@ func (x *DeleteGuildChannelRequest) ClearActorUserId() {
 	x.xxx_hidden_ActorUserId = 0
 }
 
+func (x *DeleteGuildChannelRequest) ClearExpectedChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ExpectedChannelLayoutRevision = 0
+}
+
 type DeleteGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	ChannelId   *int64
 	ActorUserId *int64
+	// Expected Guild channel layout revision from the caller's snapshot.
+	ExpectedChannelLayoutRevision *int64
 }
 
 func (b0 DeleteGuildChannelRequest_builder) Build() *DeleteGuildChannelRequest {
@@ -12218,23 +12435,28 @@ func (b0 DeleteGuildChannelRequest_builder) Build() *DeleteGuildChannelRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChannelId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_ChannelId = *b.ChannelId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
+	}
+	if b.ExpectedChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ExpectedChannelLayoutRevision = *b.ExpectedChannelLayoutRevision
 	}
 	return m0
 }
 
 type DeleteGuildChannelResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Ok                    bool                   `protobuf:"varint,1,opt,name=ok"`
+	xxx_hidden_ChannelLayoutRevision int64                  `protobuf:"varint,2,opt,name=channel_layout_revision,json=channelLayoutRevision"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *DeleteGuildChannelResponse) Reset() {
@@ -12269,9 +12491,21 @@ func (x *DeleteGuildChannelResponse) GetOk() bool {
 	return false
 }
 
+func (x *DeleteGuildChannelResponse) GetChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *DeleteGuildChannelResponse) SetOk(v bool) {
 	x.xxx_hidden_Ok = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DeleteGuildChannelResponse) SetChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *DeleteGuildChannelResponse) HasOk() bool {
@@ -12281,15 +12515,28 @@ func (x *DeleteGuildChannelResponse) HasOk() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
+func (x *DeleteGuildChannelResponse) HasChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *DeleteGuildChannelResponse) ClearOk() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Ok = false
 }
 
+func (x *DeleteGuildChannelResponse) ClearChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ChannelLayoutRevision = 0
+}
+
 type DeleteGuildChannelResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ok *bool
+	Ok                    *bool
+	ChannelLayoutRevision *int64
 }
 
 func (b0 DeleteGuildChannelResponse_builder) Build() *DeleteGuildChannelResponse {
@@ -12297,8 +12544,12 @@ func (b0 DeleteGuildChannelResponse_builder) Build() *DeleteGuildChannelResponse
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Ok != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_Ok = *b.Ok
+	}
+	if b.ChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ChannelLayoutRevision = *b.ChannelLayoutRevision
 	}
 	return m0
 }
@@ -12442,14 +12693,15 @@ func (b0 GuildChannelPosition_builder) Build() *GuildChannelPosition {
 }
 
 type ReorderGuildChannelsRequest struct {
-	state                  protoimpl.MessageState   `protogen:"opaque.v1"`
-	xxx_hidden_GuildId     int64                    `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
-	xxx_hidden_ActorUserId int64                    `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
-	xxx_hidden_Positions   *[]*GuildChannelPosition `protobuf:"bytes,3,rep,name=positions"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                                    protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_GuildId                       int64                    `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
+	xxx_hidden_ActorUserId                   int64                    `protobuf:"varint,2,opt,name=actor_user_id,json=actorUserId"`
+	xxx_hidden_Positions                     *[]*GuildChannelPosition `protobuf:"bytes,3,rep,name=positions"`
+	xxx_hidden_ExpectedChannelLayoutRevision int64                    `protobuf:"varint,4,opt,name=expected_channel_layout_revision,json=expectedChannelLayoutRevision"`
+	XXX_raceDetectHookData                   protoimpl.RaceDetectHookData
+	XXX_presence                             [1]uint32
+	unknownFields                            protoimpl.UnknownFields
+	sizeCache                                protoimpl.SizeCache
 }
 
 func (x *ReorderGuildChannelsRequest) Reset() {
@@ -12500,18 +12752,30 @@ func (x *ReorderGuildChannelsRequest) GetPositions() []*GuildChannelPosition {
 	return nil
 }
 
+func (x *ReorderGuildChannelsRequest) GetExpectedChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ExpectedChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *ReorderGuildChannelsRequest) SetGuildId(v int64) {
 	x.xxx_hidden_GuildId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ReorderGuildChannelsRequest) SetActorUserId(v int64) {
 	x.xxx_hidden_ActorUserId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *ReorderGuildChannelsRequest) SetPositions(v []*GuildChannelPosition) {
 	x.xxx_hidden_Positions = &v
+}
+
+func (x *ReorderGuildChannelsRequest) SetExpectedChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ExpectedChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ReorderGuildChannelsRequest) HasGuildId() bool {
@@ -12528,6 +12792,13 @@ func (x *ReorderGuildChannelsRequest) HasActorUserId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *ReorderGuildChannelsRequest) HasExpectedChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ReorderGuildChannelsRequest) ClearGuildId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_GuildId = 0
@@ -12538,6 +12809,11 @@ func (x *ReorderGuildChannelsRequest) ClearActorUserId() {
 	x.xxx_hidden_ActorUserId = 0
 }
 
+func (x *ReorderGuildChannelsRequest) ClearExpectedChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ExpectedChannelLayoutRevision = 0
+}
+
 type ReorderGuildChannelsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -12546,6 +12822,8 @@ type ReorderGuildChannelsRequest_builder struct {
 	// Partial set of channels to move. Final positions must remain unique
 	// within each parent.
 	Positions []*GuildChannelPosition
+	// Expected Guild channel layout revision from the caller's snapshot.
+	ExpectedChannelLayoutRevision *int64
 }
 
 func (b0 ReorderGuildChannelsRequest_builder) Build() *ReorderGuildChannelsRequest {
@@ -12553,22 +12831,29 @@ func (b0 ReorderGuildChannelsRequest_builder) Build() *ReorderGuildChannelsReque
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.GuildId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_GuildId = *b.GuildId
 	}
 	if b.ActorUserId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_ActorUserId = *b.ActorUserId
 	}
 	x.xxx_hidden_Positions = &b.Positions
+	if b.ExpectedChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_ExpectedChannelLayoutRevision = *b.ExpectedChannelLayoutRevision
+	}
 	return m0
 }
 
 type ReorderGuildChannelsResponse struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Channels *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Channels              *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
+	xxx_hidden_ChannelLayoutRevision int64                  `protobuf:"varint,2,opt,name=channel_layout_revision,json=channelLayoutRevision"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *ReorderGuildChannelsResponse) Reset() {
@@ -12605,14 +12890,39 @@ func (x *ReorderGuildChannelsResponse) GetChannels() []*GuildChannel {
 	return nil
 }
 
+func (x *ReorderGuildChannelsResponse) GetChannelLayoutRevision() int64 {
+	if x != nil {
+		return x.xxx_hidden_ChannelLayoutRevision
+	}
+	return 0
+}
+
 func (x *ReorderGuildChannelsResponse) SetChannels(v []*GuildChannel) {
 	x.xxx_hidden_Channels = &v
+}
+
+func (x *ReorderGuildChannelsResponse) SetChannelLayoutRevision(v int64) {
+	x.xxx_hidden_ChannelLayoutRevision = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ReorderGuildChannelsResponse) HasChannelLayoutRevision() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ReorderGuildChannelsResponse) ClearChannelLayoutRevision() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ChannelLayoutRevision = 0
 }
 
 type ReorderGuildChannelsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Channels []*GuildChannel
+	Channels              []*GuildChannel
+	ChannelLayoutRevision *int64
 }
 
 func (b0 ReorderGuildChannelsResponse_builder) Build() *ReorderGuildChannelsResponse {
@@ -12620,6 +12930,10 @@ func (b0 ReorderGuildChannelsResponse_builder) Build() *ReorderGuildChannelsResp
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Channels = &b.Channels
+	if b.ChannelLayoutRevision != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ChannelLayoutRevision = *b.ChannelLayoutRevision
+	}
 	return m0
 }
 
@@ -13729,7 +14043,7 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12'\n" +
 	"\x0faccess_revision\x18\x02 \x01(\x03R\x0eaccessRevision\x12.\n" +
 	"\x13visible_channel_ids\x18\x03 \x03(\x03R\x11visibleChannelIds\x127\n" +
-	"\x18visible_text_channel_ids\x18\x04 \x03(\x03R\x15visibleTextChannelIds\"\xc3\x02\n" +
+	"\x18visible_text_channel_ids\x18\x04 \x03(\x03R\x15visibleTextChannelIds\"\xfb\x02\n" +
 	"\n" +
 	"ReadyGuild\x12%\n" +
 	"\x05guild\x18\x01 \x01(\v2\x0f.guild.v1.GuildR\x05guild\x12'\n" +
@@ -13737,7 +14051,8 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\x05roles\x18\x03 \x03(\v2\x13.guild.v1.GuildRoleR\x05roles\x12&\n" +
 	"\x0fmember_role_ids\x18\x04 \x03(\x03R\rmemberRoleIds\x122\n" +
 	"\bchannels\x18\x05 \x03(\v2\x16.guild.v1.GuildChannelR\bchannels\x12^\n" +
-	"\x15permission_overwrites\x18\x06 \x03(\v2).guild.v1.GuildChannelPermissionOverwriteR\x14permissionOverwrites\"3\n" +
+	"\x15permission_overwrites\x18\x06 \x03(\v2).guild.v1.GuildChannelPermissionOverwriteR\x14permissionOverwrites\x126\n" +
+	"\x17channel_layout_revision\x18\a \x01(\x03R\x15channelLayoutRevision\"3\n" +
 	"\x18GetUserReadyStateRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\x03R\x06userId\"I\n" +
 	"\x19GetUserReadyStateResponse\x12,\n" +
@@ -13995,16 +14310,18 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x17\n" +
 	"\auser_id\x18\x03 \x01(\x03R\x06userId\"E\n" +
 	"!GetGuildMemberPermissionsResponse\x12 \n" +
-	"\vpermissions\x18\x01 \x01(\x04R\vpermissions\"\xd1\x01\n" +
+	"\vpermissions\x18\x01 \x01(\x04R\vpermissions\"\x9a\x02\n" +
 	"\x19CreateGuildChannelRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12.\n" +
 	"\x04type\x18\x04 \x01(\x0e2\x1a.guild.v1.GuildChannelTypeR\x04type\x12\x14\n" +
 	"\x05topic\x18\x05 \x01(\tR\x05topic\x12\x1b\n" +
-	"\tparent_id\x18\x06 \x01(\x03R\bparentId\"N\n" +
+	"\tparent_id\x18\x06 \x01(\x03R\bparentId\x12G\n" +
+	" expected_channel_layout_revision\x18\a \x01(\x03R\x1dexpectedChannelLayoutRevision\"\x86\x01\n" +
 	"\x1aCreateGuildChannelResponse\x120\n" +
-	"\achannel\x18\x01 \x01(\v2\x16.guild.v1.GuildChannelR\achannel\"[\n" +
+	"\achannel\x18\x01 \x01(\v2\x16.guild.v1.GuildChannelR\achannel\x126\n" +
+	"\x17channel_layout_revision\x18\x02 \x01(\x03R\x15channelLayoutRevision\"[\n" +
 	"\x16GetGuildChannelRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +
@@ -14013,35 +14330,42 @@ const file_guild_v1_guild_proto_rawDesc = "" +
 	"\achannel\x18\x01 \x01(\v2\x16.guild.v1.GuildChannelR\achannel\"Y\n" +
 	"\x18ListGuildChannelsRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
-	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"O\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\"\x87\x01\n" +
 	"\x19ListGuildChannelsResponse\x122\n" +
-	"\bchannels\x18\x01 \x03(\v2\x16.guild.v1.GuildChannelR\bchannels\"\xa5\x01\n" +
+	"\bchannels\x18\x01 \x03(\v2\x16.guild.v1.GuildChannelR\bchannels\x126\n" +
+	"\x17channel_layout_revision\x18\x02 \x01(\x03R\x15channelLayoutRevision\"\xee\x01\n" +
 	"\x19UpdateGuildChannelRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12\x12\n" +
 	"\x04name\x18\x03 \x01(\tR\x04name\x12\x14\n" +
 	"\x05topic\x18\x04 \x01(\tR\x05topic\x12\x1b\n" +
-	"\tparent_id\x18\x05 \x01(\x03R\bparentId\"N\n" +
+	"\tparent_id\x18\x05 \x01(\x03R\bparentId\x12G\n" +
+	" expected_channel_layout_revision\x18\x06 \x01(\x03R\x1dexpectedChannelLayoutRevision\"\x86\x01\n" +
 	"\x1aUpdateGuildChannelResponse\x120\n" +
-	"\achannel\x18\x01 \x01(\v2\x16.guild.v1.GuildChannelR\achannel\"^\n" +
+	"\achannel\x18\x01 \x01(\v2\x16.guild.v1.GuildChannelR\achannel\x126\n" +
+	"\x17channel_layout_revision\x18\x02 \x01(\x03R\x15channelLayoutRevision\"\xa7\x01\n" +
 	"\x19DeleteGuildChannelRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +
-	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\",\n" +
+	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12G\n" +
+	" expected_channel_layout_revision\x18\x03 \x01(\x03R\x1dexpectedChannelLayoutRevision\"d\n" +
 	"\x1aDeleteGuildChannelResponse\x12\x0e\n" +
-	"\x02ok\x18\x01 \x01(\bR\x02ok\"n\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x126\n" +
+	"\x17channel_layout_revision\x18\x02 \x01(\x03R\x15channelLayoutRevision\"n\n" +
 	"\x14GuildChannelPosition\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x1a\n" +
 	"\bposition\x18\x02 \x01(\x05R\bposition\x12\x1b\n" +
-	"\tparent_id\x18\x03 \x01(\x03R\bparentId\"\x9a\x01\n" +
+	"\tparent_id\x18\x03 \x01(\x03R\bparentId\"\xe3\x01\n" +
 	"\x1bReorderGuildChannelsRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12\"\n" +
 	"\ractor_user_id\x18\x02 \x01(\x03R\vactorUserId\x12<\n" +
-	"\tpositions\x18\x03 \x03(\v2\x1e.guild.v1.GuildChannelPositionR\tpositions\"R\n" +
+	"\tpositions\x18\x03 \x03(\v2\x1e.guild.v1.GuildChannelPositionR\tpositions\x12G\n" +
+	" expected_channel_layout_revision\x18\x04 \x01(\x03R\x1dexpectedChannelLayoutRevision\"\x8a\x01\n" +
 	"\x1cReorderGuildChannelsResponse\x122\n" +
-	"\bchannels\x18\x01 \x03(\v2\x16.guild.v1.GuildChannelR\bchannels\"\x86\x02\n" +
+	"\bchannels\x18\x01 \x03(\v2\x16.guild.v1.GuildChannelR\bchannels\x126\n" +
+	"\x17channel_layout_revision\x18\x02 \x01(\x03R\x15channelLayoutRevision\"\x86\x02\n" +
 	",UpsertGuildChannelPermissionOverwriteRequest\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\"\n" +

@@ -23,12 +23,16 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *apiv1.CreateG
 	svcReq.SetType(guildv1.GuildChannelType(req.GetType()))
 	svcReq.SetTopic(req.GetTopic())
 	svcReq.SetParentId(req.GetParentId())
+	if req.HasExpectedChannelLayoutRevision() {
+		svcReq.SetExpectedChannelLayoutRevision(req.GetExpectedChannelLayoutRevision())
+	}
 	svcResp, err := s.svcCtx.GuildClient.CreateGuildChannel(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.CreateGuildChannelResponse)
 	resp.SetChannel(guildChannelToAPI(svcResp.GetChannel()))
+	resp.SetChannelLayoutRevision(svcResp.GetChannelLayoutRevision())
 	return resp, nil
 }
 
@@ -63,6 +67,7 @@ func (s *guildServer) ListGuildChannels(ctx context.Context, req *apiv1.ListGuil
 	}
 	resp := new(apiv1.ListGuildChannelsResponse)
 	resp.SetChannels(guildChannelsToAPI(svcResp.GetChannels()))
+	resp.SetChannelLayoutRevision(svcResp.GetChannelLayoutRevision())
 	return resp, nil
 }
 
@@ -83,12 +88,18 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *apiv1.UpdateG
 	if req.HasParentId() {
 		svcReq.SetParentId(req.GetParentId())
 	}
+	if req.HasExpectedChannelLayoutRevision() {
+		svcReq.SetExpectedChannelLayoutRevision(req.GetExpectedChannelLayoutRevision())
+	}
 	svcResp, err := s.svcCtx.GuildClient.UpdateGuildChannel(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.UpdateGuildChannelResponse)
 	resp.SetChannel(guildChannelToAPI(svcResp.GetChannel()))
+	if svcResp.HasChannelLayoutRevision() {
+		resp.SetChannelLayoutRevision(svcResp.GetChannelLayoutRevision())
+	}
 	return resp, nil
 }
 
@@ -100,12 +111,16 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *apiv1.DeleteG
 	svcReq := new(guildv1.DeleteGuildChannelRequest)
 	svcReq.SetChannelId(req.GetChannelId())
 	svcReq.SetActorUserId(auth.GetUserId())
+	if req.HasExpectedChannelLayoutRevision() {
+		svcReq.SetExpectedChannelLayoutRevision(req.GetExpectedChannelLayoutRevision())
+	}
 	svcResp, err := s.svcCtx.GuildClient.DeleteGuildChannel(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.DeleteGuildChannelResponse)
 	resp.SetOk(svcResp.GetOk())
+	resp.SetChannelLayoutRevision(svcResp.GetChannelLayoutRevision())
 	return resp, nil
 }
 
@@ -128,12 +143,16 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *apiv1.Reord
 	svcReq.SetGuildId(req.GetGuildId())
 	svcReq.SetActorUserId(auth.GetUserId())
 	svcReq.SetPositions(positions)
+	if req.HasExpectedChannelLayoutRevision() {
+		svcReq.SetExpectedChannelLayoutRevision(req.GetExpectedChannelLayoutRevision())
+	}
 	svcResp, err := s.svcCtx.GuildClient.ReorderGuildChannels(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
 	}
 	resp := new(apiv1.ReorderGuildChannelsResponse)
 	resp.SetChannels(guildChannelsToAPI(svcResp.GetChannels()))
+	resp.SetChannelLayoutRevision(svcResp.GetChannelLayoutRevision())
 	return resp, nil
 }
 

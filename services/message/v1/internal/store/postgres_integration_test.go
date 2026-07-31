@@ -286,7 +286,7 @@ func testMessageMentions(t *testing.T, store Store) {
 	}))
 	byMessage, err := store.ListMessagesMentions(ctx, []int64{5401, 5402, 9999})
 	require.NoError(t, err)
-	require.Equal(t, []int64{4001}, byMessage[5401].UserIDs)
+	require.Equal(t, []int64{4001, 7001, 7002}, byMessage[5401].UserIDs)
 	require.Equal(t, []int64{5001, 5002}, byMessage[5401].RoleIDs)
 	require.True(t, byMessage[5401].Everyone)
 	require.Equal(t, []int64{4009}, byMessage[5402].UserIDs)

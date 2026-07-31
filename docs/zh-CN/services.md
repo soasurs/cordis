@@ -59,7 +59,7 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 持久化 Guild 资源使用配置化硬上限。默认每用户最多拥有 10 个、加入 100 个 Guild；每 Guild 最多 250 个角色、500 个频道和 100 个有效邀请；每频道最多 100 条权限覆盖。配额检查与资源写入在同一 PostgreSQL 事务内串行执行。
 
-内部 `GetUserReadyState` 在一次调用中按用户的有效 Guild 成员关系返回完整 READY 数据，包括 Guild、全部角色、当前成员的显式角色 ID、可见频道、这些频道的 permission overwrites，以及与频道列表对应的 `channel_layout_revision`。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
+内部 `GetUserReadyState` 在一次调用中按用户的有效 Guild 成员关系返回完整 READY 数据，包括 Guild、全部角色、当前成员的显式角色 ID、可见频道、这些频道的 permission overwrites，以及与频道列表对应的 `channel_layout_revision`；Session 会将该字段转发到公开 `ready` event。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
 
 ## Message
 

@@ -34,9 +34,9 @@ advisory lock; a stale token aborts the transaction with `Aborted`, and the
 public Connect API exposes this as HTTP `409 Conflict`. The server does not
 refresh or replay a stale client operation; clients must explicitly refresh and
 ask the user to retry. Name/topic-only channel updates do not change or require
-the layout revision. Internal READY Guild entries also carry the layout
-revision for their channel snapshot; Resume continues the existing event
-replay protocol and does not add a separate layout token.
+the layout revision. Internal READY Guild entries and the public `ready` event
+carry the layout revision for each channel snapshot; Resume continues the
+existing event replay protocol and does not add a separate layout token.
 
 ## Availability checks and avatar constraints
 

@@ -29,19 +29,20 @@ type readyPayload struct {
 }
 
 type readyGuild struct {
-	ID                   string                     `json:"id"`
-	OwnerID              string                     `json:"owner_id"`
-	Name                 string                     `json:"name"`
-	Description          string                     `json:"description"`
-	IconAssetID          string                     `json:"icon_asset_id"`
-	Revision             int64                      `json:"revision"`
-	AccessRevision       int64                      `json:"access_revision"`
-	CreatedAt            int64                      `json:"created_at"`
-	UpdatedAt            int64                      `json:"updated_at"`
-	Roles                []readyRole                `json:"roles"`
-	MemberRoleIDs        []string                   `json:"member_role_ids"`
-	Channels             []readyChannel             `json:"channels"`
-	PermissionOverwrites []readyPermissionOverwrite `json:"permission_overwrites"`
+	ID                    string                     `json:"id"`
+	OwnerID               string                     `json:"owner_id"`
+	Name                  string                     `json:"name"`
+	Description           string                     `json:"description"`
+	IconAssetID           string                     `json:"icon_asset_id"`
+	Revision              int64                      `json:"revision"`
+	AccessRevision        int64                      `json:"access_revision"`
+	ChannelLayoutRevision int64                      `json:"channel_layout_revision"`
+	CreatedAt             int64                      `json:"created_at"`
+	UpdatedAt             int64                      `json:"updated_at"`
+	Roles                 []readyRole                `json:"roles"`
+	MemberRoleIDs         []string                   `json:"member_role_ids"`
+	Channels              []readyChannel             `json:"channels"`
+	PermissionOverwrites  []readyPermissionOverwrite `json:"permission_overwrites"`
 }
 
 type readyRole struct {
@@ -215,7 +216,8 @@ func readyGuildValues(values []*guildv1.ReadyGuild) []readyGuild {
 			Description: guild.GetDescription(),
 			IconAssetID: strconv.FormatInt(guild.GetIconAssetId(), 10),
 			Revision:    guild.GetRevision(), AccessRevision: value.GetAccessRevision(),
-			CreatedAt: guild.GetCreatedAt(), UpdatedAt: guild.GetUpdatedAt(), Roles: roles,
+			ChannelLayoutRevision: value.GetChannelLayoutRevision(),
+			CreatedAt:             guild.GetCreatedAt(), UpdatedAt: guild.GetUpdatedAt(), Roles: roles,
 			MemberRoleIDs: stringifyIDs(value.GetMemberRoleIds()), Channels: channels,
 			PermissionOverwrites: overwrites,
 		})

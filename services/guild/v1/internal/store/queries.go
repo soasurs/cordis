@@ -529,6 +529,7 @@ const listGuildChannelsQuery = `
 
 const listGuildChannelsWithRevisionQuery = `
     SELECT
+        g.id AS snapshot_guild_id,
         g.channel_layout_revision,
         (c.id IS NOT NULL) AS has_channel,
         COALESCE(c.id, 0) AS id,
@@ -549,6 +550,31 @@ const listGuildChannelsWithRevisionQuery = `
     WHERE g.id = $1
       AND g.deleted_at = 0
     ORDER BY c.position ASC, c.id ASC
+`
+
+const listGuildChannelsWithRevisionsByGuildsQuery = `
+    SELECT
+        g.id AS snapshot_guild_id,
+        g.channel_layout_revision,
+        (c.id IS NOT NULL) AS has_channel,
+        COALESCE(c.id, 0) AS id,
+        COALESCE(c.guild_id, 0) AS guild_id,
+        COALESCE(c.name, '') AS name,
+        COALESCE(c.type, 0) AS type,
+        COALESCE(c.position, 0) AS position,
+        COALESCE(c.topic, '') AS topic,
+        COALESCE(c.revision, 0) AS revision,
+        COALESCE(c.created_at, 0) AS created_at,
+        COALESCE(c.updated_at, 0) AS updated_at,
+        COALESCE(c.deleted_at, 0) AS deleted_at,
+        COALESCE(c.parent_id, 0) AS parent_id
+    FROM guilds AS g
+    LEFT JOIN guild_channels AS c
+      ON c.guild_id = g.id
+     AND c.deleted_at = 0
+    WHERE g.id = ANY($1)
+      AND g.deleted_at = 0
+    ORDER BY g.id ASC, c.position ASC, c.id ASC
 `
 
 const listGuildChannelsByGuildsQuery = `

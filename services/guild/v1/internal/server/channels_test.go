@@ -210,7 +210,8 @@ func TestUpdateGuildChannelMetadataDoesNotRequireLayoutRevision(t *testing.T) {
 	fakeStore.channels[30] = &model.Channel{
 		ID: 30, GuildID: 10, Name: "first", Position: 0, Revision: 1,
 	}
-	server := newTestGuildServer(t, fakeStore, new(fakePublisher))
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
 
 	req := new(guildv1.UpdateGuildChannelRequest)
 	req.SetChannelId(30)
@@ -220,8 +221,15 @@ func TestUpdateGuildChannelMetadataDoesNotRequireLayoutRevision(t *testing.T) {
 	resp, err := server.UpdateGuildChannel(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, "renamed", resp.GetChannel().GetName())
-	require.Equal(t, int64(1), resp.GetChannelLayoutRevision())
+	require.False(t, resp.HasChannelLayoutRevision())
 	require.Zero(t, fakeStore.channelLocks)
+	require.Len(t, publisher.records, 1)
+	var event struct {
+		Data map[string]json.RawMessage `json:"d"`
+	}
+	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &event))
+	_, hasLayoutRevision := event.Data["channel_layout_revision"]
+	require.False(t, hasLayoutRevision)
 }
 
 func TestStructuralGuildChannelMutationsRequireLayoutRevision(t *testing.T) {

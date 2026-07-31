@@ -1112,6 +1112,7 @@ func TestUpdateGuildChannelPreservesFieldPresence(t *testing.T) {
 		updateChannelFn: func(*guildv1.UpdateGuildChannelRequest) (*guildv1.UpdateGuildChannelResponse, error) {
 			resp := new(guildv1.UpdateGuildChannelResponse)
 			resp.SetChannel(internalGuildChannel())
+			resp.SetChannelLayoutRevision(2)
 			return resp, nil
 		},
 	}
@@ -1123,13 +1124,15 @@ func TestUpdateGuildChannelPreservesFieldPresence(t *testing.T) {
 	updateChannelReq.SetName("renamed")
 	updateChannelReq.SetParentId(0)
 	updateChannelReq.SetExpectedChannelLayoutRevision(1)
-	_, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
+	resp, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
 	require.NoError(t, err)
 	require.Equal(t, int64(1001), guildClient.updateChannelReq.GetActorUserId())
 	require.True(t, guildClient.updateChannelReq.HasName())
 	require.False(t, guildClient.updateChannelReq.HasTopic())
 	require.True(t, guildClient.updateChannelReq.HasParentId())
 	require.Equal(t, int64(1), guildClient.updateChannelReq.GetExpectedChannelLayoutRevision())
+	require.True(t, resp.HasChannelLayoutRevision())
+	require.Equal(t, int64(2), resp.GetChannelLayoutRevision())
 }
 
 func TestUpdateGuildChannelMetadataDoesNotForwardLayoutRevision(t *testing.T) {
@@ -1146,9 +1149,10 @@ func TestUpdateGuildChannelMetadataDoesNotForwardLayoutRevision(t *testing.T) {
 	updateChannelReq := new(apiv1.UpdateGuildChannelRequest)
 	updateChannelReq.SetChannelId(5001)
 	updateChannelReq.SetName("renamed")
-	_, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
+	resp, err := client.UpdateGuildChannel(context.Background(), updateChannelReq)
 	require.NoError(t, err)
 	require.False(t, guildClient.updateChannelReq.HasExpectedChannelLayoutRevision())
+	require.False(t, resp.HasChannelLayoutRevision())
 }
 
 func TestDeleteGuildChannelMapsRequest(t *testing.T) {

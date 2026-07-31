@@ -97,7 +97,9 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *apiv1.UpdateG
 	}
 	resp := new(apiv1.UpdateGuildChannelResponse)
 	resp.SetChannel(guildChannelToAPI(svcResp.GetChannel()))
-	resp.SetChannelLayoutRevision(svcResp.GetChannelLayoutRevision())
+	if svcResp.HasChannelLayoutRevision() {
+		resp.SetChannelLayoutRevision(svcResp.GetChannelLayoutRevision())
+	}
 	return resp, nil
 }
 

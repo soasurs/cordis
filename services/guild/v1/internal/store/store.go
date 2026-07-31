@@ -168,6 +168,7 @@ type Store interface {
 	ListGuildChannels(ctx context.Context, guildID int64) ([]*model.Channel, error)
 	ListGuildChannelsWithRevision(ctx context.Context, guildID int64) ([]*model.Channel, int64, error)
 	ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error)
+	ListGuildChannelsWithRevisionsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, map[int64]int64, error)
 	UpdateGuildChannel(ctx context.Context, params UpdateGuildChannelParams) (*model.Channel, error)
 	UpdateGuildChannelPosition(ctx context.Context, guildID, channelID int64, position int32, updatedAt int64) (*model.Channel, error)
 	UpdateGuildChannelPositions(ctx context.Context, guildID int64, updates []GuildChannelPositionUpdate, updatedAt int64) ([]*model.Channel, error)

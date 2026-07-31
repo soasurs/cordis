@@ -35,7 +35,7 @@ func (s *guildServer) GetUserReadyState(
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	channels, err := s.svcCtx.Store.ListGuildChannelsByGuilds(ctx, guildIDs)
+	channels, layoutRevisions, err := s.svcCtx.Store.ListGuildChannelsWithRevisionsByGuilds(ctx, guildIDs)
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
@@ -70,7 +70,7 @@ func (s *guildServer) GetUserReadyState(
 		ready := new(guildv1.ReadyGuild)
 		ready.SetGuild(guildToProto(guild))
 		ready.SetAccessRevision(guild.AccessRevision)
-		ready.SetChannelLayoutRevision(guild.ChannelLayoutRevision)
+		ready.SetChannelLayoutRevision(layoutRevisions[guild.ID])
 		ready.SetRoles(guildRolesToProto(rolesByGuild[guild.ID]))
 		ready.SetMemberRoleIds(memberRoleIDs)
 		ready.SetChannels(guildChannelsToProto(visible))

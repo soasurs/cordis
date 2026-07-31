@@ -367,8 +367,7 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 			)
 			return err
 		}
-		layoutRevision, err = txStore.GetGuildChannelLayoutRevision(ctx, channel.GuildID)
-		return err
+		return nil
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
@@ -389,7 +388,9 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 	s.publishEvents(ctx, events)
 	resp := new(guildv1.UpdateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(updated))
-	resp.SetChannelLayoutRevision(layoutRevision)
+	if layoutChanged {
+		resp.SetChannelLayoutRevision(layoutRevision)
+	}
 	return resp, nil
 }
 

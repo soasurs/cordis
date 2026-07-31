@@ -61,6 +61,10 @@ func testGuildChannelLayoutRevision(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Empty(t, channels)
 	require.Equal(t, revision, snapshotRevision)
+	batchChannels, batchRevisions, err := store.ListGuildChannelsWithRevisionsByGuilds(ctx, []int64{guildID})
+	require.NoError(t, err)
+	require.Empty(t, batchChannels)
+	require.Equal(t, map[int64]int64{guildID: revision}, batchRevisions)
 
 	revision, err = store.AdvanceGuildChannelLayoutRevision(ctx, guildID, revision)
 	require.NoError(t, err)
@@ -653,6 +657,10 @@ func testGuildChannels(t *testing.T, store Store) {
 	require.NoError(t, err)
 	require.Len(t, snapshot, 3)
 	require.Equal(t, int64(1), layoutRevision)
+	batchSnapshot, batchRevisions, err := store.ListGuildChannelsWithRevisionsByGuilds(ctx, []int64{guildID})
+	require.NoError(t, err)
+	require.Len(t, batchSnapshot, 3)
+	require.Equal(t, map[int64]int64{guildID: layoutRevision}, batchRevisions)
 
 	loaded, err := store.GetGuildChannel(ctx, 10702)
 	require.NoError(t, err)

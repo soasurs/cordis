@@ -10,19 +10,20 @@ import (
 )
 
 type channelRow struct {
-	ID             int64  `db:"id"`
-	GuildID        int64  `db:"guild_id"`
-	Name           string `db:"name"`
-	Type           int32  `db:"type"`
-	Position       int32  `db:"position"`
-	Topic          string `db:"topic"`
-	Revision       int64  `db:"revision"`
-	CreatedAt      int64  `db:"created_at"`
-	UpdatedAt      int64  `db:"updated_at"`
-	DeletedAt      int64  `db:"deleted_at"`
-	ParentID       int64  `db:"parent_id"`
-	LayoutRevision int64  `db:"channel_layout_revision"`
-	HasChannel     bool   `db:"has_channel"`
+	ID              int64  `db:"id"`
+	GuildID         int64  `db:"guild_id"`
+	Name            string `db:"name"`
+	Type            int32  `db:"type"`
+	Position        int32  `db:"position"`
+	Topic           string `db:"topic"`
+	Revision        int64  `db:"revision"`
+	CreatedAt       int64  `db:"created_at"`
+	UpdatedAt       int64  `db:"updated_at"`
+	DeletedAt       int64  `db:"deleted_at"`
+	ParentID        int64  `db:"parent_id"`
+	LayoutRevision  int64  `db:"channel_layout_revision"`
+	HasChannel      bool   `db:"has_channel"`
+	SnapshotGuildID int64  `db:"snapshot_guild_id"`
 }
 
 type channelOverwriteRow struct {
@@ -91,6 +92,28 @@ func (s *SQLStore) ListGuildChannelsWithRevision(
 		}
 	}
 	return channels, rows[0].LayoutRevision, nil
+}
+
+func (s *SQLStore) ListGuildChannelsWithRevisionsByGuilds(
+	ctx context.Context,
+	guildIDs []int64,
+) ([]*model.Channel, map[int64]int64, error) {
+	revisions := make(map[int64]int64, len(guildIDs))
+	if len(guildIDs) == 0 {
+		return nil, revisions, nil
+	}
+	var rows []*channelRow
+	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildChannelsWithRevisionsByGuildsQuery, guildIDs); err != nil {
+		return nil, nil, err
+	}
+	channels := make([]*model.Channel, 0, len(rows))
+	for _, row := range rows {
+		revisions[row.SnapshotGuildID] = row.LayoutRevision
+		if row.HasChannel {
+			channels = append(channels, channelFromRow(row))
+		}
+	}
+	return channels, revisions, nil
 }
 
 func (s *SQLStore) ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error) {

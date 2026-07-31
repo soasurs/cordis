@@ -1224,6 +1224,23 @@ func (s *fakeStore) ListGuildChannelsWithRevision(
 	return channels, revision, nil
 }
 
+func (s *fakeStore) ListGuildChannelsWithRevisionsByGuilds(
+	ctx context.Context,
+	guildIDs []int64,
+) ([]*model.Channel, map[int64]int64, error) {
+	var channels []*model.Channel
+	revisions := make(map[int64]int64, len(guildIDs))
+	for _, guildID := range guildIDs {
+		values, revision, err := s.ListGuildChannelsWithRevision(ctx, guildID)
+		if err != nil {
+			return nil, nil, err
+		}
+		channels = append(channels, values...)
+		revisions[guildID] = revision
+	}
+	return channels, revisions, nil
+}
+
 func (s *fakeStore) ListGuildChannelsByGuilds(ctx context.Context, guildIDs []int64) ([]*model.Channel, error) {
 	var channels []*model.Channel
 	for _, guildID := range guildIDs {

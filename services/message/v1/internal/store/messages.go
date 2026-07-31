@@ -40,6 +40,17 @@ type messageRow struct {
 	UpdatedAt           int64         `db:"updated_at"`
 	Revision            int64         `db:"revision"`
 	DeletedAt           int64         `db:"deleted_at"`
+	MentionEveryone     bool          `db:"mention_everyone"`
+}
+
+type messageMentionRow struct {
+	MessageID int64 `db:"message_id"`
+	TargetID  int64 `db:"user_id"`
+}
+
+type messageEveryoneRow struct {
+	MessageID int64 `db:"id"`
+	Everyone  bool  `db:"mention_everyone"`
 }
 
 type queryArgs struct {
@@ -204,19 +215,37 @@ func (s *SQLStore) DeleteMessage(ctx context.Context, messageID, actorUserID int
 	return row.toModel()
 }
 
-func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, userIDs []int64) error {
+func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, mentions model.MessageMentions) error {
 	if _, err := s.q.ExecContext(ctx, DeleteMessageMentionsStatement, messageID); err != nil {
 		return err
 	}
+	if _, err := s.q.ExecContext(ctx, DeleteMessageRoleMentionsStatement, messageID); err != nil {
+		return err
+	}
+	if _, err := s.q.ExecContext(ctx, UpdateMessageMentionEveryoneStatement, messageID, mentions.Everyone); err != nil {
+		return err
+	}
+	if err := s.batchInsertMentions(ctx, messageID, mentions.UserIDs, 1); err != nil {
+		return err
+	}
+	return s.batchInsertRoleMentions(ctx, messageID, mentions.RoleIDs)
+}
+
+func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, userIDs []int64, source int) error {
 	ids := uniquePositiveIDs(userIDs)
 	if len(ids) == 0 {
 		return nil
 	}
-	return s.batchInsertMentions(ctx, messageID, ids)
+	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, ids, source)
+	return err
 }
 
-func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, userIDs []int64) error {
-	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, userIDs)
+func (s *SQLStore) batchInsertRoleMentions(ctx context.Context, messageID int64, roleIDs []int64) error {
+	ids := uniquePositiveIDs(roleIDs)
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := s.q.ExecContext(ctx, InsertMessageRoleMentionsStatement, messageID, ids)
 	return err
 }
 
@@ -226,6 +255,66 @@ func (s *SQLStore) ListMentionUserIDs(ctx context.Context, messageID int64) ([]i
 		return nil, err
 	}
 	return userIDs, nil
+}
+
+func (s *SQLStore) ListMessageMentions(ctx context.Context, messageID int64) (*model.MessageMentions, error) {
+	mentions, err := s.ListMessagesMentions(ctx, []int64{messageID})
+	if err != nil {
+		return nil, err
+	}
+	if value, ok := mentions[messageID]; ok {
+		return value, nil
+	}
+	return &model.MessageMentions{}, nil
+}
+
+func (s *SQLStore) ListMessagesMentions(ctx context.Context, messageIDs []int64) (map[int64]*model.MessageMentions, error) {
+	if len(messageIDs) == 0 {
+		return map[int64]*model.MessageMentions{}, nil
+	}
+	byMessage := make(map[int64]*model.MessageMentions, len(messageIDs))
+	for _, messageID := range messageIDs {
+		byMessage[messageID] = &model.MessageMentions{}
+	}
+
+	var userRows []messageMentionRow
+	if err := sqlx.SelectContext(ctx, s.q, &userRows, ListMessagesMentionsQuery, messageIDs); err != nil {
+		return nil, err
+	}
+	for _, row := range userRows {
+		byMessage[row.MessageID].UserIDs = append(byMessage[row.MessageID].UserIDs, row.TargetID)
+	}
+
+	var roleRows []messageMentionRow
+	if err := sqlx.SelectContext(ctx, s.q, &roleRows, ListMessagesRoleMentionsQuery, messageIDs); err != nil {
+		return nil, err
+	}
+	for _, row := range roleRows {
+		byMessage[row.MessageID].RoleIDs = append(byMessage[row.MessageID].RoleIDs, row.TargetID)
+	}
+
+	var everyoneRows []messageEveryoneRow
+	if err := sqlx.SelectContext(ctx, s.q, &everyoneRows, ListMessagesMentionEveryoneQuery, messageIDs); err != nil {
+		return nil, err
+	}
+	for _, row := range everyoneRows {
+		byMessage[row.MessageID].Everyone = row.Everyone
+	}
+	return byMessage, nil
+}
+
+func (s *SQLStore) DeleteExpandedMessageMentions(ctx context.Context, messageID int64) error {
+	_, err := s.q.ExecContext(ctx, DeleteExpandedMessageMentionsStatement, messageID)
+	return err
+}
+
+func (s *SQLStore) UpsertExpandedMessageMentions(ctx context.Context, messageID int64, userIDs []int64) error {
+	ids := uniquePositiveIDs(userIDs)
+	if len(ids) == 0 {
+		return nil
+	}
+	_, err := s.q.ExecContext(ctx, InsertExpandedMessageMentionsStatement, messageID, ids)
+	return err
 }
 
 func (s *SQLStore) selectMessages(ctx context.Context, query string, args ...any) ([]*model.Message, error) {
@@ -313,6 +402,7 @@ func (r *messageRow) toModel() (*model.Message, error) {
 	if r.EditedAt.Valid {
 		message.EditedAt = r.EditedAt.Int64
 	}
+	message.Mentions = model.MessageMentions{Everyone: r.MentionEveryone}
 	return message, nil
 }
 

@@ -44,7 +44,6 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *apiv1.CreateMess
 	svcReq.SetReferencedMessageId(req.GetReferencedMessageId())
 	svcReq.SetReferencedChannelId(req.GetReferencedChannelId())
 	svcReq.SetAttachments(attachmentsToMessageService(req.GetAttachments()))
-	svcReq.SetMentionUserIds(req.GetMentionUserIds())
 	if req.HasIdempotencyKey() {
 		svcReq.SetIdempotencyKey(req.GetIdempotencyKey())
 	}
@@ -146,12 +145,6 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *apiv1.UpdateMess
 		attachments.SetAttachments(attachmentsToMessageService(req.GetAttachments().GetAttachments()))
 		svcReq.SetAttachments(attachments)
 	}
-	if req.HasMentions() {
-		mentions := new(messagev1.MentionList)
-		mentions.SetUserIds(req.GetMentions().GetUserIds())
-		svcReq.SetMentions(mentions)
-	}
-
 	svcResp, err := s.svcCtx.MessageClient.UpdateMessage(ctx, svcReq)
 	if err != nil {
 		return nil, apierror.FromRPC(err)
@@ -268,6 +261,9 @@ func messageToAPI(message *messagev1.Message, author *userv1.UserProfile) *apiv1
 	resp.SetCreatedAt(message.GetCreatedAt())
 	resp.SetUpdatedAt(message.GetUpdatedAt())
 	resp.SetRevision(message.GetRevision())
+	resp.SetMentionUserIds(message.GetMentionUserIds())
+	resp.SetMentionRoleIds(message.GetMentionRoleIds())
+	resp.SetMentionEveryone(message.GetMentionEveryone())
 	return resp
 }
 

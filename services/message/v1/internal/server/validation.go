@@ -93,6 +93,13 @@ func validateMentionUserIDs(userIDs []int64, limit int) error {
 	return nil
 }
 
+func validateMentionsSet(mentions model.MessageMentions, limit int) error {
+	if len(mentions.UserIDs)+len(mentions.RoleIDs) > limit {
+		return resourceLimitExceeded("mention limit exceeded")
+	}
+	return nil
+}
+
 func normalizeLimit(value int32, defaultValue, maxValue int) (int, error) {
 	if value == 0 {
 		return defaultValue, nil

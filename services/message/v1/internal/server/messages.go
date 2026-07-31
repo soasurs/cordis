@@ -60,12 +60,15 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	if (req.GetReferencedMessageId() == 0) != (req.GetReferencedChannelId() == 0) {
 		return nil, invalidRequest("referenced message and channel must be set together")
 	}
-	if err := validateMentionUserIDs(req.GetMentionUserIds(), s.svcCtx.Cfg.Limits.Mentions()); err != nil {
-		return nil, err
-	}
-	mentionUserIDs := normalizeMentionUserIDs(req.GetMentionUserIds())
 	audience, err := s.requireChannelPermission(ctx, req.GetChannelId(), req.GetAuthorId(), permissionSendMessages)
 	if err != nil {
+		return nil, err
+	}
+	mentions, err := s.resolveMentions(ctx, req.GetContent(), audience, req.GetAuthorId())
+	if err != nil {
+		return nil, err
+	}
+	if err := validateMentionsSet(mentions, s.svcCtx.Cfg.Limits.Mentions()); err != nil {
 		return nil, err
 	}
 
@@ -96,7 +99,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 			req.GetReferencedMessageId(),
 			req.GetReferencedChannelId(),
 			attachments,
-			mentionUserIDs,
+			mentions,
 		)
 		if err != nil {
 			return nil, err
@@ -153,7 +156,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		}
 		created = message
 
-		if err := txStore.ReplaceMessageMentions(ctx, messageID, mentionUserIDs); err != nil {
+		if err := txStore.ReplaceMessageMentions(ctx, messageID, mentions); err != nil {
 			return err
 		}
 		authorReadAdvanced, err = txStore.AckMessage(ctx, req.GetAuthorId(), req.GetChannelId(), messageID)
@@ -183,7 +186,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 	}
 
 	if createdNewMessage {
-		events, eventErr := newMessageCreatedEvents(created, author, mentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
+		events, eventErr := newMessageCreatedEvents(created, author, mentions, audience, s.svcCtx.Snowflake.Generate().Int64())
 		s.publishEvents(ctx, events, eventErr)
 		if authorReadAdvanced {
 			s.publishReadStateUpdated(ctx, authorReadState)
@@ -203,7 +206,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	if req.GetActorUserId() <= 0 {
 		return nil, invalidRequest("actor user id is required")
 	}
-	if !req.HasContent() && !req.HasFlags() && !req.HasAttachments() && !req.HasMentions() {
+	if !req.HasContent() && !req.HasFlags() && !req.HasAttachments() {
 		return nil, invalidRequest("at least one field must be updated")
 	}
 	current, err := s.svcCtx.Store.GetMessage(ctx, req.GetMessageId())
@@ -260,8 +263,13 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		params.Attachments = &attachments
 		attachmentURLSource = attachments
 	}
-	if req.HasMentions() {
-		if err := validateMentionUserIDs(req.GetMentions().GetUserIds(), s.svcCtx.Cfg.Limits.Mentions()); err != nil {
+	var newMentions model.MessageMentions
+	if req.HasContent() {
+		newMentions, err = s.resolveMentions(ctx, req.GetContent(), audience, req.GetActorUserId())
+		if err != nil {
+			return nil, err
+		}
+		if err := validateMentionsSet(newMentions, s.svcCtx.Cfg.Limits.Mentions()); err != nil {
 			return nil, err
 		}
 	}
@@ -273,8 +281,8 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	}
 
 	var updated *model.Message
-	var mentionUserIDs []int64
-	var previousMentionUserIDs []int64
+	var mentions model.MessageMentions
+	var previousMentions model.MessageMentions
 
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		message, err := txStore.UpdateMessage(ctx, params)
@@ -283,23 +291,22 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 		}
 		updated = message
 
-		if req.HasMentions() {
-			previousMentionUserIDs, err = txStore.ListMentionUserIDs(ctx, req.GetMessageId())
+		if req.HasContent() {
+			stored, err := txStore.ListMessageMentions(ctx, req.GetMessageId())
 			if err != nil {
 				return err
 			}
-			if err := txStore.ReplaceMessageMentions(ctx, req.GetMessageId(), req.GetMentions().GetUserIds()); err != nil {
+			previousMentions = *stored
+			if err := txStore.ReplaceMessageMentions(ctx, req.GetMessageId(), newMentions); err != nil {
 				return err
 			}
-		}
-
-		if req.HasMentions() {
-			mentionUserIDs = req.GetMentions().GetUserIds()
+			mentions = newMentions
 		} else {
-			mentionUserIDs, err = txStore.ListMentionUserIDs(ctx, req.GetMessageId())
+			stored, err := txStore.ListMessageMentions(ctx, req.GetMessageId())
 			if err != nil {
 				return err
 			}
+			mentions = *stored
 		}
 		return nil
 	})
@@ -308,7 +315,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 	}
 	copyAttachmentURLs(updated.Attachments, attachmentURLSource)
 
-	events, eventErr := newMessageUpdatedEvents(updated, author, mentionUserIDs, previousMentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
+	events, eventErr := newMessageUpdatedEvents(updated, author, mentions, previousMentions, audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
@@ -339,16 +346,20 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 	}
 
 	var deleted *model.Message
-	var mentionUserIDs []int64
+	var mentions model.MessageMentions
 	var lastMessageID int64
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
 		var err error
-		mentionUserIDs, err = txStore.ListMentionUserIDs(ctx, req.GetMessageId())
+		stored, err := txStore.ListMessageMentions(ctx, req.GetMessageId())
 		if err != nil {
 			return err
 		}
+		mentions = *stored
 		message, err := txStore.DeleteMessage(ctx, req.GetMessageId(), req.GetActorUserId(), hasModPermission)
 		if err != nil {
+			return err
+		}
+		if err := txStore.ReplaceMessageMentions(ctx, req.GetMessageId(), model.MessageMentions{}); err != nil {
 			return err
 		}
 		deleted = message
@@ -358,7 +369,7 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	events, eventErr := newMessageDeletedEvents(deleted, lastMessageID, mentionUserIDs, audience, s.svcCtx.Snowflake.Generate().Int64())
+	events, eventErr := newMessageDeletedEvents(deleted, lastMessageID, mentions, audience, s.svcCtx.Snowflake.Generate().Int64())
 	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.DeleteMessageResponse)
@@ -383,6 +394,12 @@ func (s *messageServer) GetMessage(ctx context.Context, req *messagev1.GetMessag
 	if err := s.hydrateAttachmentURLs(ctx, message); err != nil {
 		return nil, err
 	}
+	mentions, err := s.svcCtx.Store.ListMessageMentions(ctx, message.ID)
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	message.Mentions.UserIDs = mentions.UserIDs
+	message.Mentions.RoleIDs = mentions.RoleIDs
 	author, err := s.getAuthor(ctx, message.AuthorID)
 	if err != nil {
 		return nil, err
@@ -437,6 +454,20 @@ func (s *messageServer) ListMessages(ctx context.Context, req *messagev1.ListMes
 	}
 	if err := s.hydrateAttachmentURLs(ctx, messages...); err != nil {
 		return nil, err
+	}
+	messageIDs := make([]int64, 0, len(messages))
+	for _, message := range messages {
+		messageIDs = append(messageIDs, message.ID)
+	}
+	mentionsByMessage, err := s.svcCtx.Store.ListMessagesMentions(ctx, messageIDs)
+	if err != nil {
+		return nil, mapStoreError(err)
+	}
+	for _, message := range messages {
+		if mentions, ok := mentionsByMessage[message.ID]; ok {
+			message.Mentions.UserIDs = mentions.UserIDs
+			message.Mentions.RoleIDs = mentions.RoleIDs
+		}
 	}
 	resp := new(messagev1.ListMessagesResponse)
 	resp.SetMessages(messagesToProto(messages))

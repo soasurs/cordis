@@ -29,6 +29,8 @@ type createMessageFingerprint struct {
 	ReferencedChannelID int64   `json:"referenced_channel_id"`
 	AttachmentAssetIDs  []int64 `json:"attachment_asset_ids"`
 	MentionUserIDs      []int64 `json:"mention_user_ids"`
+	MentionRoleIDs      []int64 `json:"mention_role_ids"`
+	MentionEveryone     bool    `json:"mention_everyone"`
 }
 
 func createMessageRequestHash(
@@ -38,16 +40,14 @@ func createMessageRequestHash(
 	flags int32,
 	referencedMessageID, referencedChannelID int64,
 	attachments []model.Attachment,
-	mentionUserIDs []int64,
+	mentions model.MessageMentions,
 ) ([]byte, error) {
 	attachmentAssetIDs := make([]int64, 0, len(attachments))
 	for _, attachment := range attachments {
 		attachmentAssetIDs = append(attachmentAssetIDs, attachment.AssetID)
 	}
-	mentions := normalizeMentionUserIDs(mentionUserIDs)
-
 	value := createMessageFingerprint{
-		Version:             1,
+		Version:             2,
 		ChannelID:           channelID,
 		Content:             content,
 		Type:                int64(messageType),
@@ -55,7 +55,9 @@ func createMessageRequestHash(
 		ReferencedMessageID: referencedMessageID,
 		ReferencedChannelID: referencedChannelID,
 		AttachmentAssetIDs:  attachmentAssetIDs,
-		MentionUserIDs:      mentions,
+		MentionUserIDs:      normalizeMentionUserIDs(mentions.UserIDs),
+		MentionRoleIDs:      normalizeMentionUserIDs(mentions.RoleIDs),
+		MentionEveryone:     mentions.Everyone,
 	}
 	data, err := json.Marshal(value)
 	if err != nil {

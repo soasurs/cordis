@@ -46,6 +46,9 @@ func TestDispatcherIntegration(t *testing.T) {
 	t.Run("retry preserves uncommitted offset", func(t *testing.T) { testRetryPreservesUncommittedOffset(t, env) })
 	t.Run("topic retry isolation", func(t *testing.T) { testTopicRetryIsolation(t, env) })
 	t.Run("partition retry isolation", func(t *testing.T) { testPartitionRetryIsolation(t, env) })
+	t.Run("retry survives rebalance", func(t *testing.T) { testRetrySurvivesRebalance(t, env) })
+	t.Run("shutdown flushes completed offsets", func(t *testing.T) { testShutdownFlushesCompletedOffsets(t, env) })
+	t.Run("partition queue preserves order", func(t *testing.T) { testPartitionQueuePreservesOrder(t, env) })
 	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
 	t.Run("user route", func(t *testing.T) { testUserRoute(t, env) })
 	t.Run("presence fan-out", func(t *testing.T) { testPresenceFanOut(t, env) })
@@ -195,6 +198,149 @@ func testPartitionRetryIsolation(t *testing.T, env *dispatcherEnv) {
 	}, 15*time.Second, 50*time.Millisecond, "retried partition must commit after recovery")
 }
 
+func testRetrySurvivesRebalance(t *testing.T, env *dispatcherEnv) {
+	const (
+		guildID = int64(7270)
+		channel = int64(7271)
+	)
+	h := newHarness(t, env)
+	node := newRecordingSessionServer()
+	node.setChannelFailingFor(channel, true)
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteGuild, guildID, "session-a", "generation-1")
+	firstCancel, firstDone := h.startDispatcherWithConfig(t, config.DispatcherConfig{
+		DispatchTimeoutSeconds:     5,
+		RetryMinMilliseconds:       10,
+		RetryMaxSeconds:            1,
+		CommitIntervalMilliseconds: 100,
+	})
+
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9203","guild_id":"7270","channel_id":"7271"},"idempotency_key":"1019"}`)
+	require.Eventually(t, func() bool { return node.channelCallsFor(channel) >= 2 },
+		15*time.Second, 20*time.Millisecond, "first dispatcher did not enter retry")
+
+	secondCancel, secondDone := h.startDispatcherWithConfig(t, config.DispatcherConfig{
+		DispatchTimeoutSeconds:     5,
+		RetryMinMilliseconds:       10,
+		RetryMaxSeconds:            1,
+		CommitIntervalMilliseconds: 100,
+	})
+	firstCancel()
+	select {
+	case <-firstDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("first dispatcher did not stop")
+	}
+	require.Equal(t, int64(-1), h.committedOffset(t, h.messageTopic),
+		"retrying record must not be committed during rebalance")
+
+	node.setChannelFailingFor(channel, false)
+	require.Equal(t, channel, node.waitChannelEvent(t).GetChannelId())
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.messageTopic) == 1 },
+		15*time.Second, 50*time.Millisecond, "reassigned worker must commit after recovery")
+	secondCancel()
+	select {
+	case <-secondDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("second dispatcher did not stop")
+	}
+}
+
+func testShutdownFlushesCompletedOffsets(t *testing.T, env *dispatcherEnv) {
+	const (
+		completedGuild = int64(7280)
+		completedCh    = int64(7281)
+		failingGuild   = int64(7282)
+		failingCh      = int64(7283)
+	)
+	h := newPartitionedHarness(t, env, 2)
+	node := newRecordingSessionServer()
+	node.setChannelFailingFor(failingCh, true)
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteGuild, completedGuild, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, failingGuild, "session-a", "generation-1")
+	cancel, done := h.startDispatcherWithConfig(t, config.DispatcherConfig{
+		DispatchTimeoutSeconds:     5,
+		RetryMinMilliseconds:       10,
+		RetryMaxSeconds:            1,
+		CommitIntervalMilliseconds: 100,
+	})
+
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9204","guild_id":"7280","channel_id":"7281"},"idempotency_key":"1020"}`)
+	h.producePartition(t, h.messageTopic, 1,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9205","guild_id":"7282","channel_id":"7283"},"idempotency_key":"1021"}`)
+	require.Eventually(t, func() bool { return node.channelCallsFor(failingCh) >= 2 },
+		15*time.Second, 20*time.Millisecond, "shutdown test did not enter retry")
+	require.Equal(t, completedCh, node.waitChannelEvent(t).GetChannelId())
+
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("dispatcher did not stop")
+	}
+	require.Equal(t, int64(1), h.committedOffsetForPartition(t, h.messageTopic, 0),
+		"shutdown must flush completed partition offsets")
+	require.Equal(t, int64(-1), h.committedOffsetForPartition(t, h.messageTopic, 1),
+		"shutdown must not commit the retrying record")
+}
+
+func testPartitionQueuePreservesOrder(t *testing.T, env *dispatcherEnv) {
+	const (
+		firstGuild  = int64(7290)
+		secondGuild = int64(7291)
+		thirdGuild  = int64(7292)
+		firstCh     = int64(7293)
+		secondCh    = int64(7294)
+		thirdCh     = int64(7295)
+	)
+	h := newHarness(t, env)
+	base := newRecordingSessionServer()
+	node := &blockingRecordingSessionServer{
+		recordingSessionServer: base,
+		blockChannel:           firstCh,
+		started:                make(chan struct{}),
+		release:                make(chan struct{}),
+	}
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteGuild, firstGuild, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, secondGuild, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, thirdGuild, "session-a", "generation-1")
+	h.startDispatcherWithConfig(t, config.DispatcherConfig{
+		DispatchTimeoutSeconds:     5,
+		RetryMinMilliseconds:       10,
+		RetryMaxSeconds:            1,
+		MaxPollRecords:             3,
+		PartitionQueueSize:         1,
+		CommitIntervalMilliseconds: 100,
+	})
+
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9206","guild_id":"7290","channel_id":"7293"},"idempotency_key":"1022"}`)
+	require.Eventually(t, func() bool {
+		select {
+		case <-node.started:
+			return true
+		default:
+			return false
+		}
+	}, 15*time.Second, 20*time.Millisecond, "first queue record did not start")
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9207","guild_id":"7291","channel_id":"7294"},"idempotency_key":"1023"}`)
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9208","guild_id":"7292","channel_id":"7295"},"idempotency_key":"1024"}`)
+	close(node.release)
+
+	got := []int64{
+		node.waitChannelEvent(t).GetChannelId(),
+		node.waitChannelEvent(t).GetChannelId(),
+		node.waitChannelEvent(t).GetChannelId(),
+	}
+	require.Equal(t, []int64{firstCh, secondCh, thirdCh}, got)
+}
+
 func testPoisonPillDoesNotBlockPartition(t *testing.T, env *dispatcherEnv) {
 	const guildID = int64(7300)
 	h := newHarness(t, env)
@@ -317,6 +463,16 @@ func (h *dispatcherHarness) addRoute(t *testing.T, kind discovery.RouteKind, id 
 
 func (h *dispatcherHarness) startDispatcher(t *testing.T) {
 	t.Helper()
+	h.startDispatcherWithConfig(t, config.DispatcherConfig{
+		DispatchTimeoutSeconds:     5,
+		RetryMinMilliseconds:       10,
+		RetryMaxSeconds:            1,
+		CommitIntervalMilliseconds: 100,
+	})
+}
+
+func (h *dispatcherHarness) startDispatcherWithConfig(t *testing.T, dispatcherConfig config.DispatcherConfig) (context.CancelFunc, <-chan struct{}) {
+	t.Helper()
 	dispatcher := New(config.Config{
 		Kafka: config.KafkaConfig{
 			Seeds:                 []string{h.env.kafkaAddress},
@@ -329,11 +485,7 @@ func (h *dispatcherHarness) startDispatcher(t *testing.T) {
 			UserConsumerGroup:     h.consumerGroups["user"],
 			PresenceConsumerGroup: h.consumerGroups["presence"],
 		},
-		Dispatcher: config.DispatcherConfig{
-			DispatchTimeoutSeconds: 5,
-			RetryMinMilliseconds:   10,
-			RetryMaxSeconds:        1,
-		},
+		Dispatcher: dispatcherConfig,
 	},
 		discovery.NewRedisResolver(h.env.rds, h.registry),
 		h.userClient,
@@ -355,6 +507,7 @@ func (h *dispatcherHarness) startDispatcher(t *testing.T) {
 			t.Error("dispatcher did not stop")
 		}
 	})
+	return cancel, done
 }
 
 func (h *dispatcherHarness) produce(t *testing.T, topic, key, value string) {
@@ -458,6 +611,29 @@ type recordingSessionServer struct {
 	channelEvents    chan *sessionv1.DispatchGuildMessageEventRequest
 	guildEventsCh    chan *sessionv1.DispatchGuildEventRequest
 	userEventsCh     chan *sessionv1.DispatchUserEventRequest
+}
+
+type blockingRecordingSessionServer struct {
+	*recordingSessionServer
+	blockChannel int64
+	started      chan struct{}
+	release      chan struct{}
+	startOnce    sync.Once
+}
+
+func (s *blockingRecordingSessionServer) DispatchGuildMessageEvent(
+	ctx context.Context,
+	req *sessionv1.DispatchGuildMessageEventRequest,
+) (*sessionv1.DispatchGuildMessageEventResponse, error) {
+	if req.GetChannelId() == s.blockChannel {
+		s.startOnce.Do(func() { close(s.started) })
+		select {
+		case <-s.release:
+		case <-ctx.Done():
+			return nil, status.Error(codes.Canceled, "blocked dispatch canceled")
+		}
+	}
+	return s.recordingSessionServer.DispatchGuildMessageEvent(ctx, req)
 }
 
 func newRecordingSessionServer() *recordingSessionServer {

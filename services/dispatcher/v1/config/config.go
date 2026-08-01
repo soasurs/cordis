@@ -42,9 +42,10 @@ type KafkaConfig struct {
 }
 
 type DispatcherConfig struct {
-	DispatchTimeoutSeconds int `json:",default=5"`
-	RetryMinMilliseconds   int `json:",default=100"`
-	RetryMaxSeconds        int `json:",default=5"`
-	MaxPollRecords         int `json:",default=32"`
-	PartitionQueueSize     int `json:",default=16"`
+	DispatchTimeoutSeconds     int `json:",default=5"`
+	RetryMinMilliseconds       int `json:",default=100"`
+	RetryMaxSeconds            int `json:",default=5"`
+	MaxPollRecords             int `json:",default=32"`
+	PartitionQueueSize         int `json:",default=16"`
+	CommitIntervalMilliseconds int `json:",default=100"`
 }

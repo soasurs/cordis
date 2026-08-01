@@ -106,6 +106,7 @@ type partitionRuntime struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
 	client    *kgo.Client
+	committer *partitionCommitter
 	workers   map[partitionKey]*partitionWorker
 	pending   map[partitionKey][]*kgo.Record
 	paused    map[partitionKey]bool
@@ -127,6 +128,191 @@ type partitionWorker struct {
 	mu            sync.Mutex
 	active        bool
 	lastCompleted *kgo.Record
+}
+
+const (
+	defaultCommitInterval = 100 * time.Millisecond
+	commitBatchSize       = 32
+)
+
+type commitClient interface {
+	CommitRecords(context.Context, ...*kgo.Record) error
+}
+
+// partitionCommitter coalesces completed offsets and commits them outside of
+// partition workers. A stalled Kafka offset commit must not stall dispatching.
+type partitionCommitter struct {
+	client   commitClient
+	ctx      context.Context
+	cancel   context.CancelFunc
+	interval time.Duration
+	timeout  time.Duration
+	wake     chan struct{}
+	done     chan struct{}
+	stopOnce sync.Once
+
+	mu       sync.Mutex
+	pending  map[partitionKey]*kgo.Record
+	commitMu sync.Mutex
+}
+
+func newPartitionCommitter(parent context.Context, client commitClient, interval, timeout time.Duration) *partitionCommitter {
+	if interval <= 0 {
+		interval = defaultCommitInterval
+	}
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+	ctx, cancel := context.WithCancel(parent)
+	committer := &partitionCommitter{
+		client:   client,
+		ctx:      ctx,
+		cancel:   cancel,
+		interval: interval,
+		timeout:  timeout,
+		wake:     make(chan struct{}, 1),
+		done:     make(chan struct{}),
+		pending:  make(map[partitionKey]*kgo.Record),
+	}
+	go committer.run()
+	return committer
+}
+
+func (c *partitionCommitter) run() {
+	defer close(c.done)
+	ticker := time.NewTicker(c.interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-c.ctx.Done():
+			return
+		case <-ticker.C:
+			c.flush()
+		case <-c.wake:
+			c.flush()
+		}
+	}
+}
+
+func (c *partitionCommitter) mark(record *kgo.Record) {
+	if record == nil {
+		return
+	}
+	key := partitionKey{topic: record.Topic, partition: record.Partition}
+	completed := cloneCompletedRecord(record)
+	c.mu.Lock()
+	current := c.pending[key]
+	if current == nil || recordAfter(current, completed) {
+		c.pending[key] = completed
+	}
+	flush := len(c.pending) >= commitBatchSize
+	c.mu.Unlock()
+	if flush {
+		select {
+		case c.wake <- struct{}{}:
+		default:
+		}
+	}
+}
+
+func (c *partitionCommitter) flush() {
+	c.commitMu.Lock()
+	defer c.commitMu.Unlock()
+	batch := c.takePending()
+	if len(batch) == 0 || c.ctx.Err() != nil {
+		return
+	}
+	commitCtx, cancel := context.WithTimeout(c.ctx, c.timeout)
+	err := c.client.CommitRecords(commitCtx, batch...)
+	cancel()
+	if err == nil || c.ctx.Err() != nil {
+		return
+	}
+	logx.WithContext(c.ctx).Errorw("commit dispatcher offsets", logx.Field("error", err))
+	c.requeue(batch)
+}
+
+func (c *partitionCommitter) takePending() []*kgo.Record {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.pending) == 0 {
+		return nil
+	}
+	batch := make([]*kgo.Record, 0, len(c.pending))
+	for key, record := range c.pending {
+		batch = append(batch, record)
+		delete(c.pending, key)
+	}
+	return batch
+}
+
+func (c *partitionCommitter) requeue(records []*kgo.Record) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, record := range records {
+		key := partitionKey{topic: record.Topic, partition: record.Partition}
+		current := c.pending[key]
+		if current == nil || recordAfter(current, record) {
+			c.pending[key] = record
+		}
+	}
+}
+
+func (c *partitionCommitter) dropPartitions(partitions map[string][]int32) {
+	c.commitMu.Lock()
+	defer c.commitMu.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for topic, values := range partitions {
+		for _, partition := range values {
+			delete(c.pending, partitionKey{topic: topic, partition: partition})
+		}
+	}
+}
+
+func (c *partitionCommitter) commitRevoked(ctx context.Context, partitions map[string][]int32, completed []*kgo.Record) {
+	c.commitMu.Lock()
+	defer c.commitMu.Unlock()
+	c.mu.Lock()
+	for topic, values := range partitions {
+		for _, partition := range values {
+			delete(c.pending, partitionKey{topic: topic, partition: partition})
+		}
+	}
+	c.mu.Unlock()
+	if len(completed) == 0 {
+		return
+	}
+	if err := c.client.CommitRecords(ctx, completed...); err != nil && ctx.Err() == nil {
+		logx.WithContext(ctx).Errorw("commit revoked dispatcher offsets", logx.Field("error", err))
+	}
+}
+
+func (c *partitionCommitter) stop() {
+	c.stopOnce.Do(func() {
+		c.cancel()
+		<-c.done
+	})
+}
+
+func cloneCompletedRecord(record *kgo.Record) *kgo.Record {
+	if record == nil {
+		return nil
+	}
+	return &kgo.Record{
+		Topic:       record.Topic,
+		Partition:   record.Partition,
+		LeaderEpoch: record.LeaderEpoch,
+		Offset:      record.Offset,
+	}
+}
+
+func recordAfter(current, candidate *kgo.Record) bool {
+	if current == nil || candidate == nil {
+		return false
+	}
+	return kgo.EpochOffset{Epoch: current.LeaderEpoch, Offset: current.Offset}.
+		Less(kgo.EpochOffset{Epoch: candidate.LeaderEpoch, Offset: candidate.Offset})
 }
 
 func newPartitionRuntime(server *Server, maxPoll, queueSize int) *partitionRuntime {
@@ -266,19 +452,25 @@ func (r *partitionRuntime) revoke(ctx context.Context, client *kgo.Client, parti
 	for _, worker := range workers {
 		worker.stop()
 	}
-	if !commit {
-		return
-	}
 	completed := make([]*kgo.Record, 0, len(workers))
 	for _, worker := range workers {
 		if record := worker.completed(); record != nil {
 			completed = append(completed, record)
 		}
 	}
-	if len(completed) > 0 {
-		if err := client.CommitRecords(ctx, completed...); err != nil && ctx.Err() == nil {
-			logx.WithContext(ctx).Errorw("commit revoked dispatcher offsets", logx.Field("error", err))
+	if r.committer != nil {
+		if commit {
+			r.committer.commitRevoked(ctx, partitions, completed)
+		} else {
+			r.committer.dropPartitions(partitions)
 		}
+		return
+	}
+	if !commit || len(completed) == 0 {
+		return
+	}
+	if err := client.CommitRecords(ctx, completed...); err != nil && ctx.Err() == nil {
+		logx.WithContext(ctx).Errorw("commit revoked dispatcher offsets", logx.Field("error", err))
 	}
 }
 
@@ -318,6 +510,9 @@ func (r *partitionRuntime) stop() {
 		r.cancel()
 		for _, worker := range workers {
 			worker.stop()
+		}
+		if r.committer != nil {
+			r.committer.stop()
 		}
 
 		completed := make([]*kgo.Record, 0, len(workers))
@@ -361,20 +556,15 @@ func (w *partitionWorker) stop() {
 	<-w.done
 }
 
-func (w *partitionWorker) commit(record *kgo.Record) bool {
+func (w *partitionWorker) markCompleted(record *kgo.Record) bool {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	if !w.active {
 		return false
 	}
-	if err := w.client.CommitRecords(w.ctx, record); err != nil && w.ctx.Err() == nil {
-		logx.WithContext(w.ctx).Errorw("commit dispatcher event", logx.Field("error", err))
-	}
-	w.lastCompleted = &kgo.Record{
-		Topic:       record.Topic,
-		Partition:   record.Partition,
-		LeaderEpoch: record.LeaderEpoch,
-		Offset:      record.Offset,
+	w.lastCompleted = cloneCompletedRecord(record)
+	if w.runtime.committer != nil {
+		w.runtime.committer.mark(record)
 	}
 	return true
 }
@@ -451,11 +641,18 @@ func New(
 		)
 		if err != nil {
 			for _, created := range server.consumers {
+				created.runtime.stop()
 				created.client.Close()
 			}
 			panic(err)
 		}
 		runtime.client = consumer
+		runtime.committer = newPartitionCommitter(
+			runtime.ctx,
+			consumer,
+			commitInterval(cfg.Dispatcher.CommitIntervalMilliseconds),
+			server.dispatchTimeout(),
+		)
 		server.consumers = append(server.consumers, eventConsumer{client: consumer, runtime: runtime})
 	}
 	return server
@@ -508,7 +705,7 @@ func (s *Server) processPartitionRecord(worker *partitionWorker, record *kgo.Rec
 			logx.Field("error", err),
 		)
 	}
-	if !worker.commit(record) {
+	if !worker.markCompleted(record) {
 		return false
 	}
 	worker.runtime.afterProcessed(worker)
@@ -964,6 +1161,13 @@ func (s *Server) retryMax() time.Duration {
 		return 5 * time.Second
 	}
 	return time.Duration(s.cfg.Dispatcher.RetryMaxSeconds) * time.Second
+}
+
+func commitInterval(milliseconds int) time.Duration {
+	if milliseconds <= 0 {
+		return defaultCommitInterval
+	}
+	return time.Duration(milliseconds) * time.Millisecond
 }
 
 func protoEvent(event eventEnvelope, idempotencyKey int64) *sessionv1.EventEnvelope {

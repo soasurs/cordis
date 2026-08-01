@@ -36,6 +36,7 @@ dispatcher:
   retryMaxSeconds: 5
   maxPollRecords: 32
   partitionQueueSize: 16
+  commitIntervalMilliseconds: 100
 
 services:
   user:

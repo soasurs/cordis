@@ -23,6 +23,7 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "cordis.dispatcher.presence.v1", cfg.Kafka.PresenceConsumerGroup)
 	require.Equal(t, 32, cfg.Dispatcher.MaxPollRecords)
 	require.Equal(t, 16, cfg.Dispatcher.PartitionQueueSize)
+	require.Equal(t, 100, cfg.Dispatcher.CommitIntervalMilliseconds)
 	require.Equal(t, "127.0.0.1:6379", cfg.Redis.Host)
 	require.Equal(t, []string{"127.0.0.1:2379"}, cfg.SessionRegistry.Hosts)
 	require.Equal(t, []string{"127.0.0.1:3000"}, cfg.Services.User.Endpoints)

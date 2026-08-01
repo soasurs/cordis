@@ -260,9 +260,10 @@ Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a
 write transaction commits, the service publishes directly to `cordis.message.events.v1`
 on a best-effort basis; failures are logged. Guild message records carry
-`guild_id`; channel-routed Message records use the channel ID as the Kafka key
-to preserve order within a channel. DM message records carry `user_id` and use
-the recipient user ID as the key. Message events carry
+`guild_id`; Message `created`, `updated`, and `deleted` records use the channel
+ID as the Kafka key to preserve order within a channel, including DM records
+whose payload carries a recipient `user_id`. User-keyed Message records such as
+`message.read.updated` and `dm.channel.created` use the target user ID. Message events carry
 `mention_user_ids`, `mention_role_ids`, and `mention_everyone`; updated events
 also carry the best-effort previous mention set for client-side cleanup. The
 Message service runs a background expansion consumer
@@ -399,10 +400,12 @@ Each currently assigned partition has one long-lived serial worker. Polls enqueu
 records into a bounded per-partition queue, pausing only that partition when its
 queue is full. Dispatcher resolves aggregate user/Guild routes in Redis and calls
 the Session node's dispatch RPC. Profile updates load the subject's Guild,
-relationship, and DM audiences before fan-out. Offsets are committed manually.
-Invalid events are dropped and committed; transient failures retry with exponential
-backoff in that partition's worker, so other partitions and topics continue. On
-rebalance or shutdown, workers stop and only completed records are committed.
+relationship, and DM audiences before fan-out. Completed records are coalesced
+and committed by a background offset coordinator; a rebalance or shutdown
+synchronously flushes completed records. Invalid events are dropped and
+committed; transient failures retry with exponential backoff in that
+partition's worker, so other partitions and topics continue. On rebalance or
+shutdown, workers stop and only completed records are committed.
 Routes are deduplicated within one attempt, but a record retry can call an already
 successful node again. Delivery is at least once and there is no general event-ID
 deduplication.

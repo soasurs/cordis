@@ -128,8 +128,10 @@ Route members contain node ID and generation. Redis TTLs, etcd leases, and
 read-time generation validation remove stale processes.
 
 Domain services publish `{t,d}` envelopes to Kafka. Dispatcher uses an
-independent consumer group and loop for each domain topic, then resolves routes
-and invokes Session through a shared connection pool. Session filters Guild
+independent consumer group and loop for each domain topic, plus one long-lived
+serial worker for each currently assigned partition. It resolves routes and
+invokes Session through a shared connection pool. A retry blocks only its own
+partition; other partitions and topics continue consuming. Session filters Guild
 messages with visibility snapshots, assigns sequence, stores replay, and writes
 a response to Gateway. Delivery is at least once under retry; profile fan-out
 has recipient-level event deduplication, but there is no general event-ID

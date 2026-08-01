@@ -141,9 +141,11 @@ IDENTIFY 中缺失的 Presence status 会保留已有用户偏好，仅在偏好
 
 ## Dispatcher
 
-独立后台服务，为 Guild、Message、User 与 Presence event topic 分别创建 consumer client、消费循环和 `cordis.dispatcher.{guild,message,user,presence}.v1` group，使积压、重试和 rebalance 相互隔离，同时共享路由器与 Session gRPC 连接池。Guild 消息携带 `guild_id` 并按 Guild ID 作为 Kafka key；Dispatcher 从 Redis 解析聚合 Guild route，再调用频道分发 RPC。DM 消息携带目标 `user_id`，通过聚合 user route 调用用户分发 RPC。Profile 更新会先从 Guild、User 和 Message 分页加载共同 Guild、关系及 DM 受众，再执行 fanout。
+独立后台服务，为 Guild、Message、User 与 Presence event topic 分别创建 consumer client、消费循环和 `cordis.dispatcher.{guild,message,user,presence}.v1` group，使积压、重试和 rebalance 相互隔离，同时共享路由器与 Session gRPC 连接池。每个当前分配的 Kafka partition 都有一个长期存在的串行 worker；poll 得到的记录进入对应 partition 的有界队列，队列满时只暂停该 partition 的拉取。Guild 消息携带 `guild_id`；Message 的 `created`、`updated` 和 `deleted` 记录都按 `channel_id` 作为 Kafka key，包括 payload 携带接收者 `user_id` 的 DM 记录，以保证同一频道的事件顺序。`message.read.updated`、`dm.channel.created` 等 user-keyed Message 记录才按目标 `user_id` 作为 key。Dispatcher 从 Redis 解析聚合 Guild route，再调用频道分发 RPC；DM 消息通过聚合 user route 调用用户分发 RPC。Profile 更新会先从 Guild、User 和 Message 分页加载共同 Guild、关系及 DM 受众，再执行 fanout。
 
-消费采用手工提交。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误按指数退避重试，成功后提交。单次尝试会合并重复目标节点，但整条记录重试时可能再次调用已经成功的节点，因此投递是至少一次语义，且当前没有通用 event ID 去重。
+消费完成的 offset 由后台 coordinator 按 partition 合并后提交，正常提交不阻塞消费 worker；rebalance 或停止时会停止对应 worker，并同步 flush 已完成的记录。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误只阻塞所在 partition 的 worker，按指数退避重试，成功后进入 offset 提交队列；其他 partition 和 topic 可以继续消费。单次尝试会合并重复目标节点，但整条记录重试时可能再次调用已经成功的节点，因此投递是至少一次语义，且当前没有通用 event ID 去重。
+
+如果 Kafka commit lag 达到 `maxUncommittedRecords`，Dispatcher 会暂停该 partition 的拉取，直到提交成功后再恢复；这个暂停不会覆盖该 partition 自身的 queue 或 retry 暂停。revoke 期间等待 worker 退出受 `revokeTimeoutSeconds` 限制；超时的 worker 会被标记为 inactive，其正在处理的记录不会被提交，交由 Kafka 重新投递。
 
 ## Presence
 

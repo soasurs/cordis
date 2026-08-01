@@ -46,7 +46,7 @@ best-effort 数据流；详见 [mention-expansion.md](mention-expansion.md)。
 
 ## 直接发布 Kafka
 
-User、Message、Guild 和 Presence 都不使用 Outbox。业务事务成功后，User 将关系和资料事件 best-effort 发布到 `cordis.user.events.v1`，Message 发布到 `cordis.message.events.v1`，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布使用聚合 ID 作为 Kafka key，以保持同一用户、频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。
+User、Message、Guild 和 Presence 都不使用 Outbox。业务事务成功后，User 将关系和资料事件 best-effort 发布到 `cordis.user.events.v1`，Message 发布到 `cordis.message.events.v1`，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布使用领域聚合 ID 作为 Kafka key：Message 的 `created`、`updated` 和 `deleted` 事件使用 `channel_id`，包括 payload 按用户路由的 DM 记录；`message.read.updated`、`dm.channel.created` 等 user-keyed Message 事件使用目标 `user_id`，从而保持同一用户、频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。
 
 Guild 的 `guild_member_profiles` 是本地搜索投影，不是 User profile 的权威数据。
 它为活跃成员保存 username、Guild nickname、profile name 和头像信息；成员移除时，

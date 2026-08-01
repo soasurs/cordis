@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -18,6 +19,8 @@ import (
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")
+
+const mentionExpanderShutdownTimeout = 15 * time.Second
 
 func main() {
 	flag.Parse()
@@ -48,11 +51,22 @@ func main() {
 	}
 	if expander != nil {
 		expanderCtx, cancelExpander := context.WithCancel(context.Background())
+		expanderDone := make(chan struct{})
 		proc.AddShutdownListener(func() {
 			cancelExpander()
 			expander.Close()
+			timer := time.NewTimer(mentionExpanderShutdownTimeout)
+			defer timer.Stop()
+			select {
+			case <-expanderDone:
+			case <-timer.C:
+				logx.Error("mention expander did not stop before shutdown timeout")
+			}
 		})
-		go expander.Run(expanderCtx)
+		go func() {
+			defer close(expanderDone)
+			expander.Run(expanderCtx)
+		}()
 	}
 	probeState := probe.New()
 	probeState.SetLiveness(true)

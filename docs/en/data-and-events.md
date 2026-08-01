@@ -69,6 +69,8 @@ projection row in the same transaction. User profile events update related
 rows best-effort, and the Guild startup rebuild can repopulate the projection.
 `CreateGuild` commits a placeholder projection row before its best-effort User
 profile hydration, so a temporary User outage does not fail Guild creation.
+The profile projector consumes `cordis.user.events.v1` in the
+`cordis.guild.user.profiles.v1` group.
 
 For `CreateMessage`, an optional request idempotency record is committed with
 the message, mentions, and author read state. A same-key retry therefore

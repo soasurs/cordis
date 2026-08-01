@@ -1,11 +1,14 @@
 package config
 
 import (
+	"time"
+
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/trace"
 	"github.com/zeromicro/go-zero/zrpc"
 
+	"github.com/soasurs/cordis/pkg/kafka/partitionconsumer"
 	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
@@ -42,14 +45,14 @@ type KafkaConfig struct {
 }
 
 const (
-	DefaultDispatchTimeoutSeconds     = 5
-	DefaultRetryMinMilliseconds       = 100
-	DefaultRetryMaxSeconds            = 5
-	DefaultMaxPollRecords             = 32
-	DefaultPartitionQueueSize         = 16
-	DefaultCommitIntervalMilliseconds = 100
-	DefaultRevokeTimeoutSeconds       = 10
-	DefaultMaxUncommittedRecords      = 128
+	DefaultDispatchTimeoutSeconds     = int(partitionconsumer.DefaultCommitTimeout / time.Second)
+	DefaultRetryMinMilliseconds       = int(partitionconsumer.DefaultRetryMin / time.Millisecond)
+	DefaultRetryMaxSeconds            = int(partitionconsumer.DefaultRetryMax / time.Second)
+	DefaultMaxPollRecords             = partitionconsumer.DefaultMaxPollRecords
+	DefaultPartitionQueueSize         = partitionconsumer.DefaultQueueSize
+	DefaultCommitIntervalMilliseconds = int(partitionconsumer.DefaultCommitInterval / time.Millisecond)
+	DefaultRevokeTimeoutSeconds       = int(partitionconsumer.DefaultRevokeTimeout / time.Second)
+	DefaultMaxUncommittedRecords      = partitionconsumer.DefaultMaxUncommittedRecords
 )
 
 type DispatcherConfig struct {

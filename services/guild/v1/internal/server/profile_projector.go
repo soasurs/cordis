@@ -11,6 +11,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/pkg/kafka/partitionconsumer"
 	"github.com/soasurs/cordis/pkg/realtime"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
@@ -26,7 +27,7 @@ const (
 )
 
 type profileProjector struct {
-	consumer *kgo.Client
+	consumer *partitionconsumer.Consumer
 	store    store.Store
 	user     userv1.UserServiceClient
 	rebuild  bool
@@ -44,13 +45,34 @@ type userProfileUpdatedPayload struct {
 // The worker also performs a bounded startup rebuild so rows created before
 // this feature was deployed become searchable. If the rebuild cannot reach
 // User after the retry budget is exhausted, event consumption still starts.
-func NewProfileProjector(svcCtx *svc.ServiceContext) *profileProjector {
-	return &profileProjector{
-		consumer: svcCtx.ProfileConsumer,
-		store:    svcCtx.Store,
-		user:     svcCtx.UserClient,
-		rebuild:  svcCtx.Cfg.Kafka.RebuildProfilesOnStart,
+func NewProfileProjector(svcCtx *svc.ServiceContext) (*profileProjector, error) {
+	projector := &profileProjector{
+		store:   svcCtx.Store,
+		user:    svcCtx.UserClient,
+		rebuild: svcCtx.Cfg.Kafka.RebuildProfilesOnStart,
 	}
+	if len(svcCtx.Cfg.Kafka.Seeds) == 0 {
+		return projector, nil
+	}
+	consumer, err := partitionconsumer.New(
+		partitionconsumer.Config{
+			RetryMin:                profileProjectRetryMin,
+			RetryMax:                profileProjectRetryMax,
+			RetryMaxAttempts:        profileProjectMaxAttempts,
+			DropAfterRetryExhausted: true,
+		},
+		func(ctx context.Context, record *kgo.Record) (bool, error) {
+			return true, projector.handleRecord(ctx, record)
+		},
+		kgo.SeedBrokers(svcCtx.Cfg.Kafka.Seeds...),
+		kgo.ConsumerGroup(svcCtx.Cfg.Kafka.ProfileConsumerGroup),
+		kgo.ConsumeTopics(svcCtx.Cfg.Kafka.UserTopic),
+	)
+	if err != nil {
+		return nil, err
+	}
+	projector.consumer = consumer
+	return projector, nil
 }
 
 func (p *profileProjector) Close() {
@@ -69,30 +91,7 @@ func (p *profileProjector) Run(ctx context.Context) {
 	if p.consumer == nil {
 		return
 	}
-	for {
-		fetches := p.consumer.PollFetches(ctx)
-		if ctx.Err() != nil {
-			return
-		}
-		for _, fetchErr := range fetches.Errors() {
-			logx.WithContext(ctx).Errorw("poll user profile event",
-				logx.Field("topic", fetchErr.Topic),
-				logx.Field("partition", fetchErr.Partition),
-				logx.Field("error", fetchErr.Err),
-			)
-		}
-		fetches.EachPartition(func(ftp kgo.FetchTopicPartition) {
-			ftp.EachRecord(func(record *kgo.Record) {
-				if err := p.handleRecord(ctx, record); err != nil {
-					p.retryRecord(ctx, record)
-					return
-				}
-				if err := p.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-					logx.WithContext(ctx).Errorw("commit user profile event", logx.Field("error", err))
-				}
-			})
-		})
-	}
+	p.consumer.Run(ctx)
 }
 
 func (p *profileProjector) rebuildProfilesAtStartup(ctx context.Context) {
@@ -120,41 +119,6 @@ func (p *profileProjector) rebuildProfilesWithRetry(ctx context.Context, maxAtte
 		case <-timer.C:
 		}
 		delay = min(delay*2, maxDelay)
-	}
-}
-
-func (p *profileProjector) retryRecord(ctx context.Context, record *kgo.Record) {
-	delay := profileProjectRetryMin
-	for attempt := 1; ctx.Err() == nil && attempt <= profileProjectMaxAttempts; attempt++ {
-		logx.WithContext(ctx).Errorw("retry user profile event",
-			logx.Field("topic", record.Topic),
-			logx.Field("partition", record.Partition),
-			logx.Field("offset", record.Offset),
-			logx.Field("attempt", attempt),
-			logx.Field("retry_after", delay),
-		)
-		timer := time.NewTimer(delay)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		case <-timer.C:
-		}
-		if err := p.handleRecord(ctx, record); err == nil {
-			if err := p.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-				logx.WithContext(ctx).Errorw("commit retried user profile event", logx.Field("error", err))
-			}
-			return
-		}
-		delay = min(delay*2, profileProjectRetryMax)
-	}
-	logx.WithContext(ctx).Errorw("drop user profile event after retries",
-		logx.Field("topic", record.Topic),
-		logx.Field("partition", record.Partition),
-		logx.Field("offset", record.Offset),
-	)
-	if err := p.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-		logx.WithContext(ctx).Errorw("commit dropped user profile event", logx.Field("error", err))
 	}
 }
 

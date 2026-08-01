@@ -45,7 +45,10 @@ func main() {
 	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
-	projector := server.NewProfileProjector(svcCtx)
+	projector, err := server.NewProfileProjector(svcCtx)
+	if err != nil {
+		panic(err)
+	}
 	projectorCtx, cancelProjector := context.WithCancel(context.Background())
 	projectorDone := make(chan struct{})
 	proc.AddShutdownListener(func() {

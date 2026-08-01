@@ -16,6 +16,7 @@ func TestLoadConfig(t *testing.T) {
 	require.Equal(t, "guild.v1", cfg.Name)
 	require.False(t, cfg.Health)
 	require.Equal(t, "cordis.guild.events.v1", cfg.Kafka.Topic)
+	require.Equal(t, "cordis.guild.user.profiles.v1", cfg.Kafka.ProfileConsumerGroup)
 	require.Empty(t, cfg.Kafka.Seeds)
 	require.NotEmpty(t, cfg.Database.DataSource)
 	require.Equal(t, "test-cursor-secret-at-least-32-bytes!", cfg.Cursor.Secret)

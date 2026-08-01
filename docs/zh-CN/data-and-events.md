@@ -53,6 +53,8 @@ Guild 的 `guild_member_profiles` 是本地搜索投影，不是 User profile �
 投影行会在同一事务中删除。User profile 事件会 best-effort 更新相关行，Guild 启动时
 的重建流程可以重新填充投影。`CreateGuild` 会先提交 profile 占位行，再 best-effort
 从 User 补齐资料，因此 User 暂时不可用不会导致 Guild 创建失败。
+Guild profile projector 使用 `cordis.guild.user.profiles.v1` 消费组消费
+`cordis.user.events.v1`。
 
 `CreateMessage` 的可选请求幂等记录会与消息、mentions 和作者 read state
 一起提交。认证、授权和请求校验正常通过时，相同 key 的重试会返回已有消息，

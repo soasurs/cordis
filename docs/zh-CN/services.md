@@ -51,6 +51,12 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 
 Guild 通过 `guild_member_profiles` 维护用于 Mention 搜索的 User profile 投影。User 的完整 profile 仍由 User 服务拥有；Guild 在成员创建/加入时写入投影，`CreateGuild` 可能先写入占位行并在 Guild 事务提交后从 User best-effort 补齐，消费 `user.profile.updated` 更新投影，并在启动时重建历史成员的投影。用户搜索只做规范化 username/nickname/name 前缀匹配，公开 limit 是经过频道可见性过滤后的最终结果数。
 
+该投影 worker 使用 `cordis.guild.user.profiles.v1` 消费组消费
+`cordis.user.events.v1`，并复用共享的 partition consumer runtime：每个已分配
+partition 一个串行 worker 和有界队列，retry 与 offset 提交状态按 partition
+隔离。存储临时失败只阻塞当前 partition；保留现有 retry 次数，耗尽后记录日志、
+提交并丢弃该事件。
+
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。创建频道时会写入一条空的 `@everyone` overwrite（`applies_to=ROLE`，`applies_to_id=guild_id`，allow/deny 为 0），客户端无需自行补全；该 overwrite 与默认角色均不可删除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 
 频道创建、删除、parent 移动和 reorder 使用 Guild 单调递增的
@@ -105,6 +111,9 @@ object key 重新签发 presigned PUT URL；重试不会再次创建 asset 或�
 允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `cordis.message.events.v1` 发布事件；发布失败只记录日志。
 
 消息事件携带 `mention_user_ids`、`mention_role_ids` 和 `mention_everyone`；更新事件还会携带 best-effort 的 previous mention 集合，供客户端清理本地高亮。Message 服务内运行一个后台展开消费组（`cordis.message.mentions.v1`）消费同一事件 topic：只处理包含角色或 everyone mention 的 created 事件和 mentions 已重建的 updated 事件，校验存储中的 revision，通过 Guild 分页拉取频道可见成员，并在 revision 守卫下原子重建展开行。展开是最终一致的：消息可能先于其 `mention_count` 贡献可见；best-effort 事件丢失时展开同样丢失。
+该 worker 复用共享 partition consumer runtime，每个 partition 保持一个串行
+worker、独立有界队列、retry 和 offset 状态；某个 partition 的 retry 不会阻塞
+其他 partition。保留现有 retry 次数，耗尽后记录日志、提交并丢弃事件。
 
 `CreateMessage` 支持可选的 opaque `idempotency_key`，用于标识一次客户端创建意图。key 的作用域是认证用户和 `message.create` 操作，默认保留 30 分钟；不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。请求指纹（版本 2）包含 channel、正文、规范化后的 type、flags、引用消息、附件 asset ID 及其顺序，以及解析后的 mention 集合（用户 ID、角色 ID 和 everyone 标记）。相同指纹重用 key 时返回第一次创建的消息，不再次写入 mentions、推进 read state 或发布创建事件；不同参数重用 key 时返回 `request.idempotency_key_reused`。未携带 key 的请求保持原有行为。重试仍会执行正常的认证、授权和请求校验；这些检查或其依赖失败时，重试可以返回对应错误，但不会创建新消息。幂等记录与消息侧写入在同一事务内完成，但现有提交后 best-effort 发布 Kafka 的窗口仍然存在。TTL 按 operation 独立配置，其他创建类 RPC 可以使用不同的保留时间。
 
@@ -144,6 +153,10 @@ IDENTIFY 中缺失的 Presence status 会保留已有用户偏好，仅在偏好
 独立后台服务，为 Guild、Message、User 与 Presence event topic 分别创建 consumer client、消费循环和 `cordis.dispatcher.{guild,message,user,presence}.v1` group，使积压、重试和 rebalance 相互隔离，同时共享路由器与 Session gRPC 连接池。每个当前分配的 Kafka partition 都有一个长期存在的串行 worker；poll 得到的记录进入对应 partition 的有界队列，队列满时只暂停该 partition 的拉取。Guild 消息携带 `guild_id`；Message 的 `created`、`updated` 和 `deleted` 记录都按 `channel_id` 作为 Kafka key，包括 payload 携带接收者 `user_id` 的 DM 记录，以保证同一频道的事件顺序。`message.read.updated`、`dm.channel.created` 等 user-keyed Message 记录才按目标 `user_id` 作为 key。Dispatcher 从 Redis 解析聚合 Guild route，再调用频道分发 RPC；DM 消息通过聚合 user route 调用用户分发 RPC。Profile 更新会先从 Guild、User 和 Message 分页加载共同 Guild、关系及 DM 受众，再执行 fanout。
 
 消费完成的 offset 由后台 coordinator 按 partition 合并后提交，正常提交不阻塞消费 worker；rebalance 或停止时会停止对应 worker，并同步 flush 已完成的记录。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误只阻塞所在 partition 的 worker，按指数退避重试，成功后进入 offset 提交队列；其他 partition 和 topic 可以继续消费。单次尝试会合并重复目标节点，但整条记录重试时可能再次调用已经成功的节点，因此投递是至少一次语义，且当前没有通用 event ID 去重。
+
+Dispatcher、Guild profile projector 和 Message mention expander 共用同一套
+partition consumer runtime，统一处理 worker 生命周期、按 partition 隔离的 retry
+以及手动 offset 提交。
 
 如果 Kafka commit lag 达到 `maxUncommittedRecords`，Dispatcher 会暂停该 partition 的拉取，直到提交成功后再恢复；这个暂停不会覆盖该 partition 自身的 queue 或 retry 暂停。revoke 期间等待 worker 退出受 `revokeTimeoutSeconds` 限制；超时的 worker 会被标记为 inactive，其正在处理的记录不会被提交，交由 Kafka 重新投递。
 

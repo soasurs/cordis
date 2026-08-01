@@ -140,7 +140,7 @@ type KafkaConfig struct {
 	Seeds                  []string
 	Topic                  string `json:",default=cordis.guild.events.v1"`
 	UserTopic              string `json:",default=cordis.user.events.v1"`
-	ProfileConsumerGroup   string `json:",default=cordis.guild.user-profiles.v1"`
+	ProfileConsumerGroup   string `json:",default=cordis.guild.user.profiles.v1"`
 	RebuildProfilesOnStart bool   `json:",default=true"`
 	PublishTimeoutMs       int    `json:",default=1000"`
 }

@@ -55,7 +55,7 @@ GUILD_PERMISSION_MENTION_EVERYONE = 2048;
 
 ### 3.2 消息写入校验
 
-Guild 文本频道中解析出 `@everyone` 时，使用现有 `AuthorizeGuildChannel` 返回的完整有效权限集检查 `MENTION_EVERYONE`；缺失则返回权限错误，整个请求失败。
+Guild 文本频道中解析出任意 role mention 或 `@everyone` 时，使用现有 `AuthorizeGuildChannel` 返回的完整有效权限集检查 `MENTION_EVERYONE`；缺失则返回权限错误，整个请求失败。
 
 - role mention：调用 `ListGuildRoles(guild_id, author_id)` 一次获取该 Guild 全部角色，过滤不属于该 Guild 或不存在的角色；本轮不校验 `mentionable`；
 - user mention：Message 按每批最多 100 个 ID 调用 Guild 的 `FilterGuildChannelVisibleUsers`，只保留仍是该 Guild 活跃成员且能看到当前频道的用户；随后以相同的批大小调用 User 的 `BatchGetUserProfiles`，过滤不存在的用户；
@@ -106,7 +106,7 @@ ALTER TABLE messages
 1. 现有校验（channel、author、content、attachments、flags、reply 引用）；
 2. 解析 content 得到 mention 集合；
 3. DM 裁剪：仅保留 user mention；
-4. Guild 频道：`@everyone` 权限校验；角色存在性过滤；用户存在性过滤；
+4. Guild 频道：role/`@everyone` 权限校验；角色存在性过滤；用户存在性过滤；
 5. 上限校验（user + role 合计）；
   6. 幂等指纹（版本 2，见第 10 节）；
   7. 事务：创建消息、`ReplaceMessageMentions`（source=1 + roles + everyone）、作者 `AckMessage`；
@@ -281,7 +281,7 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 ## 14. 测试计划
 
 - 解析器单元测试：markup 变体、`<@!>` 归一、转义、词边界、大小写、非法/溢出 ID、去重与顺序、DM 裁剪、上限；
-- 权限测试：`@everyone` 无 `MENTION_EVERYONE` 拒绝、角色/用户存在性过滤、用户频道可见性过滤；
+- 权限测试：role/`@everyone` 无 `MENTION_EVERYONE` 拒绝、角色/用户存在性过滤、用户频道可见性过滤；
 - 搜索测试：username/nickname/name 前缀匹配、排序后过滤仍补足可见 limit、角色搜索和 projection 更新；
 - Store 集成测试：source 列迁移、role/everyone 读写、批量加载、编辑删除 source=2、未读计数不受影响；
 - Guild 批量接口集成测试：批量结果与逐人单用户权限计算全量对照；

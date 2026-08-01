@@ -38,7 +38,7 @@ const (
 	GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES GuildPermission = 256
 	GuildPermission_GUILD_PERMISSION_BAN_MEMBERS     GuildPermission = 512
 	GuildPermission_GUILD_PERMISSION_CREATE_INVITE   GuildPermission = 1024
-	// Allows the message author to mention @everyone in a channel.
+	// Allows the message author to mention roles and @everyone in a channel.
 	GuildPermission_GUILD_PERMISSION_MENTION_EVERYONE GuildPermission = 2048
 )
 

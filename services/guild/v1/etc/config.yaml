@@ -34,6 +34,9 @@ database:
 kafka:
   seeds: []
   topic: cordis.guild.events.v1
+  userTopic: cordis.user.events.v1
+  profileConsumerGroup: cordis.guild.user-profiles.v1
+  rebuildProfilesOnStart: true
   publishTimeoutMs: 1000
 
 cursor:

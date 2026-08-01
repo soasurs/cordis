@@ -24,6 +24,28 @@ type GuildMember struct {
 	DeletedAt int64
 }
 
+// GuildMemberProfile is the Guild-local, searchable projection of a User
+// profile. User remains the source of truth; ProfileUpdatedAt lets consumers
+// discard stale profile events.
+type GuildMemberProfile struct {
+	GuildID          int64
+	UserID           int64
+	Username         string
+	Name             string
+	Nickname         string
+	UsernameSearch   string
+	NameSearch       string
+	NicknameSearch   string
+	AvatarAssetID    int64
+	ProfileUpdatedAt int64
+}
+
+type GuildMemberProfileKey struct {
+	GuildID  int64  `db:"guild_id"`
+	UserID   int64  `db:"user_id"`
+	Nickname string `db:"nickname"`
+}
+
 type GuildBan struct {
 	GuildID     int64
 	UserID      int64

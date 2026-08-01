@@ -102,7 +102,10 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 			return err
 		}
 		member, err = txStore.CreateGuildMember(ctx, req.GetGuildId(), req.GetUserId(), joinedAt)
-		return err
+		if err != nil {
+			return err
+		}
+		return txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(req.GetGuildId(), member.Nickname, profiles[req.GetUserId()]))
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
@@ -189,7 +192,10 @@ func (s *guildServer) UpdateGuildMember(ctx context.Context, req *guildv1.Update
 			return err
 		}
 		member, err = txStore.UpdateGuildMemberNickname(ctx, req.GetGuildId(), req.GetActorUserId(), nickname)
-		return err
+		if err != nil {
+			return err
+		}
+		return txStore.UpdateGuildMemberProfileNickname(ctx, req.GetGuildId(), req.GetActorUserId(), member.Nickname)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
@@ -240,7 +246,10 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *guildv1.KickGuil
 			return err
 		}
 		removed, err = txStore.RemoveGuildMember(ctx, req.GetGuildId(), req.GetUserId(), removedAt)
-		return err
+		if err != nil {
+			return err
+		}
+		return txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId())
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
@@ -281,7 +290,10 @@ func (s *guildServer) LeaveGuild(ctx context.Context, req *guildv1.LeaveGuildReq
 			return err
 		}
 		removed, err = txStore.RemoveGuildMember(ctx, req.GetGuildId(), req.GetUserId(), removedAt)
-		return err
+		if err != nil {
+			return err
+		}
+		return txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId())
 	})
 	if err != nil {
 		return nil, mapStoreError(err)

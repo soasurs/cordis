@@ -34,6 +34,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("access revision", func(t *testing.T) { testGuildAccessRevision(t, store) })
 	t.Run("channel layout revision", func(t *testing.T) { testGuildChannelLayoutRevision(t, store) })
 	t.Run("member lifecycle", func(t *testing.T) { testGuildMemberLifecycle(t, store) })
+	t.Run("member profile search", func(t *testing.T) { testGuildMemberProfileSearch(t, store) })
 	t.Run("common guild membership", func(t *testing.T) { testCommonGuildMembership(t, store) })
 	t.Run("bans", func(t *testing.T) { testGuildBans(t, store) })
 	t.Run("ownership transfer", func(t *testing.T) { testTransferGuildOwnership(t, store) })
@@ -48,6 +49,81 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("resource quotas", func(t *testing.T) { testResourceQuotas(t, store) })
 	t.Run("channel mutation lock", func(t *testing.T) { testGuildChannelMutationLock(t, store) })
 	t.Run("idempotency", func(t *testing.T) { testGuildIdempotency(t, store) })
+}
+
+func testGuildMemberProfileSearch(t *testing.T, store Store) {
+	const guildID, ownerID = int64(19700), int64(29700)
+	ctx := t.Context()
+	now := time.Now().UnixMilli()
+	_, err := store.CreateGuild(ctx, guildID, ownerID, "profile-search", now)
+	require.NoError(t, err)
+	for _, userID := range []int64{ownerID, 29701, 29702} {
+		_, err = store.CreateGuildMember(ctx, guildID, userID, now)
+		require.NoError(t, err)
+	}
+	require.NoError(t, store.UpsertGuildMemberProfile(ctx, &model.GuildMemberProfile{
+		GuildID: guildID, UserID: ownerID, Username: "alice", Name: "Zed", AvatarAssetID: 77, ProfileUpdatedAt: 10,
+	}))
+	require.NoError(t, store.UpsertGuildMemberProfile(ctx, &model.GuildMemberProfile{
+		GuildID: guildID, UserID: 29701, Username: "bob", Name: "Alice Bob", ProfileUpdatedAt: 10,
+	}))
+	require.NoError(t, store.UpsertGuildMemberProfile(ctx, &model.GuildMemberProfile{
+		GuildID: guildID, UserID: 29702, Username: "carol", Name: "Other", Nickname: "Nick Carol", ProfileUpdatedAt: 10,
+	}))
+
+	profiles, err := store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{
+		GuildID: guildID, Query: "ali", Limit: 1,
+	})
+	require.NoError(t, err)
+	require.Len(t, profiles, 1)
+	require.Equal(t, ownerID, profiles[0].UserID)
+
+	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{
+		GuildID: guildID, Query: "ali", After: true, AfterMatchRank: 0,
+		AfterUsername: "alice", AfterUserID: ownerID, Limit: 10,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []int64{29701}, []int64{profiles[0].UserID})
+
+	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "nick", Limit: 10})
+	require.NoError(t, err)
+	require.Len(t, profiles, 1)
+	require.Equal(t, int64(29702), profiles[0].UserID)
+	require.Equal(t, "Nick Carol", profiles[0].Nickname)
+
+	require.NoError(t, store.UpdateGuildMemberProfileNickname(ctx, guildID, ownerID, "Owner Nick"))
+	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "owner nick", Limit: 10})
+	require.NoError(t, err)
+	require.Len(t, profiles, 1)
+	require.Equal(t, ownerID, profiles[0].UserID)
+
+	// A stale event cannot overwrite a newer projection.
+	require.NoError(t, store.UpsertGuildMemberProfile(ctx, &model.GuildMemberProfile{
+		GuildID: guildID, UserID: ownerID, Username: "stale", ProfileUpdatedAt: 9,
+	}))
+	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "ali", Limit: 10})
+	require.NoError(t, err)
+	require.Equal(t, ownerID, profiles[0].UserID)
+
+	require.NoError(t, store.UpdateGuildMemberProfilesByUser(ctx, &model.GuildMemberProfile{
+		UserID: ownerID, Username: "updated", Name: "Updated", AvatarAssetID: 88, ProfileUpdatedAt: 11,
+	}))
+	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "updated", Limit: 10})
+	require.NoError(t, err)
+	require.Len(t, profiles, 1)
+	require.Equal(t, ownerID, profiles[0].UserID)
+
+	require.NoError(t, store.UpdateGuildMemberProfilesByUserWithoutAvatar(ctx, &model.GuildMemberProfile{
+		UserID: ownerID, Username: "without_avatar", Name: "Without Avatar", ProfileUpdatedAt: 12,
+	}))
+	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "without_avatar", Limit: 10})
+	require.NoError(t, err)
+	require.Len(t, profiles, 1)
+	require.Equal(t, int64(88), profiles[0].AvatarAssetID)
+
+	keys, err := store.ListGuildMemberProfileKeys(ctx, ListGuildMemberProfileKeysParams{AfterGuildID: guildID - 1, Limit: 10})
+	require.NoError(t, err)
+	require.Len(t, keys, 3)
 }
 
 func testGuildIdempotency(t *testing.T, store Store) {
@@ -1008,6 +1084,13 @@ func testGuildDeleteHelpers(t *testing.T, store Store) {
 	seedGuild(t, store, guildID, ownerID)
 	_, err := store.CreateGuildRole(ctx, 11101, guildID, "R", 1, 1, now)
 	require.NoError(t, err)
+	require.NoError(t, store.UpsertGuildMemberProfile(ctx, &model.GuildMemberProfile{
+		GuildID: guildID, UserID: ownerID, Username: "owner", ProfileUpdatedAt: 1,
+	}))
+	require.NoError(t, store.DeleteGuildMemberProfiles(ctx, guildID))
+	profiles, err := store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "owner", Limit: 10})
+	require.NoError(t, err)
+	require.Empty(t, profiles)
 
 	require.NoError(t, store.DeleteGuildMembers(ctx, guildID, now))
 	_, err = store.GetGuildMember(ctx, guildID, ownerID)

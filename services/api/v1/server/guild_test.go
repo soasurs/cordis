@@ -118,6 +118,13 @@ type fakeGuildClient struct {
 	deleteInviteFn  func(*guildv1.DeleteGuildInviteRequest) (*guildv1.DeleteGuildInviteResponse, error)
 	joinInviteReq   *guildv1.JoinGuildByInviteRequest
 	joinInviteFn    func(*guildv1.JoinGuildByInviteRequest) (*guildv1.JoinGuildByInviteResponse, error)
+
+	searchUsersReq  *guildv1.SearchGuildMentionUsersRequest
+	searchUsersFn   func(*guildv1.SearchGuildMentionUsersRequest) (*guildv1.SearchGuildMentionUsersResponse, error)
+	searchUsersResp *guildv1.SearchGuildMentionUsersResponse
+	searchRolesReq  *guildv1.SearchGuildMentionRolesRequest
+	searchRolesFn   func(*guildv1.SearchGuildMentionRolesRequest) (*guildv1.SearchGuildMentionRolesResponse, error)
+	searchRolesResp *guildv1.SearchGuildMentionRolesResponse
 }
 
 func (f *fakeGuildClient) CreateGuildRole(_ context.Context, req *guildv1.CreateGuildRoleRequest, _ ...grpc.CallOption) (*guildv1.CreateGuildRoleResponse, error) {
@@ -394,6 +401,50 @@ func (f *fakeGuildClient) CreateGuild(_ context.Context, req *guildv1.CreateGuil
 		return f.createFn(req)
 	}
 	return f.createResponse, nil
+}
+
+func (f *fakeGuildClient) SearchGuildMentionUsers(_ context.Context, req *guildv1.SearchGuildMentionUsersRequest, _ ...grpc.CallOption) (*guildv1.SearchGuildMentionUsersResponse, error) {
+	f.searchUsersReq = req
+	if f.searchUsersFn != nil {
+		return f.searchUsersFn(req)
+	}
+	return f.searchUsersResp, nil
+}
+
+func (f *fakeGuildClient) SearchGuildMentionRoles(_ context.Context, req *guildv1.SearchGuildMentionRolesRequest, _ ...grpc.CallOption) (*guildv1.SearchGuildMentionRolesResponse, error) {
+	f.searchRolesReq = req
+	if f.searchRolesFn != nil {
+		return f.searchRolesFn(req)
+	}
+	return f.searchRolesResp, nil
+}
+
+func TestSearchGuildMentionUsersForwardsAuthenticatedActorAndNickname(t *testing.T) {
+	user := new(guildv1.GuildMentionUser)
+	user.SetUserId(1002)
+	user.SetUsername("alice")
+	user.SetNickname("Alice in Guild")
+	user.SetName("Alice")
+	user.SetAvatarAssetId(6001)
+	searchResp := new(guildv1.SearchGuildMentionUsersResponse)
+	searchResp.SetUsers([]*guildv1.GuildMentionUser{user})
+	guildClient := &fakeGuildClient{searchUsersResp: searchResp}
+	client, closeServer := newGuildHTTPClient(t, guildClient)
+	defer closeServer()
+
+	request := new(apiv1.SearchGuildMentionUsersRequest)
+	request.SetGuildId(3001)
+	request.SetChannelId(5001)
+	request.SetQuery("ali")
+	request.SetLimit(7)
+	response, err := client.SearchGuildMentionUsers(context.Background(), request)
+	require.NoError(t, err)
+	require.Equal(t, int64(3001), guildClient.searchUsersReq.GetGuildId())
+	require.Equal(t, int64(1001), guildClient.searchUsersReq.GetActorUserId())
+	require.Equal(t, int64(5001), guildClient.searchUsersReq.GetChannelId())
+	require.Equal(t, "ali", guildClient.searchUsersReq.GetQuery())
+	require.Equal(t, int32(7), guildClient.searchUsersReq.GetLimit())
+	require.Equal(t, "Alice in Guild", response.GetUsers()[0].GetNickname())
 }
 
 func TestGuildMemberMutationsUseAuthenticatedActor(t *testing.T) {

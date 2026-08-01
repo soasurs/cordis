@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -130,6 +132,48 @@ func TestCreateMessageFiltersUnknownRolesAndUsers(t *testing.T) {
 	mentions := fakeStore.mentions[resp.GetMessage().GetId()]
 	require.Equal(t, []int64{31}, mentions.UserIDs)
 	require.Equal(t, []int64{40}, mentions.RoleIDs)
+}
+
+func TestCreateMessageFiltersGuildUsersByChannelVisibility(t *testing.T) {
+	fakeStore := newFakeStore()
+	guildClient := &fakeGuildClient{
+		visibleMentionUserIDs: []int64{31},
+		permissions:           permissionViewChannel | permissionSendMessages,
+	}
+	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), guildClient, newFakeUserClient())
+
+	resp, err := server.CreateMessage(t.Context(), createMentionRequest("hi <@30> <@31>"))
+	require.NoError(t, err)
+	require.Equal(t, []int64{31}, resp.GetMessage().GetMentionUserIds())
+	require.Equal(t, []int64{31}, fakeStore.mentions[resp.GetMessage().GetId()].UserIDs)
+}
+
+func TestCreateMessageBatchesMentionUserFiltering(t *testing.T) {
+	var content strings.Builder
+	for userID := 1; userID <= 101; userID++ {
+		if userID > 1 {
+			content.WriteByte(' ')
+		}
+		content.WriteString("<@")
+		content.WriteString(strconv.Itoa(userID))
+		content.WriteString(">")
+	}
+	req := createMentionRequest(content.String())
+	guildClient := &fakeGuildClient{
+		permissions: permissionViewChannel | permissionSendMessages,
+	}
+	userClient := newFakeUserClient()
+	server := newTestMessageServerWithClients(t, newFakeStore(), new(fakePublisher), guildClient, userClient)
+
+	_, err := server.CreateMessage(t.Context(), req)
+	require.Equal(t, codes.ResourceExhausted, status.Code(err))
+	require.Len(t, guildClient.visibleMentionRequests, 2)
+	require.Len(t, guildClient.visibleMentionRequests[0], 100)
+	require.Len(t, guildClient.visibleMentionRequests[1], 1)
+	userRequests := userClient.batchRequests()
+	require.Len(t, userRequests, 2)
+	require.Len(t, userRequests[0], 100)
+	require.Len(t, userRequests[1], 1)
 }
 
 func TestUpdateMessageRebuildsMentionsFromContent(t *testing.T) {

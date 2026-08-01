@@ -61,6 +61,7 @@ func TestCreateGuildCreatesOwnerDefaultRoleChannelsAndEvent(t *testing.T) {
 	require.Equal(t, defaultVoiceChannelName, channels[3].Name)
 	require.Equal(t, int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE), channels[3].Type)
 	require.Equal(t, channels[2].ID, channels[3].ParentID)
+	require.Equal(t, "user_1001", fakeStore.profiles[guild.GetId()][1001].Username)
 
 	for _, channel := range channels {
 		overwrites, err := fakeStore.ListGuildChannelPermissionOverwrites(t.Context(), channel.ID)
@@ -78,6 +79,43 @@ func TestCreateGuildCreatesOwnerDefaultRoleChannelsAndEvent(t *testing.T) {
 	require.Equal(t, guildIDString(guild.GetId()), envelope.Data.ID)
 	require.Equal(t, "1001", envelope.Data.OwnerID)
 	require.NotEmpty(t, envelope.IdempotencyKey)
+}
+
+func TestCreateGuildSurvivesProfileHydrationFailure(t *testing.T) {
+	fakeStore := newFakeStore()
+	userClient := &fakeUserClient{err: errors.New("user unavailable")}
+	server := newTestGuildServerWithUser(t, fakeStore, nil, userClient)
+
+	req := new(guildv1.CreateGuildRequest)
+	req.SetOwnerId(1001)
+	req.SetName("Cordis")
+	resp, err := server.CreateGuild(t.Context(), req)
+	require.NoError(t, err)
+
+	profile := fakeStore.profiles[resp.GetGuild().GetId()][1001]
+	require.NotNil(t, profile)
+	require.Equal(t, int64(1001), profile.UserID)
+	require.Empty(t, profile.Username)
+}
+
+func TestCreateGuildIdempotentReplayDoesNotRequireUserProfile(t *testing.T) {
+	fakeStore := newFakeStore()
+	userClient := &fakeUserClient{}
+	server := newTestGuildServerWithUser(t, fakeStore, nil, userClient)
+
+	req := new(guildv1.CreateGuildRequest)
+	req.SetOwnerId(1001)
+	req.SetName("Cordis")
+	req.SetIdempotencyKey("guild-intent-1")
+	first, err := server.CreateGuild(t.Context(), req)
+	require.NoError(t, err)
+	firstBatchCalls := userClient.batchCalls
+	userClient.err = errors.New("user unavailable")
+
+	replay, err := server.CreateGuild(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, first.GetGuild().GetId(), replay.GetGuild().GetId())
+	require.Equal(t, firstBatchCalls, userClient.batchCalls)
 }
 
 func TestCreateGuildCommitFailureDoesNotPublish(t *testing.T) {
@@ -161,6 +199,10 @@ func TestUpdateGuildRequiresOwnerAndPreservesPresence(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
 	fakeStore.members[10] = testMembers(10, 1001, 1002)
+	fakeStore.profiles[10] = map[int64]*model.GuildMemberProfile{
+		1001: {GuildID: 10, UserID: 1001, Username: "user_1001"},
+		1002: {GuildID: 10, UserID: 1002, Username: "user_1002"},
+	}
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher)
 
@@ -272,6 +314,10 @@ func TestDeleteGuildSoftDeletesChildrenAndPublishesEvent(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
 	fakeStore.members[10] = testMembers(10, 1001, 1002)
+	fakeStore.profiles[10] = map[int64]*model.GuildMemberProfile{
+		1001: {GuildID: 10, UserID: 1001, Username: "user_1001"},
+		1002: {GuildID: 10, UserID: 1002, Username: "user_1002"},
+	}
 	fakeStore.defaultRoles[10] = true
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher)
@@ -284,6 +330,7 @@ func TestDeleteGuildSoftDeletesChildrenAndPublishesEvent(t *testing.T) {
 	require.True(t, resp.GetOk())
 	require.NotZero(t, fakeStore.guilds[10].DeletedAt)
 	require.Empty(t, fakeStore.members[10])
+	require.Empty(t, fakeStore.profiles[10])
 	require.False(t, fakeStore.defaultRoles[10])
 
 	var envelope eventEnvelope[guildDeletedPayload]
@@ -403,10 +450,29 @@ func newTestGuildServer(t *testing.T, fakeStore store.Store, publisher svc.Event
 	return newTestGuildServerWithMedia(t, fakeStore, publisher, &fakeMediaClient{})
 }
 
+func newTestGuildServerWithUser(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	userClient userv1.UserServiceClient,
+) guildv1.GuildServiceServer {
+	return newTestGuildServerWithUserAndMedia(t, fakeStore, publisher, userClient, &fakeMediaClient{})
+}
+
 func newTestGuildServerWithMedia(
 	t *testing.T,
 	fakeStore store.Store,
 	publisher svc.EventPublisher,
+	mediaClient mediav1.MediaServiceClient,
+) guildv1.GuildServiceServer {
+	return newTestGuildServerWithUserAndMedia(t, fakeStore, publisher, &fakeUserClient{}, mediaClient)
+}
+
+func newTestGuildServerWithUserAndMedia(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	userClient userv1.UserServiceClient,
 	mediaClient mediav1.MediaServiceClient,
 ) guildv1.GuildServiceServer {
 	t.Helper()
@@ -415,7 +481,7 @@ func newTestGuildServerWithMedia(
 	return New(&svc.ServiceContext{
 		Cfg:   config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
 		Store: fakeStore, Snowflake: node, Cursors: testCursorCodec(t), Publisher: publisher,
-		UserClient:  &fakeUserClient{},
+		UserClient:  userClient,
 		MediaClient: mediaClient,
 	})
 }
@@ -423,6 +489,7 @@ func newTestGuildServerWithMedia(
 type fakeUserClient struct {
 	userv1.UserServiceClient
 	requestedUserID int64
+	batchCalls      int
 	err             error
 }
 
@@ -443,6 +510,7 @@ func (f *fakeUserClient) BatchGetUserProfiles(
 	req *userv1.BatchGetUserProfilesRequest,
 	_ ...grpc.CallOption,
 ) (*userv1.BatchGetUserProfilesResponse, error) {
+	f.batchCalls++
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -564,6 +632,7 @@ type fakeStore struct {
 	members      map[int64]map[int64]*model.GuildMember
 	roles        map[int64]map[int64]*model.Role
 	memberRoles  map[int64]map[int64]map[int64]bool
+	profiles     map[int64]map[int64]*model.GuildMemberProfile
 	channels     map[int64]*model.Channel
 	overwrites   map[int64]map[string]*model.ChannelPermissionOverwrite
 	defaultRoles map[int64]bool
@@ -589,6 +658,7 @@ func newFakeStore() *fakeStore {
 	return &fakeStore{
 		guilds: make(map[int64]*model.Guild), members: make(map[int64]map[int64]*model.GuildMember),
 		roles: make(map[int64]map[int64]*model.Role), memberRoles: make(map[int64]map[int64]map[int64]bool),
+		profiles: make(map[int64]map[int64]*model.GuildMemberProfile),
 		channels: make(map[int64]*model.Channel), overwrites: make(map[int64]map[string]*model.ChannelPermissionOverwrite),
 		defaultRoles: make(map[int64]bool),
 		bans:         make(map[int64]map[int64]*model.GuildBan),
@@ -830,6 +900,10 @@ func (s *fakeStore) ListGuildRoleTargetIDsPage(_ context.Context, guildID int64,
 func (s *fakeStore) ListGuildMemberRolesByUsers(ctx context.Context, guildID int64, userIDs []int64) (map[int64][]*model.Role, error) {
 	byUser := make(map[int64][]*model.Role, len(userIDs))
 	for _, userID := range userIDs {
+		member := s.members[guildID][userID]
+		if member == nil || member.DeletedAt != 0 {
+			continue
+		}
 		roles, err := s.ListGuildMemberRoles(ctx, guildID, userID)
 		if err != nil {
 			return nil, err
@@ -837,6 +911,160 @@ func (s *fakeStore) ListGuildMemberRolesByUsers(ctx context.Context, guildID int
 		byUser[userID] = roles
 	}
 	return byUser, nil
+}
+
+func (s *fakeStore) SearchGuildMentionUsers(_ context.Context, params store.SearchGuildMentionUsersParams) ([]*model.GuildMemberProfile, error) {
+	query := strings.ToLower(strings.TrimSpace(params.Query))
+	type result struct {
+		profile *model.GuildMemberProfile
+		rank    int32
+	}
+	var results []result
+	for userID, member := range s.members[params.GuildID] {
+		if member == nil || member.DeletedAt != 0 {
+			continue
+		}
+		profile := s.profiles[params.GuildID][userID]
+		if profile == nil {
+			continue
+		}
+		username := strings.ToLower(profile.Username)
+		name := strings.ToLower(profile.Name)
+		nickname := strings.ToLower(profile.Nickname)
+		rank := int32(-1)
+		if strings.HasPrefix(username, query) {
+			rank = 0
+		} else if strings.HasPrefix(nickname, query) || strings.HasPrefix(name, query) {
+			rank = 1
+		}
+		if rank < 0 {
+			continue
+		}
+		if params.After && (rank < params.AfterMatchRank || (rank == params.AfterMatchRank &&
+			(username < params.AfterUsername || (username == params.AfterUsername && userID <= params.AfterUserID)))) {
+			continue
+		}
+		copy := *profile
+		results = append(results, result{profile: &copy, rank: rank})
+	}
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].rank != results[j].rank {
+			return results[i].rank < results[j].rank
+		}
+		left := strings.ToLower(results[i].profile.Username)
+		right := strings.ToLower(results[j].profile.Username)
+		if left != right {
+			return left < right
+		}
+		return results[i].profile.UserID < results[j].profile.UserID
+	})
+	profiles := make([]*model.GuildMemberProfile, 0, min(params.Limit, len(results)))
+	for _, value := range results {
+		profiles = append(profiles, value.profile)
+		if len(profiles) == params.Limit {
+			break
+		}
+	}
+	return profiles, nil
+}
+
+func (s *fakeStore) UpsertGuildMemberProfile(_ context.Context, profile *model.GuildMemberProfile) error {
+	if profile == nil {
+		return nil
+	}
+	if s.profiles[profile.GuildID] == nil {
+		s.profiles[profile.GuildID] = make(map[int64]*model.GuildMemberProfile)
+	}
+	if current := s.profiles[profile.GuildID][profile.UserID]; current != nil && current.ProfileUpdatedAt > profile.ProfileUpdatedAt {
+		return nil
+	}
+	copy := *profile
+	s.profiles[profile.GuildID][profile.UserID] = &copy
+	return nil
+}
+
+func (s *fakeStore) UpdateGuildMemberProfilesByUser(_ context.Context, profile *model.GuildMemberProfile) error {
+	if profile == nil {
+		return nil
+	}
+	for guildID, profiles := range s.profiles {
+		current := profiles[profile.UserID]
+		if current == nil || current.ProfileUpdatedAt > profile.ProfileUpdatedAt {
+			continue
+		}
+		copy := *profile
+		copy.GuildID = guildID
+		copy.Nickname = current.Nickname
+		copy.NicknameSearch = current.NicknameSearch
+		profiles[profile.UserID] = &copy
+	}
+	return nil
+}
+
+func (s *fakeStore) UpdateGuildMemberProfilesByUserWithoutAvatar(_ context.Context, profile *model.GuildMemberProfile) error {
+	if profile == nil {
+		return nil
+	}
+	for guildID, profiles := range s.profiles {
+		current := profiles[profile.UserID]
+		if current == nil || current.ProfileUpdatedAt > profile.ProfileUpdatedAt {
+			continue
+		}
+		copy := *current
+		copy.Username = profile.Username
+		copy.Name = profile.Name
+		copy.UsernameSearch = strings.ToLower(strings.TrimSpace(profile.Username))
+		copy.NameSearch = strings.ToLower(strings.TrimSpace(profile.Name))
+		copy.ProfileUpdatedAt = profile.ProfileUpdatedAt
+		copy.GuildID = guildID
+		profiles[profile.UserID] = &copy
+	}
+	return nil
+}
+
+func (s *fakeStore) UpdateGuildMemberProfileNickname(_ context.Context, guildID, userID int64, nickname string) error {
+	profile := s.profiles[guildID][userID]
+	if profile == nil {
+		return nil
+	}
+	profile.Nickname = nickname
+	profile.NicknameSearch = strings.ToLower(strings.TrimSpace(nickname))
+	return nil
+}
+
+func (s *fakeStore) DeleteGuildMemberProfile(_ context.Context, guildID, userID int64) error {
+	delete(s.profiles[guildID], userID)
+	return nil
+}
+
+func (s *fakeStore) DeleteGuildMemberProfiles(_ context.Context, guildID int64) error {
+	s.profiles[guildID] = nil
+	return nil
+}
+
+func (s *fakeStore) ListGuildMemberProfileKeys(_ context.Context, params store.ListGuildMemberProfileKeysParams) ([]model.GuildMemberProfileKey, error) {
+	var keys []model.GuildMemberProfileKey
+	for guildID, members := range s.members {
+		for userID, member := range members {
+			if member == nil || member.DeletedAt != 0 {
+				continue
+			}
+			if params.AfterGuildID != 0 && (guildID < params.AfterGuildID || (guildID == params.AfterGuildID && userID <= params.AfterUserID)) {
+				continue
+			}
+			keys = append(keys, model.GuildMemberProfileKey{GuildID: guildID, UserID: userID, Nickname: member.Nickname})
+		}
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].GuildID != keys[j].GuildID {
+			return keys[i].GuildID < keys[j].GuildID
+		}
+		return keys[i].UserID < keys[j].UserID
+	})
+	if len(keys) > params.Limit {
+		keys = keys[:params.Limit]
+	}
+	return keys, nil
 }
 
 func (s *fakeStore) ListUsersWithCommonGuild(_ context.Context, userID int64, targetUserIDs []int64) ([]int64, error) {
@@ -1239,6 +1467,10 @@ func (s *fakeStore) DeleteAllGuildRoleAssignments(_ context.Context, guildID int
 }
 
 func (s *fakeStore) ListGuildMemberRoles(_ context.Context, guildID, userID int64) ([]*model.Role, error) {
+	member := s.members[guildID][userID]
+	if member == nil || member.DeletedAt != 0 {
+		return nil, nil
+	}
 	var roles []*model.Role
 	for _, role := range s.roles[guildID] {
 		if role.DeletedAt != 0 {

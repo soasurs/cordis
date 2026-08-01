@@ -68,6 +68,22 @@ type ListGuildMembersParams struct {
 	Limit          int
 }
 
+type SearchGuildMentionUsersParams struct {
+	GuildID        int64
+	Query          string
+	After          bool
+	AfterMatchRank int32
+	AfterUsername  string
+	AfterUserID    int64
+	Limit          int
+}
+
+type ListGuildMemberProfileKeysParams struct {
+	AfterGuildID int64
+	AfterUserID  int64
+	Limit        int
+}
+
 type ListGuildRoleMembersParams struct {
 	GuildID        int64
 	RoleID         int64
@@ -155,6 +171,14 @@ type Store interface {
 	ListGuildMemberIDsPage(ctx context.Context, guildID, afterUserID int64, limit int) ([]int64, error)
 	ListGuildRoleTargetIDsPage(ctx context.Context, guildID int64, roleIDs []int64, afterUserID int64, limit int) ([]int64, error)
 	ListGuildMemberRolesByUsers(ctx context.Context, guildID int64, userIDs []int64) (map[int64][]*model.Role, error)
+	SearchGuildMentionUsers(ctx context.Context, params SearchGuildMentionUsersParams) ([]*model.GuildMemberProfile, error)
+	UpsertGuildMemberProfile(ctx context.Context, profile *model.GuildMemberProfile) error
+	UpdateGuildMemberProfilesByUser(ctx context.Context, profile *model.GuildMemberProfile) error
+	UpdateGuildMemberProfilesByUserWithoutAvatar(ctx context.Context, profile *model.GuildMemberProfile) error
+	UpdateGuildMemberProfileNickname(ctx context.Context, guildID, userID int64, nickname string) error
+	DeleteGuildMemberProfile(ctx context.Context, guildID, userID int64) error
+	DeleteGuildMemberProfiles(ctx context.Context, guildID int64) error
+	ListGuildMemberProfileKeys(ctx context.Context, params ListGuildMemberProfileKeysParams) ([]model.GuildMemberProfileKey, error)
 	ListUsersWithCommonGuild(ctx context.Context, userID int64, targetUserIDs []int64) ([]int64, error)
 	ListGuildRoleMembers(ctx context.Context, params ListGuildRoleMembersParams) ([]*model.GuildMember, error)
 	UpdateGuildMemberNickname(ctx context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error)

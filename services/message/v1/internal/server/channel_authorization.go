@@ -17,6 +17,7 @@ const (
 
 type messageAudience struct {
 	guildID     int64
+	channelID   int64
 	userIDs     []int64
 	permissions uint64
 }
@@ -57,5 +58,5 @@ func (s *messageServer) requireChannelPermission(
 	if resp.GetGuildId() <= 0 {
 		return messageAudience{}, errors.New("guild channel authorization returned invalid guild id")
 	}
-	return messageAudience{guildID: resp.GetGuildId(), permissions: resp.GetPermissions()}, nil
+	return messageAudience{guildID: resp.GetGuildId(), channelID: channelID, permissions: resp.GetPermissions()}, nil
 }

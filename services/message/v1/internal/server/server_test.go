@@ -639,16 +639,18 @@ func testUserProfile(userID int64) *userv1.UserProfile {
 
 type fakeGuildClient struct {
 	guildv1.GuildServiceClient
-	mu                    sync.Mutex
-	allowManageMessages   bool
-	denyAll               bool
-	permissions           uint64
-	roles                 []*guildv1.GuildRole
-	mentionTargets        []int64
-	mentionTargetPages    [][]int64
-	channelType           guildv1.GuildChannelType
-	authorizeRequests     []*guildv1.AuthorizeGuildChannelRequest
-	visibleTextChannelIDs []int64
+	mu                     sync.Mutex
+	allowManageMessages    bool
+	denyAll                bool
+	permissions            uint64
+	roles                  []*guildv1.GuildRole
+	mentionTargets         []int64
+	mentionTargetPages     [][]int64
+	visibleMentionUserIDs  []int64
+	visibleMentionRequests [][]int64
+	channelType            guildv1.GuildChannelType
+	authorizeRequests      []*guildv1.AuthorizeGuildChannelRequest
+	visibleTextChannelIDs  []int64
 }
 
 type fakeMediaClient struct {
@@ -800,6 +802,30 @@ func (f *fakeGuildClient) ListGuildRoles(
 ) (*guildv1.ListGuildRolesResponse, error) {
 	resp := new(guildv1.ListGuildRolesResponse)
 	resp.SetRoles(f.roles)
+	return resp, nil
+}
+
+func (f *fakeGuildClient) FilterGuildChannelVisibleUsers(
+	_ context.Context,
+	req *guildv1.FilterGuildChannelVisibleUsersRequest,
+	_ ...grpc.CallOption,
+) (*guildv1.FilterGuildChannelVisibleUsersResponse, error) {
+	f.visibleMentionRequests = append(f.visibleMentionRequests, append([]int64(nil), req.GetUserIds()...))
+	visible := req.GetUserIds()
+	if f.visibleMentionUserIDs != nil {
+		allowed := make(map[int64]struct{}, len(f.visibleMentionUserIDs))
+		for _, userID := range f.visibleMentionUserIDs {
+			allowed[userID] = struct{}{}
+		}
+		visible = visible[:0]
+		for _, userID := range req.GetUserIds() {
+			if _, ok := allowed[userID]; ok {
+				visible = append(visible, userID)
+			}
+		}
+	}
+	resp := new(guildv1.FilterGuildChannelVisibleUsersResponse)
+	resp.SetUserIds(visible)
 	return resp, nil
 }
 

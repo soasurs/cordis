@@ -119,10 +119,23 @@ gRPC on `:3005`. Owns guilds, members, bans, roles, member-role assignments,
 channels, and channel permission overwrites. It supports guild lifecycle,
 membership and bans, role management, ordering, and member listing by role,
 text/category/voice channel metadata and ordering, and channel authorization.
+It also exposes local Guild mention candidate search: user prefixes are
+matched against a Guild member profile projection and filtered by the current
+channel's visibility, while role prefixes stay local to Guild and are filtered
+against target members only during Message expansion.
 Guild metadata includes an optional description of up to 1024 Unicode
 characters. Name and description use the presence-aware `UpdateGuild` RPC;
 an empty description clears it. Icons use the separate direct-upload flow and
 are associated with the Guild only when `CompleteGuildIconUpload` succeeds.
+
+Guild maintains `guild_member_profiles` as its local projection for mention
+search. User remains the source of truth for complete profiles; Guild writes a
+projection row when members join, and `CreateGuild` may hydrate its placeholder
+row from User after the Guild transaction commits. It consumes
+`user.profile.updated` to update all related Guild rows and rebuilds historical
+member rows at startup. User search uses normalized username/nickname/name
+prefixes, and the public limit is the final count after channel-visibility
+filtering.
 
 Permissions are a `uint64` bit set. Owners and administrators receive all
 permissions. Channel evaluation applies the default role, member roles, and
@@ -210,7 +223,9 @@ service. Mentions are parsed server-side from content using `<@user>`,
 `<@&role>`, and `@everyone` markup; clients no longer submit mention ID
 lists. `@everyone` requires the Guild `MENTION_EVERYONE` channel permission,
 roles must exist in the Guild, and users must exist; unknown entities are
-dropped from the parsed set. DM channels only support user mentions.
+dropped from the parsed set. Guild direct user mentions also pass through
+Guild's channel-visible-user batch check at write time. DM channels only
+support user mentions.
 Expanded role/everyone targets are materialized asynchronously by a worker
 consuming the message event topic, and unread `mention_count` includes them.
 See [mention-expansion.md](mention-expansion.md) for the full design. Image

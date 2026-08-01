@@ -92,6 +92,9 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *guildv1.BanGuildM
 		case !errors.Is(targetErr, sql.ErrNoRows):
 			return targetErr
 		}
+		if err := txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+			return err
+		}
 
 		ban, err = txStore.UpsertGuildBan(ctx, &model.GuildBan{
 			GuildID: req.GetGuildId(), UserID: req.GetUserId(),

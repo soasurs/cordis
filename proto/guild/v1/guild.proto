@@ -130,6 +130,17 @@ service GuildService {
   // reach with the given role and @everyone mentions, restricted to members
   // who can view the channel. It is an internal Message expansion primitive.
   rpc ListGuildMentionTargets(ListGuildMentionTargetsRequest) returns (ListGuildMentionTargetsResponse);
+  // SearchGuildMentionUsers searches the Guild-local profile projection and
+  // returns users visible in one channel. It is an internal API search
+  // primitive; the result limit is the final visible result count.
+  rpc SearchGuildMentionUsers(SearchGuildMentionUsersRequest) returns (SearchGuildMentionUsersResponse);
+  // SearchGuildMentionRoles searches roles owned by one Guild. Role results
+  // are not filtered by member channel visibility; expansion performs that
+  // filtering for the role's target members.
+  rpc SearchGuildMentionRoles(SearchGuildMentionRolesRequest) returns (SearchGuildMentionRolesResponse);
+  // FilterGuildChannelVisibleUsers filters a bounded set of users against the
+  // current channel visibility rules before Message persists user mentions.
+  rpc FilterGuildChannelVisibleUsers(FilterGuildChannelVisibleUsersRequest) returns (FilterGuildChannelVisibleUsersResponse);
 }
 
 // ============================================================
@@ -972,4 +983,51 @@ message ListGuildMentionTargetsResponse {
   // do not set an empty string. Pass through unchanged as the next request's
   // cursor. End of list is field absence.
   string next_cursor = 2;
+}
+
+message SearchGuildMentionUsersRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 channel_id = 3;
+  // Prefix query matched against username, nickname, and profile name.
+  string query = 4;
+  // Zero uses the default; the maximum is 20.
+  int32 limit = 5;
+}
+
+message GuildMentionUser {
+  int64 user_id = 1;
+  string username = 2;
+  string name = 3;
+  int64 avatar_asset_id = 4;
+  string nickname = 5;
+}
+
+message SearchGuildMentionUsersResponse {
+  repeated GuildMentionUser users = 1;
+}
+
+message SearchGuildMentionRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // Prefix query matched against role name.
+  string query = 3;
+  // Zero uses the default; the maximum is 20.
+  int32 limit = 4;
+}
+
+message SearchGuildMentionRolesResponse {
+  repeated GuildRole roles = 1;
+}
+
+message FilterGuildChannelVisibleUsersRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 channel_id = 3;
+  // At most 100 user IDs may be checked in one request.
+  repeated int64 user_ids = 4;
+}
+
+message FilterGuildChannelVisibleUsersResponse {
+  repeated int64 user_ids = 1;
 }

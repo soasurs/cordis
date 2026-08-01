@@ -88,7 +88,11 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 			return err
 		}
 		created = guild
-		if _, err := txStore.CreateGuildMember(ctx, guildID, req.GetOwnerId(), createdAt); err != nil {
+		member, err := txStore.CreateGuildMember(ctx, guildID, req.GetOwnerId(), createdAt)
+		if err != nil {
+			return err
+		}
+		if err := txStore.UpsertGuildMemberProfile(ctx, guildMemberProfilePlaceholder(guildID, member.UserID, member.Nickname)); err != nil {
 			return err
 		}
 		if err := txStore.CreateDefaultRole(ctx, guildID, createdAt); err != nil {
@@ -98,6 +102,18 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
+	}
+	if createdNewGuild {
+		profiles, profileErr := s.getEventUserProfiles(ctx, req.GetOwnerId())
+		if profileErr != nil {
+			logx.WithContext(ctx).Errorw("hydrate guild member profile projection after guild creation",
+				logx.Field("guild_id", created.ID), logx.Field("user_id", req.GetOwnerId()), logx.Field("error", profileErr))
+		} else if profileErr := s.svcCtx.Store.UpdateGuildMemberProfilesByUser(
+			ctx, guildMemberProfileFromProto(created.ID, "", profiles[req.GetOwnerId()]),
+		); profileErr != nil {
+			logx.WithContext(ctx).Errorw("update guild member profile projection after guild creation",
+				logx.Field("guild_id", created.ID), logx.Field("user_id", req.GetOwnerId()), logx.Field("error", profileErr))
+		}
 	}
 
 	if createdNewGuild {
@@ -267,6 +283,9 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *guildv1.DeleteGuildR
 			return err
 		}
 		if err := txStore.DeleteGuildMembers(ctx, req.GetGuildId(), deletedAt); err != nil {
+			return err
+		}
+		if err := txStore.DeleteGuildMemberProfiles(ctx, req.GetGuildId()); err != nil {
 			return err
 		}
 		if err := txStore.DeleteAllGuildRoleAssignments(ctx, req.GetGuildId()); err != nil {

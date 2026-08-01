@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"time"
 
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -17,6 +19,8 @@ import (
 )
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")
+
+const profileProjectorShutdownTimeout = 4 * time.Second
 
 func main() {
 	flag.Parse()
@@ -41,6 +45,24 @@ func main() {
 	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
+	projector := server.NewProfileProjector(svcCtx)
+	projectorCtx, cancelProjector := context.WithCancel(context.Background())
+	projectorDone := make(chan struct{})
+	proc.AddShutdownListener(func() {
+		cancelProjector()
+		projector.Close()
+		timer := time.NewTimer(profileProjectorShutdownTimeout)
+		defer timer.Stop()
+		select {
+		case <-projectorDone:
+		case <-timer.C:
+			logx.Error("profile projector did not stop before shutdown timeout")
+		}
+	})
+	go func() {
+		defer close(projectorDone)
+		projector.Run(projectorCtx)
+	}()
 	probeState := probe.New()
 	probeState.SetLiveness(true)
 	proc.AddWrapUpListener(func() {

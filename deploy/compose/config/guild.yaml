@@ -1,6 +1,7 @@
 name: guild.v1
 listenOn: 0.0.0.0:3005
 timeout: 0
+shutdownTimeout: 20s
 health: false
 
 log:

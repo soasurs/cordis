@@ -50,6 +50,7 @@ func NewMentionExpander(svcCtx *svc.ServiceContext) (*mentionExpander, error) {
 			RetryMin:                mentionExpandRetryMin,
 			RetryMax:                mentionExpandRetryMax,
 			RetryMaxAttempts:        mentionExpandMaxAttempts,
+			ShutdownTimeout:         svcCtx.Cfg.ShutdownDuration(),
 			DropAfterRetryExhausted: true,
 		},
 		func(ctx context.Context, record *kgo.Record) (bool, error) {
@@ -67,9 +68,14 @@ func NewMentionExpander(svcCtx *svc.ServiceContext) (*mentionExpander, error) {
 }
 
 func (e *mentionExpander) Close() {
+	_ = e.CloseContext(context.Background())
+}
+
+func (e *mentionExpander) CloseContext(ctx context.Context) error {
 	if e != nil && e.consumer != nil {
-		e.consumer.Close()
+		return e.consumer.CloseContext(ctx)
 	}
+	return nil
 }
 
 // Run polls the message event topic until ctx is cancelled, expanding each

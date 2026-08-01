@@ -28,6 +28,7 @@ type partitionRuntime struct {
 	pauseReasons  map[partitionKey]partitionPauseReason
 	mu            sync.Mutex
 	stopOnce      sync.Once
+	stopErr       error
 	stopped       bool
 }
 
@@ -279,42 +280,61 @@ func (r *partitionRuntime) stopWorkers(parent context.Context, workers []*partit
 }
 
 func (r *partitionRuntime) stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), r.cfg.ShutdownTimeout)
+	defer cancel()
+	_ = r.stopContext(ctx)
+}
+
+func (r *partitionRuntime) stopContext(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	r.stopOnce.Do(func() {
-		r.mu.Lock()
-		r.stopped = true
-		workers := make([]*partitionWorker, 0, len(r.workers))
-		for key, worker := range r.workers {
-			delete(r.workers, key)
-			workers = append(workers, worker)
-		}
-		r.queuedRecords = make(map[partitionKey][]*kgo.Record)
-		r.pauseReasons = make(map[partitionKey]partitionPauseReason)
-		r.mu.Unlock()
-
-		r.cancel()
-		r.stopWorkers(context.Background(), workers)
-		if r.committer != nil {
-			r.committer.stop()
-		}
-
-		completed := make([]*kgo.Record, 0, len(workers))
-		for _, worker := range workers {
-			if record := worker.completed(); record != nil {
-				completed = append(completed, record)
-			}
-		}
-		if len(completed) == 0 || r.committer == nil {
-			return
-		}
-		// lastCompleted is the lifecycle watermark. The async committer may have
-		// already taken, requeued, or discarded its pending offset, so shutdown
-		// commits the worker snapshots rather than relying on committer state.
-		commitCtx, cancel := context.WithTimeout(context.Background(), r.cfg.CommitTimeout)
-		defer cancel()
-		if err := r.committer.client.CommitRecords(commitCtx, completed...); err != nil {
-			logx.WithContext(commitCtx).Errorw("commit Kafka partition consumer shutdown offsets", logx.Field("error", err))
-		}
+		r.stopErr = r.stopWithContext(ctx)
 	})
+	return r.stopErr
+}
+
+func (r *partitionRuntime) stopWithContext(ctx context.Context) error {
+	r.mu.Lock()
+	r.stopped = true
+	workers := make([]*partitionWorker, 0, len(r.workers))
+	for key, worker := range r.workers {
+		delete(r.workers, key)
+		workers = append(workers, worker)
+	}
+	r.queuedRecords = make(map[partitionKey][]*kgo.Record)
+	r.pauseReasons = make(map[partitionKey]partitionPauseReason)
+	r.mu.Unlock()
+
+	r.cancel()
+	r.stopWorkers(ctx, workers)
+	if r.committer != nil {
+		r.committer.stop()
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	completed := make([]*kgo.Record, 0, len(workers))
+	for _, worker := range workers {
+		if record := worker.completed(); record != nil {
+			completed = append(completed, record)
+		}
+	}
+	if len(completed) == 0 || r.committer == nil {
+		return nil
+	}
+	// lastCompleted is the lifecycle watermark. The async committer may have
+	// already taken, requeued, or discarded its pending offset, so shutdown
+	// commits the worker snapshots rather than relying on committer state.
+	commitCtx, cancel := context.WithTimeout(ctx, r.cfg.CommitTimeout)
+	defer cancel()
+	if err := r.committer.client.CommitRecords(commitCtx, completed...); err != nil {
+		logx.WithContext(commitCtx).Errorw("commit Kafka partition consumer shutdown offsets", logx.Field("error", err))
+		return err
+	}
+	return nil
 }
 
 func (w *partitionWorker) run() {

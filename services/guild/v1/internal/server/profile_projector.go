@@ -59,6 +59,7 @@ func NewProfileProjector(svcCtx *svc.ServiceContext) (*profileProjector, error) 
 			RetryMin:                profileProjectRetryMin,
 			RetryMax:                profileProjectRetryMax,
 			RetryMaxAttempts:        profileProjectMaxAttempts,
+			ShutdownTimeout:         svcCtx.Cfg.ShutdownDuration(),
 			DropAfterRetryExhausted: true,
 		},
 		func(ctx context.Context, record *kgo.Record) (bool, error) {
@@ -76,9 +77,14 @@ func NewProfileProjector(svcCtx *svc.ServiceContext) (*profileProjector, error) 
 }
 
 func (p *profileProjector) Close() {
+	_ = p.CloseContext(context.Background())
+}
+
+func (p *profileProjector) CloseContext(ctx context.Context) error {
 	if p != nil && p.consumer != nil {
-		p.consumer.Close()
+		return p.consumer.CloseContext(ctx)
 	}
+	return nil
 }
 
 func (p *profileProjector) Run(ctx context.Context) {

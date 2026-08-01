@@ -25,6 +25,9 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.Health {
 		t.Fatal("built-in gRPC health service should be disabled")
 	}
+	if cfg.ShutdownDuration() != 20*time.Second {
+		t.Fatalf("unexpected shutdown timeout: %v", cfg.ShutdownDuration())
+	}
 	if cfg.ListenOn == "" || cfg.Database.DataSource == "" {
 		t.Fatalf("unexpected config: %+v", cfg)
 	}

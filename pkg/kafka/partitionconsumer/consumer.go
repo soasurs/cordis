@@ -19,6 +19,7 @@ const (
 	DefaultMaxUncommittedRecords = 128
 	DefaultRevokeTimeout         = 10 * time.Second
 	DefaultCommitTimeout         = 5 * time.Second
+	DefaultShutdownTimeout       = 20 * time.Second
 	DefaultRetryMin              = 100 * time.Millisecond
 	DefaultRetryMax              = 5 * time.Second
 )
@@ -41,6 +42,7 @@ type Config struct {
 	MaxUncommittedRecords   int
 	RevokeTimeout           time.Duration
 	CommitTimeout           time.Duration
+	ShutdownTimeout         time.Duration
 	RetryMin                time.Duration
 	RetryMax                time.Duration
 	RetryMaxAttempts        int
@@ -66,6 +68,9 @@ func (c Config) withDefaults() Config {
 	if c.CommitTimeout <= 0 {
 		c.CommitTimeout = DefaultCommitTimeout
 	}
+	if c.ShutdownTimeout <= 0 {
+		c.ShutdownTimeout = DefaultShutdownTimeout
+	}
 	if c.RetryMin <= 0 {
 		c.RetryMin = DefaultRetryMin
 	}
@@ -84,6 +89,7 @@ type Consumer struct {
 	runtime   *partitionRuntime
 	closed    chan struct{}
 	closeOnce sync.Once
+	closeErr  error
 }
 
 // New creates a consumer and appends the partition lifecycle callbacks to the
@@ -128,12 +134,16 @@ func New(cfg Config, handler Handler, opts ...kgo.Opt) (*Consumer, error) {
 
 // Run polls records until ctx is cancelled or Close is called. It owns the
 // runtime shutdown path and flushes the last completed watermark before
-// returning.
+// returning, bounded by the configured shutdown timeout.
 func (c *Consumer) Run(ctx context.Context) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	defer c.runtime.stop()
+	defer func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), c.runtime.cfg.ShutdownTimeout)
+		defer cancel()
+		_ = c.runtime.stopContext(shutdownCtx)
+	}()
 	for {
 		fetches := c.client.PollRecords(ctx, c.runtime.maxPoll)
 		if ctx.Err() != nil || c.isClosed() {
@@ -152,13 +162,26 @@ func (c *Consumer) Run(ctx context.Context) {
 
 // Close stops workers, synchronously flushes completed offsets, and closes the
 // owned Kafka client. It is safe to call more than once and concurrently with
-// Run.
+// Run. Close uses the runtime's configured shutdown budget.
 func (c *Consumer) Close() {
+	ctx, cancel := context.WithTimeout(context.Background(), c.runtime.cfg.ShutdownTimeout)
+	defer cancel()
+	_ = c.CloseContext(ctx)
+}
+
+// CloseContext stops workers, flushes completed offsets, and closes the owned
+// Kafka client using ctx as the overall shutdown deadline. It returns the
+// shutdown or final-commit error, if any.
+func (c *Consumer) CloseContext(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	c.closeOnce.Do(func() {
-		c.runtime.stop()
+		c.closeErr = c.runtime.stopContext(ctx)
 		close(c.closed)
 		c.client.Close()
 	})
+	return c.closeErr
 }
 
 func (c *Consumer) isClosed() bool {

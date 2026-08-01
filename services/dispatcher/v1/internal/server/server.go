@@ -151,6 +151,7 @@ func New(
 				MaxUncommittedRecords: cfg.Dispatcher.MaxUncommittedRecords,
 				RevokeTimeout:         server.revokeTimeout(),
 				CommitTimeout:         server.dispatchTimeout(),
+				ShutdownTimeout:       cfg.ShutdownDuration(),
 				RetryMin:              server.retryMin(),
 				RetryMax:              server.retryMax(),
 			},

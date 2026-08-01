@@ -56,6 +56,8 @@ Guild 通过 `guild_member_profiles` 维护用于 Mention 搜索的 User profile
 partition 一个串行 worker 和有界队列，retry 与 offset 提交状态按 partition
 隔离。存储临时失败只阻塞当前 partition；保留现有 retry 次数，耗尽后记录日志、
 提交并丢弃该事件。
+优雅关闭预算由 `shutdownTimeout` 配置；go-zero 的强制退出时间会在该预算上
+加上默认的一秒 wrap-up 阶段，为 worker 停止和最终 offset 提交预留有界时间。
 
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。创建频道时会写入一条空的 `@everyone` overwrite（`applies_to=ROLE`，`applies_to_id=guild_id`，allow/deny 为 0），客户端无需自行补全；该 overwrite 与默认角色均不可删除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 
@@ -114,6 +116,8 @@ object key 重新签发 presigned PUT URL；重试不会再次创建 asset 或�
 该 worker 复用共享 partition consumer runtime，每个 partition 保持一个串行
 worker、独立有界队列、retry 和 offset 状态；某个 partition 的 retry 不会阻塞
 其他 partition。保留现有 retry 次数，耗尽后记录日志、提交并丢弃事件。
+优雅关闭预算由 `shutdownTimeout` 配置；go-zero 的强制退出时间会在该预算上
+加上默认的一秒 wrap-up 阶段，为 worker 停止和最终 offset 提交预留有界时间。
 
 `CreateMessage` 支持可选的 opaque `idempotency_key`，用于标识一次客户端创建意图。key 的作用域是认证用户和 `message.create` 操作，默认保留 30 分钟；不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。请求指纹（版本 2）包含 channel、正文、规范化后的 type、flags、引用消息、附件 asset ID 及其顺序，以及解析后的 mention 集合（用户 ID、角色 ID 和 everyone 标记）。相同指纹重用 key 时返回第一次创建的消息，不再次写入 mentions、推进 read state 或发布创建事件；不同参数重用 key 时返回 `request.idempotency_key_reused`。未携带 key 的请求保持原有行为。重试仍会执行正常的认证、授权和请求校验；这些检查或其依赖失败时，重试可以返回对应错误，但不会创建新消息。幂等记录与消息侧写入在同一事务内完成，但现有提交后 best-effort 发布 Kafka 的窗口仍然存在。TTL 按 operation 独立配置，其他创建类 RPC 可以使用不同的保留时间。
 
@@ -159,6 +163,7 @@ partition consumer runtime，统一处理 worker 生命周期、按 partition �
 以及手动 offset 提交。
 
 如果 Kafka commit lag 达到 `maxUncommittedRecords`，Dispatcher 会暂停该 partition 的拉取，直到提交成功后再恢复；这个暂停不会覆盖该 partition 自身的 queue 或 retry 暂停。revoke 期间等待 worker 退出受 `revokeTimeoutSeconds` 限制；超时的 worker 会被标记为 inactive，其正在处理的记录不会被提交，交由 Kafka 重新投递。
+优雅关闭预算由 `shutdownTimeout` 配置；go-zero 的强制退出时间会在该预算上加上默认的一秒 wrap-up 阶段。
 
 ## Presence
 

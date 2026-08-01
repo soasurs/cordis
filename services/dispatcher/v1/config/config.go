@@ -17,12 +17,22 @@ type Config struct {
 	Name            string
 	ProbeServer     probe.HTTPConfig
 	Log             logx.LogConf
-	Telemetry       trace.Config `json:",optional"`
+	Telemetry       trace.Config  `json:",optional"`
+	ShutdownTimeout time.Duration `json:",default=20s"`
 	Kafka           KafkaConfig
 	Redis           redis.RedisConf
 	SessionRegistry sessionregistry.Config
 	Dispatcher      DispatcherConfig
 	Services        ServiceConfig
+}
+
+// ShutdownDuration is the process shutdown budget, including the shared
+// consumers' final worker stop and offset commits.
+func (c Config) ShutdownDuration() time.Duration {
+	if c.ShutdownTimeout <= 0 {
+		return partitionconsumer.DefaultShutdownTimeout
+	}
+	return c.ShutdownTimeout
 }
 
 // ServiceConfig wires audience lookups used for realtime fan-out.

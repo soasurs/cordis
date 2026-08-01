@@ -3,6 +3,7 @@ package config
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/core/conf"
@@ -12,6 +13,7 @@ func TestLoadConfig(t *testing.T) {
 	var cfg Config
 	require.NoError(t, conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv()))
 	require.Equal(t, "dispatcher.v1", cfg.Name)
+	require.Equal(t, 20*time.Second, cfg.ShutdownDuration())
 	require.Equal(t, "0.0.0.0:6069", cfg.ProbeServer.ListenOn)
 	require.Equal(t, "error", cfg.Log.Level)
 	require.Equal(t, 1.0, cfg.Telemetry.Sampler)

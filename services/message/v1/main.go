@@ -20,8 +20,6 @@ import (
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")
 
-const mentionExpanderShutdownTimeout = 15 * time.Second
-
 func main() {
 	flag.Parse()
 
@@ -29,6 +27,9 @@ func main() {
 	if err := conf.LoadConfig(*configPath, cfg, conf.UseEnv()); err != nil {
 		panic(err)
 	}
+	shutdownTimeout := cfg.ShutdownDuration()
+	// go-zero starts shutdown listeners after its one-second wrap-up phase.
+	proc.SetTimeToForceQuit(shutdownTimeout + time.Second)
 	cfg.Health = false
 	cfg.Log.ServiceName = cfg.Name
 	logx.MustSetup(cfg.Log)
@@ -54,12 +55,14 @@ func main() {
 		expanderDone := make(chan struct{})
 		proc.AddShutdownListener(func() {
 			cancelExpander()
-			expander.Close()
-			timer := time.NewTimer(mentionExpanderShutdownTimeout)
-			defer timer.Stop()
+			shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)
+			defer cancelShutdown()
+			if err := expander.CloseContext(shutdownCtx); err != nil && shutdownCtx.Err() == nil {
+				logx.Errorw("close mention expander", logx.Field("error", err))
+			}
 			select {
 			case <-expanderDone:
-			case <-timer.C:
+			case <-shutdownCtx.Done():
 				logx.Error("mention expander did not stop before shutdown timeout")
 			}
 		})

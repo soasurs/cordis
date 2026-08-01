@@ -143,6 +143,9 @@ runtime: one serial worker and bounded queue per assigned partition, with
 retry and offset commit coordination isolated by partition. A transient store
 failure retries in that partition; after the existing retry budget is
 exhausted, the event is logged, committed, and dropped.
+The graceful shutdown budget is configured by `shutdownTimeout`; go-zero's
+force-quit deadline is set to that budget plus its one-second wrap-up phase so
+the worker can finish its bounded shutdown and final offset commit.
 
 Permissions are a `uint64` bit set. Owners and administrators receive all
 permissions. Channel evaluation applies the default role, member roles, and
@@ -287,6 +290,9 @@ assigned partition has one serial worker and its own bounded queue, retry
 backoff, and offset state. A retry blocks only that partition; after the
 existing retry budget is exhausted, the event is logged, committed, and
 dropped.
+The graceful shutdown budget is configured by `shutdownTimeout`; go-zero's
+force-quit deadline is set to that budget plus its one-second wrap-up phase so
+the worker can finish its bounded shutdown and final offset commit.
 
 `CreateMessage` accepts an optional opaque `idempotency_key` for one client
 creation intent. The key is scoped to the authenticated user and the
@@ -430,6 +436,8 @@ and its in-flight record is left for Kafka to replay rather than committed.
 Routes are deduplicated within one attempt, but a record retry can call an already
 successful node again. Delivery is at least once and there is no general event-ID
 deduplication.
+The graceful shutdown budget is configured by `shutdownTimeout`; go-zero's
+force-quit deadline is set to that budget plus its one-second wrap-up phase.
 
 ## Presence
 

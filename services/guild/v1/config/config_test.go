@@ -15,6 +15,7 @@ func TestLoadConfig(t *testing.T) {
 	require.NoError(t, conf.LoadConfig(filepath.Join("..", "etc", "config.yaml"), &cfg, conf.UseEnv()))
 	require.Equal(t, "guild.v1", cfg.Name)
 	require.False(t, cfg.Health)
+	require.Equal(t, 20*time.Second, cfg.ShutdownDuration())
 	require.Equal(t, "cordis.guild.events.v1", cfg.Kafka.Topic)
 	require.Equal(t, "cordis.guild.user.profiles.v1", cfg.Kafka.ProfileConsumerGroup)
 	require.Empty(t, cfg.Kafka.Seeds)

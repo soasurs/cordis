@@ -49,7 +49,7 @@ Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事�
 
 Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和描述通过具备字段 presence 语义的 `UpdateGuild` 修改，显式传入空描述会清除它；图标使用独立的直传流程，仅在 `CompleteGuildIconUpload` 成功时才与 Guild 关联。
 
-Guild 通过 `guild_member_profiles` 维护用于 Mention 搜索的 User profile 投影。User 的完整 profile 仍由 User 服务拥有；Guild 在成员创建/加入时写入投影，消费 `user.profile.updated` 更新投影，并在启动时重建历史成员的投影。用户搜索只做规范化 username/nickname/name 前缀匹配，公开 limit 是经过频道可见性过滤后的最终结果数。
+Guild 通过 `guild_member_profiles` 维护用于 Mention 搜索的 User profile 投影。User 的完整 profile 仍由 User 服务拥有；Guild 在成员创建/加入时写入投影，`CreateGuild` 可能先写入占位行并在 Guild 事务提交后从 User best-effort 补齐，消费 `user.profile.updated` 更新投影，并在启动时重建历史成员的投影。用户搜索只做规范化 username/nickname/name 前缀匹配，公开 limit 是经过频道可见性过滤后的最终结果数。
 
 权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。创建频道时会写入一条空的 `@everyone` overwrite（`applies_to=ROLE`，`applies_to_id=guild_id`，allow/deny 为 0），客户端无需自行补全；该 overwrite 与默认角色均不可删除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
 

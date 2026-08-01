@@ -129,11 +129,13 @@ an empty description clears it. Icons use the separate direct-upload flow and
 are associated with the Guild only when `CompleteGuildIconUpload` succeeds.
 
 Guild maintains `guild_member_profiles` as its local projection for mention
-search. User remains the source of truth for complete profiles; Guild writes
-the projection when members join, consumes `user.profile.updated` to update
-all related Guild rows, and rebuilds historical member rows at startup. User
-search uses normalized username/nickname/name prefixes, and the public limit is the
-final count after channel-visibility filtering.
+search. User remains the source of truth for complete profiles; Guild writes a
+projection row when members join, and `CreateGuild` may hydrate its placeholder
+row from User after the Guild transaction commits. It consumes
+`user.profile.updated` to update all related Guild rows and rebuilds historical
+member rows at startup. User search uses normalized username/nickname/name
+prefixes, and the public limit is the final count after channel-visibility
+filtering.
 
 Permissions are a `uint64` bit set. Owners and administrators receive all
 permissions. Channel evaluation applies the default role, member roles, and

@@ -13,6 +13,8 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
+const mentionUserBatchSize = 100
+
 // resolveMentions parses content and reduces the mention set to entities the
 // service is willing to persist. DM channels keep only user mentions; Guild
 // channels require MENTION_EVERYONE for @everyone and drop roles and users
@@ -64,19 +66,24 @@ func (s *messageServer) filterMentionUsers(ctx context.Context, parsed mention.S
 }
 
 func (s *messageServer) filterGuildVisibleUsers(ctx context.Context, audience messageAudience, actorUserID int64, userIDs []int64) ([]int64, error) {
-	req := new(guildv1.FilterGuildChannelVisibleUsersRequest)
-	req.SetGuildId(audience.guildID)
-	req.SetActorUserId(actorUserID)
-	req.SetChannelId(audience.channelID)
-	req.SetUserIds(userIDs)
-	resp, err := s.svcCtx.GuildClient.FilterGuildChannelVisibleUsers(ctx, req)
-	if err != nil {
-		return nil, err
+	visible := make([]int64, 0, len(userIDs))
+	for start := 0; start < len(userIDs); start += mentionUserBatchSize {
+		end := min(start+mentionUserBatchSize, len(userIDs))
+		req := new(guildv1.FilterGuildChannelVisibleUsersRequest)
+		req.SetGuildId(audience.guildID)
+		req.SetActorUserId(actorUserID)
+		req.SetChannelId(audience.channelID)
+		req.SetUserIds(userIDs[start:end])
+		resp, err := s.svcCtx.GuildClient.FilterGuildChannelVisibleUsers(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+		if resp == nil {
+			return nil, status.Error(codes.Internal, "guild service returned an invalid visibility response")
+		}
+		visible = append(visible, resp.GetUserIds()...)
 	}
-	if resp == nil {
-		return nil, status.Error(codes.Internal, "guild service returned an invalid visibility response")
-	}
-	return resp.GetUserIds(), nil
+	return visible, nil
 }
 
 func toMessageMentions(set mention.Set) model.MessageMentions {
@@ -107,21 +114,24 @@ func (s *messageServer) guildRoleSet(ctx context.Context, guildID, actorUserID i
 }
 
 func (s *messageServer) filterExistingUsers(ctx context.Context, userIDs []int64) ([]int64, error) {
-	req := new(userv1.BatchGetUserProfilesRequest)
-	req.SetUserIds(userIDs)
-	resp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
-	if err != nil {
-		return nil, err
-	}
-	if resp == nil {
-		return nil, status.Error(codes.Internal, "user service returned an invalid response")
-	}
 	found := make(map[int64]struct{}, len(userIDs))
-	for _, profile := range resp.GetProfiles() {
-		if profile == nil || profile.GetUserId() <= 0 {
-			continue
+	for start := 0; start < len(userIDs); start += mentionUserBatchSize {
+		end := min(start+mentionUserBatchSize, len(userIDs))
+		req := new(userv1.BatchGetUserProfilesRequest)
+		req.SetUserIds(userIDs[start:end])
+		resp, err := s.svcCtx.UserClient.BatchGetUserProfiles(ctx, req)
+		if err != nil {
+			return nil, err
 		}
-		found[profile.GetUserId()] = struct{}{}
+		if resp == nil {
+			return nil, status.Error(codes.Internal, "user service returned an invalid response")
+		}
+		for _, profile := range resp.GetProfiles() {
+			if profile == nil || profile.GetUserId() <= 0 {
+				continue
+			}
+			found[profile.GetUserId()] = struct{}{}
+		}
 	}
 	values := make([]int64, 0, len(userIDs))
 	for _, userID := range userIDs {

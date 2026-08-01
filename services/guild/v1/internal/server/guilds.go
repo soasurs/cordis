@@ -44,10 +44,6 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 			return nil, err
 		}
 	}
-	profiles, err := s.getEventUserProfiles(ctx, req.GetOwnerId())
-	if err != nil {
-		return nil, err
-	}
 	var created *model.Guild
 	createdNewGuild := !req.HasIdempotencyKey()
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
@@ -96,7 +92,7 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 		if err != nil {
 			return err
 		}
-		if err := txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(guildID, member.Nickname, profiles[req.GetOwnerId()])); err != nil {
+		if err := txStore.UpsertGuildMemberProfile(ctx, guildMemberProfilePlaceholder(guildID, member.UserID, member.Nickname)); err != nil {
 			return err
 		}
 		if err := txStore.CreateDefaultRole(ctx, guildID, createdAt); err != nil {
@@ -106,6 +102,18 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
+	}
+	if createdNewGuild {
+		profiles, profileErr := s.getEventUserProfiles(ctx, req.GetOwnerId())
+		if profileErr != nil {
+			logx.WithContext(ctx).Errorw("hydrate guild member profile projection after guild creation",
+				logx.Field("guild_id", created.ID), logx.Field("user_id", req.GetOwnerId()), logx.Field("error", profileErr))
+		} else if profileErr := s.svcCtx.Store.UpdateGuildMemberProfilesByUser(
+			ctx, guildMemberProfileFromProto(created.ID, "", profiles[req.GetOwnerId()]),
+		); profileErr != nil {
+			logx.WithContext(ctx).Errorw("update guild member profile projection after guild creation",
+				logx.Field("guild_id", created.ID), logx.Field("user_id", req.GetOwnerId()), logx.Field("error", profileErr))
+		}
 	}
 
 	if createdNewGuild {

@@ -273,6 +273,17 @@ WHERE user_id = $1
   AND profile_updated_at <= $7
 `
 
+const updateGuildMemberProfilesByUserWithoutAvatarQuery = `
+UPDATE guild_member_profiles
+SET username = $2,
+    name = $3,
+    username_search = $4,
+    name_search = $5,
+    profile_updated_at = $6
+WHERE user_id = $1
+  AND profile_updated_at <= $6
+`
+
 const updateGuildMemberProfileNicknameQuery = `
 UPDATE guild_member_profiles
 SET nickname = $3,

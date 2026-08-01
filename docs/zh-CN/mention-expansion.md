@@ -58,7 +58,7 @@ GUILD_PERMISSION_MENTION_EVERYONE = 2048;
 Guild 文本频道中解析出 `@everyone` 时，使用现有 `AuthorizeGuildChannel` 返回的完整有效权限集检查 `MENTION_EVERYONE`；缺失则返回权限错误，整个请求失败。
 
 - role mention：调用 `ListGuildRoles(guild_id, author_id)` 一次获取该 Guild 全部角色，过滤不属于该 Guild 或不存在的角色；本轮不校验 `mentionable`；
-- user mention：先调用 Guild 的 `FilterGuildChannelVisibleUsers`，只保留仍是该 Guild 活跃成员且能看到当前频道的用户；随后调用 `BatchGetUserProfiles` 过滤不存在的用户；
+- user mention：Message 按每批最多 100 个 ID 调用 Guild 的 `FilterGuildChannelVisibleUsers`，只保留仍是该 Guild 活跃成员且能看到当前频道的用户；随后以相同的批大小调用 User 的 `BatchGetUserProfiles`，过滤不存在的用户；
 - 作者自身是 Guild 成员由发送消息的既有授权流程保证。
 
 ## 4. 存储
@@ -183,7 +183,7 @@ message ListGuildMentionTargetsResponse {
 ### 6.4 Mention 候选搜索
 
 - API 暴露 `SearchGuildMentionUsers` 和 `SearchGuildMentionRoles`。用户搜索请求带 `guild_id`、当前 `channel_id`、查询字符串和最多 20 条的 limit；客户端输入变化或继续输入时重新发起请求，不使用深分页游标。
-- 用户候选不跨 User 服务做全局搜索。Guild 维护 `guild_member_profiles` 投影，包含 `guild_id`、`user_id`、`username`、Guild nickname、profile `name`、头像 ID 以及用于前缀索引的规范化字段。成员创建/加入时写入，User 的 `user.profile.updated` 事件更新所有相关 Guild，服务启动时做有界重建以补齐历史成员。
+- 用户候选不跨 User 服务做全局搜索。Guild 维护 `guild_member_profiles` 投影，包含 `guild_id`、`user_id`、`username`、Guild nickname、profile `name`、头像 ID 以及用于前缀索引的规范化字段。成员创建/加入时写入；`CreateGuild` 可能先写入占位行，再在事务提交后从 User best-effort 补齐；User 的 `user.profile.updated` 事件更新所有相关 Guild，服务启动时做有界重建以补齐历史成员。如果 User 在重建重试预算耗尽后仍不可用，projector 会继续消费事件，并在下一次启动时再次重建。
 - 用户搜索匹配 username、Guild nickname 或 profile name 的前缀；username 匹配优先于 nickname/name 匹配，随后按规范化 username 和 user ID 排序。排序发生在频道可见性过滤之前，但服务端会继续读取内部候选窗口（默认 100）直到得到客户端要求的可见结果数或候选耗尽，因此对外 limit 始终是最终可见条数。
 - 每个候选窗口都使用与频道授权相同的 `channelPermissions` 规则过滤；搜索调用者本身也必须能看到该频道。投影更新和权限变化之间存在正常的最终一致性窗口，Message 写入时仍通过批量可见性 RPC 做最终校验。
 - 角色搜索在 Guild 本地按角色名做前缀匹配，排除特殊的 `@everyone` 角色；角色候选本身不按目标成员的频道可见性过滤，角色展开时再过滤目标成员。第一版使用 PostgreSQL 的规范化前缀匹配和 B-tree `text_pattern_ops` 索引，查询中的 `%`、`_` 和反斜杠会转义；contains/fuzzy 搜索和 `pg_trgm` 留作后续优化。
@@ -262,7 +262,7 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 ### 11.3 Guild Mention 搜索协议
 
 - 公共 Guild API 新增 `SearchGuildMentionUsers(guild_id, channel_id, query, limit)` 和 `SearchGuildMentionRoles(guild_id, query, limit)`；用户响应包含 `user_id`、`username`、`nickname`、`name` 和头像 ID，角色响应复用 `GuildRole`。
-- 内部 Guild API 新增对应的带 `actor_user_id` 用户/角色搜索 RPC，以及 `FilterGuildChannelVisibleUsers` 批量可见性 RPC。前者用于 API 搜索，后者由 Message 在写入直接 user mentions 时调用。
+- 内部 Guild API 新增对应的带 `actor_user_id` 用户/角色搜索 RPC，以及 `FilterGuildChannelVisibleUsers` 批量可见性 RPC。前者用于 API 搜索，后者由 Message 分批调用以过滤写入的直接 user mentions。
 
 ## 12. 迁移与兼容
 

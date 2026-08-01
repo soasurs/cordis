@@ -245,8 +245,8 @@ func mentionSearchMatchRank(profile *model.GuildMemberProfile, query string) int
 }
 
 func mentionSearchUsername(profile *model.GuildMemberProfile) string {
-	if profile.UsernameSearch != "" {
-		return profile.UsernameSearch
+	if profile == nil {
+		return ""
 	}
-	return strings.ToLower(profile.Username)
+	return profile.UsernameSearch
 }

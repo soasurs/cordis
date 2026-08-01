@@ -174,6 +174,7 @@ type Store interface {
 	SearchGuildMentionUsers(ctx context.Context, params SearchGuildMentionUsersParams) ([]*model.GuildMemberProfile, error)
 	UpsertGuildMemberProfile(ctx context.Context, profile *model.GuildMemberProfile) error
 	UpdateGuildMemberProfilesByUser(ctx context.Context, profile *model.GuildMemberProfile) error
+	UpdateGuildMemberProfilesByUserWithoutAvatar(ctx context.Context, profile *model.GuildMemberProfile) error
 	UpdateGuildMemberProfileNickname(ctx context.Context, guildID, userID int64, nickname string) error
 	DeleteGuildMemberProfile(ctx context.Context, guildID, userID int64) error
 	DeleteGuildMemberProfiles(ctx context.Context, guildID int64) error

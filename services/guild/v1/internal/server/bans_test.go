@@ -44,6 +44,23 @@ func TestBanGuildMemberRemovesMemberAndBlocksRejoin(t *testing.T) {
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 }
 
+func TestBanGuildMemberCleansProfileForInactiveMember(t *testing.T) {
+	fakeStore := roleTestStore()
+	fakeStore.members[10][1002].DeletedAt = 1
+	fakeStore.profiles[10] = map[int64]*model.GuildMemberProfile{
+		1002: {GuildID: 10, UserID: 1002, Username: "stale"},
+	}
+	server := newTestGuildServer(t, fakeStore, nil)
+
+	banReq := new(guildv1.BanGuildMemberRequest)
+	banReq.SetGuildId(10)
+	banReq.SetActorUserId(1001)
+	banReq.SetUserId(1002)
+	_, err := server.BanGuildMember(t.Context(), banReq)
+	require.NoError(t, err)
+	require.NotContains(t, fakeStore.profiles[10], int64(1002))
+}
+
 func TestListAndUnbanGuildMember(t *testing.T) {
 	fakeStore := roleTestStore()
 	server := newTestGuildServer(t, fakeStore, nil)

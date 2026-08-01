@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -51,4 +52,32 @@ func TestProfileProjectorAppliesProfileEventsAndIgnoresStaleEvents(t *testing.T)
 	require.NoError(t, err)
 	require.NoError(t, projector.handleRecord(t.Context(), &kgo.Record{Value: stale}))
 	require.Equal(t, "new_name", fakeStore.profiles[10][1001].Username)
+}
+
+func TestProfileProjectorAppliesProfileFieldsWhenAvatarIsMissing(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.profiles[10] = map[int64]*model.GuildMemberProfile{
+		1001: {GuildID: 10, UserID: 1001, Username: "old", Name: "Old", AvatarAssetID: 42, ProfileUpdatedAt: 5},
+	}
+	projector := &profileProjector{store: fakeStore}
+	value := []byte(`{"t":"user.profile.updated","d":{"user_id":"1001","username":"new_name","name":"New Name","updated_at":6}}`)
+
+	require.NoError(t, projector.handleRecord(t.Context(), &kgo.Record{Value: value}))
+	profile := fakeStore.profiles[10][1001]
+	require.Equal(t, "new_name", profile.Username)
+	require.Equal(t, "New Name", profile.Name)
+	require.Equal(t, int64(42), profile.AvatarAssetID)
+	require.Equal(t, int64(6), profile.ProfileUpdatedAt)
+}
+
+func TestProfileProjectorBoundsStartupRebuildRetries(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.guilds[10] = testGuild(10, 1001)
+	fakeStore.members[10] = testMembers(10, 1001)
+	userClient := &fakeUserClient{err: errors.New("user unavailable")}
+	projector := &profileProjector{store: fakeStore, user: userClient}
+
+	projector.rebuildProfilesWithRetry(t.Context(), 2, 0, 0)
+
+	require.Equal(t, 2, userClient.batchCalls)
 }

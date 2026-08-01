@@ -62,7 +62,7 @@ func testGuildMemberProfileSearch(t *testing.T, store Store) {
 		require.NoError(t, err)
 	}
 	require.NoError(t, store.UpsertGuildMemberProfile(ctx, &model.GuildMemberProfile{
-		GuildID: guildID, UserID: ownerID, Username: "alice", Name: "Zed", ProfileUpdatedAt: 10,
+		GuildID: guildID, UserID: ownerID, Username: "alice", Name: "Zed", AvatarAssetID: 77, ProfileUpdatedAt: 10,
 	}))
 	require.NoError(t, store.UpsertGuildMemberProfile(ctx, &model.GuildMemberProfile{
 		GuildID: guildID, UserID: 29701, Username: "bob", Name: "Alice Bob", ProfileUpdatedAt: 10,
@@ -106,12 +106,20 @@ func testGuildMemberProfileSearch(t *testing.T, store Store) {
 	require.Equal(t, ownerID, profiles[0].UserID)
 
 	require.NoError(t, store.UpdateGuildMemberProfilesByUser(ctx, &model.GuildMemberProfile{
-		UserID: ownerID, Username: "updated", Name: "Updated", ProfileUpdatedAt: 11,
+		UserID: ownerID, Username: "updated", Name: "Updated", AvatarAssetID: 88, ProfileUpdatedAt: 11,
 	}))
 	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "updated", Limit: 10})
 	require.NoError(t, err)
 	require.Len(t, profiles, 1)
 	require.Equal(t, ownerID, profiles[0].UserID)
+
+	require.NoError(t, store.UpdateGuildMemberProfilesByUserWithoutAvatar(ctx, &model.GuildMemberProfile{
+		UserID: ownerID, Username: "without_avatar", Name: "Without Avatar", ProfileUpdatedAt: 12,
+	}))
+	profiles, err = store.SearchGuildMentionUsers(ctx, SearchGuildMentionUsersParams{GuildID: guildID, Query: "without_avatar", Limit: 10})
+	require.NoError(t, err)
+	require.Len(t, profiles, 1)
+	require.Equal(t, int64(88), profiles[0].AvatarAssetID)
 
 	keys, err := store.ListGuildMemberProfileKeys(ctx, ListGuildMemberProfileKeysParams{AfterGuildID: guildID - 1, Limit: 10})
 	require.NoError(t, err)

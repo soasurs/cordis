@@ -61,6 +61,7 @@ func TestCreateGuildCreatesOwnerDefaultRoleChannelsAndEvent(t *testing.T) {
 	require.Equal(t, defaultVoiceChannelName, channels[3].Name)
 	require.Equal(t, int32(guildv1.GuildChannelType_GUILD_CHANNEL_TYPE_VOICE), channels[3].Type)
 	require.Equal(t, channels[2].ID, channels[3].ParentID)
+	require.Equal(t, "user_1001", fakeStore.profiles[guild.GetId()][1001].Username)
 
 	for _, channel := range channels {
 		overwrites, err := fakeStore.ListGuildChannelPermissionOverwrites(t.Context(), channel.ID)
@@ -78,6 +79,43 @@ func TestCreateGuildCreatesOwnerDefaultRoleChannelsAndEvent(t *testing.T) {
 	require.Equal(t, guildIDString(guild.GetId()), envelope.Data.ID)
 	require.Equal(t, "1001", envelope.Data.OwnerID)
 	require.NotEmpty(t, envelope.IdempotencyKey)
+}
+
+func TestCreateGuildSurvivesProfileHydrationFailure(t *testing.T) {
+	fakeStore := newFakeStore()
+	userClient := &fakeUserClient{err: errors.New("user unavailable")}
+	server := newTestGuildServerWithUser(t, fakeStore, nil, userClient)
+
+	req := new(guildv1.CreateGuildRequest)
+	req.SetOwnerId(1001)
+	req.SetName("Cordis")
+	resp, err := server.CreateGuild(t.Context(), req)
+	require.NoError(t, err)
+
+	profile := fakeStore.profiles[resp.GetGuild().GetId()][1001]
+	require.NotNil(t, profile)
+	require.Equal(t, int64(1001), profile.UserID)
+	require.Empty(t, profile.Username)
+}
+
+func TestCreateGuildIdempotentReplayDoesNotRequireUserProfile(t *testing.T) {
+	fakeStore := newFakeStore()
+	userClient := &fakeUserClient{}
+	server := newTestGuildServerWithUser(t, fakeStore, nil, userClient)
+
+	req := new(guildv1.CreateGuildRequest)
+	req.SetOwnerId(1001)
+	req.SetName("Cordis")
+	req.SetIdempotencyKey("guild-intent-1")
+	first, err := server.CreateGuild(t.Context(), req)
+	require.NoError(t, err)
+	firstBatchCalls := userClient.batchCalls
+	userClient.err = errors.New("user unavailable")
+
+	replay, err := server.CreateGuild(t.Context(), req)
+	require.NoError(t, err)
+	require.Equal(t, first.GetGuild().GetId(), replay.GetGuild().GetId())
+	require.Equal(t, firstBatchCalls, userClient.batchCalls)
 }
 
 func TestCreateGuildCommitFailureDoesNotPublish(t *testing.T) {
@@ -412,10 +450,29 @@ func newTestGuildServer(t *testing.T, fakeStore store.Store, publisher svc.Event
 	return newTestGuildServerWithMedia(t, fakeStore, publisher, &fakeMediaClient{})
 }
 
+func newTestGuildServerWithUser(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	userClient userv1.UserServiceClient,
+) guildv1.GuildServiceServer {
+	return newTestGuildServerWithUserAndMedia(t, fakeStore, publisher, userClient, &fakeMediaClient{})
+}
+
 func newTestGuildServerWithMedia(
 	t *testing.T,
 	fakeStore store.Store,
 	publisher svc.EventPublisher,
+	mediaClient mediav1.MediaServiceClient,
+) guildv1.GuildServiceServer {
+	return newTestGuildServerWithUserAndMedia(t, fakeStore, publisher, &fakeUserClient{}, mediaClient)
+}
+
+func newTestGuildServerWithUserAndMedia(
+	t *testing.T,
+	fakeStore store.Store,
+	publisher svc.EventPublisher,
+	userClient userv1.UserServiceClient,
 	mediaClient mediav1.MediaServiceClient,
 ) guildv1.GuildServiceServer {
 	t.Helper()
@@ -424,7 +481,7 @@ func newTestGuildServerWithMedia(
 	return New(&svc.ServiceContext{
 		Cfg:   config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
 		Store: fakeStore, Snowflake: node, Cursors: testCursorCodec(t), Publisher: publisher,
-		UserClient:  &fakeUserClient{},
+		UserClient:  userClient,
 		MediaClient: mediaClient,
 	})
 }
@@ -432,6 +489,7 @@ func newTestGuildServerWithMedia(
 type fakeUserClient struct {
 	userv1.UserServiceClient
 	requestedUserID int64
+	batchCalls      int
 	err             error
 }
 
@@ -452,6 +510,7 @@ func (f *fakeUserClient) BatchGetUserProfiles(
 	req *userv1.BatchGetUserProfilesRequest,
 	_ ...grpc.CallOption,
 ) (*userv1.BatchGetUserProfilesResponse, error) {
+	f.batchCalls++
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -937,6 +996,27 @@ func (s *fakeStore) UpdateGuildMemberProfilesByUser(_ context.Context, profile *
 		copy.GuildID = guildID
 		copy.Nickname = current.Nickname
 		copy.NicknameSearch = current.NicknameSearch
+		profiles[profile.UserID] = &copy
+	}
+	return nil
+}
+
+func (s *fakeStore) UpdateGuildMemberProfilesByUserWithoutAvatar(_ context.Context, profile *model.GuildMemberProfile) error {
+	if profile == nil {
+		return nil
+	}
+	for guildID, profiles := range s.profiles {
+		current := profiles[profile.UserID]
+		if current == nil || current.ProfileUpdatedAt > profile.ProfileUpdatedAt {
+			continue
+		}
+		copy := *current
+		copy.Username = profile.Username
+		copy.Name = profile.Name
+		copy.UsernameSearch = strings.ToLower(strings.TrimSpace(profile.Username))
+		copy.NameSearch = strings.ToLower(strings.TrimSpace(profile.Name))
+		copy.ProfileUpdatedAt = profile.ProfileUpdatedAt
+		copy.GuildID = guildID
 		profiles[profile.UserID] = &copy
 	}
 	return nil

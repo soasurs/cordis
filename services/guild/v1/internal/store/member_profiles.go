@@ -78,6 +78,21 @@ func (s *SQLStore) UpdateGuildMemberProfilesByUser(ctx context.Context, profile 
 	return err
 }
 
+func (s *SQLStore) UpdateGuildMemberProfilesByUserWithoutAvatar(ctx context.Context, profile *model.GuildMemberProfile) error {
+	if profile == nil {
+		return nil
+	}
+	_, err := s.q.ExecContext(ctx, updateGuildMemberProfilesByUserWithoutAvatarQuery,
+		profile.UserID,
+		profile.Username,
+		profile.Name,
+		strings.ToLower(strings.TrimSpace(profile.Username)),
+		strings.ToLower(strings.TrimSpace(profile.Name)),
+		profile.ProfileUpdatedAt,
+	)
+	return err
+}
+
 func (s *SQLStore) DeleteGuildMemberProfile(ctx context.Context, guildID, userID int64) error {
 	_, err := s.q.ExecContext(ctx, deleteGuildMemberProfileQuery, guildID, userID)
 	return err

@@ -81,10 +81,11 @@ returned by the existing `AuthorizeGuildChannel` call is checked for
 - role mentions: `ListGuildRoles(guild_id, author_id)` returns every role of
   the Guild in one call, and roles outside the Guild or missing are dropped;
   `mentionable` is not checked in this version;
-- user mentions: Message first calls Guild's
-  `FilterGuildChannelVisibleUsers`, keeping only active Guild members that can
-  view the current channel, then uses `BatchGetUserProfiles` to drop profiles
-  that no longer exist;
+- user mentions: Message calls Guild's
+  `FilterGuildChannelVisibleUsers` in batches of at most 100 IDs, keeping only
+  active Guild members that can view the current channel, then calls User's
+  `BatchGetUserProfiles` in the same batch size to drop profiles that no longer
+  exist;
 - the author is already guaranteed to be a Guild member by the existing
   send-message authorization flow.
 
@@ -251,9 +252,12 @@ and the caller keeps paging until `next_cursor` is absent.
 - User search does not perform a global query through User. Guild maintains a
   `guild_member_profiles` projection containing the Guild, user, username,
   Guild nickname, profile name, avatar ID, and normalized prefix-search fields. Membership
-  creation/join writes the row, `user.profile.updated` updates all Guild rows
-  for that user, and a bounded startup rebuild fills rows for existing
-  members.
+  creation/join writes the row, `CreateGuild` may initially write a placeholder
+  and hydrate it from User after commit, `user.profile.updated` updates all
+  Guild rows for that user, and a bounded startup rebuild fills rows for
+  existing members. If User is unavailable after the rebuild retry budget is
+  exhausted, the projector continues consuming events and retries the rebuild
+  on a later startup.
 - Search matches username, Guild nickname, or profile-name prefixes. Username
   matches rank before nickname/name matches, followed by normalized username
   and user ID. Sorting is
@@ -406,8 +410,8 @@ that would be silently ignored.
   role results reuse `GuildRole`.
 - The internal Guild API adds the corresponding actor-aware user/role search
   RPCs and the bounded `FilterGuildChannelVisibleUsers` RPC. The former serves
-  public API search; Message calls the latter when persisting direct user
-  mentions.
+  public API search; Message calls the latter in batches when persisting direct
+  user mentions.
 
 ## 12. Migration and Compatibility
 

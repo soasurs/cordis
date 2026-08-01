@@ -18,10 +18,11 @@ import (
 )
 
 const (
-	profileProjectionBatch    = 100
-	profileProjectRetryMin    = 100 * time.Millisecond
-	profileProjectRetryMax    = 5 * time.Second
-	profileProjectMaxAttempts = 8
+	profileProjectionBatch        = 100
+	profileProjectRetryMin        = 100 * time.Millisecond
+	profileProjectRetryMax        = 5 * time.Second
+	profileProjectMaxAttempts     = 8
+	profileProjectRebuildAttempts = 8
 )
 
 type profileProjector struct {
@@ -31,9 +32,18 @@ type profileProjector struct {
 	rebuild  bool
 }
 
+type userProfileUpdatedPayload struct {
+	UserID        string  `json:"user_id"`
+	Name          string  `json:"name"`
+	AvatarAssetID *string `json:"avatar_asset_id"`
+	UpdatedAt     int64   `json:"updated_at"`
+	Username      string  `json:"username"`
+}
+
 // NewProfileProjector creates the Guild-local User profile projection worker.
 // The worker also performs a bounded startup rebuild so rows created before
-// this feature was deployed become searchable.
+// this feature was deployed become searchable. If the rebuild cannot reach
+// User after the retry budget is exhausted, event consumption still starts.
 func NewProfileProjector(svcCtx *svc.ServiceContext) *profileProjector {
 	return &profileProjector{
 		consumer: svcCtx.ProfileConsumer,
@@ -54,7 +64,7 @@ func (p *profileProjector) Run(ctx context.Context) {
 		return
 	}
 	if p.rebuild {
-		p.rebuildProfilesUntilReady(ctx)
+		p.rebuildProfilesAtStartup(ctx)
 	}
 	if p.consumer == nil {
 		return
@@ -85,14 +95,23 @@ func (p *profileProjector) Run(ctx context.Context) {
 	}
 }
 
-func (p *profileProjector) rebuildProfilesUntilReady(ctx context.Context) {
-	delay := profileProjectRetryMin
-	for ctx.Err() == nil {
-		if err := p.rebuildProfiles(ctx); err == nil {
+func (p *profileProjector) rebuildProfilesAtStartup(ctx context.Context) {
+	p.rebuildProfilesWithRetry(ctx, profileProjectRebuildAttempts, profileProjectRetryMin, profileProjectRetryMax)
+}
+
+func (p *profileProjector) rebuildProfilesWithRetry(ctx context.Context, maxAttempts int, minDelay, maxDelay time.Duration) {
+	delay := minDelay
+	for attempt := 1; ctx.Err() == nil && attempt <= maxAttempts; attempt++ {
+		err := p.rebuildProfiles(ctx)
+		if err == nil {
 			return
-		} else {
-			logx.WithContext(ctx).Errorw("rebuild guild member profile projection", logx.Field("error", err), logx.Field("retry_after", delay))
+		} else if attempt == maxAttempts {
+			logx.WithContext(ctx).Errorw("abandon guild member profile projection rebuild after retries",
+				logx.Field("error", err), logx.Field("attempts", attempt))
+			return
 		}
+		logx.WithContext(ctx).Errorw("rebuild guild member profile projection",
+			logx.Field("error", err), logx.Field("attempt", attempt), logx.Field("retry_after", delay))
 		timer := time.NewTimer(delay)
 		select {
 		case <-ctx.Done():
@@ -100,7 +119,7 @@ func (p *profileProjector) rebuildProfilesUntilReady(ctx context.Context) {
 			return
 		case <-timer.C:
 		}
-		delay = min(delay*2, profileProjectRetryMax)
+		delay = min(delay*2, maxDelay)
 	}
 }
 
@@ -140,7 +159,7 @@ func (p *profileProjector) retryRecord(ctx context.Context, record *kgo.Record) 
 }
 
 func (p *profileProjector) handleRecord(ctx context.Context, record *kgo.Record) error {
-	var envelope eventEnvelope[userProfilePayload]
+	var envelope eventEnvelope[userProfileUpdatedPayload]
 	if err := json.Unmarshal(record.Value, &envelope); err != nil {
 		logx.WithContext(ctx).Errorw("drop malformed user profile event", logx.Field("error", err))
 		return nil
@@ -150,19 +169,29 @@ func (p *profileProjector) handleRecord(ctx context.Context, record *kgo.Record)
 	}
 	userID, err := strconv.ParseInt(envelope.Data.UserID, 10, 64)
 	if err != nil || userID <= 0 {
+		logx.WithContext(ctx).Errorw("drop user profile event with invalid user id",
+			logx.Field("user_id", envelope.Data.UserID), logx.Field("error", err))
 		return nil
 	}
-	avatarAssetID, err := strconv.ParseInt(envelope.Data.AvatarAssetID, 10, 64)
-	if err != nil || avatarAssetID < 0 {
-		return nil
-	}
-	return p.store.UpdateGuildMemberProfilesByUser(ctx, &model.GuildMemberProfile{
+	profile := &model.GuildMemberProfile{
 		UserID:           userID,
 		Username:         envelope.Data.Username,
 		Name:             envelope.Data.Name,
-		AvatarAssetID:    avatarAssetID,
 		ProfileUpdatedAt: max(envelope.Data.UpdatedAt, 0),
-	})
+	}
+	if envelope.Data.AvatarAssetID == nil {
+		logx.WithContext(ctx).Errorw("apply user profile event without avatar asset id",
+			logx.Field("user_id", userID))
+		return p.store.UpdateGuildMemberProfilesByUserWithoutAvatar(ctx, profile)
+	}
+	avatarAssetID, err := strconv.ParseInt(*envelope.Data.AvatarAssetID, 10, 64)
+	if err != nil || avatarAssetID < 0 {
+		logx.WithContext(ctx).Errorw("apply user profile event with invalid avatar asset id",
+			logx.Field("user_id", userID), logx.Field("avatar_asset_id", *envelope.Data.AvatarAssetID), logx.Field("error", err))
+		return p.store.UpdateGuildMemberProfilesByUserWithoutAvatar(ctx, profile)
+	}
+	profile.AvatarAssetID = avatarAssetID
+	return p.store.UpdateGuildMemberProfilesByUser(ctx, profile)
 }
 
 func (p *profileProjector) rebuildProfiles(ctx context.Context) error {
@@ -229,5 +258,13 @@ func guildMemberProfileFromProto(guildID int64, nickname string, profile *userv1
 		Nickname:         nickname,
 		AvatarAssetID:    profile.GetAvatarAssetId(),
 		ProfileUpdatedAt: profile.GetUpdatedAt(),
+	}
+}
+
+func guildMemberProfilePlaceholder(guildID, userID int64, nickname string) *model.GuildMemberProfile {
+	return &model.GuildMemberProfile{
+		GuildID:  guildID,
+		UserID:   userID,
+		Nickname: nickname,
 	}
 }

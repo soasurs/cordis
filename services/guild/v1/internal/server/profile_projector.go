@@ -180,7 +180,7 @@ func (p *profileProjector) handleRecord(ctx context.Context, record *kgo.Record)
 		ProfileUpdatedAt: max(envelope.Data.UpdatedAt, 0),
 	}
 	if envelope.Data.AvatarAssetID == nil {
-		logx.WithContext(ctx).Errorw("apply user profile event without avatar asset id",
+		logx.WithContext(ctx).Infow("apply user profile event without avatar asset id",
 			logx.Field("user_id", userID))
 		return p.store.UpdateGuildMemberProfilesByUserWithoutAvatar(ctx, profile)
 	}

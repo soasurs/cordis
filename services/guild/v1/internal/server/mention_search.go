@@ -15,7 +15,8 @@ const (
 	maxMentionSearchLimit       = 20
 	mentionSearchCandidateBatch = 100
 	maxMentionSearchQueryLength = 64
-	maxVisibleUserFilterBatch   = 100
+	// Message splits direct mention visibility requests to this size.
+	maxVisibleUserFilterBatch = 100
 )
 
 func (s *guildServer) SearchGuildMentionUsers(ctx context.Context, req *guildv1.SearchGuildMentionUsersRequest) (*guildv1.SearchGuildMentionUsersResponse, error) {

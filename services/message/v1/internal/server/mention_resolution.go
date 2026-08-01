@@ -13,6 +13,8 @@ import (
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
+// Keep this in sync with Guild's maxVisibleUserFilterBatch and User's
+// maxUserProfileBatch; both downstream RPCs reject larger requests.
 const mentionUserBatchSize = 100
 
 // resolveMentions parses content and reduces the mention set to entities the

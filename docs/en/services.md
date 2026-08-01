@@ -231,11 +231,11 @@ Create and update requests allow at most 10 attachments and 100 unique user
 plus role mentions by default. Both limits are configured by the Message
 service. Mentions are parsed server-side from content using `<@user>`,
 `<@&role>`, and `@everyone` markup; clients no longer submit mention ID
-lists. `@everyone` requires the Guild `MENTION_EVERYONE` channel permission,
-roles must exist in the Guild, and users must exist; unknown entities are
-dropped from the parsed set. Guild direct user mentions also pass through
-Guild's channel-visible-user batch check at write time. DM channels only
-support user mentions.
+lists. Role and `@everyone` mentions require the Guild `MENTION_EVERYONE`
+channel permission, roles must exist in the Guild, and users must exist;
+unknown entities are dropped from the parsed set. Guild direct user mentions
+also pass through Guild's channel-visible-user batch check at write time. DM
+channels only support user mentions.
 Expanded role/everyone targets are materialized asynchronously by a worker
 consuming the message event topic, and unread `mention_count` includes them.
 See [mention-expansion.md](mention-expansion.md) for the full design. Image

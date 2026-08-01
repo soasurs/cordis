@@ -102,7 +102,7 @@ object key 重新签发 presigned PUT URL；重试不会再次创建 asset 或�
 使创建和更新路径可以复用为实时事件加载的资料。事件不经过 API，因此事件需要的 profile
 仍由 Message 服务自行查询。
 
-消息创建和更新默认最多携带 10 个附件和 100 个不重复的用户 + 角色 mention；两项上限均由 Message 服务配置。mention 由服务端从正文解析，使用 `<@user>`、`<@&role>` 和 `@everyone` markup，客户端不再提交 mention ID 列表。`@everyone` 需要 Guild 的 `MENTION_EVERYONE` 频道权限，角色必须属于该 Guild，用户必须存在；未知实体从解析结果中剔除。Guild 中的直接 user mention 在写入时还会通过 Guild 的批量频道可见性检查，因此不可见频道的用户不会被持久化为 mention。DM 频道只支持用户 mention。角色/everyone 的展开目标由消费消息事件 topic 的后台 worker 异步物化，未读 `mention_count` 包含展开结果。完整设计见 [mention-expansion.md](mention-expansion.md)。图片附件的 `blurhash` 由 Media 在 CompleteUpload 时生成，Message 写入附件元数据一并返回与广播；非图片或未能生成时为空。客户端在 Create/Update 上携带的 `blurhash` 会被忽略并以 Media 元数据覆盖。
+消息创建和更新默认最多携带 10 个附件和 100 个不重复的用户 + 角色 mention；两项上限均由 Message 服务配置。mention 由服务端从正文解析，使用 `<@user>`、`<@&role>` 和 `@everyone` markup，客户端不再提交 mention ID 列表。role mention 和 `@everyone` 都需要 Guild 的 `MENTION_EVERYONE` 频道权限，角色必须属于该 Guild，用户必须存在；未知实体从解析结果中剔除。Guild 中的直接 user mention 在写入时还会通过 Guild 的批量频道可见性检查，因此不可见频道的用户不会被持久化为 mention。DM 频道只支持用户 mention。角色/everyone 的展开目标由消费消息事件 topic 的后台 worker 异步物化，未读 `mention_count` 包含展开结果。完整设计见 [mention-expansion.md](mention-expansion.md)。图片附件的 `blurhash` 由 Media 在 CompleteUpload 时生成，Message 写入附件元数据一并返回与广播；非图片或未能生成时为空。客户端在 Create/Update 上携带的 `blurhash` 会被忽略并以 Media 元数据覆盖。
 
 内部 READY RPC 一次加载用户的全部 DM，并针对 Session 提供的可见 Guild 文本频道计算 read state。每项包含 `channel_id`、`last_message_id`、`last_read_message_id` 和未读提及数；客户端用 `last_message_id > last_read_message_id` 判断是否未读，不再计算具体未读消息数。`AckMessage` 只有在 watermark 实际前进时才发布 user-routed `message.read.updated`，CreateMessage 也会在写事务内从数据库读回作者的最终 read state。
 

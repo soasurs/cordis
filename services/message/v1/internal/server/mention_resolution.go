@@ -19,8 +19,8 @@ const mentionUserBatchSize = 100
 
 // resolveMentions parses content and reduces the mention set to entities the
 // service is willing to persist. DM channels keep only user mentions; Guild
-// channels require MENTION_EVERYONE for @everyone and drop roles and users
-// that are no longer valid or cannot view the channel.
+// channels require MENTION_EVERYONE for role and @everyone mentions and drop
+// roles and users that are no longer valid or cannot view the channel.
 func (s *messageServer) resolveMentions(ctx context.Context, content string, audience messageAudience, actorUserID int64) (model.MessageMentions, error) {
 	parsed := mention.Parse(content)
 	if audience.guildID == 0 {
@@ -28,7 +28,7 @@ func (s *messageServer) resolveMentions(ctx context.Context, content string, aud
 		parsed.Everyone = false
 		return s.filterMentionUsers(ctx, parsed, audience, actorUserID)
 	}
-	if parsed.Everyone && audience.permissions&permissionMentionEveryone == 0 {
+	if (parsed.Everyone || len(parsed.RoleIDs) > 0) && audience.permissions&permissionMentionEveryone == 0 {
 		return model.MessageMentions{}, permissionDenied()
 	}
 	if len(parsed.RoleIDs) > 0 {

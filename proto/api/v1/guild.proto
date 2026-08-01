@@ -25,6 +25,8 @@ enum GuildPermission {
   GUILD_PERMISSION_MANAGE_MESSAGES = 256;
   GUILD_PERMISSION_BAN_MEMBERS = 512;
   GUILD_PERMISSION_CREATE_INVITE = 1024;
+  // Allows the message author to mention roles and @everyone in a channel.
+  GUILD_PERMISSION_MENTION_EVERYONE = 2048;
 }
 
 // GuildChannelType identifies the behavior and nesting rules of a channel.

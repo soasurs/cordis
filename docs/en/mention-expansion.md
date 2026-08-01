@@ -61,7 +61,7 @@ toggles, `@here`, `<#channel>`, and per-user suppression settings.
 
 ### 3.1 New Permission Bit
 
-`proto/guild/v1/guild.proto` adds:
+Both `proto/guild/v1/guild.proto` and `proto/api/v1/guild.proto` add:
 
 ```proto
 GUILD_PERMISSION_MENTION_EVERYONE = 2048;
@@ -74,9 +74,9 @@ permission, matching Discord.
 
 ### 3.2 Write-time Validation
 
-When a Guild text channel parses `@everyone`, the effective permission set
-returned by the existing `AuthorizeGuildChannel` call is checked for
-`MENTION_EVERYONE`; a missing permission rejects the whole request.
+When a Guild text channel parses any role mention or `@everyone`, the effective
+permission set returned by the existing `AuthorizeGuildChannel` call is checked
+for `MENTION_EVERYONE`; a missing permission rejects the whole request.
 
 - role mentions: `ListGuildRoles(guild_id, author_id)` returns every role of
   the Guild in one call, and roles outside the Guild or missing are dropped;
@@ -143,8 +143,8 @@ unread-count SQL needs no modification.
    references);
 2. parse content into a mention set;
 3. DM channels keep only user mentions;
-4. Guild channels: `@everyone` permission check, role existence filter, user
-   existence filter;
+4. Guild channels: role/`@everyone` permission check, role existence filter,
+   user existence filter;
 5. limit check (users + roles);
 6. idempotency fingerprint v2 (section 10);
 7. transaction: create message, `ReplaceMessageMentions` (source 1 + roles +
@@ -447,8 +447,8 @@ that would be silently ignored.
 - parser unit tests: markup variants, `<@!>` normalization, escaping, word
   boundaries, case sensitivity, malformed/overflow IDs, dedup and order, DM
   trimming, limits;
-- permission tests: `@everyone` without `MENTION_EVERYONE` is rejected, role
-  and user existence filters, and channel visibility filtering;
+- permission tests: role/`@everyone` mentions without `MENTION_EVERYONE` are
+  rejected, role and user existence filters, and channel visibility filtering;
 - search tests: username/nickname/name prefixes, post-sort filtering that fills the
   visible limit, role search, and projection updates;
 - store integration tests: source column migration, role/everyone

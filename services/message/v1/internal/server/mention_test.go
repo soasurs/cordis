@@ -94,6 +94,26 @@ func TestCreateMessageEveryoneRequiresPermission(t *testing.T) {
 	require.True(t, secondStore.mentions[resp.GetMessage().GetId()].Everyone)
 }
 
+func TestCreateMessageRoleMentionRequiresPermission(t *testing.T) {
+	fakeStore := newFakeStore()
+	server := newTestMessageServerWithGuild(t, fakeStore, new(fakePublisher), &fakeGuildClient{
+		roles: []*guildv1.GuildRole{guildRole(40)},
+	})
+
+	_, err := server.CreateMessage(t.Context(), createMentionRequest("hello <@&40>"))
+	require.Equal(t, codes.PermissionDenied, status.Code(err))
+
+	secondStore := newFakeStore()
+	guildClient := &fakeGuildClient{
+		roles:       []*guildv1.GuildRole{guildRole(40)},
+		permissions: permissionViewChannel | permissionSendMessages | permissionMentionEveryone,
+	}
+	server = newTestMessageServerWithGuild(t, secondStore, new(fakePublisher), guildClient)
+	resp, err := server.CreateMessage(t.Context(), createMentionRequest("hello <@&40>"))
+	require.NoError(t, err)
+	require.Equal(t, []int64{40}, secondStore.mentions[resp.GetMessage().GetId()].RoleIDs)
+}
+
 func TestCreateMessageDmKeepsOnlyUserMentions(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.dmChannels[10] = &model.DmChannel{ID: 10, UserLo: 20, UserHi: 21}
@@ -122,7 +142,10 @@ func TestCreateMessageDmFiltersUnknownUsers(t *testing.T) {
 
 func TestCreateMessageFiltersUnknownRolesAndUsers(t *testing.T) {
 	fakeStore := newFakeStore()
-	guildClient := &fakeGuildClient{roles: []*guildv1.GuildRole{guildRole(40)}}
+	guildClient := &fakeGuildClient{
+		roles:       []*guildv1.GuildRole{guildRole(40)},
+		permissions: permissionViewChannel | permissionSendMessages | permissionMentionEveryone,
+	}
 	userClient := newFakeUserClient()
 	userClient.missingUsers = map[int64]bool{30: true}
 	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), guildClient, userClient)
@@ -183,7 +206,10 @@ func TestUpdateMessageRebuildsMentionsFromContent(t *testing.T) {
 		Type: int32(messagev1.MessageType_MESSAGE_TYPE_DEFAULT), Revision: 1,
 	}
 	fakeStore.mentions[100] = model.MessageMentions{UserIDs: []int64{40}}
-	guildClient := &fakeGuildClient{roles: []*guildv1.GuildRole{guildRole(50)}}
+	guildClient := &fakeGuildClient{
+		roles:       []*guildv1.GuildRole{guildRole(50)},
+		permissions: permissionViewChannel | permissionSendMessages | permissionMentionEveryone,
+	}
 	publisher := new(fakePublisher)
 	server := newTestMessageServerWithGuild(t, fakeStore, publisher, guildClient)
 

@@ -20,8 +20,6 @@ import (
 
 var configPath = flag.String("c", "etc/config.yaml", "config file of service")
 
-const profileProjectorShutdownTimeout = 4 * time.Second
-
 func main() {
 	flag.Parse()
 
@@ -29,6 +27,9 @@ func main() {
 	if err := conf.LoadConfig(*configPath, cfg, conf.UseEnv()); err != nil {
 		panic(err)
 	}
+	shutdownTimeout := cfg.ShutdownDuration()
+	// go-zero starts shutdown listeners after its one-second wrap-up phase.
+	proc.SetTimeToForceQuit(shutdownTimeout + time.Second)
 	cfg.Health = false
 	cfg.Log.ServiceName = cfg.Name
 	logx.MustSetup(cfg.Log)
@@ -45,17 +46,22 @@ func main() {
 	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
-	projector := server.NewProfileProjector(svcCtx)
+	projector, err := server.NewProfileProjector(svcCtx)
+	if err != nil {
+		panic(err)
+	}
 	projectorCtx, cancelProjector := context.WithCancel(context.Background())
 	projectorDone := make(chan struct{})
 	proc.AddShutdownListener(func() {
 		cancelProjector()
-		projector.Close()
-		timer := time.NewTimer(profileProjectorShutdownTimeout)
-		defer timer.Stop()
+		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancelShutdown()
+		if err := projector.CloseContext(shutdownCtx); err != nil && shutdownCtx.Err() == nil {
+			logx.Errorw("close profile projector", logx.Field("error", err))
+		}
 		select {
 		case <-projectorDone:
-		case <-timer.C:
+		case <-shutdownCtx.Done():
 			logx.Error("profile projector did not stop before shutdown timeout")
 		}
 	})

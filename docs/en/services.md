@@ -137,6 +137,16 @@ member rows at startup. User search uses normalized username/nickname/name
 prefixes, and the public limit is the final count after channel-visibility
 filtering.
 
+The projection worker consumes `cordis.user.events.v1` with the
+`cordis.guild.user.profiles.v1` group. It uses the shared partition-consumer
+runtime: one serial worker and bounded queue per assigned partition, with
+retry and offset commit coordination isolated by partition. A transient store
+failure retries in that partition; after the existing retry budget is
+exhausted, the event is logged, committed, and dropped.
+The graceful shutdown budget is configured by `shutdownTimeout`; go-zero's
+force-quit deadline is set to that budget plus its one-second wrap-up phase so
+the worker can finish its bounded shutdown and final offset commit.
+
 Permissions are a `uint64` bit set. Owners and administrators receive all
 permissions. Channel evaluation applies the default role, member roles, and
 member overwrites. Creating a channel always inserts an empty `@everyone`
@@ -275,6 +285,15 @@ under a revision guard. Expansion is eventually consistent: a message may be
 visible before its `mention_count` contribution lands, and a best-effort
 event loss also loses the expansion.
 
+The expansion consumer uses the shared partition-consumer runtime, so each
+assigned partition has one serial worker and its own bounded queue, retry
+backoff, and offset state. A retry blocks only that partition; after the
+existing retry budget is exhausted, the event is logged, committed, and
+dropped.
+The graceful shutdown budget is configured by `shutdownTimeout`; go-zero's
+force-quit deadline is set to that budget plus its one-second wrap-up phase so
+the worker can finish its bounded shutdown and final offset commit.
+
 `CreateMessage` accepts an optional opaque `idempotency_key` for one client
 creation intent. The key is scoped to the authenticated user and the
 `message.create` operation, is retained for 30 minutes by default, and must be
@@ -396,6 +415,9 @@ Background Kafka consumer for the Guild, Message, User, and Presence event
 topics. Each topic has its own consumer client, loop, and group
 (`cordis.dispatcher.{guild,message,user,presence}.v1`) so backlog, retry, and
 rebalance are isolated while routing and Session connections remain shared.
+Dispatcher, Guild's profile projector, and Message's mention expander share
+the same partition-consumer runtime for worker lifecycle, retry isolation, and
+manual offset coordination.
 Each currently assigned partition has one long-lived serial worker. Polls enqueue
 records into a bounded per-partition queue, pausing only that partition when its
 queue is full. Dispatcher resolves aggregate user/Guild routes in Redis and calls
@@ -414,6 +436,8 @@ and its in-flight record is left for Kafka to replay rather than committed.
 Routes are deduplicated within one attempt, but a record retry can call an already
 successful node again. Delivery is at least once and there is no general event-ID
 deduplication.
+The graceful shutdown budget is configured by `shutdownTimeout`; go-zero's
+force-quit deadline is set to that budget plus its one-second wrap-up phase.
 
 ## Presence
 

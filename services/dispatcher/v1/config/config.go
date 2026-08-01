@@ -1,11 +1,14 @@
 package config
 
 import (
+	"time"
+
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/stores/redis"
 	"github.com/zeromicro/go-zero/core/trace"
 	"github.com/zeromicro/go-zero/zrpc"
 
+	"github.com/soasurs/cordis/pkg/kafka/partitionconsumer"
 	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/pkg/sessionregistry"
 )
@@ -14,12 +17,22 @@ type Config struct {
 	Name            string
 	ProbeServer     probe.HTTPConfig
 	Log             logx.LogConf
-	Telemetry       trace.Config `json:",optional"`
+	Telemetry       trace.Config  `json:",optional"`
+	ShutdownTimeout time.Duration `json:",default=20s"`
 	Kafka           KafkaConfig
 	Redis           redis.RedisConf
 	SessionRegistry sessionregistry.Config
 	Dispatcher      DispatcherConfig
 	Services        ServiceConfig
+}
+
+// ShutdownDuration is the process shutdown budget, including the shared
+// consumers' final worker stop and offset commits.
+func (c Config) ShutdownDuration() time.Duration {
+	if c.ShutdownTimeout <= 0 {
+		return partitionconsumer.DefaultShutdownTimeout
+	}
+	return c.ShutdownTimeout
 }
 
 // ServiceConfig wires audience lookups used for realtime fan-out.
@@ -42,14 +55,17 @@ type KafkaConfig struct {
 }
 
 const (
+	// Dispatcher currently uses this budget for both outbound dispatch RPCs and
+	// Kafka commits. Keep the default aligned with the shared commit timeout,
+	// while retaining an independent constant for future changes.
 	DefaultDispatchTimeoutSeconds     = 5
-	DefaultRetryMinMilliseconds       = 100
-	DefaultRetryMaxSeconds            = 5
-	DefaultMaxPollRecords             = 32
-	DefaultPartitionQueueSize         = 16
-	DefaultCommitIntervalMilliseconds = 100
-	DefaultRevokeTimeoutSeconds       = 10
-	DefaultMaxUncommittedRecords      = 128
+	DefaultRetryMinMilliseconds       = int(partitionconsumer.DefaultRetryMin / time.Millisecond)
+	DefaultRetryMaxSeconds            = int(partitionconsumer.DefaultRetryMax / time.Second)
+	DefaultMaxPollRecords             = partitionconsumer.DefaultMaxPollRecords
+	DefaultPartitionQueueSize         = partitionconsumer.DefaultQueueSize
+	DefaultCommitIntervalMilliseconds = int(partitionconsumer.DefaultCommitInterval / time.Millisecond)
+	DefaultRevokeTimeoutSeconds       = int(partitionconsumer.DefaultRevokeTimeout / time.Second)
+	DefaultMaxUncommittedRecords      = partitionconsumer.DefaultMaxUncommittedRecords
 )
 
 type DispatcherConfig struct {

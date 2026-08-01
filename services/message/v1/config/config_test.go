@@ -25,11 +25,17 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.Health {
 		t.Fatal("built-in gRPC health service should be disabled")
 	}
+	if cfg.ShutdownDuration() != 20*time.Second {
+		t.Fatalf("unexpected shutdown timeout: %v", cfg.ShutdownDuration())
+	}
 	if cfg.ListenOn == "" || cfg.Database.DataSource == "" {
 		t.Fatalf("unexpected config: %+v", cfg)
 	}
 	if cfg.Kafka.Topic != "cordis.message.events.v1" {
 		t.Fatalf("unexpected Kafka topic: %q", cfg.Kafka.Topic)
+	}
+	if cfg.Kafka.MentionsConsumerGroup != "cordis.message.mentions.v1" {
+		t.Fatalf("unexpected mentions consumer group: %q", cfg.Kafka.MentionsConsumerGroup)
 	}
 	if cfg.Cursor.Secret != "test-cursor-secret-at-least-32-bytes!" {
 		t.Fatalf("unexpected cursor secret: %q", cfg.Cursor.Secret)

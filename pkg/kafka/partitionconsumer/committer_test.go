@@ -1,4 +1,4 @@
-package server
+package partitionconsumer
 
 import (
 	"context"
@@ -192,6 +192,45 @@ func TestPartitionWorkerStopIsBounded(t *testing.T) {
 
 	close(worker.done)
 	require.True(t, worker.stop(context.Background()))
+}
+
+func TestPartitionRuntimeStopContextBoundsShutdown(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	runtime := newPartitionRuntime(Config{
+		RevokeTimeout: time.Second,
+		CommitTimeout: time.Second,
+	}, func(context.Context, *kgo.Record) (bool, error) {
+		close(started)
+		<-release
+		return false, nil
+	})
+	client := new(recordingCommitClient)
+	runtime.committer = newPartitionCommitter(runtime.ctx, client, time.Hour, time.Second, 128, nil)
+	defer runtime.committer.stop()
+	worker := testWorker(runtime, partitionKey{topic: "events", partition: 0})
+	runtime.workers[worker.key] = worker
+	go worker.run()
+	runtime.enqueue(testOffsetRecord("events", 0, 1))
+
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("partition worker did not start")
+	}
+	stopCtx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+
+	err := runtime.stopContext(stopCtx)
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+	require.Empty(t, client.committed())
+
+	close(release)
+	select {
+	case <-worker.done:
+	case <-time.After(time.Second):
+		t.Fatal("partition worker did not exit after shutdown")
+	}
 }
 
 func testOffsetRecord(topic string, partition int32, offset int64) *kgo.Record {

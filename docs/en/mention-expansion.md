@@ -290,11 +290,12 @@ worker needs (`message_id`, `channel_id`, `guild_id`, `revision`, plus the new
 - `KafkaConfig` gains `MentionsConsumerGroup` (default above); no new topic
   configuration is needed;
 - the worker runs as a background goroutine inside the Message service
-  (following the Dispatcher's `kgo.NewClient` + manual commit pattern) and
-  only starts when Kafka is configured; multiple instances share work via the
-  consumer group;
-- event keys keep the existing convention (Guild messages keyed by
-  `guild_id`), so events for one message stay ordered within a partition.
+  using the shared partition-consumer runtime and only starts when Kafka is
+  configured; multiple instances share work via the consumer group;
+- message `created`, `updated`, and `deleted` events use `channel_id` as the
+  Kafka key, including DM events whose payload carries a recipient `user_id`;
+  user-keyed events such as `message.read.updated` and `dm.channel.created`
+  use the target `user_id`.
 
 ### 7.2 Worker Processing
 
@@ -316,6 +317,10 @@ worker needs (`message_id`, `channel_id`, `guild_id`, `revision`, plus the new
 5. commit only after success; failures retry with exponential backoff
    (100 ms initial, 5 s cap, at most 8 attempts), then log an alert and
    commit past the record.
+
+The shared runtime keeps one serial worker and bounded queue for every
+assigned partition. Offset commits are coalesced asynchronously, while revoke
+and shutdown commit only completed partition watermarks.
 
 ### 7.3 Consistency Window
 
@@ -363,8 +368,9 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 payload gains the same role/everyone fields. `RebuildMentions` is set only on
 `message.updated` events whose content changed (mentions were rebuilt);
 flags/attachment-only updates do not trigger expansion. Routing is unchanged:
-Guild messages publish one guild-keyed record, DM messages one record per
-user.
+Guild message `created`, `updated`, and `deleted` events use one
+`channel_id`-keyed record, including DM records; user-keyed events such as
+`message.read.updated` remain one record per target user.
 
 ## 10. Idempotency
 

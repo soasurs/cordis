@@ -196,8 +196,8 @@ message ListGuildMentionTargetsResponse {
 
 - 消费组：`cordis.message.mentions.v1`（沿用 `cordis.<consumer>.<source>.v1` 约定；消费者即 Message 服务自身的 mentions 展开功能）；
 - Message 服务 `KafkaConfig` 增加 `MentionsConsumerGroup` 配置（默认值同上），不需要新增 topic 配置；
-- worker 作为 Message 服务进程内的后台 goroutine 启动（参考 Dispatcher 的 `kgo.NewClient` + 手动 commit 模式），仅在 Kafka 配置存在时启用；多实例部署由消费组自动分摊，与 Dispatcher 消费组互不影响；
-- 事件 key 沿用现有约定（Guild 消息为 `guild_id`），同一 Guild 的消息事件分区内有序，同一消息的 created/updated 事件顺序有保证。
+- worker 作为 Message 服务进程内的后台 goroutine 启动，复用共享的 partition consumer runtime，仅在 Kafka 配置存在时启用；多实例部署由消费组自动分摊，与 Dispatcher 消费组互不影响；
+- `message.created`、`message.updated` 和 `message.deleted` 都使用 `channel_id` 作为 Kafka key，包括 payload 携带接收者 `user_id` 的 DM 事件；`message.read.updated`、`dm.channel.created` 等 user-keyed 事件使用目标 `user_id`。
 
 ### 7.2 Worker 处理
 
@@ -233,7 +233,7 @@ PreviousMentionRoleIDs  []string `json:"previous_mention_role_ids,omitempty"`
 PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 ```
 
-保留现有 `MentionUserIDs` / `PreviousMentionUserIDs`。`RebuildMentions` 仅在 `message.updated` 且 content 变更（mentions 随 content 重建）时置位，flags/附件-only 更新不会触发展开。删除事件的 `messageDeletedPayload` 同样新增 role/everyone 字段。事件路由不变：Guild 消息单条 guild-keyed，DM 消息逐用户。
+保留现有 `MentionUserIDs` / `PreviousMentionUserIDs`。`RebuildMentions` 仅在 `message.updated` 且 content 变更（mentions 随 content 重建）时置位，flags/附件-only 更新不会触发展开。删除事件的 `messageDeletedPayload` 同样新增 role/everyone 字段。事件路由不变：Guild 消息按 channel-keyed，DM 消息的 created/updated/deleted 事件同样按 channel-keyed；只有 user-keyed 事件才逐用户。
 
 ## 10. 幂等
 

@@ -12,6 +12,7 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
+	"github.com/soasurs/cordis/pkg/kafka/partitionconsumer"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/svc"
 )
@@ -26,7 +27,7 @@ const (
 // role and @everyone mention targets into message_mentions (source 2) so
 // read-state mention counts include expanded mentions.
 type mentionExpander struct {
-	consumer *kgo.Client
+	consumer *partitionconsumer.Consumer
 	store    interface {
 		GetMessage(ctx context.Context, messageID int64) (*model.Message, error)
 		RebuildExpandedMessageMentions(ctx context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error)
@@ -40,88 +41,50 @@ func NewMentionExpander(svcCtx *svc.ServiceContext) (*mentionExpander, error) {
 	if len(svcCtx.Cfg.Kafka.Seeds) == 0 {
 		return nil, nil
 	}
-	consumer, err := kgo.NewClient(
+	expander := &mentionExpander{
+		store: svcCtx.Store,
+		guild: svcCtx.GuildClient,
+	}
+	consumer, err := partitionconsumer.New(
+		partitionconsumer.Config{
+			RetryMin:                mentionExpandRetryMin,
+			RetryMax:                mentionExpandRetryMax,
+			RetryMaxAttempts:        mentionExpandMaxAttempts,
+			ShutdownTimeout:         svcCtx.Cfg.ShutdownDuration(),
+			DropAfterRetryExhausted: true,
+		},
+		func(ctx context.Context, record *kgo.Record) (bool, error) {
+			return true, expander.handleRecord(ctx, record)
+		},
 		kgo.SeedBrokers(svcCtx.Cfg.Kafka.Seeds...),
 		kgo.ConsumerGroup(svcCtx.Cfg.Kafka.MentionsConsumerGroup),
 		kgo.ConsumeTopics(svcCtx.Cfg.Kafka.Topic),
-		kgo.DisableAutoCommit(),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return &mentionExpander{
-		consumer: consumer,
-		store:    svcCtx.Store,
-		guild:    svcCtx.GuildClient,
-	}, nil
+	expander.consumer = consumer
+	return expander, nil
 }
 
 func (e *mentionExpander) Close() {
-	e.consumer.Close()
+	_ = e.CloseContext(context.Background())
+}
+
+func (e *mentionExpander) CloseContext(ctx context.Context) error {
+	if e != nil && e.consumer != nil {
+		return e.consumer.CloseContext(ctx)
+	}
+	return nil
 }
 
 // Run polls the message event topic until ctx is cancelled, expanding each
 // created/updated event that carries role or @everyone mentions.
 func (e *mentionExpander) Run(ctx context.Context) {
-	for {
-		fetches := e.consumer.PollFetches(ctx)
-		if ctx.Err() != nil {
-			return
-		}
-		for _, fetchErr := range fetches.Errors() {
-			logx.WithContext(ctx).Errorw("poll mention expansion event",
-				logx.Field("topic", fetchErr.Topic),
-				logx.Field("partition", fetchErr.Partition),
-				logx.Field("error", fetchErr.Err),
-			)
-		}
-		fetches.EachPartition(func(ftp kgo.FetchTopicPartition) {
-			ftp.EachRecord(func(record *kgo.Record) {
-				if err := e.handleRecord(ctx, record); err != nil {
-					e.retryRecord(ctx, record)
-					return
-				}
-				if err := e.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-					logx.WithContext(ctx).Errorw("commit mention expansion event", logx.Field("error", err))
-				}
-			})
-		})
+	if e == nil || e.consumer == nil {
+		return
 	}
-}
-
-func (e *mentionExpander) retryRecord(ctx context.Context, record *kgo.Record) {
-	delay := mentionExpandRetryMin
-	for attempt := 1; ctx.Err() == nil && attempt <= mentionExpandMaxAttempts; attempt++ {
-		logx.WithContext(ctx).Errorw("retry mention expansion event",
-			logx.Field("topic", record.Topic),
-			logx.Field("partition", record.Partition),
-			logx.Field("offset", record.Offset),
-			logx.Field("attempt", attempt),
-			logx.Field("retry_after", delay),
-		)
-		timer := time.NewTimer(delay)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		case <-timer.C:
-		}
-		if err := e.handleRecord(ctx, record); err == nil {
-			if err := e.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-				logx.WithContext(ctx).Errorw("commit retried mention expansion event", logx.Field("error", err))
-			}
-			return
-		}
-		delay = min(delay*2, mentionExpandRetryMax)
-	}
-	logx.WithContext(ctx).Errorw("drop mention expansion event after retries",
-		logx.Field("topic", record.Topic),
-		logx.Field("partition", record.Partition),
-		logx.Field("offset", record.Offset),
-	)
-	if err := e.consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-		logx.WithContext(ctx).Errorw("commit dropped mention expansion event", logx.Field("error", err))
-	}
+	e.consumer.Run(ctx)
 }
 
 func (e *mentionExpander) handleRecord(ctx context.Context, record *kgo.Record) error {

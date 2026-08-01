@@ -7,16 +7,27 @@ import (
 
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/kafka"
+	"github.com/soasurs/cordis/pkg/kafka/partitionconsumer"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
-	Database    database.Config `json:",optional"`
-	Kafka       KafkaConfig     `json:",optional"`
-	Cursor      CursorConfig
-	Limits      ResourceLimitsConfig
-	Idempotency IdempotencyConfig
-	Services    ServiceConfig
+	ShutdownTimeout time.Duration   `json:",default=20s"`
+	Database        database.Config `json:",optional"`
+	Kafka           KafkaConfig     `json:",optional"`
+	Cursor          CursorConfig
+	Limits          ResourceLimitsConfig
+	Idempotency     IdempotencyConfig
+	Services        ServiceConfig
+}
+
+// ShutdownDuration is the process shutdown budget, including the shared
+// consumer's final worker stop and offset commit.
+func (c Config) ShutdownDuration() time.Duration {
+	if c.ShutdownTimeout <= 0 {
+		return partitionconsumer.DefaultShutdownTimeout
+	}
+	return c.ShutdownTimeout
 }
 
 // CursorConfig holds the HMAC secret for opaque list continuation tokens.
@@ -140,7 +151,7 @@ type KafkaConfig struct {
 	Seeds                  []string
 	Topic                  string `json:",default=cordis.guild.events.v1"`
 	UserTopic              string `json:",default=cordis.user.events.v1"`
-	ProfileConsumerGroup   string `json:",default=cordis.guild.user-profiles.v1"`
+	ProfileConsumerGroup   string `json:",default=cordis.guild.user.profiles.v1"`
 	RebuildProfilesOnStart bool   `json:",default=true"`
 	PublishTimeoutMs       int    `json:",default=1000"`
 }

@@ -145,6 +145,8 @@ IDENTIFY 中缺失的 Presence status 会保留已有用户偏好，仅在偏好
 
 消费完成的 offset 由后台 coordinator 按 partition 合并后提交，正常提交不阻塞消费 worker；rebalance 或停止时会停止对应 worker，并同步 flush 已完成的记录。格式错误或不支持的事件视为永久错误并提交丢弃；发现或 RPC 等暂时错误只阻塞所在 partition 的 worker，按指数退避重试，成功后进入 offset 提交队列；其他 partition 和 topic 可以继续消费。单次尝试会合并重复目标节点，但整条记录重试时可能再次调用已经成功的节点，因此投递是至少一次语义，且当前没有通用 event ID 去重。
 
+如果 Kafka commit lag 达到 `maxUncommittedRecords`，Dispatcher 会暂停该 partition 的拉取，直到提交成功后再恢复；这个暂停不会覆盖该 partition 自身的 queue 或 retry 暂停。revoke 期间等待 worker 退出受 `revokeTimeoutSeconds` 限制；超时的 worker 会被标记为 inactive，其正在处理的记录不会被提交，交由 Kafka 重新投递。
+
 ## Presence
 
 监听 `:3003`，是 Redis 支撑的用户状态偏好与设备活跃度服务。它按用户保存唯一的 status 偏好；Session 只保存 client state、租约和设备元数据，并按 TTL 与 generation 过滤失效记录。没有活动 Session 或偏好为 `INVISIBLE` 时公开状态为离线，其他情况下公开状态等于用户偏好。Session 注册只能初始化缺失偏好，不能覆盖已有偏好；续租不再携带 status。

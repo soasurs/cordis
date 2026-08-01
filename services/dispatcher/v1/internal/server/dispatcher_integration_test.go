@@ -47,6 +47,7 @@ func TestDispatcherIntegration(t *testing.T) {
 	t.Run("topic retry isolation", func(t *testing.T) { testTopicRetryIsolation(t, env) })
 	t.Run("partition retry isolation", func(t *testing.T) { testPartitionRetryIsolation(t, env) })
 	t.Run("retry survives rebalance", func(t *testing.T) { testRetrySurvivesRebalance(t, env) })
+	t.Run("queued records replay after rebalance", func(t *testing.T) { testQueuedRecordsReplayAfterRebalance(t, env) })
 	t.Run("shutdown flushes completed offsets", func(t *testing.T) { testShutdownFlushesCompletedOffsets(t, env) })
 	t.Run("partition queue preserves order", func(t *testing.T) { testPartitionQueuePreservesOrder(t, env) })
 	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
@@ -239,6 +240,80 @@ func testRetrySurvivesRebalance(t *testing.T, env *dispatcherEnv) {
 	require.Equal(t, channel, node.waitChannelEvent(t).GetChannelId())
 	require.Eventually(t, func() bool { return h.committedOffset(t, h.messageTopic) == 1 },
 		15*time.Second, 50*time.Millisecond, "reassigned worker must commit after recovery")
+	secondCancel()
+	select {
+	case <-secondDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("second dispatcher did not stop")
+	}
+}
+
+func testQueuedRecordsReplayAfterRebalance(t *testing.T, env *dispatcherEnv) {
+	const (
+		firstGuild  = int64(7274)
+		secondGuild = int64(7275)
+		thirdGuild  = int64(7276)
+		firstCh     = int64(7277)
+		secondCh    = int64(7278)
+		thirdCh     = int64(7279)
+	)
+	h := newHarness(t, env)
+	node := newRecordingSessionServer()
+	node.setChannelFailingFor(firstCh, true)
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteGuild, firstGuild, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, secondGuild, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, thirdGuild, "session-a", "generation-1")
+	firstCancel, firstDone := h.startDispatcherWithConfig(t, config.DispatcherConfig{
+		DispatchTimeoutSeconds:     5,
+		RetryMinMilliseconds:       10,
+		RetryMaxSeconds:            1,
+		MaxPollRecords:             3,
+		PartitionQueueSize:         1,
+		CommitIntervalMilliseconds: 100,
+	})
+
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9210","guild_id":"7274","channel_id":"7277"},"idempotency_key":"1026"}`)
+	require.Eventually(t, func() bool { return node.channelCallsFor(firstCh) >= 1 },
+		15*time.Second, 20*time.Millisecond, "first queued-replay record did not start")
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9211","guild_id":"7275","channel_id":"7278"},"idempotency_key":"1027"}`)
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9212","guild_id":"7276","channel_id":"7279"},"idempotency_key":"1028"}`)
+	require.Eventually(t, func() bool { return node.channelCallsFor(firstCh) >= 2 },
+		15*time.Second, 20*time.Millisecond, "first dispatcher did not enter queued-record retry")
+
+	secondCancel, secondDone := h.startDispatcherWithConfig(t, config.DispatcherConfig{
+		DispatchTimeoutSeconds:     5,
+		RetryMinMilliseconds:       10,
+		RetryMaxSeconds:            1,
+		MaxPollRecords:             3,
+		PartitionQueueSize:         1,
+		CommitIntervalMilliseconds: 100,
+	})
+	firstCancel()
+	select {
+	case <-firstDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("first dispatcher did not stop")
+	}
+	require.Equal(t, int64(-1), h.committedOffset(t, h.messageTopic),
+		"queued or retrying records must not be committed during rebalance")
+	require.Equal(t, 0, node.channelCallsFor(secondCh),
+		"records queued behind the retry must be discarded with the old worker")
+	require.Equal(t, 0, node.channelCallsFor(thirdCh),
+		"records queued behind the retry must be discarded with the old worker")
+
+	node.setChannelFailingFor(firstCh, false)
+	got := []int64{
+		node.waitChannelEvent(t).GetChannelId(),
+		node.waitChannelEvent(t).GetChannelId(),
+		node.waitChannelEvent(t).GetChannelId(),
+	}
+	require.Equal(t, []int64{firstCh, secondCh, thirdCh}, got)
+	require.Eventually(t, func() bool { return h.committedOffset(t, h.messageTopic) == 3 },
+		15*time.Second, 50*time.Millisecond, "reassigned worker did not commit replayed records")
 	secondCancel()
 	select {
 	case <-secondDone:

@@ -100,19 +100,19 @@ type partitionKey struct {
 }
 
 type partitionRuntime struct {
-	server    *Server
-	maxPoll   int
-	queueSize int
-	ctx       context.Context
-	cancel    context.CancelFunc
-	client    *kgo.Client
-	committer *partitionCommitter
-	workers   map[partitionKey]*partitionWorker
-	pending   map[partitionKey][]*kgo.Record
-	paused    map[partitionKey]bool
-	mu        sync.Mutex
-	stopOnce  sync.Once
-	stopped   bool
+	server        *Server
+	maxPoll       int
+	queueSize     int
+	ctx           context.Context
+	cancel        context.CancelFunc
+	client        *kgo.Client
+	committer     *partitionCommitter
+	workers       map[partitionKey]*partitionWorker
+	queuedRecords map[partitionKey][]*kgo.Record
+	pauseReasons  map[partitionKey]partitionPauseReason
+	mu            sync.Mutex
+	stopOnce      sync.Once
+	stopped       bool
 }
 
 type partitionWorker struct {
@@ -131,8 +131,15 @@ type partitionWorker struct {
 }
 
 const (
-	defaultCommitInterval = 100 * time.Millisecond
-	commitBatchSize       = 32
+	commitBatchSize = 32
+)
+
+type partitionPauseReason uint8
+
+const (
+	pauseForQueue partitionPauseReason = 1 << iota
+	pauseForRetry
+	pauseForCommit
 )
 
 type commitClient interface {
@@ -142,37 +149,54 @@ type commitClient interface {
 // partitionCommitter coalesces completed offsets and commits them outside of
 // partition workers. A stalled Kafka offset commit must not stall dispatching.
 type partitionCommitter struct {
-	client   commitClient
-	ctx      context.Context
-	cancel   context.CancelFunc
-	interval time.Duration
-	timeout  time.Duration
-	wake     chan struct{}
-	done     chan struct{}
-	stopOnce sync.Once
+	client            commitClient
+	ctx               context.Context
+	cancel            context.CancelFunc
+	interval          time.Duration
+	timeout           time.Duration
+	maxUncommitted    int
+	onLagBackpressure func(partitionKey, bool)
+	wake              chan struct{}
+	done              chan struct{}
+	stopOnce          sync.Once
 
-	mu       sync.Mutex
-	pending  map[partitionKey]*kgo.Record
-	commitMu sync.Mutex
+	mu             sync.Mutex
+	pendingOffsets map[partitionKey]*kgo.Record
+	uncommitted    map[partitionKey]int
+	backpressured  map[partitionKey]bool
+	commitMu       sync.Mutex
 }
 
-func newPartitionCommitter(parent context.Context, client commitClient, interval, timeout time.Duration) *partitionCommitter {
+func newPartitionCommitter(
+	parent context.Context,
+	client commitClient,
+	interval, timeout time.Duration,
+	maxUncommitted int,
+	onLagBackpressure func(partitionKey, bool),
+) *partitionCommitter {
 	if interval <= 0 {
-		interval = defaultCommitInterval
+		interval = commitInterval(0)
 	}
 	if timeout <= 0 {
-		timeout = 5 * time.Second
+		timeout = time.Duration(config.DefaultDispatchTimeoutSeconds) * time.Second
+	}
+	if maxUncommitted <= 0 {
+		maxUncommitted = config.DefaultMaxUncommittedRecords
 	}
 	ctx, cancel := context.WithCancel(parent)
 	committer := &partitionCommitter{
-		client:   client,
-		ctx:      ctx,
-		cancel:   cancel,
-		interval: interval,
-		timeout:  timeout,
-		wake:     make(chan struct{}, 1),
-		done:     make(chan struct{}),
-		pending:  make(map[partitionKey]*kgo.Record),
+		client:            client,
+		ctx:               ctx,
+		cancel:            cancel,
+		interval:          interval,
+		timeout:           timeout,
+		maxUncommitted:    maxUncommitted,
+		onLagBackpressure: onLagBackpressure,
+		wake:              make(chan struct{}, 1),
+		done:              make(chan struct{}),
+		pendingOffsets:    make(map[partitionKey]*kgo.Record),
+		uncommitted:       make(map[partitionKey]int),
+		backpressured:     make(map[partitionKey]bool),
 	}
 	go committer.run()
 	return committer
@@ -201,11 +225,21 @@ func (c *partitionCommitter) mark(record *kgo.Record) {
 	key := partitionKey{topic: record.Topic, partition: record.Partition}
 	completed := cloneCompletedRecord(record)
 	c.mu.Lock()
-	current := c.pending[key]
+	current := c.pendingOffsets[key]
 	if current == nil || recordAfter(current, completed) {
-		c.pending[key] = completed
+		c.pendingOffsets[key] = completed
 	}
-	flush := len(c.pending) >= commitBatchSize
+	c.uncommitted[key]++
+	backpressure := c.uncommitted[key] >= c.maxUncommitted && !c.backpressured[key]
+	if backpressure {
+		c.backpressured[key] = true
+		// Keep the state transition and pause notification together. A fast
+		// commit must not release the partition before the pause is applied.
+		if c.onLagBackpressure != nil {
+			c.onLagBackpressure(key, true)
+		}
+	}
+	flush := len(c.pendingOffsets) >= commitBatchSize
 	c.mu.Unlock()
 	if flush {
 		select {
@@ -217,33 +251,66 @@ func (c *partitionCommitter) mark(record *kgo.Record) {
 
 func (c *partitionCommitter) flush() {
 	c.commitMu.Lock()
-	defer c.commitMu.Unlock()
 	batch := c.takePending()
-	if len(batch) == 0 || c.ctx.Err() != nil {
+	if len(batch.records) == 0 || c.ctx.Err() != nil {
+		c.commitMu.Unlock()
 		return
 	}
 	commitCtx, cancel := context.WithTimeout(c.ctx, c.timeout)
-	err := c.client.CommitRecords(commitCtx, batch...)
+	err := c.client.CommitRecords(commitCtx, batch.records...)
 	cancel()
 	if err == nil || c.ctx.Err() != nil {
+		if err == nil {
+			c.acknowledge(batch.counts)
+		}
+		c.commitMu.Unlock()
 		return
 	}
 	logx.WithContext(c.ctx).Errorw("commit dispatcher offsets", logx.Field("error", err))
-	c.requeue(batch)
+	c.requeue(batch.records)
+	c.commitMu.Unlock()
 }
 
-func (c *partitionCommitter) takePending() []*kgo.Record {
+type commitBatch struct {
+	records []*kgo.Record
+	counts  map[partitionKey]int
+}
+
+func (c *partitionCommitter) takePending() commitBatch {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if len(c.pending) == 0 {
-		return nil
+	if len(c.pendingOffsets) == 0 {
+		return commitBatch{}
 	}
-	batch := make([]*kgo.Record, 0, len(c.pending))
-	for key, record := range c.pending {
-		batch = append(batch, record)
-		delete(c.pending, key)
+	batch := commitBatch{
+		records: make([]*kgo.Record, 0, len(c.pendingOffsets)),
+		counts:  make(map[partitionKey]int, len(c.pendingOffsets)),
+	}
+	for key, record := range c.pendingOffsets {
+		batch.records = append(batch.records, record)
+		batch.counts[key] = c.uncommitted[key]
+		delete(c.pendingOffsets, key)
 	}
 	return batch
+}
+
+func (c *partitionCommitter) acknowledge(counts map[partitionKey]int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for key, count := range counts {
+		remaining := c.uncommitted[key] - count
+		if remaining <= 0 {
+			delete(c.uncommitted, key)
+		} else {
+			c.uncommitted[key] = remaining
+		}
+		if c.backpressured[key] && remaining < c.maxUncommitted {
+			delete(c.backpressured, key)
+			if c.onLagBackpressure != nil {
+				c.onLagBackpressure(key, false)
+			}
+		}
+	}
 }
 
 func (c *partitionCommitter) requeue(records []*kgo.Record) {
@@ -251,9 +318,9 @@ func (c *partitionCommitter) requeue(records []*kgo.Record) {
 	defer c.mu.Unlock()
 	for _, record := range records {
 		key := partitionKey{topic: record.Topic, partition: record.Partition}
-		current := c.pending[key]
+		current := c.pendingOffsets[key]
 		if current == nil || recordAfter(current, record) {
-			c.pending[key] = record
+			c.pendingOffsets[key] = record
 		}
 	}
 }
@@ -265,7 +332,10 @@ func (c *partitionCommitter) dropPartitions(partitions map[string][]int32) {
 	defer c.mu.Unlock()
 	for topic, values := range partitions {
 		for _, partition := range values {
-			delete(c.pending, partitionKey{topic: topic, partition: partition})
+			key := partitionKey{topic: topic, partition: partition}
+			delete(c.pendingOffsets, key)
+			delete(c.uncommitted, key)
+			delete(c.backpressured, key)
 		}
 	}
 }
@@ -276,7 +346,10 @@ func (c *partitionCommitter) commitRevoked(ctx context.Context, partitions map[s
 	c.mu.Lock()
 	for topic, values := range partitions {
 		for _, partition := range values {
-			delete(c.pending, partitionKey{topic: topic, partition: partition})
+			key := partitionKey{topic: topic, partition: partition}
+			delete(c.pendingOffsets, key)
+			delete(c.uncommitted, key)
+			delete(c.backpressured, key)
 		}
 	}
 	c.mu.Unlock()
@@ -317,21 +390,21 @@ func recordAfter(current, candidate *kgo.Record) bool {
 
 func newPartitionRuntime(server *Server, maxPoll, queueSize int) *partitionRuntime {
 	if maxPoll <= 0 {
-		maxPoll = 32
+		maxPoll = config.DefaultMaxPollRecords
 	}
 	if queueSize <= 0 {
-		queueSize = 16
+		queueSize = config.DefaultPartitionQueueSize
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	return &partitionRuntime{
-		server:    server,
-		maxPoll:   maxPoll,
-		queueSize: queueSize,
-		ctx:       ctx,
-		cancel:    cancel,
-		workers:   make(map[partitionKey]*partitionWorker),
-		pending:   make(map[partitionKey][]*kgo.Record),
-		paused:    make(map[partitionKey]bool),
+		server:        server,
+		maxPoll:       maxPoll,
+		queueSize:     queueSize,
+		ctx:           ctx,
+		cancel:        cancel,
+		workers:       make(map[partitionKey]*partitionWorker),
+		queuedRecords: make(map[partitionKey][]*kgo.Record),
+		pauseReasons:  make(map[partitionKey]partitionPauseReason),
 	}
 }
 
@@ -389,9 +462,9 @@ func (r *partitionRuntime) enqueue(record *kgo.Record) {
 	if r.stopped || worker == nil {
 		return
 	}
-	if pending := r.pending[key]; len(pending) > 0 {
-		r.pending[key] = append(pending, record)
-		r.pauseLocked(worker)
+	if pending := r.queuedRecords[key]; len(pending) > 0 {
+		r.queuedRecords[key] = append(pending, record)
+		r.pauseLocked(worker, pauseForQueue)
 		return
 	}
 	select {
@@ -399,8 +472,8 @@ func (r *partitionRuntime) enqueue(record *kgo.Record) {
 		return
 	default:
 	}
-	r.pending[key] = append(r.pending[key], record)
-	r.pauseLocked(worker)
+	r.queuedRecords[key] = append(r.queuedRecords[key], record)
+	r.pauseLocked(worker, pauseForQueue)
 }
 
 func (r *partitionRuntime) pause(worker *partitionWorker) {
@@ -409,17 +482,51 @@ func (r *partitionRuntime) pause(worker *partitionWorker) {
 	if r.workers[worker.key] != worker || r.stopped {
 		return
 	}
-	r.pauseLocked(worker)
+	r.pauseLocked(worker, pauseForRetry)
 }
 
-func (r *partitionRuntime) pauseLocked(worker *partitionWorker) {
-	if r.paused[worker.key] {
+func (r *partitionRuntime) pauseLocked(worker *partitionWorker, reason partitionPauseReason) {
+	current := r.pauseReasons[worker.key]
+	if current&reason != 0 {
 		return
 	}
-	r.paused[worker.key] = true
+	r.pauseReasons[worker.key] = current | reason
+	if current != 0 {
+		return
+	}
 	worker.client.PauseFetchPartitions(map[string][]int32{
 		worker.key.topic: {worker.key.partition},
 	})
+}
+
+func (r *partitionRuntime) resumeLocked(worker *partitionWorker, reason partitionPauseReason) {
+	current := r.pauseReasons[worker.key]
+	if current&reason == 0 {
+		return
+	}
+	next := current &^ reason
+	if next != 0 {
+		r.pauseReasons[worker.key] = next
+		return
+	}
+	delete(r.pauseReasons, worker.key)
+	worker.client.ResumeFetchPartitions(map[string][]int32{
+		worker.key.topic: {worker.key.partition},
+	})
+}
+
+func (r *partitionRuntime) setCommitBackpressure(key partitionKey, blocked bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	worker := r.workers[key]
+	if worker == nil || r.stopped {
+		return
+	}
+	if blocked {
+		r.pauseLocked(worker, pauseForCommit)
+		return
+	}
+	r.resumeLocked(worker, pauseForCommit)
 }
 
 func (r *partitionRuntime) afterProcessed(worker *partitionWorker) {
@@ -428,50 +535,47 @@ func (r *partitionRuntime) afterProcessed(worker *partitionWorker) {
 	if r.workers[worker.key] != worker || r.stopped {
 		return
 	}
-	for pending := r.pending[worker.key]; len(pending) > 0; {
+	for pending := r.queuedRecords[worker.key]; len(pending) > 0; {
 		select {
 		case worker.records <- pending[0]:
 			pending = pending[1:]
-			r.pending[worker.key] = pending
+			r.queuedRecords[worker.key] = pending
 		default:
 			return
 		}
 	}
-	delete(r.pending, worker.key)
-	if !r.paused[worker.key] || len(worker.records) != 0 {
-		return
+	delete(r.queuedRecords, worker.key)
+	if len(worker.records) == 0 {
+		r.resumeLocked(worker, pauseForQueue|pauseForRetry)
 	}
-	delete(r.paused, worker.key)
-	worker.client.ResumeFetchPartitions(map[string][]int32{
-		worker.key.topic: {worker.key.partition},
-	})
 }
 
-func (r *partitionRuntime) revoke(ctx context.Context, client *kgo.Client, partitions map[string][]int32, commit bool) {
-	workers := r.removeWorkers(partitions)
-	for _, worker := range workers {
-		worker.stop()
+func (r *partitionRuntime) revoke(ctx context.Context, _ *kgo.Client, partitions map[string][]int32, commit bool) {
+	if ctx == nil {
+		ctx = context.Background()
 	}
+	revokeCtx, cancel := context.WithTimeout(ctx, r.revokeTimeout())
+	defer cancel()
+	workers := r.removeWorkers(partitions)
+	r.stopWorkers(revokeCtx, workers)
 	completed := make([]*kgo.Record, 0, len(workers))
 	for _, worker := range workers {
 		if record := worker.completed(); record != nil {
 			completed = append(completed, record)
 		}
 	}
-	if r.committer != nil {
-		if commit {
-			r.committer.commitRevoked(ctx, partitions, completed)
-		} else {
-			r.committer.dropPartitions(partitions)
-		}
-		return
+	if commit {
+		r.committer.commitRevoked(revokeCtx, partitions, completed)
+	} else {
+		r.committer.dropPartitions(partitions)
 	}
-	if !commit || len(completed) == 0 {
-		return
+}
+
+func (r *partitionRuntime) revokeTimeout() time.Duration {
+	if r.server == nil {
+		return time.Duration(config.DefaultRevokeTimeoutSeconds) * time.Second
 	}
-	if err := client.CommitRecords(ctx, completed...); err != nil && ctx.Err() == nil {
-		logx.WithContext(ctx).Errorw("commit revoked dispatcher offsets", logx.Field("error", err))
-	}
+	return r.server.revokeTimeout()
 }
 
 func (r *partitionRuntime) removeWorkers(partitions map[string][]int32) []*partitionWorker {
@@ -486,12 +590,38 @@ func (r *partitionRuntime) removeWorkers(partitions map[string][]int32) []*parti
 				continue
 			}
 			delete(r.workers, key)
-			delete(r.pending, key)
-			delete(r.paused, key)
+			delete(r.queuedRecords, key)
+			delete(r.pauseReasons, key)
 			workers = append(workers, worker)
 		}
 	}
 	return workers
+}
+
+func (r *partitionRuntime) stopWorkers(parent context.Context, workers []*partitionWorker) {
+	if len(workers) == 0 {
+		return
+	}
+	if parent == nil {
+		parent = context.Background()
+	}
+	timeout := r.revokeTimeout()
+	stopCtx, cancel := context.WithTimeout(parent, timeout)
+	defer cancel()
+	var wg sync.WaitGroup
+	for _, worker := range workers {
+		wg.Go(func() {
+			if worker.stop(stopCtx) {
+				return
+			}
+			logx.WithContext(stopCtx).Errorw("stop dispatcher partition worker timed out",
+				logx.Field("topic", worker.key.topic),
+				logx.Field("partition", worker.key.partition),
+				logx.Field("timeout", timeout),
+			)
+		})
+	}
+	wg.Wait()
 }
 
 func (r *partitionRuntime) stop() {
@@ -503,14 +633,12 @@ func (r *partitionRuntime) stop() {
 			delete(r.workers, key)
 			workers = append(workers, worker)
 		}
-		r.pending = make(map[partitionKey][]*kgo.Record)
-		r.paused = make(map[partitionKey]bool)
+		r.queuedRecords = make(map[partitionKey][]*kgo.Record)
+		r.pauseReasons = make(map[partitionKey]partitionPauseReason)
 		r.mu.Unlock()
 
 		r.cancel()
-		for _, worker := range workers {
-			worker.stop()
-		}
+		r.stopWorkers(context.Background(), workers)
 		if r.committer != nil {
 			r.committer.stop()
 		}
@@ -524,6 +652,9 @@ func (r *partitionRuntime) stop() {
 		if len(completed) == 0 || r.client == nil {
 			return
 		}
+		// lastCompleted is the lifecycle watermark. The async committer may have
+		// already taken, requeued, or discarded its pending offset, so shutdown
+		// commits the worker snapshots rather than relying on committer state.
 		commitCtx, cancel := context.WithTimeout(context.Background(), r.server.dispatchTimeout())
 		defer cancel()
 		if err := r.client.CommitRecords(commitCtx, completed...); err != nil {
@@ -546,14 +677,22 @@ func (w *partitionWorker) run() {
 	}
 }
 
-func (w *partitionWorker) stop() {
+func (w *partitionWorker) stop(ctx context.Context) bool {
 	w.stopOnce.Do(func() {
 		w.cancel()
 		w.mu.Lock()
 		w.active = false
 		w.mu.Unlock()
 	})
-	<-w.done
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	select {
+	case <-w.done:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func (w *partitionWorker) markCompleted(record *kgo.Record) bool {
@@ -562,6 +701,9 @@ func (w *partitionWorker) markCompleted(record *kgo.Record) bool {
 	if !w.active {
 		return false
 	}
+	// Keep the watermark and async commit hand-off under the same lock. Worker
+	// shutdown takes this lock before marking the worker inactive, so lifecycle
+	// code cannot snapshot an offset that was not fully handed off.
 	w.lastCompleted = cloneCompletedRecord(record)
 	if w.runtime.committer != nil {
 		w.runtime.committer.mark(record)
@@ -582,6 +724,7 @@ func New(
 	guildClient guildv1.GuildServiceClient,
 	messageClient messagev1.MessageServiceClient,
 ) *Server {
+	cfg.Dispatcher = cfg.Dispatcher.WithDefaults()
 	if len(cfg.Kafka.Seeds) == 0 {
 		panic("dispatcher kafka seeds are required")
 	}
@@ -652,6 +795,10 @@ func New(
 			consumer,
 			commitInterval(cfg.Dispatcher.CommitIntervalMilliseconds),
 			server.dispatchTimeout(),
+			cfg.Dispatcher.MaxUncommittedRecords,
+			func(key partitionKey, blocked bool) {
+				runtime.setCommitBackpressure(key, blocked)
+			},
 		)
 		server.consumers = append(server.consumers, eventConsumer{client: consumer, runtime: runtime})
 	}
@@ -1144,28 +1291,35 @@ func (s *Server) consumerGroup(record *kgo.Record) string {
 
 func (s *Server) dispatchTimeout() time.Duration {
 	if s.cfg.Dispatcher.DispatchTimeoutSeconds <= 0 {
-		return 5 * time.Second
+		return time.Duration(config.DefaultDispatchTimeoutSeconds) * time.Second
 	}
 	return time.Duration(s.cfg.Dispatcher.DispatchTimeoutSeconds) * time.Second
 }
 
+func (s *Server) revokeTimeout() time.Duration {
+	if s.cfg.Dispatcher.RevokeTimeoutSeconds <= 0 {
+		return time.Duration(config.DefaultRevokeTimeoutSeconds) * time.Second
+	}
+	return time.Duration(s.cfg.Dispatcher.RevokeTimeoutSeconds) * time.Second
+}
+
 func (s *Server) retryMin() time.Duration {
 	if s.cfg.Dispatcher.RetryMinMilliseconds <= 0 {
-		return 100 * time.Millisecond
+		return time.Duration(config.DefaultRetryMinMilliseconds) * time.Millisecond
 	}
 	return time.Duration(s.cfg.Dispatcher.RetryMinMilliseconds) * time.Millisecond
 }
 
 func (s *Server) retryMax() time.Duration {
 	if s.cfg.Dispatcher.RetryMaxSeconds <= 0 {
-		return 5 * time.Second
+		return time.Duration(config.DefaultRetryMaxSeconds) * time.Second
 	}
 	return time.Duration(s.cfg.Dispatcher.RetryMaxSeconds) * time.Second
 }
 
 func commitInterval(milliseconds int) time.Duration {
 	if milliseconds <= 0 {
-		return defaultCommitInterval
+		return time.Duration(config.DefaultCommitIntervalMilliseconds) * time.Millisecond
 	}
 	return time.Duration(milliseconds) * time.Millisecond
 }

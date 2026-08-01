@@ -41,11 +41,52 @@ type KafkaConfig struct {
 	PresenceConsumerGroup string `json:",default=cordis.dispatcher.presence.v1"`
 }
 
+const (
+	DefaultDispatchTimeoutSeconds     = 5
+	DefaultRetryMinMilliseconds       = 100
+	DefaultRetryMaxSeconds            = 5
+	DefaultMaxPollRecords             = 32
+	DefaultPartitionQueueSize         = 16
+	DefaultCommitIntervalMilliseconds = 100
+	DefaultRevokeTimeoutSeconds       = 10
+	DefaultMaxUncommittedRecords      = 128
+)
+
 type DispatcherConfig struct {
 	DispatchTimeoutSeconds     int `json:",default=5"`
+	RevokeTimeoutSeconds       int `json:",default=10"`
 	RetryMinMilliseconds       int `json:",default=100"`
 	RetryMaxSeconds            int `json:",default=5"`
 	MaxPollRecords             int `json:",default=32"`
 	PartitionQueueSize         int `json:",default=16"`
 	CommitIntervalMilliseconds int `json:",default=100"`
+	MaxUncommittedRecords      int `json:",default=128"`
+}
+
+func (c DispatcherConfig) WithDefaults() DispatcherConfig {
+	if c.DispatchTimeoutSeconds <= 0 {
+		c.DispatchTimeoutSeconds = DefaultDispatchTimeoutSeconds
+	}
+	if c.RevokeTimeoutSeconds <= 0 {
+		c.RevokeTimeoutSeconds = DefaultRevokeTimeoutSeconds
+	}
+	if c.RetryMinMilliseconds <= 0 {
+		c.RetryMinMilliseconds = DefaultRetryMinMilliseconds
+	}
+	if c.RetryMaxSeconds <= 0 {
+		c.RetryMaxSeconds = DefaultRetryMaxSeconds
+	}
+	if c.MaxPollRecords <= 0 {
+		c.MaxPollRecords = DefaultMaxPollRecords
+	}
+	if c.PartitionQueueSize <= 0 {
+		c.PartitionQueueSize = DefaultPartitionQueueSize
+	}
+	if c.CommitIntervalMilliseconds <= 0 {
+		c.CommitIntervalMilliseconds = DefaultCommitIntervalMilliseconds
+	}
+	if c.MaxUncommittedRecords <= 0 {
+		c.MaxUncommittedRecords = DefaultMaxUncommittedRecords
+	}
+	return c
 }

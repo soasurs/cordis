@@ -46,7 +46,7 @@ func (c *recordingCommitClient) committed() [][]*kgo.Record {
 
 func TestPartitionCommitterCoalescesLatestOffsets(t *testing.T) {
 	client := new(recordingCommitClient)
-	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second)
+	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second, 128, nil)
 	defer committer.stop()
 
 	committer.mark(testOffsetRecord("events", 0, 1))
@@ -63,19 +63,19 @@ func TestPartitionCommitterCoalescesLatestOffsets(t *testing.T) {
 
 func TestPartitionCommitterRequeuesFailedCommit(t *testing.T) {
 	client := &recordingCommitClient{err: errors.New("commit failed")}
-	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second)
+	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second, 128, nil)
 	defer committer.stop()
 
 	committer.mark(testOffsetRecord("events", 0, 4))
 	committer.flush()
-	require.Len(t, committer.pending, 1)
+	require.Len(t, committer.pendingOffsets, 1)
 
 	client.mu.Lock()
 	client.err = nil
 	client.mu.Unlock()
 	committer.flush()
 
-	require.Empty(t, committer.pending)
+	require.Empty(t, committer.pendingOffsets)
 	require.Len(t, client.committed(), 2)
 	require.Equal(t, int64(4), offsetFor(client.committed()[1], 0))
 }
@@ -85,7 +85,7 @@ func TestPartitionCommitterDoesNotBlockMarksOnCommit(t *testing.T) {
 		started: make(chan struct{}),
 		release: make(chan struct{}),
 	}
-	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second)
+	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second, 128, nil)
 	defer committer.stop()
 
 	committer.mark(testOffsetRecord("events", 0, 1))
@@ -120,7 +120,7 @@ func TestPartitionCommitterDoesNotBlockMarksOnCommit(t *testing.T) {
 
 func TestPartitionRuntimeLostDropsPendingOffsets(t *testing.T) {
 	client := new(recordingCommitClient)
-	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second)
+	committer := newPartitionCommitter(context.Background(), client, time.Hour, time.Second, 128, nil)
 	defer committer.stop()
 
 	key := partitionKey{topic: "events", partition: 0}
@@ -132,10 +132,10 @@ func TestPartitionRuntimeLostDropsPendingOffsets(t *testing.T) {
 	}
 	close(worker.done)
 	runtime := &partitionRuntime{
-		committer: committer,
-		workers:   map[partitionKey]*partitionWorker{key: worker},
-		pending:   make(map[partitionKey][]*kgo.Record),
-		paused:    make(map[partitionKey]bool),
+		committer:     committer,
+		workers:       map[partitionKey]*partitionWorker{key: worker},
+		queuedRecords: make(map[partitionKey][]*kgo.Record),
+		pauseReasons:  make(map[partitionKey]partitionPauseReason),
 	}
 	committer.mark(testOffsetRecord(key.topic, key.partition, 5))
 
@@ -143,6 +143,55 @@ func TestPartitionRuntimeLostDropsPendingOffsets(t *testing.T) {
 	committer.flush()
 
 	require.Empty(t, client.committed())
+}
+
+func TestPartitionCommitterBackpressuresUncommittedPartitions(t *testing.T) {
+	client := new(recordingCommitClient)
+	changes := make(chan bool, 2)
+	committer := newPartitionCommitter(
+		context.Background(),
+		client,
+		time.Hour,
+		time.Second,
+		2,
+		func(_ partitionKey, blocked bool) { changes <- blocked },
+	)
+	defer committer.stop()
+
+	committer.mark(testOffsetRecord("events", 0, 1))
+	committer.mark(testOffsetRecord("events", 0, 2))
+	select {
+	case blocked := <-changes:
+		require.True(t, blocked)
+	case <-time.After(time.Second):
+		t.Fatal("partition was not backpressured")
+	}
+
+	committer.flush()
+	select {
+	case blocked := <-changes:
+		require.False(t, blocked)
+	case <-time.After(time.Second):
+		t.Fatal("partition backpressure was not released")
+	}
+}
+
+func TestPartitionWorkerStopIsBounded(t *testing.T) {
+	workerCtx, cancel := context.WithCancel(context.Background())
+	worker := &partitionWorker{
+		ctx:    workerCtx,
+		cancel: cancel,
+		done:   make(chan struct{}),
+		active: true,
+	}
+	stopCtx, stopCancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer stopCancel()
+
+	require.False(t, worker.stop(stopCtx))
+	require.False(t, worker.active)
+
+	close(worker.done)
+	require.True(t, worker.stop(context.Background()))
 }
 
 func testOffsetRecord(topic string, partition int32, offset int64) *kgo.Record {

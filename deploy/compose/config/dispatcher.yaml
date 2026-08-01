@@ -32,11 +32,13 @@ sessionRegistry:
 
 dispatcher:
   dispatchTimeoutSeconds: 5
+  revokeTimeoutSeconds: 10
   retryMinMilliseconds: 100
   retryMaxSeconds: 5
   maxPollRecords: 32
   partitionQueueSize: 16
   commitIntervalMilliseconds: 100
+  maxUncommittedRecords: 128
 
 services:
   user:

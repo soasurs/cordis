@@ -405,7 +405,12 @@ and committed by a background offset coordinator; a rebalance or shutdown
 synchronously flushes completed records. Invalid events are dropped and
 committed; transient failures retry with exponential backoff in that
 partition's worker, so other partitions and topics continue. On rebalance or
-shutdown, workers stop and only completed records are committed.
+shutdown, workers stop and only completed records are committed. If Kafka
+commit lag reaches `maxUncommittedRecords`, that partition's fetch is paused
+until a commit succeeds; this pause does not override an independent queue or
+retry pause. Worker shutdown during revoke is bounded by
+`revokeTimeoutSeconds`; a worker that does not stop in time is marked inactive
+and its in-flight record is left for Kafka to replay rather than committed.
 Routes are deduplicated within one attempt, but a record retry can call an already
 successful node again. Delivery is at least once and there is no general event-ID
 deduplication.

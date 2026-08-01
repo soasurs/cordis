@@ -61,7 +61,7 @@ toggles, `@here`, `<#channel>`, and per-user suppression settings.
 
 ### 3.1 New Permission Bit
 
-`proto/guild/v1/guild.proto` adds:
+Both `proto/guild/v1/guild.proto` and `proto/api/v1/guild.proto` add:
 
 ```proto
 GUILD_PERMISSION_MENTION_EVERYONE = 2048;

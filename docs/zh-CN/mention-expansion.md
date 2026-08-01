@@ -45,7 +45,7 @@
 
 ### 3.1 新增权限位
 
-`proto/guild/v1/guild.proto` 新增：
+`proto/guild/v1/guild.proto` 和 `proto/api/v1/guild.proto` 均新增：
 
 ```proto
 GUILD_PERMISSION_MENTION_EVERYONE = 2048;

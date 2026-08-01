@@ -105,6 +105,11 @@ service GuildService {
   // when role_id identifies the default role.
   rpc ListGuildRoleMembers(ListGuildRoleMembersRequest) returns (ListGuildRoleMembersResponse);
   rpc GetGuildMemberPermissions(GetGuildMemberPermissionsRequest) returns (GetGuildMemberPermissionsResponse);
+  // SearchGuildMentionUsers performs a prefix search against usernames,
+  // nicknames, and profile names visible in the requested channel.
+  rpc SearchGuildMentionUsers(SearchGuildMentionUsersRequest) returns (SearchGuildMentionUsersResponse);
+  // SearchGuildMentionRoles performs a prefix search against Guild role names.
+  rpc SearchGuildMentionRoles(SearchGuildMentionRolesRequest) returns (SearchGuildMentionRolesResponse);
 
   // Channels and permission overwrites.
   rpc CreateGuildChannel(CreateGuildChannelRequest) returns (CreateGuildChannelResponse);
@@ -184,6 +189,35 @@ message GuildRole {
   int64 revision = 7;
   int64 created_at = 8;
   int64 updated_at = 9;
+}
+
+message GuildMentionUser {
+  int64 user_id = 1;
+  string username = 2;
+  string name = 3;
+  int64 avatar_asset_id = 4;
+  string nickname = 5;
+}
+
+message SearchGuildMentionUsersRequest {
+  int64 guild_id = 1;
+  int32 limit = 2;
+  string query = 3;
+  int64 channel_id = 4;
+}
+
+message SearchGuildMentionUsersResponse {
+  repeated GuildMentionUser users = 1;
+}
+
+message SearchGuildMentionRolesRequest {
+  int64 guild_id = 1;
+  int32 limit = 2;
+  string query = 3;
+}
+
+message SearchGuildMentionRolesResponse {
+  repeated GuildRole roles = 1;
 }
 
 // GuildChannel is a text, category, or voice channel within one Guild.

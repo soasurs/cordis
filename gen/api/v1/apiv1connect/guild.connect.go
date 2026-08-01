@@ -138,6 +138,12 @@ const (
 	// GuildServiceGetGuildMemberPermissionsProcedure is the fully-qualified name of the GuildService's
 	// GetGuildMemberPermissions RPC.
 	GuildServiceGetGuildMemberPermissionsProcedure = "/api.v1.GuildService/GetGuildMemberPermissions"
+	// GuildServiceSearchGuildMentionUsersProcedure is the fully-qualified name of the GuildService's
+	// SearchGuildMentionUsers RPC.
+	GuildServiceSearchGuildMentionUsersProcedure = "/api.v1.GuildService/SearchGuildMentionUsers"
+	// GuildServiceSearchGuildMentionRolesProcedure is the fully-qualified name of the GuildService's
+	// SearchGuildMentionRoles RPC.
+	GuildServiceSearchGuildMentionRolesProcedure = "/api.v1.GuildService/SearchGuildMentionRoles"
 	// GuildServiceCreateGuildChannelProcedure is the fully-qualified name of the GuildService's
 	// CreateGuildChannel RPC.
 	GuildServiceCreateGuildChannelProcedure = "/api.v1.GuildService/CreateGuildChannel"
@@ -221,6 +227,11 @@ type GuildServiceClient interface {
 	// when role_id identifies the default role.
 	ListGuildRoleMembers(context.Context, *v1.ListGuildRoleMembersRequest) (*v1.ListGuildRoleMembersResponse, error)
 	GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error)
+	// SearchGuildMentionUsers performs a prefix search against usernames,
+	// nicknames, and profile names visible in the requested channel.
+	SearchGuildMentionUsers(context.Context, *v1.SearchGuildMentionUsersRequest) (*v1.SearchGuildMentionUsersResponse, error)
+	// SearchGuildMentionRoles performs a prefix search against Guild role names.
+	SearchGuildMentionRoles(context.Context, *v1.SearchGuildMentionRolesRequest) (*v1.SearchGuildMentionRolesResponse, error)
 	// Channels and permission overwrites.
 	CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error)
 	GetGuildChannel(context.Context, *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error)
@@ -461,6 +472,18 @@ func NewGuildServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(guildServiceMethods.ByName("GetGuildMemberPermissions")),
 			connect.WithClientOptions(opts...),
 		),
+		searchGuildMentionUsers: connect.NewClient[v1.SearchGuildMentionUsersRequest, v1.SearchGuildMentionUsersResponse](
+			httpClient,
+			baseURL+GuildServiceSearchGuildMentionUsersProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("SearchGuildMentionUsers")),
+			connect.WithClientOptions(opts...),
+		),
+		searchGuildMentionRoles: connect.NewClient[v1.SearchGuildMentionRolesRequest, v1.SearchGuildMentionRolesResponse](
+			httpClient,
+			baseURL+GuildServiceSearchGuildMentionRolesProcedure,
+			connect.WithSchema(guildServiceMethods.ByName("SearchGuildMentionRoles")),
+			connect.WithClientOptions(opts...),
+		),
 		createGuildChannel: connect.NewClient[v1.CreateGuildChannelRequest, v1.CreateGuildChannelResponse](
 			httpClient,
 			baseURL+GuildServiceCreateGuildChannelProcedure,
@@ -556,6 +579,8 @@ type guildServiceClient struct {
 	listGuildMemberRoles                  *connect.Client[v1.ListGuildMemberRolesRequest, v1.ListGuildMemberRolesResponse]
 	listGuildRoleMembers                  *connect.Client[v1.ListGuildRoleMembersRequest, v1.ListGuildRoleMembersResponse]
 	getGuildMemberPermissions             *connect.Client[v1.GetGuildMemberPermissionsRequest, v1.GetGuildMemberPermissionsResponse]
+	searchGuildMentionUsers               *connect.Client[v1.SearchGuildMentionUsersRequest, v1.SearchGuildMentionUsersResponse]
+	searchGuildMentionRoles               *connect.Client[v1.SearchGuildMentionRolesRequest, v1.SearchGuildMentionRolesResponse]
 	createGuildChannel                    *connect.Client[v1.CreateGuildChannelRequest, v1.CreateGuildChannelResponse]
 	getGuildChannel                       *connect.Client[v1.GetGuildChannelRequest, v1.GetGuildChannelResponse]
 	listGuildChannels                     *connect.Client[v1.ListGuildChannelsRequest, v1.ListGuildChannelsResponse]
@@ -891,6 +916,24 @@ func (c *guildServiceClient) GetGuildMemberPermissions(ctx context.Context, req 
 	return nil, err
 }
 
+// SearchGuildMentionUsers calls api.v1.GuildService.SearchGuildMentionUsers.
+func (c *guildServiceClient) SearchGuildMentionUsers(ctx context.Context, req *v1.SearchGuildMentionUsersRequest) (*v1.SearchGuildMentionUsersResponse, error) {
+	response, err := c.searchGuildMentionUsers.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
+// SearchGuildMentionRoles calls api.v1.GuildService.SearchGuildMentionRoles.
+func (c *guildServiceClient) SearchGuildMentionRoles(ctx context.Context, req *v1.SearchGuildMentionRolesRequest) (*v1.SearchGuildMentionRolesResponse, error) {
+	response, err := c.searchGuildMentionRoles.CallUnary(ctx, connect.NewRequest(req))
+	if response != nil {
+		return response.Msg, err
+	}
+	return nil, err
+}
+
 // CreateGuildChannel calls api.v1.GuildService.CreateGuildChannel.
 func (c *guildServiceClient) CreateGuildChannel(ctx context.Context, req *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error) {
 	response, err := c.createGuildChannel.CallUnary(ctx, connect.NewRequest(req))
@@ -1029,6 +1072,11 @@ type GuildServiceHandler interface {
 	// when role_id identifies the default role.
 	ListGuildRoleMembers(context.Context, *v1.ListGuildRoleMembersRequest) (*v1.ListGuildRoleMembersResponse, error)
 	GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error)
+	// SearchGuildMentionUsers performs a prefix search against usernames,
+	// nicknames, and profile names visible in the requested channel.
+	SearchGuildMentionUsers(context.Context, *v1.SearchGuildMentionUsersRequest) (*v1.SearchGuildMentionUsersResponse, error)
+	// SearchGuildMentionRoles performs a prefix search against Guild role names.
+	SearchGuildMentionRoles(context.Context, *v1.SearchGuildMentionRolesRequest) (*v1.SearchGuildMentionRolesResponse, error)
 	// Channels and permission overwrites.
 	CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error)
 	GetGuildChannel(context.Context, *v1.GetGuildChannelRequest) (*v1.GetGuildChannelResponse, error)
@@ -1265,6 +1313,18 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(guildServiceMethods.ByName("GetGuildMemberPermissions")),
 		connect.WithHandlerOptions(opts...),
 	)
+	guildServiceSearchGuildMentionUsersHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceSearchGuildMentionUsersProcedure,
+		svc.SearchGuildMentionUsers,
+		connect.WithSchema(guildServiceMethods.ByName("SearchGuildMentionUsers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	guildServiceSearchGuildMentionRolesHandler := connect.NewUnaryHandlerSimple(
+		GuildServiceSearchGuildMentionRolesProcedure,
+		svc.SearchGuildMentionRoles,
+		connect.WithSchema(guildServiceMethods.ByName("SearchGuildMentionRoles")),
+		connect.WithHandlerOptions(opts...),
+	)
 	guildServiceCreateGuildChannelHandler := connect.NewUnaryHandlerSimple(
 		GuildServiceCreateGuildChannelProcedure,
 		svc.CreateGuildChannel,
@@ -1393,6 +1453,10 @@ func NewGuildServiceHandler(svc GuildServiceHandler, opts ...connect.HandlerOpti
 			guildServiceListGuildRoleMembersHandler.ServeHTTP(w, r)
 		case GuildServiceGetGuildMemberPermissionsProcedure:
 			guildServiceGetGuildMemberPermissionsHandler.ServeHTTP(w, r)
+		case GuildServiceSearchGuildMentionUsersProcedure:
+			guildServiceSearchGuildMentionUsersHandler.ServeHTTP(w, r)
+		case GuildServiceSearchGuildMentionRolesProcedure:
+			guildServiceSearchGuildMentionRolesHandler.ServeHTTP(w, r)
 		case GuildServiceCreateGuildChannelProcedure:
 			guildServiceCreateGuildChannelHandler.ServeHTTP(w, r)
 		case GuildServiceGetGuildChannelProcedure:
@@ -1562,6 +1626,14 @@ func (UnimplementedGuildServiceHandler) ListGuildRoleMembers(context.Context, *v
 
 func (UnimplementedGuildServiceHandler) GetGuildMemberPermissions(context.Context, *v1.GetGuildMemberPermissionsRequest) (*v1.GetGuildMemberPermissionsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.GetGuildMemberPermissions is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) SearchGuildMentionUsers(context.Context, *v1.SearchGuildMentionUsersRequest) (*v1.SearchGuildMentionUsersResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.SearchGuildMentionUsers is not implemented"))
+}
+
+func (UnimplementedGuildServiceHandler) SearchGuildMentionRoles(context.Context, *v1.SearchGuildMentionRolesRequest) (*v1.SearchGuildMentionRolesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("api.v1.GuildService.SearchGuildMentionRoles is not implemented"))
 }
 
 func (UnimplementedGuildServiceHandler) CreateGuildChannel(context.Context, *v1.CreateGuildChannelRequest) (*v1.CreateGuildChannelResponse, error) {

@@ -89,6 +89,9 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *guildv1.BanGuildM
 			if _, err := txStore.RemoveGuildMember(ctx, req.GetGuildId(), req.GetUserId(), createdAt); err != nil {
 				return err
 			}
+			if err := txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+				return err
+			}
 		case !errors.Is(targetErr, sql.ErrNoRows):
 			return targetErr
 		}

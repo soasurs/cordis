@@ -44,6 +44,10 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 			return nil, err
 		}
 	}
+	profiles, err := s.getEventUserProfiles(ctx, req.GetOwnerId())
+	if err != nil {
+		return nil, err
+	}
 	var created *model.Guild
 	createdNewGuild := !req.HasIdempotencyKey()
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
@@ -88,7 +92,11 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 			return err
 		}
 		created = guild
-		if _, err := txStore.CreateGuildMember(ctx, guildID, req.GetOwnerId(), createdAt); err != nil {
+		member, err := txStore.CreateGuildMember(ctx, guildID, req.GetOwnerId(), createdAt)
+		if err != nil {
+			return err
+		}
+		if err := txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(guildID, member.Nickname, profiles[req.GetOwnerId()])); err != nil {
 			return err
 		}
 		if err := txStore.CreateDefaultRole(ctx, guildID, createdAt); err != nil {
@@ -267,6 +275,9 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *guildv1.DeleteGuildR
 			return err
 		}
 		if err := txStore.DeleteGuildMembers(ctx, req.GetGuildId(), deletedAt); err != nil {
+			return err
+		}
+		if err := txStore.DeleteGuildMemberProfiles(ctx, req.GetGuildId()); err != nil {
 			return err
 		}
 		if err := txStore.DeleteAllGuildRoleAssignments(ctx, req.GetGuildId()); err != nil {

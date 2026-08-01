@@ -58,6 +58,12 @@ per-user, per-channel, or per-guild partition order. With Kafka disabled, no
 producer is created. Publish failure is logged and does not fail the already
 committed RPC, so database and Kafka delivery are not atomic.
 
+Guild's `guild_member_profiles` table is a local search projection, not the
+source of truth for User profiles. It stores username, Guild nickname, profile
+name, and avatar data for active members; membership removal deletes the
+projection row in the same transaction. User profile events update related
+rows best-effort, and the Guild startup rebuild can repopulate the projection.
+
 For `CreateMessage`, an optional request idempotency record is committed with
 the message, mentions, and author read state. A same-key retry therefore
 returns the existing message without publishing another creation or read-state

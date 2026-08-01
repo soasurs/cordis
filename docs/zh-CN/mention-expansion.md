@@ -58,7 +58,7 @@ GUILD_PERMISSION_MENTION_EVERYONE = 2048;
 Guild 文本频道中解析出 `@everyone` 时，使用现有 `AuthorizeGuildChannel` 返回的完整有效权限集检查 `MENTION_EVERYONE`；缺失则返回权限错误，整个请求失败。
 
 - role mention：调用 `ListGuildRoles(guild_id, author_id)` 一次获取该 Guild 全部角色，过滤不属于该 Guild 或不存在的角色；本轮不校验 `mentionable`；
-- user mention：调用 `BatchGetUserProfiles` 过滤不存在的用户；
+- user mention：先调用 Guild 的 `FilterGuildChannelVisibleUsers`，只保留仍是该 Guild 活跃成员且能看到当前频道的用户；随后调用 `BatchGetUserProfiles` 过滤不存在的用户；
 - 作者自身是 Guild 成员由发送消息的既有授权流程保证。
 
 ## 4. 存储
@@ -180,6 +180,14 @@ message ListGuildMentionTargetsResponse {
 
 分页语义：每次返回一个候选窗口（窗口为 `limit + 1` 个候选，最多返回 `limit` 个可见成员），游标始终推进到窗口最后一个候选 user ID；窗口内没有可见成员时返回空页，调用方继续翻页直到 `next_cursor` 缺失。
 
+### 6.4 Mention 候选搜索
+
+- API 暴露 `SearchGuildMentionUsers` 和 `SearchGuildMentionRoles`。用户搜索请求带 `guild_id`、当前 `channel_id`、查询字符串和最多 20 条的 limit；客户端输入变化或继续输入时重新发起请求，不使用深分页游标。
+- 用户候选不跨 User 服务做全局搜索。Guild 维护 `guild_member_profiles` 投影，包含 `guild_id`、`user_id`、`username`、Guild nickname、profile `name`、头像 ID 以及用于前缀索引的规范化字段。成员创建/加入时写入，User 的 `user.profile.updated` 事件更新所有相关 Guild，服务启动时做有界重建以补齐历史成员。
+- 用户搜索匹配 username、Guild nickname 或 profile name 的前缀；username 匹配优先于 nickname/name 匹配，随后按规范化 username 和 user ID 排序。排序发生在频道可见性过滤之前，但服务端会继续读取内部候选窗口（默认 100）直到得到客户端要求的可见结果数或候选耗尽，因此对外 limit 始终是最终可见条数。
+- 每个候选窗口都使用与频道授权相同的 `channelPermissions` 规则过滤；搜索调用者本身也必须能看到该频道。投影更新和权限变化之间存在正常的最终一致性窗口，Message 写入时仍通过批量可见性 RPC 做最终校验。
+- 角色搜索在 Guild 本地按角色名做前缀匹配，排除特殊的 `@everyone` 角色；角色候选本身不按目标成员的频道可见性过滤，角色展开时再过滤目标成员。第一版使用 PostgreSQL 的规范化前缀匹配和 B-tree `text_pattern_ops` 索引，查询中的 `%`、`_` 和反斜杠会转义；contains/fuzzy 搜索和 `pg_trgm` 留作后续优化。
+
 ## 7. 异步展开
 
 ### 7.1 Topic 与消费组
@@ -251,6 +259,11 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 
 返回结构使用 ID 列表而非 Discord 的 user 对象数组（客户端已有 profile 缓存；对象化留作后续）。这是破坏性协议变更，客户端需同步升级；不保留 deprecated 字段，避免“传了列表但被忽略”的双源歧义。
 
+### 11.3 Guild Mention 搜索协议
+
+- 公共 Guild API 新增 `SearchGuildMentionUsers(guild_id, channel_id, query, limit)` 和 `SearchGuildMentionRoles(guild_id, query, limit)`；用户响应包含 `user_id`、`username`、`nickname`、`name` 和头像 ID，角色响应复用 `GuildRole`。
+- 内部 Guild API 新增对应的带 `actor_user_id` 用户/角色搜索 RPC，以及 `FilterGuildChannelVisibleUsers` 批量可见性 RPC。前者用于 API 搜索，后者由 Message 在写入直接 user mentions 时调用。
+
 ## 12. 迁移与兼容
 
 - 存量 `message_mentions` 数据保留，迁移后均视为 `source=1`；
@@ -268,7 +281,8 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 ## 14. 测试计划
 
 - 解析器单元测试：markup 变体、`<@!>` 归一、转义、词边界、大小写、非法/溢出 ID、去重与顺序、DM 裁剪、上限；
-- 权限测试：`@everyone` 无 `MENTION_EVERYONE` 拒绝、角色/用户存在性过滤；
+- 权限测试：`@everyone` 无 `MENTION_EVERYONE` 拒绝、角色/用户存在性过滤、用户频道可见性过滤；
+- 搜索测试：username/nickname/name 前缀匹配、排序后过滤仍补足可见 limit、角色搜索和 projection 更新；
 - Store 集成测试：source 列迁移、role/everyone 读写、批量加载、编辑删除 source=2、未读计数不受影响；
 - Guild 批量接口集成测试：批量结果与逐人单用户权限计算全量对照；
 - Worker 测试：事件类型过滤、无展开需求跳过、分页拉取、revision 守卫下的原子重建、过期事件丢弃、消息删除跳过、失败重试；
@@ -284,12 +298,14 @@ PreviousMentionEveryone *bool    `json:"previous_mention_everyone,omitempty"`
 2. Message：migration、model/Store、mention 解析器（`services/message/v1/internal/mention`）；
 3. Message：Create/Update/Delete/Get/List、事件、幂等指纹 v2；
 4. Message：展开 worker（消费 `cordis.message.events.v1`、分批 upsert、重试）；
-5. proto 与 API adapter；
-6. 全量测试与文档同步。
+5. Guild：`guild_member_profiles` 投影、User profile 事件同步、username/nickname/name 前缀搜索和角色搜索；
+6. proto 与 API adapter；
+7. 全量测试与文档同步。
 
 ## 16. 已确认决策
 
 - 权限位取值 `2048`（当前枚举最大 1024）；
 - 破坏性协议变更直接移除请求字段（`reserved`），不做 deprecated 兼容层；
 - 展开 worker 直接消费消息事件 topic，不引入独立任务 topic；
-- 第一版角色 mention 不做 `mentionable` 校验。
+- 第一版角色 mention 不做 `mentionable` 校验；
+- 第一版搜索只做 username/nickname/name/role name 前缀匹配，不引入 `pg_trgm`。

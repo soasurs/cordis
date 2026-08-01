@@ -291,7 +291,10 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *guildv1.JoinGu
 			return err
 		}
 		member, err = txStore.CreateGuildMember(ctx, invite.GuildID, req.GetUserId(), joinedAt)
-		return err
+		if err != nil {
+			return err
+		}
+		return txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(invite.GuildID, member.Nickname, profiles[req.GetUserId()]))
 	})
 	if err != nil {
 		return nil, mapStoreError(err)

@@ -69,6 +69,9 @@ const (
 	GuildService_ListGuildChannelPermissionOverwrites_FullMethodName  = "/guild.v1.GuildService/ListGuildChannelPermissionOverwrites"
 	GuildService_AuthorizeGuildChannel_FullMethodName                 = "/guild.v1.GuildService/AuthorizeGuildChannel"
 	GuildService_ListGuildMentionTargets_FullMethodName               = "/guild.v1.GuildService/ListGuildMentionTargets"
+	GuildService_SearchGuildMentionUsers_FullMethodName               = "/guild.v1.GuildService/SearchGuildMentionUsers"
+	GuildService_SearchGuildMentionRoles_FullMethodName               = "/guild.v1.GuildService/SearchGuildMentionRoles"
+	GuildService_FilterGuildChannelVisibleUsers_FullMethodName        = "/guild.v1.GuildService/FilterGuildChannelVisibleUsers"
 )
 
 // GuildServiceClient is the client API for GuildService service.
@@ -152,6 +155,17 @@ type GuildServiceClient interface {
 	// reach with the given role and @everyone mentions, restricted to members
 	// who can view the channel. It is an internal Message expansion primitive.
 	ListGuildMentionTargets(ctx context.Context, in *ListGuildMentionTargetsRequest, opts ...grpc.CallOption) (*ListGuildMentionTargetsResponse, error)
+	// SearchGuildMentionUsers searches the Guild-local profile projection and
+	// returns users visible in one channel. It is an internal API search
+	// primitive; the result limit is the final visible result count.
+	SearchGuildMentionUsers(ctx context.Context, in *SearchGuildMentionUsersRequest, opts ...grpc.CallOption) (*SearchGuildMentionUsersResponse, error)
+	// SearchGuildMentionRoles searches roles owned by one Guild. Role results
+	// are not filtered by member channel visibility; expansion performs that
+	// filtering for the role's target members.
+	SearchGuildMentionRoles(ctx context.Context, in *SearchGuildMentionRolesRequest, opts ...grpc.CallOption) (*SearchGuildMentionRolesResponse, error)
+	// FilterGuildChannelVisibleUsers filters a bounded set of users against the
+	// current channel visibility rules before Message persists user mentions.
+	FilterGuildChannelVisibleUsers(ctx context.Context, in *FilterGuildChannelVisibleUsersRequest, opts ...grpc.CallOption) (*FilterGuildChannelVisibleUsersResponse, error)
 }
 
 type guildServiceClient struct {
@@ -662,6 +676,36 @@ func (c *guildServiceClient) ListGuildMentionTargets(ctx context.Context, in *Li
 	return out, nil
 }
 
+func (c *guildServiceClient) SearchGuildMentionUsers(ctx context.Context, in *SearchGuildMentionUsersRequest, opts ...grpc.CallOption) (*SearchGuildMentionUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchGuildMentionUsersResponse)
+	err := c.cc.Invoke(ctx, GuildService_SearchGuildMentionUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) SearchGuildMentionRoles(ctx context.Context, in *SearchGuildMentionRolesRequest, opts ...grpc.CallOption) (*SearchGuildMentionRolesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchGuildMentionRolesResponse)
+	err := c.cc.Invoke(ctx, GuildService_SearchGuildMentionRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *guildServiceClient) FilterGuildChannelVisibleUsers(ctx context.Context, in *FilterGuildChannelVisibleUsersRequest, opts ...grpc.CallOption) (*FilterGuildChannelVisibleUsersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FilterGuildChannelVisibleUsersResponse)
+	err := c.cc.Invoke(ctx, GuildService_FilterGuildChannelVisibleUsers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GuildServiceServer is the server API for GuildService service.
 // All implementations should embed UnimplementedGuildServiceServer
 // for forward compatibility.
@@ -743,6 +787,17 @@ type GuildServiceServer interface {
 	// reach with the given role and @everyone mentions, restricted to members
 	// who can view the channel. It is an internal Message expansion primitive.
 	ListGuildMentionTargets(context.Context, *ListGuildMentionTargetsRequest) (*ListGuildMentionTargetsResponse, error)
+	// SearchGuildMentionUsers searches the Guild-local profile projection and
+	// returns users visible in one channel. It is an internal API search
+	// primitive; the result limit is the final visible result count.
+	SearchGuildMentionUsers(context.Context, *SearchGuildMentionUsersRequest) (*SearchGuildMentionUsersResponse, error)
+	// SearchGuildMentionRoles searches roles owned by one Guild. Role results
+	// are not filtered by member channel visibility; expansion performs that
+	// filtering for the role's target members.
+	SearchGuildMentionRoles(context.Context, *SearchGuildMentionRolesRequest) (*SearchGuildMentionRolesResponse, error)
+	// FilterGuildChannelVisibleUsers filters a bounded set of users against the
+	// current channel visibility rules before Message persists user mentions.
+	FilterGuildChannelVisibleUsers(context.Context, *FilterGuildChannelVisibleUsersRequest) (*FilterGuildChannelVisibleUsersResponse, error)
 }
 
 // UnimplementedGuildServiceServer should be embedded to have
@@ -901,6 +956,15 @@ func (UnimplementedGuildServiceServer) AuthorizeGuildChannel(context.Context, *A
 }
 func (UnimplementedGuildServiceServer) ListGuildMentionTargets(context.Context, *ListGuildMentionTargetsRequest) (*ListGuildMentionTargetsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListGuildMentionTargets not implemented")
+}
+func (UnimplementedGuildServiceServer) SearchGuildMentionUsers(context.Context, *SearchGuildMentionUsersRequest) (*SearchGuildMentionUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchGuildMentionUsers not implemented")
+}
+func (UnimplementedGuildServiceServer) SearchGuildMentionRoles(context.Context, *SearchGuildMentionRolesRequest) (*SearchGuildMentionRolesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchGuildMentionRoles not implemented")
+}
+func (UnimplementedGuildServiceServer) FilterGuildChannelVisibleUsers(context.Context, *FilterGuildChannelVisibleUsersRequest) (*FilterGuildChannelVisibleUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FilterGuildChannelVisibleUsers not implemented")
 }
 func (UnimplementedGuildServiceServer) testEmbeddedByValue() {}
 
@@ -1822,6 +1886,60 @@ func _GuildService_ListGuildMentionTargets_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GuildService_SearchGuildMentionUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchGuildMentionUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).SearchGuildMentionUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_SearchGuildMentionUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).SearchGuildMentionUsers(ctx, req.(*SearchGuildMentionUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_SearchGuildMentionRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchGuildMentionRolesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).SearchGuildMentionRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_SearchGuildMentionRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).SearchGuildMentionRoles(ctx, req.(*SearchGuildMentionRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GuildService_FilterGuildChannelVisibleUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FilterGuildChannelVisibleUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GuildServiceServer).FilterGuildChannelVisibleUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GuildService_FilterGuildChannelVisibleUsers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GuildServiceServer).FilterGuildChannelVisibleUsers(ctx, req.(*FilterGuildChannelVisibleUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GuildService_ServiceDesc is the grpc.ServiceDesc for GuildService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2028,6 +2146,18 @@ var GuildService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListGuildMentionTargets",
 			Handler:    _GuildService_ListGuildMentionTargets_Handler,
+		},
+		{
+			MethodName: "SearchGuildMentionUsers",
+			Handler:    _GuildService_SearchGuildMentionUsers_Handler,
+		},
+		{
+			MethodName: "SearchGuildMentionRoles",
+			Handler:    _GuildService_SearchGuildMentionRoles_Handler,
+		},
+		{
+			MethodName: "FilterGuildChannelVisibleUsers",
+			Handler:    _GuildService_FilterGuildChannelVisibleUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

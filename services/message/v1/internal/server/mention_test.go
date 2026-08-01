@@ -132,6 +132,20 @@ func TestCreateMessageFiltersUnknownRolesAndUsers(t *testing.T) {
 	require.Equal(t, []int64{40}, mentions.RoleIDs)
 }
 
+func TestCreateMessageFiltersGuildUsersByChannelVisibility(t *testing.T) {
+	fakeStore := newFakeStore()
+	guildClient := &fakeGuildClient{
+		visibleMentionUserIDs: []int64{31},
+		permissions:           permissionViewChannel | permissionSendMessages,
+	}
+	server := newTestMessageServerWithClients(t, fakeStore, new(fakePublisher), guildClient, newFakeUserClient())
+
+	resp, err := server.CreateMessage(t.Context(), createMentionRequest("hi <@30> <@31>"))
+	require.NoError(t, err)
+	require.Equal(t, []int64{31}, resp.GetMessage().GetMentionUserIds())
+	require.Equal(t, []int64{31}, fakeStore.mentions[resp.GetMessage().GetId()].UserIDs)
+}
+
 func TestUpdateMessageRebuildsMentionsFromContent(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.messages[100] = &model.Message{

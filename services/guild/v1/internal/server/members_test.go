@@ -107,6 +107,9 @@ func TestUpdateGuildMemberUpdatesOnlyActor(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
 	fakeStore.members[10] = testMembers(10, 1001, 1002)
+	fakeStore.profiles[10] = map[int64]*model.GuildMemberProfile{
+		1002: {GuildID: 10, UserID: 1002, Username: "user_1002", Name: "User 1002"},
+	}
 	publisher := new(fakePublisher)
 	server := newTestGuildServer(t, fakeStore, publisher)
 
@@ -118,6 +121,7 @@ func TestUpdateGuildMemberUpdatesOnlyActor(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Member", resp.GetMember().GetNickname())
 	require.Equal(t, int64(2), resp.GetMember().GetRevision())
+	require.Equal(t, "Member", fakeStore.profiles[10][1002].Nickname)
 
 	var envelope eventEnvelope[guildMemberPayload]
 	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
@@ -131,6 +135,11 @@ func TestKickAndLeaveEnforceOwnerRules(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.guilds[10] = testGuild(10, 1001)
 	fakeStore.members[10] = testMembers(10, 1001, 1002, 1003)
+	fakeStore.profiles[10] = map[int64]*model.GuildMemberProfile{
+		1001: {GuildID: 10, UserID: 1001, Username: "user_1001"},
+		1002: {GuildID: 10, UserID: 1002, Username: "user_1002"},
+		1003: {GuildID: 10, UserID: 1003, Username: "user_1003"},
+	}
 	fakeStore.channels[20] = &model.Channel{ID: 20, GuildID: 10, Name: "general", Type: 1}
 	fakeStore.overwrites[20] = map[string]*model.ChannelPermissionOverwrite{
 		overwriteKey(int32(guildv1.GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER), 1002): {
@@ -164,6 +173,7 @@ func TestKickAndLeaveEnforceOwnerRules(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.NotZero(t, fakeStore.members[10][1002].DeletedAt)
+	require.NotContains(t, fakeStore.profiles[10], int64(1002))
 	require.Empty(t, fakeStore.overwrites[20])
 }
 

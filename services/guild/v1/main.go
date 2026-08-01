@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -41,6 +42,13 @@ func main() {
 	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
+	projector := server.NewProfileProjector(svcCtx)
+	projectorCtx, cancelProjector := context.WithCancel(context.Background())
+	proc.AddShutdownListener(func() {
+		cancelProjector()
+		projector.Close()
+	})
+	go projector.Run(projectorCtx)
 	probeState := probe.New()
 	probeState.SetLiveness(true)
 	proc.AddWrapUpListener(func() {

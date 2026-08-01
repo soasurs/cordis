@@ -16,13 +16,13 @@ import (
 // resolveMentions parses content and reduces the mention set to entities the
 // service is willing to persist. DM channels keep only user mentions; Guild
 // channels require MENTION_EVERYONE for @everyone and drop roles and users
-// that no longer exist, mirroring Discord's "only valid mentions" behavior.
+// that are no longer valid or cannot view the channel.
 func (s *messageServer) resolveMentions(ctx context.Context, content string, audience messageAudience, actorUserID int64) (model.MessageMentions, error) {
 	parsed := mention.Parse(content)
 	if audience.guildID == 0 {
 		parsed.RoleIDs = nil
 		parsed.Everyone = false
-		return s.filterMentionUsers(ctx, parsed)
+		return s.filterMentionUsers(ctx, parsed, audience, actorUserID)
 	}
 	if parsed.Everyone && audience.permissions&permissionMentionEveryone == 0 {
 		return model.MessageMentions{}, permissionDenied()
@@ -40,13 +40,20 @@ func (s *messageServer) resolveMentions(ctx context.Context, content string, aud
 		}
 		parsed.RoleIDs = kept
 	}
-	return s.filterMentionUsers(ctx, parsed)
+	return s.filterMentionUsers(ctx, parsed, audience, actorUserID)
 }
 
 // filterMentionUsers drops user mentions whose profiles no longer exist and
 // normalizes the resulting set to ascending ID order.
-func (s *messageServer) filterMentionUsers(ctx context.Context, parsed mention.Set) (model.MessageMentions, error) {
+func (s *messageServer) filterMentionUsers(ctx context.Context, parsed mention.Set, audience messageAudience, actorUserID int64) (model.MessageMentions, error) {
 	if len(parsed.UserIDs) > 0 {
+		if audience.guildID != 0 {
+			visible, err := s.filterGuildVisibleUsers(ctx, audience, actorUserID, parsed.UserIDs)
+			if err != nil {
+				return model.MessageMentions{}, err
+			}
+			parsed.UserIDs = visible
+		}
 		users, err := s.filterExistingUsers(ctx, parsed.UserIDs)
 		if err != nil {
 			return model.MessageMentions{}, err
@@ -54,6 +61,22 @@ func (s *messageServer) filterMentionUsers(ctx context.Context, parsed mention.S
 		parsed.UserIDs = users
 	}
 	return toMessageMentions(parsed), nil
+}
+
+func (s *messageServer) filterGuildVisibleUsers(ctx context.Context, audience messageAudience, actorUserID int64, userIDs []int64) ([]int64, error) {
+	req := new(guildv1.FilterGuildChannelVisibleUsersRequest)
+	req.SetGuildId(audience.guildID)
+	req.SetActorUserId(actorUserID)
+	req.SetChannelId(audience.channelID)
+	req.SetUserIds(userIDs)
+	resp, err := s.svcCtx.GuildClient.FilterGuildChannelVisibleUsers(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, status.Error(codes.Internal, "guild service returned an invalid visibility response")
+	}
+	return resp.GetUserIds(), nil
 }
 
 func toMessageMentions(set mention.Set) model.MessageMentions {

@@ -81,8 +81,10 @@ returned by the existing `AuthorizeGuildChannel` call is checked for
 - role mentions: `ListGuildRoles(guild_id, author_id)` returns every role of
   the Guild in one call, and roles outside the Guild or missing are dropped;
   `mentionable` is not checked in this version;
-- user mentions: `BatchGetUserProfiles` filters out users that no longer
-  exist;
+- user mentions: Message first calls Guild's
+  `FilterGuildChannelVisibleUsers`, keeping only active Guild members that can
+  view the current channel, then uses `BatchGetUserProfiles` to drop profiles
+  that no longer exist;
 - the author is already guaranteed to be a Guild member by the existing
   send-message authorization flow.
 
@@ -236,8 +238,39 @@ per-user authorization for the same members.
 
 Pagination: each call scans one candidate window (`limit + 1` candidates,
 returning at most `limit` visible members); the cursor always advances to the
-last candidate user ID. A window with no visible members returns an empty
-page and the caller keeps paging until `next_cursor` is absent.
+last candidate user ID. A window with no visible members returns an empty page
+and the caller keeps paging until `next_cursor` is absent.
+
+### 6.4 Mention Candidate Search
+
+- The public API exposes `SearchGuildMentionUsers` and
+  `SearchGuildMentionRoles`. User requests include the Guild, current channel,
+  query, and a limit of at most 20. Clients issue a new request when input
+  changes or more text is typed; the first version does not expose deep
+  pagination cursors.
+- User search does not perform a global query through User. Guild maintains a
+  `guild_member_profiles` projection containing the Guild, user, username,
+  Guild nickname, profile name, avatar ID, and normalized prefix-search fields. Membership
+  creation/join writes the row, `user.profile.updated` updates all Guild rows
+  for that user, and a bounded startup rebuild fills rows for existing
+  members.
+- Search matches username, Guild nickname, or profile-name prefixes. Username
+  matches rank before nickname/name matches, followed by normalized username
+  and user ID. Sorting is
+  defined before channel visibility filtering, but the server reads internal
+  candidate windows (100 by default) until it has the requested number of
+  visible results or exhausts candidates, so the public limit is always the
+  final visible count.
+- Each candidate window uses the same `channelPermissions` rules as channel
+  authorization, and the search actor must be able to view the channel. The
+  projection and permission changes have the normal eventual-consistency
+  window; Message still performs a final batch visibility check when writing.
+- Role search stays local to Guild and matches role-name prefixes, excluding
+  the special `@everyone` role. Role candidates are not filtered by the
+  target members' channel visibility; expansion filters those members later.
+  The first version uses normalized PostgreSQL prefix matching with B-tree
+  `text_pattern_ops` indexes and escapes `%`, `_`, and backslashes in queries;
+  contains/fuzzy matching and `pg_trgm` remain future optimizations.
 
 ## 7. Asynchronous Expansion
 
@@ -365,6 +398,17 @@ protocol change; clients must upgrade in lockstep. Deprecated compatibility
 fields are intentionally not kept to avoid a dual-source `mention_user_ids`
 that would be silently ignored.
 
+### 11.3 Guild Mention Search Protocol
+
+- The public Guild API adds `SearchGuildMentionUsers(guild_id, channel_id,
+  query, limit)` and `SearchGuildMentionRoles(guild_id, query, limit)`. User
+  results contain `user_id`, `username`, `nickname`, `name`, and avatar ID;
+  role results reuse `GuildRole`.
+- The internal Guild API adds the corresponding actor-aware user/role search
+  RPCs and the bounded `FilterGuildChannelVisibleUsers` RPC. The former serves
+  public API search; Message calls the latter when persisting direct user
+  mentions.
+
 ## 12. Migration and Compatibility
 
 - existing `message_mentions` rows are kept and treated as `source=1`;
@@ -394,7 +438,9 @@ that would be silently ignored.
   boundaries, case sensitivity, malformed/overflow IDs, dedup and order, DM
   trimming, limits;
 - permission tests: `@everyone` without `MENTION_EVERYONE` is rejected, role
-  and user existence filters;
+  and user existence filters, and channel visibility filtering;
+- search tests: username/nickname/name prefixes, post-sort filtering that fills the
+  visible limit, role search, and projection updates;
 - store integration tests: source column migration, role/everyone
   read/write, batch loading, expanded-row delete/re-upsert, unread count
   unaffected;
@@ -420,8 +466,10 @@ All steps are complete and land as a PR stack:
    v2;
 4. Message: expansion worker (consumes `cordis.message.events.v1`, batched
    upsert, retries);
-5. proto and API adapter;
-6. full test pass and documentation sync.
+5. Guild: `guild_member_profiles` projection, User profile-event sync,
+   username/nickname/name prefix search, and role search;
+6. proto and API adapter;
+7. full test pass and documentation sync.
 
 ## 16. Confirmed Decisions
 
@@ -430,4 +478,6 @@ All steps are complete and land as a PR stack:
   deprecated compatibility layer;
 - the expansion worker consumes the message event topic; no separate task
   topic;
-- role `mentionable` validation is deferred.
+- role `mentionable` validation is deferred;
+- the first search version supports only username/nickname/name/role-name prefixes and
+  does not introduce `pg_trgm`.

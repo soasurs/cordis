@@ -35,6 +35,7 @@ type ServiceContext struct {
 	Publisher   EventPublisher
 	UserClient  userv1.UserServiceClient
 	MediaClient mediav1.MediaServiceClient
+	ProfileConsumer *kgo.Client
 }
 
 type Dependencies struct {
@@ -42,6 +43,7 @@ type Dependencies struct {
 	Snowflake   *sn.Node
 	Cursors     *cursor.Codec
 	Kafka       *kgo.Client
+	ProfileConsumer *kgo.Client
 	Publisher   EventPublisher
 	UserClient  userv1.UserServiceClient
 	MediaClient mediav1.MediaServiceClient
@@ -73,9 +75,21 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 	}
 
 	var kafkaClient *kgo.Client
+	var profileConsumer *kgo.Client
 	if len(cfg.Kafka.Seeds) > 0 {
 		kafkaClient, err = kafka.NewProducer(cfg.Kafka.ProducerConfig())
 		if err != nil {
+			db.Close()
+			return Dependencies{}, err
+		}
+		profileConsumer, err = kgo.NewClient(
+			kgo.SeedBrokers(cfg.Kafka.Seeds...),
+			kgo.ConsumerGroup(cfg.Kafka.ProfileConsumerGroup),
+			kgo.ConsumeTopics(cfg.Kafka.UserTopic),
+			kgo.DisableAutoCommit(),
+		)
+		if err != nil {
+			kafkaClient.Close()
 			db.Close()
 			return Dependencies{}, err
 		}
@@ -85,6 +99,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		Snowflake:   node,
 		Cursors:     cursors,
 		Kafka:       kafkaClient,
+		ProfileConsumer: profileConsumer,
 		UserClient:  userv1.NewUserServiceClient(userRPCClient.Conn()),
 		MediaClient: mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
 		DB:          db,
@@ -127,5 +142,6 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		Publisher:   publisher,
 		UserClient:  deps.UserClient,
 		MediaClient: deps.MediaClient,
+		ProfileConsumer: deps.ProfileConsumer,
 	}
 }

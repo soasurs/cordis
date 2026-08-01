@@ -55,7 +55,10 @@ type KafkaConfig struct {
 }
 
 const (
-	DefaultDispatchTimeoutSeconds     = int(partitionconsumer.DefaultCommitTimeout / time.Second)
+	// Dispatcher currently uses this budget for both outbound dispatch RPCs and
+	// Kafka commits. Keep the default aligned with the shared commit timeout,
+	// while retaining an independent constant for future changes.
+	DefaultDispatchTimeoutSeconds     = 5
 	DefaultRetryMinMilliseconds       = int(partitionconsumer.DefaultRetryMin / time.Millisecond)
 	DefaultRetryMaxSeconds            = int(partitionconsumer.DefaultRetryMax / time.Second)
 	DefaultMaxPollRecords             = partitionconsumer.DefaultMaxPollRecords

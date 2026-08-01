@@ -134,7 +134,9 @@ func New(cfg Config, handler Handler, opts ...kgo.Opt) (*Consumer, error) {
 
 // Run polls records until ctx is cancelled or Close is called. It owns the
 // runtime shutdown path and flushes the last completed watermark before
-// returning, bounded by the configured shutdown timeout.
+// returning, bounded by the configured shutdown timeout. When ctx is
+// cancelled, Run still uses a fresh shutdown context to flush completed
+// offsets, so it may outlive the caller's cancellation until that budget ends.
 func (c *Consumer) Run(ctx context.Context) {
 	if ctx == nil {
 		ctx = context.Background()

@@ -28,26 +28,26 @@ type BatchEventPublisher interface {
 }
 
 type ServiceContext struct {
-	Cfg         config.Config
-	Store       store.Store
-	Snowflake   *sn.Node
-	Cursors     *cursor.Codec
-	Publisher   EventPublisher
-	UserClient  userv1.UserServiceClient
-	MediaClient mediav1.MediaServiceClient
+	Cfg             config.Config
+	Store           store.Store
+	Snowflake       *sn.Node
+	Cursors         *cursor.Codec
+	Publisher       EventPublisher
+	UserClient      userv1.UserServiceClient
+	MediaClient     mediav1.MediaServiceClient
 	ProfileConsumer *kgo.Client
 }
 
 type Dependencies struct {
-	Store       store.Store
-	Snowflake   *sn.Node
-	Cursors     *cursor.Codec
-	Kafka       *kgo.Client
+	Store           store.Store
+	Snowflake       *sn.Node
+	Cursors         *cursor.Codec
+	Kafka           *kgo.Client
 	ProfileConsumer *kgo.Client
-	Publisher   EventPublisher
-	UserClient  userv1.UserServiceClient
-	MediaClient mediav1.MediaServiceClient
-	DB          *sqlx.DB
+	Publisher       EventPublisher
+	UserClient      userv1.UserServiceClient
+	MediaClient     mediav1.MediaServiceClient
+	DB              *sqlx.DB
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -95,14 +95,14 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		}
 	}
 	return Dependencies{
-		Store:       store.New(db),
-		Snowflake:   node,
-		Cursors:     cursors,
-		Kafka:       kafkaClient,
+		Store:           store.New(db),
+		Snowflake:       node,
+		Cursors:         cursors,
+		Kafka:           kafkaClient,
 		ProfileConsumer: profileConsumer,
-		UserClient:  userv1.NewUserServiceClient(userRPCClient.Conn()),
-		MediaClient: mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
-		DB:          db,
+		UserClient:      userv1.NewUserServiceClient(userRPCClient.Conn()),
+		MediaClient:     mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
+		DB:              db,
 	}, nil
 }
 
@@ -135,13 +135,13 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 		publisher = kafka.NewPublisher(deps.Kafka, cfg.Kafka.Topic)
 	}
 	return &ServiceContext{
-		Cfg:         cfg,
-		Store:       deps.Store,
-		Snowflake:   deps.Snowflake,
-		Cursors:     deps.Cursors,
-		Publisher:   publisher,
-		UserClient:  deps.UserClient,
-		MediaClient: deps.MediaClient,
+		Cfg:             cfg,
+		Store:           deps.Store,
+		Snowflake:       deps.Snowflake,
+		Cursors:         deps.Cursors,
+		Publisher:       publisher,
+		UserClient:      deps.UserClient,
+		MediaClient:     deps.MediaClient,
 		ProfileConsumer: deps.ProfileConsumer,
 	}
 }

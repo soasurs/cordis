@@ -234,6 +234,8 @@ func TestGuildIconUploadLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(7001), createResp.GetUploadId())
 	require.Equal(t, map[string]string{"Content-Type": "image/png"}, createResp.GetRequestHeaders())
+	require.Equal(t, mediav1.AssetStatus_ASSET_STATUS_CREATED, createResp.GetStatus())
+	require.False(t, createResp.GetIdempotentReplay())
 	require.Equal(t, int64(1001), mediaClient.createRequest.GetActorUserId())
 	require.Equal(t, int64(10), mediaClient.createRequest.GetGuildIcon().GetGuildId())
 	require.Equal(t, "icon-intent-1", mediaClient.createRequest.GetIdempotencyKey())
@@ -478,6 +480,8 @@ func (f *fakeMediaClient) CreateUpload(
 	resp.SetPresignedUrl("https://upload.example/7001")
 	resp.SetExpiresAt(9001)
 	resp.SetRequestHeaders(map[string]string{"Content-Type": "image/png"})
+	resp.SetStatus(mediav1.AssetStatus_ASSET_STATUS_CREATED)
+	resp.SetIdempotentReplay(false)
 	return resp, nil
 }
 

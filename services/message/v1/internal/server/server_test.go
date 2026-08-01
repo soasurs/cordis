@@ -283,6 +283,8 @@ func TestAttachmentUploadLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(7001), createResp.GetUploadId())
 	require.Equal(t, map[string]string{"Content-Type": "application/pdf"}, createResp.GetRequestHeaders())
+	require.Equal(t, mediav1.AssetStatus_ASSET_STATUS_CREATED, createResp.GetStatus())
+	require.False(t, createResp.GetIdempotentReplay())
 	require.Equal(t, int64(20), mediaClient.createRequest.GetActorUserId())
 	require.Equal(t, int64(10), mediaClient.createRequest.GetMessageAttachment().GetChannelId())
 	require.Equal(t, "report.pdf", mediaClient.createRequest.GetMessageAttachment().GetFilename())
@@ -670,6 +672,8 @@ func (f *fakeMediaClient) CreateUpload(
 	resp.SetPresignedUrl("https://upload.example/7001")
 	resp.SetExpiresAt(9001)
 	resp.SetRequestHeaders(map[string]string{"Content-Type": req.GetContentType()})
+	resp.SetStatus(mediav1.AssetStatus_ASSET_STATUS_CREATED)
+	resp.SetIdempotentReplay(false)
 	return resp, nil
 }
 

@@ -361,6 +361,8 @@ func TestCreateUploadSignsExactImageContract(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, resp.GetUploadId())
 	require.NotEmpty(t, resp.GetPresignedUrl())
+	require.Equal(t, mediav1.AssetStatus_ASSET_STATUS_CREATED, resp.GetStatus())
+	require.False(t, resp.GetIdempotentReplay())
 	require.Equal(t, map[string]string{
 		"Content-Length": "1024",
 		"Content-Type":   "image/png",

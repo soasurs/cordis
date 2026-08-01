@@ -77,4 +77,6 @@ Upload creation RPCs (`CreateAvatarUpload`, `CreateGuildIconUpload`,
 transaction as the asset write. A same-key retry returns the same upload
 without creating another asset or consuming the quota again; Media publishes
 no creation events itself, so upload idempotency has no event-suppression
-concerns.
+concerns. The response exposes the Media status snapshot and whether the
+existing idempotency record was replayed; terminal assets remain bound to the
+old key until its retention expires.

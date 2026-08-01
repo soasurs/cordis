@@ -61,4 +61,5 @@ best-effort 发布窗口。
 上传创建类 RPC（`CreateAvatarUpload`、`CreateGuildIconUpload`、
 `CreateAttachmentUpload`）的幂等记录与 asset 写入在同一事务内提交。相同
 key 的重试返回同一个上传，不会再次创建 asset 或消耗配额；Media 自身不发布
-创建事件，因此上传幂等不涉及事件抑制。
+创建事件，因此上传幂等不涉及事件抑制。响应会暴露 Media 的状态快照以及
+是否重放已有幂等记录；终态 asset 在幂等记录保留期内仍绑定旧 key。

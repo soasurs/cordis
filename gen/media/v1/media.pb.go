@@ -743,15 +743,17 @@ func (b0 MessageAttachmentUploadPurpose_builder) Build() *MessageAttachmentUploa
 
 // CreateUploadResponse contains the one-shot direct-upload contract.
 type CreateUploadResponse struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UploadId       int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
-	xxx_hidden_PresignedUrl   *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
-	xxx_hidden_ExpiresAt      int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
-	xxx_hidden_RequestHeaders map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UploadId         int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
+	xxx_hidden_PresignedUrl     *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
+	xxx_hidden_ExpiresAt        int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_RequestHeaders   map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Status           AssetStatus            `protobuf:"varint,5,opt,name=status,enum=media.v1.AssetStatus"`
+	xxx_hidden_IdempotentReplay bool                   `protobuf:"varint,6,opt,name=idempotent_replay,json=idempotentReplay"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *CreateUploadResponse) Reset() {
@@ -810,23 +812,49 @@ func (x *CreateUploadResponse) GetRequestHeaders() map[string]string {
 	return nil
 }
 
+func (x *CreateUploadResponse) GetStatus() AssetStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return AssetStatus_ASSET_STATUS_UNSPECIFIED
+}
+
+func (x *CreateUploadResponse) GetIdempotentReplay() bool {
+	if x != nil {
+		return x.xxx_hidden_IdempotentReplay
+	}
+	return false
+}
+
 func (x *CreateUploadResponse) SetUploadId(v int64) {
 	x.xxx_hidden_UploadId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *CreateUploadResponse) SetPresignedUrl(v string) {
 	x.xxx_hidden_PresignedUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
 func (x *CreateUploadResponse) SetExpiresAt(v int64) {
 	x.xxx_hidden_ExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
 }
 
 func (x *CreateUploadResponse) SetRequestHeaders(v map[string]string) {
 	x.xxx_hidden_RequestHeaders = v
+}
+
+func (x *CreateUploadResponse) SetStatus(v AssetStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *CreateUploadResponse) SetIdempotentReplay(v bool) {
+	x.xxx_hidden_IdempotentReplay = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
 func (x *CreateUploadResponse) HasUploadId() bool {
@@ -850,6 +878,20 @@ func (x *CreateUploadResponse) HasExpiresAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *CreateUploadResponse) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *CreateUploadResponse) HasIdempotentReplay() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
 func (x *CreateUploadResponse) ClearUploadId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UploadId = 0
@@ -863,6 +905,16 @@ func (x *CreateUploadResponse) ClearPresignedUrl() {
 func (x *CreateUploadResponse) ClearExpiresAt() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_ExpiresAt = 0
+}
+
+func (x *CreateUploadResponse) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Status = AssetStatus_ASSET_STATUS_UNSPECIFIED
+}
+
+func (x *CreateUploadResponse) ClearIdempotentReplay() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_IdempotentReplay = false
 }
 
 type CreateUploadResponse_builder struct {
@@ -880,6 +932,13 @@ type CreateUploadResponse_builder struct {
 	// Browser-managed headers such as Content-Length are informational and must
 	// not be set explicitly by browser clients.
 	RequestHeaders map[string]string
+	// status is the upload lifecycle state observed when this response was
+	// created. It is a snapshot and may change immediately after the response.
+	Status *AssetStatus
+	// idempotent_replay is true when an existing idempotency record was reused
+	// instead of creating a new upload. It is false when no existing record was
+	// found, including requests without an idempotency key.
+	IdempotentReplay *bool
 }
 
 func (b0 CreateUploadResponse_builder) Build() *CreateUploadResponse {
@@ -887,18 +946,26 @@ func (b0 CreateUploadResponse_builder) Build() *CreateUploadResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UploadId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_UploadId = *b.UploadId
 	}
 	if b.PresignedUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
 		x.xxx_hidden_PresignedUrl = b.PresignedUrl
 	}
 	if b.ExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
 	}
 	x.xxx_hidden_RequestHeaders = b.RequestHeaders
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.IdempotentReplay != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_IdempotentReplay = *b.IdempotentReplay
+	}
 	return m0
 }
 
@@ -3003,13 +3070,15 @@ const file_media_v1_media_proto_rawDesc = "" +
 	"\x1eMessageAttachmentUploadPurpose\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12\x1a\n" +
-	"\bfilename\x18\x02 \x01(\tR\bfilename\"\x97\x02\n" +
+	"\bfilename\x18\x02 \x01(\tR\bfilename\"\xf3\x02\n" +
 	"\x14CreateUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12[\n" +
-	"\x0frequest_headers\x18\x04 \x03(\v22.media.v1.CreateUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x1aA\n" +
+	"\x0frequest_headers\x18\x04 \x03(\v22.media.v1.CreateUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x12-\n" +
+	"\x06status\x18\x05 \x01(\x0e2\x15.media.v1.AssetStatusR\x06status\x12+\n" +
+	"\x11idempotent_replay\x18\x06 \x01(\bR\x10idempotentReplay\x1aA\n" +
 	"\x13RequestHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"X\n" +
@@ -3137,31 +3206,32 @@ var file_media_v1_media_proto_depIdxs = []int32{
 	4,  // 1: media.v1.CreateUploadRequest.guild_icon:type_name -> media.v1.GuildIconUploadPurpose
 	5,  // 2: media.v1.CreateUploadRequest.message_attachment:type_name -> media.v1.MessageAttachmentUploadPurpose
 	21, // 3: media.v1.CreateUploadResponse.request_headers:type_name -> media.v1.CreateUploadResponse.RequestHeadersEntry
-	9,  // 4: media.v1.CompleteUploadResponse.metadata:type_name -> media.v1.AssetMetadata
-	17, // 5: media.v1.GetAssetResponse.asset:type_name -> media.v1.Asset
-	3,  // 6: media.v1.GetImageUploadConstraintsRequest.user_avatar:type_name -> media.v1.UserAvatarUploadPurpose
-	4,  // 7: media.v1.GetImageUploadConstraintsRequest.guild_icon:type_name -> media.v1.GuildIconUploadPurpose
-	15, // 8: media.v1.GetImageUploadConstraintsResponse.constraints:type_name -> media.v1.ImageUploadConstraints
-	0,  // 9: media.v1.Asset.kind:type_name -> media.v1.AssetKind
-	1,  // 10: media.v1.Asset.status:type_name -> media.v1.AssetStatus
-	19, // 11: media.v1.BatchGetAssetURLsResponse.assets:type_name -> media.v1.AssetURL
-	2,  // 12: media.v1.MediaService.CreateUpload:input_type -> media.v1.CreateUploadRequest
-	7,  // 13: media.v1.MediaService.CompleteUpload:input_type -> media.v1.CompleteUploadRequest
-	10, // 14: media.v1.MediaService.AbortUpload:input_type -> media.v1.AbortUploadRequest
-	12, // 15: media.v1.MediaService.GetAsset:input_type -> media.v1.GetAssetRequest
-	14, // 16: media.v1.MediaService.GetImageUploadConstraints:input_type -> media.v1.GetImageUploadConstraintsRequest
-	18, // 17: media.v1.MediaService.BatchGetAssetURLs:input_type -> media.v1.BatchGetAssetURLsRequest
-	6,  // 18: media.v1.MediaService.CreateUpload:output_type -> media.v1.CreateUploadResponse
-	8,  // 19: media.v1.MediaService.CompleteUpload:output_type -> media.v1.CompleteUploadResponse
-	11, // 20: media.v1.MediaService.AbortUpload:output_type -> media.v1.AbortUploadResponse
-	13, // 21: media.v1.MediaService.GetAsset:output_type -> media.v1.GetAssetResponse
-	16, // 22: media.v1.MediaService.GetImageUploadConstraints:output_type -> media.v1.GetImageUploadConstraintsResponse
-	20, // 23: media.v1.MediaService.BatchGetAssetURLs:output_type -> media.v1.BatchGetAssetURLsResponse
-	18, // [18:24] is the sub-list for method output_type
-	12, // [12:18] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	1,  // 4: media.v1.CreateUploadResponse.status:type_name -> media.v1.AssetStatus
+	9,  // 5: media.v1.CompleteUploadResponse.metadata:type_name -> media.v1.AssetMetadata
+	17, // 6: media.v1.GetAssetResponse.asset:type_name -> media.v1.Asset
+	3,  // 7: media.v1.GetImageUploadConstraintsRequest.user_avatar:type_name -> media.v1.UserAvatarUploadPurpose
+	4,  // 8: media.v1.GetImageUploadConstraintsRequest.guild_icon:type_name -> media.v1.GuildIconUploadPurpose
+	15, // 9: media.v1.GetImageUploadConstraintsResponse.constraints:type_name -> media.v1.ImageUploadConstraints
+	0,  // 10: media.v1.Asset.kind:type_name -> media.v1.AssetKind
+	1,  // 11: media.v1.Asset.status:type_name -> media.v1.AssetStatus
+	19, // 12: media.v1.BatchGetAssetURLsResponse.assets:type_name -> media.v1.AssetURL
+	2,  // 13: media.v1.MediaService.CreateUpload:input_type -> media.v1.CreateUploadRequest
+	7,  // 14: media.v1.MediaService.CompleteUpload:input_type -> media.v1.CompleteUploadRequest
+	10, // 15: media.v1.MediaService.AbortUpload:input_type -> media.v1.AbortUploadRequest
+	12, // 16: media.v1.MediaService.GetAsset:input_type -> media.v1.GetAssetRequest
+	14, // 17: media.v1.MediaService.GetImageUploadConstraints:input_type -> media.v1.GetImageUploadConstraintsRequest
+	18, // 18: media.v1.MediaService.BatchGetAssetURLs:input_type -> media.v1.BatchGetAssetURLsRequest
+	6,  // 19: media.v1.MediaService.CreateUpload:output_type -> media.v1.CreateUploadResponse
+	8,  // 20: media.v1.MediaService.CompleteUpload:output_type -> media.v1.CompleteUploadResponse
+	11, // 21: media.v1.MediaService.AbortUpload:output_type -> media.v1.AbortUploadResponse
+	13, // 22: media.v1.MediaService.GetAsset:output_type -> media.v1.GetAssetResponse
+	16, // 23: media.v1.MediaService.GetImageUploadConstraints:output_type -> media.v1.GetImageUploadConstraintsResponse
+	20, // 24: media.v1.MediaService.BatchGetAssetURLs:output_type -> media.v1.BatchGetAssetURLsResponse
+	19, // [19:25] is the sub-list for method output_type
+	13, // [13:19] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_media_v1_media_proto_init() }

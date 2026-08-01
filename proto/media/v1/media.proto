@@ -91,6 +91,13 @@ message CreateUploadResponse {
   // Browser-managed headers such as Content-Length are informational and must
   // not be set explicitly by browser clients.
   map<string, string> request_headers = 4;
+  // status is the upload lifecycle state observed when this response was
+  // created. It is a snapshot and may change immediately after the response.
+  AssetStatus status = 5;
+  // idempotent_replay is true when an existing idempotency record was reused
+  // instead of creating a new upload. It is false when no existing record was
+  // found, including requests without an idempotency key.
+  bool idempotent_replay = 6;
 }
 
 // CompleteUploadRequest identifies an upload and its authenticated actor.

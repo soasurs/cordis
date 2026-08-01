@@ -38,6 +38,8 @@ func (s *guildServer) CreateGuildIconUpload(
 	resp.SetPresignedUrl(mediaResp.GetPresignedUrl())
 	resp.SetExpiresAt(mediaResp.GetExpiresAt())
 	resp.SetRequestHeaders(mediaResp.GetRequestHeaders())
+	resp.SetStatus(mediaResp.GetStatus())
+	resp.SetIdempotentReplay(mediaResp.GetIdempotentReplay())
 	return resp, nil
 }
 

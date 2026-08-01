@@ -2,6 +2,8 @@ edition = "2023";
 
 package api.v1;
 
+import "api/v1/media.proto";
+
 // UserService exposes public account and profile operations.
 service UserService {
   // GetCurrentUser returns the private account and profile for the bearer token owner.
@@ -175,6 +177,10 @@ message CreateAvatarUploadResponse {
   // HTTP headers required by the presigned PUT. Browser-managed headers such
   // as Content-Length are informational and must not be set explicitly.
   map<string, string> request_headers = 4;
+  // status is the upload lifecycle state observed for this response.
+  UploadStatus status = 5;
+  // True when the existing idempotency record was replayed.
+  bool idempotent_replay = 6;
 }
 
 // CompleteAvatarUploadRequest selects a previously created avatar upload.

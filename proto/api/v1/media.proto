@@ -1,0 +1,23 @@
+edition = "2023";
+
+package api.v1;
+
+// UploadStatus is the lifecycle state returned by the public upload creation
+// RPCs. The value is a response-time snapshot and may change immediately after
+// the response is sent.
+enum UploadStatus {
+  // An unset or unknown upload status. Clients must fail safely on this value.
+  UPLOAD_STATUS_UNSPECIFIED = 0;
+  // The upload session accepts the direct PUT contract.
+  UPLOAD_STATUS_CREATED = 1;
+  // Media observed the object and is completing validation or publication.
+  UPLOAD_STATUS_COMPLETING = 2;
+  // The immutable asset is ready for domain association.
+  UPLOAD_STATUS_READY = 5;
+  // Validation or processing failed permanently.
+  UPLOAD_STATUS_FAILED = 6;
+  // The owner permanently aborted the upload.
+  UPLOAD_STATUS_ABORTED = 7;
+  // The upload session expired before completion.
+  UPLOAD_STATUS_EXPIRED = 8;
+}

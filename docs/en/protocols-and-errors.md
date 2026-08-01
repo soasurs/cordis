@@ -86,9 +86,27 @@ again. While the asset is still `CREATED`, Media issues a fresh presigned PUT
 URL for the same object key; the URL and its expiration may change between
 retries, but the asset ID never does. Retrying a key whose asset is already
 `COMPLETING`, `READY`, `FAILED`, `ABORTED`, or `EXPIRED` returns the same
-`upload_id` without a presigned URL and never changes the asset state; the
-client continues with `CompleteUpload` or `AbortUpload`, which are already
-idempotent by upload ID.
+`upload_id` without a presigned URL and never changes the asset state. The
+response also returns the shared `status` enum and `idempotent_replay`.
+`status` is a response-time snapshot and may change immediately after the
+response; `idempotent_replay` is true only when an existing idempotency record
+was reused. A new request without an idempotency key returns false. Reusing a
+key with different parameters still returns `request.idempotency_key_reused`.
+
+A `CREATED` response must contain a presigned URL. If the status is `CREATED`
+but the URL is empty, the client should retry Create with the same key rather
+than calling Complete directly. `COMPLETING` does not issue another URL; the
+client should reuse the upload ID, retry Complete with backoff, and allow the
+state to progress. `READY` means the Media asset is complete, but does not
+guarantee that it has been associated with the User, Guild, or Message domain
+resource; the client should still call the corresponding Complete RPC. For
+avatars, this may be `CompleteAvatarUpload` or mounting the READY asset through
+`UpdateUserProfile.avatar_asset_id`.
+
+`FAILED`, `ABORTED`, and `EXPIRED` are terminal and do not include a presigned
+URL. The client should retire its local key and generate a new
+`idempotency_key`; the server does not delete the old idempotency record or
+allow the same key to create another upload before its retention TTL expires.
 
 ## Availability checks and avatar constraints
 

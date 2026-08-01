@@ -47,6 +47,7 @@
 - Put issue references, deprecation notes, and `BREAKING CHANGE:` details in the footer when applicable.
 - Revert commits must identify the reverted commit SHA and explain why the revert is needed.
 - Commits in this repo must use `git commit -s` for sign-off. Do not add co-author trailers.
+- If GPG signing fails during a commit, return the complete commit message to the user so they can commit it themselves; do not bypass or disable signing.
 
 Examples:
 

@@ -13,6 +13,7 @@ import (
 
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
@@ -173,6 +174,8 @@ func TestCreateAttachmentUploadForwardsRequestHeaders(t *testing.T) {
 		"Content-Length": "123",
 		"Content-Type":   "application/pdf",
 	})
+	svcResp.SetStatus(mediav1.AssetStatus_ASSET_STATUS_CREATED)
+	svcResp.SetIdempotentReplay(false)
 	messageClient := &fakeMessageClient{uploadResponse: svcResp}
 	client, closeServer := newMessageHTTPClient(t, authenticatorClient, messageClient, "access-token")
 	defer closeServer()
@@ -189,6 +192,8 @@ func TestCreateAttachmentUploadForwardsRequestHeaders(t *testing.T) {
 	require.Equal(t, int64(123), messageClient.uploadRequest.GetExpectedSize())
 	require.Equal(t, "report.pdf", messageClient.uploadRequest.GetFilename())
 	require.Equal(t, svcResp.GetRequestHeaders(), resp.GetRequestHeaders())
+	require.Equal(t, apiv1.UploadStatus_UPLOAD_STATUS_CREATED, resp.GetStatus())
+	require.False(t, resp.GetIdempotentReplay())
 }
 
 func TestUpdateMessagePreservesFieldPresence(t *testing.T) {

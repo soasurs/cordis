@@ -61,9 +61,22 @@ key 搭配不同参数时返回 `InvalidArgument`，公开 code 为
 同一个 `upload_id`，不会再次创建 asset 或重复消耗上传配额。asset 仍处于
 `CREATED` 时，Media 会为同一个 object key 重新签发 presigned PUT URL；
 不同重试之间 URL 和过期时间可能变化，但 asset ID 永远不变。重试时 asset
-已处于 `COMPLETING`、`READY`、`FAILED`、`ABORTED` 或 `EXPIRED` 的，返回
-同一个 `upload_id` 且不附带 presigned URL，也不会改变 asset 状态；客户端
-继续使用 `CompleteUpload` 或 `AbortUpload`，二者已按 upload ID 幂等。
+响应同时返回共享枚举 `status` 和 `idempotent_replay`。`status` 是响应时刻的
+状态快照，不能保证响应后仍不变化；`idempotent_replay` 仅在命中已有幂等记录
+时为 true。没有 `idempotency_key` 的新建请求返回 false；同 key 但参数不同
+仍返回 `request.idempotency_key_reused`。
+
+`CREATED` 响应必须包含 presigned URL；如果状态为 `CREATED` 但 URL 为空，
+客户端应继续使用原 key 重试 Create，而不是直接 Complete。`COMPLETING` 不
+再签发 URL，客户端应复用同一个 upload ID 重试 Complete，并使用退避。
+`READY` 表示 Media asset 已完成，但不保证已经关联到 User、Guild 或 Message；
+客户端仍应调用对应的 Complete RPC 完成业务关联。头像可以使用
+`CompleteAvatarUpload`，或在资料更新时通过 `UpdateUserProfile.avatar_asset_id`
+挂载 READY asset。
+
+`FAILED`、`ABORTED` 和 `EXPIRED` 都是不可恢复的终态，不附带 presigned URL。
+客户端应废弃本地旧 key 并生成新的 `idempotency_key`；服务端不会删除旧幂等
+记录或让同一个 key 重新创建上传，旧记录保留到 TTL 到期。
 
 ## 可用性检查与头像约束
 

@@ -2,6 +2,8 @@ edition = "2023";
 
 package guild.v1;
 
+import "media/v1/media.proto";
+
 // ============================================================
 // Enums
 // ============================================================
@@ -364,6 +366,10 @@ message CreateGuildIconUploadResponse {
   // HTTP headers required by the presigned PUT. Browser-managed headers such
   // as Content-Length are informational and must not be set explicitly.
   map<string, string> request_headers = 4;
+  // status is the Media upload lifecycle state observed for this response.
+  media.v1.AssetStatus status = 5;
+  // True when the existing idempotency record was replayed.
+  bool idempotent_replay = 6;
 }
 
 // CompleteGuildIconUploadRequest publishes an owned upload and associates the

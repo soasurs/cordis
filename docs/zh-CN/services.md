@@ -77,7 +77,8 @@ Guild 元数据包含最多 1024 个 Unicode 字符的可选描述。名称和�
 `media.create.message_attachment`），默认保留 24 小时且不低于 upload
 session TTL。重试返回同一个 upload ID；asset 仍为 `CREATED` 时还会为同一
 object key 重新签发 presigned PUT URL；重试不会再次创建 asset 或消耗上传
-配额。完整语义见协议文档。
+配额。响应还会返回上传状态快照以及是否重放了已有幂等记录。完整状态和
+恢复语义见协议文档。
 
 内部 `GetUserReadyState` 在一次调用中按用户的有效 Guild 成员关系返回完整 READY 数据，包括 Guild、全部角色、当前成员的显式角色 ID、可见频道、这些频道的 permission overwrites，以及与频道列表对应的 `channel_layout_revision`；Session 会将该字段转发到公开 `ready` event。每份快照携带持久化的 `access_revision`；当成员关系、角色权限或分配、频道、权限覆盖、所有权或 Guild 删除可能改变访问权限时，PostgreSQL 触发器会推进这个单调递增版本。只要 Guild 仍存在，发布的 Guild 事件会携带事务提交后的版本。
 

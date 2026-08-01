@@ -63,11 +63,15 @@ func TestCreateUploadIdempotentReplayReturnsSameUpload(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, first.GetUploadId())
 	require.NotEmpty(t, first.GetPresignedUrl())
+	require.Equal(t, mediav1.AssetStatus_ASSET_STATUS_CREATED, first.GetStatus())
+	require.False(t, first.GetIdempotentReplay())
 
 	second, err := srv.CreateUpload(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, first.GetUploadId(), second.GetUploadId())
 	require.Equal(t, first.GetPresignedUrl(), second.GetPresignedUrl())
+	require.Equal(t, mediav1.AssetStatus_ASSET_STATUS_CREATED, second.GetStatus())
+	require.True(t, second.GetIdempotentReplay())
 
 	asset, err := assets.GetAsset(t.Context(), first.GetUploadId())
 	require.NoError(t, err)
@@ -91,23 +95,35 @@ func TestCreateUploadIdempotentReplayIssuesNewPresignedURL(t *testing.T) {
 	require.True(t, rpcerror.Is(err, rpcerror.MediaDomain, rpcerror.MediaIdempotencyKeyReused))
 }
 
-func TestCreateUploadIdempotentReplaySkipsURLForFinishedAsset(t *testing.T) {
-	srv, assets, _ := newTestServer(t)
-	req := newCreateRequest(mediav1.AssetKind_ASSET_KIND_GUILD_ICON, 2048, "image/webp")
-	req.SetIdempotencyKey("icon-intent-1")
+func TestCreateUploadIdempotentReplayReturnsStoredStatusWithoutURL(t *testing.T) {
+	for _, initialStatus := range []store.Status{
+		store.StatusCompleting,
+		store.StatusReady,
+		store.StatusFailed,
+		store.StatusAborted,
+		store.StatusExpired,
+	} {
+		t.Run(string(initialStatus), func(t *testing.T) {
+			srv, assets, _ := newTestServer(t)
+			req := newCreateRequest(mediav1.AssetKind_ASSET_KIND_GUILD_ICON, 2048, "image/webp")
+			req.SetIdempotencyKey("icon-intent-" + string(initialStatus))
 
-	first, err := srv.CreateUpload(t.Context(), req)
-	require.NoError(t, err)
+			first, err := srv.CreateUpload(t.Context(), req)
+			require.NoError(t, err)
 
-	asset, err := assets.GetAsset(t.Context(), first.GetUploadId())
-	require.NoError(t, err)
-	asset.Status = store.StatusReady
+			asset, err := assets.GetAsset(t.Context(), first.GetUploadId())
+			require.NoError(t, err)
+			asset.Status = initialStatus
 
-	second, err := srv.CreateUpload(t.Context(), req)
-	require.NoError(t, err)
-	require.Equal(t, first.GetUploadId(), second.GetUploadId())
-	require.Empty(t, second.GetPresignedUrl())
-	require.Zero(t, second.GetExpiresAt())
+			second, err := srv.CreateUpload(t.Context(), req)
+			require.NoError(t, err)
+			require.Equal(t, first.GetUploadId(), second.GetUploadId())
+			require.Equal(t, assetStatusToProto(initialStatus), second.GetStatus())
+			require.True(t, second.GetIdempotentReplay())
+			require.Empty(t, second.GetPresignedUrl())
+			require.Zero(t, second.GetExpiresAt())
+		})
+	}
 }
 
 func TestCreateUploadIdempotencyKeyScopedToActor(t *testing.T) {

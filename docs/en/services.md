@@ -175,7 +175,9 @@ service to Media. Keys are scoped per kind (`media.create.user_avatar`,
 24 hours by default, never below the upload session TTL. A retry returns the
 same upload ID and, while the asset is still `CREATED`, a fresh presigned PUT
 URL for the same object key; it never creates another asset or consumes the
-upload quota again. See the protocol documentation for the full semantics.
+upload quota again. The response also reports the upload status snapshot and
+whether an existing idempotency record was replayed. See the protocol
+documentation for the full state and recovery semantics.
 
 Internal `GetUserReadyState` returns the user's complete READY Guild bootstrap
 in one call: Guild metadata, all roles, the member's explicit role IDs, and

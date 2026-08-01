@@ -16,6 +16,7 @@ import (
 	apiv1 "github.com/soasurs/cordis/gen/api/v1"
 	apiv1connect "github.com/soasurs/cordis/gen/api/v1/apiv1connect"
 	authenticatorv1 "github.com/soasurs/cordis/gen/authenticator/v1"
+	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/apierror"
 	coreratelimit "github.com/soasurs/cordis/pkg/ratelimit"
@@ -382,6 +383,8 @@ func TestCreateAvatarUploadUsesAuthenticatedUser(t *testing.T) {
 	svcResp.SetPresignedUrl("https://upload.example/7001")
 	svcResp.SetExpiresAt(9001)
 	svcResp.SetRequestHeaders(map[string]string{"Content-Type": "image/png"})
+	svcResp.SetStatus(mediav1.AssetStatus_ASSET_STATUS_COMPLETING)
+	svcResp.SetIdempotentReplay(true)
 	userClient := &fakeUserClient{createAvatarUploadResponse: svcResp}
 	client, closeServer := newUserHTTPClient(t, authenticatorClient, userClient, "access-token")
 	defer closeServer()
@@ -396,6 +399,8 @@ func TestCreateAvatarUploadUsesAuthenticatedUser(t *testing.T) {
 	require.Equal(t, "image/png", userClient.createAvatarUploadRequest.GetContentType())
 	require.Equal(t, int64(7001), resp.GetUploadId())
 	require.Equal(t, map[string]string{"Content-Type": "image/png"}, resp.GetRequestHeaders())
+	require.Equal(t, apiv1.UploadStatus_UPLOAD_STATUS_COMPLETING, resp.GetStatus())
+	require.True(t, resp.GetIdempotentReplay())
 }
 
 func TestChangePasswordUsesAuthenticatedUser(t *testing.T) {

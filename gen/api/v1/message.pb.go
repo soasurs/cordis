@@ -1536,15 +1536,17 @@ func (b0 CreateAttachmentUploadRequest_builder) Build() *CreateAttachmentUploadR
 
 // CreateAttachmentUploadResponse contains a one-shot direct-upload contract.
 type CreateAttachmentUploadResponse struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_UploadId       int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
-	xxx_hidden_PresignedUrl   *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
-	xxx_hidden_ExpiresAt      int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
-	xxx_hidden_RequestHeaders map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_UploadId         int64                  `protobuf:"varint,1,opt,name=upload_id,json=uploadId"`
+	xxx_hidden_PresignedUrl     *string                `protobuf:"bytes,2,opt,name=presigned_url,json=presignedUrl"`
+	xxx_hidden_ExpiresAt        int64                  `protobuf:"varint,3,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_RequestHeaders   map[string]string      `protobuf:"bytes,4,rep,name=request_headers,json=requestHeaders" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Status           UploadStatus           `protobuf:"varint,5,opt,name=status,enum=api.v1.UploadStatus"`
+	xxx_hidden_IdempotentReplay bool                   `protobuf:"varint,6,opt,name=idempotent_replay,json=idempotentReplay"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *CreateAttachmentUploadResponse) Reset() {
@@ -1603,23 +1605,49 @@ func (x *CreateAttachmentUploadResponse) GetRequestHeaders() map[string]string {
 	return nil
 }
 
+func (x *CreateAttachmentUploadResponse) GetStatus() UploadStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return UploadStatus_UPLOAD_STATUS_UNSPECIFIED
+}
+
+func (x *CreateAttachmentUploadResponse) GetIdempotentReplay() bool {
+	if x != nil {
+		return x.xxx_hidden_IdempotentReplay
+	}
+	return false
+}
+
 func (x *CreateAttachmentUploadResponse) SetUploadId(v int64) {
 	x.xxx_hidden_UploadId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
 func (x *CreateAttachmentUploadResponse) SetPresignedUrl(v string) {
 	x.xxx_hidden_PresignedUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
 func (x *CreateAttachmentUploadResponse) SetExpiresAt(v int64) {
 	x.xxx_hidden_ExpiresAt = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
 }
 
 func (x *CreateAttachmentUploadResponse) SetRequestHeaders(v map[string]string) {
 	x.xxx_hidden_RequestHeaders = v
+}
+
+func (x *CreateAttachmentUploadResponse) SetStatus(v UploadStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+}
+
+func (x *CreateAttachmentUploadResponse) SetIdempotentReplay(v bool) {
+	x.xxx_hidden_IdempotentReplay = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
 func (x *CreateAttachmentUploadResponse) HasUploadId() bool {
@@ -1643,6 +1671,20 @@ func (x *CreateAttachmentUploadResponse) HasExpiresAt() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *CreateAttachmentUploadResponse) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *CreateAttachmentUploadResponse) HasIdempotentReplay() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
 func (x *CreateAttachmentUploadResponse) ClearUploadId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_UploadId = 0
@@ -1658,6 +1700,16 @@ func (x *CreateAttachmentUploadResponse) ClearExpiresAt() {
 	x.xxx_hidden_ExpiresAt = 0
 }
 
+func (x *CreateAttachmentUploadResponse) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Status = UploadStatus_UPLOAD_STATUS_UNSPECIFIED
+}
+
+func (x *CreateAttachmentUploadResponse) ClearIdempotentReplay() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_IdempotentReplay = false
+}
+
 type CreateAttachmentUploadResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1671,6 +1723,10 @@ type CreateAttachmentUploadResponse_builder struct {
 	// HTTP headers required by the presigned PUT. Browser-managed headers such
 	// as Content-Length are informational and must not be set explicitly.
 	RequestHeaders map[string]string
+	// status is the upload lifecycle state observed for this response.
+	Status *UploadStatus
+	// True when the existing idempotency record was replayed.
+	IdempotentReplay *bool
 }
 
 func (b0 CreateAttachmentUploadResponse_builder) Build() *CreateAttachmentUploadResponse {
@@ -1678,18 +1734,26 @@ func (b0 CreateAttachmentUploadResponse_builder) Build() *CreateAttachmentUpload
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.UploadId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
 		x.xxx_hidden_UploadId = *b.UploadId
 	}
 	if b.PresignedUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
 		x.xxx_hidden_PresignedUrl = b.PresignedUrl
 	}
 	if b.ExpiresAt != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
 		x.xxx_hidden_ExpiresAt = *b.ExpiresAt
 	}
 	x.xxx_hidden_RequestHeaders = b.RequestHeaders
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.IdempotentReplay != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_IdempotentReplay = *b.IdempotentReplay
+	}
 	return m0
 }
 
@@ -4063,7 +4127,7 @@ var File_api_v1_message_proto protoreflect.FileDescriptor
 
 const file_api_v1_message_proto_rawDesc = "" +
 	"\n" +
-	"\x14api/v1/message.proto\x12\x06api.v1\x1a\x11api/v1/user.proto\"\xaf\x01\n" +
+	"\x14api/v1/message.proto\x12\x06api.v1\x1a\x12api/v1/media.proto\x1a\x11api/v1/user.proto\"\xaf\x01\n" +
 	"\x10ChannelReadState\x12\x1d\n" +
 	"\n" +
 	"channel_id\x18\x01 \x01(\x03R\tchannelId\x12&\n" +
@@ -4114,13 +4178,15 @@ const file_api_v1_message_proto_rawDesc = "" +
 	"\rexpected_size\x18\x02 \x01(\x03R\fexpectedSize\x12!\n" +
 	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\x12\x1a\n" +
 	"\bfilename\x18\x04 \x01(\tR\bfilename\x12'\n" +
-	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"\xa9\x02\n" +
+	"\x0fidempotency_key\x18\x05 \x01(\tR\x0eidempotencyKey\"\x84\x03\n" +
 	"\x1eCreateAttachmentUploadResponse\x12\x1b\n" +
 	"\tupload_id\x18\x01 \x01(\x03R\buploadId\x12#\n" +
 	"\rpresigned_url\x18\x02 \x01(\tR\fpresignedUrl\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x03 \x01(\x03R\texpiresAt\x12c\n" +
-	"\x0frequest_headers\x18\x04 \x03(\v2:.api.v1.CreateAttachmentUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x1aA\n" +
+	"\x0frequest_headers\x18\x04 \x03(\v2:.api.v1.CreateAttachmentUploadResponse.RequestHeadersEntryR\x0erequestHeaders\x12,\n" +
+	"\x06status\x18\x05 \x01(\x0e2\x14.api.v1.UploadStatusR\x06status\x12+\n" +
+	"\x11idempotent_replay\x18\x06 \x01(\bR\x10idempotentReplay\x1aA\n" +
 	"\x13RequestHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"]\n" +
@@ -4276,6 +4342,7 @@ var file_api_v1_message_proto_goTypes = []any{
 	(*GetReadStatesResponse)(nil),            // 31: api.v1.GetReadStatesResponse
 	nil,                                      // 32: api.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
 	(*UserProfile)(nil),                      // 33: api.v1.UserProfile
+	(UploadStatus)(0),                        // 34: api.v1.UploadStatus
 }
 var file_api_v1_message_proto_depIdxs = []int32{
 	33, // 0: api.v1.DmChannel.recipient:type_name -> api.v1.UserProfile
@@ -4283,50 +4350,51 @@ var file_api_v1_message_proto_depIdxs = []int32{
 	0,  // 2: api.v1.Message.type:type_name -> api.v1.MessageType
 	6,  // 3: api.v1.Message.attachments:type_name -> api.v1.Attachment
 	32, // 4: api.v1.CreateAttachmentUploadResponse.request_headers:type_name -> api.v1.CreateAttachmentUploadResponse.RequestHeadersEntry
-	6,  // 5: api.v1.CompleteAttachmentUploadResponse.attachment:type_name -> api.v1.Attachment
-	6,  // 6: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
-	0,  // 7: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
-	6,  // 8: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
-	5,  // 9: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
-	13, // 10: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
-	5,  // 11: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
-	5,  // 12: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
-	5,  // 13: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
-	4,  // 14: api.v1.CreateDmChannelResponse.channel:type_name -> api.v1.DmChannel
-	4,  // 15: api.v1.ListDmChannelsResponse.channels:type_name -> api.v1.DmChannel
-	3,  // 16: api.v1.AckMessageResponse.read_state:type_name -> api.v1.ChannelReadState
-	2,  // 17: api.v1.GetReadStatesRequest.scope:type_name -> api.v1.ReadStateScopeType
-	4,  // 18: api.v1.GetReadStatesResponse.dm_channels:type_name -> api.v1.DmChannel
-	3,  // 19: api.v1.GetReadStatesResponse.read_states:type_name -> api.v1.ChannelReadState
-	14, // 20: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
-	16, // 21: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
-	18, // 22: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
-	20, // 23: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
-	22, // 24: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
-	7,  // 25: api.v1.MessageService.CreateAttachmentUpload:input_type -> api.v1.CreateAttachmentUploadRequest
-	9,  // 26: api.v1.MessageService.CompleteAttachmentUpload:input_type -> api.v1.CompleteAttachmentUploadRequest
-	11, // 27: api.v1.MessageService.AbortAttachmentUpload:input_type -> api.v1.AbortAttachmentUploadRequest
-	24, // 28: api.v1.MessageService.CreateDmChannel:input_type -> api.v1.CreateDmChannelRequest
-	26, // 29: api.v1.MessageService.ListDmChannels:input_type -> api.v1.ListDmChannelsRequest
-	28, // 30: api.v1.MessageService.AckMessage:input_type -> api.v1.AckMessageRequest
-	30, // 31: api.v1.MessageService.GetReadStates:input_type -> api.v1.GetReadStatesRequest
-	15, // 32: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
-	17, // 33: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
-	19, // 34: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
-	21, // 35: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
-	23, // 36: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
-	8,  // 37: api.v1.MessageService.CreateAttachmentUpload:output_type -> api.v1.CreateAttachmentUploadResponse
-	10, // 38: api.v1.MessageService.CompleteAttachmentUpload:output_type -> api.v1.CompleteAttachmentUploadResponse
-	12, // 39: api.v1.MessageService.AbortAttachmentUpload:output_type -> api.v1.AbortAttachmentUploadResponse
-	25, // 40: api.v1.MessageService.CreateDmChannel:output_type -> api.v1.CreateDmChannelResponse
-	27, // 41: api.v1.MessageService.ListDmChannels:output_type -> api.v1.ListDmChannelsResponse
-	29, // 42: api.v1.MessageService.AckMessage:output_type -> api.v1.AckMessageResponse
-	31, // 43: api.v1.MessageService.GetReadStates:output_type -> api.v1.GetReadStatesResponse
-	32, // [32:44] is the sub-list for method output_type
-	20, // [20:32] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	34, // 5: api.v1.CreateAttachmentUploadResponse.status:type_name -> api.v1.UploadStatus
+	6,  // 6: api.v1.CompleteAttachmentUploadResponse.attachment:type_name -> api.v1.Attachment
+	6,  // 7: api.v1.AttachmentList.attachments:type_name -> api.v1.Attachment
+	0,  // 8: api.v1.CreateMessageRequest.type:type_name -> api.v1.MessageType
+	6,  // 9: api.v1.CreateMessageRequest.attachments:type_name -> api.v1.Attachment
+	5,  // 10: api.v1.CreateMessageResponse.message:type_name -> api.v1.Message
+	13, // 11: api.v1.UpdateMessageRequest.attachments:type_name -> api.v1.AttachmentList
+	5,  // 12: api.v1.UpdateMessageResponse.message:type_name -> api.v1.Message
+	5,  // 13: api.v1.GetMessageResponse.message:type_name -> api.v1.Message
+	5,  // 14: api.v1.ListMessagesResponse.messages:type_name -> api.v1.Message
+	4,  // 15: api.v1.CreateDmChannelResponse.channel:type_name -> api.v1.DmChannel
+	4,  // 16: api.v1.ListDmChannelsResponse.channels:type_name -> api.v1.DmChannel
+	3,  // 17: api.v1.AckMessageResponse.read_state:type_name -> api.v1.ChannelReadState
+	2,  // 18: api.v1.GetReadStatesRequest.scope:type_name -> api.v1.ReadStateScopeType
+	4,  // 19: api.v1.GetReadStatesResponse.dm_channels:type_name -> api.v1.DmChannel
+	3,  // 20: api.v1.GetReadStatesResponse.read_states:type_name -> api.v1.ChannelReadState
+	14, // 21: api.v1.MessageService.CreateMessage:input_type -> api.v1.CreateMessageRequest
+	16, // 22: api.v1.MessageService.UpdateMessage:input_type -> api.v1.UpdateMessageRequest
+	18, // 23: api.v1.MessageService.DeleteMessage:input_type -> api.v1.DeleteMessageRequest
+	20, // 24: api.v1.MessageService.GetMessage:input_type -> api.v1.GetMessageRequest
+	22, // 25: api.v1.MessageService.ListMessages:input_type -> api.v1.ListMessagesRequest
+	7,  // 26: api.v1.MessageService.CreateAttachmentUpload:input_type -> api.v1.CreateAttachmentUploadRequest
+	9,  // 27: api.v1.MessageService.CompleteAttachmentUpload:input_type -> api.v1.CompleteAttachmentUploadRequest
+	11, // 28: api.v1.MessageService.AbortAttachmentUpload:input_type -> api.v1.AbortAttachmentUploadRequest
+	24, // 29: api.v1.MessageService.CreateDmChannel:input_type -> api.v1.CreateDmChannelRequest
+	26, // 30: api.v1.MessageService.ListDmChannels:input_type -> api.v1.ListDmChannelsRequest
+	28, // 31: api.v1.MessageService.AckMessage:input_type -> api.v1.AckMessageRequest
+	30, // 32: api.v1.MessageService.GetReadStates:input_type -> api.v1.GetReadStatesRequest
+	15, // 33: api.v1.MessageService.CreateMessage:output_type -> api.v1.CreateMessageResponse
+	17, // 34: api.v1.MessageService.UpdateMessage:output_type -> api.v1.UpdateMessageResponse
+	19, // 35: api.v1.MessageService.DeleteMessage:output_type -> api.v1.DeleteMessageResponse
+	21, // 36: api.v1.MessageService.GetMessage:output_type -> api.v1.GetMessageResponse
+	23, // 37: api.v1.MessageService.ListMessages:output_type -> api.v1.ListMessagesResponse
+	8,  // 38: api.v1.MessageService.CreateAttachmentUpload:output_type -> api.v1.CreateAttachmentUploadResponse
+	10, // 39: api.v1.MessageService.CompleteAttachmentUpload:output_type -> api.v1.CompleteAttachmentUploadResponse
+	12, // 40: api.v1.MessageService.AbortAttachmentUpload:output_type -> api.v1.AbortAttachmentUploadResponse
+	25, // 41: api.v1.MessageService.CreateDmChannel:output_type -> api.v1.CreateDmChannelResponse
+	27, // 42: api.v1.MessageService.ListDmChannels:output_type -> api.v1.ListDmChannelsResponse
+	29, // 43: api.v1.MessageService.AckMessage:output_type -> api.v1.AckMessageResponse
+	31, // 44: api.v1.MessageService.GetReadStates:output_type -> api.v1.GetReadStatesResponse
+	33, // [33:45] is the sub-list for method output_type
+	21, // [21:33] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_message_proto_init() }
@@ -4334,6 +4402,7 @@ func file_api_v1_message_proto_init() {
 	if File_api_v1_message_proto != nil {
 		return
 	}
+	file_api_v1_media_proto_init()
 	file_api_v1_user_proto_init()
 	file_api_v1_message_proto_msgTypes[19].OneofWrappers = []any{
 		(*listMessagesRequest_Before)(nil),

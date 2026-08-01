@@ -171,6 +171,8 @@ func (s *MediaServer) CreateUpload(
 
 	resp := new(mediav1.CreateUploadResponse)
 	resp.SetUploadId(created.ID)
+	resp.SetStatus(assetStatusToProto(created.Status))
+	resp.SetIdempotentReplay(idempotentReplay)
 	if idempotentReplay && created.Status != store.StatusCreated {
 		return resp, nil
 	}

@@ -45,6 +45,7 @@ func TestDispatcherIntegration(t *testing.T) {
 	t.Run("guild route merges user route nodes", func(t *testing.T) { testGuildRouteMergesUserNodes(t, env) })
 	t.Run("retry preserves uncommitted offset", func(t *testing.T) { testRetryPreservesUncommittedOffset(t, env) })
 	t.Run("topic retry isolation", func(t *testing.T) { testTopicRetryIsolation(t, env) })
+	t.Run("partition retry isolation", func(t *testing.T) { testPartitionRetryIsolation(t, env) })
 	t.Run("poison pill does not block partition", func(t *testing.T) { testPoisonPillDoesNotBlockPartition(t, env) })
 	t.Run("user route", func(t *testing.T) { testUserRoute(t, env) })
 	t.Run("presence fan-out", func(t *testing.T) { testPresenceFanOut(t, env) })
@@ -158,6 +159,42 @@ func testTopicRetryIsolation(t *testing.T, env *dispatcherEnv) {
 		15*time.Second, 50*time.Millisecond, "user topic must commit while message topic retries")
 }
 
+func testPartitionRetryIsolation(t *testing.T, env *dispatcherEnv) {
+	const (
+		failingGuildID = int64(7260)
+		healthyGuildID = int64(7261)
+		failingChannel = int64(7262)
+		healthyChannel = int64(7263)
+	)
+	h := newPartitionedHarness(t, env, 2)
+	node := newRecordingSessionServer()
+	node.setChannelFailingFor(failingChannel, true)
+	h.registerNode(t, "session-a", "generation-1", startSessionServer(t, node))
+	h.addRoute(t, discovery.RouteGuild, failingGuildID, "session-a", "generation-1")
+	h.addRoute(t, discovery.RouteGuild, healthyGuildID, "session-a", "generation-1")
+	h.startDispatcher(t)
+
+	h.producePartition(t, h.messageTopic, 0,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9201","guild_id":"7260","channel_id":"7262"},"idempotency_key":"1017"}`)
+	require.Eventually(t, func() bool { return node.channelCallsFor(failingChannel) >= 2 },
+		15*time.Second, 20*time.Millisecond, "partition worker did not enter retry")
+
+	h.producePartition(t, h.messageTopic, 1,
+		`{"t":"`+realtime.EventMessageCreated+`","d":{"id":"9202","guild_id":"7261","channel_id":"7263"},"idempotency_key":"1018"}`)
+	request := node.waitChannelEvent(t)
+	require.Equal(t, healthyChannel, request.GetChannelId())
+	require.Eventually(t, func() bool {
+		return h.committedOffsetForPartition(t, h.messageTopic, 1) == 1
+	}, 15*time.Second, 50*time.Millisecond, "healthy partition must commit while another partition retries")
+	require.Equal(t, int64(-1), h.committedOffsetForPartition(t, h.messageTopic, 0))
+
+	node.setChannelFailingFor(failingChannel, false)
+	require.Equal(t, failingChannel, node.waitChannelEvent(t).GetChannelId())
+	require.Eventually(t, func() bool {
+		return h.committedOffsetForPartition(t, h.messageTopic, 0) == 1
+	}, 15*time.Second, 50*time.Millisecond, "retried partition must commit after recovery")
+}
+
 func testPoisonPillDoesNotBlockPartition(t *testing.T, env *dispatcherEnv) {
 	const guildID = int64(7300)
 	h := newHarness(t, env)
@@ -201,6 +238,10 @@ type dispatcherHarness struct {
 }
 
 func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
+	return newPartitionedHarness(t, env, 1)
+}
+
+func newPartitionedHarness(t *testing.T, env *dispatcherEnv, messagePartitions int32) *dispatcherHarness {
 	t.Helper()
 	runID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	h := &dispatcherHarness{
@@ -221,12 +262,15 @@ func newHarness(t *testing.T, env *dispatcherEnv) *dispatcherHarness {
 		messageClient: emptyMessageClient{},
 	}
 
-	producer, err := kgo.NewClient(kgo.SeedBrokers(env.kafkaAddress))
+	producer, err := kgo.NewClient(
+		kgo.SeedBrokers(env.kafkaAddress),
+		kgo.RecordPartitioner(kgo.ManualPartitioner()),
+	)
 	require.NoError(t, err)
 	t.Cleanup(producer.Close)
 	h.producer = producer
 	testkit.CreateKafkaTopic(t, producer, h.guildTopic)
-	testkit.CreateKafkaTopic(t, producer, h.messageTopic)
+	testkit.CreateKafkaTopicWithPartitions(t, producer, h.messageTopic, messagePartitions)
 	testkit.CreateKafkaTopic(t, producer, h.userTopic)
 	testkit.CreateKafkaTopic(t, producer, h.presenceTopic)
 
@@ -322,22 +366,35 @@ func (h *dispatcherHarness) produce(t *testing.T, topic, key, value string) {
 	}).FirstErr())
 }
 
+func (h *dispatcherHarness) producePartition(t *testing.T, topic string, partition int32, value string) {
+	t.Helper()
+	require.NoError(t, h.producer.ProduceSync(t.Context(), &kgo.Record{
+		Topic:     topic,
+		Partition: partition,
+		Value:     []byte(value),
+	}).FirstErr())
+}
+
 // committedOffset returns the committed offset of partition 0 for the
 // harness topic consumer group, or -1 when nothing has been committed.
 func (h *dispatcherHarness) committedOffset(t *testing.T, topic string) int64 {
+	return h.committedOffsetForPartition(t, topic, 0)
+}
+
+func (h *dispatcherHarness) committedOffsetForPartition(t *testing.T, topic string, partitionID int32) int64 {
 	t.Helper()
 	group := h.consumerGroup(topic)
 	req := kmsg.NewPtrOffsetFetchRequest()
 	req.Group = group
 	legacyTopic := kmsg.NewOffsetFetchRequestTopic()
 	legacyTopic.Topic = topic
-	legacyTopic.Partitions = []int32{0}
+	legacyTopic.Partitions = []int32{partitionID}
 	req.Topics = append(req.Topics, legacyTopic)
 	reqGroup := kmsg.NewOffsetFetchRequestGroup()
 	reqGroup.Group = group
 	groupTopic := kmsg.NewOffsetFetchRequestGroupTopic()
 	groupTopic.Topic = topic
-	groupTopic.Partitions = []int32{0}
+	groupTopic.Partitions = []int32{partitionID}
 	reqGroup.Topics = append(reqGroup.Topics, groupTopic)
 	req.Groups = append(req.Groups, reqGroup)
 
@@ -345,17 +402,17 @@ func (h *dispatcherHarness) committedOffset(t *testing.T, topic string) int64 {
 	require.NoError(t, err)
 	for _, group := range resp.Groups {
 		for _, respTopic := range group.Topics {
-			for _, partition := range respTopic.Partitions {
-				if respTopic.Topic == topic && partition.Partition == 0 {
-					return partition.Offset
+			for _, value := range respTopic.Partitions {
+				if respTopic.Topic == topic && value.Partition == partitionID {
+					return value.Offset
 				}
 			}
 		}
 	}
 	for _, respTopic := range resp.Topics {
-		for _, partition := range respTopic.Partitions {
-			if respTopic.Topic == topic && partition.Partition == 0 {
-				return partition.Offset
+		for _, value := range respTopic.Partitions {
+			if respTopic.Topic == topic && value.Partition == partitionID {
+				return value.Offset
 			}
 		}
 	}
@@ -391,21 +448,25 @@ func startSessionServer(t *testing.T, server sessionv1.SessionServiceServer) str
 type recordingSessionServer struct {
 	sessionv1.UnimplementedSessionServiceServer
 
-	mu             sync.Mutex
-	channelFailing bool
-	channelCount   int
-	guildCount     int
-	userCount      int
-	channelEvents  chan *sessionv1.DispatchGuildMessageEventRequest
-	guildEventsCh  chan *sessionv1.DispatchGuildEventRequest
-	userEventsCh   chan *sessionv1.DispatchUserEventRequest
+	mu               sync.Mutex
+	channelFailing   bool
+	channelFails     map[int64]bool
+	channelCount     int
+	channelCallsByID map[int64]int
+	guildCount       int
+	userCount        int
+	channelEvents    chan *sessionv1.DispatchGuildMessageEventRequest
+	guildEventsCh    chan *sessionv1.DispatchGuildEventRequest
+	userEventsCh     chan *sessionv1.DispatchUserEventRequest
 }
 
 func newRecordingSessionServer() *recordingSessionServer {
 	return &recordingSessionServer{
-		channelEvents: make(chan *sessionv1.DispatchGuildMessageEventRequest, 16),
-		guildEventsCh: make(chan *sessionv1.DispatchGuildEventRequest, 16),
-		userEventsCh:  make(chan *sessionv1.DispatchUserEventRequest, 16),
+		channelFails:     make(map[int64]bool),
+		channelCallsByID: make(map[int64]int),
+		channelEvents:    make(chan *sessionv1.DispatchGuildMessageEventRequest, 16),
+		guildEventsCh:    make(chan *sessionv1.DispatchGuildEventRequest, 16),
+		userEventsCh:     make(chan *sessionv1.DispatchUserEventRequest, 16),
 	}
 }
 
@@ -415,7 +476,8 @@ func (s *recordingSessionServer) DispatchGuildMessageEvent(
 ) (*sessionv1.DispatchGuildMessageEventResponse, error) {
 	s.mu.Lock()
 	s.channelCount++
-	failing := s.channelFailing
+	s.channelCallsByID[req.GetChannelId()]++
+	failing := s.channelFailing || s.channelFails[req.GetChannelId()]
 	s.mu.Unlock()
 	if failing {
 		return nil, status.Error(codes.Unavailable, "injected failure")
@@ -452,10 +514,22 @@ func (s *recordingSessionServer) setChannelFailing(failing bool) {
 	s.channelFailing = failing
 }
 
+func (s *recordingSessionServer) setChannelFailingFor(channelID int64, failing bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.channelFails[channelID] = failing
+}
+
 func (s *recordingSessionServer) channelCalls() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.channelCount
+}
+
+func (s *recordingSessionServer) channelCallsFor(channelID int64) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.channelCallsByID[channelID]
 }
 
 func (s *recordingSessionServer) waitChannelEvent(t *testing.T) *sessionv1.DispatchGuildMessageEventRequest {

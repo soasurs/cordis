@@ -20,7 +20,8 @@ to Kafka best-effort after database commit and have no transactional outbox,
 leaving a loss window between commit and publish. Dispatcher has retry and
 manual offset commits but no dead-letter queue, global event ID, or generic
 deduplication. Calls to target Session nodes are sequential, so one node failure
-retries the Kafka record.
+retries the Kafka record; that retry blocks only its partition, while other
+partitions and topics continue consuming.
 
 Known feature gaps include invites, stronger limits and rate limiting, automatic
 role/channel reorder behavior, threads, pinned messages, voice media behavior,

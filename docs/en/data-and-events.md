@@ -53,8 +53,10 @@ commits, User publishes relationship and profile events best-effort to
 `cordis.guild.events.v1`, and Presence publishes public transitions and private
 preference changes best-effort to `cordis.presence.events.v1`. Presence
 persists the relevant versioned state before publishing and uses that same
-version as the event idempotency key. The aggregate ID is used as the Kafka key to preserve
-per-user, per-channel, or per-guild partition order. With Kafka disabled, no
+version as the event idempotency key. Domain aggregate IDs are used as Kafka keys:
+Message channel-routed events use `channel_id`, user-routed events use the target
+`user_id`, and the other domains use their corresponding user or Guild aggregate
+ID. This preserves per-user, per-channel, or per-Guild partition order. With Kafka disabled, no
 producer is created. Publish failure is logged and does not fail the already
 committed RPC, so database and Kafka delivery are not atomic.
 

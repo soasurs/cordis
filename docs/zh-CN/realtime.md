@@ -92,4 +92,4 @@ sequenceDiagram
     Gateway->>Client: WebSocket envelope
 ```
 
-Dispatcher 为每个领域 topic 使用独立 consumer group 与消费循环，但共享路由和 Session 连接池，因此一个 topic 的积压、重试或 rebalance 不会阻塞其他 topic。事件在 Dispatcher 重试下是至少一次语义。Profile fanout 会按接收用户和 event ID 去重，但当前协议没有通用 event ID 去重，因此其他事件的消费者仍应能够容忍重复。
+Dispatcher 为每个领域 topic 使用独立 consumer group 与消费循环，并为每个当前分配的 partition 维护一个长期存在的串行 worker；共享路由和 Session 连接池。因此一个 topic 的积压、重试或 rebalance 不会阻塞其他 topic，单个 partition 的 retry 也不会阻塞同 topic 的其他 partition。事件在 Dispatcher 重试下是至少一次语义。Profile fanout 会按接收用户和 event ID 去重，但当前协议没有通用 event ID 去重，因此其他事件的消费者仍应能够容忍重复。

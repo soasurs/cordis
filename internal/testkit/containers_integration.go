@@ -134,11 +134,17 @@ func StartEtcd(t *testing.T) *Etcd {
 // CreateKafkaTopic creates a single-partition topic suitable for an isolated
 // integration test.
 func CreateKafkaTopic(t *testing.T, client *kgo.Client, topic string) {
+	CreateKafkaTopicWithPartitions(t, client, topic, 1)
+}
+
+// CreateKafkaTopicWithPartitions creates a topic with the requested number of
+// partitions for an isolated integration test.
+func CreateKafkaTopicWithPartitions(t *testing.T, client *kgo.Client, topic string, partitions int32) {
 	t.Helper()
 	req := kmsg.NewPtrCreateTopicsRequest()
 	topicReq := kmsg.NewCreateTopicsRequestTopic()
 	topicReq.Topic = topic
-	topicReq.NumPartitions = 1
+	topicReq.NumPartitions = partitions
 	topicReq.ReplicationFactor = 1
 	req.Topics = append(req.Topics, topicReq)
 

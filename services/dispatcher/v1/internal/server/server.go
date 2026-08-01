@@ -90,7 +90,299 @@ type Server struct {
 }
 
 type eventConsumer struct {
-	client *kgo.Client
+	client  *kgo.Client
+	runtime *partitionRuntime
+}
+
+type partitionKey struct {
+	topic     string
+	partition int32
+}
+
+type partitionRuntime struct {
+	server    *Server
+	maxPoll   int
+	queueSize int
+	ctx       context.Context
+	cancel    context.CancelFunc
+	client    *kgo.Client
+	workers   map[partitionKey]*partitionWorker
+	pending   map[partitionKey][]*kgo.Record
+	paused    map[partitionKey]bool
+	mu        sync.Mutex
+	stopOnce  sync.Once
+	stopped   bool
+}
+
+type partitionWorker struct {
+	runtime  *partitionRuntime
+	client   *kgo.Client
+	key      partitionKey
+	records  chan *kgo.Record
+	ctx      context.Context
+	cancel   context.CancelFunc
+	done     chan struct{}
+	stopOnce sync.Once
+
+	mu            sync.Mutex
+	active        bool
+	lastCompleted *kgo.Record
+}
+
+func newPartitionRuntime(server *Server, maxPoll, queueSize int) *partitionRuntime {
+	if maxPoll <= 0 {
+		maxPoll = 32
+	}
+	if queueSize <= 0 {
+		queueSize = 16
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	return &partitionRuntime{
+		server:    server,
+		maxPoll:   maxPoll,
+		queueSize: queueSize,
+		ctx:       ctx,
+		cancel:    cancel,
+		workers:   make(map[partitionKey]*partitionWorker),
+		pending:   make(map[partitionKey][]*kgo.Record),
+		paused:    make(map[partitionKey]bool),
+	}
+}
+
+func (r *partitionRuntime) assign(client *kgo.Client, assignments map[string][]int32) {
+	r.mu.Lock()
+	if r.client == nil {
+		r.client = client
+	}
+	if r.stopped {
+		r.mu.Unlock()
+		return
+	}
+	workers := make([]*partitionWorker, 0)
+	newAssignments := make(map[string][]int32)
+	for topic, partitions := range assignments {
+		for _, partition := range partitions {
+			key := partitionKey{topic: topic, partition: partition}
+			if _, exists := r.workers[key]; exists {
+				continue
+			}
+			workerCtx, cancel := context.WithCancel(r.ctx)
+			worker := &partitionWorker{
+				runtime: r,
+				client:  client,
+				key:     key,
+				records: make(chan *kgo.Record, r.queueSize),
+				ctx:     workerCtx,
+				cancel:  cancel,
+				done:    make(chan struct{}),
+				active:  true,
+			}
+			r.workers[key] = worker
+			workers = append(workers, worker)
+			newAssignments[topic] = append(newAssignments[topic], partition)
+		}
+	}
+	if len(newAssignments) > 0 {
+		client.ResumeFetchPartitions(newAssignments)
+	}
+	r.mu.Unlock()
+
+	for _, worker := range workers {
+		go worker.run()
+	}
+}
+
+func (r *partitionRuntime) enqueue(record *kgo.Record) {
+	if record == nil {
+		return
+	}
+	key := partitionKey{topic: record.Topic, partition: record.Partition}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	worker := r.workers[key]
+	if r.stopped || worker == nil {
+		return
+	}
+	if pending := r.pending[key]; len(pending) > 0 {
+		r.pending[key] = append(pending, record)
+		r.pauseLocked(worker)
+		return
+	}
+	select {
+	case worker.records <- record:
+		return
+	default:
+	}
+	r.pending[key] = append(r.pending[key], record)
+	r.pauseLocked(worker)
+}
+
+func (r *partitionRuntime) pause(worker *partitionWorker) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.workers[worker.key] != worker || r.stopped {
+		return
+	}
+	r.pauseLocked(worker)
+}
+
+func (r *partitionRuntime) pauseLocked(worker *partitionWorker) {
+	if r.paused[worker.key] {
+		return
+	}
+	r.paused[worker.key] = true
+	worker.client.PauseFetchPartitions(map[string][]int32{
+		worker.key.topic: {worker.key.partition},
+	})
+}
+
+func (r *partitionRuntime) afterProcessed(worker *partitionWorker) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.workers[worker.key] != worker || r.stopped {
+		return
+	}
+	for pending := r.pending[worker.key]; len(pending) > 0; {
+		select {
+		case worker.records <- pending[0]:
+			pending = pending[1:]
+			r.pending[worker.key] = pending
+		default:
+			return
+		}
+	}
+	delete(r.pending, worker.key)
+	if !r.paused[worker.key] || len(worker.records) != 0 {
+		return
+	}
+	delete(r.paused, worker.key)
+	worker.client.ResumeFetchPartitions(map[string][]int32{
+		worker.key.topic: {worker.key.partition},
+	})
+}
+
+func (r *partitionRuntime) revoke(ctx context.Context, client *kgo.Client, partitions map[string][]int32, commit bool) {
+	workers := r.removeWorkers(partitions)
+	for _, worker := range workers {
+		worker.stop()
+	}
+	if !commit {
+		return
+	}
+	completed := make([]*kgo.Record, 0, len(workers))
+	for _, worker := range workers {
+		if record := worker.completed(); record != nil {
+			completed = append(completed, record)
+		}
+	}
+	if len(completed) > 0 {
+		if err := client.CommitRecords(ctx, completed...); err != nil && ctx.Err() == nil {
+			logx.WithContext(ctx).Errorw("commit revoked dispatcher offsets", logx.Field("error", err))
+		}
+	}
+}
+
+func (r *partitionRuntime) removeWorkers(partitions map[string][]int32) []*partitionWorker {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var workers []*partitionWorker
+	for topic, values := range partitions {
+		for _, partition := range values {
+			key := partitionKey{topic: topic, partition: partition}
+			worker := r.workers[key]
+			if worker == nil {
+				continue
+			}
+			delete(r.workers, key)
+			delete(r.pending, key)
+			delete(r.paused, key)
+			workers = append(workers, worker)
+		}
+	}
+	return workers
+}
+
+func (r *partitionRuntime) stop() {
+	r.stopOnce.Do(func() {
+		r.mu.Lock()
+		r.stopped = true
+		workers := make([]*partitionWorker, 0, len(r.workers))
+		for key, worker := range r.workers {
+			delete(r.workers, key)
+			workers = append(workers, worker)
+		}
+		r.pending = make(map[partitionKey][]*kgo.Record)
+		r.paused = make(map[partitionKey]bool)
+		r.mu.Unlock()
+
+		r.cancel()
+		for _, worker := range workers {
+			worker.stop()
+		}
+
+		completed := make([]*kgo.Record, 0, len(workers))
+		for _, worker := range workers {
+			if record := worker.completed(); record != nil {
+				completed = append(completed, record)
+			}
+		}
+		if len(completed) == 0 || r.client == nil {
+			return
+		}
+		commitCtx, cancel := context.WithTimeout(context.Background(), r.server.dispatchTimeout())
+		defer cancel()
+		if err := r.client.CommitRecords(commitCtx, completed...); err != nil {
+			logx.WithContext(commitCtx).Errorw("commit dispatcher shutdown offsets", logx.Field("error", err))
+		}
+	})
+}
+
+func (w *partitionWorker) run() {
+	defer close(w.done)
+	for {
+		select {
+		case <-w.ctx.Done():
+			return
+		case record := <-w.records:
+			if !w.runtime.server.processPartitionRecord(w, record) {
+				return
+			}
+		}
+	}
+}
+
+func (w *partitionWorker) stop() {
+	w.stopOnce.Do(func() {
+		w.cancel()
+		w.mu.Lock()
+		w.active = false
+		w.mu.Unlock()
+	})
+	<-w.done
+}
+
+func (w *partitionWorker) commit(record *kgo.Record) bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if !w.active {
+		return false
+	}
+	if err := w.client.CommitRecords(w.ctx, record); err != nil && w.ctx.Err() == nil {
+		logx.WithContext(w.ctx).Errorw("commit dispatcher event", logx.Field("error", err))
+	}
+	w.lastCompleted = &kgo.Record{
+		Topic:       record.Topic,
+		Partition:   record.Partition,
+		LeaderEpoch: record.LeaderEpoch,
+		Offset:      record.Offset,
+	}
+	return true
+}
+
+func (w *partitionWorker) completed() *kgo.Record {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.lastCompleted
 }
 
 func New(
@@ -133,43 +425,55 @@ func New(
 		seenTopics[spec[0]] = struct{}{}
 		seenGroups[spec[1]] = struct{}{}
 	}
-	consumers := make([]eventConsumer, 0, len(specs))
-	for _, spec := range specs {
-		consumer, err := kgo.NewClient(
-			kgo.SeedBrokers(cfg.Kafka.Seeds...),
-			kgo.ConsumerGroup(spec[1]),
-			kgo.ConsumeTopics(spec[0]),
-			kgo.DisableAutoCommit(),
-		)
-		if err != nil {
-			for _, created := range consumers {
-				created.client.Close()
-			}
-			panic(err)
-		}
-		consumers = append(consumers, eventConsumer{client: consumer})
-	}
-	return &Server{
-		cfg: cfg, consumers: consumers, resolver: resolver,
+	server := &Server{
+		cfg: cfg, consumers: make([]eventConsumer, 0, len(specs)), resolver: resolver,
 		userClient: userClient, guildClient: guildClient, messageClient: messageClient,
 		clients: make(map[string]sessionv1.SessionServiceClient),
 		conns:   make(map[string]*grpc.ClientConn),
 		tracer:  otel.Tracer(observability.DispatcherInstrumentationName),
 	}
+	for _, spec := range specs {
+		runtime := newPartitionRuntime(server, cfg.Dispatcher.MaxPollRecords, cfg.Dispatcher.PartitionQueueSize)
+		consumer, err := kgo.NewClient(
+			kgo.SeedBrokers(cfg.Kafka.Seeds...),
+			kgo.ConsumerGroup(spec[1]),
+			kgo.ConsumeTopics(spec[0]),
+			kgo.DisableAutoCommit(),
+			kgo.OnPartitionsAssigned(func(_ context.Context, client *kgo.Client, assignments map[string][]int32) {
+				runtime.assign(client, assignments)
+			}),
+			kgo.OnPartitionsRevoked(func(ctx context.Context, client *kgo.Client, partitions map[string][]int32) {
+				runtime.revoke(ctx, client, partitions, true)
+			}),
+			kgo.OnPartitionsLost(func(_ context.Context, client *kgo.Client, partitions map[string][]int32) {
+				runtime.revoke(context.Background(), client, partitions, false)
+			}),
+		)
+		if err != nil {
+			for _, created := range server.consumers {
+				created.client.Close()
+			}
+			panic(err)
+		}
+		runtime.client = consumer
+		server.consumers = append(server.consumers, eventConsumer{client: consumer, runtime: runtime})
+	}
+	return server
 }
 
 func (s *Server) Run(ctx context.Context) {
 	defer s.close()
 	var wg sync.WaitGroup
 	for _, consumer := range s.consumers {
-		wg.Go(func() { s.runConsumer(ctx, consumer.client) })
+		wg.Go(func() { s.runConsumer(ctx, consumer) })
 	}
 	wg.Wait()
 }
 
-func (s *Server) runConsumer(ctx context.Context, consumer *kgo.Client) {
+func (s *Server) runConsumer(ctx context.Context, consumer eventConsumer) {
+	defer consumer.runtime.stop()
 	for {
-		fetches := consumer.PollFetches(ctx)
+		fetches := consumer.client.PollRecords(ctx, consumer.runtime.maxPoll)
 		if ctx.Err() != nil {
 			return
 		}
@@ -180,34 +484,38 @@ func (s *Server) runConsumer(ctx context.Context, consumer *kgo.Client) {
 				logx.Field("error", fetchErr.Err),
 			)
 		}
-		var wg sync.WaitGroup
-		fetches.EachPartition(func(ftp kgo.FetchTopicPartition) {
-			wg.Go(func() {
-				ftp.EachRecord(func(record *kgo.Record) {
-					permanent, err := s.dispatchRecord(ctx, record)
-					if err != nil && !permanent {
-						s.retryRecord(ctx, consumer, record)
-						return
-					}
-					if err != nil {
-						logx.WithContext(ctx).Errorw("drop invalid dispatcher event",
-							logx.Field("topic", record.Topic),
-							logx.Field("partition", record.Partition),
-							logx.Field("offset", record.Offset),
-							logx.Field("error", err),
-						)
-					}
-					if err := consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-						logx.WithContext(ctx).Errorw("commit dispatcher event", logx.Field("error", err))
-					}
-				})
-			})
-		})
-		wg.Wait()
+		fetches.EachRecord(consumer.runtime.enqueue)
 	}
 }
 
-func (s *Server) retryRecord(ctx context.Context, consumer *kgo.Client, record *kgo.Record) {
+func (s *Server) processPartitionRecord(worker *partitionWorker, record *kgo.Record) bool {
+	permanent, err := s.dispatchRecord(worker.ctx, record)
+	if err != nil && !permanent {
+		worker.runtime.pause(worker)
+		permanent, err = s.retryRecord(worker.ctx, record)
+	}
+	if worker.ctx.Err() != nil {
+		return false
+	}
+	if err != nil {
+		if !permanent {
+			return false
+		}
+		logx.WithContext(worker.ctx).Errorw("drop invalid dispatcher event",
+			logx.Field("topic", record.Topic),
+			logx.Field("partition", record.Partition),
+			logx.Field("offset", record.Offset),
+			logx.Field("error", err),
+		)
+	}
+	if !worker.commit(record) {
+		return false
+	}
+	worker.runtime.afterProcessed(worker)
+	return true
+}
+
+func (s *Server) retryRecord(ctx context.Context, record *kgo.Record) (bool, error) {
 	delay := s.retryMin()
 	for ctx.Err() == nil {
 		logx.WithContext(ctx).Errorw("retry dispatcher event",
@@ -220,18 +528,16 @@ func (s *Server) retryRecord(ctx context.Context, consumer *kgo.Client, record *
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return
+			return false, ctx.Err()
 		case <-timer.C:
 		}
 		permanent, err := s.dispatchRecord(ctx, record)
 		if err == nil || permanent {
-			if err := consumer.CommitRecords(ctx, record); err != nil && ctx.Err() == nil {
-				logx.WithContext(ctx).Errorw("commit retried dispatcher event", logx.Field("error", err))
-			}
-			return
+			return permanent, err
 		}
 		delay = min(delay*2, s.retryMax())
 	}
+	return false, ctx.Err()
 }
 
 func (s *Server) dispatchRecord(ctx context.Context, record *kgo.Record) (permanent bool, err error) {

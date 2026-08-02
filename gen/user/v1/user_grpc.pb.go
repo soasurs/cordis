@@ -47,19 +47,27 @@ const (
 // UserServiceClient is the client API for UserService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// UserService owns user identity and profile records, usernames, and
+// relationships. Authentication credentials live in the authenticator service.
 type UserServiceClient interface {
+	// CreateUser creates the identity record backing a new account.
 	CreateUser(ctx context.Context, in *CreateUserRequest, opts ...grpc.CallOption) (*CreateUserResponse, error)
+	// GetUser returns the private identity by user ID or email.
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	// GetUserProfile returns one public profile.
 	GetUserProfile(ctx context.Context, in *GetUserProfileRequest, opts ...grpc.CallOption) (*GetUserProfileResponse, error)
 	// BatchGetUserProfiles returns the existing public profiles for up to 100
 	// user IDs. Results are keyed by UserProfile.user_id and may be reordered.
 	BatchGetUserProfiles(ctx context.Context, in *BatchGetUserProfilesRequest, opts ...grpc.CallOption) (*BatchGetUserProfilesResponse, error)
 	// GetUserProfileByUsername resolves the globally unique handle.
 	GetUserProfileByUsername(ctx context.Context, in *GetUserProfileByUsernameRequest, opts ...grpc.CallOption) (*GetUserProfileByUsernameResponse, error)
+	// CheckEmailAvailability reports whether an email is already registered.
 	CheckEmailAvailability(ctx context.Context, in *CheckEmailAvailabilityRequest, opts ...grpc.CallOption) (*CheckEmailAvailabilityResponse, error)
 	// CheckUsernameAvailability reports whether a normalized handle is free.
 	// Invalid usernames are rejected; taken handles return available=false.
 	CheckUsernameAvailability(ctx context.Context, in *CheckUsernameAvailabilityRequest, opts ...grpc.CallOption) (*CheckUsernameAvailabilityResponse, error)
+	// UpdateEmail replaces one user's email address.
 	UpdateEmail(ctx context.Context, in *UpdateEmailRequest, opts ...grpc.CallOption) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
 	// still the user's current email.
@@ -79,14 +87,20 @@ type UserServiceClient interface {
 	// UpdateUsername replaces the unique handle; the old handle is released
 	// immediately.
 	UpdateUsername(ctx context.Context, in *UpdateUsernameRequest, opts ...grpc.CallOption) (*UpdateUsernameResponse, error)
+	// SendFriendRequest creates a pending outgoing request between two users.
 	SendFriendRequest(ctx context.Context, in *SendFriendRequestRequest, opts ...grpc.CallOption) (*SendFriendRequestResponse, error)
+	// AcceptFriendRequest turns a pending incoming request into a friendship.
 	AcceptFriendRequest(ctx context.Context, in *AcceptFriendRequestRequest, opts ...grpc.CallOption) (*AcceptFriendRequestResponse, error)
+	// DeclineFriendRequest removes a pending incoming request.
 	DeclineFriendRequest(ctx context.Context, in *DeclineFriendRequestRequest, opts ...grpc.CallOption) (*DeclineFriendRequestResponse, error)
 	// RemoveFriend deletes a friendship or retracts a pending request in
 	// either direction.
 	RemoveFriend(ctx context.Context, in *RemoveFriendRequest, opts ...grpc.CallOption) (*RemoveFriendResponse, error)
+	// BlockUser creates a one-directional block.
 	BlockUser(ctx context.Context, in *BlockUserRequest, opts ...grpc.CallOption) (*BlockUserResponse, error)
+	// UnblockUser removes a previous block.
 	UnblockUser(ctx context.Context, in *UnblockUserRequest, opts ...grpc.CallOption) (*UnblockUserResponse, error)
+	// ListRelationships pages one user's relationships.
 	ListRelationships(ctx context.Context, in *ListRelationshipsRequest, opts ...grpc.CallOption) (*ListRelationshipsResponse, error)
 	// CheckRelationships is an internal batch lookup for other services,
 	// primarily to enforce blocks.
@@ -334,19 +348,27 @@ func (c *userServiceClient) CheckRelationships(ctx context.Context, in *CheckRel
 // UserServiceServer is the server API for UserService service.
 // All implementations should embed UnimplementedUserServiceServer
 // for forward compatibility.
+//
+// UserService owns user identity and profile records, usernames, and
+// relationships. Authentication credentials live in the authenticator service.
 type UserServiceServer interface {
+	// CreateUser creates the identity record backing a new account.
 	CreateUser(context.Context, *CreateUserRequest) (*CreateUserResponse, error)
+	// GetUser returns the private identity by user ID or email.
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	// GetUserProfile returns one public profile.
 	GetUserProfile(context.Context, *GetUserProfileRequest) (*GetUserProfileResponse, error)
 	// BatchGetUserProfiles returns the existing public profiles for up to 100
 	// user IDs. Results are keyed by UserProfile.user_id and may be reordered.
 	BatchGetUserProfiles(context.Context, *BatchGetUserProfilesRequest) (*BatchGetUserProfilesResponse, error)
 	// GetUserProfileByUsername resolves the globally unique handle.
 	GetUserProfileByUsername(context.Context, *GetUserProfileByUsernameRequest) (*GetUserProfileByUsernameResponse, error)
+	// CheckEmailAvailability reports whether an email is already registered.
 	CheckEmailAvailability(context.Context, *CheckEmailAvailabilityRequest) (*CheckEmailAvailabilityResponse, error)
 	// CheckUsernameAvailability reports whether a normalized handle is free.
 	// Invalid usernames are rejected; taken handles return available=false.
 	CheckUsernameAvailability(context.Context, *CheckUsernameAvailabilityRequest) (*CheckUsernameAvailabilityResponse, error)
+	// UpdateEmail replaces one user's email address.
 	UpdateEmail(context.Context, *UpdateEmailRequest) (*UpdateEmailResponse, error)
 	// MarkEmailVerified records verification only while the supplied email is
 	// still the user's current email.
@@ -366,14 +388,20 @@ type UserServiceServer interface {
 	// UpdateUsername replaces the unique handle; the old handle is released
 	// immediately.
 	UpdateUsername(context.Context, *UpdateUsernameRequest) (*UpdateUsernameResponse, error)
+	// SendFriendRequest creates a pending outgoing request between two users.
 	SendFriendRequest(context.Context, *SendFriendRequestRequest) (*SendFriendRequestResponse, error)
+	// AcceptFriendRequest turns a pending incoming request into a friendship.
 	AcceptFriendRequest(context.Context, *AcceptFriendRequestRequest) (*AcceptFriendRequestResponse, error)
+	// DeclineFriendRequest removes a pending incoming request.
 	DeclineFriendRequest(context.Context, *DeclineFriendRequestRequest) (*DeclineFriendRequestResponse, error)
 	// RemoveFriend deletes a friendship or retracts a pending request in
 	// either direction.
 	RemoveFriend(context.Context, *RemoveFriendRequest) (*RemoveFriendResponse, error)
+	// BlockUser creates a one-directional block.
 	BlockUser(context.Context, *BlockUserRequest) (*BlockUserResponse, error)
+	// UnblockUser removes a previous block.
 	UnblockUser(context.Context, *UnblockUserRequest) (*UnblockUserResponse, error)
+	// ListRelationships pages one user's relationships.
 	ListRelationships(context.Context, *ListRelationshipsRequest) (*ListRelationshipsResponse, error)
 	// CheckRelationships is an internal batch lookup for other services,
 	// primarily to enforce blocks.

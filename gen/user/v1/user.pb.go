@@ -25,13 +25,16 @@ const (
 type RelationshipType int32
 
 const (
+	// Zero value; no relationship exists.
 	RelationshipType_RELATIONSHIP_TYPE_UNSPECIFIED RelationshipType = 0
 	// The user sent a friend request that is still pending.
 	RelationshipType_RELATIONSHIP_TYPE_OUTGOING RelationshipType = 1
 	// The user received a friend request that is still pending.
 	RelationshipType_RELATIONSHIP_TYPE_INCOMING RelationshipType = 2
-	RelationshipType_RELATIONSHIP_TYPE_FRIEND   RelationshipType = 3
-	RelationshipType_RELATIONSHIP_TYPE_BLOCKED  RelationshipType = 4
+	// The users are friends.
+	RelationshipType_RELATIONSHIP_TYPE_FRIEND RelationshipType = 3
+	// The user blocked the target.
+	RelationshipType_RELATIONSHIP_TYPE_BLOCKED RelationshipType = 4
 )
 
 // Enum value maps for RelationshipType.
@@ -272,6 +275,8 @@ func (b0 Relationship_builder) Build() *Relationship {
 	return m0
 }
 
+// User is the private identity record of one account.
+// All timestamps are Unix time in milliseconds.
 type User struct {
 	state                      protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId          int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -461,10 +466,15 @@ func (x *User) ClearEmailVerifiedAt() {
 type User_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId    *int64
-	Email     *string
+	// ID of the user.
+	UserId *int64
+	// Login email of the user.
+	Email *string
+	// Time the account was created.
 	CreatedAt *int64
+	// Time of the last identity update.
 	UpdatedAt *int64
+	// Non-zero after the account was soft-deleted.
 	DeletedAt *int64
 	// Zero when the current email has not been verified.
 	EmailVerifiedAt *int64
@@ -501,6 +511,8 @@ func (b0 User_builder) Build() *User {
 	return m0
 }
 
+// UserProfile is the public profile of one user.
+// All timestamps are Unix time in milliseconds.
 type UserProfile struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -746,14 +758,17 @@ func (x *UserProfile) ClearBio() {
 type UserProfile_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// ID of the user.
 	UserId *int64
-	Name   *string
+	// Display name of the user.
+	Name *string
 	// Zero means the user has no avatar. The public API exposes the deterministic
 	// CDN path contract; this service persists only the asset ID.
 	AvatarAssetId *int64
 	CreatedAt     *int64
 	UpdatedAt     *int64
-	DeletedAt     *int64
+	// Non-zero after the profile was soft-deleted.
+	DeletedAt *int64
 	// Globally unique lowercase handle.
 	Username *string
 	// Public about text. Empty means the user has no bio. Limited to 190 Unicode
@@ -802,6 +817,7 @@ func (b0 UserProfile_builder) Build() *UserProfile {
 
 // User identity is owned by this service; authentication credentials are
 // owned by the authenticator service.
+// CreateUserRequest creates the identity for a new account.
 type CreateUserRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
@@ -922,8 +938,11 @@ func (x *CreateUserRequest) ClearUsername() {
 type CreateUserRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Name     *string
-	Email    *string
+	// Display name of the new user.
+	Name *string
+	// Login email of the new user.
+	Email *string
+	// Globally unique handle.
 	Username *string
 }
 
@@ -946,6 +965,7 @@ func (b0 CreateUserRequest_builder) Build() *CreateUserRequest {
 	return m0
 }
 
+// CreateUserResponse returns the stored identity.
 type CreateUserResponse struct {
 	state           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_User *User                  `protobuf:"bytes,1,opt,name=user"`
@@ -1014,6 +1034,7 @@ func (b0 CreateUserResponse_builder) Build() *CreateUserResponse {
 	return m0
 }
 
+// GetUserRequest selects one identity by user ID or email.
 type GetUserRequest struct {
 	state               protoimpl.MessageState    `protogen:"opaque.v1"`
 	xxx_hidden_Identity isGetUserRequest_Identity `protobuf_oneof:"identity"`
@@ -1177,6 +1198,7 @@ func (*getUserRequest_UserId) isGetUserRequest_Identity() {}
 
 func (*getUserRequest_Email) isGetUserRequest_Identity() {}
 
+// GetUserResponse returns the requested identity.
 type GetUserResponse struct {
 	state           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_User *User                  `protobuf:"bytes,1,opt,name=user"`
@@ -1245,6 +1267,7 @@ func (b0 GetUserResponse_builder) Build() *GetUserResponse {
 	return m0
 }
 
+// GetUserProfileRequest fetches one public profile.
 type GetUserProfileRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1306,6 +1329,7 @@ func (x *GetUserProfileRequest) ClearUserId() {
 type GetUserProfileRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User whose profile is fetched.
 	UserId *int64
 }
 
@@ -1320,6 +1344,7 @@ func (b0 GetUserProfileRequest_builder) Build() *GetUserProfileRequest {
 	return m0
 }
 
+// GetUserProfileResponse returns the public profile.
 type GetUserProfileResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
@@ -1388,6 +1413,7 @@ func (b0 GetUserProfileResponse_builder) Build() *GetUserProfileResponse {
 	return m0
 }
 
+// BatchGetUserProfilesRequest fetches up to 100 public profiles.
 type BatchGetUserProfilesRequest struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
@@ -1434,6 +1460,7 @@ func (x *BatchGetUserProfilesRequest) SetUserIds(v []int64) {
 type BatchGetUserProfilesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User IDs whose profiles are fetched.
 	UserIds []int64
 }
 
@@ -1445,6 +1472,8 @@ func (b0 BatchGetUserProfilesRequest_builder) Build() *BatchGetUserProfilesReque
 	return m0
 }
 
+// BatchGetUserProfilesResponse returns the existing profiles; missing users
+// are omitted.
 type BatchGetUserProfilesResponse struct {
 	state               protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Profiles *[]*UserProfile        `protobuf:"bytes,1,rep,name=profiles"`
@@ -1504,6 +1533,7 @@ func (b0 BatchGetUserProfilesResponse_builder) Build() *BatchGetUserProfilesResp
 	return m0
 }
 
+// CheckEmailAvailabilityRequest checks one email address.
 type CheckEmailAvailabilityRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
@@ -1568,6 +1598,7 @@ func (x *CheckEmailAvailabilityRequest) ClearEmail() {
 type CheckEmailAvailabilityRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Email address to check.
 	Email *string
 }
 
@@ -1582,6 +1613,7 @@ func (b0 CheckEmailAvailabilityRequest_builder) Build() *CheckEmailAvailabilityR
 	return m0
 }
 
+// CheckEmailAvailabilityResponse reports whether the email is free.
 type CheckEmailAvailabilityResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Available   bool                   `protobuf:"varint,1,opt,name=available"`
@@ -1643,6 +1675,7 @@ func (x *CheckEmailAvailabilityResponse) ClearAvailable() {
 type CheckEmailAvailabilityResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// True when the email is not already registered.
 	Available *bool
 }
 
@@ -1657,6 +1690,7 @@ func (b0 CheckEmailAvailabilityResponse_builder) Build() *CheckEmailAvailability
 	return m0
 }
 
+// CheckUsernameAvailabilityRequest checks one handle.
 type CheckUsernameAvailabilityRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Username    *string                `protobuf:"bytes,1,opt,name=username"`
@@ -1721,6 +1755,7 @@ func (x *CheckUsernameAvailabilityRequest) ClearUsername() {
 type CheckUsernameAvailabilityRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Handle to check.
 	Username *string
 }
 
@@ -1735,6 +1770,7 @@ func (b0 CheckUsernameAvailabilityRequest_builder) Build() *CheckUsernameAvailab
 	return m0
 }
 
+// CheckUsernameAvailabilityResponse reports whether the handle is free.
 type CheckUsernameAvailabilityResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Available   bool                   `protobuf:"varint,1,opt,name=available"`
@@ -1796,6 +1832,7 @@ func (x *CheckUsernameAvailabilityResponse) ClearAvailable() {
 type CheckUsernameAvailabilityResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// True when the handle is valid and not taken.
 	Available *bool
 }
 
@@ -1810,6 +1847,7 @@ func (b0 CheckUsernameAvailabilityResponse_builder) Build() *CheckUsernameAvaila
 	return m0
 }
 
+// UpdateEmailRequest replaces one user's email address.
 type UpdateEmailRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1899,8 +1937,10 @@ func (x *UpdateEmailRequest) ClearEmail() {
 type UpdateEmailRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User whose email changes.
 	UserId *int64
-	Email  *string
+	// New email address. Verification is required before it becomes active.
+	Email *string
 }
 
 func (b0 UpdateEmailRequest_builder) Build() *UpdateEmailRequest {
@@ -1918,6 +1958,7 @@ func (b0 UpdateEmailRequest_builder) Build() *UpdateEmailRequest {
 	return m0
 }
 
+// UpdateEmailResponse returns the updated identity.
 type UpdateEmailResponse struct {
 	state           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_User *User                  `protobuf:"bytes,1,opt,name=user"`
@@ -1986,6 +2027,7 @@ func (b0 UpdateEmailResponse_builder) Build() *UpdateEmailResponse {
 	return m0
 }
 
+// MarkEmailVerifiedRequest records email verification for one user.
 type MarkEmailVerifiedRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -2100,9 +2142,11 @@ func (x *MarkEmailVerifiedRequest) ClearVerifiedAt() {
 type MarkEmailVerifiedRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User whose email is verified.
 	UserId *int64
 	// The email address the verification token was issued for.
-	Email      *string
+	Email *string
+	// Verification time as Unix milliseconds.
 	VerifiedAt *int64
 }
 
@@ -2125,6 +2169,7 @@ func (b0 MarkEmailVerifiedRequest_builder) Build() *MarkEmailVerifiedRequest {
 	return m0
 }
 
+// MarkEmailVerifiedResponse confirms verification was recorded.
 type MarkEmailVerifiedResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2200,6 +2245,7 @@ func (b0 MarkEmailVerifiedResponse_builder) Build() *MarkEmailVerifiedResponse {
 	return m0
 }
 
+// UpdateUserProfileRequest replaces present public profile fields.
 type UpdateUserProfileRequest struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -2342,6 +2388,7 @@ func (x *UpdateUserProfileRequest) ClearAvatarAssetId() {
 type UpdateUserProfileRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User whose profile is updated.
 	UserId *int64
 	// Optional replacement fields. Omitted fields keep their stored values.
 	// An explicitly present empty bio clears the bio. An explicitly present
@@ -2376,6 +2423,7 @@ func (b0 UpdateUserProfileRequest_builder) Build() *UpdateUserProfileRequest {
 	return m0
 }
 
+// UpdateUserProfileResponse returns the updated profile.
 type UpdateUserProfileResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
@@ -3174,6 +3222,7 @@ func (b0 AbortAvatarUploadResponse_builder) Build() *AbortAvatarUploadResponse {
 	return m0
 }
 
+// GetAvatarUploadConstraintsRequest is empty; constraints are global.
 type GetAvatarUploadConstraintsRequest struct {
 	state         protoimpl.MessageState `protogen:"opaque.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -3217,6 +3266,7 @@ func (b0 GetAvatarUploadConstraintsRequest_builder) Build() *GetAvatarUploadCons
 	return m0
 }
 
+// AvatarUploadConstraints describes the current avatar upload limits.
 type AvatarUploadConstraints struct {
 	state                          protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_MaxFileSizeBytes    int64                  `protobuf:"varint,1,opt,name=max_file_size_bytes,json=maxFileSizeBytes"`
@@ -3365,10 +3415,15 @@ func (x *AvatarUploadConstraints) ClearMaxPixels() {
 type AvatarUploadConstraints_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	MaxFileSizeBytes    *int64
-	MaxWidth            *int32
-	MaxHeight           *int32
-	MaxPixels           *int64
+	// Maximum accepted file size in bytes.
+	MaxFileSizeBytes *int64
+	// Maximum accepted width in pixels.
+	MaxWidth *int32
+	// Maximum accepted height in pixels.
+	MaxHeight *int32
+	// Maximum accepted width * height product.
+	MaxPixels *int64
+	// Canonical lowercase MIME types accepted for avatar uploads.
 	AllowedContentTypes []string
 }
 
@@ -3396,6 +3451,7 @@ func (b0 AvatarUploadConstraints_builder) Build() *AvatarUploadConstraints {
 	return m0
 }
 
+// GetAvatarUploadConstraintsResponse returns the avatar upload limits.
 type GetAvatarUploadConstraintsResponse struct {
 	state                  protoimpl.MessageState   `protogen:"opaque.v1"`
 	xxx_hidden_Constraints *AvatarUploadConstraints `protobuf:"bytes,1,opt,name=constraints"`
@@ -3464,6 +3520,7 @@ func (b0 GetAvatarUploadConstraintsResponse_builder) Build() *GetAvatarUploadCon
 	return m0
 }
 
+// GetUserProfileByUsernameRequest resolves one handle.
 type GetUserProfileByUsernameRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Username    *string                `protobuf:"bytes,1,opt,name=username"`
@@ -3528,6 +3585,7 @@ func (x *GetUserProfileByUsernameRequest) ClearUsername() {
 type GetUserProfileByUsernameRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Globally unique lowercase handle.
 	Username *string
 }
 
@@ -3542,6 +3600,7 @@ func (b0 GetUserProfileByUsernameRequest_builder) Build() *GetUserProfileByUsern
 	return m0
 }
 
+// GetUserProfileByUsernameResponse returns the profile behind the handle.
 type GetUserProfileByUsernameResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`
@@ -3610,6 +3669,7 @@ func (b0 GetUserProfileByUsernameResponse_builder) Build() *GetUserProfileByUser
 	return m0
 }
 
+// SendFriendRequestRequest creates a pending outgoing request.
 type SendFriendRequestRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3696,7 +3756,9 @@ func (x *SendFriendRequestRequest) ClearTargetId() {
 type SendFriendRequestRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User sending the request.
+	UserId *int64
+	// User receiving the request.
 	TargetId *int64
 }
 
@@ -3715,6 +3777,7 @@ func (b0 SendFriendRequestRequest_builder) Build() *SendFriendRequestRequest {
 	return m0
 }
 
+// SendFriendRequestResponse returns the resulting relationship.
 type SendFriendRequestResponse struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Relationship *Relationship          `protobuf:"bytes,1,opt,name=relationship"`
@@ -3785,6 +3848,7 @@ func (b0 SendFriendRequestResponse_builder) Build() *SendFriendRequestResponse {
 	return m0
 }
 
+// AcceptFriendRequestRequest accepts a pending incoming request.
 type AcceptFriendRequestRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3871,7 +3935,9 @@ func (x *AcceptFriendRequestRequest) ClearTargetId() {
 type AcceptFriendRequestRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User accepting the request.
+	UserId *int64
+	// User whose incoming request is accepted.
 	TargetId *int64
 }
 
@@ -3890,6 +3956,7 @@ func (b0 AcceptFriendRequestRequest_builder) Build() *AcceptFriendRequestRequest
 	return m0
 }
 
+// AcceptFriendRequestResponse returns the updated relationship.
 type AcceptFriendRequestResponse struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Relationship *Relationship          `protobuf:"bytes,1,opt,name=relationship"`
@@ -3958,6 +4025,7 @@ func (b0 AcceptFriendRequestResponse_builder) Build() *AcceptFriendRequestRespon
 	return m0
 }
 
+// DeclineFriendRequestRequest declines a pending incoming request.
 type DeclineFriendRequestRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4044,7 +4112,9 @@ func (x *DeclineFriendRequestRequest) ClearTargetId() {
 type DeclineFriendRequestRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User declining the request.
+	UserId *int64
+	// User whose incoming request is declined.
 	TargetId *int64
 }
 
@@ -4063,6 +4133,7 @@ func (b0 DeclineFriendRequestRequest_builder) Build() *DeclineFriendRequestReque
 	return m0
 }
 
+// DeclineFriendRequestResponse confirms the decline.
 type DeclineFriendRequestResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -4138,6 +4209,7 @@ func (b0 DeclineFriendRequestResponse_builder) Build() *DeclineFriendRequestResp
 	return m0
 }
 
+// RemoveFriendRequest removes a friendship or retracts a pending request.
 type RemoveFriendRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4224,7 +4296,9 @@ func (x *RemoveFriendRequest) ClearTargetId() {
 type RemoveFriendRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User removing the relationship.
+	UserId *int64
+	// User to disconnect from.
 	TargetId *int64
 }
 
@@ -4243,6 +4317,7 @@ func (b0 RemoveFriendRequest_builder) Build() *RemoveFriendRequest {
 	return m0
 }
 
+// RemoveFriendResponse confirms removal.
 type RemoveFriendResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -4318,6 +4393,7 @@ func (b0 RemoveFriendResponse_builder) Build() *RemoveFriendResponse {
 	return m0
 }
 
+// BlockUserRequest creates a one-directional block.
 type BlockUserRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4404,7 +4480,9 @@ func (x *BlockUserRequest) ClearTargetId() {
 type BlockUserRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User creating the block.
+	UserId *int64
+	// User to block.
 	TargetId *int64
 }
 
@@ -4423,6 +4501,7 @@ func (b0 BlockUserRequest_builder) Build() *BlockUserRequest {
 	return m0
 }
 
+// BlockUserResponse returns the blocking relationship.
 type BlockUserResponse struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Relationship *Relationship          `protobuf:"bytes,1,opt,name=relationship"`
@@ -4491,6 +4570,7 @@ func (b0 BlockUserResponse_builder) Build() *BlockUserResponse {
 	return m0
 }
 
+// UnblockUserRequest removes a previous block.
 type UnblockUserRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4577,7 +4657,9 @@ func (x *UnblockUserRequest) ClearTargetId() {
 type UnblockUserRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User lifting the block.
+	UserId *int64
+	// User to unblock.
 	TargetId *int64
 }
 
@@ -4596,6 +4678,7 @@ func (b0 UnblockUserRequest_builder) Build() *UnblockUserRequest {
 	return m0
 }
 
+// UnblockUserResponse confirms unblocking.
 type UnblockUserResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -4671,6 +4754,7 @@ func (b0 UnblockUserResponse_builder) Build() *UnblockUserResponse {
 	return m0
 }
 
+// ListRelationshipsRequest pages one user's relationships.
 type ListRelationshipsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4812,6 +4896,7 @@ func (x *ListRelationshipsRequest) ClearLimit() {
 type ListRelationshipsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User whose relationships are listed.
 	UserId *int64
 	// Optional filter; unspecified returns every type.
 	Type *RelationshipType
@@ -4819,7 +4904,8 @@ type ListRelationshipsRequest_builder struct {
 	// Omit (unset) to start from the first page. Pass the value through
 	// unchanged; do not parse it.
 	Cursor *string
-	Limit  *int32
+	// Maximum results per page. Zero uses the default of 50; maximum is 100.
+	Limit *int32
 }
 
 func (b0 ListRelationshipsRequest_builder) Build() *ListRelationshipsRequest {
@@ -4845,6 +4931,7 @@ func (b0 ListRelationshipsRequest_builder) Build() *ListRelationshipsRequest {
 	return m0
 }
 
+// ListRelationshipsResponse returns a page of relationships.
 type ListRelationshipsResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Relationships *[]*Relationship       `protobuf:"bytes,1,rep,name=relationships"`
@@ -4943,6 +5030,8 @@ func (b0 ListRelationshipsResponse_builder) Build() *ListRelationshipsResponse {
 	return m0
 }
 
+// CheckRelationshipsRequest batch-looks up relationships between one user and
+// a bounded set of targets.
 type CheckRelationshipsRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId         int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -5041,7 +5130,9 @@ func (x *CheckRelationshipsRequest) ClearIncludeReverse() {
 type CheckRelationshipsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId    *int64
+	// User at the center of the lookup.
+	UserId *int64
+	// Candidate target user IDs.
 	TargetIds []int64
 	// When set, rows where a target points back at user_id are also returned
 	// (their user_id/target_id are the target's perspective). Both directions
@@ -5066,6 +5157,7 @@ func (b0 CheckRelationshipsRequest_builder) Build() *CheckRelationshipsRequest {
 	return m0
 }
 
+// CheckRelationshipsResponse returns the existing relationships.
 type CheckRelationshipsResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Relationships *[]*Relationship       `protobuf:"bytes,1,rep,name=relationships"`
@@ -5126,6 +5218,7 @@ func (b0 CheckRelationshipsResponse_builder) Build() *CheckRelationshipsResponse
 	return m0
 }
 
+// UpdateUsernameRequest replaces one user's handle.
 type UpdateUsernameRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -5215,7 +5308,9 @@ func (x *UpdateUsernameRequest) ClearUsername() {
 type UpdateUsernameRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User whose handle changes.
+	UserId *int64
+	// New globally unique lowercase handle.
 	Username *string
 }
 
@@ -5234,6 +5329,7 @@ func (b0 UpdateUsernameRequest_builder) Build() *UpdateUsernameRequest {
 	return m0
 }
 
+// UpdateUsernameResponse returns the updated profile.
 type UpdateUsernameResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Profile *UserProfile           `protobuf:"bytes,1,opt,name=profile"`

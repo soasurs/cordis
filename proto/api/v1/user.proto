@@ -40,14 +40,20 @@ service UserService {
   // UpdateUsername replaces the bearer token owner's unique handle; the old
   // handle is released immediately.
   rpc UpdateUsername(UpdateUsernameRequest) returns (UpdateUsernameResponse);
+  // SendFriendRequest sends a friend request to one user.
   rpc SendFriendRequest(SendFriendRequestRequest) returns (SendFriendRequestResponse);
+  // AcceptFriendRequest accepts a pending incoming friend request.
   rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
+  // DeclineFriendRequest declines a pending incoming friend request.
   rpc DeclineFriendRequest(DeclineFriendRequestRequest) returns (DeclineFriendRequestResponse);
   // RemoveFriend deletes a friendship or retracts a pending request in
   // either direction.
   rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  // BlockUser blocks one user and hides them from the caller.
   rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+  // UnblockUser lifts a previous block.
   rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+  // ListRelationships pages the caller's relationships.
   rpc ListRelationships(ListRelationshipsRequest) returns (ListRelationshipsResponse);
 }
 
@@ -82,37 +88,51 @@ message UserProfile {
 // The current user is derived from the Authorization bearer token.
 message GetCurrentUserRequest {}
 
+// GetCurrentUserResponse returns the private account and public profile.
 message GetCurrentUserResponse {
   User user = 1;
   UserProfile profile = 2;
 }
 
+// GetUserProfileRequest fetches another user's public profile.
 message GetUserProfileRequest {
+  // User whose public profile is fetched.
   int64 user_id = 1;
 }
 
+// GetUserProfileResponse returns the requested public profile.
 message GetUserProfileResponse {
   UserProfile profile = 1;
 }
 
+// CheckEmailAvailabilityRequest checks whether an email can still register.
 message CheckEmailAvailabilityRequest {
+  // Email address to check.
   string email = 1;
 }
 
+// CheckEmailAvailabilityResponse reports whether the email is free.
 message CheckEmailAvailabilityResponse {
+  // True when the email is not already registered.
   bool available = 1;
 }
 
+// CheckUsernameAvailabilityRequest checks whether a handle is available.
 message CheckUsernameAvailabilityRequest {
+  // Handle to check.
   string username = 1;
 }
 
+// CheckUsernameAvailabilityResponse reports whether the handle is free.
 message CheckUsernameAvailabilityResponse {
+  // True when the handle is valid and not taken.
   bool available = 1;
 }
 
+// GetAvatarUploadConstraintsRequest is empty; constraints are global.
 message GetAvatarUploadConstraintsRequest {}
 
+// AvatarUploadConstraints describes the current avatar direct-upload limits.
 message AvatarUploadConstraints {
   // Maximum accepted avatar file size in bytes.
   int64 max_file_size_bytes = 1;
@@ -126,18 +146,24 @@ message AvatarUploadConstraints {
   repeated string allowed_content_types = 5;
 }
 
+// GetAvatarUploadConstraintsResponse returns the avatar upload limits.
 message GetAvatarUploadConstraintsResponse {
   AvatarUploadConstraints constraints = 1;
 }
 
+// UpdateEmailRequest changes the bearer token owner's email address.
 message UpdateEmailRequest {
+  // New email address. Verification is required before it becomes active.
   string email = 1;
 }
 
+// UpdateEmailResponse returns the updated account.
 message UpdateEmailResponse {
   User user = 1;
 }
 
+// UpdateUserProfileRequest replaces present public profile fields of the
+// bearer token owner.
 message UpdateUserProfileRequest {
   // Optional replacement fields. Omitted fields keep their stored values.
   // An explicitly present empty bio clears the bio. An explicitly present
@@ -149,6 +175,7 @@ message UpdateUserProfileRequest {
   int64 avatar_asset_id = 3;
 }
 
+// UpdateUserProfileResponse returns the updated public profile.
 message UpdateUserProfileResponse {
   UserProfile profile = 1;
 }
@@ -202,23 +229,31 @@ message AbortAvatarUploadRequest {
 // AbortAvatarUploadResponse is empty because abort has no mutable result.
 message AbortAvatarUploadResponse {}
 
+// ChangePasswordRequest changes the bearer token owner's password after
+// verifying the old one.
 message ChangePasswordRequest {
+  // Current password used to verify the account owner.
   string old_password = 1;
+  // Replacement password.
   string new_password = 2;
 }
 
+// ChangePasswordResponse confirms the password change.
 message ChangePasswordResponse {
   bool ok = 1;
 }
 
 // RelationshipType mirrors user.v1.RelationshipType.
 enum RelationshipType {
+  // Zero value; no relationship exists.
   RELATIONSHIP_TYPE_UNSPECIFIED = 0;
   // The caller sent a friend request that is still pending.
   RELATIONSHIP_TYPE_OUTGOING = 1;
   // The caller received a friend request that is still pending.
   RELATIONSHIP_TYPE_INCOMING = 2;
+  // The caller and target are friends.
   RELATIONSHIP_TYPE_FRIEND = 3;
+  // The caller blocked the target.
   RELATIONSHIP_TYPE_BLOCKED = 4;
 }
 
@@ -233,64 +268,86 @@ message Relationship {
   UserProfile profile = 5;
 }
 
+// LookupUserRequest resolves one handle to a public profile.
 message LookupUserRequest {
+  // Handle to resolve.
   string username = 1;
 }
 
+// LookupUserResponse returns the profile behind the handle.
 message LookupUserResponse {
   UserProfile profile = 1;
 }
 
+// SendFriendRequestRequest sends a friend request to one user.
 message SendFriendRequestRequest {
+  // User to send the request to.
   int64 target_id = 1;
 }
 
+// SendFriendRequestResponse returns the resulting relationship.
 message SendFriendRequestResponse {
   // Outgoing after a fresh request, or friend when the target had already
   // sent a request the other way.
   Relationship relationship = 1;
 }
 
+// AcceptFriendRequestRequest accepts a pending incoming friend request.
 message AcceptFriendRequestRequest {
+  // User whose incoming request is accepted.
   int64 target_id = 1;
 }
 
+// AcceptFriendRequestResponse returns the updated relationship.
 message AcceptFriendRequestResponse {
   Relationship relationship = 1;
 }
 
+// DeclineFriendRequestRequest declines a pending incoming friend request.
 message DeclineFriendRequestRequest {
+  // User whose incoming request is declined.
   int64 target_id = 1;
 }
 
+// DeclineFriendRequestResponse confirms the decline.
 message DeclineFriendRequestResponse {
   bool ok = 1;
 }
 
+// RemoveFriendRequest removes a friendship or retracts a pending request.
 message RemoveFriendRequest {
+  // User to disconnect from.
   int64 target_id = 1;
 }
 
+// RemoveFriendResponse confirms removal.
 message RemoveFriendResponse {
   bool ok = 1;
 }
 
+// BlockUserRequest blocks one user.
 message BlockUserRequest {
+  // User to block.
   int64 target_id = 1;
 }
 
+// BlockUserResponse returns the blocking relationship.
 message BlockUserResponse {
   Relationship relationship = 1;
 }
 
+// UnblockUserRequest unblocks one user.
 message UnblockUserRequest {
+  // User to unblock.
   int64 target_id = 1;
 }
 
+// UnblockUserResponse confirms unblocking.
 message UnblockUserResponse {
   bool ok = 1;
 }
 
+// ListRelationshipsRequest pages the caller's relationships.
 message ListRelationshipsRequest {
   // Optional filter; unspecified returns every type.
   RelationshipType type = 1;
@@ -298,9 +355,11 @@ message ListRelationshipsRequest {
   // Omit (unset) to start from the first page. Pass the value through
   // unchanged; do not parse it.
   string cursor = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
+// ListRelationshipsResponse returns a page of relationships.
 message ListRelationshipsResponse {
   repeated Relationship relationships = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -310,10 +369,13 @@ message ListRelationshipsResponse {
   string next_cursor = 2;
 }
 
+// UpdateUsernameRequest replaces the bearer token owner's handle.
 message UpdateUsernameRequest {
+  // New globally unique lowercase handle.
   string username = 1;
 }
 
+// UpdateUsernameResponse returns the updated public profile.
 message UpdateUsernameResponse {
   UserProfile profile = 1;
 }

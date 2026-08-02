@@ -43,9 +43,13 @@ const (
 // receives only channel_id as an opaque reference.
 type MessageServiceClient interface {
 	// Message
+	// CreateMessage stores one message authored by an authenticated user.
 	CreateMessage(ctx context.Context, in *CreateMessageRequest, opts ...grpc.CallOption) (*CreateMessageResponse, error)
+	// UpdateMessage edits present fields of one message.
 	UpdateMessage(ctx context.Context, in *UpdateMessageRequest, opts ...grpc.CallOption) (*UpdateMessageResponse, error)
+	// DeleteMessage soft-deletes one message.
 	DeleteMessage(ctx context.Context, in *DeleteMessageRequest, opts ...grpc.CallOption) (*DeleteMessageResponse, error)
+	// GetMessage returns one message after checking the caller's visibility.
 	GetMessage(ctx context.Context, in *GetMessageRequest, opts ...grpc.CallOption) (*GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered by id descending
 	// (newest first). Uses cursor-based pagination.
@@ -61,6 +65,7 @@ type MessageServiceClient interface {
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel between
 	// two friends.
 	CreateDmChannel(ctx context.Context, in *CreateDmChannelRequest, opts ...grpc.CallOption) (*CreateDmChannelResponse, error)
+	// ListDmChannels pages one user's 1:1 channels.
 	ListDmChannels(ctx context.Context, in *ListDmChannelsRequest, opts ...grpc.CallOption) (*ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(ctx context.Context, in *AckMessageRequest, opts ...grpc.CallOption) (*AckMessageResponse, error)
@@ -217,9 +222,13 @@ func (c *messageServiceClient) GetReadStates(ctx context.Context, in *GetReadSta
 // receives only channel_id as an opaque reference.
 type MessageServiceServer interface {
 	// Message
+	// CreateMessage stores one message authored by an authenticated user.
 	CreateMessage(context.Context, *CreateMessageRequest) (*CreateMessageResponse, error)
+	// UpdateMessage edits present fields of one message.
 	UpdateMessage(context.Context, *UpdateMessageRequest) (*UpdateMessageResponse, error)
+	// DeleteMessage soft-deletes one message.
 	DeleteMessage(context.Context, *DeleteMessageRequest) (*DeleteMessageResponse, error)
+	// GetMessage returns one message after checking the caller's visibility.
 	GetMessage(context.Context, *GetMessageRequest) (*GetMessageResponse, error)
 	// ListMessages returns messages in a channel ordered by id descending
 	// (newest first). Uses cursor-based pagination.
@@ -235,6 +244,7 @@ type MessageServiceServer interface {
 	// CreateDmChannel opens (or idempotently returns) the 1:1 channel between
 	// two friends.
 	CreateDmChannel(context.Context, *CreateDmChannelRequest) (*CreateDmChannelResponse, error)
+	// ListDmChannels pages one user's 1:1 channels.
 	ListDmChannels(context.Context, *ListDmChannelsRequest) (*ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(context.Context, *AckMessageRequest) (*AckMessageResponse, error)

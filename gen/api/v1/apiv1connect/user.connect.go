@@ -127,14 +127,20 @@ type UserServiceClient interface {
 	// UpdateUsername replaces the bearer token owner's unique handle; the old
 	// handle is released immediately.
 	UpdateUsername(context.Context, *v1.UpdateUsernameRequest) (*v1.UpdateUsernameResponse, error)
+	// SendFriendRequest sends a friend request to one user.
 	SendFriendRequest(context.Context, *v1.SendFriendRequestRequest) (*v1.SendFriendRequestResponse, error)
+	// AcceptFriendRequest accepts a pending incoming friend request.
 	AcceptFriendRequest(context.Context, *v1.AcceptFriendRequestRequest) (*v1.AcceptFriendRequestResponse, error)
+	// DeclineFriendRequest declines a pending incoming friend request.
 	DeclineFriendRequest(context.Context, *v1.DeclineFriendRequestRequest) (*v1.DeclineFriendRequestResponse, error)
 	// RemoveFriend deletes a friendship or retracts a pending request in
 	// either direction.
 	RemoveFriend(context.Context, *v1.RemoveFriendRequest) (*v1.RemoveFriendResponse, error)
+	// BlockUser blocks one user and hides them from the caller.
 	BlockUser(context.Context, *v1.BlockUserRequest) (*v1.BlockUserResponse, error)
+	// UnblockUser lifts a previous block.
 	UnblockUser(context.Context, *v1.UnblockUserRequest) (*v1.UnblockUserResponse, error)
+	// ListRelationships pages the caller's relationships.
 	ListRelationships(context.Context, *v1.ListRelationshipsRequest) (*v1.ListRelationshipsResponse, error)
 }
 
@@ -512,14 +518,20 @@ type UserServiceHandler interface {
 	// UpdateUsername replaces the bearer token owner's unique handle; the old
 	// handle is released immediately.
 	UpdateUsername(context.Context, *v1.UpdateUsernameRequest) (*v1.UpdateUsernameResponse, error)
+	// SendFriendRequest sends a friend request to one user.
 	SendFriendRequest(context.Context, *v1.SendFriendRequestRequest) (*v1.SendFriendRequestResponse, error)
+	// AcceptFriendRequest accepts a pending incoming friend request.
 	AcceptFriendRequest(context.Context, *v1.AcceptFriendRequestRequest) (*v1.AcceptFriendRequestResponse, error)
+	// DeclineFriendRequest declines a pending incoming friend request.
 	DeclineFriendRequest(context.Context, *v1.DeclineFriendRequestRequest) (*v1.DeclineFriendRequestResponse, error)
 	// RemoveFriend deletes a friendship or retracts a pending request in
 	// either direction.
 	RemoveFriend(context.Context, *v1.RemoveFriendRequest) (*v1.RemoveFriendResponse, error)
+	// BlockUser blocks one user and hides them from the caller.
 	BlockUser(context.Context, *v1.BlockUserRequest) (*v1.BlockUserResponse, error)
+	// UnblockUser lifts a previous block.
 	UnblockUser(context.Context, *v1.UnblockUserRequest) (*v1.UnblockUserResponse, error)
+	// ListRelationships pages the caller's relationships.
 	ListRelationships(context.Context, *v1.ListRelationshipsRequest) (*v1.ListRelationshipsResponse, error)
 }
 

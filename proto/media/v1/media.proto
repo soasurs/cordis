@@ -176,6 +176,8 @@ message GetImageUploadConstraintsRequest {
   reserved message_attachment;
 }
 
+// ImageUploadConstraints describes the accepted size and format limits for
+// one image upload purpose.
 message ImageUploadConstraints {
   // Maximum accepted image file size in bytes for this purpose.
   int64 max_file_size_bytes = 1;
@@ -189,6 +191,8 @@ message ImageUploadConstraints {
   repeated string allowed_content_types = 5;
 }
 
+// GetImageUploadConstraintsResponse returns the constraints for the requested
+// purpose.
 message GetImageUploadConstraintsResponse {
   ImageUploadConstraints constraints = 1;
 }

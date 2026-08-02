@@ -46,17 +46,32 @@ const (
 // AuthenticatorServiceClient is the client API for AuthenticatorService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// AuthenticatorService owns authentication credentials, sessions, and
+// two-factor state. User identity records live in the user service.
 type AuthenticatorServiceClient interface {
+	// Register creates an unverified account and returns nothing beyond
+	// acceptance; email verification is started separately.
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+	// Login verifies credentials and returns either a new authenticated session
+	// or a two-factor challenge.
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	// CompleteTwoFactorLogin finishes login with a TOTP or recovery code.
 	CompleteTwoFactorLogin(ctx context.Context, in *CompleteTwoFactorLoginRequest, opts ...grpc.CallOption) (*CompleteTwoFactorLoginResponse, error)
+	// Refresh rotates the refresh token and issues a new access token.
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
+	// Logout revokes the session behind a refresh token.
 	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*LogoutResponse, error)
+	// VerifyAccessToken validates an access token without rotating anything.
 	VerifyAccessToken(ctx context.Context, in *VerifyAccessTokenRequest, opts ...grpc.CallOption) (*VerifyAccessTokenResponse, error)
 	// AuthenticateCookie verifies a browser access token and transparently
 	// rotates the refresh token when the access token is absent or expired.
 	AuthenticateCookie(ctx context.Context, in *AuthenticateCookieRequest, opts ...grpc.CallOption) (*AuthenticateCookieResponse, error)
+	// CreateGatewayTicket mints a short-lived, single-use browser credential
+	// for one user session.
 	CreateGatewayTicket(ctx context.Context, in *CreateGatewayTicketRequest, opts ...grpc.CallOption) (*CreateGatewayTicketResponse, error)
+	// RedeemGatewayTicket consumes one gateway ticket and returns the session
+	// identity behind it.
 	RedeemGatewayTicket(ctx context.Context, in *RedeemGatewayTicketRequest, opts ...grpc.CallOption) (*RedeemGatewayTicketResponse, error)
 	// ChangePassword verifies the old password, replaces the credential, and
 	// revokes every session except the current one.
@@ -66,7 +81,9 @@ type AuthenticatorServiceClient interface {
 	// ConfirmPasswordReset consumes a reset token, replaces the password, and
 	// revokes all of the user's sessions.
 	ConfirmPasswordReset(ctx context.Context, in *ConfirmPasswordResetRequest, opts ...grpc.CallOption) (*ConfirmPasswordResetResponse, error)
+	// RequestEmailVerification emails a verification link for the user's email.
 	RequestEmailVerification(ctx context.Context, in *RequestEmailVerificationRequest, opts ...grpc.CallOption) (*RequestEmailVerificationResponse, error)
+	// ConfirmEmailVerification marks the email confirmed with a valid token.
 	ConfirmEmailVerification(ctx context.Context, in *ConfirmEmailVerificationRequest, opts ...grpc.CallOption) (*ConfirmEmailVerificationResponse, error)
 	// ListSessions returns sessions that are neither revoked nor expired.
 	ListSessions(ctx context.Context, in *ListSessionsRequest, opts ...grpc.CallOption) (*ListSessionsResponse, error)
@@ -74,10 +91,16 @@ type AuthenticatorServiceClient interface {
 	RevokeUserSession(ctx context.Context, in *RevokeUserSessionRequest, opts ...grpc.CallOption) (*RevokeUserSessionResponse, error)
 	// RevokeOtherSessions keeps current_session_id active and revokes the user's other sessions.
 	RevokeOtherSessions(ctx context.Context, in *RevokeOtherSessionsRequest, opts ...grpc.CallOption) (*RevokeOtherSessionsResponse, error)
+	// GetTwoFactorStatus returns the two-factor enrollment state of one user.
 	GetTwoFactorStatus(ctx context.Context, in *GetTwoFactorStatusRequest, opts ...grpc.CallOption) (*GetTwoFactorStatusResponse, error)
+	// BeginTwoFactorEnrollment starts enrollment for one user.
 	BeginTwoFactorEnrollment(ctx context.Context, in *BeginTwoFactorEnrollmentRequest, opts ...grpc.CallOption) (*BeginTwoFactorEnrollmentResponse, error)
+	// ConfirmTwoFactorEnrollment activates enrollment and returns recovery
+	// codes.
 	ConfirmTwoFactorEnrollment(ctx context.Context, in *ConfirmTwoFactorEnrollmentRequest, opts ...grpc.CallOption) (*ConfirmTwoFactorEnrollmentResponse, error)
+	// DisableTwoFactor turns off two-factor authentication after verification.
 	DisableTwoFactor(ctx context.Context, in *DisableTwoFactorRequest, opts ...grpc.CallOption) (*DisableTwoFactorResponse, error)
+	// RegenerateTwoFactorRecoveryCodes replaces the unused recovery codes.
 	RegenerateTwoFactorRecoveryCodes(ctx context.Context, in *RegenerateTwoFactorRecoveryCodesRequest, opts ...grpc.CallOption) (*RegenerateTwoFactorRecoveryCodesResponse, error)
 }
 
@@ -312,17 +335,32 @@ func (c *authenticatorServiceClient) RegenerateTwoFactorRecoveryCodes(ctx contex
 // AuthenticatorServiceServer is the server API for AuthenticatorService service.
 // All implementations should embed UnimplementedAuthenticatorServiceServer
 // for forward compatibility.
+//
+// AuthenticatorService owns authentication credentials, sessions, and
+// two-factor state. User identity records live in the user service.
 type AuthenticatorServiceServer interface {
+	// Register creates an unverified account and returns nothing beyond
+	// acceptance; email verification is started separately.
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	// Login verifies credentials and returns either a new authenticated session
+	// or a two-factor challenge.
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	// CompleteTwoFactorLogin finishes login with a TOTP or recovery code.
 	CompleteTwoFactorLogin(context.Context, *CompleteTwoFactorLoginRequest) (*CompleteTwoFactorLoginResponse, error)
+	// Refresh rotates the refresh token and issues a new access token.
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
+	// Logout revokes the session behind a refresh token.
 	Logout(context.Context, *LogoutRequest) (*LogoutResponse, error)
+	// VerifyAccessToken validates an access token without rotating anything.
 	VerifyAccessToken(context.Context, *VerifyAccessTokenRequest) (*VerifyAccessTokenResponse, error)
 	// AuthenticateCookie verifies a browser access token and transparently
 	// rotates the refresh token when the access token is absent or expired.
 	AuthenticateCookie(context.Context, *AuthenticateCookieRequest) (*AuthenticateCookieResponse, error)
+	// CreateGatewayTicket mints a short-lived, single-use browser credential
+	// for one user session.
 	CreateGatewayTicket(context.Context, *CreateGatewayTicketRequest) (*CreateGatewayTicketResponse, error)
+	// RedeemGatewayTicket consumes one gateway ticket and returns the session
+	// identity behind it.
 	RedeemGatewayTicket(context.Context, *RedeemGatewayTicketRequest) (*RedeemGatewayTicketResponse, error)
 	// ChangePassword verifies the old password, replaces the credential, and
 	// revokes every session except the current one.
@@ -332,7 +370,9 @@ type AuthenticatorServiceServer interface {
 	// ConfirmPasswordReset consumes a reset token, replaces the password, and
 	// revokes all of the user's sessions.
 	ConfirmPasswordReset(context.Context, *ConfirmPasswordResetRequest) (*ConfirmPasswordResetResponse, error)
+	// RequestEmailVerification emails a verification link for the user's email.
 	RequestEmailVerification(context.Context, *RequestEmailVerificationRequest) (*RequestEmailVerificationResponse, error)
+	// ConfirmEmailVerification marks the email confirmed with a valid token.
 	ConfirmEmailVerification(context.Context, *ConfirmEmailVerificationRequest) (*ConfirmEmailVerificationResponse, error)
 	// ListSessions returns sessions that are neither revoked nor expired.
 	ListSessions(context.Context, *ListSessionsRequest) (*ListSessionsResponse, error)
@@ -340,10 +380,16 @@ type AuthenticatorServiceServer interface {
 	RevokeUserSession(context.Context, *RevokeUserSessionRequest) (*RevokeUserSessionResponse, error)
 	// RevokeOtherSessions keeps current_session_id active and revokes the user's other sessions.
 	RevokeOtherSessions(context.Context, *RevokeOtherSessionsRequest) (*RevokeOtherSessionsResponse, error)
+	// GetTwoFactorStatus returns the two-factor enrollment state of one user.
 	GetTwoFactorStatus(context.Context, *GetTwoFactorStatusRequest) (*GetTwoFactorStatusResponse, error)
+	// BeginTwoFactorEnrollment starts enrollment for one user.
 	BeginTwoFactorEnrollment(context.Context, *BeginTwoFactorEnrollmentRequest) (*BeginTwoFactorEnrollmentResponse, error)
+	// ConfirmTwoFactorEnrollment activates enrollment and returns recovery
+	// codes.
 	ConfirmTwoFactorEnrollment(context.Context, *ConfirmTwoFactorEnrollmentRequest) (*ConfirmTwoFactorEnrollmentResponse, error)
+	// DisableTwoFactor turns off two-factor authentication after verification.
 	DisableTwoFactor(context.Context, *DisableTwoFactorRequest) (*DisableTwoFactorResponse, error)
+	// RegenerateTwoFactorRecoveryCodes replaces the unused recovery codes.
 	RegenerateTwoFactorRecoveryCodes(context.Context, *RegenerateTwoFactorRecoveryCodesRequest) (*RegenerateTwoFactorRecoveryCodesResponse, error)
 }
 

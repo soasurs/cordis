@@ -20,6 +20,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Session is the stored record of one authenticated session.
+// All timestamps are Unix time in milliseconds.
 type Session struct {
 	state                        protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_SessionId         int64                  `protobuf:"varint,1,opt,name=session_id,json=sessionId"`
@@ -287,14 +289,23 @@ func (x *Session) ClearAbsoluteExpiresAt() {
 type Session_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	SessionId         *int64
-	UserId            *int64
-	CreatedAt         *int64
-	UpdatedAt         *int64
-	ExpiresAt         *int64
-	RevokedAt         *int64
-	UserAgent         *string
-	Ip                *string
+	// ID of the session.
+	SessionId *int64
+	// User that owns the session.
+	UserId *int64
+	// Time the session was created.
+	CreatedAt *int64
+	// Time of the last session update.
+	UpdatedAt *int64
+	// Idle expiration of the session.
+	ExpiresAt *int64
+	// Non-zero after the session was revoked.
+	RevokedAt *int64
+	// User agent reported by the client.
+	UserAgent *string
+	// IP address reported by the client.
+	Ip *string
+	// Absolute expiration that no refresh can extend.
 	AbsoluteExpiresAt *int64
 }
 
@@ -341,6 +352,7 @@ func (b0 Session_builder) Build() *Session {
 	return m0
 }
 
+// RegisterRequest creates an account owned by the user service.
 type RegisterRequest struct {
 	state                             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name                   *string                `protobuf:"bytes,1,opt,name=name"`
@@ -517,8 +529,11 @@ func (x *RegisterRequest) ClearRegistrationInviteCode() {
 type RegisterRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Name     *string
-	Email    *string
+	// Display name of the new user.
+	Name *string
+	// Email address used as the login identifier.
+	Email *string
+	// Password for the new account.
 	Password *string
 	// Globally unique lowercase handle.
 	Username *string
@@ -553,6 +568,7 @@ func (b0 RegisterRequest_builder) Build() *RegisterRequest {
 	return m0
 }
 
+// RegisterResponse confirms that registration was accepted.
 type RegisterResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -628,6 +644,7 @@ func (b0 RegisterResponse_builder) Build() *RegisterResponse {
 	return m0
 }
 
+// LoginRequest authenticates with email and password.
 type LoginRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
@@ -776,10 +793,14 @@ func (x *LoginRequest) ClearIp() {
 type LoginRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Email     *string
-	Password  *string
+	// Account email address.
+	Email *string
+	// Account password.
+	Password *string
+	// Client-reported user agent recorded on the session.
 	UserAgent *string
-	Ip        *string
+	// Client-reported IP address recorded on the session.
+	Ip *string
 }
 
 func (b0 LoginRequest_builder) Build() *LoginRequest {
@@ -805,6 +826,7 @@ func (b0 LoginRequest_builder) Build() *LoginRequest {
 	return m0
 }
 
+// LoginResponse returns either a new session or a two-factor challenge.
 type LoginResponse struct {
 	state              protoimpl.MessageState  `protogen:"opaque.v1"`
 	xxx_hidden_Outcome isLoginResponse_Outcome `protobuf_oneof:"outcome"`
@@ -976,6 +998,8 @@ func (*loginResponse_Result) isLoginResponse_Outcome() {}
 
 func (*loginResponse_TwoFactorChallenge) isLoginResponse_Outcome() {}
 
+// TwoFactorLoginChallenge continues login when the account has two-factor
+// authentication enabled.
 type TwoFactorLoginChallenge struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
@@ -1065,7 +1089,9 @@ func (x *TwoFactorLoginChallenge) ClearExpiresAt() {
 type TwoFactorLoginChallenge_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Token     *string
+	// Opaque challenge token required by CompleteTwoFactorLogin.
+	Token *string
+	// Challenge expiration as Unix milliseconds.
 	ExpiresAt *int64
 }
 
@@ -1084,6 +1110,7 @@ func (b0 TwoFactorLoginChallenge_builder) Build() *TwoFactorLoginChallenge {
 	return m0
 }
 
+// CompleteTwoFactorLoginRequest finishes login with a TOTP or recovery code.
 type CompleteTwoFactorLoginRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChallengeToken *string                `protobuf:"bytes,1,opt,name=challenge_token,json=challengeToken"`
@@ -1232,10 +1259,14 @@ func (x *CompleteTwoFactorLoginRequest) ClearIp() {
 type CompleteTwoFactorLoginRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Opaque token from TwoFactorLoginChallenge.
 	ChallengeToken *string
-	Code           *string
-	UserAgent      *string
-	Ip             *string
+	// TOTP code or recovery code.
+	Code *string
+	// Client-reported user agent recorded on the session.
+	UserAgent *string
+	// Client-reported IP address recorded on the session.
+	Ip *string
 }
 
 func (b0 CompleteTwoFactorLoginRequest_builder) Build() *CompleteTwoFactorLoginRequest {
@@ -1261,6 +1292,7 @@ func (b0 CompleteTwoFactorLoginRequest_builder) Build() *CompleteTwoFactorLoginR
 	return m0
 }
 
+// CompleteTwoFactorLoginResponse returns the new authenticated session.
 type CompleteTwoFactorLoginResponse struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
@@ -1329,6 +1361,9 @@ func (b0 CompleteTwoFactorLoginResponse_builder) Build() *CompleteTwoFactorLogin
 	return m0
 }
 
+// AuthenticationResult contains the tokens and expirations of one
+// authenticated session.
+// All expiration timestamps are Unix time in milliseconds.
 type AuthenticationResult struct {
 	state                               protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok                       bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1596,14 +1631,23 @@ func (x *AuthenticationResult) ClearAbsoluteSessionExpiresAt() {
 type AuthenticationResult_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ok                       *bool
-	UserId                   *int64
-	SessionId                *int64
-	AccessToken              *string
-	AccessTokenExpiresAt     *int64
-	RefreshToken             *string
-	RefreshTokenExpiresAt    *int64
-	SessionExpiresAt         *int64
+	// True when the operation produced a usable session.
+	Ok *bool
+	// User ID of the authenticated account.
+	UserId *int64
+	// Session ID of the authenticated session.
+	SessionId *int64
+	// Opaque bearer access token.
+	AccessToken *string
+	// Access token expiration as Unix milliseconds.
+	AccessTokenExpiresAt *int64
+	// Opaque refresh token used to rotate the session.
+	RefreshToken *string
+	// Refresh token expiration as Unix milliseconds.
+	RefreshTokenExpiresAt *int64
+	// Idle session expiration as Unix milliseconds.
+	SessionExpiresAt *int64
+	// Absolute session expiration as Unix milliseconds.
 	AbsoluteSessionExpiresAt *int64
 }
 
@@ -1650,6 +1694,7 @@ func (b0 AuthenticationResult_builder) Build() *AuthenticationResult {
 	return m0
 }
 
+// RefreshRequest rotates one refresh token.
 type RefreshRequest struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_RefreshToken *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken"`
@@ -1714,6 +1759,7 @@ func (x *RefreshRequest) ClearRefreshToken() {
 type RefreshRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Current refresh token.
 	RefreshToken *string
 }
 
@@ -1728,6 +1774,7 @@ func (b0 RefreshRequest_builder) Build() *RefreshRequest {
 	return m0
 }
 
+// RefreshResponse returns the rotated session.
 type RefreshResponse struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Result *AuthenticationResult  `protobuf:"bytes,1,opt,name=result"`
@@ -1796,6 +1843,7 @@ func (b0 RefreshResponse_builder) Build() *RefreshResponse {
 	return m0
 }
 
+// LogoutRequest revokes the session behind a refresh token.
 type LogoutRequest struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_RefreshToken *string                `protobuf:"bytes,1,opt,name=refresh_token,json=refreshToken"`
@@ -1860,6 +1908,7 @@ func (x *LogoutRequest) ClearRefreshToken() {
 type LogoutRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Refresh token of the session to revoke.
 	RefreshToken *string
 }
 
@@ -1874,6 +1923,7 @@ func (b0 LogoutRequest_builder) Build() *LogoutRequest {
 	return m0
 }
 
+// LogoutResponse confirms the session was revoked.
 type LogoutResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1949,6 +1999,7 @@ func (b0 LogoutResponse_builder) Build() *LogoutResponse {
 	return m0
 }
 
+// VerifyAccessTokenRequest validates one access token.
 type VerifyAccessTokenRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_AccessToken *string                `protobuf:"bytes,1,opt,name=access_token,json=accessToken"`
@@ -2013,6 +2064,7 @@ func (x *VerifyAccessTokenRequest) ClearAccessToken() {
 type VerifyAccessTokenRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Access token to verify.
 	AccessToken *string
 }
 
@@ -2027,6 +2079,8 @@ func (b0 VerifyAccessTokenRequest_builder) Build() *VerifyAccessTokenRequest {
 	return m0
 }
 
+// VerifyAccessTokenResponse reports whether the token is valid and who owns
+// it.
 type VerifyAccessTokenResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2163,9 +2217,13 @@ func (x *VerifyAccessTokenResponse) ClearExpiresAt() {
 type VerifyAccessTokenResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ok        *bool
-	UserId    *int64
+	// True when the token is valid and not expired.
+	Ok *bool
+	// User ID of the token owner.
+	UserId *int64
+	// Session ID of the token.
 	SessionId *int64
+	// Token expiration as Unix milliseconds.
 	ExpiresAt *int64
 }
 
@@ -2192,6 +2250,8 @@ func (b0 VerifyAccessTokenResponse_builder) Build() *VerifyAccessTokenResponse {
 	return m0
 }
 
+// AuthenticateCookieRequest verifies a browser access token and rotates the
+// refresh token when needed.
 type AuthenticateCookieRequest struct {
 	state                         protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_AccessToken        *string                `protobuf:"bytes,1,opt,name=access_token,json=accessToken"`
@@ -2309,8 +2369,12 @@ func (x *AuthenticateCookieRequest) ClearMinimumAccessTtlMs() {
 type AuthenticateCookieRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	AccessToken        *string
-	RefreshToken       *string
+	// Optional access token; may be absent or expired.
+	AccessToken *string
+	// Refresh token used when the access token is absent or expired.
+	RefreshToken *string
+	// Minimum remaining access token TTL in milliseconds; shorter-lived tokens
+	// are rotated immediately.
 	MinimumAccessTtlMs *int64
 }
 
@@ -2333,6 +2397,8 @@ func (b0 AuthenticateCookieRequest_builder) Build() *AuthenticateCookieRequest {
 	return m0
 }
 
+// AuthenticateCookieResponse returns the validated identity and any rotated
+// tokens.
 type AuthenticateCookieResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2492,11 +2558,16 @@ func (x *AuthenticateCookieResponse) ClearRotated() {
 type AuthenticateCookieResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ok        *bool
-	UserId    *int64
+	// True when the identity is valid.
+	Ok *bool
+	// User ID of the validated identity.
+	UserId *int64
+	// Session ID of the validated identity.
 	SessionId *int64
+	// Session expiration as Unix milliseconds.
 	ExpiresAt *int64
-	Rotated   *AuthenticationResult
+	// Set when the access or refresh token was rotated.
+	Rotated *AuthenticationResult
 }
 
 func (b0 AuthenticateCookieResponse_builder) Build() *AuthenticateCookieResponse {
@@ -2523,6 +2594,7 @@ func (b0 AuthenticateCookieResponse_builder) Build() *AuthenticateCookieResponse
 	return m0
 }
 
+// CreateGatewayTicketRequest mints a gateway credential for one session.
 type CreateGatewayTicketRequest struct {
 	state                           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId               int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -2634,8 +2706,12 @@ func (x *CreateGatewayTicketRequest) ClearAccessTokenExpiresAt() {
 type CreateGatewayTicketRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId               *int64
-	SessionId            *int64
+	// User that owns the session.
+	UserId *int64
+	// Session the ticket grants access to.
+	SessionId *int64
+	// Expiration of the access token at mint time; the ticket is rejected after
+	// the session's access expires.
 	AccessTokenExpiresAt *int64
 }
 
@@ -2658,6 +2734,7 @@ func (b0 CreateGatewayTicketRequest_builder) Build() *CreateGatewayTicketRequest
 	return m0
 }
 
+// CreateGatewayTicketResponse returns the single-use ticket.
 type CreateGatewayTicketResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GatewayTicket *string                `protobuf:"bytes,1,opt,name=gateway_ticket,json=gatewayTicket"`
@@ -2747,8 +2824,10 @@ func (x *CreateGatewayTicketResponse) ClearExpiresAt() {
 type CreateGatewayTicketResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Opaque credential accepted by Gateway IDENTIFY or RESUME.
 	GatewayTicket *string
-	ExpiresAt     *int64
+	// Ticket expiration as Unix milliseconds.
+	ExpiresAt *int64
 }
 
 func (b0 CreateGatewayTicketResponse_builder) Build() *CreateGatewayTicketResponse {
@@ -2766,6 +2845,7 @@ func (b0 CreateGatewayTicketResponse_builder) Build() *CreateGatewayTicketRespon
 	return m0
 }
 
+// RedeemGatewayTicketRequest consumes one gateway ticket.
 type RedeemGatewayTicketRequest struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GatewayTicket *string                `protobuf:"bytes,1,opt,name=gateway_ticket,json=gatewayTicket"`
@@ -2830,6 +2910,7 @@ func (x *RedeemGatewayTicketRequest) ClearGatewayTicket() {
 type RedeemGatewayTicketRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Ticket to redeem.
 	GatewayTicket *string
 }
 
@@ -2844,6 +2925,7 @@ func (b0 RedeemGatewayTicketRequest_builder) Build() *RedeemGatewayTicketRequest
 	return m0
 }
 
+// RedeemGatewayTicketResponse returns the identity behind the ticket.
 type RedeemGatewayTicketResponse struct {
 	state                           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok                   bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2980,9 +3062,13 @@ func (x *RedeemGatewayTicketResponse) ClearAccessTokenExpiresAt() {
 type RedeemGatewayTicketResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ok                   *bool
-	UserId               *int64
-	SessionId            *int64
+	// True when the ticket was valid and consumed.
+	Ok *bool
+	// User ID of the ticket.
+	UserId *int64
+	// Session ID of the ticket.
+	SessionId *int64
+	// Access token expiration as Unix milliseconds.
 	AccessTokenExpiresAt *int64
 }
 
@@ -3009,6 +3095,7 @@ func (b0 RedeemGatewayTicketResponse_builder) Build() *RedeemGatewayTicketRespon
 	return m0
 }
 
+// ListSessionsRequest lists the active sessions of one user.
 type ListSessionsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3070,6 +3157,7 @@ func (x *ListSessionsRequest) ClearUserId() {
 type ListSessionsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User whose sessions are listed.
 	UserId *int64
 }
 
@@ -3084,6 +3172,7 @@ func (b0 ListSessionsRequest_builder) Build() *ListSessionsRequest {
 	return m0
 }
 
+// ListSessionsResponse returns the active sessions.
 type ListSessionsResponse struct {
 	state               protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Sessions *[]*Session            `protobuf:"bytes,1,rep,name=sessions"`
@@ -3143,6 +3232,7 @@ func (b0 ListSessionsResponse_builder) Build() *ListSessionsResponse {
 	return m0
 }
 
+// RevokeUserSessionRequest revokes one session owned by one user.
 type RevokeUserSessionRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3229,7 +3319,9 @@ func (x *RevokeUserSessionRequest) ClearSessionId() {
 type RevokeUserSessionRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId    *int64
+	// User that must own the session.
+	UserId *int64
+	// Session to revoke.
 	SessionId *int64
 }
 
@@ -3248,6 +3340,7 @@ func (b0 RevokeUserSessionRequest_builder) Build() *RevokeUserSessionRequest {
 	return m0
 }
 
+// RevokeUserSessionResponse confirms revocation.
 type RevokeUserSessionResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -3323,6 +3416,8 @@ func (b0 RevokeUserSessionResponse_builder) Build() *RevokeUserSessionResponse {
 	return m0
 }
 
+// RevokeOtherSessionsRequest revokes every session of one user except the
+// current one.
 type RevokeOtherSessionsRequest struct {
 	state                       protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3409,7 +3504,9 @@ func (x *RevokeOtherSessionsRequest) ClearCurrentSessionId() {
 type RevokeOtherSessionsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId           *int64
+	// User whose sessions are revoked.
+	UserId *int64
+	// Session kept active.
 	CurrentSessionId *int64
 }
 
@@ -3428,6 +3525,7 @@ func (b0 RevokeOtherSessionsRequest_builder) Build() *RevokeOtherSessionsRequest
 	return m0
 }
 
+// RevokeOtherSessionsResponse reports how many sessions were revoked.
 type RevokeOtherSessionsResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Revoked     int32                  `protobuf:"varint,1,opt,name=revoked"`
@@ -3489,6 +3587,7 @@ func (x *RevokeOtherSessionsResponse) ClearRevoked() {
 type RevokeOtherSessionsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Number of revoked sessions.
 	Revoked *int32
 }
 
@@ -3503,6 +3602,7 @@ func (b0 RevokeOtherSessionsResponse_builder) Build() *RevokeOtherSessionsRespon
 	return m0
 }
 
+// GetTwoFactorStatusRequest reads the two-factor state of one user.
 type GetTwoFactorStatusRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3564,6 +3664,7 @@ func (x *GetTwoFactorStatusRequest) ClearUserId() {
 type GetTwoFactorStatusRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User whose state is read.
 	UserId *int64
 }
 
@@ -3578,6 +3679,7 @@ func (b0 GetTwoFactorStatusRequest_builder) Build() *GetTwoFactorStatusRequest {
 	return m0
 }
 
+// GetTwoFactorStatusResponse returns the enrollment state.
 type GetTwoFactorStatusResponse struct {
 	state                             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Enabled                bool                   `protobuf:"varint,1,opt,name=enabled"`
@@ -3664,7 +3766,9 @@ func (x *GetTwoFactorStatusResponse) ClearRecoveryCodesRemaining() {
 type GetTwoFactorStatusResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Enabled                *bool
+	// True when two-factor authentication is enabled.
+	Enabled *bool
+	// Number of unused recovery codes remaining.
 	RecoveryCodesRemaining *int32
 }
 
@@ -3683,6 +3787,7 @@ func (b0 GetTwoFactorStatusResponse_builder) Build() *GetTwoFactorStatusResponse
 	return m0
 }
 
+// BeginTwoFactorEnrollmentRequest starts enrollment for one user.
 type BeginTwoFactorEnrollmentRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3772,7 +3877,9 @@ func (x *BeginTwoFactorEnrollmentRequest) ClearPassword() {
 type BeginTwoFactorEnrollmentRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId   *int64
+	// User starting enrollment.
+	UserId *int64
+	// Current account password.
 	Password *string
 }
 
@@ -3791,6 +3898,7 @@ func (b0 BeginTwoFactorEnrollmentRequest_builder) Build() *BeginTwoFactorEnrollm
 	return m0
 }
 
+// BeginTwoFactorEnrollmentResponse returns the TOTP enrollment contract.
 type BeginTwoFactorEnrollmentResponse struct {
 	state                      protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_EnrollmentToken *string                `protobuf:"bytes,1,opt,name=enrollment_token,json=enrollmentToken"`
@@ -3936,10 +4044,14 @@ func (x *BeginTwoFactorEnrollmentResponse) ClearExpiresAt() {
 type BeginTwoFactorEnrollmentResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Opaque token required by ConfirmTwoFactorEnrollment.
 	EnrollmentToken *string
-	OtpauthUri      *string
-	ManualEntryKey  *string
-	ExpiresAt       *int64
+	// otpauth:// URI for authenticator apps.
+	OtpauthUri *string
+	// Base32 secret for manual entry.
+	ManualEntryKey *string
+	// Enrollment expiration as Unix milliseconds.
+	ExpiresAt *int64
 }
 
 func (b0 BeginTwoFactorEnrollmentResponse_builder) Build() *BeginTwoFactorEnrollmentResponse {
@@ -3965,6 +4077,7 @@ func (b0 BeginTwoFactorEnrollmentResponse_builder) Build() *BeginTwoFactorEnroll
 	return m0
 }
 
+// ConfirmTwoFactorEnrollmentRequest activates enrollment for one user.
 type ConfirmTwoFactorEnrollmentRequest struct {
 	state                       protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4107,10 +4220,14 @@ func (x *ConfirmTwoFactorEnrollmentRequest) ClearCode() {
 type ConfirmTwoFactorEnrollmentRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId           *int64
+	// User completing enrollment.
+	UserId *int64
+	// Session that must remain active; other sessions are revoked on success.
 	CurrentSessionId *int64
-	EnrollmentToken  *string
-	Code             *string
+	// Opaque token from BeginTwoFactorEnrollment.
+	EnrollmentToken *string
+	// Current TOTP code from the authenticator app.
+	Code *string
 }
 
 func (b0 ConfirmTwoFactorEnrollmentRequest_builder) Build() *ConfirmTwoFactorEnrollmentRequest {
@@ -4136,6 +4253,7 @@ func (b0 ConfirmTwoFactorEnrollmentRequest_builder) Build() *ConfirmTwoFactorEnr
 	return m0
 }
 
+// ConfirmTwoFactorEnrollmentResponse returns the one-time recovery codes.
 type ConfirmTwoFactorEnrollmentResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes"`
@@ -4182,6 +4300,7 @@ func (x *ConfirmTwoFactorEnrollmentResponse) SetRecoveryCodes(v []string) {
 type ConfirmTwoFactorEnrollmentResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// One-time recovery codes; store them before closing this response.
 	RecoveryCodes []string
 }
 
@@ -4193,6 +4312,7 @@ func (b0 ConfirmTwoFactorEnrollmentResponse_builder) Build() *ConfirmTwoFactorEn
 	return m0
 }
 
+// DisableTwoFactorRequest turns off two-factor authentication for one user.
 type DisableTwoFactorRequest struct {
 	state                       protoimpl.MessageState                 `protogen:"opaque.v1"`
 	xxx_hidden_UserId           int64                                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4391,11 +4511,16 @@ func (x *DisableTwoFactorRequest) WhichVerification() case_DisableTwoFactorReque
 type DisableTwoFactorRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId           *int64
+	// User disabling two-factor authentication.
+	UserId *int64
+	// Session that must remain active.
 	CurrentSessionId *int64
-	Password         *string
+	// Current account password.
+	Password *string
 	// Fields of oneof xxx_hidden_Verification:
-	Code         *string
+	// Current TOTP code.
+	Code *string
+	// Unused recovery code.
 	RecoveryCode *string
 	// -- end of xxx_hidden_Verification
 }
@@ -4440,10 +4565,12 @@ type isDisableTwoFactorRequest_Verification interface {
 }
 
 type disableTwoFactorRequest_Code struct {
+	// Current TOTP code.
 	Code string `protobuf:"bytes,4,opt,name=code,oneof"`
 }
 
 type disableTwoFactorRequest_RecoveryCode struct {
+	// Unused recovery code.
 	RecoveryCode string `protobuf:"bytes,5,opt,name=recovery_code,json=recoveryCode,oneof"`
 }
 
@@ -4451,6 +4578,7 @@ func (*disableTwoFactorRequest_Code) isDisableTwoFactorRequest_Verification() {}
 
 func (*disableTwoFactorRequest_RecoveryCode) isDisableTwoFactorRequest_Verification() {}
 
+// DisableTwoFactorResponse confirms that two-factor authentication is off.
 type DisableTwoFactorResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -4526,6 +4654,7 @@ func (b0 DisableTwoFactorResponse_builder) Build() *DisableTwoFactorResponse {
 	return m0
 }
 
+// RegenerateTwoFactorRecoveryCodesRequest replaces one user's recovery codes.
 type RegenerateTwoFactorRecoveryCodesRequest struct {
 	state                       protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -4668,10 +4797,14 @@ func (x *RegenerateTwoFactorRecoveryCodesRequest) ClearCode() {
 type RegenerateTwoFactorRecoveryCodesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId           *int64
+	// User regenerating the codes.
+	UserId *int64
+	// Session that must remain active.
 	CurrentSessionId *int64
-	Password         *string
-	Code             *string
+	// Current account password.
+	Password *string
+	// Current TOTP code.
+	Code *string
 }
 
 func (b0 RegenerateTwoFactorRecoveryCodesRequest_builder) Build() *RegenerateTwoFactorRecoveryCodesRequest {
@@ -4697,6 +4830,7 @@ func (b0 RegenerateTwoFactorRecoveryCodesRequest_builder) Build() *RegenerateTwo
 	return m0
 }
 
+// RegenerateTwoFactorRecoveryCodesResponse returns the new recovery codes.
 type RegenerateTwoFactorRecoveryCodesResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_RecoveryCodes []string               `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes"`
@@ -4743,6 +4877,7 @@ func (x *RegenerateTwoFactorRecoveryCodesResponse) SetRecoveryCodes(v []string) 
 type RegenerateTwoFactorRecoveryCodesResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// One-time recovery codes; store them before closing this response.
 	RecoveryCodes []string
 }
 
@@ -4754,6 +4889,7 @@ func (b0 RegenerateTwoFactorRecoveryCodesResponse_builder) Build() *RegenerateTw
 	return m0
 }
 
+// RequestPasswordResetRequest starts email-based recovery.
 type RequestPasswordResetRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
@@ -4818,6 +4954,7 @@ func (x *RequestPasswordResetRequest) ClearEmail() {
 type RequestPasswordResetRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Email address of the account to recover.
 	Email *string
 }
 
@@ -4832,6 +4969,8 @@ func (b0 RequestPasswordResetRequest_builder) Build() *RequestPasswordResetReque
 	return m0
 }
 
+// RequestPasswordResetResponse always reports success to avoid account
+// enumeration.
 type RequestPasswordResetResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -4907,6 +5046,7 @@ func (b0 RequestPasswordResetResponse_builder) Build() *RequestPasswordResetResp
 	return m0
 }
 
+// ConfirmPasswordResetRequest sets a new password with a valid reset token.
 type ConfirmPasswordResetRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
@@ -4999,7 +5139,9 @@ func (x *ConfirmPasswordResetRequest) ClearNewPassword() {
 type ConfirmPasswordResetRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Token       *string
+	// One-time token emailed to the account owner.
+	Token *string
+	// Replacement password.
 	NewPassword *string
 }
 
@@ -5018,6 +5160,7 @@ func (b0 ConfirmPasswordResetRequest_builder) Build() *ConfirmPasswordResetReque
 	return m0
 }
 
+// ConfirmPasswordResetResponse confirms the password was changed.
 type ConfirmPasswordResetResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -5093,6 +5236,7 @@ func (b0 ConfirmPasswordResetResponse_builder) Build() *ConfirmPasswordResetResp
 	return m0
 }
 
+// RequestEmailVerificationRequest emails a verification link for one email.
 type RequestEmailVerificationRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,1,opt,name=email"`
@@ -5157,6 +5301,7 @@ func (x *RequestEmailVerificationRequest) ClearEmail() {
 type RequestEmailVerificationRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Address to verify.
 	Email *string
 }
 
@@ -5171,6 +5316,7 @@ func (b0 RequestEmailVerificationRequest_builder) Build() *RequestEmailVerificat
 	return m0
 }
 
+// RequestEmailVerificationResponse confirms the email was sent.
 type RequestEmailVerificationResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -5246,6 +5392,7 @@ func (b0 RequestEmailVerificationResponse_builder) Build() *RequestEmailVerifica
 	return m0
 }
 
+// ConfirmEmailVerificationRequest verifies one email with a token.
 type ConfirmEmailVerificationRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
@@ -5310,6 +5457,7 @@ func (x *ConfirmEmailVerificationRequest) ClearToken() {
 type ConfirmEmailVerificationRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// One-time token emailed to the account owner.
 	Token *string
 }
 
@@ -5324,6 +5472,7 @@ func (b0 ConfirmEmailVerificationRequest_builder) Build() *ConfirmEmailVerificat
 	return m0
 }
 
+// ConfirmEmailVerificationResponse confirms the email is verified.
 type ConfirmEmailVerificationResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -5399,6 +5548,7 @@ func (b0 ConfirmEmailVerificationResponse_builder) Build() *ConfirmEmailVerifica
 	return m0
 }
 
+// ChangePasswordRequest replaces one user's password.
 type ChangePasswordRequest struct {
 	state                       protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId           int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -5541,12 +5691,15 @@ func (x *ChangePasswordRequest) ClearNewPassword() {
 type ChangePasswordRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User changing the password.
 	UserId *int64
 	// Sessions other than this one are revoked on success. Zero skips the
 	// revocation entirely instead of revoking everything.
 	CurrentSessionId *int64
-	OldPassword      *string
-	NewPassword      *string
+	// Current password used to verify the account owner.
+	OldPassword *string
+	// Replacement password.
+	NewPassword *string
 }
 
 func (b0 ChangePasswordRequest_builder) Build() *ChangePasswordRequest {
@@ -5572,6 +5725,7 @@ func (b0 ChangePasswordRequest_builder) Build() *ChangePasswordRequest {
 	return m0
 }
 
+// ChangePasswordResponse reports the outcome.
 type ChangePasswordResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`

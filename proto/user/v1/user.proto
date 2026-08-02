@@ -4,19 +4,26 @@ package user.v1;
 
 import "media/v1/media.proto";
 
+// UserService owns user identity and profile records, usernames, and
+// relationships. Authentication credentials live in the authenticator service.
 service UserService {
+  // CreateUser creates the identity record backing a new account.
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  // GetUser returns the private identity by user ID or email.
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // GetUserProfile returns one public profile.
   rpc GetUserProfile(GetUserProfileRequest) returns (GetUserProfileResponse);
   // BatchGetUserProfiles returns the existing public profiles for up to 100
   // user IDs. Results are keyed by UserProfile.user_id and may be reordered.
   rpc BatchGetUserProfiles(BatchGetUserProfilesRequest) returns (BatchGetUserProfilesResponse);
   // GetUserProfileByUsername resolves the globally unique handle.
   rpc GetUserProfileByUsername(GetUserProfileByUsernameRequest) returns (GetUserProfileByUsernameResponse);
+  // CheckEmailAvailability reports whether an email is already registered.
   rpc CheckEmailAvailability(CheckEmailAvailabilityRequest) returns (CheckEmailAvailabilityResponse);
   // CheckUsernameAvailability reports whether a normalized handle is free.
   // Invalid usernames are rejected; taken handles return available=false.
   rpc CheckUsernameAvailability(CheckUsernameAvailabilityRequest) returns (CheckUsernameAvailabilityResponse);
+  // UpdateEmail replaces one user's email address.
   rpc UpdateEmail(UpdateEmailRequest) returns (UpdateEmailResponse);
   // MarkEmailVerified records verification only while the supplied email is
   // still the user's current email.
@@ -36,14 +43,20 @@ service UserService {
   // UpdateUsername replaces the unique handle; the old handle is released
   // immediately.
   rpc UpdateUsername(UpdateUsernameRequest) returns (UpdateUsernameResponse);
+  // SendFriendRequest creates a pending outgoing request between two users.
   rpc SendFriendRequest(SendFriendRequestRequest) returns (SendFriendRequestResponse);
+  // AcceptFriendRequest turns a pending incoming request into a friendship.
   rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
+  // DeclineFriendRequest removes a pending incoming request.
   rpc DeclineFriendRequest(DeclineFriendRequestRequest) returns (DeclineFriendRequestResponse);
   // RemoveFriend deletes a friendship or retracts a pending request in
   // either direction.
   rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  // BlockUser creates a one-directional block.
   rpc BlockUser(BlockUserRequest) returns (BlockUserResponse);
+  // UnblockUser removes a previous block.
   rpc UnblockUser(UnblockUserRequest) returns (UnblockUserResponse);
+  // ListRelationships pages one user's relationships.
   rpc ListRelationships(ListRelationshipsRequest) returns (ListRelationshipsResponse);
   // CheckRelationships is an internal batch lookup for other services,
   // primarily to enforce blocks.
@@ -52,12 +65,15 @@ service UserService {
 
 // RelationshipType values match the stored representation.
 enum RelationshipType {
+  // Zero value; no relationship exists.
   RELATIONSHIP_TYPE_UNSPECIFIED = 0;
   // The user sent a friend request that is still pending.
   RELATIONSHIP_TYPE_OUTGOING = 1;
   // The user received a friend request that is still pending.
   RELATIONSHIP_TYPE_INCOMING = 2;
+  // The users are friends.
   RELATIONSHIP_TYPE_FRIEND = 3;
+  // The user blocked the target.
   RELATIONSHIP_TYPE_BLOCKED = 4;
 }
 
@@ -70,24 +86,36 @@ message Relationship {
   int64 updated_at = 5;
 }
 
+// User is the private identity record of one account.
+// All timestamps are Unix time in milliseconds.
 message User {
+  // ID of the user.
   int64 user_id = 1;
+  // Login email of the user.
   string email = 2;
+  // Time the account was created.
   int64 created_at = 3;
+  // Time of the last identity update.
   int64 updated_at = 4;
+  // Non-zero after the account was soft-deleted.
   int64 deleted_at = 5;
   // Zero when the current email has not been verified.
   int64 email_verified_at = 6;
 }
 
+// UserProfile is the public profile of one user.
+// All timestamps are Unix time in milliseconds.
 message UserProfile {
+  // ID of the user.
   int64 user_id = 1;
+  // Display name of the user.
   string name = 2;
   // Zero means the user has no avatar. The public API exposes the deterministic
   // CDN path contract; this service persists only the asset ID.
   int64 avatar_asset_id = 3;
   int64 created_at = 4;
   int64 updated_at = 5;
+  // Non-zero after the profile was soft-deleted.
   int64 deleted_at = 6;
   // Globally unique lowercase handle.
   string username = 7;
@@ -98,16 +126,22 @@ message UserProfile {
 
 // User identity is owned by this service; authentication credentials are
 // owned by the authenticator service.
+// CreateUserRequest creates the identity for a new account.
 message CreateUserRequest {
+  // Display name of the new user.
   string name = 1;
+  // Login email of the new user.
   string email = 2;
+  // Globally unique handle.
   string username = 3;
 }
 
+// CreateUserResponse returns the stored identity.
 message CreateUserResponse {
   User user = 1;
 }
 
+// GetUserRequest selects one identity by user ID or email.
 message GetUserRequest {
   oneof identity {
     int64 user_id = 1;
@@ -115,63 +149,89 @@ message GetUserRequest {
   }
 }
 
+// GetUserResponse returns the requested identity.
 message GetUserResponse {
   User user = 1;
 }
 
+// GetUserProfileRequest fetches one public profile.
 message GetUserProfileRequest {
+  // User whose profile is fetched.
   int64 user_id = 1;
 }
 
+// GetUserProfileResponse returns the public profile.
 message GetUserProfileResponse {
   UserProfile profile = 1;
 }
 
+// BatchGetUserProfilesRequest fetches up to 100 public profiles.
 message BatchGetUserProfilesRequest {
+  // User IDs whose profiles are fetched.
   repeated int64 user_ids = 1;
 }
 
+// BatchGetUserProfilesResponse returns the existing profiles; missing users
+// are omitted.
 message BatchGetUserProfilesResponse {
   repeated UserProfile profiles = 1;
 }
 
+// CheckEmailAvailabilityRequest checks one email address.
 message CheckEmailAvailabilityRequest {
+  // Email address to check.
   string email = 1;
 }
 
+// CheckEmailAvailabilityResponse reports whether the email is free.
 message CheckEmailAvailabilityResponse {
+  // True when the email is not already registered.
   bool available = 1;
 }
 
+// CheckUsernameAvailabilityRequest checks one handle.
 message CheckUsernameAvailabilityRequest {
+  // Handle to check.
   string username = 1;
 }
 
+// CheckUsernameAvailabilityResponse reports whether the handle is free.
 message CheckUsernameAvailabilityResponse {
+  // True when the handle is valid and not taken.
   bool available = 1;
 }
 
+// UpdateEmailRequest replaces one user's email address.
 message UpdateEmailRequest {
+  // User whose email changes.
   int64 user_id = 1;
+  // New email address. Verification is required before it becomes active.
   string email = 2;
 }
 
+// UpdateEmailResponse returns the updated identity.
 message UpdateEmailResponse {
   User user = 1;
 }
 
+// MarkEmailVerifiedRequest records email verification for one user.
 message MarkEmailVerifiedRequest {
+  // User whose email is verified.
   int64 user_id = 1;
   // The email address the verification token was issued for.
   string email = 2;
+  // Verification time as Unix milliseconds.
   int64 verified_at = 3;
 }
 
+// MarkEmailVerifiedResponse confirms verification was recorded.
 message MarkEmailVerifiedResponse {
   bool ok = 1;
 }
 
+// UpdateUserProfileRequest replaces present public profile fields.
 message UpdateUserProfileRequest {
+  // User whose profile is updated.
   int64 user_id = 1;
   // Optional replacement fields. Omitted fields keep their stored values.
   // An explicitly present empty bio clears the bio. An explicitly present
@@ -183,6 +243,7 @@ message UpdateUserProfileRequest {
   int64 avatar_asset_id = 4;
 }
 
+// UpdateUserProfileResponse returns the updated profile.
 message UpdateUserProfileResponse {
   UserProfile profile = 1;
 }
@@ -243,85 +304,122 @@ message AbortAvatarUploadRequest {
 // AbortAvatarUploadResponse is empty because abort has no mutable result.
 message AbortAvatarUploadResponse {}
 
+// GetAvatarUploadConstraintsRequest is empty; constraints are global.
 message GetAvatarUploadConstraintsRequest {}
 
+// AvatarUploadConstraints describes the current avatar upload limits.
 message AvatarUploadConstraints {
+  // Maximum accepted file size in bytes.
   int64 max_file_size_bytes = 1;
+  // Maximum accepted width in pixels.
   int32 max_width = 2;
+  // Maximum accepted height in pixels.
   int32 max_height = 3;
+  // Maximum accepted width * height product.
   int64 max_pixels = 4;
+  // Canonical lowercase MIME types accepted for avatar uploads.
   repeated string allowed_content_types = 5;
 }
 
+// GetAvatarUploadConstraintsResponse returns the avatar upload limits.
 message GetAvatarUploadConstraintsResponse {
   AvatarUploadConstraints constraints = 1;
 }
 
+// GetUserProfileByUsernameRequest resolves one handle.
 message GetUserProfileByUsernameRequest {
+  // Globally unique lowercase handle.
   string username = 1;
 }
 
+// GetUserProfileByUsernameResponse returns the profile behind the handle.
 message GetUserProfileByUsernameResponse {
   UserProfile profile = 1;
 }
 
+// SendFriendRequestRequest creates a pending outgoing request.
 message SendFriendRequestRequest {
+  // User sending the request.
   int64 user_id = 1;
+  // User receiving the request.
   int64 target_id = 2;
 }
 
+// SendFriendRequestResponse returns the resulting relationship.
 message SendFriendRequestResponse {
   // Outgoing after a fresh request, or friend when the target had already
   // sent a request the other way.
   Relationship relationship = 1;
 }
 
+// AcceptFriendRequestRequest accepts a pending incoming request.
 message AcceptFriendRequestRequest {
+  // User accepting the request.
   int64 user_id = 1;
+  // User whose incoming request is accepted.
   int64 target_id = 2;
 }
 
+// AcceptFriendRequestResponse returns the updated relationship.
 message AcceptFriendRequestResponse {
   Relationship relationship = 1;
 }
 
+// DeclineFriendRequestRequest declines a pending incoming request.
 message DeclineFriendRequestRequest {
+  // User declining the request.
   int64 user_id = 1;
+  // User whose incoming request is declined.
   int64 target_id = 2;
 }
 
+// DeclineFriendRequestResponse confirms the decline.
 message DeclineFriendRequestResponse {
   bool ok = 1;
 }
 
+// RemoveFriendRequest removes a friendship or retracts a pending request.
 message RemoveFriendRequest {
+  // User removing the relationship.
   int64 user_id = 1;
+  // User to disconnect from.
   int64 target_id = 2;
 }
 
+// RemoveFriendResponse confirms removal.
 message RemoveFriendResponse {
   bool ok = 1;
 }
 
+// BlockUserRequest creates a one-directional block.
 message BlockUserRequest {
+  // User creating the block.
   int64 user_id = 1;
+  // User to block.
   int64 target_id = 2;
 }
 
+// BlockUserResponse returns the blocking relationship.
 message BlockUserResponse {
   Relationship relationship = 1;
 }
 
+// UnblockUserRequest removes a previous block.
 message UnblockUserRequest {
+  // User lifting the block.
   int64 user_id = 1;
+  // User to unblock.
   int64 target_id = 2;
 }
 
+// UnblockUserResponse confirms unblocking.
 message UnblockUserResponse {
   bool ok = 1;
 }
 
+// ListRelationshipsRequest pages one user's relationships.
 message ListRelationshipsRequest {
+  // User whose relationships are listed.
   int64 user_id = 1;
   // Optional filter; unspecified returns every type.
   RelationshipType type = 2;
@@ -329,9 +427,11 @@ message ListRelationshipsRequest {
   // Omit (unset) to start from the first page. Pass the value through
   // unchanged; do not parse it.
   string cursor = 3;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 4;
 }
 
+// ListRelationshipsResponse returns a page of relationships.
 message ListRelationshipsResponse {
   repeated Relationship relationships = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -341,8 +441,12 @@ message ListRelationshipsResponse {
   string next_cursor = 2;
 }
 
+// CheckRelationshipsRequest batch-looks up relationships between one user and
+// a bounded set of targets.
 message CheckRelationshipsRequest {
+  // User at the center of the lookup.
   int64 user_id = 1;
+  // Candidate target user IDs.
   repeated int64 target_ids = 2;
   // When set, rows where a target points back at user_id are also returned
   // (their user_id/target_id are the target's perspective). Both directions
@@ -351,16 +455,21 @@ message CheckRelationshipsRequest {
   bool include_reverse = 3;
 }
 
+// CheckRelationshipsResponse returns the existing relationships.
 message CheckRelationshipsResponse {
   // Only existing relationships are returned.
   repeated Relationship relationships = 1;
 }
 
+// UpdateUsernameRequest replaces one user's handle.
 message UpdateUsernameRequest {
+  // User whose handle changes.
   int64 user_id = 1;
+  // New globally unique lowercase handle.
   string username = 2;
 }
 
+// UpdateUsernameResponse returns the updated profile.
 message UpdateUsernameResponse {
   UserProfile profile = 1;
 }

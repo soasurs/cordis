@@ -116,10 +116,20 @@ type AuthenticatorServiceClient interface {
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession revokes one session owned by the bearer token owner.
 	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
+	// GetTwoFactorStatus returns whether two-factor authentication is enabled
+	// for the bearer token owner.
 	GetTwoFactorStatus(context.Context, *v1.GetTwoFactorStatusRequest) (*v1.GetTwoFactorStatusResponse, error)
+	// BeginTwoFactorEnrollment starts enrollment and returns a TOTP secret and
+	// otpauth URI.
 	BeginTwoFactorEnrollment(context.Context, *v1.BeginTwoFactorEnrollmentRequest) (*v1.BeginTwoFactorEnrollmentResponse, error)
+	// ConfirmTwoFactorEnrollment verifies one TOTP code and activates two-factor
+	// authentication, returning one-time recovery codes.
 	ConfirmTwoFactorEnrollment(context.Context, *v1.ConfirmTwoFactorEnrollmentRequest) (*v1.ConfirmTwoFactorEnrollmentResponse, error)
+	// DisableTwoFactor disables two-factor authentication after verifying the
+	// password and a TOTP or recovery code.
 	DisableTwoFactor(context.Context, *v1.DisableTwoFactorRequest) (*v1.DisableTwoFactorResponse, error)
+	// RegenerateTwoFactorRecoveryCodes replaces the unused recovery codes after
+	// re-verifying the password and a TOTP code.
 	RegenerateTwoFactorRecoveryCodes(context.Context, *v1.RegenerateTwoFactorRecoveryCodesRequest) (*v1.RegenerateTwoFactorRecoveryCodesResponse, error)
 }
 
@@ -444,10 +454,20 @@ type AuthenticatorServiceHandler interface {
 	ListSessions(context.Context, *v1.ListSessionsRequest) (*v1.ListSessionsResponse, error)
 	// RevokeSession revokes one session owned by the bearer token owner.
 	RevokeSession(context.Context, *v1.RevokeSessionRequest) (*v1.RevokeSessionResponse, error)
+	// GetTwoFactorStatus returns whether two-factor authentication is enabled
+	// for the bearer token owner.
 	GetTwoFactorStatus(context.Context, *v1.GetTwoFactorStatusRequest) (*v1.GetTwoFactorStatusResponse, error)
+	// BeginTwoFactorEnrollment starts enrollment and returns a TOTP secret and
+	// otpauth URI.
 	BeginTwoFactorEnrollment(context.Context, *v1.BeginTwoFactorEnrollmentRequest) (*v1.BeginTwoFactorEnrollmentResponse, error)
+	// ConfirmTwoFactorEnrollment verifies one TOTP code and activates two-factor
+	// authentication, returning one-time recovery codes.
 	ConfirmTwoFactorEnrollment(context.Context, *v1.ConfirmTwoFactorEnrollmentRequest) (*v1.ConfirmTwoFactorEnrollmentResponse, error)
+	// DisableTwoFactor disables two-factor authentication after verifying the
+	// password and a TOTP or recovery code.
 	DisableTwoFactor(context.Context, *v1.DisableTwoFactorRequest) (*v1.DisableTwoFactorResponse, error)
+	// RegenerateTwoFactorRecoveryCodes replaces the unused recovery codes after
+	// re-verifying the password and a TOTP code.
 	RegenerateTwoFactorRecoveryCodes(context.Context, *v1.RegenerateTwoFactorRecoveryCodesRequest) (*v1.RegenerateTwoFactorRecoveryCodesResponse, error)
 }
 

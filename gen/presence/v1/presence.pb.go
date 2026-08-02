@@ -20,15 +20,22 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// PresenceStatus is the user-level presence preference or projected status.
 type PresenceStatus int32
 
 const (
+	// Zero value; not used in requests or responses.
 	PresenceStatus_PRESENCE_STATUS_UNSPECIFIED PresenceStatus = 0
-	PresenceStatus_PRESENCE_STATUS_OFFLINE     PresenceStatus = 1
-	PresenceStatus_PRESENCE_STATUS_ONLINE      PresenceStatus = 2
-	PresenceStatus_PRESENCE_STATUS_IDLE        PresenceStatus = 3
-	PresenceStatus_PRESENCE_STATUS_DND         PresenceStatus = 4
-	PresenceStatus_PRESENCE_STATUS_INVISIBLE   PresenceStatus = 5
+	// The user is offline or invisible.
+	PresenceStatus_PRESENCE_STATUS_OFFLINE PresenceStatus = 1
+	// The user is online.
+	PresenceStatus_PRESENCE_STATUS_ONLINE PresenceStatus = 2
+	// The user is online but idle.
+	PresenceStatus_PRESENCE_STATUS_IDLE PresenceStatus = 3
+	// The user is online but does not want to be disturbed.
+	PresenceStatus_PRESENCE_STATUS_DND PresenceStatus = 4
+	// The user is online but hidden from other users.
+	PresenceStatus_PRESENCE_STATUS_INVISIBLE PresenceStatus = 5
 )
 
 // Enum value maps for PresenceStatus.
@@ -73,12 +80,16 @@ func (x PresenceStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// ClientState is the client-reported foreground state of one device.
 type ClientState int32
 
 const (
+	// Zero value; not used in requests or responses.
 	ClientState_CLIENT_STATE_UNSPECIFIED ClientState = 0
-	ClientState_CLIENT_STATE_FOREGROUND  ClientState = 1
-	ClientState_CLIENT_STATE_BACKGROUND  ClientState = 2
+	// The client is in the foreground.
+	ClientState_CLIENT_STATE_FOREGROUND ClientState = 1
+	// The client is in the background.
+	ClientState_CLIENT_STATE_BACKGROUND ClientState = 2
 )
 
 // Enum value maps for ClientState.
@@ -117,6 +128,7 @@ func (x ClientState) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// UserSession is one logical device session contributing to presence.
 type UserSession struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -367,14 +379,22 @@ func (x *UserSession) ClearExpiresAt() {
 type UserSession_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId      *int64
-	SessionId   *string
-	GatewayId   *string
-	Generation  *string
-	DeviceType  *string
+	// User owning the session.
+	UserId *int64
+	// Logical session ID from the session service.
+	SessionId *string
+	// Gateway process ID serving the session.
+	GatewayId *string
+	// Deployment generation of the Gateway process.
+	Generation *string
+	// Client-reported device type.
+	DeviceType *string
+	// Foreground or background state of the device.
 	ClientState *ClientState
-	LastSeenAt  *int64
-	ExpiresAt   *int64
+	// Unix milliseconds of the last session activity.
+	LastSeenAt *int64
+	// Lease expiration as Unix milliseconds.
+	ExpiresAt *int64
 }
 
 func (b0 UserSession_builder) Build() *UserSession {
@@ -416,6 +436,7 @@ func (b0 UserSession_builder) Build() *UserSession {
 	return m0
 }
 
+// UserPresencePreference is the user-level presence override.
 type UserPresencePreference struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -529,7 +550,9 @@ func (x *UserPresencePreference) ClearVersion() {
 type UserPresencePreference_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User owning the preference.
 	UserId *int64
+	// Preferred status when the user is online.
 	Status *PresenceStatus
 	// Monotonically increases whenever the user-level preference changes.
 	Version *int64
@@ -554,6 +577,7 @@ func (b0 UserPresencePreference_builder) Build() *UserPresencePreference {
 	return m0
 }
 
+// UserPresence is the aggregate presence snapshot of one user.
 type UserPresence struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -706,10 +730,14 @@ func (x *UserPresence) ClearVersion() {
 type UserPresence_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId     *int64
-	Status     *PresenceStatus
+	// User of the snapshot.
+	UserId *int64
+	// Aggregate status across all live sessions.
+	Status *PresenceStatus
+	// Unix milliseconds of the last seen activity.
 	LastSeenAt *int64
-	Sessions   []*UserSession
+	// Live sessions contributing to the snapshot.
+	Sessions []*UserSession
 	// Monotonically increases whenever the aggregate status changes. The
 	// version remains available on the offline tombstone after all sessions end.
 	Version *int64
@@ -739,6 +767,7 @@ func (b0 UserPresence_builder) Build() *UserPresence {
 	return m0
 }
 
+// RegisterUserSessionRequest records one new logical session.
 type RegisterUserSessionRequest struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -978,15 +1007,21 @@ func (x *RegisterUserSessionRequest) ClearClientState() {
 type RegisterUserSessionRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId     *int64
-	SessionId  *string
-	GatewayId  *string
+	// User owning the session.
+	UserId *int64
+	// Logical session ID from the session service.
+	SessionId *string
+	// Gateway process ID serving the session.
+	GatewayId *string
+	// Deployment generation of the Gateway process.
 	Generation *string
+	// Client-reported device type.
 	DeviceType *string
 	// Used only to initialize a preference that does not exist yet. Opening a
 	// new session never overwrites an existing user-level preference.
 	InitialStatus *PresenceStatus
-	ClientState   *ClientState
+	// Foreground or background state of the device.
+	ClientState *ClientState
 	// Guild memberships captured by the calling session node; presence
 	// transition events fan out through these guild routes.
 	GuildIds []int64
@@ -1028,6 +1063,7 @@ func (b0 RegisterUserSessionRequest_builder) Build() *RegisterUserSessionRequest
 	return m0
 }
 
+// RegisterUserSessionResponse returns the aggregate presence and preference.
 type RegisterUserSessionResponse struct {
 	state                 protoimpl.MessageState  `protogen:"opaque.v1"`
 	xxx_hidden_Presence   *UserPresence           `protobuf:"bytes,1,opt,name=presence"`
@@ -1121,6 +1157,8 @@ func (b0 RegisterUserSessionResponse_builder) Build() *RegisterUserSessionRespon
 	return m0
 }
 
+// RefreshUserSessionRequest renews one session lease and optional client
+// state.
 type RefreshUserSessionRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1333,11 +1371,17 @@ func (x *RefreshUserSessionRequest) ClearClientState() {
 type RefreshUserSessionRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId      *int64
-	SessionId   *string
-	GatewayId   *string
-	Generation  *string
-	DeviceType  *string
+	// User owning the session.
+	UserId *int64
+	// Logical session ID from the session service.
+	SessionId *string
+	// Gateway process ID serving the session.
+	GatewayId *string
+	// Deployment generation of the Gateway process.
+	Generation *string
+	// Client-reported device type.
+	DeviceType *string
+	// Foreground or background state of the device.
 	ClientState *ClientState
 	// Guild memberships captured by the calling session node; presence
 	// transition events fan out through these guild routes.
@@ -1376,6 +1420,7 @@ func (b0 RefreshUserSessionRequest_builder) Build() *RefreshUserSessionRequest {
 	return m0
 }
 
+// RefreshUserSessionResponse returns the aggregate presence after refresh.
 type RefreshUserSessionResponse struct {
 	state               protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Presence *UserPresence          `protobuf:"bytes,1,opt,name=presence"`
@@ -1444,6 +1489,7 @@ func (b0 RefreshUserSessionResponse_builder) Build() *RefreshUserSessionResponse
 	return m0
 }
 
+// RefreshUserSessionsRequest renews several session leases in one batch.
 type RefreshUserSessionsRequest struct {
 	state               protoimpl.MessageState        `protogen:"opaque.v1"`
 	xxx_hidden_Sessions *[]*RefreshUserSessionRequest `protobuf:"bytes,1,rep,name=sessions"`
@@ -1492,6 +1538,7 @@ func (x *RefreshUserSessionsRequest) SetSessions(v []*RefreshUserSessionRequest)
 type RefreshUserSessionsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Sessions to renew.
 	Sessions []*RefreshUserSessionRequest
 }
 
@@ -1503,6 +1550,8 @@ func (b0 RefreshUserSessionsRequest_builder) Build() *RefreshUserSessionsRequest
 	return m0
 }
 
+// RefreshUserSessionsResponse returns sessions that must be registered
+// through the single-session path.
 type RefreshUserSessionsResponse struct {
 	state                        protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_MissingSessionIds []string               `protobuf:"bytes,1,rep,name=missing_session_ids,json=missingSessionIds"`
@@ -1549,6 +1598,7 @@ func (x *RefreshUserSessionsResponse) SetMissingSessionIds(v []string) {
 type RefreshUserSessionsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Session IDs with no existing lease; callers should register them.
 	MissingSessionIds []string
 }
 
@@ -1560,6 +1610,8 @@ func (b0 RefreshUserSessionsResponse_builder) Build() *RefreshUserSessionsRespon
 	return m0
 }
 
+// UpdateUserPresenceRequest updates one user's presence preference or one
+// session's client state.
 type UpdateUserPresenceRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1715,9 +1767,13 @@ func (x *UpdateUserPresenceRequest) ClearClientState() {
 type UpdateUserPresenceRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId      *int64
-	SessionId   *string
-	Status      *PresenceStatus
+	// User whose presence changes.
+	UserId *int64
+	// Logical session that reports the update.
+	SessionId *string
+	// New user-level presence preference.
+	Status *PresenceStatus
+	// New client state for the session.
 	ClientState *ClientState
 	// Guild memberships captured by the calling session node; presence
 	// transition events fan out through these guild routes.
@@ -1748,6 +1804,7 @@ func (b0 UpdateUserPresenceRequest_builder) Build() *UpdateUserPresenceRequest {
 	return m0
 }
 
+// UpdateUserPresenceResponse returns the updated presence and preference.
 type UpdateUserPresenceResponse struct {
 	state                 protoimpl.MessageState  `protogen:"opaque.v1"`
 	xxx_hidden_Presence   *UserPresence           `protobuf:"bytes,1,opt,name=presence"`
@@ -1841,6 +1898,7 @@ func (b0 UpdateUserPresenceResponse_builder) Build() *UpdateUserPresenceResponse
 	return m0
 }
 
+// RemoveUserSessionRequest removes one logical session.
 type RemoveUserSessionRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1942,7 +2000,9 @@ func (x *RemoveUserSessionRequest) ClearSessionId() {
 type RemoveUserSessionRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId    *int64
+	// User owning the session.
+	UserId *int64
+	// Logical session ID to remove.
 	SessionId *string
 	// Guild memberships captured by the calling session node; presence
 	// transition events fan out through these guild routes.
@@ -1965,6 +2025,7 @@ func (b0 RemoveUserSessionRequest_builder) Build() *RemoveUserSessionRequest {
 	return m0
 }
 
+// RemoveUserSessionResponse confirms removal.
 type RemoveUserSessionResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2040,6 +2101,7 @@ func (b0 RemoveUserSessionResponse_builder) Build() *RemoveUserSessionResponse {
 	return m0
 }
 
+// ResolveUsersPresenceRequest requests aggregate presence for one user set.
 type ResolveUsersPresenceRequest struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
@@ -2086,6 +2148,7 @@ func (x *ResolveUsersPresenceRequest) SetUserIds(v []int64) {
 type ResolveUsersPresenceRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User IDs whose presence is resolved.
 	UserIds []int64
 }
 
@@ -2097,6 +2160,7 @@ func (b0 ResolveUsersPresenceRequest_builder) Build() *ResolveUsersPresenceReque
 	return m0
 }
 
+// ResolveUsersPresenceResponse returns the requested snapshots.
 type ResolveUsersPresenceResponse struct {
 	state                protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Presences *[]*UserPresence       `protobuf:"bytes,1,rep,name=presences"`

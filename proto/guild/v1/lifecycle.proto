@@ -1,0 +1,205 @@
+edition = "2023";
+
+package guild.v1;
+
+import "guild/v1/common.proto";
+import "media/v1/media.proto";
+
+// CreateGuildRequest creates a Guild owned by the given user.
+message CreateGuildRequest {
+  // User that owns the new Guild.
+  int64 owner_id = 1;
+  // Display name of the new Guild.
+  string name = 2;
+  // Optional opaque key identifying one client-side Guild creation intent.
+  string idempotency_key = 3;
+}
+
+// CreateGuildResponse returns the created Guild.
+message CreateGuildResponse {
+  Guild guild = 1;
+}
+
+// GetGuildRequest fetches one Guild for a user.
+message GetGuildRequest {
+  // ID of the Guild to fetch.
+  int64 guild_id = 1;
+  // User that must be an active member of the Guild.
+  int64 user_id = 2;
+}
+
+// GetGuildResponse returns the requested Guild.
+message GetGuildResponse {
+  Guild guild = 1;
+}
+
+// ListUserGuildsRequest pages the Guilds joined by one user.
+message ListUserGuildsRequest {
+  // User whose Guilds are listed.
+  int64 user_id = 1;
+  // Opaque continuation from ListUserGuildsResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
+  int32 limit = 3;
+}
+
+// ListUserGuildsResponse returns a page of Guilds.
+message ListUserGuildsResponse {
+  repeated Guild guilds = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
+}
+
+// GuildChannelVisibility is one user's cached channel access snapshot for a
+// Guild.
+message GuildChannelVisibility {
+  // Guild of the snapshot.
+  int64 guild_id = 1;
+  // Persistent monotonic version of all state that can affect access.
+  int64 access_revision = 2;
+  // Visible channel IDs sorted in ascending numeric order.
+  repeated int64 visible_channel_ids = 3;
+  // Visible text channel IDs used for scoped read-state reconciliation.
+  repeated int64 visible_text_channel_ids = 4;
+}
+
+// ReadyGuild is the full Guild bootstrap sent to one user after identify.
+message ReadyGuild {
+  Guild guild = 1;
+  // Persistent monotonic version used to invalidate Session snapshots.
+  int64 access_revision = 2;
+  // All active Guild roles ordered by descending position.
+  repeated GuildRole roles = 3;
+  // Explicit role assignments for the current user. The default role is
+  // implicit and is not repeated here.
+  repeated int64 member_role_ids = 4;
+  // Only channels currently visible to the user are returned.
+  repeated GuildChannel channels = 5;
+  // Permission overwrites for the returned visible channels.
+  repeated GuildChannelPermissionOverwrite permission_overwrites = 6;
+  // Revision of the channel layout represented by channels.
+  int64 channel_layout_revision = 7;
+}
+
+// GetUserReadyStateRequest requests the complete bootstrap for one user.
+message GetUserReadyStateRequest {
+  // User whose Guild snapshots are returned.
+  int64 user_id = 1;
+}
+
+// GetUserReadyStateResponse returns one snapshot per Guild the user can see.
+message GetUserReadyStateResponse {
+  repeated ReadyGuild guilds = 1;
+}
+
+// GetUserGuildChannelVisibilityRequest requests one cached channel access
+// snapshot.
+message GetUserGuildChannelVisibilityRequest {
+  // User of the snapshot.
+  int64 user_id = 1;
+  // Guild of the snapshot.
+  int64 guild_id = 2;
+}
+
+// GetUserGuildChannelVisibilityResponse returns the requested snapshot.
+message GetUserGuildChannelVisibilityResponse {
+  GuildChannelVisibility visibility = 1;
+}
+
+// UpdateGuildRequest applies present metadata changes to one Guild.
+message UpdateGuildRequest {
+  // Guild to update.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Optional replacement name.
+  string name = 3;
+  // Optional replacement description. Set to empty to clear it.
+  string description = 4;
+}
+
+// UpdateGuildResponse returns the updated Guild.
+message UpdateGuildResponse {
+  Guild guild = 1;
+}
+
+// CreateGuildIconUploadRequest carries an authenticated actor, target Guild,
+// and exact image upload contract to Media.
+message CreateGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // actor_user_id is derived from verified authentication state by the API
+  // service and must hold MANAGE_GUILD.
+  int64 actor_user_id = 2;
+  // Exact Content-Length in bytes for the subsequent PUT.
+  int64 expected_size = 3;
+  // Canonical image/jpeg, image/png, or image/webp media type.
+  string content_type = 4;
+  // Optional opaque key identifying one client-side Guild icon upload intent.
+  // Retrying with the same key returns the same upload.
+  string idempotency_key = 5;
+}
+
+// CreateGuildIconUploadResponse forwards Media's direct-upload contract.
+message CreateGuildIconUploadResponse {
+  // Opaque upload identifier used for completion or abort.
+  int64 upload_id = 1;
+  // Short-lived URL accepting one PUT with the declared length and media type.
+  string presigned_url = 2;
+  // Presigned URL expiration as Unix milliseconds.
+  int64 expires_at = 3;
+  // HTTP headers required by the presigned PUT. Browser-managed headers such
+  // as Content-Length are informational and must not be set explicitly.
+  map<string, string> request_headers = 4;
+  // status is the Media upload lifecycle state observed for this response.
+  media.v1.AssetStatus status = 5;
+  // True when the existing idempotency record was replayed.
+  bool idempotent_replay = 6;
+}
+
+// CompleteGuildIconUploadRequest publishes an owned upload and associates the
+// resulting asset with the same Guild after rechecking permission.
+message CompleteGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // actor_user_id is the authenticated user that created the upload.
+  int64 actor_user_id = 2;
+  // upload_id is the opaque value returned by CreateGuildIconUpload.
+  int64 upload_id = 3;
+}
+
+// CompleteGuildIconUploadResponse returns the Guild after association.
+message CompleteGuildIconUploadResponse {
+  Guild guild = 1;
+}
+
+// AbortGuildIconUploadRequest cancels an unpublished upload owned by the actor
+// and scoped to the target Guild.
+message AbortGuildIconUploadRequest {
+  int64 guild_id = 1;
+  // actor_user_id is the authenticated user forwarded by the API service.
+  int64 actor_user_id = 2;
+  // upload_id is the opaque value returned by CreateGuildIconUpload.
+  int64 upload_id = 3;
+}
+
+// AbortGuildIconUploadResponse is empty because abort has no mutable result.
+message AbortGuildIconUploadResponse {}
+
+// DeleteGuildRequest soft-deletes one Guild owned by the actor.
+message DeleteGuildRequest {
+  // Guild to delete.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+}
+
+// DeleteGuildResponse confirms deletion.
+message DeleteGuildResponse {
+  bool ok = 1;
+}

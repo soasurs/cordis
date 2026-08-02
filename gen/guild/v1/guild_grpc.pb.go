@@ -83,8 +83,12 @@ const (
 // authenticated internal caller and are still checked against Guild state.
 type GuildServiceClient interface {
 	// Guild lifecycle and authorization snapshots.
+	// CreateGuild creates a Guild owned by the given user and seeds its default
+	// role and channels.
 	CreateGuild(ctx context.Context, in *CreateGuildRequest, opts ...grpc.CallOption) (*CreateGuildResponse, error)
+	// GetGuild returns one Guild when the user is an active member.
 	GetGuild(ctx context.Context, in *GetGuildRequest, opts ...grpc.CallOption) (*GetGuildResponse, error)
+	// ListUserGuilds pages the Guilds joined by one user.
 	ListUserGuilds(ctx context.Context, in *ListUserGuildsRequest, opts ...grpc.CallOption) (*ListUserGuildsResponse, error)
 	// FilterUsersWithCommonGuild returns targets that share at least one active
 	// Guild membership with user_id. It is an internal visibility primitive.
@@ -94,38 +98,67 @@ type GuildServiceClient interface {
 	// GetUserGuildChannelVisibility returns a single Guild visibility snapshot
 	// for an on-demand snapshot reload by Session nodes.
 	GetUserGuildChannelVisibility(ctx context.Context, in *GetUserGuildChannelVisibilityRequest, opts ...grpc.CallOption) (*GetUserGuildChannelVisibilityResponse, error)
+	// UpdateGuild applies present metadata changes to one Guild.
 	UpdateGuild(ctx context.Context, in *UpdateGuildRequest, opts ...grpc.CallOption) (*UpdateGuildResponse, error)
+	// CreateGuildIconUpload creates a single-PUT icon upload after checking the
+	// actor's MANAGE_GUILD permission.
 	CreateGuildIconUpload(ctx context.Context, in *CreateGuildIconUploadRequest, opts ...grpc.CallOption) (*CreateGuildIconUploadResponse, error)
+	// CompleteGuildIconUpload validates the image and replaces the Guild icon.
 	CompleteGuildIconUpload(ctx context.Context, in *CompleteGuildIconUploadRequest, opts ...grpc.CallOption) (*CompleteGuildIconUploadResponse, error)
+	// AbortGuildIconUpload cancels an unpublished icon upload.
 	AbortGuildIconUpload(ctx context.Context, in *AbortGuildIconUploadRequest, opts ...grpc.CallOption) (*AbortGuildIconUploadResponse, error)
+	// DeleteGuild soft-deletes a Guild owned by the actor.
 	DeleteGuild(ctx context.Context, in *DeleteGuildRequest, opts ...grpc.CallOption) (*DeleteGuildResponse, error)
 	// Membership and moderation.
+	// AddGuildMember adds an existing user to one Guild.
 	AddGuildMember(ctx context.Context, in *AddGuildMemberRequest, opts ...grpc.CallOption) (*AddGuildMemberResponse, error)
+	// GetGuildMember returns one Guild membership.
 	GetGuildMember(ctx context.Context, in *GetGuildMemberRequest, opts ...grpc.CallOption) (*GetGuildMemberResponse, error)
+	// ListGuildMembers pages the members of one Guild.
 	ListGuildMembers(ctx context.Context, in *ListGuildMembersRequest, opts ...grpc.CallOption) (*ListGuildMembersResponse, error)
+	// UpdateGuildMember updates one member's Guild nickname.
 	UpdateGuildMember(ctx context.Context, in *UpdateGuildMemberRequest, opts ...grpc.CallOption) (*UpdateGuildMemberResponse, error)
+	// KickGuildMember removes one member from one Guild.
 	KickGuildMember(ctx context.Context, in *KickGuildMemberRequest, opts ...grpc.CallOption) (*KickGuildMemberResponse, error)
+	// BanGuildMember bans one member and records the reason.
 	BanGuildMember(ctx context.Context, in *BanGuildMemberRequest, opts ...grpc.CallOption) (*BanGuildMemberResponse, error)
+	// UnbanGuildMember lifts one member's ban.
 	UnbanGuildMember(ctx context.Context, in *UnbanGuildMemberRequest, opts ...grpc.CallOption) (*UnbanGuildMemberResponse, error)
+	// ListGuildBans pages the active bans of one Guild.
 	ListGuildBans(ctx context.Context, in *ListGuildBansRequest, opts ...grpc.CallOption) (*ListGuildBansResponse, error)
+	// LeaveGuild removes one user from one Guild.
 	LeaveGuild(ctx context.Context, in *LeaveGuildRequest, opts ...grpc.CallOption) (*LeaveGuildResponse, error)
+	// TransferGuildOwnership transfers one Guild to another member.
 	TransferGuildOwnership(ctx context.Context, in *TransferGuildOwnershipRequest, opts ...grpc.CallOption) (*TransferGuildOwnershipResponse, error)
 	// Invites.
+	// CreateGuildInvite creates a shareable invite for one Guild.
 	CreateGuildInvite(ctx context.Context, in *CreateGuildInviteRequest, opts ...grpc.CallOption) (*CreateGuildInviteResponse, error)
 	// GetGuildInvite returns a public preview and does not require membership.
 	GetGuildInvite(ctx context.Context, in *GetGuildInviteRequest, opts ...grpc.CallOption) (*GetGuildInviteResponse, error)
+	// ListGuildInvites pages the invites of one Guild.
 	ListGuildInvites(ctx context.Context, in *ListGuildInvitesRequest, opts ...grpc.CallOption) (*ListGuildInvitesResponse, error)
+	// DeleteGuildInvite removes one invite.
 	DeleteGuildInvite(ctx context.Context, in *DeleteGuildInviteRequest, opts ...grpc.CallOption) (*DeleteGuildInviteResponse, error)
+	// JoinGuildByInvite joins one user to the Guild behind a code.
 	JoinGuildByInvite(ctx context.Context, in *JoinGuildByInviteRequest, opts ...grpc.CallOption) (*JoinGuildByInviteResponse, error)
 	// Roles and effective Guild permissions.
+	// CreateGuildRole creates a non-default role with the requested
+	// permissions.
 	CreateGuildRole(ctx context.Context, in *CreateGuildRoleRequest, opts ...grpc.CallOption) (*CreateGuildRoleResponse, error)
+	// GetGuildRole returns one role.
 	GetGuildRole(ctx context.Context, in *GetGuildRoleRequest, opts ...grpc.CallOption) (*GetGuildRoleResponse, error)
+	// ListGuildRoles returns the roles of one Guild in position order.
 	ListGuildRoles(ctx context.Context, in *ListGuildRolesRequest, opts ...grpc.CallOption) (*ListGuildRolesResponse, error)
+	// UpdateGuildRole applies present name or permission changes to one role.
 	UpdateGuildRole(ctx context.Context, in *UpdateGuildRoleRequest, opts ...grpc.CallOption) (*UpdateGuildRoleResponse, error)
 	// DeleteGuildRole rejects the default @everyone role.
 	DeleteGuildRole(ctx context.Context, in *DeleteGuildRoleRequest, opts ...grpc.CallOption) (*DeleteGuildRoleResponse, error)
+	// ReorderGuildRoles atomically applies new positions to a partial set of
+	// roles.
 	ReorderGuildRoles(ctx context.Context, in *ReorderGuildRolesRequest, opts ...grpc.CallOption) (*ReorderGuildRolesResponse, error)
+	// AddGuildMemberRole assigns one role to one member.
 	AddGuildMemberRole(ctx context.Context, in *AddGuildMemberRoleRequest, opts ...grpc.CallOption) (*AddGuildMemberRoleResponse, error)
+	// RemoveGuildMemberRole removes one role assignment.
 	RemoveGuildMemberRole(ctx context.Context, in *RemoveGuildMemberRoleRequest, opts ...grpc.CallOption) (*RemoveGuildMemberRoleResponse, error)
 	// AddGuildRoleMembers assigns one non-default role to many members.
 	AddGuildRoleMembers(ctx context.Context, in *AddGuildRoleMembersRequest, opts ...grpc.CallOption) (*AddGuildRoleMembersResponse, error)
@@ -136,17 +169,32 @@ type GuildServiceClient interface {
 	// ListGuildRoleMembers returns explicitly assigned members, or every member
 	// when role_id identifies the default role.
 	ListGuildRoleMembers(ctx context.Context, in *ListGuildRoleMembersRequest, opts ...grpc.CallOption) (*ListGuildRoleMembersResponse, error)
+	// GetGuildMemberPermissions returns a member's effective Guild-level
+	// permissions.
 	GetGuildMemberPermissions(ctx context.Context, in *GetGuildMemberPermissionsRequest, opts ...grpc.CallOption) (*GetGuildMemberPermissionsResponse, error)
 	// Channels and permission overwrites.
+	// CreateGuildChannel creates a text, category, or voice channel in one
+	// Guild.
 	CreateGuildChannel(ctx context.Context, in *CreateGuildChannelRequest, opts ...grpc.CallOption) (*CreateGuildChannelResponse, error)
+	// GetGuildChannel returns one channel when the actor can view it.
 	GetGuildChannel(ctx context.Context, in *GetGuildChannelRequest, opts ...grpc.CallOption) (*GetGuildChannelResponse, error)
+	// ListGuildChannels returns the channels visible to the actor and the
+	// current layout revision.
 	ListGuildChannels(ctx context.Context, in *ListGuildChannelsRequest, opts ...grpc.CallOption) (*ListGuildChannelsResponse, error)
+	// UpdateGuildChannel applies present name, topic, or parent changes to one
+	// channel.
 	UpdateGuildChannel(ctx context.Context, in *UpdateGuildChannelRequest, opts ...grpc.CallOption) (*UpdateGuildChannelResponse, error)
+	// DeleteGuildChannel deletes one channel and returns the new layout
+	// revision.
 	DeleteGuildChannel(ctx context.Context, in *DeleteGuildChannelRequest, opts ...grpc.CallOption) (*DeleteGuildChannelResponse, error)
+	// ReorderGuildChannels atomically moves channels to new positions.
 	ReorderGuildChannels(ctx context.Context, in *ReorderGuildChannelsRequest, opts ...grpc.CallOption) (*ReorderGuildChannelsResponse, error)
+	// UpsertGuildChannelPermissionOverwrite creates or replaces one channel
+	// permission overwrite.
 	UpsertGuildChannelPermissionOverwrite(ctx context.Context, in *UpsertGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*UpsertGuildChannelPermissionOverwriteResponse, error)
 	// DeleteGuildChannelPermissionOverwrite rejects the default @everyone overwrite.
 	DeleteGuildChannelPermissionOverwrite(ctx context.Context, in *DeleteGuildChannelPermissionOverwriteRequest, opts ...grpc.CallOption) (*DeleteGuildChannelPermissionOverwriteResponse, error)
+	// ListGuildChannelPermissionOverwrites lists the overwrites of one channel.
 	ListGuildChannelPermissionOverwrites(ctx context.Context, in *ListGuildChannelPermissionOverwritesRequest, opts ...grpc.CallOption) (*ListGuildChannelPermissionOverwritesResponse, error)
 	// AuthorizeGuildChannel evaluates one permission for Message or another
 	// internal service and returns the full effective permission set.
@@ -715,8 +763,12 @@ func (c *guildServiceClient) FilterGuildChannelVisibleUsers(ctx context.Context,
 // authenticated internal caller and are still checked against Guild state.
 type GuildServiceServer interface {
 	// Guild lifecycle and authorization snapshots.
+	// CreateGuild creates a Guild owned by the given user and seeds its default
+	// role and channels.
 	CreateGuild(context.Context, *CreateGuildRequest) (*CreateGuildResponse, error)
+	// GetGuild returns one Guild when the user is an active member.
 	GetGuild(context.Context, *GetGuildRequest) (*GetGuildResponse, error)
+	// ListUserGuilds pages the Guilds joined by one user.
 	ListUserGuilds(context.Context, *ListUserGuildsRequest) (*ListUserGuildsResponse, error)
 	// FilterUsersWithCommonGuild returns targets that share at least one active
 	// Guild membership with user_id. It is an internal visibility primitive.
@@ -726,38 +778,67 @@ type GuildServiceServer interface {
 	// GetUserGuildChannelVisibility returns a single Guild visibility snapshot
 	// for an on-demand snapshot reload by Session nodes.
 	GetUserGuildChannelVisibility(context.Context, *GetUserGuildChannelVisibilityRequest) (*GetUserGuildChannelVisibilityResponse, error)
+	// UpdateGuild applies present metadata changes to one Guild.
 	UpdateGuild(context.Context, *UpdateGuildRequest) (*UpdateGuildResponse, error)
+	// CreateGuildIconUpload creates a single-PUT icon upload after checking the
+	// actor's MANAGE_GUILD permission.
 	CreateGuildIconUpload(context.Context, *CreateGuildIconUploadRequest) (*CreateGuildIconUploadResponse, error)
+	// CompleteGuildIconUpload validates the image and replaces the Guild icon.
 	CompleteGuildIconUpload(context.Context, *CompleteGuildIconUploadRequest) (*CompleteGuildIconUploadResponse, error)
+	// AbortGuildIconUpload cancels an unpublished icon upload.
 	AbortGuildIconUpload(context.Context, *AbortGuildIconUploadRequest) (*AbortGuildIconUploadResponse, error)
+	// DeleteGuild soft-deletes a Guild owned by the actor.
 	DeleteGuild(context.Context, *DeleteGuildRequest) (*DeleteGuildResponse, error)
 	// Membership and moderation.
+	// AddGuildMember adds an existing user to one Guild.
 	AddGuildMember(context.Context, *AddGuildMemberRequest) (*AddGuildMemberResponse, error)
+	// GetGuildMember returns one Guild membership.
 	GetGuildMember(context.Context, *GetGuildMemberRequest) (*GetGuildMemberResponse, error)
+	// ListGuildMembers pages the members of one Guild.
 	ListGuildMembers(context.Context, *ListGuildMembersRequest) (*ListGuildMembersResponse, error)
+	// UpdateGuildMember updates one member's Guild nickname.
 	UpdateGuildMember(context.Context, *UpdateGuildMemberRequest) (*UpdateGuildMemberResponse, error)
+	// KickGuildMember removes one member from one Guild.
 	KickGuildMember(context.Context, *KickGuildMemberRequest) (*KickGuildMemberResponse, error)
+	// BanGuildMember bans one member and records the reason.
 	BanGuildMember(context.Context, *BanGuildMemberRequest) (*BanGuildMemberResponse, error)
+	// UnbanGuildMember lifts one member's ban.
 	UnbanGuildMember(context.Context, *UnbanGuildMemberRequest) (*UnbanGuildMemberResponse, error)
+	// ListGuildBans pages the active bans of one Guild.
 	ListGuildBans(context.Context, *ListGuildBansRequest) (*ListGuildBansResponse, error)
+	// LeaveGuild removes one user from one Guild.
 	LeaveGuild(context.Context, *LeaveGuildRequest) (*LeaveGuildResponse, error)
+	// TransferGuildOwnership transfers one Guild to another member.
 	TransferGuildOwnership(context.Context, *TransferGuildOwnershipRequest) (*TransferGuildOwnershipResponse, error)
 	// Invites.
+	// CreateGuildInvite creates a shareable invite for one Guild.
 	CreateGuildInvite(context.Context, *CreateGuildInviteRequest) (*CreateGuildInviteResponse, error)
 	// GetGuildInvite returns a public preview and does not require membership.
 	GetGuildInvite(context.Context, *GetGuildInviteRequest) (*GetGuildInviteResponse, error)
+	// ListGuildInvites pages the invites of one Guild.
 	ListGuildInvites(context.Context, *ListGuildInvitesRequest) (*ListGuildInvitesResponse, error)
+	// DeleteGuildInvite removes one invite.
 	DeleteGuildInvite(context.Context, *DeleteGuildInviteRequest) (*DeleteGuildInviteResponse, error)
+	// JoinGuildByInvite joins one user to the Guild behind a code.
 	JoinGuildByInvite(context.Context, *JoinGuildByInviteRequest) (*JoinGuildByInviteResponse, error)
 	// Roles and effective Guild permissions.
+	// CreateGuildRole creates a non-default role with the requested
+	// permissions.
 	CreateGuildRole(context.Context, *CreateGuildRoleRequest) (*CreateGuildRoleResponse, error)
+	// GetGuildRole returns one role.
 	GetGuildRole(context.Context, *GetGuildRoleRequest) (*GetGuildRoleResponse, error)
+	// ListGuildRoles returns the roles of one Guild in position order.
 	ListGuildRoles(context.Context, *ListGuildRolesRequest) (*ListGuildRolesResponse, error)
+	// UpdateGuildRole applies present name or permission changes to one role.
 	UpdateGuildRole(context.Context, *UpdateGuildRoleRequest) (*UpdateGuildRoleResponse, error)
 	// DeleteGuildRole rejects the default @everyone role.
 	DeleteGuildRole(context.Context, *DeleteGuildRoleRequest) (*DeleteGuildRoleResponse, error)
+	// ReorderGuildRoles atomically applies new positions to a partial set of
+	// roles.
 	ReorderGuildRoles(context.Context, *ReorderGuildRolesRequest) (*ReorderGuildRolesResponse, error)
+	// AddGuildMemberRole assigns one role to one member.
 	AddGuildMemberRole(context.Context, *AddGuildMemberRoleRequest) (*AddGuildMemberRoleResponse, error)
+	// RemoveGuildMemberRole removes one role assignment.
 	RemoveGuildMemberRole(context.Context, *RemoveGuildMemberRoleRequest) (*RemoveGuildMemberRoleResponse, error)
 	// AddGuildRoleMembers assigns one non-default role to many members.
 	AddGuildRoleMembers(context.Context, *AddGuildRoleMembersRequest) (*AddGuildRoleMembersResponse, error)
@@ -768,17 +849,32 @@ type GuildServiceServer interface {
 	// ListGuildRoleMembers returns explicitly assigned members, or every member
 	// when role_id identifies the default role.
 	ListGuildRoleMembers(context.Context, *ListGuildRoleMembersRequest) (*ListGuildRoleMembersResponse, error)
+	// GetGuildMemberPermissions returns a member's effective Guild-level
+	// permissions.
 	GetGuildMemberPermissions(context.Context, *GetGuildMemberPermissionsRequest) (*GetGuildMemberPermissionsResponse, error)
 	// Channels and permission overwrites.
+	// CreateGuildChannel creates a text, category, or voice channel in one
+	// Guild.
 	CreateGuildChannel(context.Context, *CreateGuildChannelRequest) (*CreateGuildChannelResponse, error)
+	// GetGuildChannel returns one channel when the actor can view it.
 	GetGuildChannel(context.Context, *GetGuildChannelRequest) (*GetGuildChannelResponse, error)
+	// ListGuildChannels returns the channels visible to the actor and the
+	// current layout revision.
 	ListGuildChannels(context.Context, *ListGuildChannelsRequest) (*ListGuildChannelsResponse, error)
+	// UpdateGuildChannel applies present name, topic, or parent changes to one
+	// channel.
 	UpdateGuildChannel(context.Context, *UpdateGuildChannelRequest) (*UpdateGuildChannelResponse, error)
+	// DeleteGuildChannel deletes one channel and returns the new layout
+	// revision.
 	DeleteGuildChannel(context.Context, *DeleteGuildChannelRequest) (*DeleteGuildChannelResponse, error)
+	// ReorderGuildChannels atomically moves channels to new positions.
 	ReorderGuildChannels(context.Context, *ReorderGuildChannelsRequest) (*ReorderGuildChannelsResponse, error)
+	// UpsertGuildChannelPermissionOverwrite creates or replaces one channel
+	// permission overwrite.
 	UpsertGuildChannelPermissionOverwrite(context.Context, *UpsertGuildChannelPermissionOverwriteRequest) (*UpsertGuildChannelPermissionOverwriteResponse, error)
 	// DeleteGuildChannelPermissionOverwrite rejects the default @everyone overwrite.
 	DeleteGuildChannelPermissionOverwrite(context.Context, *DeleteGuildChannelPermissionOverwriteRequest) (*DeleteGuildChannelPermissionOverwriteResponse, error)
+	// ListGuildChannelPermissionOverwrites lists the overwrites of one channel.
 	ListGuildChannelPermissionOverwrites(context.Context, *ListGuildChannelPermissionOverwritesRequest) (*ListGuildChannelPermissionOverwritesResponse, error)
 	// AuthorizeGuildChannel evaluates one permission for Message or another
 	// internal service and returns the full effective permission set.

@@ -20,6 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// SendEmailRequest selects one template and its variables.
 type SendEmailRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_To          *string                `protobuf:"bytes,1,opt,name=to"`
@@ -124,6 +125,7 @@ func (x *SendEmailRequest) ClearTemplate() {
 type SendEmailRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Recipient email address.
 	To *string
 	// Template identifier, for example "password_reset". Shared constants live
 	// in pkg/mail.
@@ -149,6 +151,7 @@ func (b0 SendEmailRequest_builder) Build() *SendEmailRequest {
 	return m0
 }
 
+// SendEmailResponse confirms the email was accepted for delivery.
 type SendEmailResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`

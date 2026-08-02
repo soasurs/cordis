@@ -20,14 +20,21 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// PresenceStatus is the privacy-filtered aggregate status exposed to other
+// users.
 type PresenceStatus int32
 
 const (
+	// Zero value; not used in responses.
 	PresenceStatus_PRESENCE_STATUS_UNSPECIFIED PresenceStatus = 0
-	PresenceStatus_PRESENCE_STATUS_OFFLINE     PresenceStatus = 1
-	PresenceStatus_PRESENCE_STATUS_ONLINE      PresenceStatus = 2
-	PresenceStatus_PRESENCE_STATUS_IDLE        PresenceStatus = 3
-	PresenceStatus_PRESENCE_STATUS_DND         PresenceStatus = 4
+	// The user is offline or hidden.
+	PresenceStatus_PRESENCE_STATUS_OFFLINE PresenceStatus = 1
+	// The user is online.
+	PresenceStatus_PRESENCE_STATUS_ONLINE PresenceStatus = 2
+	// The user is online but idle.
+	PresenceStatus_PRESENCE_STATUS_IDLE PresenceStatus = 3
+	// The user is online but does not want to be disturbed.
+	PresenceStatus_PRESENCE_STATUS_DND PresenceStatus = 4
 )
 
 // Enum value maps for PresenceStatus.
@@ -70,6 +77,7 @@ func (x PresenceStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// Presence is one user's aggregate status snapshot.
 type Presence struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -208,10 +216,14 @@ func (x *Presence) ClearVersion() {
 type Presence_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId     *int64
-	Status     *PresenceStatus
+	// User of the snapshot.
+	UserId *int64
+	// Aggregate status visible to the caller.
+	Status *PresenceStatus
+	// Unix milliseconds of the last seen activity.
 	LastSeenAt *int64
-	Version    *int64
+	// Monotonically increasing snapshot version.
+	Version *int64
 }
 
 func (b0 Presence_builder) Build() *Presence {
@@ -237,6 +249,7 @@ func (b0 Presence_builder) Build() *Presence {
 	return m0
 }
 
+// ResolveUsersPresenceRequest requests snapshots for up to 100 unique users.
 type ResolveUsersPresenceRequest struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
@@ -283,6 +296,7 @@ func (x *ResolveUsersPresenceRequest) SetUserIds(v []int64) {
 type ResolveUsersPresenceRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Users whose visible presence is resolved.
 	UserIds []int64
 }
 
@@ -294,6 +308,8 @@ func (b0 ResolveUsersPresenceRequest_builder) Build() *ResolveUsersPresenceReque
 	return m0
 }
 
+// ResolveUsersPresenceResponse returns snapshots for users visible to the
+// caller; invisible targets are omitted.
 type ResolveUsersPresenceResponse struct {
 	state                protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Presences *[]*Presence           `protobuf:"bytes,1,rep,name=presences"`

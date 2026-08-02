@@ -20,6 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ConnectRequest is one frame sent by a Gateway over the Connect stream.
 type ConnectRequest struct {
 	state                        protoimpl.MessageState   `protogen:"opaque.v1"`
 	xxx_hidden_ConnectionId      *string                  `protobuf:"bytes,1,opt,name=connection_id,json=connectionId"`
@@ -334,15 +335,23 @@ func (x *ConnectRequest) WhichPayload() case_ConnectRequest_Payload {
 type ConnectRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Stable ID of the physical Gateway connection, unique per process.
 	ConnectionId *string
 	// Fields of oneof xxx_hidden_Payload:
-	Identify  *Identify
-	Resume    *Resume
+	// Authenticate and start a new logical session.
+	Identify *Identify
+	// Rebind an existing logical session after a reconnect.
+	Resume *Resume
+	// Acknowledge the last received server sequence.
 	Heartbeat *Heartbeat
-	Presence  *PresenceUpdate
-	Detach    *Detach
+	// Update presence and client state for the bound session.
+	Presence *PresenceUpdate
+	// Detach the physical connection without ending the session.
+	Detach *Detach
 	// -- end of xxx_hidden_Payload
-	GatewayId         *string
+	// Gateway process ID that owns the connection.
+	GatewayId *string
+	// Deployment generation of the Gateway process.
 	GatewayGeneration *string
 }
 
@@ -395,22 +404,27 @@ type isConnectRequest_Payload interface {
 }
 
 type connectRequest_Identify struct {
+	// Authenticate and start a new logical session.
 	Identify *Identify `protobuf:"bytes,2,opt,name=identify,oneof"`
 }
 
 type connectRequest_Resume struct {
+	// Rebind an existing logical session after a reconnect.
 	Resume *Resume `protobuf:"bytes,3,opt,name=resume,oneof"`
 }
 
 type connectRequest_Heartbeat struct {
+	// Acknowledge the last received server sequence.
 	Heartbeat *Heartbeat `protobuf:"bytes,4,opt,name=heartbeat,oneof"`
 }
 
 type connectRequest_Presence struct {
+	// Update presence and client state for the bound session.
 	Presence *PresenceUpdate `protobuf:"bytes,5,opt,name=presence,oneof"`
 }
 
 type connectRequest_Detach struct {
+	// Detach the physical connection without ending the session.
 	Detach *Detach `protobuf:"bytes,6,opt,name=detach,oneof"`
 }
 
@@ -424,6 +438,7 @@ func (*connectRequest_Presence) isConnectRequest_Payload() {}
 
 func (*connectRequest_Detach) isConnectRequest_Payload() {}
 
+// Identify starts a new logical session for one authenticated user.
 type Identify struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Credential  isIdentify_Credential  `protobuf_oneof:"credential"`
@@ -629,11 +644,16 @@ type Identify_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// Fields of oneof xxx_hidden_Credential:
-	Token         *string
+	// Access token minted by the authenticator service.
+	Token *string
+	// Short-lived single-use ticket from CreateGatewayTicket.
 	GatewayTicket *string
 	// -- end of xxx_hidden_Credential
-	DeviceType  *string
-	Status      *string
+	// Client-reported device type.
+	DeviceType *string
+	// Initial presence status.
+	Status *string
+	// Initial client state, such as foreground or background.
 	ClientState *string
 }
 
@@ -677,10 +697,12 @@ type isIdentify_Credential interface {
 }
 
 type identify_Token struct {
+	// Access token minted by the authenticator service.
 	Token string `protobuf:"bytes,1,opt,name=token,oneof"`
 }
 
 type identify_GatewayTicket struct {
+	// Short-lived single-use ticket from CreateGatewayTicket.
 	GatewayTicket string `protobuf:"bytes,5,opt,name=gateway_ticket,json=gatewayTicket,oneof"`
 }
 
@@ -688,6 +710,7 @@ func (*identify_Token) isIdentify_Credential() {}
 
 func (*identify_GatewayTicket) isIdentify_Credential() {}
 
+// Resume rebinds an existing logical session after a reconnect.
 type Resume struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Credential  isResume_Credential    `protobuf_oneof:"credential"`
@@ -862,11 +885,15 @@ type Resume_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// Fields of oneof xxx_hidden_Credential:
-	Token         *string
+	// Access token minted by the authenticator service.
+	Token *string
+	// Short-lived single-use ticket from CreateGatewayTicket.
 	GatewayTicket *string
 	// -- end of xxx_hidden_Credential
+	// ID of the logical session to resume.
 	SessionId *string
-	Sequence  *uint64
+	// Last sequence the client received; the server replays newer events.
+	Sequence *uint64
 }
 
 func (b0 Resume_builder) Build() *Resume {
@@ -905,10 +932,12 @@ type isResume_Credential interface {
 }
 
 type resume_Token struct {
+	// Access token minted by the authenticator service.
 	Token string `protobuf:"bytes,1,opt,name=token,oneof"`
 }
 
 type resume_GatewayTicket struct {
+	// Short-lived single-use ticket from CreateGatewayTicket.
 	GatewayTicket string `protobuf:"bytes,4,opt,name=gateway_ticket,json=gatewayTicket,oneof"`
 }
 
@@ -916,6 +945,7 @@ func (*resume_Token) isResume_Credential() {}
 
 func (*resume_GatewayTicket) isResume_Credential() {}
 
+// Heartbeat acknowledges the last received server sequence.
 type Heartbeat struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Sequence    uint64                 `protobuf:"varint,1,opt,name=sequence"`
@@ -977,6 +1007,7 @@ func (x *Heartbeat) ClearSequence() {
 type Heartbeat_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Last sequence received by the client.
 	Sequence *uint64
 }
 
@@ -991,6 +1022,7 @@ func (b0 Heartbeat_builder) Build() *Heartbeat {
 	return m0
 }
 
+// PresenceUpdate changes the bound session's presence or client state.
 type PresenceUpdate struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Status      *string                `protobuf:"bytes,1,opt,name=status"`
@@ -1083,7 +1115,9 @@ func (x *PresenceUpdate) ClearClientState() {
 type PresenceUpdate_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Status      *string
+	// New presence status.
+	Status *string
+	// New client state.
 	ClientState *string
 }
 
@@ -1102,6 +1136,8 @@ func (b0 PresenceUpdate_builder) Build() *PresenceUpdate {
 	return m0
 }
 
+// Detach releases the physical connection while keeping the logical session
+// resumable.
 type Detach struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Resumable   bool                   `protobuf:"varint,1,opt,name=resumable"`
@@ -1163,6 +1199,7 @@ func (x *Detach) ClearResumable() {
 type Detach_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// True when the session should stay resumable after detach.
 	Resumable *bool
 }
 
@@ -1177,6 +1214,7 @@ func (b0 Detach_builder) Build() *Detach {
 	return m0
 }
 
+// ConnectResponse is one frame sent by Session to the Gateway.
 type ConnectResponse struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Opcode       int32                  `protobuf:"varint,1,opt,name=opcode"`
@@ -1425,15 +1463,22 @@ func (x *ConnectResponse) ClearBindingEpoch() {
 type ConnectResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Opcode      *int32
-	Sequence    *uint64
-	Type        *string
+	// Realtime protocol opcode.
+	Opcode *int32
+	// Monotonically increasing server sequence for replay and heartbeats.
+	Sequence *uint64
+	// Realtime event type.
+	Type *string
+	// JSON-encoded event payload.
 	JsonPayload *string
-	CloseCode   *int32
+	// Non-zero when the stream is closing.
+	CloseCode *int32
+	// Human-readable close reason.
 	CloseReason *string
 	// Internal binding metadata consumed by Gateway and never exposed on the
 	// websocket protocol.
-	SessionId    *string
+	SessionId *string
+	// Binding generation used to reject stale gateway connections.
 	BindingEpoch *uint64
 }
 
@@ -1476,6 +1521,7 @@ func (b0 ConnectResponse_builder) Build() *ConnectResponse {
 	return m0
 }
 
+// GatewayConnectionCheckpoint is one connection's acknowledged sequence.
 type GatewayConnectionCheckpoint struct {
 	state                           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_SessionId            *string                `protobuf:"bytes,1,opt,name=session_id,json=sessionId"`
@@ -1618,9 +1664,13 @@ func (x *GatewayConnectionCheckpoint) ClearAcknowledgedSequence() {
 type GatewayConnectionCheckpoint_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	SessionId            *string
-	ConnectionId         *string
-	BindingEpoch         *uint64
+	// Logical session bound to the connection.
+	SessionId *string
+	// Physical connection ID.
+	ConnectionId *string
+	// Binding generation of the connection.
+	BindingEpoch *uint64
+	// Highest sequence acknowledged by the client.
 	AcknowledgedSequence *uint64
 }
 
@@ -1647,6 +1697,7 @@ func (b0 GatewayConnectionCheckpoint_builder) Build() *GatewayConnectionCheckpoi
 	return m0
 }
 
+// SyncGatewayConnectionsRequest carries one gateway's connection checkpoints.
 type SyncGatewayConnectionsRequest struct {
 	state                        protoimpl.MessageState          `protogen:"opaque.v1"`
 	xxx_hidden_GatewayId         *string                         `protobuf:"bytes,1,opt,name=gateway_id,json=gatewayId"`
@@ -1753,9 +1804,12 @@ func (x *SyncGatewayConnectionsRequest) ClearGatewayGeneration() {
 type SyncGatewayConnectionsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GatewayId         *string
+	// Gateway process ID.
+	GatewayId *string
+	// Deployment generation of the Gateway process.
 	GatewayGeneration *string
-	Checkpoints       []*GatewayConnectionCheckpoint
+	// Checkpoints to apply; stale bindings are skipped.
+	Checkpoints []*GatewayConnectionCheckpoint
 }
 
 func (b0 SyncGatewayConnectionsRequest_builder) Build() *SyncGatewayConnectionsRequest {
@@ -1774,6 +1828,7 @@ func (b0 SyncGatewayConnectionsRequest_builder) Build() *SyncGatewayConnectionsR
 	return m0
 }
 
+// SyncGatewayConnectionsResponse reports how many checkpoints were applied.
 type SyncGatewayConnectionsResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Applied     int32                  `protobuf:"varint,1,opt,name=applied"`
@@ -1835,6 +1890,7 @@ func (x *SyncGatewayConnectionsResponse) ClearApplied() {
 type SyncGatewayConnectionsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Number of applied checkpoints.
 	Applied *int32
 }
 
@@ -1849,6 +1905,7 @@ func (b0 SyncGatewayConnectionsResponse_builder) Build() *SyncGatewayConnections
 	return m0
 }
 
+// EventEnvelope is one realtime event routed to sessions.
 type EventEnvelope struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Type           *string                `protobuf:"bytes,1,opt,name=type"`
@@ -1966,8 +2023,11 @@ func (x *EventEnvelope) ClearIdempotencyKey() {
 type EventEnvelope_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Type           *string
-	JsonPayload    *string
+	// Lowercase dot-separated event name.
+	Type *string
+	// JSON-encoded event payload.
+	JsonPayload *string
+	// Opaque key used to deduplicate redelivered events.
 	IdempotencyKey *int64
 }
 
@@ -1990,6 +2050,7 @@ func (b0 EventEnvelope_builder) Build() *EventEnvelope {
 	return m0
 }
 
+// DispatchGuildEventRequest fans one event out to a Guild's sessions.
 type DispatchGuildEventRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2074,8 +2135,10 @@ func (x *DispatchGuildEventRequest) ClearEvent() {
 type DispatchGuildEventRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild receiving the event.
 	GuildId *int64
-	Event   *EventEnvelope
+	// Event to fan out.
+	Event *EventEnvelope
 }
 
 func (b0 DispatchGuildEventRequest_builder) Build() *DispatchGuildEventRequest {
@@ -2090,6 +2153,8 @@ func (b0 DispatchGuildEventRequest_builder) Build() *DispatchGuildEventRequest {
 	return m0
 }
 
+// DispatchGuildMessageEventRequest fans one message event out through the
+// Guild visibility snapshot.
 type DispatchGuildMessageEventRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2199,9 +2264,12 @@ func (x *DispatchGuildMessageEventRequest) ClearEvent() {
 type DispatchGuildMessageEventRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId   *int64
+	// Guild of the channel.
+	GuildId *int64
+	// Channel the message belongs to.
 	ChannelId *int64
-	Event     *EventEnvelope
+	// Event to fan out.
+	Event *EventEnvelope
 }
 
 func (b0 DispatchGuildMessageEventRequest_builder) Build() *DispatchGuildMessageEventRequest {
@@ -2220,6 +2288,7 @@ func (b0 DispatchGuildMessageEventRequest_builder) Build() *DispatchGuildMessage
 	return m0
 }
 
+// DispatchUserEventRequest fans one event out to one user's sessions.
 type DispatchUserEventRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId      int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -2304,8 +2373,10 @@ func (x *DispatchUserEventRequest) ClearEvent() {
 type DispatchUserEventRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// User receiving the event.
 	UserId *int64
-	Event  *EventEnvelope
+	// Event to fan out.
+	Event *EventEnvelope
 }
 
 func (b0 DispatchUserEventRequest_builder) Build() *DispatchUserEventRequest {
@@ -2320,6 +2391,7 @@ func (b0 DispatchUserEventRequest_builder) Build() *DispatchUserEventRequest {
 	return m0
 }
 
+// DispatchGuildEventResponse reports the number of delivered sessions.
 type DispatchGuildEventResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Delivered   int32                  `protobuf:"varint,1,opt,name=delivered"`
@@ -2381,6 +2453,7 @@ func (x *DispatchGuildEventResponse) ClearDelivered() {
 type DispatchGuildEventResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Number of sessions that received the event.
 	Delivered *int32
 }
 
@@ -2395,6 +2468,7 @@ func (b0 DispatchGuildEventResponse_builder) Build() *DispatchGuildEventResponse
 	return m0
 }
 
+// DispatchGuildMessageEventResponse reports the number of delivered sessions.
 type DispatchGuildMessageEventResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Delivered   int32                  `protobuf:"varint,1,opt,name=delivered"`
@@ -2456,6 +2530,7 @@ func (x *DispatchGuildMessageEventResponse) ClearDelivered() {
 type DispatchGuildMessageEventResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Number of sessions that received the event.
 	Delivered *int32
 }
 
@@ -2470,6 +2545,7 @@ func (b0 DispatchGuildMessageEventResponse_builder) Build() *DispatchGuildMessag
 	return m0
 }
 
+// DispatchUserEventResponse reports the number of delivered sessions.
 type DispatchUserEventResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Delivered   int32                  `protobuf:"varint,1,opt,name=delivered"`
@@ -2531,6 +2607,7 @@ func (x *DispatchUserEventResponse) ClearDelivered() {
 type DispatchUserEventResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Number of sessions that received the event.
 	Delivered *int32
 }
 

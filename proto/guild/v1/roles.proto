@@ -1,0 +1,261 @@
+edition = "2023";
+
+package guild.v1;
+
+import "guild/v1/common.proto";
+
+// CreateGuildRoleRequest creates a non-default role with the requested
+// permissions.
+message CreateGuildRoleRequest {
+  // Guild that owns the new role.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Display name of the role.
+  string name = 3;
+  // Bitwise OR of GuildPermission values. The actor may grant only
+  // permissions they hold.
+  uint64 permissions = 4;
+  // Optional opaque key identifying one client-side role creation intent.
+  string idempotency_key = 5;
+}
+
+// CreateGuildRoleResponse returns the stored role.
+message CreateGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+// GetGuildRoleRequest fetches one role.
+message GetGuildRoleRequest {
+  // Guild of the role.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Role to fetch.
+  int64 role_id = 3;
+}
+
+// GetGuildRoleResponse returns the requested role.
+message GetGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+// ListGuildRolesRequest lists the roles of one Guild.
+message ListGuildRolesRequest {
+  // Guild whose roles are listed.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+}
+
+// ListGuildRolesResponse returns the Guild's roles.
+message ListGuildRolesResponse {
+  // Roles ordered by descending position, then ascending ID.
+  repeated GuildRole roles = 1;
+}
+
+// UpdateGuildRoleRequest applies present name or permission changes to one
+// role.
+message UpdateGuildRoleRequest {
+  // Guild of the role.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Role to update.
+  int64 role_id = 3;
+  // Optional replacement fields. At least one must be present.
+  string name = 4;
+  // Bitwise OR of GuildPermission values. The actor may grant only
+  // permissions they hold.
+  uint64 permissions = 5;
+}
+
+// UpdateGuildRoleResponse returns the updated role.
+message UpdateGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+// DeleteGuildRoleRequest deletes one non-default role.
+message DeleteGuildRoleRequest {
+  // Guild of the role.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Role to delete.
+  int64 role_id = 3;
+}
+
+// DeleteGuildRoleResponse confirms deletion.
+message DeleteGuildRoleResponse {
+  bool ok = 1;
+}
+
+// GuildRolePosition requests one role's new position during reorder.
+message GuildRolePosition {
+  // Role to move.
+  int64 role_id = 1;
+  // Positive position for a non-default role. Higher values have greater
+  // authority.
+  int32 position = 2;
+}
+
+// ReorderGuildRolesRequest atomically applies new positions to a partial set
+// of roles.
+message ReorderGuildRolesRequest {
+  // Guild whose roles are reordered.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Partial set of roles to move. Final positions must remain unique.
+  repeated GuildRolePosition positions = 3;
+}
+
+// ReorderGuildRolesResponse returns the complete role list after reorder.
+message ReorderGuildRolesResponse {
+  repeated GuildRole roles = 1;
+}
+
+// AddGuildMemberRoleRequest assigns one role to one member.
+message AddGuildMemberRoleRequest {
+  // Guild of the assignment.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Member receiving the role.
+  int64 user_id = 3;
+  // Role to assign.
+  int64 role_id = 4;
+}
+
+// AddGuildMemberRoleResponse confirms the assignment.
+message AddGuildMemberRoleResponse {
+  bool ok = 1;
+}
+
+// RemoveGuildMemberRoleRequest removes one role assignment.
+message RemoveGuildMemberRoleRequest {
+  // Guild of the assignment.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Member losing the role.
+  int64 user_id = 3;
+  // Role to remove.
+  int64 role_id = 4;
+}
+
+// RemoveGuildMemberRoleResponse confirms removal.
+message RemoveGuildMemberRoleResponse {
+  bool ok = 1;
+}
+
+// AddGuildRoleMembersRequest assigns one non-default role to many members.
+message AddGuildRoleMembersRequest {
+  // Guild of the assignment.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Non-default role to assign.
+  int64 role_id = 3;
+  // Distinct positive member user IDs. At most 100 values.
+  repeated int64 user_ids = 4;
+}
+
+// AddGuildRoleMembersResponse confirms the assignments.
+message AddGuildRoleMembersResponse {
+  bool ok = 1;
+}
+
+// RemoveGuildRoleMembersRequest removes one non-default role from many
+// members.
+message RemoveGuildRoleMembersRequest {
+  // Guild of the assignment.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Non-default role to remove.
+  int64 role_id = 3;
+  // Distinct positive member user IDs. At most 100 values.
+  repeated int64 user_ids = 4;
+}
+
+// RemoveGuildRoleMembersResponse confirms removal.
+message RemoveGuildRoleMembersResponse {
+  bool ok = 1;
+}
+
+// ListGuildMemberRolesRequest lists one member's roles in a Guild.
+message ListGuildMemberRolesRequest {
+  // Guild of the membership.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Member whose roles are listed.
+  int64 user_id = 3;
+}
+
+// ListGuildMemberRolesResponse returns the member's roles, including the
+// default role.
+message ListGuildMemberRolesResponse {
+  // Roles ordered by descending position, including the default role.
+  repeated GuildRole roles = 1;
+}
+
+// ListGuildRoleMembersRequest pages the members assigned to one role.
+message ListGuildRoleMembersRequest {
+  // Guild of the role.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // The default role matches every active Guild member; other roles match
+  // explicit assignments only.
+  int64 role_id = 3;
+  // Opaque continuation from ListGuildRoleMembersResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 4;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
+  int32 limit = 5;
+}
+
+// ListGuildRoleMembersResponse returns a page of role members.
+message ListGuildRoleMembersResponse {
+  repeated GuildMember members = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
+}
+
+// GetGuildMemberPermissionsRequest fetches one member's effective Guild
+// permissions.
+message GetGuildMemberPermissionsRequest {
+  // Guild of the membership.
+  int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
+  int64 actor_user_id = 2;
+  // Member whose permissions are resolved.
+  int64 user_id = 3;
+}
+
+// GetGuildMemberPermissionsResponse returns the member's effective
+// permissions.
+message GetGuildMemberPermissionsResponse {
+  // Effective Guild-level permissions after combining ownership, the default
+  // role, and explicit member roles. Channel overwrites are not applied.
+  uint64 permissions = 1;
+}

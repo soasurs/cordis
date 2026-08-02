@@ -24,9 +24,12 @@ const (
 type MessageType int32
 
 const (
+	// Zero value; not used in requests.
 	MessageType_MESSAGE_TYPE_UNSPECIFIED MessageType = 0
-	MessageType_MESSAGE_TYPE_DEFAULT     MessageType = 1
-	MessageType_MESSAGE_TYPE_REPLY       MessageType = 19
+	// A regular message.
+	MessageType_MESSAGE_TYPE_DEFAULT MessageType = 1
+	// A reply to another message. referenced_message_id must be set.
+	MessageType_MESSAGE_TYPE_REPLY MessageType = 19
 	// Reserved for messages created automatically when a thread is created.
 	MessageType_MESSAGE_TYPE_THREAD_STARTER MessageType = 21
 )
@@ -73,6 +76,7 @@ func (x MessageType) Number() protoreflect.EnumNumber {
 type MessageFlag int32
 
 const (
+	// Zero value; not used in requests.
 	MessageFlag_MESSAGE_FLAG_UNSPECIFIED MessageFlag = 0
 	// The message has an associated thread whose ID equals the message ID.
 	MessageFlag_MESSAGE_FLAG_HAS_THREAD MessageFlag = 32
@@ -116,12 +120,16 @@ func (x MessageFlag) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// ReadStateScopeType selects which channels a read-state request covers.
 type ReadStateScopeType int32
 
 const (
+	// Zero value; invalid for requests.
 	ReadStateScopeType_READ_STATE_SCOPE_TYPE_UNSPECIFIED ReadStateScopeType = 0
-	ReadStateScopeType_READ_STATE_SCOPE_TYPE_GUILD       ReadStateScopeType = 1
-	ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS     ReadStateScopeType = 2
+	// One Guild's channels.
+	ReadStateScopeType_READ_STATE_SCOPE_TYPE_GUILD ReadStateScopeType = 1
+	// Every 1:1 channel of the user.
+	ReadStateScopeType_READ_STATE_SCOPE_TYPE_ALL_DMS ReadStateScopeType = 2
 )
 
 // Enum value maps for ReadStateScopeType.
@@ -2146,6 +2154,7 @@ func (b0 AttachmentList_builder) Build() *AttachmentList {
 	return m0
 }
 
+// CreateMessageRequest creates a message in one channel.
 type CreateMessageRequest struct {
 	state                          protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId           int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -2379,15 +2388,19 @@ func (x *CreateMessageRequest) ClearIdempotencyKey() {
 type CreateMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Channel receiving the message.
 	ChannelId *int64
-	Content   *string
-	Type      *MessageType
+	// Message body text. May be empty for attachment-only messages.
+	Content *string
+	// Semantic kind of the message.
+	Type *MessageType
 	// Initial client-settable MessageFlag values.
 	Flags *int32
 	// Both reference fields must be set for a reply.
 	ReferencedMessageId *int64
 	ReferencedChannelId *int64
-	Attachments         []*Attachment
+	// Complete attachment list carried with the message.
+	Attachments []*Attachment
 	// Optional opaque key identifying one client-side message creation intent.
 	IdempotencyKey *string
 }
@@ -2428,6 +2441,7 @@ func (b0 CreateMessageRequest_builder) Build() *CreateMessageRequest {
 	return m0
 }
 
+// CreateMessageResponse returns the stored message.
 type CreateMessageResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Message *Message               `protobuf:"bytes,1,opt,name=message"`
@@ -2496,6 +2510,7 @@ func (b0 CreateMessageResponse_builder) Build() *CreateMessageResponse {
 	return m0
 }
 
+// UpdateMessageRequest edits present fields of one message.
 type UpdateMessageRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
@@ -2633,6 +2648,7 @@ func (x *UpdateMessageRequest) ClearAttachments() {
 type UpdateMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Message to edit.
 	MessageId *int64
 	// When present, replaces the content; an explicit empty string clears it.
 	Content *string
@@ -2662,6 +2678,7 @@ func (b0 UpdateMessageRequest_builder) Build() *UpdateMessageRequest {
 	return m0
 }
 
+// UpdateMessageResponse returns the updated message.
 type UpdateMessageResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Message *Message               `protobuf:"bytes,1,opt,name=message"`
@@ -2730,6 +2747,7 @@ func (b0 UpdateMessageResponse_builder) Build() *UpdateMessageResponse {
 	return m0
 }
 
+// DeleteMessageRequest deletes one message owned by the bearer token owner.
 type DeleteMessageRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
@@ -2791,6 +2809,7 @@ func (x *DeleteMessageRequest) ClearMessageId() {
 type DeleteMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Message to delete.
 	MessageId *int64
 }
 
@@ -2805,6 +2824,7 @@ func (b0 DeleteMessageRequest_builder) Build() *DeleteMessageRequest {
 	return m0
 }
 
+// DeleteMessageResponse confirms deletion.
 type DeleteMessageResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2880,6 +2900,7 @@ func (b0 DeleteMessageResponse_builder) Build() *DeleteMessageResponse {
 	return m0
 }
 
+// GetMessageRequest fetches one message.
 type GetMessageRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_MessageId   int64                  `protobuf:"varint,1,opt,name=message_id,json=messageId"`
@@ -2941,6 +2962,7 @@ func (x *GetMessageRequest) ClearMessageId() {
 type GetMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Message to fetch.
 	MessageId *int64
 }
 
@@ -2955,6 +2977,7 @@ func (b0 GetMessageRequest_builder) Build() *GetMessageRequest {
 	return m0
 }
 
+// GetMessageResponse returns the requested message.
 type GetMessageResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Message *Message               `protobuf:"bytes,1,opt,name=message"`
@@ -3023,6 +3046,7 @@ func (b0 GetMessageResponse_builder) Build() *GetMessageResponse {
 	return m0
 }
 
+// ListMessagesRequest pages one channel's messages newest first.
 type ListMessagesRequest struct {
 	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -3223,6 +3247,7 @@ func (x *ListMessagesRequest) WhichCursor() case_ListMessagesRequest_Cursor {
 type ListMessagesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Channel whose messages are listed.
 	ChannelId *int64
 	// before, after, and around are mutually exclusive.
 
@@ -3291,6 +3316,7 @@ func (*listMessagesRequest_After) isListMessagesRequest_Cursor() {}
 
 func (*listMessagesRequest_Around) isListMessagesRequest_Cursor() {}
 
+// ListMessagesResponse returns a page of messages.
 type ListMessagesResponse struct {
 	state                   protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Messages     *[]*Message            `protobuf:"bytes,1,rep,name=messages"`
@@ -3414,6 +3440,7 @@ func (b0 ListMessagesResponse_builder) Build() *ListMessagesResponse {
 	return m0
 }
 
+// CreateDmChannelRequest opens the 1:1 channel with one friend.
 type CreateDmChannelRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_TargetId    int64                  `protobuf:"varint,1,opt,name=target_id,json=targetId"`
@@ -3475,6 +3502,7 @@ func (x *CreateDmChannelRequest) ClearTargetId() {
 type CreateDmChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Friend to open the channel with.
 	TargetId *int64
 }
 
@@ -3489,6 +3517,7 @@ func (b0 CreateDmChannelRequest_builder) Build() *CreateDmChannelRequest {
 	return m0
 }
 
+// CreateDmChannelResponse returns the existing or newly created channel.
 type CreateDmChannelResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channel *DmChannel             `protobuf:"bytes,1,opt,name=channel"`
@@ -3557,6 +3586,7 @@ func (b0 CreateDmChannelResponse_builder) Build() *CreateDmChannelResponse {
 	return m0
 }
 
+// ListDmChannelsRequest pages the caller's 1:1 channels.
 type ListDmChannelsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Cursor      *string                `protobuf:"bytes,1,opt,name=cursor"`
@@ -3650,7 +3680,8 @@ type ListDmChannelsRequest_builder struct {
 	// Omit (unset) to start from the first page. Pass the value through
 	// unchanged; do not parse it.
 	Cursor *string
-	Limit  *int32
+	// Maximum results per page. Zero uses the default of 50; maximum is 100.
+	Limit *int32
 }
 
 func (b0 ListDmChannelsRequest_builder) Build() *ListDmChannelsRequest {
@@ -3668,6 +3699,7 @@ func (b0 ListDmChannelsRequest_builder) Build() *ListDmChannelsRequest {
 	return m0
 }
 
+// ListDmChannelsResponse returns a page of 1:1 channels.
 type ListDmChannelsResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channels    *[]*DmChannel          `protobuf:"bytes,1,rep,name=channels"`
@@ -3766,6 +3798,7 @@ func (b0 ListDmChannelsResponse_builder) Build() *ListDmChannelsResponse {
 	return m0
 }
 
+// AckMessageRequest moves the caller's read cursor forward in one channel.
 type AckMessageRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -3852,6 +3885,7 @@ func (x *AckMessageRequest) ClearMessageId() {
 type AckMessageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Channel whose read state is updated.
 	ChannelId *int64
 	// Only a larger ID moves the cursor forward.
 	MessageId *int64
@@ -3872,6 +3906,7 @@ func (b0 AckMessageRequest_builder) Build() *AckMessageRequest {
 	return m0
 }
 
+// AckMessageResponse returns the updated read state.
 type AckMessageResponse struct {
 	state                protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ReadState *ChannelReadState      `protobuf:"bytes,1,opt,name=read_state,json=readState"`
@@ -3940,6 +3975,7 @@ func (b0 AckMessageResponse_builder) Build() *AckMessageResponse {
 	return m0
 }
 
+// GetReadStatesRequest reconciles read state for one scope.
 type GetReadStatesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Scope       ReadStateScopeType     `protobuf:"varint,1,opt,name=scope,enum=api.v1.ReadStateScopeType"`
@@ -4028,6 +4064,7 @@ func (x *GetReadStatesRequest) ClearGuildId() {
 type GetReadStatesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Scope of the reconciliation.
 	Scope *ReadStateScopeType
 	// Required only for READ_STATE_SCOPE_TYPE_GUILD.
 	GuildId *int64
@@ -4048,6 +4085,8 @@ func (b0 GetReadStatesRequest_builder) Build() *GetReadStatesRequest {
 	return m0
 }
 
+// GetReadStatesResponse returns the DM channels and per-channel read states
+// for the requested scope.
 type GetReadStatesResponse struct {
 	state                 protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_DmChannels *[]*DmChannel          `protobuf:"bytes,1,rep,name=dm_channels,json=dmChannels"`

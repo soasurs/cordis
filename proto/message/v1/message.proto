@@ -10,9 +10,13 @@ import "user/v1/user.proto";
 // receives only channel_id as an opaque reference.
 service MessageService {
   // Message
+  // CreateMessage stores one message authored by an authenticated user.
   rpc CreateMessage(CreateMessageRequest) returns (CreateMessageResponse);
+  // UpdateMessage edits present fields of one message.
   rpc UpdateMessage(UpdateMessageRequest) returns (UpdateMessageResponse);
+  // DeleteMessage soft-deletes one message.
   rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  // GetMessage returns one message after checking the caller's visibility.
   rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
   // ListMessages returns messages in a channel ordered by id descending
   // (newest first). Uses cursor-based pagination.
@@ -28,6 +32,7 @@ service MessageService {
   // CreateDmChannel opens (or idempotently returns) the 1:1 channel between
   // two friends.
   rpc CreateDmChannel(CreateDmChannelRequest) returns (CreateDmChannelResponse);
+  // ListDmChannels pages one user's 1:1 channels.
   rpc ListDmChannels(ListDmChannelsRequest) returns (ListDmChannelsResponse);
   // AckMessage moves the last-read position forward for one channel.
   rpc AckMessage(AckMessageRequest) returns (AckMessageResponse);
@@ -219,10 +224,15 @@ message AttachmentList {
 // Message RPCs
 // ============================================================
 
+// CreateMessageRequest stores one message in a channel or thread.
 message CreateMessageRequest {
+  // Opaque reference to the channel or thread.
   int64 channel_id = 1;
+  // User authoring the message.
   int64 author_id = 2;
+  // Message body text. May be empty for attachment-only messages.
   string content = 3;
+  // Semantic kind of the message.
   MessageType type = 4;
   // Initial editable flags, such as MESSAGE_FLAG_SUPPRESS_NOTIFICATIONS.
   int32 flags = 5;
@@ -232,6 +242,7 @@ message CreateMessageRequest {
   // Channel of the referenced message. Required when referenced_message_id is set.
   int64 referenced_channel_id = 7;
 
+  // Complete attachment list carried with the message.
   repeated Attachment attachments = 8;
 
   reserved 9;
@@ -239,13 +250,16 @@ message CreateMessageRequest {
   string idempotency_key = 10;
 }
 
+// CreateMessageResponse returns the stored message.
 message CreateMessageResponse {
   Message message = 1;
   // Profile already loaded for the created event and reusable by API callers.
   user.v1.UserProfile author = 2;
 }
 
+// UpdateMessageRequest edits present fields of one message.
 message UpdateMessageRequest {
+  // Message to edit.
   int64 message_id = 1;
   // If present, replaces message content. An explicit empty string clears it.
   string content = 2;
@@ -258,33 +272,43 @@ message UpdateMessageRequest {
   reserved 6;
 }
 
+// UpdateMessageResponse returns the updated message.
 message UpdateMessageResponse {
   Message message = 1;
   // Profile already loaded for the updated event and reusable by API callers.
   user.v1.UserProfile author = 2;
 }
 
+// DeleteMessageRequest soft-deletes one message.
 message DeleteMessageRequest {
+  // Message to delete.
   int64 message_id = 1;
   // User performing the delete. May differ from author_id for moderation actions.
   int64 actor_user_id = 2;
 }
 
+// DeleteMessageResponse confirms deletion.
 message DeleteMessageResponse {
   bool ok = 1;
 }
 
+// GetMessageRequest fetches one message for one user.
 message GetMessageRequest {
+  // Message to fetch.
   int64 message_id = 1;
+  // User whose visibility is checked.
   int64 user_id = 2;
 }
 
+// GetMessageResponse returns the message and its author profile.
 message GetMessageResponse {
   Message message = 1;
   user.v1.UserProfile author = 2;
 }
 
+// ListMessagesRequest pages one channel's messages newest first.
 message ListMessagesRequest {
+  // Channel whose messages are listed.
   int64 channel_id = 1;
   // Cursor-based pagination. before, after, and around are mutually exclusive.
   oneof cursor {
@@ -297,9 +321,11 @@ message ListMessagesRequest {
   }
   // Maximum results per page. Default 50, max 100.
   int32 limit = 5;
+  // User whose visibility is checked.
   int64 user_id = 6;
 }
 
+// ListMessagesResponse returns a page of messages.
 message ListMessagesResponse {
   repeated Message messages = 1;
   // The smallest message id in this page. Use as ListMessagesRequest.before
@@ -310,24 +336,32 @@ message ListMessagesResponse {
   int64 after_cursor = 3;
 }
 
+// CreateDmChannelRequest opens the 1:1 channel between two friends.
 message CreateDmChannelRequest {
+  // User opening the channel.
   int64 user_id = 1;
+  // Other participant.
   int64 target_id = 2;
 }
 
+// CreateDmChannelResponse returns the existing or newly created channel.
 message CreateDmChannelResponse {
   DmChannel channel = 1;
 }
 
+// ListDmChannelsRequest pages one user's 1:1 channels.
 message ListDmChannelsRequest {
+  // User whose channels are listed.
   int64 user_id = 1;
   // Opaque continuation from ListDmChannelsResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
   // unchanged; do not parse it.
   string cursor = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
   int32 limit = 3;
 }
 
+// ListDmChannelsResponse returns a page of 1:1 channels.
 message ListDmChannelsResponse {
   repeated DmChannel channels = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -337,19 +371,25 @@ message ListDmChannelsResponse {
   string next_cursor = 2;
 }
 
+// AckMessageRequest moves one user's read cursor forward in one channel.
 message AckMessageRequest {
+  // User whose read state is updated.
   int64 user_id = 1;
+  // Channel whose read state is updated.
   int64 channel_id = 2;
   // Only a larger ID moves the cursor forward; smaller values are safe
   // no-ops so concurrent acks cannot un-read messages.
   int64 message_id = 3;
 }
 
+// AckMessageResponse returns the updated read state.
 message AckMessageResponse {
   ChannelReadState read_state = 1;
 }
 
+// GetUserReadyStateRequest collects the DM and read-state data for READY.
 message GetUserReadyStateRequest {
+  // User whose state is loaded.
   int64 user_id = 1;
   // Server-authoritative visible Guild text channel IDs loaded by Session.
   repeated int64 guild_channel_ids = 2;
@@ -357,30 +397,43 @@ message GetUserReadyStateRequest {
 
 // ChannelReadState is one user's read position relative to a channel head.
 message ChannelReadState {
+  // Channel of the read state.
   int64 channel_id = 1;
+  // Newest message ID currently in the channel.
   int64 last_message_id = 2;
+  // Newest message ID the user has read.
   int64 last_read_message_id = 3;
+  // Unread mentions in the channel.
   int32 mention_count = 4;
 }
 
+// GetUserReadyStateResponse returns the DM channels and read states for READY.
 message GetUserReadyStateResponse {
   repeated DmChannel dm_channels = 1;
   repeated ChannelReadState read_states = 2;
 }
 
+// ReadStateScopeType selects which channels a read-state request covers.
 enum ReadStateScopeType {
+  // Zero value; invalid for requests.
   READ_STATE_SCOPE_TYPE_UNSPECIFIED = 0;
+  // One Guild's channels.
   READ_STATE_SCOPE_TYPE_GUILD = 1;
+  // Every 1:1 channel of the user.
   READ_STATE_SCOPE_TYPE_ALL_DMS = 2;
 }
 
+// GetReadStatesRequest reconciles read state for one scope.
 message GetReadStatesRequest {
+  // User whose read state is reconciled.
   int64 user_id = 1;
+  // Scope of the reconciliation.
   ReadStateScopeType scope = 2;
   // Required only for READ_STATE_SCOPE_TYPE_GUILD.
   int64 guild_id = 3;
 }
 
+// GetReadStatesResponse returns the DM channels and per-channel read states.
 message GetReadStatesResponse {
   // Present for the ALL_DMS scope so missed DM creation events are reconciled.
   repeated DmChannel dm_channels = 1;

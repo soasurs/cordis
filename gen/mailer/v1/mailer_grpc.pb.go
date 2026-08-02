@@ -30,6 +30,8 @@ const (
 // owns templates and provider integration; callers only supply the template
 // name and its variables.
 type MailerServiceClient interface {
+	// SendEmail renders one transactional template and delivers it to the
+	// recipient.
 	SendEmail(ctx context.Context, in *SendEmailRequest, opts ...grpc.CallOption) (*SendEmailResponse, error)
 }
 
@@ -59,6 +61,8 @@ func (c *mailerServiceClient) SendEmail(ctx context.Context, in *SendEmailReques
 // owns templates and provider integration; callers only supply the template
 // name and its variables.
 type MailerServiceServer interface {
+	// SendEmail renders one transactional template and delivers it to the
+	// recipient.
 	SendEmail(context.Context, *SendEmailRequest) (*SendEmailResponse, error)
 }
 

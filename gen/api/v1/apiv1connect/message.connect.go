@@ -95,6 +95,7 @@ type MessageServiceClient interface {
 	// friend. Messages then flow through the regular message RPCs using the
 	// returned channel ID.
 	CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error)
+	// ListDmChannels pages the caller's 1:1 channels.
 	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(context.Context, *v1.AckMessageRequest) (*v1.AckMessageResponse, error)
@@ -336,6 +337,7 @@ type MessageServiceHandler interface {
 	// friend. Messages then flow through the regular message RPCs using the
 	// returned channel ID.
 	CreateDmChannel(context.Context, *v1.CreateDmChannelRequest) (*v1.CreateDmChannelResponse, error)
+	// ListDmChannels pages the caller's 1:1 channels.
 	ListDmChannels(context.Context, *v1.ListDmChannelsRequest) (*v1.ListDmChannelsResponse, error)
 	// AckMessage moves the last-read position forward for one channel.
 	AckMessage(context.Context, *v1.AckMessageRequest) (*v1.AckMessageResponse, error)

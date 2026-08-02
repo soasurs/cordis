@@ -20,6 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// PublicErrorInfo is the structured error body returned to API clients.
 type PublicErrorInfo struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
@@ -112,7 +113,9 @@ func (x *PublicErrorInfo) ClearMessage() {
 type PublicErrorInfo_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Code    *string
+	// Stable machine-readable error code.
+	Code *string
+	// Human-readable error description.
 	Message *string
 }
 

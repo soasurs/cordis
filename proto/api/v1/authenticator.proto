@@ -32,36 +32,63 @@ service AuthenticatorService {
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
   // RevokeSession revokes one session owned by the bearer token owner.
   rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+  // GetTwoFactorStatus returns whether two-factor authentication is enabled
+  // for the bearer token owner.
   rpc GetTwoFactorStatus(GetTwoFactorStatusRequest) returns (GetTwoFactorStatusResponse);
+  // BeginTwoFactorEnrollment starts enrollment and returns a TOTP secret and
+  // otpauth URI.
   rpc BeginTwoFactorEnrollment(BeginTwoFactorEnrollmentRequest) returns (BeginTwoFactorEnrollmentResponse);
+  // ConfirmTwoFactorEnrollment verifies one TOTP code and activates two-factor
+  // authentication, returning one-time recovery codes.
   rpc ConfirmTwoFactorEnrollment(ConfirmTwoFactorEnrollmentRequest) returns (ConfirmTwoFactorEnrollmentResponse);
+  // DisableTwoFactor disables two-factor authentication after verifying the
+  // password and a TOTP or recovery code.
   rpc DisableTwoFactor(DisableTwoFactorRequest) returns (DisableTwoFactorResponse);
+  // RegenerateTwoFactorRecoveryCodes replaces the unused recovery codes after
+  // re-verifying the password and a TOTP code.
   rpc RegenerateTwoFactorRecoveryCodes(RegenerateTwoFactorRecoveryCodesRequest) returns (RegenerateTwoFactorRecoveryCodesResponse);
 }
 
+// TokenTransport selects how an authenticated session's tokens are returned.
 enum TokenTransport {
+  // Zero value; invalid for requests.
   TOKEN_TRANSPORT_UNSPECIFIED = 0;
+  // Tokens are returned in the response body.
   TOKEN_TRANSPORT_TOKEN = 1;
+  // Tokens are stored in HttpOnly cookies and omitted from the response body.
   TOKEN_TRANSPORT_COOKIE = 2;
 }
 
 // AuthenticationResult contains the tokens and expiration times for an authenticated session.
 // All expiration timestamps are Unix time in milliseconds.
 message AuthenticationResult {
+  // True when the operation produced a usable session.
   bool ok = 1;
+  // User ID of the authenticated account.
   int64 user_id = 2;
+  // Session ID of the authenticated session.
   int64 session_id = 3;
+  // Opaque bearer access token.
   string access_token = 4;
+  // Access token expiration as Unix milliseconds.
   int64 access_token_expires_at = 5;
+  // Opaque refresh token used to rotate the session.
   string refresh_token = 6;
+  // Refresh token expiration as Unix milliseconds.
   int64 refresh_token_expires_at = 7;
+  // Idle session expiration as Unix milliseconds.
   int64 session_expires_at = 8;
+  // Absolute session expiration as Unix milliseconds.
   int64 absolute_session_expires_at = 9;
 }
 
+// RegisterRequest creates a new account and begins email verification.
 message RegisterRequest {
+  // Display name of the new user.
   string name = 1;
+  // Email address used as the login identifier.
   string email = 2;
+  // Password for the new account.
   string password = 3;
   // Globally unique handle; lowercase letters, digits, and underscores.
   string username = 4;
@@ -69,18 +96,23 @@ message RegisterRequest {
   string registration_invite_code = 5;
 }
 
+// RegisterResponse confirms that registration was accepted.
 message RegisterResponse {
   bool ok = 1;
 }
 
+// LoginRequest authenticates with email and password.
 message LoginRequest {
+  // Account email address.
   string email = 1;
+  // Account password.
   string password = 2;
   // TOKEN is the compatibility default. COOKIE stores both tokens in
   // HttpOnly cookies and omits them from the response body.
   TokenTransport token_transport = 3;
 }
 
+// LoginResponse returns either a new session or a two-factor challenge.
 message LoginResponse {
   oneof outcome {
     AuthenticationResult result = 1;
@@ -88,41 +120,62 @@ message LoginResponse {
   }
 }
 
+// TwoFactorLoginChallenge continues login when the account has two-factor
+// authentication enabled.
 message TwoFactorLoginChallenge {
+  // Opaque challenge token required by CompleteTwoFactorLogin.
   string token = 1;
+  // Challenge expiration as Unix milliseconds.
   int64 expires_at = 2;
 }
 
+// CompleteTwoFactorLoginRequest finishes login with a TOTP or recovery code.
 message CompleteTwoFactorLoginRequest {
+  // Opaque token from TwoFactorLoginChallenge.
   string challenge_token = 1;
+  // TOTP code or recovery code.
   string code = 2;
+  // Transport for the returned session tokens.
   TokenTransport token_transport = 3;
 }
 
+// CompleteTwoFactorLoginResponse returns the new authenticated session.
 message CompleteTwoFactorLoginResponse {
   AuthenticationResult result = 1;
 }
 
+// RefreshRequest rotates one refresh token.
 message RefreshRequest {
+  // Current refresh token.
   string refresh_token = 1;
 }
 
+// RefreshResponse returns the rotated session.
 message RefreshResponse {
   AuthenticationResult result = 1;
 }
 
+// LogoutRequest revokes the session behind a refresh token.
 message LogoutRequest {
+  // Refresh token of the session to revoke.
   string refresh_token = 1;
 }
 
+// LogoutResponse confirms the session was revoked.
 message LogoutResponse {
   bool ok = 1;
 }
 
+// CreateGatewayTicketRequest is empty; the bearer token identifies the user
+// and session.
 message CreateGatewayTicketRequest {}
 
+// CreateGatewayTicketResponse returns a short-lived, single-use gateway
+// credential.
 message CreateGatewayTicketResponse {
+  // Opaque credential accepted by Gateway IDENTIFY or RESUME.
   string gateway_ticket = 1;
+  // Ticket expiration as Unix milliseconds.
   int64 expires_at = 2;
 }
 
@@ -139,97 +192,145 @@ message Session {
   int64 absolute_expires_at = 8;
 }
 
+// ListSessionsRequest is empty; sessions belong to the bearer token owner.
 message ListSessionsRequest {}
 
+// ListSessionsResponse returns the active sessions.
 message ListSessionsResponse {
   repeated Session sessions = 1;
 }
 
+// RevokeSessionRequest revokes one session owned by the bearer token owner.
 message RevokeSessionRequest {
+  // Session to revoke.
   int64 session_id = 1;
 }
 
+// RevokeSessionResponse confirms revocation.
 message RevokeSessionResponse {
   bool ok = 1;
 }
 
+// GetTwoFactorStatusRequest is empty; status belongs to the bearer token
+// owner.
 message GetTwoFactorStatusRequest {}
 
+// GetTwoFactorStatusResponse returns the two-factor enrollment state.
 message GetTwoFactorStatusResponse {
+  // True when two-factor authentication is enabled.
   bool enabled = 1;
+  // Number of unused recovery codes remaining.
   int32 recovery_codes_remaining = 2;
 }
 
+// BeginTwoFactorEnrollmentRequest re-verifies the password before exposing
+// the TOTP secret.
 message BeginTwoFactorEnrollmentRequest {
+  // Current account password.
   string password = 1;
 }
 
+// BeginTwoFactorEnrollmentResponse returns the TOTP enrollment contract.
 message BeginTwoFactorEnrollmentResponse {
+  // Opaque token required by ConfirmTwoFactorEnrollment.
   string enrollment_token = 1;
+  // otpauth:// URI for authenticator apps.
   string otpauth_uri = 2;
+  // Base32 secret for manual entry.
   string manual_entry_key = 3;
+  // Enrollment expiration as Unix milliseconds.
   int64 expires_at = 4;
 }
 
+// ConfirmTwoFactorEnrollmentRequest activates enrollment with one TOTP code.
 message ConfirmTwoFactorEnrollmentRequest {
+  // Opaque token from BeginTwoFactorEnrollment.
   string enrollment_token = 1;
+  // Current TOTP code from the authenticator app.
   string code = 2;
 }
 
+// ConfirmTwoFactorEnrollmentResponse returns the one-time recovery codes.
 message ConfirmTwoFactorEnrollmentResponse {
+  // One-time recovery codes; store them before closing this response.
   repeated string recovery_codes = 1;
 }
 
+// DisableTwoFactorRequest disables two-factor authentication after
+// verification.
 message DisableTwoFactorRequest {
+  // Current account password.
   string password = 1;
   oneof verification {
+    // Current TOTP code.
     string code = 2;
+    // Unused recovery code.
     string recovery_code = 3;
   }
 }
 
+// DisableTwoFactorResponse confirms that two-factor authentication is off.
 message DisableTwoFactorResponse {
   bool ok = 1;
 }
 
+// RegenerateTwoFactorRecoveryCodesRequest replaces the recovery codes.
 message RegenerateTwoFactorRecoveryCodesRequest {
+  // Current account password.
   string password = 1;
+  // Current TOTP code.
   string code = 2;
 }
 
+// RegenerateTwoFactorRecoveryCodesResponse returns the new recovery codes.
 message RegenerateTwoFactorRecoveryCodesResponse {
+  // One-time recovery codes; store them before closing this response.
   repeated string recovery_codes = 1;
 }
 
+// RequestPasswordResetRequest starts email-based recovery.
 message RequestPasswordResetRequest {
+  // Email address of the account to recover.
   string email = 1;
 }
 
+// RequestPasswordResetResponse always reports success to avoid account
+// enumeration.
 message RequestPasswordResetResponse {
   bool ok = 1;
 }
 
+// ConfirmPasswordResetRequest sets a new password with a valid reset token.
 message ConfirmPasswordResetRequest {
+  // One-time token emailed to the account owner.
   string token = 1;
+  // Replacement password.
   string new_password = 2;
 }
 
+// ConfirmPasswordResetResponse confirms the password was changed.
 message ConfirmPasswordResetResponse {
   bool ok = 1;
 }
 
+// RequestEmailVerificationRequest emails a verification link for one address.
 message RequestEmailVerificationRequest {
+  // Address to verify.
   string email = 1;
 }
 
+// RequestEmailVerificationResponse confirms the email was sent.
 message RequestEmailVerificationResponse {
   bool ok = 1;
 }
 
+// ConfirmEmailVerificationRequest verifies one email with a token.
 message ConfirmEmailVerificationRequest {
+  // One-time token emailed to the account owner.
   string token = 1;
 }
 
+// ConfirmEmailVerificationResponse confirms the email is verified.
 message ConfirmEmailVerificationResponse {
   bool ok = 1;
 }

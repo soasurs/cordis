@@ -4,6 +4,10 @@ modules:
 lint:
   use:
     - STANDARD
+    - COMMENTS
+  except:
+    - COMMENT_FIELD
+    - COMMENT_ONEOF
 breaking:
   use:
     - FILE

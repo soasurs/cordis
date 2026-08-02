@@ -23,111 +23,179 @@ service SessionService {
   rpc DispatchUserEvent(DispatchUserEventRequest) returns (DispatchUserEventResponse);
 }
 
+// ConnectRequest is one frame sent by a Gateway over the Connect stream.
 message ConnectRequest {
+  // Stable ID of the physical Gateway connection, unique per process.
   string connection_id = 1;
   oneof payload {
+    // Authenticate and start a new logical session.
     Identify identify = 2;
+    // Rebind an existing logical session after a reconnect.
     Resume resume = 3;
+    // Acknowledge the last received server sequence.
     Heartbeat heartbeat = 4;
+    // Update presence and client state for the bound session.
     PresenceUpdate presence = 5;
+    // Detach the physical connection without ending the session.
     Detach detach = 6;
   }
+  // Gateway process ID that owns the connection.
   string gateway_id = 7;
+  // Deployment generation of the Gateway process.
   string gateway_generation = 8;
 }
 
+// Identify starts a new logical session for one authenticated user.
 message Identify {
   oneof credential {
+    // Access token minted by the authenticator service.
     string token = 1;
+    // Short-lived single-use ticket from CreateGatewayTicket.
     string gateway_ticket = 5;
   }
+  // Client-reported device type.
   string device_type = 2;
+  // Initial presence status.
   string status = 3;
+  // Initial client state, such as foreground or background.
   string client_state = 4;
 }
 
+// Resume rebinds an existing logical session after a reconnect.
 message Resume {
   oneof credential {
+    // Access token minted by the authenticator service.
     string token = 1;
+    // Short-lived single-use ticket from CreateGatewayTicket.
     string gateway_ticket = 4;
   }
+  // ID of the logical session to resume.
   string session_id = 2;
+  // Last sequence the client received; the server replays newer events.
   uint64 sequence = 3;
 }
 
+// Heartbeat acknowledges the last received server sequence.
 message Heartbeat {
+  // Last sequence received by the client.
   uint64 sequence = 1;
 }
 
+// PresenceUpdate changes the bound session's presence or client state.
 message PresenceUpdate {
+  // New presence status.
   string status = 1;
+  // New client state.
   string client_state = 2;
 }
 
+// Detach releases the physical connection while keeping the logical session
+// resumable.
 message Detach {
+  // True when the session should stay resumable after detach.
   bool resumable = 1;
 }
 
+// ConnectResponse is one frame sent by Session to the Gateway.
 message ConnectResponse {
+  // Realtime protocol opcode.
   int32 opcode = 1;
+  // Monotonically increasing server sequence for replay and heartbeats.
   uint64 sequence = 2;
+  // Realtime event type.
   string type = 3;
+  // JSON-encoded event payload.
   string json_payload = 4;
+  // Non-zero when the stream is closing.
   int32 close_code = 5;
+  // Human-readable close reason.
   string close_reason = 6;
   // Internal binding metadata consumed by Gateway and never exposed on the
   // websocket protocol.
   string session_id = 7;
+  // Binding generation used to reject stale gateway connections.
   uint64 binding_epoch = 8;
 }
 
+// GatewayConnectionCheckpoint is one connection's acknowledged sequence.
 message GatewayConnectionCheckpoint {
+  // Logical session bound to the connection.
   string session_id = 1;
+  // Physical connection ID.
   string connection_id = 2;
+  // Binding generation of the connection.
   uint64 binding_epoch = 3;
+  // Highest sequence acknowledged by the client.
   uint64 acknowledged_sequence = 4;
 }
 
+// SyncGatewayConnectionsRequest carries one gateway's connection checkpoints.
 message SyncGatewayConnectionsRequest {
+  // Gateway process ID.
   string gateway_id = 1;
+  // Deployment generation of the Gateway process.
   string gateway_generation = 2;
+  // Checkpoints to apply; stale bindings are skipped.
   repeated GatewayConnectionCheckpoint checkpoints = 3;
 }
 
+// SyncGatewayConnectionsResponse reports how many checkpoints were applied.
 message SyncGatewayConnectionsResponse {
+  // Number of applied checkpoints.
   int32 applied = 1;
 }
 
+// EventEnvelope is one realtime event routed to sessions.
 message EventEnvelope {
+  // Lowercase dot-separated event name.
   string type = 1;
+  // JSON-encoded event payload.
   string json_payload = 2;
+  // Opaque key used to deduplicate redelivered events.
   int64 idempotency_key = 3;
 }
 
+// DispatchGuildEventRequest fans one event out to a Guild's sessions.
 message DispatchGuildEventRequest {
+  // Guild receiving the event.
   int64 guild_id = 1;
+  // Event to fan out.
   EventEnvelope event = 2;
 }
 
+// DispatchGuildMessageEventRequest fans one message event out through the
+// Guild visibility snapshot.
 message DispatchGuildMessageEventRequest {
+  // Guild of the channel.
   int64 guild_id = 1;
+  // Channel the message belongs to.
   int64 channel_id = 2;
+  // Event to fan out.
   EventEnvelope event = 3;
 }
 
+// DispatchUserEventRequest fans one event out to one user's sessions.
 message DispatchUserEventRequest {
+  // User receiving the event.
   int64 user_id = 1;
+  // Event to fan out.
   EventEnvelope event = 2;
 }
 
+// DispatchGuildEventResponse reports the number of delivered sessions.
 message DispatchGuildEventResponse {
+  // Number of sessions that received the event.
   int32 delivered = 1;
 }
 
+// DispatchGuildMessageEventResponse reports the number of delivered sessions.
 message DispatchGuildMessageEventResponse {
+  // Number of sessions that received the event.
   int32 delivered = 1;
 }
 
+// DispatchUserEventResponse reports the number of delivered sessions.
 message DispatchUserEventResponse {
+  // Number of sessions that received the event.
   int32 delivered = 1;
 }

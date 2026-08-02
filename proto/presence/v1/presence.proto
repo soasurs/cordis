@@ -32,128 +32,192 @@ service PresenceService {
   rpc ResolveUsersPresence(ResolveUsersPresenceRequest) returns (ResolveUsersPresenceResponse);
 }
 
+// PresenceStatus is the user-level presence preference or projected status.
 enum PresenceStatus {
+  // Zero value; not used in requests or responses.
   PRESENCE_STATUS_UNSPECIFIED = 0;
+  // The user is offline or invisible.
   PRESENCE_STATUS_OFFLINE = 1;
+  // The user is online.
   PRESENCE_STATUS_ONLINE = 2;
+  // The user is online but idle.
   PRESENCE_STATUS_IDLE = 3;
+  // The user is online but does not want to be disturbed.
   PRESENCE_STATUS_DND = 4;
+  // The user is online but hidden from other users.
   PRESENCE_STATUS_INVISIBLE = 5;
 }
 
+// ClientState is the client-reported foreground state of one device.
 enum ClientState {
+  // Zero value; not used in requests or responses.
   CLIENT_STATE_UNSPECIFIED = 0;
+  // The client is in the foreground.
   CLIENT_STATE_FOREGROUND = 1;
+  // The client is in the background.
   CLIENT_STATE_BACKGROUND = 2;
 }
 
+// UserSession is one logical device session contributing to presence.
 message UserSession {
+  // User owning the session.
   int64 user_id = 1;
+  // Logical session ID from the session service.
   string session_id = 2;
+  // Gateway process ID serving the session.
   string gateway_id = 3;
+  // Deployment generation of the Gateway process.
   string generation = 4;
+  // Client-reported device type.
   string device_type = 5;
   reserved 6;
   reserved status;
+  // Foreground or background state of the device.
   ClientState client_state = 7;
+  // Unix milliseconds of the last session activity.
   int64 last_seen_at = 8;
+  // Lease expiration as Unix milliseconds.
   int64 expires_at = 9;
 }
 
+// UserPresencePreference is the user-level presence override.
 message UserPresencePreference {
+  // User owning the preference.
   int64 user_id = 1;
+  // Preferred status when the user is online.
   PresenceStatus status = 2;
   // Monotonically increases whenever the user-level preference changes.
   int64 version = 3;
 }
 
+// UserPresence is the aggregate presence snapshot of one user.
 message UserPresence {
+  // User of the snapshot.
   int64 user_id = 1;
+  // Aggregate status across all live sessions.
   PresenceStatus status = 2;
+  // Unix milliseconds of the last seen activity.
   int64 last_seen_at = 3;
+  // Live sessions contributing to the snapshot.
   repeated UserSession sessions = 4;
   // Monotonically increases whenever the aggregate status changes. The
   // version remains available on the offline tombstone after all sessions end.
   int64 version = 5;
 }
 
+// RegisterUserSessionRequest records one new logical session.
 message RegisterUserSessionRequest {
+  // User owning the session.
   int64 user_id = 1;
+  // Logical session ID from the session service.
   string session_id = 2;
+  // Gateway process ID serving the session.
   string gateway_id = 3;
+  // Deployment generation of the Gateway process.
   string generation = 4;
+  // Client-reported device type.
   string device_type = 5;
   // Used only to initialize a preference that does not exist yet. Opening a
   // new session never overwrites an existing user-level preference.
   PresenceStatus initial_status = 6;
+  // Foreground or background state of the device.
   ClientState client_state = 7;
   // Guild memberships captured by the calling session node; presence
   // transition events fan out through these guild routes.
   repeated int64 guild_ids = 8;
 }
 
+// RegisterUserSessionResponse returns the aggregate presence and preference.
 message RegisterUserSessionResponse {
   UserPresence presence = 1;
   UserPresencePreference preference = 2;
 }
 
+// RefreshUserSessionRequest renews one session lease and optional client
+// state.
 message RefreshUserSessionRequest {
+  // User owning the session.
   int64 user_id = 1;
+  // Logical session ID from the session service.
   string session_id = 2;
+  // Gateway process ID serving the session.
   string gateway_id = 3;
+  // Deployment generation of the Gateway process.
   string generation = 4;
+  // Client-reported device type.
   string device_type = 5;
   reserved 6;
   reserved status;
+  // Foreground or background state of the device.
   ClientState client_state = 7;
   // Guild memberships captured by the calling session node; presence
   // transition events fan out through these guild routes.
   repeated int64 guild_ids = 8;
 }
 
+// RefreshUserSessionResponse returns the aggregate presence after refresh.
 message RefreshUserSessionResponse {
   UserPresence presence = 1;
 }
 
+// RefreshUserSessionsRequest renews several session leases in one batch.
 message RefreshUserSessionsRequest {
+  // Sessions to renew.
   repeated RefreshUserSessionRequest sessions = 1;
 }
 
+// RefreshUserSessionsResponse returns sessions that must be registered
+// through the single-session path.
 message RefreshUserSessionsResponse {
+  // Session IDs with no existing lease; callers should register them.
   repeated string missing_session_ids = 1;
 }
 
+// UpdateUserPresenceRequest updates one user's presence preference or one
+// session's client state.
 message UpdateUserPresenceRequest {
+  // User whose presence changes.
   int64 user_id = 1;
+  // Logical session that reports the update.
   string session_id = 2;
+  // New user-level presence preference.
   PresenceStatus status = 3;
+  // New client state for the session.
   ClientState client_state = 4;
   // Guild memberships captured by the calling session node; presence
   // transition events fan out through these guild routes.
   repeated int64 guild_ids = 5;
 }
 
+// UpdateUserPresenceResponse returns the updated presence and preference.
 message UpdateUserPresenceResponse {
   UserPresence presence = 1;
   UserPresencePreference preference = 2;
 }
 
+// RemoveUserSessionRequest removes one logical session.
 message RemoveUserSessionRequest {
+  // User owning the session.
   int64 user_id = 1;
+  // Logical session ID to remove.
   string session_id = 2;
   // Guild memberships captured by the calling session node; presence
   // transition events fan out through these guild routes.
   repeated int64 guild_ids = 3;
 }
 
+// RemoveUserSessionResponse confirms removal.
 message RemoveUserSessionResponse {
   bool ok = 1;
 }
 
+// ResolveUsersPresenceRequest requests aggregate presence for one user set.
 message ResolveUsersPresenceRequest {
+  // User IDs whose presence is resolved.
   repeated int64 user_ids = 1;
 }
 
+// ResolveUsersPresenceResponse returns the requested snapshots.
 message ResolveUsersPresenceResponse {
   repeated UserPresence presences = 1;
 }

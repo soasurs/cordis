@@ -1964,6 +1964,8 @@ func (*getImageUploadConstraintsRequest_UserAvatar) isGetImageUploadConstraintsR
 
 func (*getImageUploadConstraintsRequest_GuildIcon) isGetImageUploadConstraintsRequest_Purpose() {}
 
+// ImageUploadConstraints describes the accepted size and format limits for
+// one image upload purpose.
 type ImageUploadConstraints struct {
 	state                          protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_MaxFileSizeBytes    int64                  `protobuf:"varint,1,opt,name=max_file_size_bytes,json=maxFileSizeBytes"`
@@ -2148,6 +2150,8 @@ func (b0 ImageUploadConstraints_builder) Build() *ImageUploadConstraints {
 	return m0
 }
 
+// GetImageUploadConstraintsResponse returns the constraints for the requested
+// purpose.
 type GetImageUploadConstraintsResponse struct {
 	state                  protoimpl.MessageState  `protogen:"opaque.v1"`
 	xxx_hidden_Constraints *ImageUploadConstraints `protobuf:"bytes,1,opt,name=constraints"`

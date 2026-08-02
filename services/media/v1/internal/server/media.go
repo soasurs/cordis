@@ -3,32 +3,22 @@ package server
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
-	"mime"
-	neturl "net/url"
-	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
-	"github.com/soasurs/cordis/pkg/rpcerror"
-	"github.com/soasurs/cordis/services/media/v1/config"
 	"github.com/soasurs/cordis/services/media/v1/internal/objectstore"
-	"github.com/soasurs/cordis/services/media/v1/internal/processing"
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
 )
 
-const maxBatchAssetURLs = 1000
-
+// CreateUpload validates purpose, size, and content type, then creates an
+// upload with a signed object-store URL.
 func (s *MediaServer) CreateUpload(
 	ctx context.Context,
 	req *mediav1.CreateUploadRequest,
@@ -238,6 +228,8 @@ func newUploadAsset(
 	return asset, nil
 }
 
+// CompleteUpload verifies ownership and completes the locked upload,
+// publishing ready assets.
 func (s *MediaServer) CompleteUpload(
 	ctx context.Context,
 	req *mediav1.CompleteUploadRequest,
@@ -463,6 +455,8 @@ func (s *MediaServer) buildCompleteResponse(
 	return resp, nil
 }
 
+// AbortUpload verifies ownership and aborts the locked upload, deleting its
+// staging object.
 func (s *MediaServer) AbortUpload(
 	ctx context.Context,
 	req *mediav1.AbortUploadRequest,
@@ -500,398 +494,4 @@ func (s *MediaServer) AbortUpload(
 	}
 	s.deleteUploadObject(asset)
 	return new(mediav1.AbortUploadResponse), nil
-}
-
-func (s *MediaServer) GetAsset(
-	ctx context.Context,
-	req *mediav1.GetAssetRequest,
-) (*mediav1.GetAssetResponse, error) {
-	asset, err := s.svcCtx.Store.GetAsset(ctx, req.GetAssetId())
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, errAssetNotFound
-		}
-		return nil, fmt.Errorf("get asset: %w", err)
-	}
-
-	resp := new(mediav1.GetAssetResponse)
-	value := new(mediav1.Asset)
-	value.SetId(asset.ID)
-	value.SetCreatedByUserId(asset.CreatedByUserID)
-	value.SetKind(kindToProto(asset.Kind))
-	value.SetStatus(assetStatusToProto(asset.Status))
-	value.SetStorageBackend(asset.StorageBackend)
-	value.SetContentType(asset.ContentType)
-	value.SetSize(asset.ActualSize)
-	value.SetWidth(asset.Width)
-	value.SetHeight(asset.Height)
-	value.SetBlurhash(asset.Blurhash)
-	value.SetCreatedAt(asset.CreatedAt)
-	value.SetUpdatedAt(asset.UpdatedAt)
-	value.SetSubjectId(asset.SubjectID)
-	value.SetFilename(asset.Filename)
-	if asset.Status == store.StatusReady && asset.Kind == store.KindMessageAttachment {
-		downloadURL, expiresAt, err := s.attachmentURL(ctx, asset)
-		if err != nil {
-			return nil, err
-		}
-		value.SetUrl(downloadURL)
-		value.SetUrlExpiresAt(expiresAt)
-	}
-	resp.SetAsset(value)
-	return resp, nil
-}
-
-func (s *MediaServer) GetImageUploadConstraints(
-	_ context.Context,
-	req *mediav1.GetImageUploadConstraintsRequest,
-) (*mediav1.GetImageUploadConstraintsResponse, error) {
-	purpose, err := imagePurposeFromRequest(req)
-	if err != nil {
-		return nil, err
-	}
-	profile := s.svcCtx.Cfg.Media.ImageConstraintsFor(purpose)
-	constraints := new(mediav1.ImageUploadConstraints)
-	constraints.SetMaxFileSizeBytes(profile.MaxSizeBytes)
-	constraints.SetMaxWidth(profile.MaxDimension)
-	constraints.SetMaxHeight(profile.MaxDimension)
-	constraints.SetMaxPixels(profile.MaxPixels)
-	constraints.SetAllowedContentTypes(append([]string(nil), profile.AllowedContentTypes...))
-	resp := new(mediav1.GetImageUploadConstraintsResponse)
-	resp.SetConstraints(constraints)
-	return resp, nil
-}
-
-func (s *MediaServer) BatchGetAssetURLs(
-	ctx context.Context,
-	req *mediav1.BatchGetAssetURLsRequest,
-) (*mediav1.BatchGetAssetURLsResponse, error) {
-	ids := req.GetAssetIds()
-	if len(ids) > maxBatchAssetURLs {
-		return nil, errTooManyAssets
-	}
-	uniqueIDs := make([]int64, 0, len(ids))
-	seen := make(map[int64]struct{}, len(ids))
-	for _, id := range ids {
-		if id <= 0 {
-			return nil, errAssetNotFound
-		}
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		uniqueIDs = append(uniqueIDs, id)
-	}
-	assets, err := s.svcCtx.Store.ListAssets(ctx, uniqueIDs)
-	if err != nil {
-		return nil, fmt.Errorf("list assets: %w", err)
-	}
-	assetsByID := make(map[int64]*store.Asset, len(assets))
-	for _, asset := range assets {
-		assetsByID[asset.ID] = asset
-	}
-	values := make([]*mediav1.AssetURL, 0, len(uniqueIDs))
-	for _, id := range uniqueIDs {
-		asset := assetsByID[id]
-		if asset == nil {
-			return nil, errAssetNotFound
-		}
-		if asset.Status != store.StatusReady {
-			return nil, errAssetNotReady
-		}
-		if asset.Kind != store.KindMessageAttachment || asset.PublishedKey == "" {
-			return nil, errAssetNotDownloadable
-		}
-		downloadURL, expiresAt, err := s.attachmentURL(ctx, asset)
-		if err != nil {
-			return nil, err
-		}
-		value := new(mediav1.AssetURL)
-		value.SetAssetId(id)
-		value.SetUrl(downloadURL)
-		value.SetExpiresAt(expiresAt)
-		values = append(values, value)
-	}
-	resp := new(mediav1.BatchGetAssetURLsResponse)
-	resp.SetAssets(values)
-	return resp, nil
-}
-
-func (s *MediaServer) attachmentURL(
-	ctx context.Context,
-	asset *store.Asset,
-) (string, int64, error) {
-	if asset.Status != store.StatusReady {
-		return "", 0, errAssetNotReady
-	}
-	if asset.Kind != store.KindMessageAttachment || asset.PublishedKey == "" {
-		return "", 0, errAssetNotDownloadable
-	}
-	if s.svcCtx.Cfg.Media.AttachmentAccess() == config.AttachmentAccessPublic {
-		baseURL, err := neturl.Parse(s.svcCtx.Cfg.ObjectStore.AttachmentPublicBaseURL)
-		if err != nil {
-			return "", 0, fmt.Errorf("build public attachment url: %w", err)
-		}
-		baseURL.Path = strings.TrimRight(baseURL.Path, "/") + "/" + asset.PublishedKey
-		baseURL.RawPath = ""
-		return baseURL.String(), 0, nil
-	}
-	expiresIn := s.svcCtx.Cfg.Media.AttachmentDownloadTTL()
-	value, err := s.svcCtx.AttachmentObjectStore.CreatePresignedGetURL(
-		ctx,
-		asset.PublishedKey,
-		expiresIn,
-	)
-	if err != nil {
-		return "", 0, fmt.Errorf("create presigned get url: %w", err)
-	}
-	return value, time.Now().UnixMilli() + expiresIn*1000, nil
-}
-
-func uploadPurpose(
-	req *mediav1.CreateUploadRequest,
-	actorUserID int64,
-) (store.Kind, int64, string, error) {
-	switch {
-	case req.HasUserAvatar():
-		return store.KindUserAvatar, actorUserID, "", nil
-	case req.HasGuildIcon():
-		guildID := req.GetGuildIcon().GetGuildId()
-		if guildID <= 0 {
-			return "", 0, "", errGuildIDRequired
-		}
-		return store.KindGuildIcon, guildID, "", nil
-	case req.HasMessageAttachment():
-		purpose := req.GetMessageAttachment()
-		channelID := purpose.GetChannelId()
-		if channelID <= 0 {
-			return "", 0, "", errChannelIDRequired
-		}
-		return store.KindMessageAttachment, channelID, purpose.GetFilename(), nil
-	default:
-		return "", 0, "", errPurposeRequired
-	}
-}
-
-func imagePurposeFromRequest(req *mediav1.GetImageUploadConstraintsRequest) (config.ImagePurpose, error) {
-	switch {
-	case req.HasUserAvatar():
-		return config.ImagePurposeUserAvatar, nil
-	case req.HasGuildIcon():
-		return config.ImagePurposeGuildIcon, nil
-	default:
-		return "", errPurposeRequired
-	}
-}
-
-func imageConstraintsForKind(cfg config.MediaConfig, kind store.Kind) config.ImageConstraintProfile {
-	switch kind {
-	case store.KindUserAvatar:
-		return cfg.ImageConstraintsFor(config.ImagePurposeUserAvatar)
-	case store.KindGuildIcon:
-		return cfg.ImageConstraintsFor(config.ImagePurposeGuildIcon)
-	default:
-		return cfg.ImageConstraintsFor("")
-	}
-}
-
-func kindToProto(kind store.Kind) mediav1.AssetKind {
-	switch kind {
-	case store.KindUserAvatar:
-		return mediav1.AssetKind_ASSET_KIND_USER_AVATAR
-	case store.KindGuildIcon:
-		return mediav1.AssetKind_ASSET_KIND_GUILD_ICON
-	case store.KindMessageAttachment:
-		return mediav1.AssetKind_ASSET_KIND_MESSAGE_ATTACHMENT
-	default:
-		return mediav1.AssetKind_ASSET_KIND_UNSPECIFIED
-	}
-}
-
-func assetStatusToProto(statusValue store.Status) mediav1.AssetStatus {
-	switch statusValue {
-	case store.StatusCreated:
-		return mediav1.AssetStatus_ASSET_STATUS_CREATED
-	case store.StatusCompleting:
-		return mediav1.AssetStatus_ASSET_STATUS_COMPLETING
-	case store.StatusReady:
-		return mediav1.AssetStatus_ASSET_STATUS_READY
-	case store.StatusFailed:
-		return mediav1.AssetStatus_ASSET_STATUS_FAILED
-	case store.StatusAborted:
-		return mediav1.AssetStatus_ASSET_STATUS_ABORTED
-	case store.StatusExpired:
-		return mediav1.AssetStatus_ASSET_STATUS_EXPIRED
-	default:
-		return mediav1.AssetStatus_ASSET_STATUS_UNSPECIFIED
-	}
-}
-
-func (s *MediaServer) CleanupExpired(ctx context.Context) error {
-	assets, err := s.svcCtx.Store.ListExpiredUploads(ctx, time.Now().UnixMilli())
-	if err != nil {
-		return fmt.Errorf("list expired uploads: %w", err)
-	}
-	for _, candidate := range assets {
-		lockedStore, unlock, err := s.svcCtx.Store.AcquireAssetLock(ctx, candidate.ID)
-		if err != nil {
-			return fmt.Errorf("lock expired upload %d: %w", candidate.ID, err)
-		}
-		asset, getErr := lockedStore.GetAsset(ctx, candidate.ID)
-		if getErr == nil &&
-			asset.Status == store.StatusCreated &&
-			asset.ExpiresAt > 0 &&
-			asset.ExpiresAt <= time.Now().UnixMilli() {
-			asset.Status = store.StatusExpired
-			if updateErr := lockedStore.UpdateAsset(ctx, asset); updateErr != nil {
-				unlock()
-				return fmt.Errorf("expire upload %d: %w", candidate.ID, updateErr)
-			}
-			s.deleteUploadObject(asset)
-		}
-		unlock()
-		if getErr != nil && !errors.Is(getErr, store.ErrNotFound) {
-			return fmt.Errorf("reload expired upload %d: %w", candidate.ID, getErr)
-		}
-	}
-	return nil
-}
-
-func (s *MediaServer) getUpload(
-	ctx context.Context,
-	assetStore store.AssetStore,
-	uploadID int64,
-) (*store.Asset, error) {
-	asset, err := assetStore.GetAsset(ctx, uploadID)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, errUploadNotFound
-		}
-		return nil, fmt.Errorf("get asset: %w", err)
-	}
-	return asset, nil
-}
-
-func (s *MediaServer) deleteUploadObject(asset *store.Asset) {
-	deleteCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_ = s.uploadObjectStore(asset).DeleteObject(deleteCtx, uploadObjectKey(asset))
-}
-
-func (s *MediaServer) uploadObjectStore(asset *store.Asset) objectstore.ObjectStore {
-	if asset.Kind == store.KindMessageAttachment {
-		return s.svcCtx.AttachmentObjectStore
-	}
-	return s.svcCtx.StagingObjectStore
-}
-
-func (s *MediaServer) storageBackend() string {
-	if backend := strings.TrimSpace(s.svcCtx.Cfg.ObjectStore.Backend); backend != "" {
-		return backend
-	}
-	return "s3"
-}
-
-func imageTooLargeError(kind store.Kind) error {
-	if kind == store.KindUserAvatar {
-		return rpcerror.New(
-			codes.InvalidArgument,
-			rpcerror.MediaDomain,
-			rpcerror.MediaAvatarFileTooLarge,
-			"avatar file is too large",
-		)
-	}
-	return errSizeExceeded
-}
-
-func imageContentTypeInvalidError(kind store.Kind) error {
-	if kind == store.KindUserAvatar {
-		return rpcerror.New(
-			codes.InvalidArgument,
-			rpcerror.MediaDomain,
-			rpcerror.MediaAvatarContentTypeInvalid,
-			"avatar content type is invalid",
-		)
-	}
-	return errContentTypeInvalid
-}
-
-func mapAvatarProcessingError(kind store.Kind, err error) error {
-	if kind != store.KindUserAvatar {
-		return nil
-	}
-	switch {
-	case errors.Is(err, processing.ErrImageTooLarge):
-		return rpcerror.New(
-			codes.InvalidArgument,
-			rpcerror.MediaDomain,
-			rpcerror.MediaAvatarFileTooLarge,
-			"avatar file is too large",
-		)
-	case errors.Is(err, processing.ErrImageContentTypeInvalid):
-		return rpcerror.New(
-			codes.InvalidArgument,
-			rpcerror.MediaDomain,
-			rpcerror.MediaAvatarContentTypeInvalid,
-			"avatar content type is invalid",
-		)
-	case errors.Is(err, processing.ErrImageDimensionsExceeded):
-		return rpcerror.New(
-			codes.InvalidArgument,
-			rpcerror.MediaDomain,
-			rpcerror.MediaAvatarDimensionsExceeded,
-			"avatar dimensions exceed limit",
-		)
-	case errors.Is(err, processing.ErrImagePixelsExceeded):
-		return rpcerror.New(
-			codes.InvalidArgument,
-			rpcerror.MediaDomain,
-			rpcerror.MediaAvatarPixelsExceeded,
-			"avatar pixel count exceeds limit",
-		)
-	default:
-		return nil
-	}
-}
-
-func uploadObjectKey(asset *store.Asset) string {
-	if asset.StagingKey != "" {
-		return asset.StagingKey
-	}
-	return asset.PublishedKey
-}
-
-func normalizeContentType(value string) (string, error) {
-	if strings.TrimSpace(value) == "" {
-		return "", errContentTypeRequired
-	}
-	trimmed := strings.TrimSpace(value)
-	mediaType, params, err := mime.ParseMediaType(trimmed)
-	mediaType = strings.ToLower(mediaType)
-	if err != nil || mediaType == "" || len(params) != 0 || trimmed != mediaType {
-		return "", errContentTypeInvalid
-	}
-	return mediaType, nil
-}
-
-func validateAttachmentFilename(value string) (string, error) {
-	if value == "" || strings.TrimSpace(value) != value || !utf8.ValidString(value) ||
-		len(value) > 255 || value == "." || value == ".." ||
-		strings.ContainsAny(value, `/\`) {
-		return "", errFilenameInvalid
-	}
-	for _, r := range value {
-		if unicode.IsControl(r) {
-			return "", errFilenameInvalid
-		}
-	}
-	return value, nil
-}
-
-func newStorageToken() (string, error) {
-	var value [16]byte
-	if _, err := rand.Read(value[:]); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(value[:]), nil
 }

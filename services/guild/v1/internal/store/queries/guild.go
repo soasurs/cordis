@@ -1,5 +1,6 @@
 package queries
 
+// CreateGuildQuery inserts a guild and returns the stored row.
 const CreateGuildQuery = `
     INSERT INTO guilds (
         id, owner_id, name, description, icon_asset_id, revision, created_at, updated_at, deleted_at
@@ -8,6 +9,8 @@ const CreateGuildQuery = `
     )
     RETURNING ` + GuildColumns
 
+// CreateDefaultRoleStatement inserts the implicit @everyone role for a new
+// guild.
 const CreateDefaultRoleStatement = `
     INSERT INTO roles (
         id, guild_id, name, permissions, position, is_default,
@@ -17,6 +20,8 @@ const CreateDefaultRoleStatement = `
     )
 `
 
+// GetGuildForMemberQuery returns a guild only when the user is an active
+// member.
 const GetGuildForMemberQuery = `
     SELECT ` + GuildColumns + `
     FROM guilds
@@ -32,6 +37,7 @@ const GetGuildForMemberQuery = `
     LIMIT 1
 `
 
+// ListUserGuildsQuery pages a user's guilds newest-first.
 const ListUserGuildsQuery = `
     SELECT ` + GuildColumns + `
     FROM guilds
@@ -48,6 +54,8 @@ const ListUserGuildsQuery = `
     LIMIT $3
 `
 
+// UpdateGuildQuery applies present guild metadata updates and returns the
+// stored row.
 const UpdateGuildQuery = `
     UPDATE guilds
     SET name = CASE WHEN $2 THEN $3 ELSE name END,
@@ -58,6 +66,8 @@ const UpdateGuildQuery = `
       AND deleted_at = 0
     RETURNING ` + GuildColumns
 
+// UpdateGuildIconQuery replaces a guild's icon asset and returns the stored
+// row.
 const UpdateGuildIconQuery = `
     UPDATE guilds
     SET icon_asset_id = $2,
@@ -67,6 +77,7 @@ const UpdateGuildIconQuery = `
       AND deleted_at = 0
     RETURNING ` + GuildColumns
 
+// DeleteGuildQuery soft-deletes a guild and returns the stored row.
 const DeleteGuildQuery = `
     UPDATE guilds
     SET revision = revision + 1,
@@ -76,6 +87,7 @@ const DeleteGuildQuery = `
       AND deleted_at = 0
     RETURNING ` + GuildColumns
 
+// DeleteGuildMembersStatement soft-deletes every active member of a guild.
 const DeleteGuildMembersStatement = `
     UPDATE guild_members
     SET revision = revision + 1,
@@ -85,6 +97,7 @@ const DeleteGuildMembersStatement = `
       AND deleted_at = 0
 `
 
+// DeleteGuildRolesStatement soft-deletes every role in a guild.
 const DeleteGuildRolesStatement = `
     UPDATE roles
     SET revision = revision + 1,
@@ -94,6 +107,7 @@ const DeleteGuildRolesStatement = `
       AND deleted_at = 0
 `
 
+// GetGuildQuery returns one live guild.
 const GetGuildQuery = `
     SELECT ` + GuildColumns + `
     FROM guilds
@@ -102,6 +116,8 @@ const GetGuildQuery = `
     LIMIT 1
 `
 
+// GetGuildChannelLayoutRevisionQuery returns a guild's current channel layout
+// revision.
 const GetGuildChannelLayoutRevisionQuery = `
     SELECT channel_layout_revision
     FROM guilds
@@ -110,6 +126,8 @@ const GetGuildChannelLayoutRevisionQuery = `
     LIMIT 1
 `
 
+// AdvanceGuildChannelLayoutRevisionQuery bumps the channel layout revision
+// only from the expected value and returns the new revision.
 const AdvanceGuildChannelLayoutRevisionQuery = `
     UPDATE guilds
     SET channel_layout_revision = channel_layout_revision + 1
@@ -119,6 +137,7 @@ const AdvanceGuildChannelLayoutRevisionQuery = `
     RETURNING channel_layout_revision
 `
 
+// CountGuildMembersQuery counts a guild's active members.
 const CountGuildMembersQuery = `
     SELECT COUNT(*)
     FROM guild_members
@@ -126,6 +145,8 @@ const CountGuildMembersQuery = `
       AND deleted_at = 0
 `
 
+// TransferGuildOwnershipQuery transfers ownership from the current owner and
+// returns the stored row.
 const TransferGuildOwnershipQuery = `
     UPDATE guilds
     SET owner_id = $3,

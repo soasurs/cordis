@@ -17,6 +17,8 @@ import (
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
 )
 
+// CreateUpload validates purpose, size, and content type, then creates an
+// upload with a signed object-store URL.
 func (s *MediaServer) CreateUpload(
 	ctx context.Context,
 	req *mediav1.CreateUploadRequest,
@@ -226,6 +228,8 @@ func newUploadAsset(
 	return asset, nil
 }
 
+// CompleteUpload verifies ownership and completes the locked upload,
+// publishing ready assets.
 func (s *MediaServer) CompleteUpload(
 	ctx context.Context,
 	req *mediav1.CompleteUploadRequest,
@@ -451,6 +455,8 @@ func (s *MediaServer) buildCompleteResponse(
 	return resp, nil
 }
 
+// AbortUpload verifies ownership and aborts the locked upload, deleting its
+// staging object.
 func (s *MediaServer) AbortUpload(
 	ctx context.Context,
 	req *mediav1.AbortUploadRequest,

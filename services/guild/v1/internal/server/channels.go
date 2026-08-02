@@ -12,6 +12,8 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
 
+// CreateGuildChannel creates a channel with optional idempotent replay after
+// checking the actor's MANAGE_CHANNELS permission.
 func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.CreateGuildChannelRequest) (*guildv1.CreateGuildChannelResponse, error) {
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err
@@ -196,6 +198,7 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 	return resp, nil
 }
 
+// GetGuildChannel returns one channel when the actor can view it.
 func (s *guildServer) GetGuildChannel(ctx context.Context, req *guildv1.GetGuildChannelRequest) (*guildv1.GetGuildChannelResponse, error) {
 	if err := validateChannelActorRequest(req.GetChannelId(), req.GetActorUserId()); err != nil {
 		return nil, err
@@ -212,6 +215,8 @@ func (s *guildServer) GetGuildChannel(ctx context.Context, req *guildv1.GetGuild
 	return resp, nil
 }
 
+// ListGuildChannels returns the channels the actor can view and the current
+// layout revision.
 func (s *guildServer) ListGuildChannels(ctx context.Context, req *guildv1.ListGuildChannelsRequest) (*guildv1.ListGuildChannelsResponse, error) {
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err
@@ -277,6 +282,8 @@ func visibleGuildChannels(
 	return visible
 }
 
+// UpdateGuildChannel applies present name, topic, and parent changes under the
+// channel mutation lock when the layout changes.
 func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.UpdateGuildChannelRequest) (*guildv1.UpdateGuildChannelResponse, error) {
 	if err := validateChannelActorRequest(req.GetChannelId(), req.GetActorUserId()); err != nil {
 		return nil, err
@@ -432,6 +439,8 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 	return resp, nil
 }
 
+// DeleteGuildChannel soft-deletes one channel, detaches its children, and
+// advances the layout revision.
 func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.DeleteGuildChannelRequest) (*guildv1.DeleteGuildChannelResponse, error) {
 	if err := validateChannelActorRequest(req.GetChannelId(), req.GetActorUserId()); err != nil {
 		return nil, err

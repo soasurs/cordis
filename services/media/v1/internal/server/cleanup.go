@@ -11,6 +11,8 @@ import (
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
 )
 
+// CleanupExpired expires created uploads past their deadline and deletes their
+// staging objects.
 func (s *MediaServer) CleanupExpired(ctx context.Context) error {
 	assets, err := s.svcCtx.Store.ListExpiredUploads(ctx, time.Now().UnixMilli())
 	if err != nil {

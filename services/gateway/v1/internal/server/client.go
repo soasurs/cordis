@@ -465,6 +465,7 @@ func newGatewayError(code, message string) error {
 	return &gatewayError{code: code, message: message}
 }
 
+// Error returns the gateway error message.
 func (e *gatewayError) Error() string {
 	return e.message
 }

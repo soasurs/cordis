@@ -23,6 +23,9 @@ import (
 	sessionratelimit "github.com/soasurs/cordis/services/session/v1/ratelimit"
 )
 
+// Connect handles one gateway stream: it validates the gateway identity,
+// performs the identify or resume handshake, and pumps frames until the stream
+// ends.
 func (s *Server) Connect(stream sessionv1.SessionService_ConnectServer) (returnErr error) {
 	closeReason := "handshake_failed"
 	sessionGatewayStreamsActive.Inc()

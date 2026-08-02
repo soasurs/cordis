@@ -1,5 +1,7 @@
 package queries
 
+// UpsertGuildChannelPermissionOverwriteQuery inserts or replaces one channel
+// overwrite and returns the stored row.
 const UpsertGuildChannelPermissionOverwriteQuery = `
     INSERT INTO guild_channel_permission_overwrites (
         channel_id, guild_id, applies_to, applies_to_id, allow_bits, deny_bits,
@@ -12,6 +14,8 @@ const UpsertGuildChannelPermissionOverwriteQuery = `
         updated_at = EXCLUDED.created_at
     RETURNING ` + ChannelOverwriteColumns
 
+// DeleteGuildChannelPermissionOverwriteStatement removes one channel
+// overwrite.
 const DeleteGuildChannelPermissionOverwriteStatement = `
     DELETE FROM guild_channel_permission_overwrites
     WHERE channel_id = $1
@@ -19,16 +23,22 @@ const DeleteGuildChannelPermissionOverwriteStatement = `
       AND applies_to_id = $3
 `
 
+// DeleteGuildChannelPermissionOverwritesStatement removes every overwrite on
+// a channel.
 const DeleteGuildChannelPermissionOverwritesStatement = `
     DELETE FROM guild_channel_permission_overwrites
     WHERE channel_id = $1
 `
 
+// DeleteAllGuildChannelPermissionOverwritesStatement removes every overwrite
+// in a guild.
 const DeleteAllGuildChannelPermissionOverwritesStatement = `
     DELETE FROM guild_channel_permission_overwrites
     WHERE guild_id = $1
 `
 
+// DeleteGuildChannelPermissionOverwritesForAppliesToStatement removes every
+// guild overwrite that applies to one role or member.
 const DeleteGuildChannelPermissionOverwritesForAppliesToStatement = `
     DELETE FROM guild_channel_permission_overwrites
     WHERE guild_id = $1
@@ -36,6 +46,8 @@ const DeleteGuildChannelPermissionOverwritesForAppliesToStatement = `
       AND applies_to_id = $3
 `
 
+// ListGuildChannelPermissionOverwritesQuery lists the overwrites on one
+// channel.
 const ListGuildChannelPermissionOverwritesQuery = `
     SELECT ` + ChannelOverwriteColumns + `
     FROM guild_channel_permission_overwrites
@@ -43,6 +55,8 @@ const ListGuildChannelPermissionOverwritesQuery = `
     ORDER BY applies_to ASC, applies_to_id ASC
 `
 
+// ListGuildChannelPermissionOverwritesByChannelsQuery lists the overwrites on
+// many channels.
 const ListGuildChannelPermissionOverwritesByChannelsQuery = `
     SELECT ` + ChannelOverwriteColumns + `
     FROM guild_channel_permission_overwrites
@@ -50,6 +64,8 @@ const ListGuildChannelPermissionOverwritesByChannelsQuery = `
     ORDER BY guild_id ASC, channel_id ASC, applies_to ASC, applies_to_id ASC
 `
 
+// ListGuildChannelPermissionOverwritesByGuildQuery lists every overwrite in a
+// guild.
 const ListGuildChannelPermissionOverwritesByGuildQuery = `
     SELECT ` + ChannelOverwriteColumns + `
     FROM guild_channel_permission_overwrites
@@ -57,6 +73,8 @@ const ListGuildChannelPermissionOverwritesByGuildQuery = `
     ORDER BY channel_id ASC, applies_to ASC, applies_to_id ASC
 `
 
+// ListGuildChannelPermissionOverwritesByGuildsQuery lists overwrites relevant
+// to one user across many guilds.
 const ListGuildChannelPermissionOverwritesByGuildsQuery = `
     SELECT ` + ChannelOverwriteColumns + `
     FROM guild_channel_permission_overwrites AS o

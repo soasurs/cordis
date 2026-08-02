@@ -11,6 +11,8 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
 
+// ReorderGuildChannels atomically applies requested positions and parents
+// under the channel mutation lock and publishes the changed channels.
 func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.ReorderGuildChannelsRequest) (*guildv1.ReorderGuildChannelsResponse, error) {
 	if err := validateMemberActorRequest(req.GetGuildId(), req.GetActorUserId()); err != nil {
 		return nil, err

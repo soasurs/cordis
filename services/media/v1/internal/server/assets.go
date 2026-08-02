@@ -15,6 +15,8 @@ import (
 
 const maxBatchAssetURLs = 1000
 
+// GetAsset returns one asset, adding a download URL for ready message
+// attachments.
 func (s *MediaServer) GetAsset(
 	ctx context.Context,
 	req *mediav1.GetAssetRequest,
@@ -55,6 +57,8 @@ func (s *MediaServer) GetAsset(
 	return resp, nil
 }
 
+// BatchGetAssetURLs returns download URLs for up to maxBatchAssetURLs ready
+// message attachments, deduplicating the requested IDs.
 func (s *MediaServer) BatchGetAssetURLs(
 	ctx context.Context,
 	req *mediav1.BatchGetAssetURLsRequest,

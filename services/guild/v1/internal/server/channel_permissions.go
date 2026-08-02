@@ -9,6 +9,8 @@ import (
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
 
+// UpsertGuildChannelPermissionOverwrite creates or replaces one channel
+// overwrite when the actor can manage channels and grant the requested bits.
 func (s *guildServer) UpsertGuildChannelPermissionOverwrite(
 	ctx context.Context,
 	req *guildv1.UpsertGuildChannelPermissionOverwriteRequest,
@@ -55,6 +57,8 @@ func (s *guildServer) UpsertGuildChannelPermissionOverwrite(
 	return resp, nil
 }
 
+// DeleteGuildChannelPermissionOverwrite removes one channel overwrite,
+// rejecting deletion of the default @everyone overwrite.
 func (s *guildServer) DeleteGuildChannelPermissionOverwrite(
 	ctx context.Context,
 	req *guildv1.DeleteGuildChannelPermissionOverwriteRequest,
@@ -94,6 +98,8 @@ func (s *guildServer) DeleteGuildChannelPermissionOverwrite(
 	return resp, nil
 }
 
+// ListGuildChannelPermissionOverwrites returns the overwrites of one channel
+// for an actor with MANAGE_CHANNELS.
 func (s *guildServer) ListGuildChannelPermissionOverwrites(
 	ctx context.Context,
 	req *guildv1.ListGuildChannelPermissionOverwritesRequest,
@@ -121,6 +127,8 @@ func (s *guildServer) ListGuildChannelPermissionOverwrites(
 	return resp, nil
 }
 
+// AuthorizeGuildChannel resolves one user's effective permissions on a
+// channel.
 func (s *guildServer) AuthorizeGuildChannel(ctx context.Context, req *guildv1.AuthorizeGuildChannelRequest) (*guildv1.AuthorizeGuildChannelResponse, error) {
 	if req.GetChannelId() <= 0 || req.GetUserId() <= 0 {
 		return nil, invalidRequest("channel id and user id are required")

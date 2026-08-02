@@ -1,5 +1,7 @@
 package queries
 
+// CreateGuildMemberQuery joins a user to a guild unless banned, re-joins
+// previously deleted members, and returns the stored row.
 const CreateGuildMemberQuery = `
     INSERT INTO guild_members (
         guild_id, user_id, nickname, revision, joined_at, updated_at, deleted_at
@@ -22,6 +24,7 @@ const CreateGuildMemberQuery = `
       )
     RETURNING ` + GuildMemberColumns
 
+// GetGuildMemberQuery returns one active guild member.
 const GetGuildMemberQuery = `
     SELECT ` + GuildMemberColumns + `
     FROM guild_members
@@ -31,6 +34,7 @@ const GetGuildMemberQuery = `
     LIMIT 1
 `
 
+// ListGuildMembersQuery pages a guild's members newest-first.
 const ListGuildMembersQuery = `
     SELECT ` + GuildMemberColumns + `
     FROM guild_members
@@ -45,6 +49,7 @@ const ListGuildMembersQuery = `
     LIMIT $4
 `
 
+// ListGuildMemberIDsPageQuery pages a guild's active member IDs ascending.
 const ListGuildMemberIDsPageQuery = `
     SELECT user_id
     FROM guild_members
@@ -55,6 +60,8 @@ const ListGuildMemberIDsPageQuery = `
     LIMIT $3
 `
 
+// ListGuildRoleTargetIDsPageQuery pages active member IDs that hold any of the
+// requested roles.
 const ListGuildRoleTargetIDsPageQuery = `
     SELECT DISTINCT gm.user_id
     FROM guild_member_roles AS gm
@@ -69,6 +76,8 @@ const ListGuildRoleTargetIDsPageQuery = `
     LIMIT $4
 `
 
+// ListGuildMemberRolesByUsersQuery returns the roles assigned to each
+// requested user, including the implicit default role.
 const ListGuildMemberRolesByUsersQuery = `
     SELECT r.*, assignments.user_id
     FROM (
@@ -89,6 +98,8 @@ const ListGuildMemberRolesByUsersQuery = `
     WHERE r.deleted_at = 0
 `
 
+// ListUsersWithCommonGuildQuery returns requested users that share an active
+// guild with the actor.
 const ListUsersWithCommonGuildQuery = `
     SELECT DISTINCT target.user_id
     FROM guild_members AS actor
@@ -101,6 +112,8 @@ const ListUsersWithCommonGuildQuery = `
     ORDER BY target.user_id
 `
 
+// ListGuildRoleMembersQuery pages members holding a role, where the default
+// role matches every active member.
 const ListGuildRoleMembersQuery = `
     SELECT gm.guild_id, gm.user_id, gm.nickname, gm.revision,
            gm.joined_at, gm.updated_at, gm.deleted_at
@@ -133,6 +146,8 @@ const ListGuildRoleMembersQuery = `
     LIMIT $5
 `
 
+// UpdateGuildMemberNicknameQuery sets a member's nickname and returns the
+// stored row.
 const UpdateGuildMemberNicknameQuery = `
     UPDATE guild_members
     SET nickname = $3,
@@ -143,6 +158,7 @@ const UpdateGuildMemberNicknameQuery = `
       AND deleted_at = 0
     RETURNING ` + GuildMemberColumns
 
+// RemoveGuildMemberQuery soft-deletes a member and returns the stored row.
 const RemoveGuildMemberQuery = `
     UPDATE guild_members
     SET revision = revision + 1,

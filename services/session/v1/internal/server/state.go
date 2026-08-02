@@ -143,6 +143,3 @@ func (s *Server) refreshOwner(ctx context.Context, session *logicalSession) erro
 		SessionID: session.id, NodeID: s.nodeID, Generation: s.generation,
 	}, s.svcCtx.Cfg.Node.ResumeTTL())
 }
-
-// presenceGuildIDs snapshots the session's guild memberships for presence
-// transition fan-out.

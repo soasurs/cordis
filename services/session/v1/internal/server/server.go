@@ -87,6 +87,8 @@ type logicalSession struct {
 	pendingDispatchOverflow bool
 }
 
+// Server implements SessionService: it owns logical gateway sessions, presence
+// fan-out, guild visibility snapshots, and node routing.
 type Server struct {
 	sessionv1.UnimplementedSessionServiceServer
 
@@ -113,6 +115,8 @@ type Server struct {
 	dedup *dedupStore
 }
 
+// New creates a Session Server from the service context, falling back to the
+// hostname and listen address when node identity is unset.
 func New(svcCtx *svc.ServiceContext) *Server {
 	nodeID := strings.TrimSpace(svcCtx.Cfg.Node.ID)
 	if nodeID == "" {
@@ -140,6 +144,8 @@ func New(svcCtx *svc.ServiceContext) *Server {
 	}
 }
 
+// StartBackground runs node registration, route publication, lease renewal,
+// detached-session cleanup, and dedup GC until ctx is canceled.
 func (s *Server) StartBackground(ctx context.Context) {
 	go s.refreshNode(ctx)
 	go s.refreshRoutes(ctx)
@@ -148,6 +154,8 @@ func (s *Server) StartBackground(ctx context.Context) {
 	go s.dedup.start(ctx)
 }
 
+// Drain marks the node as draining, asks every bound session to reconnect, and
+// returns when ctx is canceled.
 func (s *Server) Drain(ctx context.Context) {
 	if !s.draining.CompareAndSwap(false, true) {
 		return
@@ -188,6 +196,8 @@ func (s *Server) Drain(ctx context.Context) {
 	}
 }
 
+// SyncGatewayConnections applies gateway connection checkpoints that still
+// match the current binding and returns the number applied.
 func (s *Server) SyncGatewayConnections(
 	_ context.Context,
 	req *sessionv1.SyncGatewayConnectionsRequest,

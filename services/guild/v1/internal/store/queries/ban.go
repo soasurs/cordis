@@ -1,5 +1,7 @@
 package queries
 
+// UpsertGuildBanQuery inserts or replaces a guild ban and returns the stored
+// row.
 const UpsertGuildBanQuery = `
     INSERT INTO guild_bans (guild_id, user_id, actor_user_id, reason, created_at)
     VALUES ($1, $2, $3, $4, $5)
@@ -9,12 +11,14 @@ const UpsertGuildBanQuery = `
         created_at = EXCLUDED.created_at
     RETURNING ` + GuildBanColumns
 
+// DeleteGuildBanStatement removes one user's ban from a guild.
 const DeleteGuildBanStatement = `
     DELETE FROM guild_bans
     WHERE guild_id = $1
       AND user_id = $2
 `
 
+// GetGuildBanQuery returns one guild ban.
 const GetGuildBanQuery = `
     SELECT ` + GuildBanColumns + `
     FROM guild_bans
@@ -23,6 +27,7 @@ const GetGuildBanQuery = `
     LIMIT 1
 `
 
+// ListGuildBansQuery pages a guild's bans newest-first.
 const ListGuildBansQuery = `
     SELECT ` + GuildBanColumns + `
     FROM guild_bans
@@ -36,6 +41,7 @@ const ListGuildBansQuery = `
     LIMIT $4
 `
 
+// DeleteGuildBansStatement removes every ban in a guild.
 const DeleteGuildBansStatement = `
     DELETE FROM guild_bans
     WHERE guild_id = $1

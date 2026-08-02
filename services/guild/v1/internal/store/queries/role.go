@@ -1,5 +1,7 @@
 package queries
 
+// CreateGuildRoleQuery inserts a non-default guild role and returns the stored
+// row.
 const CreateGuildRoleQuery = `
     INSERT INTO roles (
         id, guild_id, name, permissions, position, is_default,
@@ -9,6 +11,7 @@ const CreateGuildRoleQuery = `
     )
     RETURNING ` + RoleColumns
 
+// GetGuildRoleQuery returns one live guild role.
 const GetGuildRoleQuery = `
     SELECT ` + RoleColumns + `
     FROM roles
@@ -18,6 +21,7 @@ const GetGuildRoleQuery = `
     LIMIT 1
 `
 
+// ListGuildRolesQuery lists a guild's live roles in position order.
 const ListGuildRolesQuery = `
     SELECT ` + RoleColumns + `
     FROM roles
@@ -26,6 +30,8 @@ const ListGuildRolesQuery = `
     ORDER BY position DESC, id ASC
 `
 
+// ListGuildRolesByGuildsQuery lists live roles for many guilds in position
+// order.
 const ListGuildRolesByGuildsQuery = `
     SELECT ` + RoleColumns + `
     FROM roles
@@ -34,6 +40,8 @@ const ListGuildRolesByGuildsQuery = `
     ORDER BY guild_id ASC, position DESC, id ASC
 `
 
+// UpdateGuildRoleQuery applies present role metadata updates and returns the
+// stored row.
 const UpdateGuildRoleQuery = `
     UPDATE roles
     SET name = CASE WHEN $3 THEN $4 ELSE name END,
@@ -45,6 +53,8 @@ const UpdateGuildRoleQuery = `
       AND deleted_at = 0
     RETURNING ` + RoleColumns
 
+// UpdateGuildRolePositionQuery moves one non-default role to a new position
+// and returns the stored row.
 const UpdateGuildRolePositionQuery = `
     UPDATE roles
     SET position = $3,
@@ -56,6 +66,8 @@ const UpdateGuildRolePositionQuery = `
       AND deleted_at = 0
     RETURNING ` + RoleColumns
 
+// DeleteGuildRoleQuery soft-deletes one non-default role and returns the
+// stored row.
 const DeleteGuildRoleQuery = `
     UPDATE roles
     SET revision = revision + 1,
@@ -67,12 +79,16 @@ const DeleteGuildRoleQuery = `
       AND deleted_at = 0
     RETURNING ` + RoleColumns
 
+// AddGuildMemberRoleStatement assigns one role to a member, ignoring duplicate
+// assignments.
 const AddGuildMemberRoleStatement = `
     INSERT INTO guild_member_roles (guild_id, user_id, role_id, created_at)
     VALUES ($1, $2, $3, $4)
     ON CONFLICT (guild_id, user_id, role_id) DO NOTHING
 `
 
+// UpdateGuildRolePositionsQuery atomically applies requested role positions
+// and returns the updated rows.
 const UpdateGuildRolePositionsQuery = `
     WITH requested(id, position) AS (
         SELECT * FROM unnest($2::bigint[], $3::integer[])
@@ -90,6 +106,7 @@ const UpdateGuildRolePositionsQuery = `
               r.revision, r.created_at, r.updated_at, r.deleted_at
 `
 
+// RemoveGuildMemberRoleStatement removes one role assignment.
 const RemoveGuildMemberRoleStatement = `
     DELETE FROM guild_member_roles
     WHERE guild_id = $1
@@ -97,23 +114,31 @@ const RemoveGuildMemberRoleStatement = `
       AND role_id = $3
 `
 
+// DeleteGuildMemberRoleAssignmentsStatement removes every role assignment of
+// one member in a guild.
 const DeleteGuildMemberRoleAssignmentsStatement = `
     DELETE FROM guild_member_roles
     WHERE guild_id = $1
       AND user_id = $2
 `
 
+// DeleteGuildRoleAssignmentsStatement removes every assignment of one role in
+// a guild.
 const DeleteGuildRoleAssignmentsStatement = `
     DELETE FROM guild_member_roles
     WHERE guild_id = $1
       AND role_id = $2
 `
 
+// DeleteAllGuildRoleAssignmentsStatement removes every role assignment in a
+// guild.
 const DeleteAllGuildRoleAssignmentsStatement = `
     DELETE FROM guild_member_roles
     WHERE guild_id = $1
 `
 
+// ListGuildMemberRolesQuery lists a member's roles in a guild, including the
+// implicit default role.
 const ListGuildMemberRolesQuery = `
     SELECT ` + RoleColumns + `
     FROM roles
@@ -131,6 +156,8 @@ const ListGuildMemberRolesQuery = `
     ORDER BY position DESC, id ASC
 `
 
+// ListGuildMemberRolesByGuildsQuery lists a user's roles across guilds,
+// including implicit default roles.
 const ListGuildMemberRolesByGuildsQuery = `
     SELECT ` + RoleColumns + `
     FROM roles

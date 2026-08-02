@@ -8,6 +8,8 @@ import (
 	"github.com/soasurs/cordis/services/media/v1/internal/store"
 )
 
+// GetImageUploadConstraints returns the image constraints for the requested
+// upload purpose.
 func (s *MediaServer) GetImageUploadConstraints(
 	_ context.Context,
 	req *mediav1.GetImageUploadConstraintsRequest,

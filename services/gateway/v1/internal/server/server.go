@@ -38,6 +38,8 @@ type sessionStream interface {
 	CloseSend() error
 }
 
+// Server accepts gateway WebSocket connections, tracks client heartbeats and
+// connection checkpoints, and forwards gateway frames to Session nodes.
 type Server struct {
 	svcCtx          *svc.ServiceContext
 	gatewayID       string
@@ -74,6 +76,8 @@ type client struct {
 	sessionAddress       string
 }
 
+// New creates a Gateway Server backed by the given service context and a gRPC
+// checkpoint sender.
 func New(svcCtx *svc.ServiceContext) *Server {
 	return newServer(svcCtx, newGRPCCheckpointSender())
 }
@@ -96,19 +100,19 @@ func newServer(svcCtx *svc.ServiceContext, sender checkpointSender) *Server {
 	return server
 }
 
+// StartBackground runs the server's background checkpoint task until ctx is
+// canceled.
 func (s *Server) StartBackground(ctx context.Context) {
 	go s.checkpoints.run(ctx)
 }
 
+// Close releases the checkpoint sender's resources.
 func (s *Server) Close() error {
 	if s.checkpointClose != nil {
 		return s.checkpointClose.Close()
 	}
 	return nil
 }
-
-// Drain rejects new WebSocket upgrades, asks active clients to reconnect, and
-// waits for their handlers to release Session streams.
 
 // Drain rejects new WebSocket upgrades, asks active clients to reconnect, and
 // waits for their handlers to release Session streams.
@@ -163,6 +167,7 @@ func (s *Server) Drain(ctx context.Context) error {
 	}
 }
 
+// Handler returns an HTTP handler serving the configured WebSocket route.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	route := s.svcCtx.Cfg.Gateway.WebSocketRoute()

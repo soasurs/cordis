@@ -1,5 +1,7 @@
 package queries
 
+// ClaimGuildIdempotencyQuery inserts an idempotency claim when absent and
+// returns the stored resource ID and request hash.
 const ClaimGuildIdempotencyQuery = `
 	INSERT INTO
 		guild_idempotency_keys (
@@ -14,6 +16,7 @@ const ClaimGuildIdempotencyQuery = `
 		resource_id, request_hash
 	`
 
+// GetGuildIdempotencyQuery returns the stored idempotency claim for a key.
 const GetGuildIdempotencyQuery = `
 	SELECT
 		resource_id, request_hash, expires_at
@@ -27,6 +30,8 @@ const GetGuildIdempotencyQuery = `
 		idempotency_key = $3
 	`
 
+// DeleteExpiredGuildIdempotencyStatement removes an expired idempotency
+// claim.
 const DeleteExpiredGuildIdempotencyStatement = `
 	DELETE FROM
 		guild_idempotency_keys

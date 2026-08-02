@@ -1,11 +1,13 @@
 package queries
 
+// CreateGuildChannelQuery inserts a guild channel and returns the stored row.
 const CreateGuildChannelQuery = `
     INSERT INTO guild_channels (
         id, guild_id, name, type, position, topic, revision, created_at, updated_at, deleted_at, parent_id
     ) VALUES ($1, $2, $3, $4, $5, $6, 1, $8, 0, 0, $7)
     RETURNING ` + ChannelColumns
 
+// GetGuildChannelQuery returns one live guild channel.
 const GetGuildChannelQuery = `
     SELECT ` + ChannelColumns + `
     FROM guild_channels
@@ -14,6 +16,7 @@ const GetGuildChannelQuery = `
     LIMIT 1
 `
 
+// ListGuildChannelsQuery lists a guild's live channels in layout order.
 const ListGuildChannelsQuery = `
     SELECT ` + ChannelColumns + `
     FROM guild_channels
@@ -22,6 +25,8 @@ const ListGuildChannelsQuery = `
     ORDER BY position ASC, id ASC
 `
 
+// ListGuildChannelsWithRevisionQuery returns a guild's channel layout snapshot
+// with its current layout revision.
 const ListGuildChannelsWithRevisionQuery = `
     SELECT
         g.id AS snapshot_guild_id,
@@ -47,6 +52,8 @@ const ListGuildChannelsWithRevisionQuery = `
     ORDER BY c.position ASC, c.id ASC
 `
 
+// ListGuildChannelsWithRevisionsByGuildsQuery returns channel layout snapshots
+// with revisions for many guilds.
 const ListGuildChannelsWithRevisionsByGuildsQuery = `
     SELECT
         g.id AS snapshot_guild_id,
@@ -72,6 +79,8 @@ const ListGuildChannelsWithRevisionsByGuildsQuery = `
     ORDER BY g.id ASC, c.position ASC, c.id ASC
 `
 
+// ListGuildChannelsByGuildsQuery lists live channels for many guilds in layout
+// order.
 const ListGuildChannelsByGuildsQuery = `
     SELECT ` + ChannelColumns + `
     FROM guild_channels
@@ -80,6 +89,8 @@ const ListGuildChannelsByGuildsQuery = `
     ORDER BY guild_id ASC, position ASC, id ASC
 `
 
+// UpdateGuildChannelQuery applies present channel metadata updates and returns
+// the stored row.
 const UpdateGuildChannelQuery = `
     UPDATE guild_channels
     SET name = CASE WHEN $2 THEN $3 ELSE name END,
@@ -91,6 +102,8 @@ const UpdateGuildChannelQuery = `
       AND deleted_at = 0
     RETURNING ` + ChannelColumns
 
+// UpdateGuildChannelPositionQuery moves one channel to a new position and
+// returns the stored row.
 const UpdateGuildChannelPositionQuery = `
     UPDATE guild_channels
     SET position = $3,
@@ -101,6 +114,7 @@ const UpdateGuildChannelPositionQuery = `
       AND deleted_at = 0
     RETURNING ` + ChannelColumns
 
+// DeleteGuildChannelQuery soft-deletes one channel and returns the stored row.
 const DeleteGuildChannelQuery = `
     UPDATE guild_channels
     SET revision = revision + 1,
@@ -110,6 +124,7 @@ const DeleteGuildChannelQuery = `
       AND deleted_at = 0
     RETURNING ` + ChannelColumns
 
+// DeleteGuildChannelsStatement soft-deletes every live channel in a guild.
 const DeleteGuildChannelsStatement = `
     UPDATE guild_channels
     SET revision = revision + 1,
@@ -119,6 +134,8 @@ const DeleteGuildChannelsStatement = `
       AND deleted_at = 0
 `
 
+// UpdateGuildChannelPositionsQuery atomically applies requested positions and
+// parents and returns the updated rows.
 const UpdateGuildChannelPositionsQuery = `
     WITH requested(id, position, parent_id) AS (
         SELECT * FROM unnest($2::bigint[], $3::integer[], $4::bigint[])
@@ -136,6 +153,8 @@ const UpdateGuildChannelPositionsQuery = `
               c.revision, c.created_at, c.updated_at, c.deleted_at, c.parent_id
 `
 
+// ClearGuildChannelParentStatement detaches every channel whose parent matches
+// the deleted channel.
 const ClearGuildChannelParentStatement = `
     UPDATE guild_channels
     SET parent_id = 0,

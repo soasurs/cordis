@@ -1,0 +1,97 @@
+edition = "2023";
+
+package guild.v1;
+
+import "guild/v1/common.proto";
+
+// ============================================================
+
+// GuildInvite is a shareable code that lets users join a Guild.
+// All timestamps are Unix time in milliseconds.
+message GuildInvite {
+  int64 id = 1;
+  string code = 2;
+  int64 guild_id = 3;
+  int64 creator_user_id = 4;
+  // Zero means unlimited uses.
+  int32 max_uses = 5;
+  int32 uses = 6;
+  // Zero means the invite never expires.
+  int64 expires_at = 7;
+  int64 created_at = 8;
+}
+// GuildInvitePreview is the guild summary shown to a user before joining.
+message GuildInvitePreview {
+  string code = 1;
+  int64 guild_id = 2;
+  string guild_name = 3;
+  // Zero means the Guild has no icon. The public API defines how clients turn
+  // this asset ID and guild_id into a CDN URL.
+  int64 guild_icon_asset_id = 4;
+  int64 member_count = 5;
+  int64 expires_at = 6;
+  // Optional description of the Guild being previewed.
+  string guild_description = 7;
+}
+
+message CreateGuildInviteRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // Zero means unlimited uses.
+  int32 max_uses = 3;
+  // Relative lifetime in milliseconds. Zero means the invite never expires.
+  int64 expires_in_ms = 4;
+  // Optional opaque key identifying one client-side invite creation intent.
+  string idempotency_key = 5;
+}
+
+message CreateGuildInviteResponse {
+  GuildInvite invite = 1;
+}
+
+message GetGuildInviteRequest {
+  string code = 1;
+}
+
+message GetGuildInviteResponse {
+  GuildInvitePreview preview = 1;
+}
+
+message ListGuildInvitesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // Opaque continuation from ListGuildInvitesResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 3;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
+  int32 limit = 4;
+}
+
+message ListGuildInvitesResponse {
+  repeated GuildInvite invites = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
+}
+
+message DeleteGuildInviteRequest {
+  string code = 1;
+  int64 actor_user_id = 2;
+}
+
+message DeleteGuildInviteResponse {
+  bool ok = 1;
+}
+
+message JoinGuildByInviteRequest {
+  string code = 1;
+  int64 user_id = 2;
+}
+
+message JoinGuildByInviteResponse {
+  Guild guild = 1;
+  GuildMember member = 2;
+}

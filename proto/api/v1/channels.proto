@@ -1,0 +1,124 @@
+edition = "2023";
+
+package api.v1;
+
+import "api/v1/common.proto";
+
+// ============================================================
+
+message CreateGuildChannelRequest {
+  int64 guild_id = 1;
+  string name = 2;
+  GuildChannelType type = 3;
+  string topic = 4;
+  // Parent category ID, or zero to create the channel at the Guild root.
+  int64 parent_id = 5;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 6;
+  // Optional opaque key identifying one client-side channel creation intent.
+  string idempotency_key = 7;
+}
+message CreateGuildChannelResponse {
+  GuildChannel channel = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message GetGuildChannelRequest {
+  int64 channel_id = 1;
+}
+
+message GetGuildChannelResponse {
+  GuildChannel channel = 1;
+}
+
+message ListGuildChannelsRequest {
+  int64 guild_id = 1;
+}
+
+message ListGuildChannelsResponse {
+  repeated GuildChannel channels = 1;
+  // Revision of the complete Guild channel layout represented by this list.
+  int64 channel_layout_revision = 2;
+}
+
+message UpdateGuildChannelRequest {
+  int64 channel_id = 1;
+  // Optional replacement fields. At least one must be present.
+  string name = 2;
+  string topic = 3;
+  // Zero moves the channel to the Guild root. Omission preserves its parent.
+  int64 parent_id = 4;
+  // Required when parent_id is present.
+  int64 expected_channel_layout_revision = 5;
+}
+
+message UpdateGuildChannelResponse {
+  GuildChannel channel = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message DeleteGuildChannelRequest {
+  int64 channel_id = 1;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 2;
+}
+
+message DeleteGuildChannelResponse {
+  bool ok = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message GuildChannelPosition {
+  int64 channel_id = 1;
+  // Zero-based position within the current or requested parent.
+  int32 position = 2;
+  // parent_id moves the channel to a category; zero moves it to the Guild root.
+  // When omitted, the current parent is preserved.
+  int64 parent_id = 3;
+}
+
+message ReorderGuildChannelsRequest {
+  int64 guild_id = 1;
+  // Partial set of channels to move. Final positions must remain unique
+  // within each parent.
+  repeated GuildChannelPosition positions = 2;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 3;
+}
+
+message ReorderGuildChannelsResponse {
+  repeated GuildChannel channels = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message UpsertGuildChannelPermissionOverwriteRequest {
+  int64 channel_id = 1;
+  GuildPermissionOverwriteType applies_to = 2;
+  // Role ID or user ID according to applies_to.
+  int64 applies_to_id = 3;
+  // Permission bits to grant and deny. The same bit cannot appear in both.
+  uint64 allow = 4;
+  uint64 deny = 5;
+}
+
+message UpsertGuildChannelPermissionOverwriteResponse {
+  GuildChannelPermissionOverwrite overwrite = 1;
+}
+
+message DeleteGuildChannelPermissionOverwriteRequest {
+  int64 channel_id = 1;
+  GuildPermissionOverwriteType applies_to = 2;
+  int64 applies_to_id = 3;
+}
+
+message DeleteGuildChannelPermissionOverwriteResponse {
+  bool ok = 1;
+}
+
+message ListGuildChannelPermissionOverwritesRequest {
+  int64 channel_id = 1;
+}
+
+message ListGuildChannelPermissionOverwritesResponse {
+  repeated GuildChannelPermissionOverwrite overwrites = 1;
+}

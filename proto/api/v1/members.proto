@@ -1,0 +1,117 @@
+edition = "2023";
+
+package api.v1;
+
+import "api/v1/common.proto";
+
+// ============================================================
+
+message AddGuildMemberRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+}
+message AddGuildMemberResponse {
+  GuildMember member = 1;
+}
+
+message GetGuildMemberRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+}
+
+message GetGuildMemberResponse {
+  GuildMember member = 1;
+}
+
+message ListGuildMembersRequest {
+  int64 guild_id = 1;
+  // Opaque continuation from ListGuildMembersResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
+  int32 limit = 3;
+}
+
+message ListGuildMembersResponse {
+  repeated GuildMember members = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
+}
+
+message UpdateCurrentGuildMemberRequest {
+  int64 guild_id = 1;
+  // Replaces the caller's guild nickname. An empty value clears it.
+  string nickname = 2;
+}
+
+message UpdateCurrentGuildMemberResponse {
+  GuildMember member = 1;
+}
+
+message KickGuildMemberRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+}
+
+message KickGuildMemberResponse {
+  bool ok = 1;
+}
+
+message BanGuildMemberRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+  string reason = 3;
+}
+
+message BanGuildMemberResponse {
+  GuildBan ban = 1;
+}
+
+message UnbanGuildMemberRequest {
+  int64 guild_id = 1;
+  int64 user_id = 2;
+}
+
+message UnbanGuildMemberResponse {
+  bool ok = 1;
+}
+
+message ListGuildBansRequest {
+  int64 guild_id = 1;
+  // Opaque continuation from ListGuildBansResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 2;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
+  int32 limit = 3;
+}
+
+message ListGuildBansResponse {
+  repeated GuildBan bans = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
+}
+
+message LeaveGuildRequest {
+  int64 guild_id = 1;
+}
+
+message LeaveGuildResponse {
+  bool ok = 1;
+}
+
+message TransferGuildOwnershipRequest {
+  int64 guild_id = 1;
+  int64 new_owner_id = 2;
+}
+
+message TransferGuildOwnershipResponse {
+  Guild guild = 1;
+}

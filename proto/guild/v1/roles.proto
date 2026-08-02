@@ -1,0 +1,174 @@
+edition = "2023";
+
+package guild.v1;
+
+import "guild/v1/common.proto";
+
+// ============================================================
+
+message CreateGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  string name = 3;
+  // Bitwise OR of GuildPermission values. The actor may grant only
+  // permissions they hold.
+  uint64 permissions = 4;
+  // Optional opaque key identifying one client-side role creation intent.
+  string idempotency_key = 5;
+}
+message CreateGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+message GetGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+}
+
+message GetGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+message ListGuildRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+}
+
+message ListGuildRolesResponse {
+  // Roles ordered by descending position, then ascending ID.
+  repeated GuildRole roles = 1;
+}
+
+message UpdateGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+  // Optional replacement fields. At least one must be present.
+  string name = 4;
+  uint64 permissions = 5;
+}
+
+message UpdateGuildRoleResponse {
+  GuildRole role = 1;
+}
+
+message DeleteGuildRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+}
+
+message DeleteGuildRoleResponse {
+  bool ok = 1;
+}
+
+message GuildRolePosition {
+  int64 role_id = 1;
+  // Positive position for a non-default role. Higher values have greater
+  // authority.
+  int32 position = 2;
+}
+
+message ReorderGuildRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // Partial set of roles to move. Final positions must remain unique.
+  repeated GuildRolePosition positions = 3;
+}
+
+message ReorderGuildRolesResponse {
+  repeated GuildRole roles = 1;
+}
+
+message AddGuildMemberRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+  int64 role_id = 4;
+}
+
+message AddGuildMemberRoleResponse {
+  bool ok = 1;
+}
+
+message RemoveGuildMemberRoleRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+  int64 role_id = 4;
+}
+
+message RemoveGuildMemberRoleResponse {
+  bool ok = 1;
+}
+
+message AddGuildRoleMembersRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+  // Distinct positive member user IDs. At most 100 values.
+  repeated int64 user_ids = 4;
+}
+
+message AddGuildRoleMembersResponse {
+  bool ok = 1;
+}
+
+message RemoveGuildRoleMembersRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 role_id = 3;
+  // Distinct positive member user IDs. At most 100 values.
+  repeated int64 user_ids = 4;
+}
+
+message RemoveGuildRoleMembersResponse {
+  bool ok = 1;
+}
+
+message ListGuildMemberRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+}
+
+message ListGuildMemberRolesResponse {
+  // Roles ordered by descending position, including the default role.
+  repeated GuildRole roles = 1;
+}
+
+message ListGuildRoleMembersRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // The default role matches every active Guild member; other roles match
+  // explicit assignments only.
+  int64 role_id = 3;
+  // Opaque continuation from ListGuildRoleMembersResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 4;
+  // Maximum results per page. Zero uses the default of 50; maximum is 100.
+  int32 limit = 5;
+}
+
+message ListGuildRoleMembersResponse {
+  repeated GuildMember members = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next
+  // page; do not set an empty string. Pass through unchanged as the next
+  // request's cursor. End of list is field absence (Go: !HasNextCursor();
+  // TypeScript: undefined / omitted from JSON, not null).
+  string next_cursor = 2;
+}
+
+message GetGuildMemberPermissionsRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 user_id = 3;
+}
+
+message GetGuildMemberPermissionsResponse {
+  // Effective Guild-level permissions after combining ownership, the default
+  // role, and explicit member roles. Channel overwrites are not applied.
+  uint64 permissions = 1;
+}

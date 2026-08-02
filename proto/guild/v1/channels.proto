@@ -1,0 +1,222 @@
+edition = "2023";
+
+package guild.v1;
+
+import "guild/v1/common.proto";
+
+// ============================================================
+
+message CreateGuildChannelRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  string name = 3;
+  GuildChannelType type = 4;
+  string topic = 5;
+  // Parent category ID, or zero to create the channel at the Guild root.
+  int64 parent_id = 6;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 7;
+  // Optional opaque key identifying one client-side channel creation intent.
+  string idempotency_key = 8;
+}
+message CreateGuildChannelResponse {
+  GuildChannel channel = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message GetGuildChannelRequest {
+  int64 channel_id = 1;
+  int64 actor_user_id = 2;
+}
+
+message GetGuildChannelResponse {
+  GuildChannel channel = 1;
+}
+
+message ListGuildChannelsRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+}
+
+message ListGuildChannelsResponse {
+  repeated GuildChannel channels = 1;
+  // Revision of the complete Guild channel layout represented by this list.
+  int64 channel_layout_revision = 2;
+}
+
+message UpdateGuildChannelRequest {
+  int64 channel_id = 1;
+  int64 actor_user_id = 2;
+  // Optional replacement fields. At least one must be present.
+  string name = 3;
+  string topic = 4;
+  // Zero moves the channel to the Guild root. Omission preserves its parent.
+  int64 parent_id = 5;
+  // Required when parent_id is present.
+  int64 expected_channel_layout_revision = 6;
+}
+
+message UpdateGuildChannelResponse {
+  GuildChannel channel = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message DeleteGuildChannelRequest {
+  int64 channel_id = 1;
+  int64 actor_user_id = 2;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 3;
+}
+
+message DeleteGuildChannelResponse {
+  bool ok = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message GuildChannelPosition {
+  int64 channel_id = 1;
+  // Zero-based position within the current or requested parent.
+  int32 position = 2;
+  // parent_id moves the channel to a category; zero moves it to the Guild root.
+  // When omitted, the current parent is preserved.
+  int64 parent_id = 3;
+}
+
+message ReorderGuildChannelsRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // Partial set of channels to move. Final positions must remain unique
+  // within each parent.
+  repeated GuildChannelPosition positions = 3;
+  // Expected Guild channel layout revision from the caller's snapshot.
+  int64 expected_channel_layout_revision = 4;
+}
+
+message ReorderGuildChannelsResponse {
+  repeated GuildChannel channels = 1;
+  int64 channel_layout_revision = 2;
+}
+
+message UpsertGuildChannelPermissionOverwriteRequest {
+  int64 channel_id = 1;
+  int64 actor_user_id = 2;
+  GuildPermissionOverwriteType applies_to = 3;
+  // Role ID or user ID according to applies_to.
+  int64 applies_to_id = 4;
+  // Permission bits to grant and deny. The same bit cannot appear in both.
+  uint64 allow = 5;
+  uint64 deny = 6;
+}
+
+message UpsertGuildChannelPermissionOverwriteResponse {
+  GuildChannelPermissionOverwrite overwrite = 1;
+}
+
+message DeleteGuildChannelPermissionOverwriteRequest {
+  int64 channel_id = 1;
+  int64 actor_user_id = 2;
+  GuildPermissionOverwriteType applies_to = 3;
+  int64 applies_to_id = 4;
+}
+
+message DeleteGuildChannelPermissionOverwriteResponse {
+  bool ok = 1;
+}
+
+message ListGuildChannelPermissionOverwritesRequest {
+  int64 channel_id = 1;
+  int64 actor_user_id = 2;
+}
+
+message ListGuildChannelPermissionOverwritesResponse {
+  repeated GuildChannelPermissionOverwrite overwrites = 1;
+}
+
+message AuthorizeGuildChannelRequest {
+  int64 channel_id = 1;
+  int64 user_id = 2;
+  // Exactly one GuildPermission bit required by the caller.
+  uint64 permission = 3;
+}
+
+message AuthorizeGuildChannelResponse {
+  bool allowed = 1;
+  int64 guild_id = 2;
+  // Complete effective permission set after applying channel overwrites.
+  uint64 permissions = 3;
+  GuildChannelType channel_type = 4;
+}
+
+message ListGuildMentionTargetsRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 channel_id = 3;
+  // Explicitly mentioned roles. Empty when only everyone or user mentions
+  // are being expanded.
+  repeated int64 role_ids = 4;
+  // Whether @everyone is part of the mention set.
+  bool everyone = 5;
+  // Opaque continuation from ListGuildMentionTargetsResponse.next_cursor.
+  // Omit (unset) to start from the first page. Pass the value through
+  // unchanged; do not parse it.
+  string cursor = 6;
+  // Maximum results per page. Zero uses the default of 100; maximum is 1000.
+  int32 limit = 7;
+}
+
+message ListGuildMentionTargetsResponse {
+  // Active members that can view the channel and match at least one requested
+  // mention source, ordered by user ID ascending.
+  repeated int64 user_ids = 1;
+  // Opaque cursor for the next page. Leave unset when there is no next page;
+  // do not set an empty string. Pass through unchanged as the next request's
+  // cursor. End of list is field absence.
+  string next_cursor = 2;
+}
+
+message SearchGuildMentionUsersRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 channel_id = 3;
+  // Prefix query matched against username, nickname, and profile name.
+  string query = 4;
+  // Zero uses the default; the maximum is 20.
+  int32 limit = 5;
+}
+
+message GuildMentionUser {
+  int64 user_id = 1;
+  string username = 2;
+  string name = 3;
+  int64 avatar_asset_id = 4;
+  string nickname = 5;
+}
+
+message SearchGuildMentionUsersResponse {
+  repeated GuildMentionUser users = 1;
+}
+
+message SearchGuildMentionRolesRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  // Prefix query matched against role name.
+  string query = 3;
+  // Zero uses the default; the maximum is 20.
+  int32 limit = 4;
+}
+
+message SearchGuildMentionRolesResponse {
+  repeated GuildRole roles = 1;
+}
+
+message FilterGuildChannelVisibleUsersRequest {
+  int64 guild_id = 1;
+  int64 actor_user_id = 2;
+  int64 channel_id = 3;
+  // At most 100 user IDs may be checked in one request.
+  repeated int64 user_ids = 4;
+}
+
+message FilterGuildChannelVisibleUsersResponse {
+  repeated int64 user_ids = 1;
+}

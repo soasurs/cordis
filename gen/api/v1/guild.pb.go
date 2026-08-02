@@ -24,7 +24,7 @@ var File_api_v1_guild_proto protoreflect.FileDescriptor
 
 const file_api_v1_guild_proto_rawDesc = "" +
 	"\n" +
-	"\x12api/v1/guild.proto\x12\x06api.v1\x1a\x13api/v1/common.proto\x1a\x16api/v1/lifecycle.proto\x1a\x14api/v1/members.proto\x1a\x14api/v1/invites.proto\x1a\x12api/v1/roles.proto\x1a\x15api/v1/channels.proto2\xad\"\n" +
+	"\x12api/v1/guild.proto\x12\x06api.v1\x1a\x15api/v1/channels.proto\x1a\x13api/v1/common.proto\x1a\x14api/v1/invites.proto\x1a\x16api/v1/lifecycle.proto\x1a\x14api/v1/members.proto\x1a\x12api/v1/roles.proto2\xad\"\n" +
 	"\fGuildService\x12F\n" +
 	"\vCreateGuild\x12\x1a.api.v1.CreateGuildRequest\x1a\x1b.api.v1.CreateGuildResponse\x12=\n" +
 	"\bGetGuild\x12\x17.api.v1.GetGuildRequest\x1a\x18.api.v1.GetGuildResponse\x12C\n" +
@@ -282,12 +282,12 @@ func file_api_v1_guild_proto_init() {
 	if File_api_v1_guild_proto != nil {
 		return
 	}
+	file_api_v1_channels_proto_init()
 	file_api_v1_common_proto_init()
+	file_api_v1_invites_proto_init()
 	file_api_v1_lifecycle_proto_init()
 	file_api_v1_members_proto_init()
-	file_api_v1_invites_proto_init()
 	file_api_v1_roles_proto_init()
-	file_api_v1_channels_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

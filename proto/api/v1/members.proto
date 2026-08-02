@@ -4,26 +4,35 @@ package api.v1;
 
 import "api/v1/common.proto";
 
-// ============================================================
-
+// AddGuildMemberRequest adds an existing user to one Guild.
 message AddGuildMemberRequest {
+  // Guild receiving the new member.
   int64 guild_id = 1;
+  // User to add.
   int64 user_id = 2;
 }
+
+// AddGuildMemberResponse returns the new membership.
 message AddGuildMemberResponse {
   GuildMember member = 1;
 }
 
+// GetGuildMemberRequest fetches one Guild membership.
 message GetGuildMemberRequest {
+  // Guild of the membership.
   int64 guild_id = 1;
+  // Member to fetch.
   int64 user_id = 2;
 }
 
+// GetGuildMemberResponse returns the requested membership.
 message GetGuildMemberResponse {
   GuildMember member = 1;
 }
 
+// ListGuildMembersRequest pages the members of one Guild.
 message ListGuildMembersRequest {
+  // Guild whose members are listed.
   int64 guild_id = 1;
   // Opaque continuation from ListGuildMembersResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
@@ -33,6 +42,7 @@ message ListGuildMembersRequest {
   int32 limit = 3;
 }
 
+// ListGuildMembersResponse returns a page of memberships.
 message ListGuildMembersResponse {
   repeated GuildMember members = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -42,45 +52,64 @@ message ListGuildMembersResponse {
   string next_cursor = 2;
 }
 
+// UpdateCurrentGuildMemberRequest updates the caller's own membership in one
+// Guild.
 message UpdateCurrentGuildMemberRequest {
+  // Guild of the caller's membership.
   int64 guild_id = 1;
   // Replaces the caller's guild nickname. An empty value clears it.
   string nickname = 2;
 }
 
+// UpdateCurrentGuildMemberResponse returns the updated membership.
 message UpdateCurrentGuildMemberResponse {
   GuildMember member = 1;
 }
 
+// KickGuildMemberRequest removes one member from one Guild.
 message KickGuildMemberRequest {
+  // Guild of the member.
   int64 guild_id = 1;
+  // Member to remove.
   int64 user_id = 2;
 }
 
+// KickGuildMemberResponse confirms removal.
 message KickGuildMemberResponse {
   bool ok = 1;
 }
 
+// BanGuildMemberRequest bans one member from one Guild.
 message BanGuildMemberRequest {
+  // Guild issuing the ban.
   int64 guild_id = 1;
+  // Member to ban.
   int64 user_id = 2;
+  // Optional reason recorded with the ban.
   string reason = 3;
 }
 
+// BanGuildMemberResponse returns the stored ban.
 message BanGuildMemberResponse {
   GuildBan ban = 1;
 }
 
+// UnbanGuildMemberRequest lifts one member's ban.
 message UnbanGuildMemberRequest {
+  // Guild holding the ban.
   int64 guild_id = 1;
+  // Member to unban.
   int64 user_id = 2;
 }
 
+// UnbanGuildMemberResponse confirms the ban was lifted.
 message UnbanGuildMemberResponse {
   bool ok = 1;
 }
 
+// ListGuildBansRequest pages the active bans of one Guild.
 message ListGuildBansRequest {
+  // Guild whose bans are listed.
   int64 guild_id = 1;
   // Opaque continuation from ListGuildBansResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
@@ -90,6 +119,7 @@ message ListGuildBansRequest {
   int32 limit = 3;
 }
 
+// ListGuildBansResponse returns a page of bans.
 message ListGuildBansResponse {
   repeated GuildBan bans = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -99,19 +129,26 @@ message ListGuildBansResponse {
   string next_cursor = 2;
 }
 
+// LeaveGuildRequest removes the caller from one Guild.
 message LeaveGuildRequest {
+  // Guild to leave.
   int64 guild_id = 1;
 }
 
+// LeaveGuildResponse confirms departure.
 message LeaveGuildResponse {
   bool ok = 1;
 }
 
+// TransferGuildOwnershipRequest transfers one Guild to another member.
 message TransferGuildOwnershipRequest {
+  // Guild whose ownership changes.
   int64 guild_id = 1;
+  // Member receiving ownership.
   int64 new_owner_id = 2;
 }
 
+// TransferGuildOwnershipResponse returns the Guild with its new owner.
 message TransferGuildOwnershipResponse {
   Guild guild = 1;
 }

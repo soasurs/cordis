@@ -5,25 +5,31 @@ package api.v1;
 import "api/v1/common.proto";
 import "api/v1/media.proto";
 
-// ============================================================
-
+// CreateGuildRequest creates a Guild owned by the authenticated user.
 message CreateGuildRequest {
+  // Display name of the new Guild.
   string name = 1;
   // Optional opaque key identifying one client-side Guild creation intent.
   string idempotency_key = 2;
 }
+
+// CreateGuildResponse returns the created Guild.
 message CreateGuildResponse {
   Guild guild = 1;
 }
 
+// GetGuildRequest fetches one Guild joined by the authenticated user.
 message GetGuildRequest {
+  // ID of the Guild to fetch.
   int64 guild_id = 1;
 }
 
+// GetGuildResponse returns the requested Guild.
 message GetGuildResponse {
   Guild guild = 1;
 }
 
+// ListGuildsRequest pages the Guilds joined by the authenticated user.
 message ListGuildsRequest {
   // Opaque continuation from ListGuildsResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
@@ -33,6 +39,7 @@ message ListGuildsRequest {
   int32 limit = 2;
 }
 
+// ListGuildsResponse returns a page of Guilds.
 message ListGuildsResponse {
   repeated Guild guilds = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -42,7 +49,10 @@ message ListGuildsResponse {
   string next_cursor = 2;
 }
 
+// UpdateGuildRequest applies present name or description changes to one
+// Guild.
 message UpdateGuildRequest {
+  // ID of the Guild to update.
   int64 guild_id = 1;
   // Optional replacement name.
   string name = 2;
@@ -50,6 +60,7 @@ message UpdateGuildRequest {
   string description = 3;
 }
 
+// UpdateGuildResponse returns the updated Guild.
 message UpdateGuildResponse {
   Guild guild = 1;
 }
@@ -108,10 +119,13 @@ message AbortGuildIconUploadRequest {
 // AbortGuildIconUploadResponse is empty because abort has no mutable result.
 message AbortGuildIconUploadResponse {}
 
+// DeleteGuildRequest soft-deletes one Guild owned by the authenticated user.
 message DeleteGuildRequest {
+  // ID of the Guild to delete.
   int64 guild_id = 1;
 }
 
+// DeleteGuildResponse confirms deletion.
 message DeleteGuildResponse {
   bool ok = 1;
 }

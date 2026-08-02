@@ -20,6 +20,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CreateGuildChannelRequest creates a text, category, or voice channel in one
+// Guild.
 type CreateGuildChannelRequest struct {
 	state                                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId                       int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -267,11 +269,17 @@ func (x *CreateGuildChannelRequest) ClearIdempotencyKey() {
 type CreateGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild that owns the new channel.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	Name        *string
-	Type        *GuildChannelType
-	Topic       *string
+	// Display name of the channel.
+	Name *string
+	// Behavior and nesting rules of the new channel.
+	Type *GuildChannelType
+	// Optional channel topic.
+	Topic *string
 	// Parent category ID, or zero to create the channel at the Guild root.
 	ParentId *int64
 	// Expected Guild channel layout revision from the caller's snapshot.
@@ -319,6 +327,8 @@ func (b0 CreateGuildChannelRequest_builder) Build() *CreateGuildChannelRequest {
 	return m0
 }
 
+// CreateGuildChannelResponse returns the created channel and the new layout
+// revision.
 type CreateGuildChannelResponse struct {
 	state                            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channel               *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
@@ -403,7 +413,8 @@ func (x *CreateGuildChannelResponse) ClearChannelLayoutRevision() {
 type CreateGuildChannelResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Channel               *GuildChannel
+	Channel *GuildChannel
+	// Revision of the complete Guild channel layout after creation.
 	ChannelLayoutRevision *int64
 }
 
@@ -419,6 +430,7 @@ func (b0 CreateGuildChannelResponse_builder) Build() *CreateGuildChannelResponse
 	return m0
 }
 
+// GetGuildChannelRequest fetches one channel for an actor.
 type GetGuildChannelRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -505,7 +517,10 @@ func (x *GetGuildChannelRequest) ClearActorUserId() {
 type GetGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId   *int64
+	// ID of the channel to fetch.
+	ChannelId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 }
 
@@ -524,6 +539,7 @@ func (b0 GetGuildChannelRequest_builder) Build() *GetGuildChannelRequest {
 	return m0
 }
 
+// GetGuildChannelResponse returns the requested channel.
 type GetGuildChannelResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channel *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
@@ -592,6 +608,8 @@ func (b0 GetGuildChannelResponse_builder) Build() *GetGuildChannelResponse {
 	return m0
 }
 
+// ListGuildChannelsRequest lists the channels visible to an actor in one
+// Guild.
 type ListGuildChannelsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -678,7 +696,10 @@ func (x *ListGuildChannelsRequest) ClearActorUserId() {
 type ListGuildChannelsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild whose visible channels are listed.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 }
 
@@ -697,6 +718,8 @@ func (b0 ListGuildChannelsRequest_builder) Build() *ListGuildChannelsRequest {
 	return m0
 }
 
+// ListGuildChannelsResponse returns the visible channels and the layout
+// revision they represent.
 type ListGuildChannelsResponse struct {
 	state                            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channels              *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
@@ -772,6 +795,7 @@ func (x *ListGuildChannelsResponse) ClearChannelLayoutRevision() {
 type ListGuildChannelsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Visible channels in layout order.
 	Channels []*GuildChannel
 	// Revision of the complete Guild channel layout represented by this list.
 	ChannelLayoutRevision *int64
@@ -789,6 +813,8 @@ func (b0 ListGuildChannelsResponse_builder) Build() *ListGuildChannelsResponse {
 	return m0
 }
 
+// UpdateGuildChannelRequest updates present name, topic, or parent fields of
+// one channel.
 type UpdateGuildChannelRequest struct {
 	state                                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId                     int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -981,10 +1007,14 @@ func (x *UpdateGuildChannelRequest) ClearExpectedChannelLayoutRevision() {
 type UpdateGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId   *int64
+	// ID of the channel to update.
+	ChannelId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Optional replacement fields. At least one must be present.
-	Name  *string
+	Name *string
+	// Optional replacement topic. An empty value clears it.
 	Topic *string
 	// Zero moves the channel to the Guild root. Omission preserves its parent.
 	ParentId *int64
@@ -1023,6 +1053,8 @@ func (b0 UpdateGuildChannelRequest_builder) Build() *UpdateGuildChannelRequest {
 	return m0
 }
 
+// UpdateGuildChannelResponse returns the updated channel and the new layout
+// revision when the parent changed.
 type UpdateGuildChannelResponse struct {
 	state                            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channel               *GuildChannel          `protobuf:"bytes,1,opt,name=channel"`
@@ -1107,7 +1139,8 @@ func (x *UpdateGuildChannelResponse) ClearChannelLayoutRevision() {
 type UpdateGuildChannelResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Channel               *GuildChannel
+	Channel *GuildChannel
+	// New layout revision when the parent changed; otherwise absent.
 	ChannelLayoutRevision *int64
 }
 
@@ -1123,6 +1156,8 @@ func (b0 UpdateGuildChannelResponse_builder) Build() *UpdateGuildChannelResponse
 	return m0
 }
 
+// DeleteGuildChannelRequest deletes one channel after checking the actor's
+// expected layout revision.
 type DeleteGuildChannelRequest struct {
 	state                                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId                     int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -1234,7 +1269,10 @@ func (x *DeleteGuildChannelRequest) ClearExpectedChannelLayoutRevision() {
 type DeleteGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId   *int64
+	// ID of the channel to delete.
+	ChannelId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Expected Guild channel layout revision from the caller's snapshot.
 	ExpectedChannelLayoutRevision *int64
@@ -1259,6 +1297,8 @@ func (b0 DeleteGuildChannelRequest_builder) Build() *DeleteGuildChannelRequest {
 	return m0
 }
 
+// DeleteGuildChannelResponse confirms deletion and returns the new layout
+// revision.
 type DeleteGuildChannelResponse struct {
 	state                            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok                    bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1345,7 +1385,9 @@ func (x *DeleteGuildChannelResponse) ClearChannelLayoutRevision() {
 type DeleteGuildChannelResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Ok                    *bool
+	// True when the channel was deleted.
+	Ok *bool
+	// New layout revision after deletion.
 	ChannelLayoutRevision *int64
 }
 
@@ -1364,6 +1406,8 @@ func (b0 DeleteGuildChannelResponse_builder) Build() *DeleteGuildChannelResponse
 	return m0
 }
 
+// GuildChannelPosition requests one channel's position and optional parent
+// during reorder.
 type GuildChannelPosition struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -1475,6 +1519,7 @@ func (x *GuildChannelPosition) ClearParentId() {
 type GuildChannelPosition_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// ID of the channel to move.
 	ChannelId *int64
 	// Zero-based position within the current or requested parent.
 	Position *int32
@@ -1502,6 +1547,8 @@ func (b0 GuildChannelPosition_builder) Build() *GuildChannelPosition {
 	return m0
 }
 
+// ReorderGuildChannelsRequest atomically moves a partial set of channels to
+// new positions.
 type ReorderGuildChannelsRequest struct {
 	state                                    protoimpl.MessageState   `protogen:"opaque.v1"`
 	xxx_hidden_GuildId                       int64                    `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1627,7 +1674,10 @@ func (x *ReorderGuildChannelsRequest) ClearExpectedChannelLayoutRevision() {
 type ReorderGuildChannelsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild whose channels are reordered.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Partial set of channels to move. Final positions must remain unique
 	// within each parent.
@@ -1656,6 +1706,8 @@ func (b0 ReorderGuildChannelsRequest_builder) Build() *ReorderGuildChannelsReque
 	return m0
 }
 
+// ReorderGuildChannelsResponse returns the complete channel list and the new
+// layout revision.
 type ReorderGuildChannelsResponse struct {
 	state                            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Channels              *[]*GuildChannel       `protobuf:"bytes,1,rep,name=channels"`
@@ -1731,7 +1783,9 @@ func (x *ReorderGuildChannelsResponse) ClearChannelLayoutRevision() {
 type ReorderGuildChannelsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Channels              []*GuildChannel
+	// Complete channel list in layout order after reorder.
+	Channels []*GuildChannel
+	// Revision of the complete channel layout after reorder.
 	ChannelLayoutRevision *int64
 }
 
@@ -1747,6 +1801,8 @@ func (b0 ReorderGuildChannelsResponse_builder) Build() *ReorderGuildChannelsResp
 	return m0
 }
 
+// UpsertGuildChannelPermissionOverwriteRequest creates or replaces one
+// channel permission overwrite.
 type UpsertGuildChannelPermissionOverwriteRequest struct {
 	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -1935,14 +1991,19 @@ func (x *UpsertGuildChannelPermissionOverwriteRequest) ClearDeny() {
 type UpsertGuildChannelPermissionOverwriteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId   *int64
+	// Channel the overwrite applies to.
+	ChannelId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	AppliesTo   *GuildPermissionOverwriteType
+	// Whether the overwrite targets a role or a member.
+	AppliesTo *GuildPermissionOverwriteType
 	// Role ID or user ID according to applies_to.
 	AppliesToId *int64
 	// Permission bits to grant and deny. The same bit cannot appear in both.
 	Allow *uint64
-	Deny  *uint64
+	// Permission bits denied in this channel.
+	Deny *uint64
 }
 
 func (b0 UpsertGuildChannelPermissionOverwriteRequest_builder) Build() *UpsertGuildChannelPermissionOverwriteRequest {
@@ -1976,6 +2037,7 @@ func (b0 UpsertGuildChannelPermissionOverwriteRequest_builder) Build() *UpsertGu
 	return m0
 }
 
+// UpsertGuildChannelPermissionOverwriteResponse returns the stored overwrite.
 type UpsertGuildChannelPermissionOverwriteResponse struct {
 	state                protoimpl.MessageState           `protogen:"opaque.v1"`
 	xxx_hidden_Overwrite *GuildChannelPermissionOverwrite `protobuf:"bytes,1,opt,name=overwrite"`
@@ -2044,6 +2106,8 @@ func (b0 UpsertGuildChannelPermissionOverwriteResponse_builder) Build() *UpsertG
 	return m0
 }
 
+// DeleteGuildChannelPermissionOverwriteRequest removes one channel permission
+// overwrite.
 type DeleteGuildChannelPermissionOverwriteRequest struct {
 	state                  protoimpl.MessageState       `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                        `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -2182,9 +2246,14 @@ func (x *DeleteGuildChannelPermissionOverwriteRequest) ClearAppliesToId() {
 type DeleteGuildChannelPermissionOverwriteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId   *int64
+	// Channel whose overwrite is removed.
+	ChannelId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	AppliesTo   *GuildPermissionOverwriteType
+	// Whether the overwrite targets a role or a member.
+	AppliesTo *GuildPermissionOverwriteType
+	// Role ID or user ID according to applies_to.
 	AppliesToId *int64
 }
 
@@ -2211,6 +2280,7 @@ func (b0 DeleteGuildChannelPermissionOverwriteRequest_builder) Build() *DeleteGu
 	return m0
 }
 
+// DeleteGuildChannelPermissionOverwriteResponse confirms removal.
 type DeleteGuildChannelPermissionOverwriteResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2286,6 +2356,8 @@ func (b0 DeleteGuildChannelPermissionOverwriteResponse_builder) Build() *DeleteG
 	return m0
 }
 
+// ListGuildChannelPermissionOverwritesRequest lists the overwrites of one
+// channel.
 type ListGuildChannelPermissionOverwritesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -2372,7 +2444,10 @@ func (x *ListGuildChannelPermissionOverwritesRequest) ClearActorUserId() {
 type ListGuildChannelPermissionOverwritesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	ChannelId   *int64
+	// Channel whose overwrites are listed.
+	ChannelId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 }
 
@@ -2391,6 +2466,8 @@ func (b0 ListGuildChannelPermissionOverwritesRequest_builder) Build() *ListGuild
 	return m0
 }
 
+// ListGuildChannelPermissionOverwritesResponse returns the channel's
+// overwrites.
 type ListGuildChannelPermissionOverwritesResponse struct {
 	state                 protoimpl.MessageState              `protogen:"opaque.v1"`
 	xxx_hidden_Overwrites *[]*GuildChannelPermissionOverwrite `protobuf:"bytes,1,rep,name=overwrites"`
@@ -2450,6 +2527,8 @@ func (b0 ListGuildChannelPermissionOverwritesResponse_builder) Build() *ListGuil
 	return m0
 }
 
+// AuthorizeGuildChannelRequest evaluates one permission for a user on one
+// channel.
 type AuthorizeGuildChannelRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_ChannelId   int64                  `protobuf:"varint,1,opt,name=channel_id,json=channelId"`
@@ -2561,8 +2640,10 @@ func (x *AuthorizeGuildChannelRequest) ClearPermission() {
 type AuthorizeGuildChannelRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Channel to authorize.
 	ChannelId *int64
-	UserId    *int64
+	// User whose permissions are evaluated.
+	UserId *int64
 	// Exactly one GuildPermission bit required by the caller.
 	Permission *uint64
 }
@@ -2586,6 +2667,8 @@ func (b0 AuthorizeGuildChannelRequest_builder) Build() *AuthorizeGuildChannelReq
 	return m0
 }
 
+// AuthorizeGuildChannelResponse returns the authorization decision and the
+// user's complete effective permissions.
 type AuthorizeGuildChannelResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Allowed     bool                   `protobuf:"varint,1,opt,name=allowed"`
@@ -2724,10 +2807,13 @@ func (x *AuthorizeGuildChannelResponse) ClearChannelType() {
 type AuthorizeGuildChannelResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// True when the user holds the requested permission bit.
 	Allowed *bool
+	// Guild that owns the channel.
 	GuildId *int64
 	// Complete effective permission set after applying channel overwrites.
 	Permissions *uint64
+	// Type of the evaluated channel.
 	ChannelType *GuildChannelType
 }
 
@@ -2754,6 +2840,8 @@ func (b0 AuthorizeGuildChannelResponse_builder) Build() *AuthorizeGuildChannelRe
 	return m0
 }
 
+// ListGuildMentionTargetsRequest pages the members a message mention set
+// would reach.
 type ListGuildMentionTargetsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2955,9 +3043,13 @@ func (x *ListGuildMentionTargetsRequest) ClearLimit() {
 type ListGuildMentionTargetsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild containing the channel and members.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	ChannelId   *int64
+	// Channel whose visibility filters the target members.
+	ChannelId *int64
 	// Explicitly mentioned roles. Empty when only everyone or user mentions
 	// are being expanded.
 	RoleIds []int64
@@ -3003,6 +3095,7 @@ func (b0 ListGuildMentionTargetsRequest_builder) Build() *ListGuildMentionTarget
 	return m0
 }
 
+// ListGuildMentionTargetsResponse returns the visible target members.
 type ListGuildMentionTargetsResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserIds     []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
@@ -3100,6 +3193,8 @@ func (b0 ListGuildMentionTargetsResponse_builder) Build() *ListGuildMentionTarge
 	return m0
 }
 
+// SearchGuildMentionUsersRequest prefix-searches members visible in one
+// channel.
 type SearchGuildMentionUsersRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -3264,9 +3359,13 @@ func (x *SearchGuildMentionUsersRequest) ClearLimit() {
 type SearchGuildMentionUsersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild to search.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	ChannelId   *int64
+	// Channel whose visibility filters the results.
+	ChannelId *int64
 	// Prefix query matched against username, nickname, and profile name.
 	Query *string
 	// Zero uses the default; the maximum is 20.
@@ -3300,6 +3399,8 @@ func (b0 SearchGuildMentionUsersRequest_builder) Build() *SearchGuildMentionUser
 	return m0
 }
 
+// GuildMentionUser is a search result preview for a member that can be
+// mentioned.
 type GuildMentionUser struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -3470,11 +3571,16 @@ func (x *GuildMentionUser) ClearNickname() {
 type GuildMentionUser_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId        *int64
-	Username      *string
-	Name          *string
+	// ID of the mentionable member.
+	UserId *int64
+	// Username of the member.
+	Username *string
+	// Display name of the member.
+	Name *string
+	// Zero means the member has no avatar.
 	AvatarAssetId *int64
-	Nickname      *string
+	// Guild nickname of the member, empty when unset.
+	Nickname *string
 }
 
 func (b0 GuildMentionUser_builder) Build() *GuildMentionUser {
@@ -3504,6 +3610,7 @@ func (b0 GuildMentionUser_builder) Build() *GuildMentionUser {
 	return m0
 }
 
+// SearchGuildMentionUsersResponse returns the matching mention candidates.
 type SearchGuildMentionUsersResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Users *[]*GuildMentionUser   `protobuf:"bytes,1,rep,name=users"`
@@ -3563,6 +3670,7 @@ func (b0 SearchGuildMentionUsersResponse_builder) Build() *SearchGuildMentionUse
 	return m0
 }
 
+// SearchGuildMentionRolesRequest prefix-searches the roles of one Guild.
 type SearchGuildMentionRolesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -3702,7 +3810,10 @@ func (x *SearchGuildMentionRolesRequest) ClearLimit() {
 type SearchGuildMentionRolesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild to search.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Prefix query matched against role name.
 	Query *string
@@ -3733,6 +3844,7 @@ func (b0 SearchGuildMentionRolesRequest_builder) Build() *SearchGuildMentionRole
 	return m0
 }
 
+// SearchGuildMentionRolesResponse returns the matching roles.
 type SearchGuildMentionRolesResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
@@ -3792,6 +3904,8 @@ func (b0 SearchGuildMentionRolesResponse_builder) Build() *SearchGuildMentionRol
 	return m0
 }
 
+// FilterGuildChannelVisibleUsersRequest filters a bounded set of users
+// against one channel's visibility rules.
 type FilterGuildChannelVisibleUsersRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -3915,9 +4029,13 @@ func (x *FilterGuildChannelVisibleUsersRequest) ClearChannelId() {
 type FilterGuildChannelVisibleUsersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild containing the channel and users.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	ChannelId   *int64
+	// Channel whose visibility rules are applied.
+	ChannelId *int64
 	// At most 100 user IDs may be checked in one request.
 	UserIds []int64
 }
@@ -3942,6 +4060,8 @@ func (b0 FilterGuildChannelVisibleUsersRequest_builder) Build() *FilterGuildChan
 	return m0
 }
 
+// FilterGuildChannelVisibleUsersResponse returns the subset of users that can
+// view the channel.
 type FilterGuildChannelVisibleUsersResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`

@@ -27,17 +27,28 @@ const (
 	// No permission. Requests requiring a concrete permission reject this value.
 	GuildPermission_GUILD_PERMISSION_UNSPECIFIED GuildPermission = 0
 	// Grants every Guild permission and bypasses channel overwrites.
-	GuildPermission_GUILD_PERMISSION_ADMINISTRATOR   GuildPermission = 1
-	GuildPermission_GUILD_PERMISSION_MANAGE_GUILD    GuildPermission = 2
-	GuildPermission_GUILD_PERMISSION_MANAGE_ROLES    GuildPermission = 4
-	GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS  GuildPermission = 8
-	GuildPermission_GUILD_PERMISSION_KICK_MEMBERS    GuildPermission = 16
-	GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL    GuildPermission = 32
-	GuildPermission_GUILD_PERMISSION_SEND_MESSAGES   GuildPermission = 64
+	GuildPermission_GUILD_PERMISSION_ADMINISTRATOR GuildPermission = 1
+	// Allows managing Guild settings, the icon, and deletion.
+	GuildPermission_GUILD_PERMISSION_MANAGE_GUILD GuildPermission = 2
+	// Allows creating, editing, reordering, and deleting roles.
+	GuildPermission_GUILD_PERMISSION_MANAGE_ROLES GuildPermission = 4
+	// Allows managing members and their role assignments.
+	GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS GuildPermission = 8
+	// Allows removing members from the Guild.
+	GuildPermission_GUILD_PERMISSION_KICK_MEMBERS GuildPermission = 16
+	// Allows viewing a channel.
+	GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL GuildPermission = 32
+	// Allows sending messages in a channel.
+	GuildPermission_GUILD_PERMISSION_SEND_MESSAGES GuildPermission = 64
+	// Allows creating, editing, deleting, and reordering channels and their
+	// permission overwrites.
 	GuildPermission_GUILD_PERMISSION_MANAGE_CHANNELS GuildPermission = 128
+	// Allows editing and deleting other members' messages.
 	GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES GuildPermission = 256
-	GuildPermission_GUILD_PERMISSION_BAN_MEMBERS     GuildPermission = 512
-	GuildPermission_GUILD_PERMISSION_CREATE_INVITE   GuildPermission = 1024
+	// Allows banning and unbanning members.
+	GuildPermission_GUILD_PERMISSION_BAN_MEMBERS GuildPermission = 512
+	// Allows creating Guild invites.
+	GuildPermission_GUILD_PERMISSION_CREATE_INVITE GuildPermission = 1024
 	// Allows the message author to mention roles and @everyone in a channel.
 	GuildPermission_GUILD_PERMISSION_MENTION_EVERYONE GuildPermission = 2048
 )
@@ -157,8 +168,10 @@ type GuildPermissionOverwriteType int32
 const (
 	// No applies_to. This value is invalid in overwrite requests.
 	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED GuildPermissionOverwriteType = 0
-	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE        GuildPermissionOverwriteType = 1
-	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER      GuildPermissionOverwriteType = 2
+	// The overwrite applies to one role.
+	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE GuildPermissionOverwriteType = 1
+	// The overwrite applies to one member.
+	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER GuildPermissionOverwriteType = 2
 )
 
 // Enum value maps for GuildPermissionOverwriteType.
@@ -197,6 +210,8 @@ func (x GuildPermissionOverwriteType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// FilterUsersWithCommonGuildRequest selects target users that share an active
+// Guild with the actor.
 type FilterUsersWithCommonGuildRequest struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -270,7 +285,9 @@ func (x *FilterUsersWithCommonGuildRequest) ClearUserId() {
 type FilterUsersWithCommonGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId        *int64
+	// User whose Guilds are compared against the targets.
+	UserId *int64
+	// Bounded set of candidate user IDs.
 	TargetUserIds []int64
 }
 
@@ -286,6 +303,8 @@ func (b0 FilterUsersWithCommonGuildRequest_builder) Build() *FilterUsersWithComm
 	return m0
 }
 
+// FilterUsersWithCommonGuildResponse returns the candidates sharing an active
+// Guild with the actor.
 type FilterUsersWithCommonGuildResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserIds []int64                `protobuf:"varint,1,rep,packed,name=user_ids,json=userIds"`
@@ -332,6 +351,7 @@ func (x *FilterUsersWithCommonGuildResponse) SetUserIds(v []int64) {
 type FilterUsersWithCommonGuildResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Candidates sharing an active Guild with the actor.
 	UserIds []int64
 }
 
@@ -1040,8 +1060,9 @@ type GuildBan_builder struct {
 	GuildId     *int64
 	UserId      *int64
 	ActorUserId *int64
-	Reason      *string
-	CreatedAt   *int64
+	// Optional reason recorded with the ban.
+	Reason    *string
+	CreatedAt *int64
 }
 
 func (b0 GuildBan_builder) Build() *GuildBan {
@@ -1337,9 +1358,10 @@ func (x *GuildRole) ClearUpdatedAt() {
 type GuildRole_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id          *int64
-	GuildId     *int64
-	Name        *string
+	Id      *int64
+	GuildId *int64
+	Name    *string
+	// Bitwise OR of GuildPermission values.
 	Permissions *uint64
 	// Higher values have greater authority. The default role is always at zero.
 	Position *int32
@@ -1691,12 +1713,14 @@ func (x *GuildChannel) ClearParentId() {
 type GuildChannel_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id       *int64
-	GuildId  *int64
-	Name     *string
-	Type     *GuildChannelType
+	Id      *int64
+	GuildId *int64
+	Name    *string
+	Type    *GuildChannelType
+	// Zero-based position within the parent.
 	Position *int32
-	Topic    *string
+	// Optional channel topic.
+	Topic *string
 	// Monotonically increasing resource version.
 	Revision  *int64
 	CreatedAt *int64

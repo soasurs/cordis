@@ -2,20 +2,24 @@ edition = "2023";
 
 package guild.v1;
 
+import "guild/v1/channels.proto";
 import "guild/v1/common.proto";
+import "guild/v1/invites.proto";
 import "guild/v1/lifecycle.proto";
 import "guild/v1/members.proto";
-import "guild/v1/invites.proto";
 import "guild/v1/roles.proto";
-import "guild/v1/channels.proto";
 
 // GuildService owns Guild metadata, membership, roles, channels, and
 // authorization. actor_user_id values are trusted only when forwarded from an
 // authenticated internal caller and are still checked against Guild state.
 service GuildService {
   // Guild lifecycle and authorization snapshots.
+  // CreateGuild creates a Guild owned by the given user and seeds its default
+  // role and channels.
   rpc CreateGuild(CreateGuildRequest) returns (CreateGuildResponse);
+  // GetGuild returns one Guild when the user is an active member.
   rpc GetGuild(GetGuildRequest) returns (GetGuildResponse);
+  // ListUserGuilds pages the Guilds joined by one user.
   rpc ListUserGuilds(ListUserGuildsRequest) returns (ListUserGuildsResponse);
   // FilterUsersWithCommonGuild returns targets that share at least one active
   // Guild membership with user_id. It is an internal visibility primitive.
@@ -25,41 +29,70 @@ service GuildService {
   // GetUserGuildChannelVisibility returns a single Guild visibility snapshot
   // for an on-demand snapshot reload by Session nodes.
   rpc GetUserGuildChannelVisibility(GetUserGuildChannelVisibilityRequest) returns (GetUserGuildChannelVisibilityResponse);
+  // UpdateGuild applies present metadata changes to one Guild.
   rpc UpdateGuild(UpdateGuildRequest) returns (UpdateGuildResponse);
+  // CreateGuildIconUpload creates a single-PUT icon upload after checking the
+  // actor's MANAGE_GUILD permission.
   rpc CreateGuildIconUpload(CreateGuildIconUploadRequest) returns (CreateGuildIconUploadResponse);
+  // CompleteGuildIconUpload validates the image and replaces the Guild icon.
   rpc CompleteGuildIconUpload(CompleteGuildIconUploadRequest) returns (CompleteGuildIconUploadResponse);
+  // AbortGuildIconUpload cancels an unpublished icon upload.
   rpc AbortGuildIconUpload(AbortGuildIconUploadRequest) returns (AbortGuildIconUploadResponse);
+  // DeleteGuild soft-deletes a Guild owned by the actor.
   rpc DeleteGuild(DeleteGuildRequest) returns (DeleteGuildResponse);
 
   // Membership and moderation.
+  // AddGuildMember adds an existing user to one Guild.
   rpc AddGuildMember(AddGuildMemberRequest) returns (AddGuildMemberResponse);
+  // GetGuildMember returns one Guild membership.
   rpc GetGuildMember(GetGuildMemberRequest) returns (GetGuildMemberResponse);
+  // ListGuildMembers pages the members of one Guild.
   rpc ListGuildMembers(ListGuildMembersRequest) returns (ListGuildMembersResponse);
+  // UpdateGuildMember updates one member's Guild nickname.
   rpc UpdateGuildMember(UpdateGuildMemberRequest) returns (UpdateGuildMemberResponse);
+  // KickGuildMember removes one member from one Guild.
   rpc KickGuildMember(KickGuildMemberRequest) returns (KickGuildMemberResponse);
+  // BanGuildMember bans one member and records the reason.
   rpc BanGuildMember(BanGuildMemberRequest) returns (BanGuildMemberResponse);
+  // UnbanGuildMember lifts one member's ban.
   rpc UnbanGuildMember(UnbanGuildMemberRequest) returns (UnbanGuildMemberResponse);
+  // ListGuildBans pages the active bans of one Guild.
   rpc ListGuildBans(ListGuildBansRequest) returns (ListGuildBansResponse);
+  // LeaveGuild removes one user from one Guild.
   rpc LeaveGuild(LeaveGuildRequest) returns (LeaveGuildResponse);
+  // TransferGuildOwnership transfers one Guild to another member.
   rpc TransferGuildOwnership(TransferGuildOwnershipRequest) returns (TransferGuildOwnershipResponse);
 
   // Invites.
+  // CreateGuildInvite creates a shareable invite for one Guild.
   rpc CreateGuildInvite(CreateGuildInviteRequest) returns (CreateGuildInviteResponse);
   // GetGuildInvite returns a public preview and does not require membership.
   rpc GetGuildInvite(GetGuildInviteRequest) returns (GetGuildInviteResponse);
+  // ListGuildInvites pages the invites of one Guild.
   rpc ListGuildInvites(ListGuildInvitesRequest) returns (ListGuildInvitesResponse);
+  // DeleteGuildInvite removes one invite.
   rpc DeleteGuildInvite(DeleteGuildInviteRequest) returns (DeleteGuildInviteResponse);
+  // JoinGuildByInvite joins one user to the Guild behind a code.
   rpc JoinGuildByInvite(JoinGuildByInviteRequest) returns (JoinGuildByInviteResponse);
 
   // Roles and effective Guild permissions.
+  // CreateGuildRole creates a non-default role with the requested
+  // permissions.
   rpc CreateGuildRole(CreateGuildRoleRequest) returns (CreateGuildRoleResponse);
+  // GetGuildRole returns one role.
   rpc GetGuildRole(GetGuildRoleRequest) returns (GetGuildRoleResponse);
+  // ListGuildRoles returns the roles of one Guild in position order.
   rpc ListGuildRoles(ListGuildRolesRequest) returns (ListGuildRolesResponse);
+  // UpdateGuildRole applies present name or permission changes to one role.
   rpc UpdateGuildRole(UpdateGuildRoleRequest) returns (UpdateGuildRoleResponse);
   // DeleteGuildRole rejects the default @everyone role.
   rpc DeleteGuildRole(DeleteGuildRoleRequest) returns (DeleteGuildRoleResponse);
+  // ReorderGuildRoles atomically applies new positions to a partial set of
+  // roles.
   rpc ReorderGuildRoles(ReorderGuildRolesRequest) returns (ReorderGuildRolesResponse);
+  // AddGuildMemberRole assigns one role to one member.
   rpc AddGuildMemberRole(AddGuildMemberRoleRequest) returns (AddGuildMemberRoleResponse);
+  // RemoveGuildMemberRole removes one role assignment.
   rpc RemoveGuildMemberRole(RemoveGuildMemberRoleRequest) returns (RemoveGuildMemberRoleResponse);
   // AddGuildRoleMembers assigns one non-default role to many members.
   rpc AddGuildRoleMembers(AddGuildRoleMembersRequest) returns (AddGuildRoleMembersResponse);
@@ -70,18 +103,33 @@ service GuildService {
   // ListGuildRoleMembers returns explicitly assigned members, or every member
   // when role_id identifies the default role.
   rpc ListGuildRoleMembers(ListGuildRoleMembersRequest) returns (ListGuildRoleMembersResponse);
+  // GetGuildMemberPermissions returns a member's effective Guild-level
+  // permissions.
   rpc GetGuildMemberPermissions(GetGuildMemberPermissionsRequest) returns (GetGuildMemberPermissionsResponse);
 
   // Channels and permission overwrites.
+  // CreateGuildChannel creates a text, category, or voice channel in one
+  // Guild.
   rpc CreateGuildChannel(CreateGuildChannelRequest) returns (CreateGuildChannelResponse);
+  // GetGuildChannel returns one channel when the actor can view it.
   rpc GetGuildChannel(GetGuildChannelRequest) returns (GetGuildChannelResponse);
+  // ListGuildChannels returns the channels visible to the actor and the
+  // current layout revision.
   rpc ListGuildChannels(ListGuildChannelsRequest) returns (ListGuildChannelsResponse);
+  // UpdateGuildChannel applies present name, topic, or parent changes to one
+  // channel.
   rpc UpdateGuildChannel(UpdateGuildChannelRequest) returns (UpdateGuildChannelResponse);
+  // DeleteGuildChannel deletes one channel and returns the new layout
+  // revision.
   rpc DeleteGuildChannel(DeleteGuildChannelRequest) returns (DeleteGuildChannelResponse);
+  // ReorderGuildChannels atomically moves channels to new positions.
   rpc ReorderGuildChannels(ReorderGuildChannelsRequest) returns (ReorderGuildChannelsResponse);
+  // UpsertGuildChannelPermissionOverwrite creates or replaces one channel
+  // permission overwrite.
   rpc UpsertGuildChannelPermissionOverwrite(UpsertGuildChannelPermissionOverwriteRequest) returns (UpsertGuildChannelPermissionOverwriteResponse);
   // DeleteGuildChannelPermissionOverwrite rejects the default @everyone overwrite.
   rpc DeleteGuildChannelPermissionOverwrite(DeleteGuildChannelPermissionOverwriteRequest) returns (DeleteGuildChannelPermissionOverwriteResponse);
+  // ListGuildChannelPermissionOverwrites lists the overwrites of one channel.
   rpc ListGuildChannelPermissionOverwrites(ListGuildChannelPermissionOverwritesRequest) returns (ListGuildChannelPermissionOverwritesResponse);
   // AuthorizeGuildChannel evaluates one permission for Message or another
   // internal service and returns the full effective permission set.

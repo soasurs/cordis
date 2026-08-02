@@ -5,8 +5,6 @@ package api.v1;
 import "api/v1/common.proto";
 import "api/v1/user.proto";
 
-// ============================================================
-
 // GuildInvite is a shareable code that lets users join a guild.
 // All timestamps are Unix time in milliseconds.
 message GuildInvite {
@@ -16,6 +14,7 @@ message GuildInvite {
   int64 creator_user_id = 4;
   // Zero means unlimited uses.
   int32 max_uses = 5;
+  // Number of times the invite has been used.
   int32 uses = 6;
   // Zero means the invite never expires.
   int64 expires_at = 7;
@@ -32,13 +31,16 @@ message GuildInvitePreview {
   // Zero means the Guild has no icon. Clients use
   // icons/{guild_id}/{guild_icon_asset_id} for a non-zero value.
   int64 guild_icon_asset_id = 4;
+  // Current number of active members in the Guild.
   int64 member_count = 5;
   int64 expires_at = 6;
   // Optional description of the Guild being previewed.
   string guild_description = 7;
 }
 
+// CreateGuildInviteRequest creates a new invite for one Guild.
 message CreateGuildInviteRequest {
+  // Guild that owns the new invite.
   int64 guild_id = 1;
   // Zero means unlimited uses.
   int32 max_uses = 2;
@@ -48,19 +50,25 @@ message CreateGuildInviteRequest {
   string idempotency_key = 4;
 }
 
+// CreateGuildInviteResponse returns the stored invite.
 message CreateGuildInviteResponse {
   GuildInvite invite = 1;
 }
 
+// GetGuildInviteRequest fetches a public invite preview by code.
 message GetGuildInviteRequest {
+  // Shareable invite code.
   string code = 1;
 }
 
+// GetGuildInviteResponse returns the invite preview.
 message GetGuildInviteResponse {
   GuildInvitePreview preview = 1;
 }
 
+// ListGuildInvitesRequest pages the invites of one Guild.
 message ListGuildInvitesRequest {
+  // Guild whose invites are listed.
   int64 guild_id = 1;
   // Opaque continuation from ListGuildInvitesResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
@@ -70,6 +78,7 @@ message ListGuildInvitesRequest {
   int32 limit = 3;
 }
 
+// ListGuildInvitesResponse returns a page of invites.
 message ListGuildInvitesResponse {
   repeated GuildInvite invites = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -79,18 +88,26 @@ message ListGuildInvitesResponse {
   string next_cursor = 2;
 }
 
+// DeleteGuildInviteRequest deletes one invite by code.
 message DeleteGuildInviteRequest {
+  // Code of the invite to delete.
   string code = 1;
 }
 
+// DeleteGuildInviteResponse confirms deletion.
 message DeleteGuildInviteResponse {
   bool ok = 1;
 }
 
+// JoinGuildByInviteRequest joins the authenticated user to the Guild behind a
+// code.
 message JoinGuildByInviteRequest {
+  // Shareable invite code.
   string code = 1;
 }
 
+// JoinGuildByInviteResponse returns the joined Guild and the user's
+// membership.
 message JoinGuildByInviteResponse {
   Guild guild = 1;
   GuildMember member = 2;

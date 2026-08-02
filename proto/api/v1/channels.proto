@@ -4,12 +4,16 @@ package api.v1;
 
 import "api/v1/common.proto";
 
-// ============================================================
-
+// CreateGuildChannelRequest creates a text, category, or voice channel in the
+// authenticated user's Guild.
 message CreateGuildChannelRequest {
+  // Guild that owns the new channel.
   int64 guild_id = 1;
+  // Display name of the channel.
   string name = 2;
+  // Behavior and nesting rules of the new channel.
   GuildChannelType type = 3;
+  // Optional channel topic.
   string topic = 4;
   // Parent category ID, or zero to create the channel at the Guild root.
   int64 parent_id = 5;
@@ -18,33 +22,51 @@ message CreateGuildChannelRequest {
   // Optional opaque key identifying one client-side channel creation intent.
   string idempotency_key = 7;
 }
+
+// CreateGuildChannelResponse returns the created channel and the new layout
+// revision.
 message CreateGuildChannelResponse {
   GuildChannel channel = 1;
+  // Revision of the complete Guild channel layout after creation.
   int64 channel_layout_revision = 2;
 }
 
+// GetGuildChannelRequest fetches one channel visible to the authenticated
+// user.
 message GetGuildChannelRequest {
+  // ID of the channel to fetch.
   int64 channel_id = 1;
 }
 
+// GetGuildChannelResponse returns the requested channel.
 message GetGuildChannelResponse {
   GuildChannel channel = 1;
 }
 
+// ListGuildChannelsRequest lists the channels visible to the authenticated
+// user in one Guild.
 message ListGuildChannelsRequest {
+  // Guild whose visible channels are listed.
   int64 guild_id = 1;
 }
 
+// ListGuildChannelsResponse returns the visible channels and the layout
+// revision they represent.
 message ListGuildChannelsResponse {
+  // Visible channels in layout order.
   repeated GuildChannel channels = 1;
   // Revision of the complete Guild channel layout represented by this list.
   int64 channel_layout_revision = 2;
 }
 
+// UpdateGuildChannelRequest updates present name, topic, or parent fields of
+// one channel.
 message UpdateGuildChannelRequest {
+  // ID of the channel to update.
   int64 channel_id = 1;
   // Optional replacement fields. At least one must be present.
   string name = 2;
+  // Optional replacement topic. An empty value clears it.
   string topic = 3;
   // Zero moves the channel to the Guild root. Omission preserves its parent.
   int64 parent_id = 4;
@@ -52,23 +74,36 @@ message UpdateGuildChannelRequest {
   int64 expected_channel_layout_revision = 5;
 }
 
+// UpdateGuildChannelResponse returns the updated channel and the new layout
+// revision when the parent changed.
 message UpdateGuildChannelResponse {
   GuildChannel channel = 1;
+  // New layout revision when the parent changed; otherwise absent.
   int64 channel_layout_revision = 2;
 }
 
+// DeleteGuildChannelRequest deletes one channel after checking the caller's
+// expected layout revision.
 message DeleteGuildChannelRequest {
+  // ID of the channel to delete.
   int64 channel_id = 1;
   // Expected Guild channel layout revision from the caller's snapshot.
   int64 expected_channel_layout_revision = 2;
 }
 
+// DeleteGuildChannelResponse confirms deletion and returns the new layout
+// revision.
 message DeleteGuildChannelResponse {
+  // True when the channel was deleted.
   bool ok = 1;
+  // New layout revision after deletion.
   int64 channel_layout_revision = 2;
 }
 
+// GuildChannelPosition requests one channel's position and optional parent
+// during reorder.
 message GuildChannelPosition {
+  // ID of the channel to move.
   int64 channel_id = 1;
   // Zero-based position within the current or requested parent.
   int32 position = 2;
@@ -77,7 +112,10 @@ message GuildChannelPosition {
   int64 parent_id = 3;
 }
 
+// ReorderGuildChannelsRequest atomically moves a partial set of channels to
+// new positions.
 message ReorderGuildChannelsRequest {
+  // Guild whose channels are reordered.
   int64 guild_id = 1;
   // Partial set of channels to move. Final positions must remain unique
   // within each parent.
@@ -86,39 +124,60 @@ message ReorderGuildChannelsRequest {
   int64 expected_channel_layout_revision = 3;
 }
 
+// ReorderGuildChannelsResponse returns the complete channel list and the new
+// layout revision.
 message ReorderGuildChannelsResponse {
+  // Complete channel list in layout order after reorder.
   repeated GuildChannel channels = 1;
+  // Revision of the complete channel layout after reorder.
   int64 channel_layout_revision = 2;
 }
 
+// UpsertGuildChannelPermissionOverwriteRequest creates or replaces one
+// channel permission overwrite.
 message UpsertGuildChannelPermissionOverwriteRequest {
+  // Channel the overwrite applies to.
   int64 channel_id = 1;
+  // Whether the overwrite targets a role or a member.
   GuildPermissionOverwriteType applies_to = 2;
   // Role ID or user ID according to applies_to.
   int64 applies_to_id = 3;
   // Permission bits to grant and deny. The same bit cannot appear in both.
   uint64 allow = 4;
+  // Permission bits denied in this channel.
   uint64 deny = 5;
 }
 
+// UpsertGuildChannelPermissionOverwriteResponse returns the stored overwrite.
 message UpsertGuildChannelPermissionOverwriteResponse {
   GuildChannelPermissionOverwrite overwrite = 1;
 }
 
+// DeleteGuildChannelPermissionOverwriteRequest removes one channel permission
+// overwrite.
 message DeleteGuildChannelPermissionOverwriteRequest {
+  // Channel whose overwrite is removed.
   int64 channel_id = 1;
+  // Whether the overwrite targets a role or a member.
   GuildPermissionOverwriteType applies_to = 2;
+  // Role ID or user ID according to applies_to.
   int64 applies_to_id = 3;
 }
 
+// DeleteGuildChannelPermissionOverwriteResponse confirms removal.
 message DeleteGuildChannelPermissionOverwriteResponse {
   bool ok = 1;
 }
 
+// ListGuildChannelPermissionOverwritesRequest lists the overwrites of one
+// channel.
 message ListGuildChannelPermissionOverwritesRequest {
+  // Channel whose overwrites are listed.
   int64 channel_id = 1;
 }
 
+// ListGuildChannelPermissionOverwritesResponse returns the channel's
+// overwrites.
 message ListGuildChannelPermissionOverwritesResponse {
   repeated GuildChannelPermissionOverwrite overwrites = 1;
 }

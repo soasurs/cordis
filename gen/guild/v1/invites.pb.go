@@ -267,7 +267,8 @@ type GuildInvite_builder struct {
 	CreatorUserId *int64
 	// Zero means unlimited uses.
 	MaxUses *int32
-	Uses    *int32
+	// Number of times the invite has been used.
+	Uses *int32
 	// Zero means the invite never expires.
 	ExpiresAt *int64
 	CreatedAt *int64
@@ -539,8 +540,9 @@ type GuildInvitePreview_builder struct {
 	// Zero means the Guild has no icon. The public API defines how clients turn
 	// this asset ID and guild_id into a CDN URL.
 	GuildIconAssetId *int64
-	MemberCount      *int64
-	ExpiresAt        *int64
+	// Current number of active members in the Guild.
+	MemberCount *int64
+	ExpiresAt   *int64
 	// Optional description of the Guild being previewed.
 	GuildDescription *string
 }
@@ -580,6 +582,7 @@ func (b0 GuildInvitePreview_builder) Build() *GuildInvitePreview {
 	return m0
 }
 
+// CreateGuildInviteRequest creates a new invite for one Guild.
 type CreateGuildInviteRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId        int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -744,7 +747,10 @@ func (x *CreateGuildInviteRequest) ClearIdempotencyKey() {
 type CreateGuildInviteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild that owns the new invite.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Zero means unlimited uses.
 	MaxUses *int32
@@ -781,6 +787,7 @@ func (b0 CreateGuildInviteRequest_builder) Build() *CreateGuildInviteRequest {
 	return m0
 }
 
+// CreateGuildInviteResponse returns the stored invite.
 type CreateGuildInviteResponse struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Invite *GuildInvite           `protobuf:"bytes,1,opt,name=invite"`
@@ -849,6 +856,7 @@ func (b0 CreateGuildInviteResponse_builder) Build() *CreateGuildInviteResponse {
 	return m0
 }
 
+// GetGuildInviteRequest fetches a public invite preview by code.
 type GetGuildInviteRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
@@ -913,6 +921,7 @@ func (x *GetGuildInviteRequest) ClearCode() {
 type GetGuildInviteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Shareable invite code.
 	Code *string
 }
 
@@ -927,6 +936,7 @@ func (b0 GetGuildInviteRequest_builder) Build() *GetGuildInviteRequest {
 	return m0
 }
 
+// GetGuildInviteResponse returns the invite preview.
 type GetGuildInviteResponse struct {
 	state              protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Preview *GuildInvitePreview    `protobuf:"bytes,1,opt,name=preview"`
@@ -995,6 +1005,7 @@ func (b0 GetGuildInviteResponse_builder) Build() *GetGuildInviteResponse {
 	return m0
 }
 
+// ListGuildInvitesRequest pages the invites of one Guild.
 type ListGuildInvitesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1134,7 +1145,10 @@ func (x *ListGuildInvitesRequest) ClearLimit() {
 type ListGuildInvitesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild whose invites are listed.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Opaque continuation from ListGuildInvitesResponse.next_cursor.
 	// Omit (unset) to start from the first page. Pass the value through
@@ -1167,6 +1181,7 @@ func (b0 ListGuildInvitesRequest_builder) Build() *ListGuildInvitesRequest {
 	return m0
 }
 
+// ListGuildInvitesResponse returns a page of invites.
 type ListGuildInvitesResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Invites     *[]*GuildInvite        `protobuf:"bytes,1,rep,name=invites"`
@@ -1265,6 +1280,7 @@ func (b0 ListGuildInvitesResponse_builder) Build() *ListGuildInvitesResponse {
 	return m0
 }
 
+// DeleteGuildInviteRequest deletes one invite by code.
 type DeleteGuildInviteRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
@@ -1354,7 +1370,10 @@ func (x *DeleteGuildInviteRequest) ClearActorUserId() {
 type DeleteGuildInviteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Code        *string
+	// Code of the invite to delete.
+	Code *string
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 }
 
@@ -1373,6 +1392,7 @@ func (b0 DeleteGuildInviteRequest_builder) Build() *DeleteGuildInviteRequest {
 	return m0
 }
 
+// DeleteGuildInviteResponse confirms deletion.
 type DeleteGuildInviteResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1448,6 +1468,7 @@ func (b0 DeleteGuildInviteResponse_builder) Build() *DeleteGuildInviteResponse {
 	return m0
 }
 
+// JoinGuildByInviteRequest joins one user to the Guild behind a code.
 type JoinGuildByInviteRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Code        *string                `protobuf:"bytes,1,opt,name=code"`
@@ -1537,7 +1558,9 @@ func (x *JoinGuildByInviteRequest) ClearUserId() {
 type JoinGuildByInviteRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Code   *string
+	// Shareable invite code.
+	Code *string
+	// User joining the Guild.
 	UserId *int64
 }
 
@@ -1556,6 +1579,8 @@ func (b0 JoinGuildByInviteRequest_builder) Build() *JoinGuildByInviteRequest {
 	return m0
 }
 
+// JoinGuildByInviteResponse returns the joined Guild and the user's
+// membership.
 type JoinGuildByInviteResponse struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Guild  *Guild                 `protobuf:"bytes,1,opt,name=guild"`

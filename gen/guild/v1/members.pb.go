@@ -20,6 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// AddGuildMemberRequest adds an existing user to one Guild.
 type AddGuildMemberRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -131,9 +132,13 @@ func (x *AddGuildMemberRequest) ClearUserId() {
 type AddGuildMemberRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild receiving the new member.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	UserId      *int64
+	// User to add.
+	UserId *int64
 }
 
 func (b0 AddGuildMemberRequest_builder) Build() *AddGuildMemberRequest {
@@ -155,6 +160,7 @@ func (b0 AddGuildMemberRequest_builder) Build() *AddGuildMemberRequest {
 	return m0
 }
 
+// AddGuildMemberResponse returns the new membership.
 type AddGuildMemberResponse struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Member *GuildMember           `protobuf:"bytes,1,opt,name=member"`
@@ -223,6 +229,7 @@ func (b0 AddGuildMemberResponse_builder) Build() *AddGuildMemberResponse {
 	return m0
 }
 
+// GetGuildMemberRequest fetches one Guild membership.
 type GetGuildMemberRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -334,9 +341,13 @@ func (x *GetGuildMemberRequest) ClearUserId() {
 type GetGuildMemberRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild of the membership.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	UserId      *int64
+	// Member to fetch.
+	UserId *int64
 }
 
 func (b0 GetGuildMemberRequest_builder) Build() *GetGuildMemberRequest {
@@ -358,6 +369,7 @@ func (b0 GetGuildMemberRequest_builder) Build() *GetGuildMemberRequest {
 	return m0
 }
 
+// GetGuildMemberResponse returns the requested membership.
 type GetGuildMemberResponse struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Member *GuildMember           `protobuf:"bytes,1,opt,name=member"`
@@ -426,6 +438,7 @@ func (b0 GetGuildMemberResponse_builder) Build() *GetGuildMemberResponse {
 	return m0
 }
 
+// ListGuildMembersRequest pages the members of one Guild.
 type ListGuildMembersRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -565,7 +578,10 @@ func (x *ListGuildMembersRequest) ClearLimit() {
 type ListGuildMembersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild whose members are listed.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Opaque continuation from ListGuildMembersResponse.next_cursor.
 	// Omit (unset) to start from the first page. Pass the value through
@@ -598,6 +614,7 @@ func (b0 ListGuildMembersRequest_builder) Build() *ListGuildMembersRequest {
 	return m0
 }
 
+// ListGuildMembersResponse returns a page of memberships.
 type ListGuildMembersResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Members     *[]*GuildMember        `protobuf:"bytes,1,rep,name=members"`
@@ -696,6 +713,7 @@ func (b0 ListGuildMembersResponse_builder) Build() *ListGuildMembersResponse {
 	return m0
 }
 
+// UpdateGuildMemberRequest updates one member's Guild nickname.
 type UpdateGuildMemberRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -810,7 +828,10 @@ func (x *UpdateGuildMemberRequest) ClearNickname() {
 type UpdateGuildMemberRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild of the membership.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Replaces the actor's guild nickname. An empty value clears it.
 	Nickname *string
@@ -835,6 +856,7 @@ func (b0 UpdateGuildMemberRequest_builder) Build() *UpdateGuildMemberRequest {
 	return m0
 }
 
+// UpdateGuildMemberResponse returns the updated membership.
 type UpdateGuildMemberResponse struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Member *GuildMember           `protobuf:"bytes,1,opt,name=member"`
@@ -903,6 +925,7 @@ func (b0 UpdateGuildMemberResponse_builder) Build() *UpdateGuildMemberResponse {
 	return m0
 }
 
+// KickGuildMemberRequest removes one member from one Guild.
 type KickGuildMemberRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1014,9 +1037,13 @@ func (x *KickGuildMemberRequest) ClearUserId() {
 type KickGuildMemberRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild of the member.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	UserId      *int64
+	// Member to remove.
+	UserId *int64
 }
 
 func (b0 KickGuildMemberRequest_builder) Build() *KickGuildMemberRequest {
@@ -1038,6 +1065,7 @@ func (b0 KickGuildMemberRequest_builder) Build() *KickGuildMemberRequest {
 	return m0
 }
 
+// KickGuildMemberResponse confirms removal.
 type KickGuildMemberResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1113,6 +1141,7 @@ func (b0 KickGuildMemberResponse_builder) Build() *KickGuildMemberResponse {
 	return m0
 }
 
+// BanGuildMemberRequest bans one member from one Guild.
 type BanGuildMemberRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1252,10 +1281,15 @@ func (x *BanGuildMemberRequest) ClearReason() {
 type BanGuildMemberRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild issuing the ban.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	UserId      *int64
-	Reason      *string
+	// Member to ban.
+	UserId *int64
+	// Optional reason recorded with the ban.
+	Reason *string
 }
 
 func (b0 BanGuildMemberRequest_builder) Build() *BanGuildMemberRequest {
@@ -1281,6 +1315,7 @@ func (b0 BanGuildMemberRequest_builder) Build() *BanGuildMemberRequest {
 	return m0
 }
 
+// BanGuildMemberResponse returns the stored ban.
 type BanGuildMemberResponse struct {
 	state          protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ban *GuildBan              `protobuf:"bytes,1,opt,name=ban"`
@@ -1349,6 +1384,7 @@ func (b0 BanGuildMemberResponse_builder) Build() *BanGuildMemberResponse {
 	return m0
 }
 
+// UnbanGuildMemberRequest lifts one member's ban.
 type UnbanGuildMemberRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1460,9 +1496,13 @@ func (x *UnbanGuildMemberRequest) ClearUserId() {
 type UnbanGuildMemberRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild holding the ban.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	UserId      *int64
+	// Member to unban.
+	UserId *int64
 }
 
 func (b0 UnbanGuildMemberRequest_builder) Build() *UnbanGuildMemberRequest {
@@ -1484,6 +1524,7 @@ func (b0 UnbanGuildMemberRequest_builder) Build() *UnbanGuildMemberRequest {
 	return m0
 }
 
+// UnbanGuildMemberResponse confirms the ban was lifted.
 type UnbanGuildMemberResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1559,6 +1600,7 @@ func (b0 UnbanGuildMemberResponse_builder) Build() *UnbanGuildMemberResponse {
 	return m0
 }
 
+// ListGuildBansRequest pages the active bans of one Guild.
 type ListGuildBansRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1698,7 +1740,10 @@ func (x *ListGuildBansRequest) ClearLimit() {
 type ListGuildBansRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild whose bans are listed.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
 	// Opaque continuation from ListGuildBansResponse.next_cursor.
 	// Omit (unset) to start from the first page. Pass the value through
@@ -1731,6 +1776,7 @@ func (b0 ListGuildBansRequest_builder) Build() *ListGuildBansRequest {
 	return m0
 }
 
+// ListGuildBansResponse returns a page of bans.
 type ListGuildBansResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Bans        *[]*GuildBan           `protobuf:"bytes,1,rep,name=bans"`
@@ -1829,6 +1875,7 @@ func (b0 ListGuildBansResponse_builder) Build() *ListGuildBansResponse {
 	return m0
 }
 
+// LeaveGuildRequest removes one user from one Guild.
 type LeaveGuildRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1915,8 +1962,10 @@ func (x *LeaveGuildRequest) ClearUserId() {
 type LeaveGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild to leave.
 	GuildId *int64
-	UserId  *int64
+	// User leaving the Guild.
+	UserId *int64
 }
 
 func (b0 LeaveGuildRequest_builder) Build() *LeaveGuildRequest {
@@ -1934,6 +1983,7 @@ func (b0 LeaveGuildRequest_builder) Build() *LeaveGuildRequest {
 	return m0
 }
 
+// LeaveGuildResponse confirms departure.
 type LeaveGuildResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2009,6 +2059,7 @@ func (b0 LeaveGuildResponse_builder) Build() *LeaveGuildResponse {
 	return m0
 }
 
+// TransferGuildOwnershipRequest transfers one Guild to another member.
 type TransferGuildOwnershipRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2120,9 +2171,13 @@ func (x *TransferGuildOwnershipRequest) ClearNewOwnerId() {
 type TransferGuildOwnershipRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId     *int64
+	// Guild whose ownership changes.
+	GuildId *int64
+	// Authenticated user performing the request; trusted only from
+	// authenticated internal callers.
 	ActorUserId *int64
-	NewOwnerId  *int64
+	// Member receiving ownership.
+	NewOwnerId *int64
 }
 
 func (b0 TransferGuildOwnershipRequest_builder) Build() *TransferGuildOwnershipRequest {
@@ -2144,6 +2199,7 @@ func (b0 TransferGuildOwnershipRequest_builder) Build() *TransferGuildOwnershipR
 	return m0
 }
 
+// TransferGuildOwnershipResponse returns the Guild with its new owner.
 type TransferGuildOwnershipResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`

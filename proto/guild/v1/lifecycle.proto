@@ -5,29 +5,37 @@ package guild.v1;
 import "guild/v1/common.proto";
 import "media/v1/media.proto";
 
-// ============================================================
-
+// CreateGuildRequest creates a Guild owned by the given user.
 message CreateGuildRequest {
+  // User that owns the new Guild.
   int64 owner_id = 1;
+  // Display name of the new Guild.
   string name = 2;
   // Optional opaque key identifying one client-side Guild creation intent.
   string idempotency_key = 3;
 }
 
+// CreateGuildResponse returns the created Guild.
 message CreateGuildResponse {
   Guild guild = 1;
 }
 
+// GetGuildRequest fetches one Guild for a user.
 message GetGuildRequest {
+  // ID of the Guild to fetch.
   int64 guild_id = 1;
+  // User that must be an active member of the Guild.
   int64 user_id = 2;
 }
 
+// GetGuildResponse returns the requested Guild.
 message GetGuildResponse {
   Guild guild = 1;
 }
 
+// ListUserGuildsRequest pages the Guilds joined by one user.
 message ListUserGuildsRequest {
+  // User whose Guilds are listed.
   int64 user_id = 1;
   // Opaque continuation from ListUserGuildsResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
@@ -37,6 +45,7 @@ message ListUserGuildsRequest {
   int32 limit = 3;
 }
 
+// ListUserGuildsResponse returns a page of Guilds.
 message ListUserGuildsResponse {
   repeated Guild guilds = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -46,7 +55,10 @@ message ListUserGuildsResponse {
   string next_cursor = 2;
 }
 
+// GuildChannelVisibility is one user's cached channel access snapshot for a
+// Guild.
 message GuildChannelVisibility {
+  // Guild of the snapshot.
   int64 guild_id = 1;
   // Persistent monotonic version of all state that can affect access.
   int64 access_revision = 2;
@@ -56,6 +68,7 @@ message GuildChannelVisibility {
   repeated int64 visible_text_channel_ids = 4;
 }
 
+// ReadyGuild is the full Guild bootstrap sent to one user after identify.
 message ReadyGuild {
   Guild guild = 1;
   // Persistent monotonic version used to invalidate Session snapshots.
@@ -73,24 +86,37 @@ message ReadyGuild {
   int64 channel_layout_revision = 7;
 }
 
+// GetUserReadyStateRequest requests the complete bootstrap for one user.
 message GetUserReadyStateRequest {
+  // User whose Guild snapshots are returned.
   int64 user_id = 1;
 }
 
+// GetUserReadyStateResponse returns one snapshot per Guild the user can see.
 message GetUserReadyStateResponse {
   repeated ReadyGuild guilds = 1;
 }
+
+// GetUserGuildChannelVisibilityRequest requests one cached channel access
+// snapshot.
 message GetUserGuildChannelVisibilityRequest {
+  // User of the snapshot.
   int64 user_id = 1;
+  // Guild of the snapshot.
   int64 guild_id = 2;
 }
 
+// GetUserGuildChannelVisibilityResponse returns the requested snapshot.
 message GetUserGuildChannelVisibilityResponse {
   GuildChannelVisibility visibility = 1;
 }
 
+// UpdateGuildRequest applies present metadata changes to one Guild.
 message UpdateGuildRequest {
+  // Guild to update.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
   // Optional replacement name.
   string name = 3;
@@ -98,6 +124,7 @@ message UpdateGuildRequest {
   string description = 4;
 }
 
+// UpdateGuildResponse returns the updated Guild.
 message UpdateGuildResponse {
   Guild guild = 1;
 }
@@ -163,11 +190,16 @@ message AbortGuildIconUploadRequest {
 // AbortGuildIconUploadResponse is empty because abort has no mutable result.
 message AbortGuildIconUploadResponse {}
 
+// DeleteGuildRequest soft-deletes one Guild owned by the actor.
 message DeleteGuildRequest {
+  // Guild to delete.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
 }
 
+// DeleteGuildResponse confirms deletion.
 message DeleteGuildResponse {
   bool ok = 1;
 }

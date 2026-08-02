@@ -20,6 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CreateGuildRequest creates a Guild owned by the authenticated user.
 type CreateGuildRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Name           *string                `protobuf:"bytes,1,opt,name=name"`
@@ -112,6 +113,7 @@ func (x *CreateGuildRequest) ClearIdempotencyKey() {
 type CreateGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Display name of the new Guild.
 	Name *string
 	// Optional opaque key identifying one client-side Guild creation intent.
 	IdempotencyKey *string
@@ -132,6 +134,7 @@ func (b0 CreateGuildRequest_builder) Build() *CreateGuildRequest {
 	return m0
 }
 
+// CreateGuildResponse returns the created Guild.
 type CreateGuildResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
@@ -200,6 +203,7 @@ func (b0 CreateGuildResponse_builder) Build() *CreateGuildResponse {
 	return m0
 }
 
+// GetGuildRequest fetches one Guild joined by the authenticated user.
 type GetGuildRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -261,6 +265,7 @@ func (x *GetGuildRequest) ClearGuildId() {
 type GetGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// ID of the Guild to fetch.
 	GuildId *int64
 }
 
@@ -275,6 +280,7 @@ func (b0 GetGuildRequest_builder) Build() *GetGuildRequest {
 	return m0
 }
 
+// GetGuildResponse returns the requested Guild.
 type GetGuildResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
@@ -343,6 +349,7 @@ func (b0 GetGuildResponse_builder) Build() *GetGuildResponse {
 	return m0
 }
 
+// ListGuildsRequest pages the Guilds joined by the authenticated user.
 type ListGuildsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Cursor      *string                `protobuf:"bytes,1,opt,name=cursor"`
@@ -455,6 +462,7 @@ func (b0 ListGuildsRequest_builder) Build() *ListGuildsRequest {
 	return m0
 }
 
+// ListGuildsResponse returns a page of Guilds.
 type ListGuildsResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Guilds      *[]*Guild              `protobuf:"bytes,1,rep,name=guilds"`
@@ -553,6 +561,8 @@ func (b0 ListGuildsResponse_builder) Build() *ListGuildsResponse {
 	return m0
 }
 
+// UpdateGuildRequest applies present name or description changes to one
+// Guild.
 type UpdateGuildRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -670,6 +680,7 @@ func (x *UpdateGuildRequest) ClearDescription() {
 type UpdateGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// ID of the Guild to update.
 	GuildId *int64
 	// Optional replacement name.
 	Name *string
@@ -696,6 +707,7 @@ func (b0 UpdateGuildRequest_builder) Build() *UpdateGuildRequest {
 	return m0
 }
 
+// UpdateGuildResponse returns the updated Guild.
 type UpdateGuildResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Guild *Guild                 `protobuf:"bytes,1,opt,name=guild"`
@@ -1492,6 +1504,7 @@ func (b0 AbortGuildIconUploadResponse_builder) Build() *AbortGuildIconUploadResp
 	return m0
 }
 
+// DeleteGuildRequest soft-deletes one Guild owned by the authenticated user.
 type DeleteGuildRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1553,6 +1566,7 @@ func (x *DeleteGuildRequest) ClearGuildId() {
 type DeleteGuildRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// ID of the Guild to delete.
 	GuildId *int64
 }
 
@@ -1567,6 +1581,7 @@ func (b0 DeleteGuildRequest_builder) Build() *DeleteGuildRequest {
 	return m0
 }
 
+// DeleteGuildResponse confirms deletion.
 type DeleteGuildResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`

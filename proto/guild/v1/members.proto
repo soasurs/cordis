@@ -4,29 +4,44 @@ package guild.v1;
 
 import "guild/v1/common.proto";
 
-// ============================================================
-
+// AddGuildMemberRequest adds an existing user to one Guild.
 message AddGuildMemberRequest {
+  // Guild receiving the new member.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
+  // User to add.
   int64 user_id = 3;
 }
+
+// AddGuildMemberResponse returns the new membership.
 message AddGuildMemberResponse {
   GuildMember member = 1;
 }
 
+// GetGuildMemberRequest fetches one Guild membership.
 message GetGuildMemberRequest {
+  // Guild of the membership.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
+  // Member to fetch.
   int64 user_id = 3;
 }
 
+// GetGuildMemberResponse returns the requested membership.
 message GetGuildMemberResponse {
   GuildMember member = 1;
 }
 
+// ListGuildMembersRequest pages the members of one Guild.
 message ListGuildMembersRequest {
+  // Guild whose members are listed.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
   // Opaque continuation from ListGuildMembersResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
@@ -36,6 +51,7 @@ message ListGuildMembersRequest {
   int32 limit = 4;
 }
 
+// ListGuildMembersResponse returns a page of memberships.
 message ListGuildMembersResponse {
   repeated GuildMember members = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -45,50 +61,78 @@ message ListGuildMembersResponse {
   string next_cursor = 2;
 }
 
+// UpdateGuildMemberRequest updates one member's Guild nickname.
 message UpdateGuildMemberRequest {
+  // Guild of the membership.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
   // Replaces the actor's guild nickname. An empty value clears it.
   string nickname = 3;
 }
 
+// UpdateGuildMemberResponse returns the updated membership.
 message UpdateGuildMemberResponse {
   GuildMember member = 1;
 }
 
+// KickGuildMemberRequest removes one member from one Guild.
 message KickGuildMemberRequest {
+  // Guild of the member.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
+  // Member to remove.
   int64 user_id = 3;
 }
 
+// KickGuildMemberResponse confirms removal.
 message KickGuildMemberResponse {
   bool ok = 1;
 }
 
+// BanGuildMemberRequest bans one member from one Guild.
 message BanGuildMemberRequest {
+  // Guild issuing the ban.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
+  // Member to ban.
   int64 user_id = 3;
+  // Optional reason recorded with the ban.
   string reason = 4;
 }
 
+// BanGuildMemberResponse returns the stored ban.
 message BanGuildMemberResponse {
   GuildBan ban = 1;
 }
 
+// UnbanGuildMemberRequest lifts one member's ban.
 message UnbanGuildMemberRequest {
+  // Guild holding the ban.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
+  // Member to unban.
   int64 user_id = 3;
 }
 
+// UnbanGuildMemberResponse confirms the ban was lifted.
 message UnbanGuildMemberResponse {
   bool ok = 1;
 }
 
+// ListGuildBansRequest pages the active bans of one Guild.
 message ListGuildBansRequest {
+  // Guild whose bans are listed.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
   // Opaque continuation from ListGuildBansResponse.next_cursor.
   // Omit (unset) to start from the first page. Pass the value through
@@ -98,6 +142,7 @@ message ListGuildBansRequest {
   int32 limit = 4;
 }
 
+// ListGuildBansResponse returns a page of bans.
 message ListGuildBansResponse {
   repeated GuildBan bans = 1;
   // Opaque cursor for the next page. Leave unset when there is no next
@@ -107,21 +152,31 @@ message ListGuildBansResponse {
   string next_cursor = 2;
 }
 
+// LeaveGuildRequest removes one user from one Guild.
 message LeaveGuildRequest {
+  // Guild to leave.
   int64 guild_id = 1;
+  // User leaving the Guild.
   int64 user_id = 2;
 }
 
+// LeaveGuildResponse confirms departure.
 message LeaveGuildResponse {
   bool ok = 1;
 }
 
+// TransferGuildOwnershipRequest transfers one Guild to another member.
 message TransferGuildOwnershipRequest {
+  // Guild whose ownership changes.
   int64 guild_id = 1;
+  // Authenticated user performing the request; trusted only from
+  // authenticated internal callers.
   int64 actor_user_id = 2;
+  // Member receiving ownership.
   int64 new_owner_id = 3;
 }
 
+// TransferGuildOwnershipResponse returns the Guild with its new owner.
 message TransferGuildOwnershipResponse {
   Guild guild = 1;
 }

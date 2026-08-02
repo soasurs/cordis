@@ -20,6 +20,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CreateGuildRoleRequest creates a non-default role with the requested
+// permissions.
 type CreateGuildRoleRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId        int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -162,8 +164,10 @@ func (x *CreateGuildRoleRequest) ClearIdempotencyKey() {
 type CreateGuildRoleRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild that owns the new role.
 	GuildId *int64
-	Name    *string
+	// Display name of the role.
+	Name *string
 	// Bitwise OR of GuildPermission values. The caller may grant only
 	// permissions they hold.
 	Permissions *uint64
@@ -194,6 +198,7 @@ func (b0 CreateGuildRoleRequest_builder) Build() *CreateGuildRoleRequest {
 	return m0
 }
 
+// CreateGuildRoleResponse returns the stored role.
 type CreateGuildRoleResponse struct {
 	state           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Role *GuildRole             `protobuf:"bytes,1,opt,name=role"`
@@ -262,6 +267,7 @@ func (b0 CreateGuildRoleResponse_builder) Build() *CreateGuildRoleResponse {
 	return m0
 }
 
+// GetGuildRoleRequest fetches one role.
 type GetGuildRoleRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -348,8 +354,10 @@ func (x *GetGuildRoleRequest) ClearRoleId() {
 type GetGuildRoleRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the role.
 	GuildId *int64
-	RoleId  *int64
+	// Role to fetch.
+	RoleId *int64
 }
 
 func (b0 GetGuildRoleRequest_builder) Build() *GetGuildRoleRequest {
@@ -367,6 +375,7 @@ func (b0 GetGuildRoleRequest_builder) Build() *GetGuildRoleRequest {
 	return m0
 }
 
+// GetGuildRoleResponse returns the requested role.
 type GetGuildRoleResponse struct {
 	state           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Role *GuildRole             `protobuf:"bytes,1,opt,name=role"`
@@ -435,6 +444,7 @@ func (b0 GetGuildRoleResponse_builder) Build() *GetGuildRoleResponse {
 	return m0
 }
 
+// ListGuildRolesRequest lists the roles of one Guild.
 type ListGuildRolesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -496,6 +506,7 @@ func (x *ListGuildRolesRequest) ClearGuildId() {
 type ListGuildRolesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild whose roles are listed.
 	GuildId *int64
 }
 
@@ -510,6 +521,7 @@ func (b0 ListGuildRolesRequest_builder) Build() *ListGuildRolesRequest {
 	return m0
 }
 
+// ListGuildRolesResponse returns the Guild's roles.
 type ListGuildRolesResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
@@ -570,6 +582,8 @@ func (b0 ListGuildRolesResponse_builder) Build() *ListGuildRolesResponse {
 	return m0
 }
 
+// UpdateGuildRoleRequest applies present name or permission changes to one
+// role.
 type UpdateGuildRoleRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -709,10 +723,14 @@ func (x *UpdateGuildRoleRequest) ClearPermissions() {
 type UpdateGuildRoleRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the role.
 	GuildId *int64
-	RoleId  *int64
+	// Role to update.
+	RoleId *int64
 	// Optional replacement fields. At least one must be present.
-	Name        *string
+	Name *string
+	// Bitwise OR of GuildPermission values. The caller may grant only
+	// permissions they hold.
 	Permissions *uint64
 }
 
@@ -739,6 +757,7 @@ func (b0 UpdateGuildRoleRequest_builder) Build() *UpdateGuildRoleRequest {
 	return m0
 }
 
+// UpdateGuildRoleResponse returns the updated role.
 type UpdateGuildRoleResponse struct {
 	state           protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Role *GuildRole             `protobuf:"bytes,1,opt,name=role"`
@@ -807,6 +826,7 @@ func (b0 UpdateGuildRoleResponse_builder) Build() *UpdateGuildRoleResponse {
 	return m0
 }
 
+// DeleteGuildRoleRequest deletes one non-default role.
 type DeleteGuildRoleRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -893,8 +913,10 @@ func (x *DeleteGuildRoleRequest) ClearRoleId() {
 type DeleteGuildRoleRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the role.
 	GuildId *int64
-	RoleId  *int64
+	// Role to delete.
+	RoleId *int64
 }
 
 func (b0 DeleteGuildRoleRequest_builder) Build() *DeleteGuildRoleRequest {
@@ -912,6 +934,7 @@ func (b0 DeleteGuildRoleRequest_builder) Build() *DeleteGuildRoleRequest {
 	return m0
 }
 
+// DeleteGuildRoleResponse confirms deletion.
 type DeleteGuildRoleResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -987,6 +1010,7 @@ func (b0 DeleteGuildRoleResponse_builder) Build() *DeleteGuildRoleResponse {
 	return m0
 }
 
+// GuildRolePosition requests one role's new position during reorder.
 type GuildRolePosition struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_RoleId      int64                  `protobuf:"varint,1,opt,name=role_id,json=roleId"`
@@ -1073,6 +1097,7 @@ func (x *GuildRolePosition) ClearPosition() {
 type GuildRolePosition_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Role to move.
 	RoleId *int64
 	// Positive position for a non-default role. Higher values have greater
 	// authority.
@@ -1094,6 +1119,8 @@ func (b0 GuildRolePosition_builder) Build() *GuildRolePosition {
 	return m0
 }
 
+// ReorderGuildRolesRequest atomically applies new positions to a partial set
+// of roles.
 type ReorderGuildRolesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1169,6 +1196,7 @@ func (x *ReorderGuildRolesRequest) ClearGuildId() {
 type ReorderGuildRolesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild whose roles are reordered.
 	GuildId *int64
 	// Partial set of roles to move. Final positions must remain unique.
 	Positions []*GuildRolePosition
@@ -1186,6 +1214,7 @@ func (b0 ReorderGuildRolesRequest_builder) Build() *ReorderGuildRolesRequest {
 	return m0
 }
 
+// ReorderGuildRolesResponse returns the complete role list after reorder.
 type ReorderGuildRolesResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
@@ -1245,6 +1274,7 @@ func (b0 ReorderGuildRolesResponse_builder) Build() *ReorderGuildRolesResponse {
 	return m0
 }
 
+// AddGuildMemberRoleRequest assigns one role to one member.
 type AddGuildMemberRoleRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1356,9 +1386,12 @@ func (x *AddGuildMemberRoleRequest) ClearRoleId() {
 type AddGuildMemberRoleRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the assignment.
 	GuildId *int64
-	UserId  *int64
-	RoleId  *int64
+	// Member receiving the role.
+	UserId *int64
+	// Role to assign.
+	RoleId *int64
 }
 
 func (b0 AddGuildMemberRoleRequest_builder) Build() *AddGuildMemberRoleRequest {
@@ -1380,6 +1413,7 @@ func (b0 AddGuildMemberRoleRequest_builder) Build() *AddGuildMemberRoleRequest {
 	return m0
 }
 
+// AddGuildMemberRoleResponse confirms the assignment.
 type AddGuildMemberRoleResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1455,6 +1489,7 @@ func (b0 AddGuildMemberRoleResponse_builder) Build() *AddGuildMemberRoleResponse
 	return m0
 }
 
+// RemoveGuildMemberRoleRequest removes one role assignment.
 type RemoveGuildMemberRoleRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1566,9 +1601,12 @@ func (x *RemoveGuildMemberRoleRequest) ClearRoleId() {
 type RemoveGuildMemberRoleRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the assignment.
 	GuildId *int64
-	UserId  *int64
-	RoleId  *int64
+	// Member losing the role.
+	UserId *int64
+	// Role to remove.
+	RoleId *int64
 }
 
 func (b0 RemoveGuildMemberRoleRequest_builder) Build() *RemoveGuildMemberRoleRequest {
@@ -1590,6 +1628,7 @@ func (b0 RemoveGuildMemberRoleRequest_builder) Build() *RemoveGuildMemberRoleReq
 	return m0
 }
 
+// RemoveGuildMemberRoleResponse confirms removal.
 type RemoveGuildMemberRoleResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1665,6 +1704,7 @@ func (b0 RemoveGuildMemberRoleResponse_builder) Build() *RemoveGuildMemberRoleRe
 	return m0
 }
 
+// AddGuildRoleMembersRequest assigns one non-default role to many members.
 type AddGuildRoleMembersRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1763,8 +1803,10 @@ func (x *AddGuildRoleMembersRequest) ClearRoleId() {
 type AddGuildRoleMembersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the assignment.
 	GuildId *int64
-	RoleId  *int64
+	// Non-default role to assign.
+	RoleId *int64
 	// Distinct positive member user IDs. At most 100 values.
 	UserIds []int64
 }
@@ -1785,6 +1827,7 @@ func (b0 AddGuildRoleMembersRequest_builder) Build() *AddGuildRoleMembersRequest
 	return m0
 }
 
+// AddGuildRoleMembersResponse confirms the assignments.
 type AddGuildRoleMembersResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -1860,6 +1903,8 @@ func (b0 AddGuildRoleMembersResponse_builder) Build() *AddGuildRoleMembersRespon
 	return m0
 }
 
+// RemoveGuildRoleMembersRequest removes one non-default role from many
+// members.
 type RemoveGuildRoleMembersRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1958,8 +2003,10 @@ func (x *RemoveGuildRoleMembersRequest) ClearRoleId() {
 type RemoveGuildRoleMembersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the assignment.
 	GuildId *int64
-	RoleId  *int64
+	// Non-default role to remove.
+	RoleId *int64
 	// Distinct positive member user IDs. At most 100 values.
 	UserIds []int64
 }
@@ -1980,6 +2027,7 @@ func (b0 RemoveGuildRoleMembersRequest_builder) Build() *RemoveGuildRoleMembersR
 	return m0
 }
 
+// RemoveGuildRoleMembersResponse confirms removal.
 type RemoveGuildRoleMembersResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Ok          bool                   `protobuf:"varint,1,opt,name=ok"`
@@ -2055,6 +2103,7 @@ func (b0 RemoveGuildRoleMembersResponse_builder) Build() *RemoveGuildRoleMembers
 	return m0
 }
 
+// ListGuildMemberRolesRequest lists one member's roles in a Guild.
 type ListGuildMemberRolesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2141,8 +2190,10 @@ func (x *ListGuildMemberRolesRequest) ClearUserId() {
 type ListGuildMemberRolesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the membership.
 	GuildId *int64
-	UserId  *int64
+	// Member whose roles are listed.
+	UserId *int64
 }
 
 func (b0 ListGuildMemberRolesRequest_builder) Build() *ListGuildMemberRolesRequest {
@@ -2160,6 +2211,8 @@ func (b0 ListGuildMemberRolesRequest_builder) Build() *ListGuildMemberRolesReque
 	return m0
 }
 
+// ListGuildMemberRolesResponse returns the member's roles, including the
+// default role.
 type ListGuildMemberRolesResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
@@ -2220,6 +2273,7 @@ func (b0 ListGuildMemberRolesResponse_builder) Build() *ListGuildMemberRolesResp
 	return m0
 }
 
+// ListGuildRoleMembersRequest pages the members assigned to one role.
 type ListGuildRoleMembersRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2359,6 +2413,7 @@ func (x *ListGuildRoleMembersRequest) ClearLimit() {
 type ListGuildRoleMembersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the role.
 	GuildId *int64
 	// The default role matches every active Guild member; other roles match
 	// explicit assignments only.
@@ -2394,6 +2449,7 @@ func (b0 ListGuildRoleMembersRequest_builder) Build() *ListGuildRoleMembersReque
 	return m0
 }
 
+// ListGuildRoleMembersResponse returns a page of role members.
 type ListGuildRoleMembersResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Members     *[]*GuildMember        `protobuf:"bytes,1,rep,name=members"`
@@ -2492,6 +2548,8 @@ func (b0 ListGuildRoleMembersResponse_builder) Build() *ListGuildRoleMembersResp
 	return m0
 }
 
+// GetGuildMemberPermissionsRequest fetches one member's effective Guild
+// permissions.
 type GetGuildMemberPermissionsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -2578,8 +2636,10 @@ func (x *GetGuildMemberPermissionsRequest) ClearUserId() {
 type GetGuildMemberPermissionsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild of the membership.
 	GuildId *int64
-	UserId  *int64
+	// Member whose permissions are resolved.
+	UserId *int64
 }
 
 func (b0 GetGuildMemberPermissionsRequest_builder) Build() *GetGuildMemberPermissionsRequest {
@@ -2597,6 +2657,8 @@ func (b0 GetGuildMemberPermissionsRequest_builder) Build() *GetGuildMemberPermis
 	return m0
 }
 
+// GetGuildMemberPermissionsResponse returns the member's effective
+// permissions.
 type GetGuildMemberPermissionsResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Permissions uint64                 `protobuf:"varint,1,opt,name=permissions"`

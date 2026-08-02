@@ -27,17 +27,28 @@ const (
 	// No permission. Requests requiring a concrete permission reject this value.
 	GuildPermission_GUILD_PERMISSION_UNSPECIFIED GuildPermission = 0
 	// Grants every Guild permission and bypasses channel overwrites.
-	GuildPermission_GUILD_PERMISSION_ADMINISTRATOR   GuildPermission = 1
-	GuildPermission_GUILD_PERMISSION_MANAGE_GUILD    GuildPermission = 2
-	GuildPermission_GUILD_PERMISSION_MANAGE_ROLES    GuildPermission = 4
-	GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS  GuildPermission = 8
-	GuildPermission_GUILD_PERMISSION_KICK_MEMBERS    GuildPermission = 16
-	GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL    GuildPermission = 32
-	GuildPermission_GUILD_PERMISSION_SEND_MESSAGES   GuildPermission = 64
+	GuildPermission_GUILD_PERMISSION_ADMINISTRATOR GuildPermission = 1
+	// Allows managing Guild settings, the icon, and deletion.
+	GuildPermission_GUILD_PERMISSION_MANAGE_GUILD GuildPermission = 2
+	// Allows creating, editing, reordering, and deleting roles.
+	GuildPermission_GUILD_PERMISSION_MANAGE_ROLES GuildPermission = 4
+	// Allows managing members and their role assignments.
+	GuildPermission_GUILD_PERMISSION_MANAGE_MEMBERS GuildPermission = 8
+	// Allows removing members from the Guild.
+	GuildPermission_GUILD_PERMISSION_KICK_MEMBERS GuildPermission = 16
+	// Allows viewing a channel.
+	GuildPermission_GUILD_PERMISSION_VIEW_CHANNEL GuildPermission = 32
+	// Allows sending messages in a channel.
+	GuildPermission_GUILD_PERMISSION_SEND_MESSAGES GuildPermission = 64
+	// Allows creating, editing, deleting, and reordering channels and their
+	// permission overwrites.
 	GuildPermission_GUILD_PERMISSION_MANAGE_CHANNELS GuildPermission = 128
+	// Allows editing and deleting other members' messages.
 	GuildPermission_GUILD_PERMISSION_MANAGE_MESSAGES GuildPermission = 256
-	GuildPermission_GUILD_PERMISSION_BAN_MEMBERS     GuildPermission = 512
-	GuildPermission_GUILD_PERMISSION_CREATE_INVITE   GuildPermission = 1024
+	// Allows banning and unbanning members.
+	GuildPermission_GUILD_PERMISSION_BAN_MEMBERS GuildPermission = 512
+	// Allows creating Guild invites.
+	GuildPermission_GUILD_PERMISSION_CREATE_INVITE GuildPermission = 1024
 	// Allows the message author to mention roles and @everyone in a channel.
 	GuildPermission_GUILD_PERMISSION_MENTION_EVERYONE GuildPermission = 2048
 )
@@ -157,8 +168,10 @@ type GuildPermissionOverwriteType int32
 const (
 	// No applies_to. This value is invalid in overwrite requests.
 	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED GuildPermissionOverwriteType = 0
-	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE        GuildPermissionOverwriteType = 1
-	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER      GuildPermissionOverwriteType = 2
+	// The overwrite applies to one role.
+	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_ROLE GuildPermissionOverwriteType = 1
+	// The overwrite applies to one member.
+	GuildPermissionOverwriteType_GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER GuildPermissionOverwriteType = 2
 )
 
 // Enum value maps for GuildPermissionOverwriteType.
@@ -966,8 +979,9 @@ type GuildBan_builder struct {
 	GuildId     *int64
 	UserId      *int64
 	ActorUserId *int64
-	Reason      *string
-	CreatedAt   *int64
+	// Optional reason recorded with the ban.
+	Reason    *string
+	CreatedAt *int64
 	// Current public profile of the banned user.
 	Profile *UserProfile
 	// Current public profile of the moderator who created the ban.
@@ -1269,9 +1283,10 @@ func (x *GuildRole) ClearUpdatedAt() {
 type GuildRole_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id          *int64
-	GuildId     *int64
-	Name        *string
+	Id      *int64
+	GuildId *int64
+	Name    *string
+	// Bitwise OR of GuildPermission values.
 	Permissions *uint64
 	// Higher values have greater authority. The default role is always at zero.
 	Position *int32
@@ -1327,6 +1342,8 @@ func (b0 GuildRole_builder) Build() *GuildRole {
 	return m0
 }
 
+// GuildMentionUser is a search result preview for a member that can be
+// mentioned.
 type GuildMentionUser struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_UserId        int64                  `protobuf:"varint,1,opt,name=user_id,json=userId"`
@@ -1497,11 +1514,16 @@ func (x *GuildMentionUser) ClearNickname() {
 type GuildMentionUser_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	UserId        *int64
-	Username      *string
-	Name          *string
+	// ID of the mentionable member.
+	UserId *int64
+	// Username of the member.
+	Username *string
+	// Display name of the member.
+	Name *string
+	// Zero means the member has no avatar.
 	AvatarAssetId *int64
-	Nickname      *string
+	// Guild nickname of the member, empty when unset.
+	Nickname *string
 }
 
 func (b0 GuildMentionUser_builder) Build() *GuildMentionUser {
@@ -1531,6 +1553,8 @@ func (b0 GuildMentionUser_builder) Build() *GuildMentionUser {
 	return m0
 }
 
+// SearchGuildMentionUsersRequest prefix-searches mentionable members visible
+// in one channel.
 type SearchGuildMentionUsersRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1670,9 +1694,13 @@ func (x *SearchGuildMentionUsersRequest) ClearChannelId() {
 type SearchGuildMentionUsersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	GuildId   *int64
-	Limit     *int32
-	Query     *string
+	// Guild to search.
+	GuildId *int64
+	// Zero uses the default; the maximum is 20.
+	Limit *int32
+	// Prefix query matched against username, nickname, and profile name.
+	Query *string
+	// Only members that can view this channel are returned.
 	ChannelId *int64
 }
 
@@ -1699,6 +1727,7 @@ func (b0 SearchGuildMentionUsersRequest_builder) Build() *SearchGuildMentionUser
 	return m0
 }
 
+// SearchGuildMentionUsersResponse returns the matching mention candidates.
 type SearchGuildMentionUsersResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Users *[]*GuildMentionUser   `protobuf:"bytes,1,rep,name=users"`
@@ -1758,6 +1787,7 @@ func (b0 SearchGuildMentionUsersResponse_builder) Build() *SearchGuildMentionUse
 	return m0
 }
 
+// SearchGuildMentionRolesRequest prefix-searches the roles of one Guild.
 type SearchGuildMentionRolesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_GuildId     int64                  `protobuf:"varint,1,opt,name=guild_id,json=guildId"`
@@ -1872,9 +1902,12 @@ func (x *SearchGuildMentionRolesRequest) ClearQuery() {
 type SearchGuildMentionRolesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Guild to search.
 	GuildId *int64
-	Limit   *int32
-	Query   *string
+	// Zero uses the default; the maximum is 20.
+	Limit *int32
+	// Prefix query matched against role name.
+	Query *string
 }
 
 func (b0 SearchGuildMentionRolesRequest_builder) Build() *SearchGuildMentionRolesRequest {
@@ -1896,6 +1929,7 @@ func (b0 SearchGuildMentionRolesRequest_builder) Build() *SearchGuildMentionRole
 	return m0
 }
 
+// SearchGuildMentionRolesResponse returns the matching roles.
 type SearchGuildMentionRolesResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Roles *[]*GuildRole          `protobuf:"bytes,1,rep,name=roles"`
@@ -2251,12 +2285,14 @@ func (x *GuildChannel) ClearParentId() {
 type GuildChannel_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	Id       *int64
-	GuildId  *int64
-	Name     *string
-	Type     *GuildChannelType
+	Id      *int64
+	GuildId *int64
+	Name    *string
+	Type    *GuildChannelType
+	// Zero-based position within the parent.
 	Position *int32
-	Topic    *string
+	// Optional channel topic.
+	Topic *string
 	// Monotonically increasing resource version.
 	Revision  *int64
 	CreatedAt *int64

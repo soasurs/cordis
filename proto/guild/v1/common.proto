@@ -2,23 +2,32 @@ edition = "2023";
 
 package guild.v1;
 
-// ============================================================
-
 // GuildPermission values are bit flags combined in uint64 permission fields.
 enum GuildPermission {
   // No permission. Requests requiring a concrete permission reject this value.
   GUILD_PERMISSION_UNSPECIFIED = 0;
   // Grants every Guild permission and bypasses channel overwrites.
   GUILD_PERMISSION_ADMINISTRATOR = 1;
+  // Allows managing Guild settings, the icon, and deletion.
   GUILD_PERMISSION_MANAGE_GUILD = 2;
+  // Allows creating, editing, reordering, and deleting roles.
   GUILD_PERMISSION_MANAGE_ROLES = 4;
+  // Allows managing members and their role assignments.
   GUILD_PERMISSION_MANAGE_MEMBERS = 8;
+  // Allows removing members from the Guild.
   GUILD_PERMISSION_KICK_MEMBERS = 16;
+  // Allows viewing a channel.
   GUILD_PERMISSION_VIEW_CHANNEL = 32;
+  // Allows sending messages in a channel.
   GUILD_PERMISSION_SEND_MESSAGES = 64;
+  // Allows creating, editing, deleting, and reordering channels and their
+  // permission overwrites.
   GUILD_PERMISSION_MANAGE_CHANNELS = 128;
+  // Allows editing and deleting other members' messages.
   GUILD_PERMISSION_MANAGE_MESSAGES = 256;
+  // Allows banning and unbanning members.
   GUILD_PERMISSION_BAN_MEMBERS = 512;
+  // Allows creating Guild invites.
   GUILD_PERMISSION_CREATE_INVITE = 1024;
   // Allows the message author to mention roles and @everyone in a channel.
   GUILD_PERMISSION_MENTION_EVERYONE = 2048;
@@ -41,18 +50,27 @@ enum GuildChannelType {
 enum GuildPermissionOverwriteType {
   // No applies_to. This value is invalid in overwrite requests.
   GUILD_PERMISSION_OVERWRITE_TYPE_UNSPECIFIED = 0;
+  // The overwrite applies to one role.
   GUILD_PERMISSION_OVERWRITE_TYPE_ROLE = 1;
+  // The overwrite applies to one member.
   GUILD_PERMISSION_OVERWRITE_TYPE_MEMBER = 2;
 }
 
 // ============================================================
 
+// FilterUsersWithCommonGuildRequest selects target users that share an active
+// Guild with the actor.
 message FilterUsersWithCommonGuildRequest {
+  // User whose Guilds are compared against the targets.
   int64 user_id = 1;
+  // Bounded set of candidate user IDs.
   repeated int64 target_user_ids = 2;
 }
 
+// FilterUsersWithCommonGuildResponse returns the candidates sharing an active
+// Guild with the actor.
 message FilterUsersWithCommonGuildResponse {
+  // Candidates sharing an active Guild with the actor.
   repeated int64 user_ids = 1;
 }
 
@@ -91,6 +109,7 @@ message GuildBan {
   int64 guild_id = 1;
   int64 user_id = 2;
   int64 actor_user_id = 3;
+  // Optional reason recorded with the ban.
   string reason = 4;
   int64 created_at = 5;
 }
@@ -101,6 +120,7 @@ message GuildRole {
   int64 id = 1;
   int64 guild_id = 2;
   string name = 3;
+  // Bitwise OR of GuildPermission values.
   uint64 permissions = 4;
   // Higher values have greater authority. The default role is always at zero.
   int32 position = 5;
@@ -120,7 +140,9 @@ message GuildChannel {
   int64 guild_id = 2;
   string name = 3;
   GuildChannelType type = 4;
+  // Zero-based position within the parent.
   int32 position = 5;
+  // Optional channel topic.
   string topic = 6;
   // Monotonically increasing resource version.
   int64 revision = 7;

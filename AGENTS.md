@@ -97,6 +97,7 @@ go build ./services/guild/v1/...
 - Protos use edition 2023 and the opaque Go API. Use generated getters, setters, and builders instead of field access or generated message struct literals.
 - Do not edit generated outputs under `gen/` directly.
 - After editing any `.proto`, run `make generate` and `make lint`.
+- Run `buf format` after proto changes and fix any formatting diffs; `make lint` must pass after every proto change, and fix any buf lint errors it reports before considering the change complete. Lint enforces doc comments on messages, RPCs, services, enums, and enum values, so new definitions must carry them.
 - `buf.gen.external.yaml` covers `proto/api`; `buf.gen.internal.yaml` covers the internal service protos.
 
 ## Implementation Constraints

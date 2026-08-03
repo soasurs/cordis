@@ -16,18 +16,21 @@ import (
 	"github.com/soasurs/cordis/internal/testkit"
 	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/database"
+	cordiskafka "github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/migration"
+	"github.com/soasurs/cordis/pkg/outbox/relay"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/config"
 	messagemigrations "github.com/soasurs/cordis/services/message/v1/db/migrations"
+	"github.com/soasurs/cordis/services/message/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 	"github.com/soasurs/cordis/services/message/v1/internal/svc"
 )
 
-func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
+func TestCreateMessageOutboxForwardsToKafka(t *testing.T) {
 	postgres := testkit.StartPostgres(t)
-	kafka := testkit.StartKafka(t)
+	kafkaEnv := testkit.StartKafka(t)
 	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, db.Close()) })
@@ -35,12 +38,18 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 
 	runID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	topic := "cordis.integration.message." + runID
-	producer, err := kgo.NewClient(kgo.SeedBrokers(kafka.Address))
+	topicProducer, err := kgo.NewClient(kgo.SeedBrokers(kafkaEnv.Address))
+	require.NoError(t, err)
+	testkit.CreateKafkaTopic(t, topicProducer, topic)
+	topicProducer.Close()
+
+	producer, err := cordiskafka.NewProducer(cordiskafka.ProducerConfig{Seeds: []string{kafkaEnv.Address}})
 	require.NoError(t, err)
 	t.Cleanup(producer.Close)
-	testkit.CreateKafkaTopic(t, producer, topic)
+	publisher := cordiskafka.NewPublisher(producer, topic)
+
 	consumer, err := kgo.NewClient(
-		kgo.SeedBrokers(kafka.Address),
+		kgo.SeedBrokers(kafkaEnv.Address),
 		kgo.ConsumerGroup("cordis.integration.message-consumer."+runID),
 		kgo.ConsumeTopics(topic),
 	)
@@ -53,16 +62,41 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	require.NoError(t, err)
 	messageStore := store.New(db)
 	service := New(svc.NewServiceContextWithDependencies(config.Config{
-		Kafka: config.KafkaConfig{Topic: topic, PublishTimeoutMs: 5000},
+		Kafka: config.KafkaConfig{Topic: topic},
 	}, svc.Dependencies{
 		Store:       messageStore,
 		Snowflake:   node,
 		Cursors:     codec,
-		Kafka:       producer,
 		GuildClient: &fakeGuildClient{},
 		UserClient:  newFakeUserClient(),
 		MediaClient: &unusedMediaClient{},
 	}))
+
+	relayCtx, cancelRelay := context.WithCancel(t.Context())
+	messageRelay, err := relay.New(relay.Config{
+		DB:            db,
+		Tables:        eventoutbox.MessageTables(),
+		Publisher:     publisher,
+		Namespace:     "cordis.integration.message.outbox." + runID,
+		NotifyChannel: eventoutbox.MessageNotifyChannel,
+		ListenerDSN:   postgres.DSN,
+		Workers:       2,
+		BatchSize:     1,
+		PollInterval:  time.Minute,
+		TimeSlice:     time.Millisecond,
+		BackoffMin:    10 * time.Millisecond,
+		BackoffMax:    100 * time.Millisecond,
+	})
+	require.NoError(t, err)
+	relayDone := make(chan struct{})
+	go func() {
+		defer close(relayDone)
+		_ = messageRelay.Run(relayCtx)
+	}()
+	t.Cleanup(func() {
+		cancelRelay()
+		<-relayDone
+	})
 
 	req := new(messagev1.CreateMessageRequest)
 	req.SetChannelId(2001)
@@ -75,28 +109,23 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, created.GetMessage().GetId(), retried.GetMessage().GetId())
 
-	readCtx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
-	defer cancel()
-	records := consumer.PollRecords(readCtx, 4)
+	readCtx, cancelRead := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancelRead()
+	records := consumer.PollRecords(readCtx, 1)
 	require.Empty(t, records.Errors())
-	require.Len(t, records.Records(), 2)
-	var foundCreated, foundRead bool
-	for _, record := range records.Records() {
-		var envelope eventEnvelope[messagePayload]
-		require.NoError(t, json.Unmarshal(record.Value, &envelope))
-		switch envelope.Type {
-		case EventTypeMessageCreated:
-			foundCreated = true
-			require.Equal(t, "2001", string(record.Key))
-			require.Equal(t, "9001", envelope.Data.GuildID)
-			require.Equal(t, strconv.FormatInt(created.GetMessage().GetId(), 10), envelope.Data.MessageID)
-		case EventTypeMessageReadUpdated:
-			foundRead = true
-			require.Equal(t, "3001", string(record.Key))
-		}
-	}
-	require.True(t, foundCreated)
-	require.True(t, foundRead)
+	require.Len(t, records.Records(), 1)
+	var envelope eventEnvelope[messagePayload]
+	require.NoError(t, json.Unmarshal(records.Records()[0].Value, &envelope))
+	require.Equal(t, EventTypeMessageCreated, envelope.Type)
+	require.Equal(t, "2001", string(records.Records()[0].Key))
+	require.Equal(t, "9001", envelope.Data.GuildID)
+	require.Equal(t, strconv.FormatInt(created.GetMessage().GetId(), 10), envelope.Data.MessageID)
+	require.NotZero(t, envelope.StreamSequence)
+
+	extraCtx, cancelExtra := context.WithTimeout(t.Context(), 300*time.Millisecond)
+	defer cancelExtra()
+	extra := consumer.PollRecords(extraCtx, 1)
+	require.Empty(t, extra.Records(), "idempotent retry must not enqueue another event")
 
 	require.NoError(t, messageStore.CreateDmChannel(t.Context(), &model.DmChannel{
 		ID: 4001, UserLo: 3001, UserHi: 3002, CreatedAt: 1,
@@ -108,24 +137,22 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	_, err = service.CreateMessage(t.Context(), dmReq)
 	require.NoError(t, err)
 
+	dmCtx, cancelDM := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancelDM()
 	var dmRecords []*kgo.Record
-	for len(dmRecords) < 3 && readCtx.Err() == nil {
-		records = consumer.PollRecords(readCtx, 3-len(dmRecords))
+	for len(dmRecords) < 2 && dmCtx.Err() == nil {
+		records = consumer.PollRecords(dmCtx, 2-len(dmRecords))
 		require.Empty(t, records.Errors())
 		dmRecords = append(dmRecords, records.Records()...)
 	}
-	require.Len(t, dmRecords, 3)
+	require.Len(t, dmRecords, 2)
 	createdRecipients := make(map[string]bool)
 	for _, record := range dmRecords {
 		var dmEnvelope eventEnvelope[messagePayload]
 		require.NoError(t, json.Unmarshal(record.Value, &dmEnvelope))
-		if dmEnvelope.Type == EventTypeMessageCreated {
-			require.Equal(t, "4001", string(record.Key))
-			createdRecipients[dmEnvelope.Data.UserID] = true
-			continue
-		}
-		require.Equal(t, EventTypeMessageReadUpdated, dmEnvelope.Type)
-		require.Equal(t, "3001", string(record.Key))
+		require.Equal(t, EventTypeMessageCreated, dmEnvelope.Type)
+		require.Equal(t, "4001", string(record.Key))
+		createdRecipients[dmEnvelope.Data.UserID] = true
 	}
 	require.Equal(t, map[string]bool{"3001": true, "3002": true}, createdRecipients)
 }

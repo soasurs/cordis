@@ -4,14 +4,13 @@ import (
 	"context"
 	"strconv"
 	"sync"
-	"testing"
 
-	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
@@ -270,12 +269,6 @@ func (p *fakePublisher) Publish(_ context.Context, key, payload []byte) error {
 	return p.err
 }
 
-func (p *fakePublisher) onlyRecord(t *testing.T) publishedRecord {
-	t.Helper()
-	require.Len(t, p.records, 1)
-	return p.records[0]
-}
-
 type fakeStore struct {
 	messages        map[int64]*model.Message
 	mentions        map[int64]model.MessageMentions
@@ -288,6 +281,8 @@ type fakeStore struct {
 	rebuildStale    bool
 	transactErr     error
 	getMessageErr   error
+	messageOutbox   []outbox.Record
+	readStateOutbox []outbox.Record
 }
 
 type fakeIdempotencyRecord struct {
@@ -307,10 +302,20 @@ func newFakeStore() *fakeStore {
 }
 
 func (s *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) error) error {
-	if err := fn(s); err != nil {
+	messageLen := len(s.messageOutbox)
+	readStateLen := len(s.readStateOutbox)
+	err := fn(s)
+	if err != nil {
+		s.messageOutbox = s.messageOutbox[:messageLen]
+		s.readStateOutbox = s.readStateOutbox[:readStateLen]
 		return err
 	}
-	return s.transactErr
+	if s.transactErr != nil {
+		s.messageOutbox = s.messageOutbox[:messageLen]
+		s.readStateOutbox = s.readStateOutbox[:readStateLen]
+		return s.transactErr
+	}
+	return nil
 }
 
 func (s *fakeStore) ClaimMessageIdempotency(

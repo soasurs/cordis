@@ -47,14 +47,17 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, int64(1), resp.GetMessage().GetRevision())
 	require.Equal(t, []int64{30, 31}, fakeStore.mentions[resp.GetMessage().GetId()].UserIDs)
-	require.Equal(t, 1, fakeStore.listReadyCalls, "create must reload persisted read state instead of constructing it")
+	require.Zero(t, fakeStore.listReadyCalls)
 
-	require.Len(t, publisher.records, 2)
-	record := publisher.records[0]
-	require.Equal(t, "10", string(record.key))
+	require.Len(t, fakeStore.messageOutbox, 1)
+	record := fakeStore.messageOutbox[0]
+	require.Equal(t, "10", string(record.Key))
+	require.Equal(t, EventTypeMessageCreated, record.EventType)
 	var envelope eventEnvelope[messagePayload]
-	require.NoError(t, json.Unmarshal(record.payload, &envelope))
+	require.NoError(t, json.Unmarshal(record.Payload, &envelope))
 	require.Equal(t, EventTypeMessageCreated, envelope.Type)
+	require.NotZero(t, envelope.StreamSequence)
+	require.Zero(t, envelope.DeliveryIndex)
 	require.Equal(t, "9001", envelope.Data.GuildID)
 	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), envelope.Data.MessageID)
 	require.Equal(t, int64(20), resp.GetMessage().GetAuthorId())
@@ -71,11 +74,7 @@ func TestCreateMessagePublishesEvent(t *testing.T) {
 	require.Equal(t, int64(9001), envelope.Data.Attachments[0].URLExpiresAt)
 	require.Equal(t, "LEHV6nWB2yk8pyo0adR*.7kCMdnj", envelope.Data.Attachments[0].Blurhash)
 	require.Equal(t, int64(1), envelope.Data.Revision)
-	var readEnvelope eventEnvelope[messageReadUpdatedPayload]
-	require.NoError(t, json.Unmarshal(publisher.records[1].payload, &readEnvelope))
-	require.Equal(t, "20", string(publisher.records[1].key))
-	require.Equal(t, EventTypeMessageReadUpdated, readEnvelope.Type)
-	require.Equal(t, strconv.FormatInt(resp.GetMessage().GetId(), 10), readEnvelope.Data.LastReadMessageID)
+	require.Empty(t, fakeStore.readStateOutbox)
 }
 
 func TestCreateMessageIdempotentRetryReturnsSameMessageWithoutSideEffects(t *testing.T) {
@@ -91,9 +90,9 @@ func TestCreateMessageIdempotentRetryReturnsSameMessageWithoutSideEffects(t *tes
 
 	first, err := server.CreateMessage(t.Context(), req)
 	require.NoError(t, err)
-	require.Len(t, publisher.records, 2)
+	require.Len(t, fakeStore.messageOutbox, 1)
 	require.Equal(t, []int64{30, 31}, fakeStore.mentions[first.GetMessage().GetId()].UserIDs)
-	require.Equal(t, 1, fakeStore.listReadyCalls)
+	require.Zero(t, fakeStore.listReadyCalls)
 
 	retry := new(messagev1.CreateMessageRequest)
 	retry.SetChannelId(10)
@@ -106,8 +105,8 @@ func TestCreateMessageIdempotentRetryReturnsSameMessageWithoutSideEffects(t *tes
 	require.Equal(t, first.GetMessage().GetId(), second.GetMessage().GetId())
 	require.Equal(t, first.GetMessage().GetCreatedAt(), second.GetMessage().GetCreatedAt())
 	require.Len(t, fakeStore.messages, 1)
-	require.Len(t, publisher.records, 2)
-	require.Equal(t, 1, fakeStore.listReadyCalls)
+	require.Len(t, fakeStore.messageOutbox, 1)
+	require.Zero(t, fakeStore.listReadyCalls)
 }
 
 func TestCreateMessageRejectsIdempotencyKeyReuseWithDifferentRequest(t *testing.T) {
@@ -128,7 +127,7 @@ func TestCreateMessageRejectsIdempotencyKeyReuseWithDifferentRequest(t *testing.
 	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageIdempotencyKeyReused))
 	require.Equal(t, codes.InvalidArgument, status.Code(err))
 	require.Len(t, fakeStore.messages, 1)
-	require.Len(t, publisher.records, 2)
+	require.Len(t, fakeStore.messageOutbox, 1)
 }
 
 func TestCreateMessageRejectsMalformedIdempotencyKey(t *testing.T) {
@@ -179,10 +178,9 @@ func TestMessageEventRejectsEmptyDmAudience(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestCreateMessagePublishFailureIsBestEffort(t *testing.T) {
+func TestCreateMessageWritesOutboxRows(t *testing.T) {
 	fakeStore := newFakeStore()
-	publisher := &fakePublisher{err: errors.New("kafka unavailable")}
-	server := newTestMessageServer(t, fakeStore, publisher)
+	server := newTestMessageServer(t, fakeStore, new(fakePublisher))
 
 	req := new(messagev1.CreateMessageRequest)
 	req.SetChannelId(10)
@@ -192,14 +190,14 @@ func TestCreateMessagePublishFailureIsBestEffort(t *testing.T) {
 	resp, err := server.CreateMessage(t.Context(), req)
 	require.NoError(t, err)
 	require.NotNil(t, resp.GetMessage())
-	require.Len(t, publisher.records, 2)
+	require.Len(t, fakeStore.messageOutbox, 1)
+	require.Empty(t, fakeStore.readStateOutbox)
 }
 
-func TestCreateMessageTransactionFailureDoesNotPublish(t *testing.T) {
+func TestCreateMessageTransactionFailureWritesNoOutbox(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.transactErr = errors.New("commit failed")
-	publisher := new(fakePublisher)
-	server := newTestMessageServer(t, fakeStore, publisher)
+	server := newTestMessageServer(t, fakeStore, new(fakePublisher))
 
 	req := new(messagev1.CreateMessageRequest)
 	req.SetChannelId(10)
@@ -208,7 +206,8 @@ func TestCreateMessageTransactionFailureDoesNotPublish(t *testing.T) {
 
 	_, err := server.CreateMessage(t.Context(), req)
 	require.Error(t, err)
-	require.Empty(t, publisher.records)
+	require.Empty(t, fakeStore.messageOutbox)
+	require.Empty(t, fakeStore.readStateOutbox)
 }
 
 func TestCreateMessageLoadsAuthorBeforeWriting(t *testing.T) {
@@ -359,9 +358,11 @@ func TestUpdateMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "edited <@30>", resp.GetMessage().GetContent())
 	require.Equal(t, int64(2), resp.GetMessage().GetRevision())
+	require.Len(t, fakeStore.messageOutbox, 1)
 
 	var envelope eventEnvelope[messagePayload]
-	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
+	require.NoError(t, json.Unmarshal(fakeStore.messageOutbox[0].Payload, &envelope))
+	require.Equal(t, EventTypeMessageUpdated, fakeStore.messageOutbox[0].EventType)
 	require.Equal(t, EventTypeMessageUpdated, envelope.Type)
 	require.Equal(t, int64(2), envelope.Data.Revision)
 	require.Equal(t, []string{"30"}, envelope.Data.MentionUserIDs)
@@ -435,9 +436,11 @@ func TestDeleteMessageIncrementsRevisionAndPublishesEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, resp.GetOk())
 	require.Equal(t, int64(3), fakeStore.messages[100].Revision)
+	require.Len(t, fakeStore.messageOutbox, 1)
 
 	var envelope eventEnvelope[messageDeletedPayload]
-	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
+	require.NoError(t, json.Unmarshal(fakeStore.messageOutbox[0].Payload, &envelope))
+	require.Equal(t, EventTypeMessageDeleted, fakeStore.messageOutbox[0].EventType)
 	require.Equal(t, EventTypeMessageDeleted, envelope.Type)
 	require.Equal(t, int64(3), envelope.Data.Revision)
 	require.NotZero(t, envelope.Data.DeletedAt)
@@ -560,14 +563,14 @@ func TestCreateMessageMentionLimitExceeded(t *testing.T) {
 	require.Equal(t, codes.ResourceExhausted, status.Code(err))
 }
 
-func newTestMessageServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher) messagev1.MessageServiceServer {
+func newTestMessageServer(t *testing.T, fakeStore store.Store, publisher *fakePublisher) messagev1.MessageServiceServer {
 	return newTestMessageServerWithGuild(t, fakeStore, publisher, &fakeGuildClient{})
 }
 
 func newTestMessageServerWithGuild(
 	t *testing.T,
 	fakeStore store.Store,
-	publisher svc.EventPublisher,
+	publisher *fakePublisher,
 	guildClient guildv1.GuildServiceClient,
 ) messagev1.MessageServiceServer {
 	return newTestMessageServerWithClients(t, fakeStore, publisher, guildClient, newFakeUserClient())
@@ -576,7 +579,7 @@ func newTestMessageServerWithGuild(
 func newTestMessageServerWithClients(
 	t *testing.T,
 	fakeStore store.Store,
-	publisher svc.EventPublisher,
+	publisher *fakePublisher,
 	guildClient guildv1.GuildServiceClient,
 	userClient userv1.UserServiceClient,
 ) messagev1.MessageServiceServer {
@@ -593,7 +596,7 @@ func newTestMessageServerWithClients(
 func newTestMessageServerWithMedia(
 	t *testing.T,
 	fakeStore store.Store,
-	publisher svc.EventPublisher,
+	publisher *fakePublisher,
 	guildClient guildv1.GuildServiceClient,
 	userClient userv1.UserServiceClient,
 	mediaClient mediav1.MediaServiceClient,
@@ -606,14 +609,12 @@ func newTestMessageServerWithMedia(
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
 			Kafka: config.KafkaConfig{
-				Topic:            "cordis.message.events.v1",
-				PublishTimeoutMs: 100,
+				Topic: "cordis.message.events.v1",
 			},
 		},
 		Store:       fakeStore,
 		Snowflake:   node,
 		Cursors:     codec,
-		Publisher:   publisher,
 		GuildClient: guildClient,
 		UserClient:  userClient,
 		MediaClient: mediaClient,

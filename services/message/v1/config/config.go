@@ -6,7 +6,6 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 
 	"github.com/soasurs/cordis/pkg/database"
-	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/kafka/partitionconsumer"
 )
 
@@ -19,6 +18,7 @@ type Config struct {
 	ReadStates      ReadStatesConfig
 	Limits          ResourceLimitsConfig
 	Idempotency     IdempotencyConfig
+	Outbox          OutboxConfig
 	Services        ServiceConfig
 }
 
@@ -70,6 +70,28 @@ type IdempotencyConfig struct {
 	CreateMessageTTLSeconds int `json:",default=1800"`
 }
 
+// OutboxConfig controls transactional event outbox writes.
+type OutboxConfig struct {
+	MessageShardCount   int `json:",default=64"`
+	ReadStateShardCount int `json:",default=64"`
+}
+
+// MessageShards returns the virtual shard count for message events.
+func (c OutboxConfig) MessageShards() int {
+	if c.MessageShardCount <= 0 {
+		return 64
+	}
+	return c.MessageShardCount
+}
+
+// ReadStateShards returns the virtual shard count for read-state events.
+func (c OutboxConfig) ReadStateShards() int {
+	if c.ReadStateShardCount <= 0 {
+		return 64
+	}
+	return c.ReadStateShardCount
+}
+
 // KeyLength returns the maximum accepted idempotency key length in bytes.
 func (c IdempotencyConfig) KeyLength() int {
 	if c.KeyMaxLength <= 0 {
@@ -106,24 +128,14 @@ type KafkaConfig struct {
 	// MentionsConsumerGroup is the consumer group of the mention expansion
 	// worker, which consumes the message event topic.
 	MentionsConsumerGroup string `json:",default=cordis.message.mentions.v1"`
-
-	// PublishTimeoutMs bounds how long a handler waits for a broker
-	// acknowledgement. Publication failure does not fail the message RPC.
-	PublishTimeoutMs int `json:",default=1000"`
 }
 
-// ProducerConfig converts to the kafka package's config.
-func (c KafkaConfig) ProducerConfig() kafka.ProducerConfig {
-	return kafka.ProducerConfig{
-		Seeds:           c.Seeds,
-		DeliveryTimeout: c.PublishTimeout(),
+// EventTopic returns the message event topic, falling back to the canonical
+// topic when the optional Kafka section is absent so nested defaults do not
+// apply.
+func (c KafkaConfig) EventTopic() string {
+	if c.Topic == "" {
+		return "cordis.message.events.v1"
 	}
-}
-
-// PublishTimeout returns the maximum time spent waiting for Kafka.
-func (c KafkaConfig) PublishTimeout() time.Duration {
-	if c.PublishTimeoutMs <= 0 {
-		return time.Second
-	}
-	return time.Duration(c.PublishTimeoutMs) * time.Millisecond
+	return c.Topic
 }

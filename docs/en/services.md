@@ -268,12 +268,14 @@ channel count rather than clamping one oversized query to the limiter capacity.
 
 Client message types are currently `DEFAULT` and `REPLY`; `THREAD_STARTER` is
 reserved. The only client-settable flag is `SUPPRESS_NOTIFICATIONS`. After a
-write transaction commits, the service publishes directly to `cordis.message.events.v1`
-on a best-effort basis; failures are logged. Guild message records carry
-`guild_id`; Message `created`, `updated`, and `deleted` records use the channel
-ID as the Kafka key to preserve order within a channel, including DM records
-whose payload carries a recipient `user_id`. User-keyed Message records such as
-`message.read.updated` and `dm.channel.created` use the target user ID. Message events carry
+write transaction commits, outbox rows are inserted in the same transaction and
+a separate relay publishes them to `cordis.message.events.v1`. Guild message
+records carry `guild_id`; Message `created`, `updated`, and `deleted` records
+use the channel ID as the Kafka key to preserve order within a channel,
+including DM records whose payload carries a recipient `user_id`.
+`dm.channel.created` also uses the channel ID key. `message.read.updated` uses
+a separate outbox with a `user_id:channel_id` stream and composite Kafka key.
+Message events carry
 `mention_user_ids`, `mention_role_ids`, and `mention_everyone`; updated events
 also carry the best-effort previous mention set for client-side cleanup. The
 Message service runs a background expansion consumer
@@ -301,16 +303,17 @@ non-empty, have no leading or trailing whitespace, and be at most 255 UTF-8
 bytes. Its fingerprint includes the channel, content, normalized type, flags,
 references, attachment asset IDs and order, and the parsed mention set (user
 IDs, role IDs, and the everyone flag). Reusing a key with the same fingerprint
-returns the original message without writing mentions, advancing read state,
-or publishing another creation event. Reusing it with different parameters
+returns the original message without writing mentions or inserting another
+outbox row. Reusing it with different parameters
 returns `request.idempotency_key_reused`.
 Requests without a key retain their existing behavior. A retry still passes
 through normal authentication, authorization, and request validation; if
 those checks or their dependencies fail, the retry may return that error
 without creating another message. The idempotency record and message-side
-writes are transactional, while the existing commit-to-Kafka best-effort
-publication window remains. TTLs are operation-specific so other creation RPCs
-can use different retention periods.
+writes are transactional. `CreateMessage` does not advance the author's read
+state; clients mark the channel read locally after sending and call
+`AckMessage` later with debounce. TTLs are operation-specific so other creation
+RPCs can use different retention periods.
 
 ## Gateway
 

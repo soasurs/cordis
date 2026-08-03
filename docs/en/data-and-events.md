@@ -3,7 +3,8 @@
 PostgreSQL ownership is divided by service: User owns users/profiles,
 Authenticator owns authentication sessions, Guild owns guild domain tables,
 and Message owns messages, mentions, and serialized attachment data. The latest
-migration removes the old reaction, emoji, and outbox tables.
+migrations removed the old reaction, emoji, and legacy outbox tables; Message
+now uses a transactional outbox for event delivery.
 
 SQL migrations are embedded into service binaries and applied lexicographically
 by `pkg/migration.Apply`; `*.down.sql` is skipped. Cross-table integrity is
@@ -46,21 +47,26 @@ Create, delete, parent-move, and reorder events carry the committed layout
 revision in addition to each channel's own `revision`; stale structural
 requests are rejected rather than replayed.
 
-User, Message, Guild, and Presence do not use an outbox. After the business transaction
+User, Guild, and Presence do not use an outbox. After the business transaction
 commits, User publishes relationship and profile events best-effort to
-`cordis.user.events.v1`, Message publishes best-effort to
-`cordis.message.events.v1`, Guild publishes best-effort to
+`cordis.user.events.v1`, Guild publishes best-effort to
 `cordis.guild.events.v1`, and Presence publishes public transitions and private
 preference changes best-effort to `cordis.presence.events.v1`. Presence
 persists the relevant versioned state before publishing and uses that same
-version as the event idempotency key. Domain aggregate IDs are used as Kafka keys:
-Message `created`, `updated`, and `deleted` events use `channel_id`, including DM
-records whose payload is user-routed; user-keyed Message events such as
-`message.read.updated` and `dm.channel.created` use the target `user_id`. The
-other domains use their corresponding user or Guild aggregate ID. This preserves
-per-user, per-channel, or per-Guild partition order. With Kafka disabled, no
-producer is created. Publish failure is logged and does not fail the already
-committed RPC, so database and Kafka delivery are not atomic.
+version as the event idempotency key. Publish failure is logged and does not
+fail the already committed RPC, so database and Kafka delivery are not atomic.
+
+Message uses a PostgreSQL transactional outbox. The business transaction
+inserts outbox rows together with message state changes, and a separate relay
+publishes them to `cordis.message.events.v1`. Message events
+(`message.created`, `message.updated`, `message.deleted`, and
+`dm.channel.created`) use `channel_id` as both the stream key and Kafka key.
+Read-state events (`message.read.updated`) use a separate outbox and stream
+keyed by `user_id:channel_id`, with the same composite Kafka key; Dispatcher
+routing still uses the payload `user_id`. The envelope carries
+`idempotency_key` (the logical `event_id`), `stream_sequence`, and
+`delivery_index`; fanout records of one logical event share `event_id` and are
+distinguished by `delivery_index`.
 
 Guild's `guild_member_profiles` table is a local search projection, not the
 source of truth for User profiles. It stores username, Guild nickname, profile
@@ -73,12 +79,12 @@ The profile projector consumes `cordis.user.events.v1` in the
 `cordis.guild.user.profiles.v1` group.
 
 For `CreateMessage`, an optional request idempotency record is committed with
-the message, mentions, and author read state. A same-key retry therefore
-returns the existing message without publishing another creation or read-state
-event when normal authentication, authorization, and request validation
-succeed. Those checks may still return their usual error without creating
-another message. This does not remove the general crash window between a
-successful database commit and best-effort Kafka publication.
+the message and mentions. `CreateMessage` no longer advances the author's read
+state; clients locally mark the channel read after sending and call
+`AckMessage` later with debounce, following Discord's model. A same-key retry
+returns the existing message without inserting another outbox row when normal
+authentication, authorization, and request validation succeed. Those checks
+may still return their usual error without creating another message.
 
 Guild creation RPCs (`CreateGuild`, `CreateGuildRole`, `CreateGuildChannel`,
 and `CreateGuildInvite`) commit their idempotency record in the same

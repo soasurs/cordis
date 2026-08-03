@@ -38,6 +38,8 @@ type eventEnvelope struct {
 	Type           string          `json:"t"`
 	Data           json.RawMessage `json:"d"`
 	IdempotencyKey string          `json:"idempotency_key"`
+	StreamSequence int64           `json:"stream_sequence,omitempty"`
+	DeliveryIndex  int32           `json:"delivery_index,omitempty"`
 }
 
 type eventRouting struct {
@@ -628,6 +630,8 @@ func protoEvent(event eventEnvelope, idempotencyKey int64) *sessionv1.EventEnvel
 	result.SetType(event.Type)
 	result.SetJsonPayload(string(event.Data))
 	result.SetIdempotencyKey(idempotencyKey)
+	result.SetStreamSequence(event.StreamSequence)
+	result.SetDeliveryIndex(event.DeliveryIndex)
 	return result
 }
 

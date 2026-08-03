@@ -5,7 +5,7 @@
 - User：`users`、`user_profiles`。
 - Authenticator：认证 `sessions`。
 - Guild：Guild、成员、封禁、角色、成员角色、频道和权限覆盖。
-- Message：消息、提及和附件序列化数据。旧的 reaction、emoji 和 Outbox 表已由最新迁移删除。
+- Message：消息、提及和附件序列化数据。旧的 reaction、emoji 和 legacy Outbox 表已由历史迁移删除；Message 现在使用事务性 Outbox 投递事件。
 
 迁移以 SQL 文件嵌入服务二进制，通过 `pkg/migration.Apply` 按文件名字典序执行，并跳过 `*.down.sql`。当前表之间不依赖数据库外键，跨实体完整性主要由应用层检查。业务实体普遍以 `deleted_at = 0` 表示未软删除。
 
@@ -44,9 +44,11 @@ previous 集合。Message 服务的 mention 展开消费组（`cordis.message.me
 消费同一事件 topic，角色和 `@everyone` 目标与推送给客户端的事件来自同一条
 best-effort 数据流；详见 [mention-expansion.md](mention-expansion.md)。
 
-## 直接发布 Kafka
+## 事件发布
 
-User、Message、Guild 和 Presence 都不使用 Outbox。业务事务成功后，User 将关系和资料事件 best-effort 发布到 `cordis.user.events.v1`，Message 发布到 `cordis.message.events.v1`，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布使用领域聚合 ID 作为 Kafka key：Message 的 `created`、`updated` 和 `deleted` 事件使用 `channel_id`，包括 payload 按用户路由的 DM 记录；`message.read.updated`、`dm.channel.created` 等 user-keyed Message 事件使用目标 `user_id`，从而保持同一用户、频道或 Guild 的分区顺序。未配置 Kafka 时不创建 producer；发布失败只记录日志，不改变已经成功的 RPC。数据库提交与 Kafka 发布之间没有原子性。
+User、Guild 和 Presence 不使用 Outbox。业务事务成功后，User 将关系和资料事件 best-effort 发布到 `cordis.user.events.v1`，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布失败只记录日志，不改变已经成功的 RPC；数据库提交与 Kafka 发布之间没有原子性。
+
+Message 使用 PostgreSQL 事务性 Outbox。业务事务与消息状态变更一起写入 outbox 行，由独立 relay 发布到 `cordis.message.events.v1`。消息事件（`message.created`、`message.updated`、`message.deleted` 和 `dm.channel.created`）使用 `channel_id` 同时作为 stream key 和 Kafka key。已读事件（`message.read.updated`）使用独立的 outbox 和 stream，stream key 为 `user_id:channel_id`，Kafka key 同样为复合 key；Dispatcher 仍按 payload 的 `user_id` 路由。事件信封携带 `idempotency_key`（逻辑 `event_id`）、`stream_sequence` 和 `delivery_index`；同一逻辑事件的 fanout 记录共享 `event_id`，用 `delivery_index` 区分。
 
 Guild 的 `guild_member_profiles` 是本地搜索投影，不是 User profile 的权威数据。
 它为活跃成员保存 username、Guild nickname、profile name 和头像信息；成员移除时，
@@ -56,10 +58,10 @@ Guild 的 `guild_member_profiles` 是本地搜索投影，不是 User profile �
 Guild profile projector 使用 `cordis.guild.user.profiles.v1` 消费组消费
 `cordis.user.events.v1`。
 
-`CreateMessage` 的可选请求幂等记录会与消息、mentions 和作者 read state
-一起提交。认证、授权和请求校验正常通过时，相同 key 的重试会返回已有消息，
-不再发布创建或 read-state 事件；这些检查仍可能返回原有错误，但不会创建新消息。
-这不会消除数据库提交成功后、best-effort Kafka 发布前的崩溃窗口。
+`CreateMessage` 的可选请求幂等记录会与消息和 mentions 一起提交。
+`CreateMessage` 不再推进作者 read state；客户端发送成功后本地标记已读，再延迟调用
+`AckMessage`（Discord 模型）。认证、授权和请求校验正常通过时，相同 key 的重试
+会返回已有消息，不再插入新的 outbox 行；这些检查仍可能返回原有错误，但不会创建新消息。
 
 Guild 创建类 RPC（`CreateGuild`、`CreateGuildRole`、`CreateGuildChannel`、
 `CreateGuildInvite`）的幂等记录与资源写入在同一事务内提交。相同 key 的重试

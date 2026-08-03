@@ -1,0 +1,25 @@
+name: message-outbox-relay
+
+database:
+  dataSource: "${CORDIS_DATABASE_DSN}"
+  maxOpenConns: 20
+  maxIdleConns: 5
+
+kafka:
+  seeds:
+    - kafka:29092
+  topic: cordis.message.events.v1
+  publishTimeoutMs: 5000
+
+outbox:
+  messageShardCount: 64
+  readStateShardCount: 64
+
+relay:
+  workers: 4
+  batchSize: 100
+  pollIntervalMs: 1000
+  timeSliceMs: 100
+  backoffMinMs: 100
+  backoffMaxMs: 60000
+  notifyEnabled: true

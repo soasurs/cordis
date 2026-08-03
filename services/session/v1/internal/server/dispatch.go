@@ -165,6 +165,10 @@ func (s *Server) DispatchGuildMessageEvent(ctx context.Context, req *sessionv1.D
 		resp := new(sessionv1.DispatchGuildMessageEventResponse)
 		return resp, nil
 	}
+	if !s.watermarks.accept(routeKindGuildMsg, req.GetGuildId(), req.GetChannelId(), req.GetEvent().GetStreamSequence()) {
+		resp := new(sessionv1.DispatchGuildMessageEventResponse)
+		return resp, nil
+	}
 
 	resp := new(sessionv1.DispatchGuildMessageEventResponse)
 	resp.SetDelivered(int32(s.dispatchVisibleGuildChannel(ctx, req.GetGuildId(), req.GetChannelId(), eventType, payload)))
@@ -234,6 +238,16 @@ func (s *Server) DispatchUserEvent(_ context.Context, req *sessionv1.DispatchUse
 	if !s.dedup.checkAndAdd(routeKindUser, req.GetUserId(), idempotencyKey, eventType, dedupTTL) {
 		resp := new(sessionv1.DispatchUserEventResponse)
 		return resp, nil
+	}
+	if eventType == realtime.EventMessageCreated || eventType == realtime.EventMessageUpdated || eventType == realtime.EventMessageDeleted {
+		var routing eventRouting
+		if err := json.Unmarshal(payload, &routing); err != nil || parseID(routing.ChannelID) <= 0 {
+			return nil, status.Error(codes.InvalidArgument, "message event channel id is required")
+		}
+		if !s.watermarks.accept(routeKindUser, req.GetUserId(), parseID(routing.ChannelID), req.GetEvent().GetStreamSequence()) {
+			resp := new(sessionv1.DispatchUserEventResponse)
+			return resp, nil
+		}
 	}
 
 	resp := new(sessionv1.DispatchUserEventResponse)

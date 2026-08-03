@@ -35,7 +35,6 @@ database:
 kafka:
   seeds: []
   topic: cordis.message.events.v1
-  publishTimeoutMs: 1000
 
 cursor:
   secret: "${CORDIS_CURSOR_SECRET}"
@@ -50,6 +49,10 @@ limits:
 idempotency:
   keyMaxLength: 255
   createMessageTTLSeconds: 1800
+
+outbox:
+  messageShardCount: 64
+  readStateShardCount: 64
 
 services:
   guild:

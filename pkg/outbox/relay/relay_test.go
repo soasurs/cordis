@@ -54,3 +54,18 @@ func TestHashNamespaceIsStable(t *testing.T) {
 	require.Equal(t, hashNamespace("cordis.message.outbox"), hashNamespace("cordis.message.outbox"))
 	require.NotEqual(t, hashNamespace("cordis.message.outbox"), hashNamespace("cordis.guild.outbox"))
 }
+
+func TestListenerDelayDoublesAndCaps(t *testing.T) {
+	relay, err := New(Config{
+		DB:         new(sqlx.DB),
+		Tables:     outbox.Tables{Streams: "streams", Events: "events"},
+		Publisher:  &kafka.Publisher{},
+		Namespace:  "cordis.message.outbox",
+		BackoffMin: time.Second,
+		BackoffMax: 4 * time.Second,
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, 2*time.Second, relay.nextListenerDelay(time.Second))
+	require.Equal(t, 4*time.Second, relay.nextListenerDelay(4*time.Second))
+}

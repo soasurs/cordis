@@ -278,23 +278,32 @@ func (r *Relay) backoff(attempt int) time.Duration {
 }
 
 func (r *Relay) listen(ctx context.Context) {
+	delay := r.cfg.BackoffMin
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
 		if err := r.listenOnce(ctx); err != nil && ctx.Err() == nil {
 			logx.WithContext(ctx).Errorw("relay listener failed",
 				logx.Field("namespace", r.cfg.Namespace),
 				logx.Field("error", err),
 			)
 		}
-		r.signalWake()
 		if ctx.Err() != nil {
 			return
 		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(delay):
+		}
+		delay = r.nextListenerDelay(delay)
 	}
+}
+
+func (r *Relay) nextListenerDelay(current time.Duration) time.Duration {
+	next := min(current*2, r.cfg.BackoffMax)
+	if next < r.cfg.BackoffMin {
+		next = r.cfg.BackoffMin
+	}
+	return next
 }
 
 func (r *Relay) listenOnce(ctx context.Context) error {

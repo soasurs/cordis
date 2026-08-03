@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
@@ -80,6 +81,7 @@ func (s *messageServer) insertMessageOutbox(
 			EventType:      draft.EventType,
 			Key:            draft.Key,
 			Payload:        payload,
+			TraceContext:   kafka.MarshalTraceContext(ctx),
 			CreatedAt:      now,
 		})
 	}
@@ -115,6 +117,7 @@ func (s *messageServer) insertReadStateOutbox(
 			EventType:      draft.EventType,
 			Key:            draft.Key,
 			Payload:        payload,
+			TraceContext:   kafka.MarshalTraceContext(ctx),
 			CreatedAt:      now,
 		})
 	}

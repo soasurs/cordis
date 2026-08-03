@@ -132,19 +132,8 @@ func (r *Relay) Metrics() *Metrics {
 }
 
 func (r *Relay) worker(ctx context.Context) {
-	conn, err := r.cfg.DB.Connx(ctx)
-	if err != nil {
-		if ctx.Err() == nil {
-			logx.WithContext(ctx).Errorw("relay acquire database connection",
-				logx.Field("error", err),
-			)
-		}
-		return
-	}
-	defer conn.Close()
-
 	for {
-		if err := r.workOnce(ctx, conn); err != nil && ctx.Err() == nil {
+		if err := r.workOnce(ctx); err != nil && ctx.Err() == nil {
 			logx.WithContext(ctx).Errorw("relay scan failed",
 				logx.Field("namespace", r.cfg.Namespace),
 				logx.Field("error", err),
@@ -159,7 +148,13 @@ func (r *Relay) worker(ctx context.Context) {
 	}
 }
 
-func (r *Relay) workOnce(ctx context.Context, conn *sqlx.Conn) error {
+func (r *Relay) workOnce(ctx context.Context) error {
+	conn, err := r.cfg.DB.Connx(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
 	shards, err := outbox.ListReadyShards(ctx, conn, r.cfg.Tables.Events, time.Now().UnixMilli())
 	if err != nil {
 		return err
@@ -198,9 +193,10 @@ func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) 
 		records := make([]kafka.Record, 0, len(heads))
 		for _, head := range heads {
 			records = append(records, kafka.Record{
-				ID:      head.OutboxID,
-				Key:     head.Key,
-				Payload: head.Payload,
+				ID:           head.OutboxID,
+				Key:          head.Key,
+				Payload:      head.Payload,
+				TraceContext: head.TraceContext,
 			})
 		}
 		results := r.cfg.Publisher.PublishBatchWithResults(ctx, records)

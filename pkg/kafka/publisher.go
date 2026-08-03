@@ -18,6 +18,10 @@ type Record struct {
 	ID      int64
 	Key     []byte
 	Payload []byte
+	// TraceContext carries serialized trace headers persisted by an outbox
+	// writer. When present it is restored on the record; otherwise the current
+	// context is injected.
+	TraceContext []byte
 }
 
 // PublishResult is the per-record outcome of a batch publish. Results are
@@ -74,7 +78,11 @@ func (p *Publisher) PublishBatchWithResults(ctx context.Context, batch []Record)
 			Key:   item.Key,
 			Value: item.Payload,
 		}
-		InjectTraceContext(ctx, record)
+		if len(item.TraceContext) > 0 {
+			UnmarshalTraceContext(item.TraceContext, record)
+		} else {
+			InjectTraceContext(ctx, record)
+		}
 		records = append(records, record)
 		idsByRecord[record] = item.ID
 	}

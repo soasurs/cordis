@@ -22,4 +22,6 @@ relay:
   timeSliceMs: 100
   backoffMinMs: 100
   backoffMaxMs: 60000
+  # LISTEN/NOTIFY requires PostgreSQL session pooling. With PgBouncer in
+  # transaction pooling mode, set notifyEnabled: false and rely on polling.
   notifyEnabled: true

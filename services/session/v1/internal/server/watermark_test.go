@@ -38,3 +38,10 @@ func TestWatermarkAcceptsLegacyEventsWithoutSequence(t *testing.T) {
 		t.Fatal("zero sequence must be accepted")
 	}
 }
+
+func TestWatermarkAcceptsLargeSnowflakeIDs(t *testing.T) {
+	store := newWatermarkStore()
+	if !store.accept(routeKindGuildMsg, 9007199254740993, 9007199254740994, 1) {
+		t.Fatal("large snowflake ids must not panic")
+	}
+}

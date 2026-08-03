@@ -51,7 +51,7 @@ func (s *watermarkStore) accept(kind uint8, routeID, channelID, sequence int64) 
 		return true
 	}
 	key := watermarkKey{routeKind: kind, routeID: routeID, channelID: channelID}
-	shard := &s.shards[uint64(kind)^uint64(routeID)^uint64(channelID)%watermarkShardCount]
+	shard := &s.shards[(uint64(kind)^uint64(routeID)^uint64(channelID))%watermarkShardCount]
 	shard.mu.Lock()
 	defer shard.mu.Unlock()
 	now := time.Now().UnixNano()

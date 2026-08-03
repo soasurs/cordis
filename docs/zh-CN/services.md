@@ -111,6 +111,7 @@ object key 重新签发 presigned PUT URL；重试不会再次创建 asset 或�
 保留认证后的 HTTP `GetReadStates` 作为 reconcile 路径，但不再接收 `channel_id` 列表。客户端只能按一个 `guild_id` 或全部 DM 两种 scope 同步；Guild scope 由服务端授权结果产生可见文本频道，DM scope 同时返回完整 DM 列表，以修复漏掉的创建事件。API 按用户限制并发，Message 端再用进程内容量限制聚合查询负载。服务端产生的超大 scope 会按 capacity 拆成多个数据库批次，每批获取与频道数完全一致的 weight，不会把一条超大查询 clamp 成 capacity 后直接执行。
 
 允许客户端创建的消息类型仅为 `DEFAULT` 和 `REPLY`；`THREAD_STARTER` 保留给未来 Thread 功能。客户端可设置的 flag 目前只有 `SUPPRESS_NOTIFICATIONS`。写事务提交后，服务 best-effort 直接向 `cordis.message.events.v1` 发布事件；发布失败只记录日志。
+写事务会在同一事务内插入 outbox 行，由独立 relay 发布到 `cordis.message.events.v1`。`message.created`、`message.updated`、`message.deleted` 和 `dm.channel.created` 使用 `channel_id` 作为 Kafka key；`message.read.updated` 使用独立的 outbox，stream 和 Kafka key 均为 `user_id:channel_id`。
 
 消息事件携带 `mention_user_ids`、`mention_role_ids` 和 `mention_everyone`；更新事件还会携带 best-effort 的 previous mention 集合，供客户端清理本地高亮。Message 服务内运行一个后台展开消费组（`cordis.message.mentions.v1`）消费同一事件 topic：只处理包含角色或 everyone mention 的 created 事件和 mentions 已重建的 updated 事件，校验存储中的 revision，通过 Guild 分页拉取频道可见成员，并在 revision 守卫下原子重建展开行。展开是最终一致的：消息可能先于其 `mention_count` 贡献可见；best-effort 事件丢失时展开同样丢失。
 该 worker 复用共享 partition consumer runtime，每个 partition 保持一个串行
@@ -120,6 +121,7 @@ worker、独立有界队列、retry 和 offset 状态；某个 partition 的 ret
 加上默认的一秒 wrap-up 阶段，为 worker 停止和最终 offset 提交预留有界时间。
 
 `CreateMessage` 支持可选的 opaque `idempotency_key`，用于标识一次客户端创建意图。key 的作用域是认证用户和 `message.create` 操作，默认保留 30 分钟；不得为空、首尾不得有空白，长度最多为 255 个 UTF-8 字节。请求指纹（版本 2）包含 channel、正文、规范化后的 type、flags、引用消息、附件 asset ID 及其顺序，以及解析后的 mention 集合（用户 ID、角色 ID 和 everyone 标记）。相同指纹重用 key 时返回第一次创建的消息，不再次写入 mentions、推进 read state 或发布创建事件；不同参数重用 key 时返回 `request.idempotency_key_reused`。未携带 key 的请求保持原有行为。重试仍会执行正常的认证、授权和请求校验；这些检查或其依赖失败时，重试可以返回对应错误，但不会创建新消息。幂等记录与消息侧写入在同一事务内完成，但现有提交后 best-effort 发布 Kafka 的窗口仍然存在。TTL 按 operation 独立配置，其他创建类 RPC 可以使用不同的保留时间。
+`CreateMessage` 不再推进作者 read state；客户端发送成功后本地标记已读，再延迟调用 `AckMessage`。相同指纹重用 key 时返回第一次创建的消息，不再次写入 mentions，也不插入新的 outbox 行；不同参数重用 key 时返回 `request.idempotency_key_reused`。未携带 key 的请求保持原有行为。重试仍会执行正常的认证、授权和请求校验；这些检查或其依赖失败时，重试可以返回对应错误，但不会创建新消息。幂等记录与消息侧写入在同一事务内完成。TTL 按 operation 独立配置，其他创建类 RPC 可以使用不同的保留时间。
 
 ## Gateway
 

@@ -173,7 +173,7 @@ func (r *Relay) workOnce(ctx context.Context) error {
 		if !acquired {
 			continue
 		}
-		processErr := r.processShard(ctx, conn, shardID)
+		more, processErr := r.processShard(ctx, conn, shardID)
 		unlockErr := r.unlock(ctx, conn, shardID)
 		if processErr != nil {
 			return processErr
@@ -181,19 +181,25 @@ func (r *Relay) workOnce(ctx context.Context) error {
 		if unlockErr != nil {
 			return unlockErr
 		}
+		if more {
+			r.signalWake()
+		}
 	}
 	return nil
 }
 
-func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) error {
+// processShard drains a shard until SelectHeads returns empty or the time
+// slice expires. The boolean reports whether the slice expired with possible
+// remaining work so the caller can reschedule immediately.
+func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) (bool, error) {
 	deadline := time.Now().Add(r.cfg.TimeSlice)
 	for time.Now().Before(deadline) {
 		heads, err := outbox.SelectHeads(ctx, conn, r.cfg.Tables.Events, shardID, time.Now().UnixMilli(), int64(r.cfg.BatchSize))
 		if err != nil {
-			return err
+			return false, err
 		}
 		if len(heads) == 0 {
-			return nil
+			return false, nil
 		}
 
 		records := make([]kafka.Record, 0, len(heads))
@@ -227,22 +233,22 @@ func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) 
 
 		tx, err := conn.BeginTxx(ctx, nil)
 		if err != nil {
-			return err
+			return false, err
 		}
 		if err := outbox.DeleteDelivered(ctx, tx, r.cfg.Tables.Events, delivered); err != nil {
 			_ = tx.Rollback()
-			return err
+			return false, err
 		}
 		if err := outbox.UpdateFailed(ctx, tx, r.cfg.Tables.Events, failed); err != nil {
 			_ = tx.Rollback()
-			return err
+			return false, err
 		}
 		if err := tx.Commit(); err != nil {
-			return err
+			return false, err
 		}
 		r.metrics.Deleted.Add(int64(len(delivered)))
 	}
-	return nil
+	return true, nil
 }
 
 func (r *Relay) tryLock(ctx context.Context, conn *sqlx.Conn, shardID int) (bool, error) {

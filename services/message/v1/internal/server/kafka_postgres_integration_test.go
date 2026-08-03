@@ -81,9 +81,9 @@ func TestCreateMessageOutboxForwardsToKafka(t *testing.T) {
 		NotifyChannel: eventoutbox.MessageNotifyChannel,
 		ListenerDSN:   postgres.DSN,
 		Workers:       2,
-		BatchSize:     10,
+		BatchSize:     1,
 		PollInterval:  time.Minute,
-		TimeSlice:     time.Second,
+		TimeSlice:     time.Millisecond,
 		BackoffMin:    10 * time.Millisecond,
 		BackoffMax:    100 * time.Millisecond,
 	})

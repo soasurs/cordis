@@ -58,7 +58,7 @@ func NewMentionExpander(svcCtx *svc.ServiceContext) (*mentionExpander, error) {
 		},
 		kgo.SeedBrokers(svcCtx.Cfg.Kafka.Seeds...),
 		kgo.ConsumerGroup(svcCtx.Cfg.Kafka.MentionsConsumerGroup),
-		kgo.ConsumeTopics(svcCtx.Cfg.Kafka.Topic),
+		kgo.ConsumeTopics(svcCtx.Cfg.Kafka.EventTopic()),
 	)
 	if err != nil {
 		return nil, err

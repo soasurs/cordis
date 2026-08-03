@@ -58,7 +58,7 @@ func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessag
 				ctx,
 				txStore,
 				event,
-				s.svcCtx.Cfg.Kafka.Topic,
+				s.svcCtx.Cfg.Kafka.EventTopic(),
 				s.svcCtx.Cfg.Outbox.ReadStateShards(),
 				eventoutbox.ReadStateNotifyChannel,
 			)

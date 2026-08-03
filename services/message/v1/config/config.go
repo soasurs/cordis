@@ -129,3 +129,13 @@ type KafkaConfig struct {
 	// worker, which consumes the message event topic.
 	MentionsConsumerGroup string `json:",default=cordis.message.mentions.v1"`
 }
+
+// EventTopic returns the message event topic, falling back to the canonical
+// topic when the optional Kafka section is absent so nested defaults do not
+// apply.
+func (c KafkaConfig) EventTopic() string {
+	if c.Topic == "" {
+		return "cordis.message.events.v1"
+	}
+	return c.Topic
+}

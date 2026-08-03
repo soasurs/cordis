@@ -179,7 +179,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 			ctx,
 			txStore,
 			events,
-			s.svcCtx.Cfg.Kafka.Topic,
+			s.svcCtx.Cfg.Kafka.EventTopic(),
 			s.svcCtx.Cfg.Outbox.MessageShards(),
 			eventoutbox.MessageNotifyChannel,
 		)
@@ -325,7 +325,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 			ctx,
 			txStore,
 			events,
-			s.svcCtx.Cfg.Kafka.Topic,
+			s.svcCtx.Cfg.Kafka.EventTopic(),
 			s.svcCtx.Cfg.Outbox.MessageShards(),
 			eventoutbox.MessageNotifyChannel,
 		)
@@ -399,7 +399,7 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 			ctx,
 			txStore,
 			events,
-			s.svcCtx.Cfg.Kafka.Topic,
+			s.svcCtx.Cfg.Kafka.EventTopic(),
 			s.svcCtx.Cfg.Outbox.MessageShards(),
 			eventoutbox.MessageNotifyChannel,
 		)

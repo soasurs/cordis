@@ -37,6 +37,9 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.Kafka.MentionsConsumerGroup != "cordis.message.mentions.v1" {
 		t.Fatalf("unexpected mentions consumer group: %q", cfg.Kafka.MentionsConsumerGroup)
 	}
+	if (KafkaConfig{}).EventTopic() != "cordis.message.events.v1" {
+		t.Fatalf("unexpected event topic fallback: %q", (KafkaConfig{}).EventTopic())
+	}
 	if cfg.Cursor.Secret != "test-cursor-secret-at-least-32-bytes!" {
 		t.Fatalf("unexpected cursor secret: %q", cfg.Cursor.Secret)
 	}

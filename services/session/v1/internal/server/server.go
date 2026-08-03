@@ -154,6 +154,7 @@ func (s *Server) StartBackground(ctx context.Context) {
 	go s.refreshSessionLeaseLoop(ctx)
 	go s.cleanupDetached(ctx)
 	go s.dedup.start(ctx)
+	go s.watermarks.start(ctx)
 }
 
 // Drain marks the node as draining, asks every bound session to reconnect, and

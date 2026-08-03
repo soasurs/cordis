@@ -609,8 +609,7 @@ func newTestMessageServerWithMedia(
 	return New(&svc.ServiceContext{
 		Cfg: config.Config{
 			Kafka: config.KafkaConfig{
-				Topic:            "cordis.message.events.v1",
-				PublishTimeoutMs: 100,
+				Topic: "cordis.message.events.v1",
 			},
 		},
 		Store:       fakeStore,

@@ -53,7 +53,7 @@ func TestCreateMessagePersistsAndPublishesToKafka(t *testing.T) {
 	require.NoError(t, err)
 	messageStore := store.New(db)
 	service := New(svc.NewServiceContextWithDependencies(config.Config{
-		Kafka: config.KafkaConfig{Topic: topic, PublishTimeoutMs: 5000},
+		Kafka: config.KafkaConfig{Topic: topic},
 	}, svc.Dependencies{
 		Store:       messageStore,
 		Snowflake:   node,

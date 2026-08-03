@@ -6,7 +6,6 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 
 	"github.com/soasurs/cordis/pkg/database"
-	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/kafka/partitionconsumer"
 )
 
@@ -71,11 +70,8 @@ type IdempotencyConfig struct {
 	CreateMessageTTLSeconds int `json:",default=1800"`
 }
 
-// OutboxConfig controls transactional event outbox writes. When Enabled is
-// false, handlers keep the legacy direct-publish path for a controlled
-// cutover.
+// OutboxConfig controls transactional event outbox writes.
 type OutboxConfig struct {
-	Enabled             bool
 	MessageShardCount   int `json:",default=64"`
 	ReadStateShardCount int `json:",default=64"`
 }
@@ -132,24 +128,4 @@ type KafkaConfig struct {
 	// MentionsConsumerGroup is the consumer group of the mention expansion
 	// worker, which consumes the message event topic.
 	MentionsConsumerGroup string `json:",default=cordis.message.mentions.v1"`
-
-	// PublishTimeoutMs bounds how long a handler waits for a broker
-	// acknowledgement. Publication failure does not fail the message RPC.
-	PublishTimeoutMs int `json:",default=1000"`
-}
-
-// ProducerConfig converts to the kafka package's config.
-func (c KafkaConfig) ProducerConfig() kafka.ProducerConfig {
-	return kafka.ProducerConfig{
-		Seeds:           c.Seeds,
-		DeliveryTimeout: c.PublishTimeout(),
-	}
-}
-
-// PublishTimeout returns the maximum time spent waiting for Kafka.
-func (c KafkaConfig) PublishTimeout() time.Duration {
-	if c.PublishTimeoutMs <= 0 {
-		return time.Second
-	}
-	return time.Duration(c.PublishTimeoutMs) * time.Millisecond
 }

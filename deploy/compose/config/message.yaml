@@ -21,7 +21,6 @@ kafka:
   seeds:
     - kafka:29092
   topic: cordis.message.events.v1
-  publishTimeoutMs: 1000
 
 cursor:
   secret: "${CORDIS_CURSOR_SECRET}"
@@ -38,7 +37,6 @@ idempotency:
   createMessageTTLSeconds: 1800
 
 outbox:
-  enabled: true
   messageShardCount: 64
   readStateShardCount: 64
 

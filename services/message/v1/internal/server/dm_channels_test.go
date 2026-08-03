@@ -123,7 +123,7 @@ func newDmTestServer(t *testing.T, fakeStore store.Store, publisher *fakePublish
 	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
 	require.NoError(t, err)
 	return New(&svc.ServiceContext{
-		Cfg:         config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
+		Cfg:         config.Config{Kafka: config.KafkaConfig{}},
 		Store:       fakeStore,
 		Snowflake:   node,
 		Cursors:     codec,

@@ -41,9 +41,6 @@ func main() {
 	if deps.DB != nil {
 		defer deps.DB.Close()
 	}
-	if deps.Kafka != nil {
-		defer deps.Kafka.Close()
-	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	srv := server.New(svcCtx)
 	expander, err := server.NewMentionExpander(svcCtx)

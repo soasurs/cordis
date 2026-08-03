@@ -16,6 +16,17 @@ func TestNewRejectsMissingDependencies(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestNewRequiresListenerDSNForNotifyChannel(t *testing.T) {
+	_, err := New(Config{
+		DB:            new(sqlx.DB),
+		Tables:        outbox.Tables{Streams: "streams", Events: "events"},
+		Publisher:     &kafka.Publisher{},
+		Namespace:     "cordis.message.outbox",
+		NotifyChannel: "cordis_message_outbox",
+	})
+	require.Error(t, err)
+}
+
 func TestNewFillsDefaults(t *testing.T) {
 	relay, err := New(Config{
 		DB:        new(sqlx.DB),

@@ -10,7 +10,6 @@ package relay
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math"
 	"math/rand/v2"
 	"strings"
@@ -18,7 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5"
 	"github.com/jmoiron/sqlx"
 	"github.com/zeromicro/go-zero/core/logx"
 
@@ -40,6 +39,10 @@ type Config struct {
 	// NotifyChannel is the PostgreSQL channel used for commit-after wakeups.
 	// Empty disables LISTEN/NOTIFY and relies on polling only.
 	NotifyChannel string
+	// ListenerDSN is a PostgreSQL DSN used for the dedicated LISTEN
+	// connection. It must bypass otelsql so WaitForNotification can access
+	// the underlying pgx connection directly.
+	ListenerDSN string
 	// Workers is the number of relay workers in this process.
 	Workers int
 	// BatchSize bounds records selected and published per shard iteration.
@@ -81,6 +84,9 @@ func New(cfg Config) (*Relay, error) {
 	}
 	if cfg.Namespace == "" {
 		return nil, errors.New("relay: namespace is required")
+	}
+	if cfg.NotifyChannel != "" && cfg.ListenerDSN == "" {
+		return nil, errors.New("relay: listener dsn is required when notify channel is set")
 	}
 	if cfg.Workers <= 0 {
 		cfg.Workers = 1
@@ -299,32 +305,25 @@ func (r *Relay) listen(ctx context.Context) {
 }
 
 func (r *Relay) nextListenerDelay(current time.Duration) time.Duration {
-	next := min(current*2, r.cfg.BackoffMax)
-	if next < r.cfg.BackoffMin {
-		next = r.cfg.BackoffMin
-	}
+	next := max(min(current*2, r.cfg.BackoffMax), r.cfg.BackoffMin)
 	return next
 }
 
 func (r *Relay) listenOnce(ctx context.Context) error {
-	conn, err := r.cfg.DB.Connx(ctx)
+	if r.cfg.ListenerDSN == "" {
+		return errors.New("relay: listener dsn is required for notify channel")
+	}
+	conn, err := pgx.Connect(ctx, r.cfg.ListenerDSN)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer conn.Close(ctx)
 
-	if _, err := conn.ExecContext(ctx, "LISTEN "+quoteIdent(r.cfg.NotifyChannel)); err != nil {
+	if _, err := conn.Exec(ctx, "LISTEN "+quoteIdent(r.cfg.NotifyChannel)); err != nil {
 		return err
 	}
 	for {
-		err := conn.Raw(func(driverConn any) error {
-			pgxConn, ok := driverConn.(*stdlib.Conn)
-			if !ok {
-				return fmt.Errorf("relay: unexpected database driver %T", driverConn)
-			}
-			_, err := pgxConn.Conn().WaitForNotification(ctx)
-			return err
-		})
+		_, err := conn.WaitForNotification(ctx)
 		if err != nil {
 			return err
 		}

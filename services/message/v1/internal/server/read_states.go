@@ -10,6 +10,7 @@ import (
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
+	"github.com/soasurs/cordis/services/message/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
@@ -45,13 +46,27 @@ func (s *messageServer) AckMessage(ctx context.Context, req *messagev1.AckMessag
 			return notFound()
 		}
 		state = states[0]
+		if advanced {
+			event, err := newMessageReadUpdatedEvent(
+				state,
+				s.svcCtx.Snowflake.Generate().Int64(),
+			)
+			if err != nil {
+				return err
+			}
+			return s.enqueueReadStateEvent(
+				ctx,
+				txStore,
+				event,
+				s.svcCtx.Cfg.Kafka.Topic,
+				s.svcCtx.Cfg.Outbox.ReadStateShards(),
+				eventoutbox.ReadStateNotifyChannel,
+			)
+		}
 		return nil
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
-	}
-	if advanced {
-		s.publishReadStateUpdated(ctx, state)
 	}
 
 	resp := new(messagev1.AckMessageResponse)
@@ -242,9 +257,4 @@ func dmChannelsToProto(channels []*model.DmChannel) []*messagev1.DmChannel {
 		values = append(values, dmChannelToProto(channel))
 	}
 	return values
-}
-
-func (s *messageServer) publishReadStateUpdated(ctx context.Context, state *model.ChannelReadState) {
-	event, err := newMessageReadUpdatedEvent(state, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, err)
 }

@@ -19,6 +19,7 @@ type Config struct {
 	ReadStates      ReadStatesConfig
 	Limits          ResourceLimitsConfig
 	Idempotency     IdempotencyConfig
+	Outbox          OutboxConfig
 	Services        ServiceConfig
 }
 
@@ -68,6 +69,31 @@ type ReadStatesConfig struct {
 type IdempotencyConfig struct {
 	KeyMaxLength            int `json:",default=255"`
 	CreateMessageTTLSeconds int `json:",default=1800"`
+}
+
+// OutboxConfig controls transactional event outbox writes. When Enabled is
+// false, handlers keep the legacy direct-publish path for a controlled
+// cutover.
+type OutboxConfig struct {
+	Enabled             bool
+	MessageShardCount   int `json:",default=64"`
+	ReadStateShardCount int `json:",default=64"`
+}
+
+// MessageShards returns the virtual shard count for message events.
+func (c OutboxConfig) MessageShards() int {
+	if c.MessageShardCount <= 0 {
+		return 64
+	}
+	return c.MessageShardCount
+}
+
+// ReadStateShards returns the virtual shard count for read-state events.
+func (c OutboxConfig) ReadStateShards() int {
+	if c.ReadStateShardCount <= 0 {
+		return 64
+	}
+	return c.ReadStateShardCount
 }
 
 // KeyLength returns the maximum accepted idempotency key length in bytes.

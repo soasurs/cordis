@@ -34,17 +34,20 @@ func TestAckMessageSuccess(t *testing.T) {
 	require.Equal(t, int64(50), resp.GetReadState().GetLastReadMessageId())
 
 	require.Equal(t, int64(50), fakeStore.readStates[1][10])
-	record := publisher.onlyRecord(t)
-	require.Equal(t, "1", string(record.key))
+	require.Len(t, fakeStore.readStateOutbox, 1)
+	record := fakeStore.readStateOutbox[0]
+	require.Equal(t, "1:10", string(record.Key))
+	require.Equal(t, EventTypeMessageReadUpdated, record.EventType)
 	var envelope eventEnvelope[messageReadUpdatedPayload]
-	require.NoError(t, json.Unmarshal(record.payload, &envelope))
+	require.NoError(t, json.Unmarshal(record.Payload, &envelope))
 	require.Equal(t, EventTypeMessageReadUpdated, envelope.Type)
+	require.NotZero(t, envelope.StreamSequence)
 	require.Equal(t, "50", envelope.Data.LastReadMessageID)
 
 	resp, err = server.AckMessage(t.Context(), req)
 	require.NoError(t, err)
 	require.Equal(t, int64(50), resp.GetReadState().GetLastReadMessageId())
-	require.Len(t, publisher.records, 1, "a no-op ack must not publish another event")
+	require.Len(t, fakeStore.readStateOutbox, 1, "a no-op ack must not enqueue another event")
 }
 
 func TestAckMessageHidesMissingOrMismatchedMessage(t *testing.T) {

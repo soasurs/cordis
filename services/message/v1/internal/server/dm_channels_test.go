@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/cursor"
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/message/v1/config"
@@ -114,7 +116,7 @@ func (f *fakeUserClient) batchRequests() [][]int64 {
 	return values
 }
 
-func newDmTestServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher, userClient userv1.UserServiceClient) messagev1.MessageServiceServer {
+func newDmTestServer(t *testing.T, fakeStore store.Store, publisher *fakePublisher, userClient userv1.UserServiceClient) messagev1.MessageServiceServer {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
@@ -125,7 +127,6 @@ func newDmTestServer(t *testing.T, fakeStore store.Store, publisher svc.EventPub
 		Store:       fakeStore,
 		Snowflake:   node,
 		Cursors:     codec,
-		Publisher:   publisher,
 		GuildClient: &fakeGuildClient{},
 		UserClient:  userClient,
 	})
@@ -155,7 +156,7 @@ func TestCreateDmChannelRequiresFriendship(t *testing.T) {
 	_, err := server.CreateDmChannel(context.Background(), req)
 	require.Equal(t, codes.PermissionDenied, status.Code(err))
 	require.True(t, rpcerror.Is(err, rpcerror.MessageDomain, rpcerror.MessageDmRequiresFriendship))
-	require.Empty(t, publisher.records)
+	require.Empty(t, fake.messageOutbox)
 }
 
 func TestCreateDmChannelIsIdempotentAndPublishesOnce(t *testing.T) {
@@ -173,11 +174,15 @@ func TestCreateDmChannelIsIdempotentAndPublishesOnce(t *testing.T) {
 	require.Equal(t, int64(2002), channel.GetUserHi())
 
 	// One user-routed record per participant.
-	require.Len(t, publisher.records, 2)
-	require.Equal(t, "1001", string(publisher.records[0].key))
-	require.Equal(t, "2002", string(publisher.records[1].key))
+	require.Len(t, fake.messageOutbox, 2)
+	channelKey := strconv.FormatInt(channel.GetId(), 10)
+	require.Equal(t, channelKey, string(fake.messageOutbox[0].Key))
+	require.Equal(t, channelKey, string(fake.messageOutbox[1].Key))
+	require.Equal(t, EventTypeDmChannelCreated, fake.messageOutbox[0].EventType)
+	require.Equal(t, 0, fake.messageOutbox[0].DeliveryIndex)
+	require.Equal(t, 1, fake.messageOutbox[1].DeliveryIndex)
 	var envelope eventEnvelope[dmChannelCreatedPayload]
-	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
+	require.NoError(t, json.Unmarshal(fake.messageOutbox[0].Payload, &envelope))
 	require.Equal(t, EventTypeDmChannelCreated, envelope.Type)
 	require.Equal(t, "1001", envelope.Data.UserID)
 	require.Equal(t, "2002", envelope.Data.RecipientID)
@@ -187,7 +192,7 @@ func TestCreateDmChannelIsIdempotentAndPublishesOnce(t *testing.T) {
 	again, err := server.CreateDmChannel(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, channel.GetId(), again.GetChannel().GetId())
-	require.Len(t, publisher.records, 2)
+	require.Len(t, fake.messageOutbox, 2)
 
 	// The reverse direction also lands on the same channel.
 	req.SetUserId(2002)
@@ -195,6 +200,7 @@ func TestCreateDmChannelIsIdempotentAndPublishesOnce(t *testing.T) {
 	reverse, err := server.CreateDmChannel(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, channel.GetId(), reverse.GetChannel().GetId())
+	require.Len(t, fake.messageOutbox, 2)
 }
 
 func TestCreateDmChannelValidation(t *testing.T) {
@@ -220,8 +226,8 @@ func TestDmMessagesFlowBetweenParticipants(t *testing.T) {
 	created, err := server.CreateMessage(context.Background(), createReq)
 	require.NoError(t, err)
 	messageID := created.GetMessage().GetId()
-	requireDmMessageRecords(t, publisher.records[:2], EventTypeMessageCreated)
-	requireReadStateRecord(t, publisher.records[2], "1001")
+	requireDmMessageOutboxRecords(t, fake.messageOutbox[:2], EventTypeMessageCreated)
+	require.Empty(t, fake.readStateOutbox)
 
 	// The other participant reads; outsiders see nothing.
 	getReq := new(messagev1.GetMessageRequest)
@@ -245,46 +251,40 @@ func TestDmMessagesFlowBetweenParticipants(t *testing.T) {
 	updateReq.SetActorUserId(1001)
 	_, err = server.UpdateMessage(context.Background(), updateReq)
 	require.NoError(t, err)
-	requireDmMessageRecords(t, publisher.records[3:], EventTypeMessageUpdated)
+	requireDmMessageOutboxRecords(t, fake.messageOutbox[2:4], EventTypeMessageUpdated)
 
 	deleteReq := new(messagev1.DeleteMessageRequest)
 	deleteReq.SetMessageId(messageID)
 	deleteReq.SetActorUserId(1001)
 	_, err = server.DeleteMessage(context.Background(), deleteReq)
 	require.NoError(t, err)
-	requireDmDeletedRecords(t, publisher.records[5:])
+	requireDmDeletedOutboxRecords(t, fake.messageOutbox[4:6])
 }
 
-func requireReadStateRecord(t *testing.T, record publishedRecord, userID string) {
-	t.Helper()
-	require.Equal(t, userID, string(record.key))
-	var envelope eventEnvelope[messageReadUpdatedPayload]
-	require.NoError(t, json.Unmarshal(record.payload, &envelope))
-	require.Equal(t, EventTypeMessageReadUpdated, envelope.Type)
-}
-
-func requireDmMessageRecords(t *testing.T, records []publishedRecord, eventType string) {
+func requireDmMessageOutboxRecords(t *testing.T, records []outbox.Record, eventType string) {
 	t.Helper()
 	require.Len(t, records, 2)
 	for i, userID := range []string{"1001", "2002"} {
 		var envelope eventEnvelope[messagePayload]
-		require.NoError(t, json.Unmarshal(records[i].payload, &envelope))
-		require.Equal(t, envelope.Data.ChannelID, string(records[i].key))
+		require.NoError(t, json.Unmarshal(records[i].Payload, &envelope))
+		require.Equal(t, envelope.Data.ChannelID, string(records[i].Key))
 		require.Equal(t, eventType, envelope.Type)
+		require.Equal(t, i, records[i].DeliveryIndex)
 		require.Equal(t, userID, envelope.Data.UserID)
 		require.Equal(t, "1001", envelope.Data.Author.UserID)
 		require.Empty(t, envelope.Data.GuildID)
 	}
 }
 
-func requireDmDeletedRecords(t *testing.T, records []publishedRecord) {
+func requireDmDeletedOutboxRecords(t *testing.T, records []outbox.Record) {
 	t.Helper()
 	require.Len(t, records, 2)
 	for i, userID := range []string{"1001", "2002"} {
 		var envelope eventEnvelope[messageDeletedPayload]
-		require.NoError(t, json.Unmarshal(records[i].payload, &envelope))
-		require.Equal(t, envelope.Data.ChannelID, string(records[i].key))
+		require.NoError(t, json.Unmarshal(records[i].Payload, &envelope))
+		require.Equal(t, envelope.Data.ChannelID, string(records[i].Key))
 		require.Equal(t, EventTypeMessageDeleted, envelope.Type)
+		require.Equal(t, i, records[i].DeliveryIndex)
 		require.Equal(t, userID, envelope.Data.UserID)
 		require.Empty(t, envelope.Data.GuildID)
 	}

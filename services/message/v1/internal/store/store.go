@@ -7,6 +7,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
@@ -77,6 +78,13 @@ type Store interface {
 	AckMessage(ctx context.Context, userID, channelID, messageID int64) (bool, error)
 	ListReadyChannelReadStates(ctx context.Context, userID int64, channelIDs []int64) ([]*model.ChannelReadState, error)
 	GetLastMessageID(ctx context.Context, channelID int64) (int64, error)
+	EnsureMessageStream(ctx context.Context, streamKey string, shardID int) error
+	ReserveMessageSequences(ctx context.Context, streamKey string, count int) (outbox.ReservedRange, error)
+	InsertMessageOutbox(ctx context.Context, records []outbox.Record) error
+	EnsureReadStateStream(ctx context.Context, streamKey string, shardID int) error
+	ReserveReadStateSequences(ctx context.Context, streamKey string, count int) (outbox.ReservedRange, error)
+	InsertReadStateOutbox(ctx context.Context, records []outbox.Record) error
+	NotifyOutbox(ctx context.Context, channel string) error
 }
 
 type ListDmChannelsParams struct {

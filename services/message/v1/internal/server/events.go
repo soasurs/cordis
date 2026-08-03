@@ -8,6 +8,7 @@ import (
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/services/message/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
 
@@ -23,11 +24,17 @@ type eventEnvelope[T any] struct {
 	Type           string `json:"t"`
 	Data           T      `json:"d"`
 	IdempotencyKey string `json:"idempotency_key"`
+	StreamSequence int64  `json:"stream_sequence,omitempty"`
+	DeliveryIndex  int    `json:"delivery_index,omitempty"`
 }
 
 type messageEvent struct {
-	Key     []byte
-	Payload []byte
+	EventID       int64
+	DeliveryIndex int
+	StreamKey     string
+	EventType     string
+	Key           []byte
+	Payload       []byte
 }
 
 type messagePayload struct {
@@ -128,28 +135,35 @@ func newMessageDeletedEvents(message *model.Message, lastMessageID int64, mentio
 }
 
 func newMessageReadUpdatedEvent(state *model.ChannelReadState, idempotencyKey int64) (messageEvent, error) {
-	return newUserRoutedEvent(EventTypeMessageReadUpdated, state.UserID, messageReadUpdatedPayload{
-		UserID:            strconv.FormatInt(state.UserID, 10),
-		ChannelID:         strconv.FormatInt(state.ChannelID, 10),
-		LastMessageID:     strconv.FormatInt(state.LastMessageID, 10),
-		LastReadMessageID: strconv.FormatInt(state.LastReadMessageID, 10),
-		MentionCount:      state.MentionCount,
-	}, idempotencyKey)
+	return newUserRoutedEvent(
+		EventTypeMessageReadUpdated,
+		eventoutbox.ReadStateStreamKey(state.UserID, state.ChannelID),
+		eventoutbox.ReadStateKafkaKey(state.UserID, state.ChannelID),
+		messageReadUpdatedPayload{
+			UserID:            strconv.FormatInt(state.UserID, 10),
+			ChannelID:         strconv.FormatInt(state.ChannelID, 10),
+			LastMessageID:     strconv.FormatInt(state.LastMessageID, 10),
+			LastReadMessageID: strconv.FormatInt(state.LastReadMessageID, 10),
+			MentionCount:      state.MentionCount,
+		},
+		idempotencyKey,
+		0,
+	)
 }
 
 func newMessageEvents(eventType string, channelID int64, audience messageAudience, data messagePayload, idempotencyKey int64) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
-		event, err := newEvent(eventType, channelID, data, idempotencyKey)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey, 0)
 		return singleEvent(event, err)
 	}
 	if err := validateDmAudience(audience.userIDs); err != nil {
 		return nil, err
 	}
 	events := make([]messageEvent, 0, len(audience.userIDs))
-	for _, userID := range audience.userIDs {
+	for index, userID := range audience.userIDs {
 		data.UserID = strconv.FormatInt(userID, 10)
-		event, err := newEvent(eventType, channelID, data, idempotencyKey)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey, index)
 		if err != nil {
 			return nil, err
 		}
@@ -161,16 +175,16 @@ func newMessageEvents(eventType string, channelID int64, audience messageAudienc
 func newMessageDeletedRoutingEvents(eventType string, channelID int64, audience messageAudience, data messageDeletedPayload, idempotencyKey int64) ([]messageEvent, error) {
 	if audience.guildID > 0 {
 		data.GuildID = strconv.FormatInt(audience.guildID, 10)
-		event, err := newEvent(eventType, channelID, data, idempotencyKey)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey, 0)
 		return singleEvent(event, err)
 	}
 	if err := validateDmAudience(audience.userIDs); err != nil {
 		return nil, err
 	}
 	events := make([]messageEvent, 0, len(audience.userIDs))
-	for _, userID := range audience.userIDs {
+	for index, userID := range audience.userIDs {
 		data.UserID = strconv.FormatInt(userID, 10)
-		event, err := newEvent(eventType, channelID, data, idempotencyKey)
+		event, err := newEvent(eventType, channelID, data, idempotencyKey, index)
 		if err != nil {
 			return nil, err
 		}
@@ -252,9 +266,9 @@ func idStrings(ids []int64) []string {
 	return values
 }
 
-// newUserRoutedEvent keys the record by the decimal recipient user ID so
-// the dispatcher fans it out through user routes instead of channel routes.
-func newUserRoutedEvent[T any](eventType string, recipientID int64, data T, idempotencyKey int64) (messageEvent, error) {
+// newUserRoutedEvent builds a user-routed record. The Kafka key and stream key
+// are supplied by the caller; Dispatcher routing continues to use the payload.
+func newUserRoutedEvent[T any](eventType, streamKey string, kafkaKey []byte, data T, idempotencyKey int64, deliveryIndex int) (messageEvent, error) {
 	payload, err := json.Marshal(eventEnvelope[T]{
 		Type:           eventType,
 		Data:           data,
@@ -264,12 +278,16 @@ func newUserRoutedEvent[T any](eventType string, recipientID int64, data T, idem
 		return messageEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}
 	return messageEvent{
-		Key:     fmt.Appendf(nil, "%d", recipientID),
-		Payload: payload,
+		EventID:       idempotencyKey,
+		DeliveryIndex: deliveryIndex,
+		StreamKey:     streamKey,
+		EventType:     eventType,
+		Key:           kafkaKey,
+		Payload:       payload,
 	}, nil
 }
 
-func newEvent[T any](eventType string, channelID int64, data T, idempotencyKey int64) (messageEvent, error) {
+func newEvent[T any](eventType string, channelID int64, data T, idempotencyKey int64, deliveryIndex int) (messageEvent, error) {
 	payload, err := json.Marshal(eventEnvelope[T]{
 		Type:           eventType,
 		Data:           data,
@@ -279,9 +297,26 @@ func newEvent[T any](eventType string, channelID int64, data T, idempotencyKey i
 		return messageEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}
 	return messageEvent{
-		Key:     fmt.Appendf(nil, "%d", channelID),
-		Payload: payload,
+		EventID:       idempotencyKey,
+		DeliveryIndex: deliveryIndex,
+		StreamKey:     eventoutbox.MessageStreamKey(channelID),
+		EventType:     eventType,
+		Key:           fmt.Appendf(nil, "%d", channelID),
+		Payload:       payload,
 	}, nil
+}
+
+// finalizeEvent injects the assigned stream sequence and delivery index into
+// a draft payload. encoding/json sorts map keys, so the result is
+// deterministic.
+func finalizeEvent(payload []byte, streamSequence int64, deliveryIndex int) ([]byte, error) {
+	var envelope map[string]any
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		return nil, err
+	}
+	envelope["stream_sequence"] = streamSequence
+	envelope["delivery_index"] = deliveryIndex
+	return json.Marshal(envelope)
 }
 
 func attachmentsForEvent(attachments []model.Attachment) []attachmentJSON {

@@ -5,12 +5,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	messagev1 "github.com/soasurs/cordis/gen/message/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/services/message/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
@@ -108,8 +108,6 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 
 	messageID := s.svcCtx.Snowflake.Generate().Int64()
 	var created *model.Message
-	var authorReadState *model.ChannelReadState
-	var authorReadAdvanced bool
 	createdNewMessage := !req.HasIdempotencyKey()
 
 	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
@@ -165,22 +163,25 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 			return err
 		}
 		created.Mentions = mentions
-		authorReadAdvanced, err = txStore.AckMessage(ctx, req.GetAuthorId(), req.GetChannelId(), messageID)
+
+		events, err := newMessageCreatedEvents(
+			created,
+			author,
+			mentions,
+			audience,
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
 		if err != nil {
 			return err
 		}
-		if !authorReadAdvanced {
-			return nil
-		}
-		states, err := txStore.ListReadyChannelReadStates(ctx, req.GetAuthorId(), []int64{req.GetChannelId()})
-		if err != nil {
-			return err
-		}
-		if len(states) != 1 {
-			return notFound()
-		}
-		authorReadState = states[0]
-		return nil
+		return s.enqueueMessageEvents(
+			ctx,
+			txStore,
+			events,
+			s.svcCtx.Cfg.Kafka.Topic,
+			s.svcCtx.Cfg.Outbox.MessageShards(),
+			eventoutbox.MessageNotifyChannel,
+		)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
@@ -189,14 +190,6 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 		copyAttachmentURLs(created.Attachments, attachments)
 	} else if err := s.hydrateAttachmentURLs(ctx, created); err != nil {
 		return nil, err
-	}
-
-	if createdNewMessage {
-		events, eventErr := newMessageCreatedEvents(created, author, mentions, audience, s.svcCtx.Snowflake.Generate().Int64())
-		s.publishEvents(ctx, events, eventErr)
-		if authorReadAdvanced {
-			s.publishReadStateUpdated(ctx, authorReadState)
-		}
 	}
 
 	resp := new(messagev1.CreateMessageResponse)
@@ -314,16 +307,32 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 			}
 			mentions = *stored
 		}
-		return nil
+		events, err := newMessageUpdatedEvents(
+			updated,
+			author,
+			mentions,
+			previousMentions,
+			req.HasContent(),
+			audience,
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
+		if err != nil {
+			return err
+		}
+		return s.enqueueMessageEvents(
+			ctx,
+			txStore,
+			events,
+			s.svcCtx.Cfg.Kafka.Topic,
+			s.svcCtx.Cfg.Outbox.MessageShards(),
+			eventoutbox.MessageNotifyChannel,
+		)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 	updated.Mentions = mentions
 	copyAttachmentURLs(updated.Attachments, attachmentURLSource)
-
-	events, eventErr := newMessageUpdatedEvents(updated, author, mentions, previousMentions, req.HasContent(), audience, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.UpdateMessageResponse)
 	resp.SetMessage(messageToProto(updated))
@@ -371,13 +380,31 @@ func (s *messageServer) DeleteMessage(ctx context.Context, req *messagev1.Delete
 		}
 		deleted = message
 		lastMessageID, err = txStore.GetLastMessageID(ctx, message.ChannelID)
-		return err
+		if err != nil {
+			return err
+		}
+		events, err := newMessageDeletedEvents(
+			deleted,
+			lastMessageID,
+			mentions,
+			audience,
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
+		if err != nil {
+			return err
+		}
+		return s.enqueueMessageEvents(
+			ctx,
+			txStore,
+			events,
+			s.svcCtx.Cfg.Kafka.Topic,
+			s.svcCtx.Cfg.Outbox.MessageShards(),
+			eventoutbox.MessageNotifyChannel,
+		)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	events, eventErr := newMessageDeletedEvents(deleted, lastMessageID, mentions, audience, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvents(ctx, events, eventErr)
 
 	resp := new(messagev1.DeleteMessageResponse)
 	resp.SetOk(true)
@@ -520,35 +547,4 @@ func setListCursors(resp *messagev1.ListMessagesResponse, messages []*model.Mess
 	}
 	resp.SetBeforeCursor(minID)
 	resp.SetAfterCursor(maxID)
-}
-
-func (s *messageServer) publishEvent(ctx context.Context, event messageEvent, buildErr error) {
-	if buildErr != nil {
-		logx.WithContext(ctx).Errorw("build message event",
-			logx.Field("error", buildErr),
-		)
-		return
-	}
-	if s.svcCtx.Publisher == nil {
-		return
-	}
-
-	publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.svcCtx.Cfg.Kafka.PublishTimeout())
-	defer cancel()
-	if err := s.svcCtx.Publisher.Publish(publishCtx, event.Key, event.Payload); err != nil {
-		logx.WithContext(ctx).Errorw("publish message event",
-			logx.Field("key", string(event.Key)),
-			logx.Field("error", err),
-		)
-	}
-}
-
-func (s *messageServer) publishEvents(ctx context.Context, events []messageEvent, buildErr error) {
-	if buildErr != nil {
-		s.publishEvent(ctx, messageEvent{}, buildErr)
-		return
-	}
-	for _, event := range events {
-		s.publishEvent(ctx, event, nil)
-	}
 }

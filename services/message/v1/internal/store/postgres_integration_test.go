@@ -31,4 +31,5 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("constraint enforcement", func(t *testing.T) { testConstraintEnforcement(t, store) })
 	t.Run("dm channels", func(t *testing.T) { testDmChannels(t, store) })
 	t.Run("read states", func(t *testing.T) { testReadStates(t, store) })
+	t.Run("outbox", func(t *testing.T) { testOutbox(t, store, db) })
 }

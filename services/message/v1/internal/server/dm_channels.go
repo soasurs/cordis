@@ -14,6 +14,7 @@ import (
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	"github.com/soasurs/cordis/services/message/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 	"github.com/soasurs/cordis/services/message/v1/internal/store"
 )
@@ -61,34 +62,55 @@ func (s *messageServer) CreateDmChannel(ctx context.Context, req *messagev1.Crea
 		return nil, err
 	}
 
-	channel := &model.DmChannel{
-		ID:        s.svcCtx.Snowflake.Generate().Int64(),
-		UserLo:    userLo,
-		UserHi:    userHi,
-		CreatedAt: time.Now().UnixMilli(),
-	}
-	if err := s.svcCtx.Store.CreateDmChannel(ctx, channel); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// Lost a concurrent open: the other insert won, reuse its row.
-			channel, err = s.svcCtx.Store.GetDmChannelByPair(ctx, userLo, userHi)
-			if err != nil {
-				return nil, err
-			}
-			resp := new(messagev1.CreateDmChannelResponse)
-			resp.SetChannel(dmChannelToProto(channel))
-			return resp, nil
+	var channel *model.DmChannel
+	err = s.svcCtx.Store.Transact(ctx, func(txStore store.Store) error {
+		draft := &model.DmChannel{
+			ID:        s.svcCtx.Snowflake.Generate().Int64(),
+			UserLo:    userLo,
+			UserHi:    userHi,
+			CreatedAt: time.Now().UnixMilli(),
 		}
-		return nil, err
-	}
+		if err := txStore.CreateDmChannel(ctx, draft); err != nil {
+			if !errors.Is(err, sql.ErrNoRows) {
+				return err
+			}
+			// Lost a concurrent open: the other insert won, reuse its row
+			// without writing outbox rows.
+			existing, getErr := txStore.GetDmChannelByPair(ctx, userLo, userHi)
+			if getErr != nil {
+				return getErr
+			}
+			channel = existing
+			return nil
+		}
+		channel = draft
 
-	for _, recipientID := range []int64{channel.UserLo, channel.UserHi} {
-		event, eventErr := newDmChannelCreatedEvent(
-			channel,
-			recipientID,
-			profiles[channel.OtherParticipant(recipientID)],
-			s.svcCtx.Snowflake.Generate().Int64(),
+		eventID := s.svcCtx.Snowflake.Generate().Int64()
+		events := make([]messageEvent, 0, 2)
+		for index, recipientID := range []int64{draft.UserLo, draft.UserHi} {
+			event, err := newDmChannelCreatedEvent(
+				draft,
+				recipientID,
+				profiles[draft.OtherParticipant(recipientID)],
+				eventID,
+				index,
+			)
+			if err != nil {
+				return err
+			}
+			events = append(events, event)
+		}
+		return s.enqueueMessageEvents(
+			ctx,
+			txStore,
+			events,
+			s.svcCtx.Cfg.Kafka.Topic,
+			s.svcCtx.Cfg.Outbox.MessageShards(),
+			eventoutbox.MessageNotifyChannel,
 		)
-		s.publishEvent(ctx, event, eventErr)
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	resp := new(messagev1.CreateDmChannelResponse)
@@ -225,13 +247,15 @@ type dmChannelCreatedPayload struct {
 	CreatedAt   int64              `json:"created_at"`
 }
 
-// newDmChannelCreatedEvent builds one user-routed record; the key is the
-// decimal recipient user ID so the dispatcher reaches every recipient Session.
+// newDmChannelCreatedEvent builds one user-routed record. The Kafka key is the
+// channel ID so both recipient records share the channel stream; Dispatcher
+// still routes each record from the payload user ID.
 func newDmChannelCreatedEvent(
 	channel *model.DmChannel,
 	recipientID int64,
 	recipient *userv1.UserProfile,
 	idempotencyKey int64,
+	deliveryIndex int,
 ) (messageEvent, error) {
 	payload := dmChannelCreatedPayload{
 		ChannelID:   strconv.FormatInt(channel.ID, 10),
@@ -240,7 +264,14 @@ func newDmChannelCreatedEvent(
 		Recipient:   userProfilePayloadFromProto(recipient),
 		CreatedAt:   channel.CreatedAt,
 	}
-	return newUserRoutedEvent(EventTypeDmChannelCreated, recipientID, payload, idempotencyKey)
+	return newUserRoutedEvent(
+		EventTypeDmChannelCreated,
+		eventoutbox.MessageStreamKey(channel.ID),
+		[]byte(strconv.FormatInt(channel.ID, 10)),
+		payload,
+		idempotencyKey,
+		deliveryIndex,
+	)
 }
 
 func (s *messageServer) getDmParticipantProfiles(

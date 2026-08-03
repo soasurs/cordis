@@ -37,6 +37,11 @@ idempotency:
   keyMaxLength: 255
   createMessageTTLSeconds: 1800
 
+outbox:
+  enabled: true
+  messageShardCount: 64
+  readStateShardCount: 64
+
 services:
   guild:
     endpoints:

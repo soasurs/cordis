@@ -50,9 +50,10 @@ func TestCreateMessageParsesUserRoleAndEveryoneMentions(t *testing.T) {
 	require.Equal(t, []int64{30}, mentions.UserIDs)
 	require.Equal(t, []int64{40}, mentions.RoleIDs)
 	require.True(t, mentions.Everyone)
+	require.Len(t, fakeStore.messageOutbox, 1)
 
 	var envelope eventEnvelope[messagePayload]
-	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
+	require.NoError(t, json.Unmarshal(fakeStore.messageOutbox[0].Payload, &envelope))
 	require.Equal(t, []string{"30"}, envelope.Data.MentionUserIDs)
 	require.Equal(t, []string{"40"}, envelope.Data.MentionRoleIDs)
 	require.True(t, envelope.Data.MentionEveryone)
@@ -71,9 +72,10 @@ func TestCreateMessageResponseMentionsSortedAscending(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []int64{100, 200}, resp.GetMessage().GetMentionUserIds())
 	require.Equal(t, []int64{40, 50}, resp.GetMessage().GetMentionRoleIds())
+	require.Len(t, fakeStore.messageOutbox, 1)
 
 	var envelope eventEnvelope[messagePayload]
-	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
+	require.NoError(t, json.Unmarshal(fakeStore.messageOutbox[0].Payload, &envelope))
 	require.Equal(t, []string{"100", "200"}, envelope.Data.MentionUserIDs)
 	require.Equal(t, []string{"40", "50"}, envelope.Data.MentionRoleIDs)
 }
@@ -225,9 +227,11 @@ func TestUpdateMessageRebuildsMentionsFromContent(t *testing.T) {
 	mentions := fakeStore.mentions[100]
 	require.Equal(t, []int64{30}, mentions.UserIDs)
 	require.Equal(t, []int64{50}, mentions.RoleIDs)
+	require.Len(t, fakeStore.messageOutbox, 1)
 
 	var envelope eventEnvelope[messagePayload]
-	require.NoError(t, json.Unmarshal(publisher.onlyRecord(t).payload, &envelope))
+	require.NoError(t, json.Unmarshal(fakeStore.messageOutbox[0].Payload, &envelope))
+	require.Equal(t, EventTypeMessageUpdated, fakeStore.messageOutbox[0].EventType)
 	require.Equal(t, EventTypeMessageUpdated, envelope.Type)
 	require.Equal(t, []string{"30"}, envelope.Data.MentionUserIDs)
 	require.Equal(t, []string{"50"}, envelope.Data.MentionRoleIDs)

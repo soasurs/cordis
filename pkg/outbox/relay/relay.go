@@ -241,10 +241,6 @@ func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) 
 			return err
 		}
 		r.metrics.Deleted.Add(int64(len(delivered)))
-
-		if len(heads) < r.cfg.BatchSize {
-			return nil
-		}
 	}
 	return nil
 }

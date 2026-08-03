@@ -83,7 +83,7 @@ func TestCreateMessageOutboxForwardsToKafka(t *testing.T) {
 		Workers:       2,
 		BatchSize:     10,
 		PollInterval:  time.Minute,
-		TimeSlice:     100 * time.Millisecond,
+		TimeSlice:     time.Second,
 		BackoffMin:    10 * time.Millisecond,
 		BackoffMax:    100 * time.Millisecond,
 	})

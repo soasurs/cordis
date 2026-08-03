@@ -307,15 +307,14 @@ func newEvent[T any](eventType string, channelID int64, data T, idempotencyKey i
 }
 
 // finalizeEvent injects the assigned stream sequence and delivery index into
-// a draft payload. encoding/json sorts map keys, so the result is
-// deterministic.
+// a draft payload while preserving the original Data bytes exactly.
 func finalizeEvent(payload []byte, streamSequence int64, deliveryIndex int) ([]byte, error) {
-	var envelope map[string]any
+	var envelope eventEnvelope[json.RawMessage]
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return nil, err
 	}
-	envelope["stream_sequence"] = streamSequence
-	envelope["delivery_index"] = deliveryIndex
+	envelope.StreamSequence = streamSequence
+	envelope.DeliveryIndex = deliveryIndex
 	return json.Marshal(envelope)
 }
 

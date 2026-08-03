@@ -158,6 +158,7 @@ func (s *messageServer) CreateMessage(ctx context.Context, req *messagev1.Create
 			return err
 		}
 		created = message
+		copyAttachmentURLs(created.Attachments, attachments)
 
 		if err := txStore.ReplaceMessageMentions(ctx, messageID, mentions); err != nil {
 			return err
@@ -289,6 +290,7 @@ func (s *messageServer) UpdateMessage(ctx context.Context, req *messagev1.Update
 			return err
 		}
 		updated = message
+		copyAttachmentURLs(updated.Attachments, attachmentURLSource)
 
 		if req.HasContent() {
 			stored, err := txStore.ListMessageMentions(ctx, req.GetMessageId())

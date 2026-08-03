@@ -112,7 +112,8 @@ type Server struct {
 	publishedRoutes map[store.Route]struct{}
 	tracer          trace.Tracer
 
-	dedup *dedupStore
+	dedup      *dedupStore
+	watermarks *watermarkStore
 }
 
 // New creates a Session Server from the service context, falling back to the
@@ -141,6 +142,7 @@ func New(svcCtx *svc.ServiceContext) *Server {
 		visibilityReloadSem: semaphore.NewWeighted(svcCtx.Cfg.Node.SnapshotReloadLimit()),
 		publishedRoutes:     make(map[store.Route]struct{}),
 		dedup:               newDedupStore(),
+		watermarks:          newWatermarkStore(),
 	}
 }
 

@@ -153,6 +153,11 @@ message EventEnvelope {
   string json_payload = 2;
   // Opaque key used to deduplicate redelivered events.
   int64 idempotency_key = 3;
+  // Per-channel stream order assigned by the producing service's outbox.
+  // Consumers may use it as a monotonic watermark to reject late duplicates.
+  int64 stream_sequence = 4;
+  // Record index within one logical event that fans out to multiple routes.
+  int32 delivery_index = 5;
 }
 
 // DispatchGuildEventRequest fans one event out to a Guild's sessions.

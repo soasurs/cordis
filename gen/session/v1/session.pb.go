@@ -1911,6 +1911,8 @@ type EventEnvelope struct {
 	xxx_hidden_Type           *string                `protobuf:"bytes,1,opt,name=type"`
 	xxx_hidden_JsonPayload    *string                `protobuf:"bytes,2,opt,name=json_payload,json=jsonPayload"`
 	xxx_hidden_IdempotencyKey int64                  `protobuf:"varint,3,opt,name=idempotency_key,json=idempotencyKey"`
+	xxx_hidden_StreamSequence int64                  `protobuf:"varint,4,opt,name=stream_sequence,json=streamSequence"`
+	xxx_hidden_DeliveryIndex  int32                  `protobuf:"varint,5,opt,name=delivery_index,json=deliveryIndex"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
 	XXX_presence              [1]uint32
 	unknownFields             protoimpl.UnknownFields
@@ -1969,19 +1971,43 @@ func (x *EventEnvelope) GetIdempotencyKey() int64 {
 	return 0
 }
 
+func (x *EventEnvelope) GetStreamSequence() int64 {
+	if x != nil {
+		return x.xxx_hidden_StreamSequence
+	}
+	return 0
+}
+
+func (x *EventEnvelope) GetDeliveryIndex() int32 {
+	if x != nil {
+		return x.xxx_hidden_DeliveryIndex
+	}
+	return 0
+}
+
 func (x *EventEnvelope) SetType(v string) {
 	x.xxx_hidden_Type = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *EventEnvelope) SetJsonPayload(v string) {
 	x.xxx_hidden_JsonPayload = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *EventEnvelope) SetIdempotencyKey(v int64) {
 	x.xxx_hidden_IdempotencyKey = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *EventEnvelope) SetStreamSequence(v int64) {
+	x.xxx_hidden_StreamSequence = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *EventEnvelope) SetDeliveryIndex(v int32) {
+	x.xxx_hidden_DeliveryIndex = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *EventEnvelope) HasType() bool {
@@ -2005,6 +2031,20 @@ func (x *EventEnvelope) HasIdempotencyKey() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *EventEnvelope) HasStreamSequence() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *EventEnvelope) HasDeliveryIndex() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *EventEnvelope) ClearType() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Type = nil
@@ -2020,6 +2060,16 @@ func (x *EventEnvelope) ClearIdempotencyKey() {
 	x.xxx_hidden_IdempotencyKey = 0
 }
 
+func (x *EventEnvelope) ClearStreamSequence() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_StreamSequence = 0
+}
+
+func (x *EventEnvelope) ClearDeliveryIndex() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_DeliveryIndex = 0
+}
+
 type EventEnvelope_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2029,6 +2079,11 @@ type EventEnvelope_builder struct {
 	JsonPayload *string
 	// Opaque key used to deduplicate redelivered events.
 	IdempotencyKey *int64
+	// Per-channel stream order assigned by the producing service's outbox.
+	// Consumers may use it as a monotonic watermark to reject late duplicates.
+	StreamSequence *int64
+	// Record index within one logical event that fans out to multiple routes.
+	DeliveryIndex *int32
 }
 
 func (b0 EventEnvelope_builder) Build() *EventEnvelope {
@@ -2036,16 +2091,24 @@ func (b0 EventEnvelope_builder) Build() *EventEnvelope {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Type != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_Type = b.Type
 	}
 	if b.JsonPayload != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_JsonPayload = b.JsonPayload
 	}
 	if b.IdempotencyKey != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_IdempotencyKey = *b.IdempotencyKey
+	}
+	if b.StreamSequence != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_StreamSequence = *b.StreamSequence
+	}
+	if b.DeliveryIndex != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_DeliveryIndex = *b.DeliveryIndex
 	}
 	return m0
 }
@@ -2686,11 +2749,13 @@ const file_session_v1_session_proto_rawDesc = "" +
 	"\x12gateway_generation\x18\x02 \x01(\tR\x11gatewayGeneration\x12I\n" +
 	"\vcheckpoints\x18\x03 \x03(\v2'.session.v1.GatewayConnectionCheckpointR\vcheckpoints\":\n" +
 	"\x1eSyncGatewayConnectionsResponse\x12\x18\n" +
-	"\aapplied\x18\x01 \x01(\x05R\aapplied\"o\n" +
+	"\aapplied\x18\x01 \x01(\x05R\aapplied\"\xbf\x01\n" +
 	"\rEventEnvelope\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12!\n" +
 	"\fjson_payload\x18\x02 \x01(\tR\vjsonPayload\x12'\n" +
-	"\x0fidempotency_key\x18\x03 \x01(\x03R\x0eidempotencyKey\"g\n" +
+	"\x0fidempotency_key\x18\x03 \x01(\x03R\x0eidempotencyKey\x12'\n" +
+	"\x0fstream_sequence\x18\x04 \x01(\x03R\x0estreamSequence\x12%\n" +
+	"\x0edelivery_index\x18\x05 \x01(\x05R\rdeliveryIndex\"g\n" +
 	"\x19DispatchGuildEventRequest\x12\x19\n" +
 	"\bguild_id\x18\x01 \x01(\x03R\aguildId\x12/\n" +
 	"\x05event\x18\x02 \x01(\v2\x19.session.v1.EventEnvelopeR\x05event\"\x8d\x01\n" +

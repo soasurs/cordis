@@ -310,6 +310,24 @@ services:
       <<: *grpc-healthcheck
       test: ["CMD", "/app/bin/grpc-healthcheck", "-addr", "127.0.0.1:3002"]
 
+  message-relay:
+    <<: *cordis-service
+    command: ["/app/bin/message-relay", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+    volumes:
+      - ./config/relay.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cordis
+
   presence:
     <<: *cordis-service
     command: ["/app/bin/presence", "-c", "/etc/cordis/config.yaml"]

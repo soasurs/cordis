@@ -1,10 +1,11 @@
 package svc
 
 import (
+	"context"
 	"fmt"
 
 	sn "github.com/bwmarrin/snowflake"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/snowflake"
@@ -31,7 +32,7 @@ type Dependencies struct {
 	StagingObjectStore    objectstore.ObjectStore
 	AttachmentObjectStore objectstore.ObjectStore
 	Processor             *processing.Processor
-	DB                    *sqlx.DB
+	DB                    *pgxpool.Pool
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -43,7 +44,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, fmt.Errorf("create snowflake node: %w", err)
 	}
 
-	db, err := database.NewPostgres(cfg.Database)
+	db, err := database.NewPostgresPool(context.Background(), cfg.Database)
 	if err != nil {
 		return Dependencies{}, fmt.Errorf("create database: %w", err)
 	}

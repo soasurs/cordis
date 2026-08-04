@@ -13,9 +13,9 @@ const createAssetStatement = `
 		staging_key, published_key, filename, storage_token, expected_size,
 		content_type, expires_at, created_at, updated_at
 	) VALUES (
-		:id, :created_by_user_id, :subject_id, :kind, :status, :storage_backend,
-		:staging_key, :published_key, :filename, :storage_token, :expected_size,
-		:content_type, :expires_at, :created_at, :updated_at
+		$1, $2, $3, $4, $5, $6,
+		$7, $8, $9, $10, $11,
+		$12, $13, $14, $15
 	)
 `
 
@@ -48,17 +48,17 @@ const listAssetsQuery = `
 
 const updateAssetStatement = `
 	UPDATE assets
-	SET status = :status,
-		storage_backend = :storage_backend,
-		published_key = :published_key,
-		actual_size = :actual_size,
-		content_type = :content_type,
-		width = :width,
-		height = :height,
-		blurhash = :blurhash,
-		error_message = :error_message,
-		updated_at = :updated_at
-	WHERE id = :id
+	SET status = $1,
+		storage_backend = $2,
+		published_key = $3,
+		actual_size = $4,
+		content_type = $5,
+		width = $6,
+		height = $7,
+		blurhash = $8,
+		error_message = $9,
+		updated_at = $10
+	WHERE id = $11
 	  AND deleted_at = 0
 `
 
@@ -88,8 +88,8 @@ const (
 			asset_id, created_at, expires_at
 		)
 	VALUES
-		(:actor_user_id, :operation, :idempotency_key, :request_hash,
-		 :asset_id, :created_at, :expires_at)
+		($1, $2, $3, $4,
+		 $5, $6, $7)
 	ON CONFLICT (actor_user_id, operation, idempotency_key) DO NOTHING
 	RETURNING
 		asset_id, request_hash

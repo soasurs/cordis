@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
+	"github.com/soasurs/cordis/pkg/database"
 	"github.com/soasurs/cordis/pkg/migration"
 	"github.com/soasurs/cordis/pkg/probe"
 	"github.com/soasurs/cordis/services/media/v1/config"
@@ -32,11 +33,19 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if deps.DB != nil {
+		defer deps.DB.Close()
+	}
+	migrationDB, err := database.NewPostgres(cfg.Database)
+	if err != nil {
+		panic(err)
+	}
+	defer migrationDB.Close()
 
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 
 	ctx := context.Background()
-	if err := migration.ApplyNamed(ctx, deps.DB, "media", migrations.FS); err != nil {
+	if err := migration.ApplyNamed(ctx, migrationDB, "media", migrations.FS); err != nil {
 		panic(err)
 	}
 

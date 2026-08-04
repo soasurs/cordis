@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 )
 
 func (s *SQLStore) CreateAssetWithQuota(
@@ -20,23 +20,35 @@ func (s *SQLStore) CreateAssetWithQuota(
 		return errors.New("active upload limit must be positive")
 	}
 	lockKey := fmt.Sprintf("cordis:media:upload-quota:%d", asset.CreatedByUserID)
-	if _, err := s.q.ExecContext(ctx, lockUploadQuotaScopeStatement, lockKey); err != nil {
+	if _, err := s.q.Exec(ctx, lockUploadQuotaScopeStatement, lockKey); err != nil {
 		return fmt.Errorf("lock upload quota: %w", err)
 	}
-	var count int64
-	if err := sqlx.GetContext(
-		ctx,
-		s.q,
-		&count,
-		countActiveUploadsQuery,
-		asset.CreatedByUserID,
-	); err != nil {
+	count, err := scanOne(ctx, s.q, countActiveUploadsQuery, pgx.RowTo[int64], asset.CreatedByUserID)
+	if err != nil {
 		return fmt.Errorf("count user active uploads: %w", err)
 	}
 	if count >= activeUploadLimit {
 		return ErrActiveUploadLimit
 	}
-	if _, err := sqlx.NamedExecContext(ctx, s.q, createAssetStatement, asset); err != nil {
+	if _, err := s.q.Exec(
+		ctx,
+		createAssetStatement,
+		asset.ID,
+		asset.CreatedByUserID,
+		asset.SubjectID,
+		asset.Kind,
+		asset.Status,
+		asset.StorageBackend,
+		asset.StagingKey,
+		asset.PublishedKey,
+		asset.Filename,
+		asset.StorageToken,
+		asset.ExpectedSize,
+		asset.ContentType,
+		asset.ExpiresAt,
+		asset.CreatedAt,
+		asset.UpdatedAt,
+	); err != nil {
 		return fmt.Errorf("create asset: %w", err)
 	}
 	return nil
@@ -50,16 +62,20 @@ func (s *SQLStore) ListAssets(ctx context.Context, ids []int64) ([]*Asset, error
 	if len(ids) == 0 {
 		return []*Asset{}, nil
 	}
-	var assets []*Asset
-	if err := sqlx.SelectContext(ctx, s.q, &assets, listAssetsQuery, ids); err != nil {
+	rows, err := scanMany(ctx, s.q, listAssetsQuery, pgx.RowToStructByName[Asset], ids)
+	if err != nil {
 		return nil, fmt.Errorf("list assets: %w", err)
+	}
+	assets := make([]*Asset, 0, len(rows))
+	for i := range rows {
+		assets = append(assets, &rows[i])
 	}
 	return assets, nil
 }
 
-func getAsset(ctx context.Context, q sqlx.QueryerContext, id int64) (*Asset, error) {
-	var a Asset
-	if err := sqlx.GetContext(ctx, q, &a, getAssetQuery, id); err != nil {
+func getAsset(ctx context.Context, q queryer, id int64) (*Asset, error) {
+	a, err := scanOne(ctx, q, getAssetQuery, pgx.RowToStructByName[Asset], id)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
 		}
@@ -72,42 +88,52 @@ func (s *SQLStore) UpdateAsset(ctx context.Context, asset *Asset) error {
 	return updateAsset(ctx, s.q, asset)
 }
 
-func updateAsset(ctx context.Context, q sqlx.ExecerContext, asset *Asset) error {
+func updateAsset(ctx context.Context, q queryer, asset *Asset) error {
 	asset.UpdatedAt = time.Now().UnixMilli()
-	query, args, err := sqlx.Named(updateAssetStatement, asset)
-	if err != nil {
-		return fmt.Errorf("bind update asset: %w", err)
-	}
-	result, err := q.ExecContext(ctx, sqlx.Rebind(sqlx.DOLLAR, query), args...)
+	tag, err := q.Exec(
+		ctx,
+		updateAssetStatement,
+		asset.Status,
+		asset.StorageBackend,
+		asset.PublishedKey,
+		asset.ActualSize,
+		asset.ContentType,
+		asset.Width,
+		asset.Height,
+		asset.Blurhash,
+		asset.ErrorMessage,
+		asset.UpdatedAt,
+		asset.ID,
+	)
 	if err != nil {
 		return fmt.Errorf("update asset: %w", err)
 	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("read update asset result: %w", err)
-	}
-	if affected == 0 {
+	if tag.RowsAffected() == 0 {
 		return ErrNotFound
 	}
 	return nil
 }
 
 func (s *SQLStore) ListExpiredUploads(ctx context.Context, before int64) ([]*Asset, error) {
-	var assets []*Asset
-	if err := sqlx.SelectContext(ctx, s.q, &assets, listExpiredUploadsQuery, before); err != nil {
+	rows, err := scanMany(ctx, s.q, listExpiredUploadsQuery, pgx.RowToStructByName[Asset], before)
+	if err != nil {
 		return nil, fmt.Errorf("list expired uploads: %w", err)
+	}
+	assets := make([]*Asset, 0, len(rows))
+	for i := range rows {
+		assets = append(assets, &rows[i])
 	}
 	return assets, nil
 }
 
 func (s *SQLStore) AcquireAssetLock(ctx context.Context, id int64) (AssetStore, func(), error) {
-	conn, err := s.db.Connx(ctx)
+	conn, err := s.db.Acquire(ctx)
 	if err != nil {
 		return nil, nil, fmt.Errorf("acquire database connection: %w", err)
 	}
 	lockKey := fmt.Sprintf("cordis:media:asset:%d", id)
-	if _, err := conn.ExecContext(ctx, lockAssetStatement, lockKey); err != nil {
-		_ = conn.Close()
+	if _, err := conn.Exec(ctx, lockAssetStatement, lockKey); err != nil {
+		conn.Release()
 		return nil, nil, fmt.Errorf("lock asset: %w", err)
 	}
 
@@ -116,8 +142,8 @@ func (s *SQLStore) AcquireAssetLock(ctx context.Context, id int64) (AssetStore, 
 		once.Do(func() {
 			unlockCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			_, _ = conn.ExecContext(unlockCtx, unlockAssetStatement, lockKey)
-			_ = conn.Close()
+			_, _ = conn.Exec(unlockCtx, unlockAssetStatement, lockKey)
+			conn.Release()
 		})
 	}
 	return &assetLockStore{q: conn}, unlock, nil

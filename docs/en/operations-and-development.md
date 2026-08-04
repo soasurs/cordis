@@ -39,9 +39,10 @@ Guild/Message events, etcd for leased Session-node registration and discovery,
 and Redis for Presence, resume ownership, and aggregate realtime routing. RPC
 services support OTLP tracing through `CORDIS_OTEL_ENDPOINT`. Postgres
 connections opened by `pkg/database.NewPostgres` are instrumented with
-`github.com/XSAM/otelsql`; the Message and User services' native pgx pools
-(`pkg/database.NewPostgresPool`) use `github.com/exaring/otelpgx`. Both paths
-make store calls that pass request context child spans of the active RPC trace.
+`github.com/XSAM/otelsql`; the Message, User, Authenticator, Media, and Guild
+services' native pgx pools (`pkg/database.NewPostgresPool`) use
+`github.com/exaring/otelpgx`. Both paths make store calls that pass request
+context child spans of the active RPC trace.
 The native pool keeps pgxpool's default idle behavior; `MaxIdleConns` is not
 mapped to `MinIdleConns`. Metrics are exposed through go-zero dev servers or
 API observability settings.

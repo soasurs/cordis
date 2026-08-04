@@ -2,10 +2,11 @@ package store
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -239,26 +240,34 @@ type Store interface {
 }
 
 type SQLStore struct {
-	db *sqlx.DB
-	q  sqlx.ExtContext
+	db *pgxpool.Pool
+	q  queryer
 }
 
-func New(db *sqlx.DB) Store {
+// queryer is the pgx-native query surface used by SQLStore. The top-level
+// store uses the pool; transactions replace it with the pgx transaction.
+type queryer interface {
+	Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, query string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, query string, args ...any) pgx.Row
+}
+
+func New(db *pgxpool.Pool) Store {
 	return &SQLStore{db: db, q: db}
 }
 
 func (s *SQLStore) Transact(ctx context.Context, fn func(txStore Store) error) (err error) {
-	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		if p := recover(); p != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback(ctx)
 			panic(p)
 		}
 		if err != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback(ctx)
 		}
 	}()
 
@@ -266,5 +275,5 @@ func (s *SQLStore) Transact(ctx context.Context, fn func(txStore Store) error) (
 	if err != nil {
 		return err
 	}
-	return tx.Commit()
+	return tx.Commit(ctx)
 }

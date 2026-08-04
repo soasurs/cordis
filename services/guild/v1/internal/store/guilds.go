@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -26,23 +26,22 @@ type guildRow struct {
 }
 
 func (s *SQLStore) CreateGuild(ctx context.Context, guildID, ownerID int64, name string, createdAt int64) (*model.Guild, error) {
-	row := new(guildRow)
-	if err := sqlx.GetContext(ctx, s.q, row, createGuildQuery, guildID, ownerID, name, createdAt); err != nil {
+	row, err := scanOne(ctx, s.q, createGuildQuery, pgx.RowToStructByName[guildRow], guildID, ownerID, name, createdAt)
+	if err != nil {
 		return nil, err
 	}
-	return guildFromRow(row), nil
+	return guildFromRow(&row), nil
 }
 
 func (s *SQLStore) CreateGuildMember(ctx context.Context, guildID, userID, joinedAt int64) (*model.GuildMember, error) {
-	row := new(guildMemberRow)
-	err := sqlx.GetContext(ctx, s.q, row, createGuildMemberQuery, guildID, userID, joinedAt)
+	row, err := scanOne(ctx, s.q, createGuildMemberQuery, pgx.RowToStructByName[guildMemberRow], guildID, userID, joinedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrMemberAlreadyExists
 	}
 	if err != nil {
 		return nil, err
 	}
-	return guildMemberFromRow(row), nil
+	return guildMemberFromRow(&row), nil
 }
 
 type guildBanRow struct {
@@ -54,59 +53,52 @@ type guildBanRow struct {
 }
 
 func (s *SQLStore) UpsertGuildBan(ctx context.Context, ban *model.GuildBan) (*model.GuildBan, error) {
-	row := new(guildBanRow)
-	if err := sqlx.GetContext(ctx, s.q, row, upsertGuildBanQuery, ban.GuildID, ban.UserID, ban.ActorUserID, ban.Reason, ban.CreatedAt); err != nil {
+	row, err := scanOne(ctx, s.q, upsertGuildBanQuery, pgx.RowToStructByName[guildBanRow], ban.GuildID, ban.UserID, ban.ActorUserID, ban.Reason, ban.CreatedAt)
+	if err != nil {
 		return nil, err
 	}
-	return guildBanFromRow(row), nil
+	return guildBanFromRow(&row), nil
 }
 
 func (s *SQLStore) DeleteGuildBan(ctx context.Context, guildID, userID int64) error {
-	result, err := s.q.ExecContext(ctx, deleteGuildBanStatement, guildID, userID)
+	tag, err := s.q.Exec(ctx, deleteGuildBanStatement, guildID, userID)
 	if err != nil {
 		return err
 	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
+	if tag.RowsAffected() == 0 {
 		return sql.ErrNoRows
 	}
 	return nil
 }
 
 func (s *SQLStore) GetGuildBan(ctx context.Context, guildID, userID int64) (*model.GuildBan, error) {
-	row := new(guildBanRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getGuildBanQuery, guildID, userID); err != nil {
+	row, err := scanOne(ctx, s.q, getGuildBanQuery, pgx.RowToStructByName[guildBanRow], guildID, userID)
+	if err != nil {
 		return nil, err
 	}
-	return guildBanFromRow(row), nil
+	return guildBanFromRow(&row), nil
 }
 
 func (s *SQLStore) ListGuildBans(ctx context.Context, params ListGuildBansParams) ([]*model.GuildBan, error) {
-	var rows []*guildBanRow
-	if err := sqlx.SelectContext(
-		ctx,
-		s.q,
-		&rows,
-		listGuildBansQuery,
+	rows, err := scanMany(
+		ctx, s.q, listGuildBansQuery, pgx.RowToStructByName[guildBanRow],
 		params.GuildID,
 		params.BeforeCreatedAt,
 		params.BeforeUserID,
 		params.Limit,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 	bans := make([]*model.GuildBan, 0, len(rows))
-	for _, row := range rows {
-		bans = append(bans, guildBanFromRow(row))
+	for i := range rows {
+		bans = append(bans, guildBanFromRow(&rows[i]))
 	}
 	return bans, nil
 }
 
 func (s *SQLStore) DeleteGuildBans(ctx context.Context, guildID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildBansStatement, guildID)
+	_, err := s.q.Exec(ctx, deleteGuildBansStatement, guildID)
 	return err
 }
 
@@ -118,104 +110,88 @@ func guildBanFromRow(row *guildBanRow) *model.GuildBan {
 }
 
 func (s *SQLStore) GetGuildMember(ctx context.Context, guildID, userID int64) (*model.GuildMember, error) {
-	row := new(guildMemberRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getGuildMemberQuery, guildID, userID); err != nil {
+	row, err := scanOne(ctx, s.q, getGuildMemberQuery, pgx.RowToStructByName[guildMemberRow], guildID, userID)
+	if err != nil {
 		return nil, err
 	}
-	return guildMemberFromRow(row), nil
+	return guildMemberFromRow(&row), nil
 }
 
 func (s *SQLStore) ListGuildMembers(ctx context.Context, params ListGuildMembersParams) ([]*model.GuildMember, error) {
-	var rows []*guildMemberRow
-	if err := sqlx.SelectContext(
-		ctx,
-		s.q,
-		&rows,
-		listGuildMembersQuery,
+	rows, err := scanMany(
+		ctx, s.q, listGuildMembersQuery, pgx.RowToStructByName[guildMemberRow],
 		params.GuildID,
 		params.BeforeJoinedAt,
 		params.BeforeUserID,
 		params.Limit,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 	members := make([]*model.GuildMember, 0, len(rows))
-	for _, row := range rows {
-		members = append(members, guildMemberFromRow(row))
+	for i := range rows {
+		members = append(members, guildMemberFromRow(&rows[i]))
 	}
 	return members, nil
 }
 
 func (s *SQLStore) ListUsersWithCommonGuild(ctx context.Context, userID int64, targetUserIDs []int64) ([]int64, error) {
-	var userIDs []int64
-	if err := sqlx.SelectContext(ctx, s.q, &userIDs, listUsersWithCommonGuildQuery, userID, targetUserIDs); err != nil {
-		return nil, err
-	}
-	return userIDs, nil
+	return scanMany(ctx, s.q, listUsersWithCommonGuildQuery, pgx.RowTo[int64], userID, targetUserIDs)
 }
 
 func (s *SQLStore) ListGuildRoleMembers(ctx context.Context, params ListGuildRoleMembersParams) ([]*model.GuildMember, error) {
-	var rows []*guildMemberRow
-	if err := sqlx.SelectContext(
-		ctx,
-		s.q,
-		&rows,
-		listGuildRoleMembersQuery,
+	rows, err := scanMany(
+		ctx, s.q, listGuildRoleMembersQuery, pgx.RowToStructByName[guildMemberRow],
 		params.GuildID,
 		params.RoleID,
 		params.BeforeJoinedAt,
 		params.BeforeUserID,
 		params.Limit,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 	members := make([]*model.GuildMember, 0, len(rows))
-	for _, row := range rows {
-		members = append(members, guildMemberFromRow(row))
+	for i := range rows {
+		members = append(members, guildMemberFromRow(&rows[i]))
 	}
 	return members, nil
 }
 
 func (s *SQLStore) UpdateGuildMemberNickname(ctx context.Context, guildID, userID int64, nickname string) (*model.GuildMember, error) {
-	row := new(guildMemberRow)
-	if err := sqlx.GetContext(
-		ctx,
-		s.q,
-		row,
-		updateGuildMemberNicknameQuery,
+	row, err := scanOne(
+		ctx, s.q, updateGuildMemberNicknameQuery, pgx.RowToStructByName[guildMemberRow],
 		guildID,
 		userID,
 		nickname,
 		time.Now().UnixMilli(),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
-	return guildMemberFromRow(row), nil
+	return guildMemberFromRow(&row), nil
 }
 
 func (s *SQLStore) RemoveGuildMember(ctx context.Context, guildID, userID, removedAt int64) (*model.GuildMember, error) {
-	row := new(guildMemberRow)
-	if err := sqlx.GetContext(ctx, s.q, row, removeGuildMemberQuery, guildID, userID, removedAt); err != nil {
+	row, err := scanOne(ctx, s.q, removeGuildMemberQuery, pgx.RowToStructByName[guildMemberRow], guildID, userID, removedAt)
+	if err != nil {
 		return nil, err
 	}
-	return guildMemberFromRow(row), nil
+	return guildMemberFromRow(&row), nil
 }
 
 func (s *SQLStore) TransferGuildOwnership(ctx context.Context, guildID, currentOwnerID, newOwnerID int64) (*model.Guild, error) {
-	row := new(guildRow)
-	if err := sqlx.GetContext(
-		ctx,
-		s.q,
-		row,
-		transferGuildOwnershipQuery,
+	row, err := scanOne(
+		ctx, s.q, transferGuildOwnershipQuery, pgx.RowToStructByName[guildRow],
 		guildID,
 		currentOwnerID,
 		newOwnerID,
 		time.Now().UnixMilli(),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
-	return guildFromRow(row), nil
+	return guildFromRow(&row), nil
 }
 
 type guildMemberRow struct {
@@ -241,32 +217,31 @@ func guildMemberFromRow(row *guildMemberRow) *model.GuildMember {
 }
 
 func (s *SQLStore) CreateDefaultRole(ctx context.Context, guildID, createdAt int64) error {
-	_, err := s.q.ExecContext(ctx, createDefaultRoleStatement, guildID, createdAt)
+	_, err := s.q.Exec(ctx, createDefaultRoleStatement, guildID, createdAt)
 	return err
 }
 
 func (s *SQLStore) GetGuildForMember(ctx context.Context, guildID, userID int64) (*model.Guild, error) {
-	row := new(guildRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getGuildForMemberQuery, guildID, userID); err != nil {
+	row, err := scanOne(ctx, s.q, getGuildForMemberQuery, pgx.RowToStructByName[guildRow], guildID, userID)
+	if err != nil {
 		return nil, err
 	}
-	return guildFromRow(row), nil
+	return guildFromRow(&row), nil
 }
 
 func (s *SQLStore) ListUserGuilds(ctx context.Context, params ListUserGuildsParams) ([]*model.Guild, error) {
-	var rows []*guildRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listUserGuildsQuery, params.UserID, params.Before, params.Limit); err != nil {
+	rows, err := scanMany(ctx, s.q, listUserGuildsQuery, pgx.RowToStructByName[guildRow], params.UserID, params.Before, params.Limit)
+	if err != nil {
 		return nil, err
 	}
 	guilds := make([]*model.Guild, 0, len(rows))
-	for _, row := range rows {
-		guilds = append(guilds, guildFromRow(row))
+	for i := range rows {
+		guilds = append(guilds, guildFromRow(&rows[i]))
 	}
 	return guilds, nil
 }
 
 func (s *SQLStore) UpdateGuild(ctx context.Context, params UpdateGuildParams) (*model.Guild, error) {
-	row := new(guildRow)
 	var name, description string
 	if params.Name != nil {
 		name = *params.Name
@@ -274,11 +249,8 @@ func (s *SQLStore) UpdateGuild(ctx context.Context, params UpdateGuildParams) (*
 	if params.Description != nil {
 		description = *params.Description
 	}
-	err := sqlx.GetContext(
-		ctx,
-		s.q,
-		row,
-		updateGuildQuery,
+	row, err := scanOne(
+		ctx, s.q, updateGuildQuery, pgx.RowToStructByName[guildRow],
 		params.GuildID,
 		params.Name != nil,
 		name,
@@ -289,64 +261,54 @@ func (s *SQLStore) UpdateGuild(ctx context.Context, params UpdateGuildParams) (*
 	if err != nil {
 		return nil, err
 	}
-	return guildFromRow(row), nil
+	return guildFromRow(&row), nil
 }
 
 func (s *SQLStore) UpdateGuildIcon(ctx context.Context, guildID, assetID int64) (*model.Guild, error) {
-	row := new(guildRow)
-	if err := sqlx.GetContext(
-		ctx,
-		s.q,
-		row,
-		updateGuildIconQuery,
+	row, err := scanOne(
+		ctx, s.q, updateGuildIconQuery, pgx.RowToStructByName[guildRow],
 		guildID,
 		assetID,
 		time.Now().UnixMilli(),
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
-	return guildFromRow(row), nil
+	return guildFromRow(&row), nil
 }
 
 func (s *SQLStore) DeleteGuild(ctx context.Context, guildID, deletedAt int64) (*model.Guild, error) {
-	row := new(guildRow)
-	if err := sqlx.GetContext(ctx, s.q, row, deleteGuildQuery, guildID, deletedAt); err != nil {
+	row, err := scanOne(ctx, s.q, deleteGuildQuery, pgx.RowToStructByName[guildRow], guildID, deletedAt)
+	if err != nil {
 		return nil, err
 	}
-	return guildFromRow(row), nil
+	return guildFromRow(&row), nil
 }
 
 func (s *SQLStore) DeleteGuildMembers(ctx context.Context, guildID, deletedAt int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildMembersStatement, guildID, deletedAt)
+	_, err := s.q.Exec(ctx, deleteGuildMembersStatement, guildID, deletedAt)
 	return err
 }
 
 func (s *SQLStore) DeleteGuildRoles(ctx context.Context, guildID, deletedAt int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildRolesStatement, guildID, deletedAt)
+	_, err := s.q.Exec(ctx, deleteGuildRolesStatement, guildID, deletedAt)
 	return err
 }
 
 func (s *SQLStore) GetGuildChannelLayoutRevision(ctx context.Context, guildID int64) (int64, error) {
-	var revision int64
-	if err := sqlx.GetContext(ctx, s.q, &revision, getGuildChannelLayoutRevisionQuery, guildID); err != nil {
-		return 0, err
-	}
-	return revision, nil
+	return scanOne(ctx, s.q, getGuildChannelLayoutRevisionQuery, pgx.RowTo[int64], guildID)
 }
 
 func (s *SQLStore) AdvanceGuildChannelLayoutRevision(
 	ctx context.Context,
 	guildID, expectedRevision int64,
 ) (int64, error) {
-	var revision int64
-	if err := sqlx.GetContext(
-		ctx,
-		s.q,
-		&revision,
-		advanceGuildChannelLayoutRevisionQuery,
+	revision, err := scanOne(
+		ctx, s.q, advanceGuildChannelLayoutRevisionQuery, pgx.RowTo[int64],
 		guildID,
 		expectedRevision,
-	); err != nil {
+	)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, ErrGuildChannelLayoutRevisionConflict
 		}

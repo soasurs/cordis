@@ -208,10 +208,13 @@ func newPostgresGuildService(t *testing.T) (store.Store, guildv1.GuildServiceSer
 func newPostgresGuildServiceWithPublisher(t *testing.T, publisher svc.EventPublisher) (store.Store, guildv1.GuildServiceServer) {
 	t.Helper()
 	postgres := testkit.StartPostgres(t)
-	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
+	migrationDB, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
-	require.NoError(t, migration.Apply(t.Context(), db, guildmigrations.Files))
+	t.Cleanup(func() { require.NoError(t, migrationDB.Close()) })
+	db, err := database.NewPostgresPool(t.Context(), database.Config{DataSource: postgres.DSN})
+	require.NoError(t, err)
+	t.Cleanup(db.Close)
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, guildmigrations.Files))
 
 	node, err := snowflake.New()
 	require.NoError(t, err)

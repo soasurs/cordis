@@ -148,17 +148,19 @@ func TestPublishEventAddsCommittedAccessRevision(t *testing.T) {
 	require.Equal(t, int64(37), envelope.Data.AccessRevision)
 }
 
-func TestCreateGuildPublishFailureIsBestEffort(t *testing.T) {
-	publisher := &fakePublisher{err: errors.New("kafka unavailable")}
-	server := newTestGuildServer(t, newFakeStore(), publisher)
+func TestCreateGuildOutboxFailureFailsRequest(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.outboxErr = errors.New("outbox unavailable")
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
 	req := new(guildv1.CreateGuildRequest)
 	req.SetOwnerId(1001)
 	req.SetName("Cordis")
 
-	resp, err := server.CreateGuild(t.Context(), req)
-	require.NoError(t, err)
-	require.NotNil(t, resp.GetGuild())
-	require.Len(t, publisher.records, 1)
+	_, err := server.CreateGuild(t.Context(), req)
+	require.Error(t, err)
+	require.Empty(t, publisher.records)
+	require.Empty(t, fakeStore.guildOutbox)
 }
 
 func TestCreateGuildMapsResourceLimit(t *testing.T) {
@@ -478,8 +480,8 @@ func newTestGuildServerWithUserAndMedia(
 		}
 	}
 	return New(&svc.ServiceContext{
-		Cfg:         config.Config{},
-		Store:       guildStore, Snowflake: node, Cursors: testCursorCodec(t),
+		Cfg:   config.Config{},
+		Store: guildStore, Snowflake: node, Cursors: testCursorCodec(t),
 		UserClient:  userClient,
 		MediaClient: mediaClient,
 	})

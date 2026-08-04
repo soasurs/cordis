@@ -69,8 +69,8 @@ Guild profile projector 使用 `cordis.guild.user.profiles.v1` 消费组消费
 
 Guild 创建类 RPC（`CreateGuild`、`CreateGuildRole`、`CreateGuildChannel`、
 `CreateGuildInvite`）的幂等记录与资源写入在同一事务内提交。相同 key 的重试
-返回第一次创建的资源，不重复发布创建、频道位移或 overwrite 事件。同样存在
-best-effort 发布窗口。
+返回第一次创建的资源，不重复发布创建、频道位移或 overwrite 事件。创建事件
+与资源写入在同一事务内原子提交，并由 outbox relay 重试投递。
 
 上传创建类 RPC（`CreateAvatarUpload`、`CreateGuildIconUpload`、
 `CreateAttachmentUpload`）的幂等记录与 asset 写入在同一事务内提交。相同

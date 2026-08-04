@@ -21,6 +21,9 @@ func (s *fakeStore) ReserveGuildSequences(_ context.Context, streamKey string, c
 }
 
 func (s *fakeStore) InsertGuildOutbox(_ context.Context, records []outbox.Record) error {
+	if s.outboxErr != nil {
+		return s.outboxErr
+	}
 	s.guildOutbox = append(s.guildOutbox, records...)
 	s.outboxCalls++
 	return nil

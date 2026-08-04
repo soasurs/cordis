@@ -106,7 +106,8 @@ Guild creation RPCs (`CreateGuild`, `CreateGuildRole`, `CreateGuildChannel`,
 and `CreateGuildInvite`) commit their idempotency record in the same
 transaction as the resource writes. A same-key retry returns the originally
 created resource without republishing creation, channel-shift, or overwrite
-events. The same best-effort publication window applies.
+events. Creation events commit atomically with the resource writes and are
+delivered by the outbox relay with retries.
 
 Upload creation RPCs (`CreateAvatarUpload`, `CreateGuildIconUpload`,
 `CreateAttachmentUpload`) commit their idempotency record in the same

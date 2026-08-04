@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"maps"
 	"strconv"
 
 	"github.com/soasurs/cordis/pkg/outbox"
@@ -30,6 +31,7 @@ type fakeStore struct {
 	guildStreamSequences map[string]int64
 	outboxObserver       func([]outbox.Record)
 	outboxCalls          int
+	outboxErr            error
 
 	listOverwritesByChannelCalls int
 	listOverwritesByGuildCalls   int
@@ -46,9 +48,9 @@ func newFakeStore() *fakeStore {
 		roles: make(map[int64]map[int64]*model.Role), memberRoles: make(map[int64]map[int64]map[int64]bool),
 		profiles: make(map[int64]map[int64]*model.GuildMemberProfile),
 		channels: make(map[int64]*model.Channel), overwrites: make(map[int64]map[string]*model.ChannelPermissionOverwrite),
-		defaultRoles: make(map[int64]bool),
-		bans:         make(map[int64]map[int64]*model.GuildBan),
-		invites:      make(map[string]*model.GuildInvite),
+		defaultRoles:         make(map[int64]bool),
+		bans:                 make(map[int64]map[int64]*model.GuildBan),
+		invites:              make(map[string]*model.GuildInvite),
 		idempotency:          make(map[string]fakeIdempotencyClaim),
 		guildStreamSequences: make(map[string]int64),
 	}
@@ -74,9 +76,7 @@ func (s *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) err
 
 func cloneInt64Map(source map[string]int64) map[string]int64 {
 	cloned := make(map[string]int64, len(source))
-	for key, value := range source {
-		cloned[key] = value
-	}
+	maps.Copy(cloned, source)
 	return cloned
 }
 

@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 )
@@ -19,7 +19,7 @@ type userCredentialRow struct {
 // It reports sql.ErrNoRows when a credential already exists so registration
 // can distinguish a fresh insert from a lost race.
 func (s *SQLStore) CreateUserCredential(ctx context.Context, credential *model.UserCredential) error {
-	res, err := s.q.ExecContext(
+	tag, err := s.q.Exec(
 		ctx,
 		CreateUserCredentialStatement,
 		credential.UserID,
@@ -29,7 +29,7 @@ func (s *SQLStore) CreateUserCredential(ctx context.Context, credential *model.U
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) GetUserCredential(ctx context.Context, userID int64, forUpdate bool) (*model.UserCredential, error) {
@@ -37,8 +37,8 @@ func (s *SQLStore) GetUserCredential(ctx context.Context, userID int64, forUpdat
 	if forUpdate {
 		query += " FOR UPDATE"
 	}
-	row := new(userCredentialRow)
-	if err := sqlx.GetContext(ctx, s.q, row, query, userID); err != nil {
+	row, err := scanOne(ctx, s.q, query, pgx.RowToStructByName[userCredentialRow], userID)
+	if err != nil {
 		return nil, err
 	}
 	return &model.UserCredential{
@@ -50,9 +50,9 @@ func (s *SQLStore) GetUserCredential(ctx context.Context, userID int64, forUpdat
 }
 
 func (s *SQLStore) UpdateUserCredential(ctx context.Context, userID int64, hashedPassword string, updatedAt int64) error {
-	res, err := s.q.ExecContext(ctx, UpdateUserCredentialStatement, hashedPassword, updatedAt, userID)
+	tag, err := s.q.Exec(ctx, UpdateUserCredentialStatement, hashedPassword, updatedAt, userID)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }

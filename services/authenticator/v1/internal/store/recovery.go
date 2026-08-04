@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 )
@@ -26,7 +26,7 @@ type emailVerificationTokenRow struct {
 }
 
 func (s *SQLStore) UpsertPasswordResetToken(ctx context.Context, token *model.PasswordResetToken) error {
-	_, err := s.q.ExecContext(
+	_, err := s.q.Exec(
 		ctx,
 		UpsertPasswordResetTokenStatement,
 		token.UserID,
@@ -42,8 +42,8 @@ func (s *SQLStore) GetPasswordResetToken(ctx context.Context, tokenHash string, 
 	if forUpdate {
 		query += " FOR UPDATE"
 	}
-	row := new(passwordResetTokenRow)
-	if err := sqlx.GetContext(ctx, s.q, row, query, tokenHash); err != nil {
+	row, err := scanOne(ctx, s.q, query, pgx.RowToStructByName[passwordResetTokenRow], tokenHash)
+	if err != nil {
 		return nil, err
 	}
 	return &model.PasswordResetToken{
@@ -56,15 +56,15 @@ func (s *SQLStore) GetPasswordResetToken(ctx context.Context, tokenHash string, 
 }
 
 func (s *SQLStore) ConsumePasswordResetToken(ctx context.Context, tokenHash string, consumedAt int64) error {
-	res, err := s.q.ExecContext(ctx, ConsumePasswordResetTokenStatement, consumedAt, tokenHash)
+	tag, err := s.q.Exec(ctx, ConsumePasswordResetTokenStatement, consumedAt, tokenHash)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) UpsertEmailVerificationToken(ctx context.Context, token *model.EmailVerificationToken) error {
-	_, err := s.q.ExecContext(
+	_, err := s.q.Exec(
 		ctx,
 		UpsertEmailVerificationTokenStatement,
 		token.UserID,
@@ -81,8 +81,8 @@ func (s *SQLStore) GetEmailVerificationToken(ctx context.Context, tokenHash stri
 	if forUpdate {
 		query += " FOR UPDATE"
 	}
-	row := new(emailVerificationTokenRow)
-	if err := sqlx.GetContext(ctx, s.q, row, query, tokenHash); err != nil {
+	row, err := scanOne(ctx, s.q, query, pgx.RowToStructByName[emailVerificationTokenRow], tokenHash)
+	if err != nil {
 		return nil, err
 	}
 	return &model.EmailVerificationToken{
@@ -96,9 +96,9 @@ func (s *SQLStore) GetEmailVerificationToken(ctx context.Context, tokenHash stri
 }
 
 func (s *SQLStore) ConsumeEmailVerificationToken(ctx context.Context, tokenHash string, consumedAt int64) error {
-	res, err := s.q.ExecContext(ctx, ConsumeEmailVerificationTokenStatement, consumedAt, tokenHash)
+	tag, err := s.q.Exec(ctx, ConsumeEmailVerificationTokenStatement, consumedAt, tokenHash)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }

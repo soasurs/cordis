@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 )
@@ -75,11 +77,19 @@ type RotateRefreshTokenParams struct {
 }
 
 type SQLStore struct {
-	db *sqlx.DB
-	q  sqlx.ExtContext
+	db *pgxpool.Pool
+	q  queryer
 }
 
-func New(db *sqlx.DB) Store {
+// queryer is the pgx-native query surface used by SQLStore. The top-level
+// store uses the pool; transactions replace it with the pgx transaction.
+type queryer interface {
+	Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, query string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, query string, args ...any) pgx.Row
+}
+
+func New(db *pgxpool.Pool) Store {
 	return &SQLStore{
 		db: db,
 		q:  db,
@@ -87,31 +97,27 @@ func New(db *sqlx.DB) Store {
 }
 
 func (s *SQLStore) Transact(ctx context.Context, fn func(Store) error) (err error) {
-	tx, err := s.db.BeginTxx(ctx, nil)
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if recovered := recover(); recovered != nil {
-			_ = tx.Rollback()
-			panic(recovered)
+		if p := recover(); p != nil {
+			_ = tx.Rollback(ctx)
+			panic(p)
 		}
 		if err != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback(ctx)
 			return
 		}
-		err = tx.Commit()
+		err = tx.Commit(ctx)
 	}()
 
 	return fn(&SQLStore{db: s.db, q: tx})
 }
 
-func checkRowsAffected(res sql.Result) error {
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
+func checkRowsAffected(tag pgconn.CommandTag) error {
+	if tag.RowsAffected() == 0 {
 		return sql.ErrNoRows
 	}
 	return nil

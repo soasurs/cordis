@@ -46,7 +46,7 @@ func run(ctx context.Context, args []string) error {
 	if err := conf.LoadConfig(*configPath, cfg, conf.UseEnv()); err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
-	db, err := database.NewPostgres(cfg.Database)
+	db, err := database.NewPostgresPool(ctx, cfg.Database)
 	if err != nil {
 		return fmt.Errorf("connect database: %w", err)
 	}

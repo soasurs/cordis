@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 )
@@ -44,7 +44,25 @@ func (s *SQLStore) CreateSession(ctx context.Context, params CreateSessionParams
 		RevokedAt:             0,
 	}
 
-	_, err := sqlx.NamedExecContext(ctx, s.q, CreateSessionStatement, row)
+	_, err := s.q.Exec(
+		ctx,
+		CreateSessionStatement,
+		row.SessionID,
+		row.UserID,
+		row.RefreshTokenHash,
+		row.RefreshTokenID,
+		row.RefreshTokenIssuedAt,
+		row.RefreshTokenExpiresAt,
+		row.PreviousRefreshTokenHash,
+		row.PreviousRefreshTokenValidUntil,
+		row.UserAgent,
+		row.IP,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.ExpiresAt,
+		row.AbsoluteExpiresAt,
+		row.RevokedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +70,7 @@ func (s *SQLStore) CreateSession(ctx context.Context, params CreateSessionParams
 }
 
 func (s *SQLStore) GetSession(ctx context.Context, sessionID int64) (*model.Session, error) {
-	row := new(sessionRow)
-	err := sqlx.GetContext(ctx, s.q, row, GetSessionQuery, sessionID)
+	row, err := scanOne(ctx, s.q, GetSessionQuery, pgx.RowToStructByName[sessionRow], sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -61,8 +78,8 @@ func (s *SQLStore) GetSession(ctx context.Context, sessionID int64) (*model.Sess
 }
 
 func (s *SQLStore) ListSessions(ctx context.Context, userID int64) ([]*model.Session, error) {
-	rows := make([]sessionRow, 0)
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListSessionsQuery, userID, 0, time.Now().UnixMilli()); err != nil {
+	rows, err := scanMany(ctx, s.q, ListSessionsQuery, pgx.RowToStructByName[sessionRow], userID, 0, time.Now().UnixMilli())
+	if err != nil {
 		return nil, err
 	}
 	sessions := make([]*model.Session, 0, len(rows))
@@ -73,41 +90,41 @@ func (s *SQLStore) ListSessions(ctx context.Context, userID int64) ([]*model.Ses
 }
 
 func (s *SQLStore) RotateRefreshToken(ctx context.Context, params RotateRefreshTokenParams) error {
-	res, err := s.q.ExecContext(ctx, RotateRefreshTokenStatement,
+	tag, err := s.q.Exec(ctx, RotateRefreshTokenStatement,
 		params.NewRefreshTokenHash, params.NewRefreshTokenID, params.NewRefreshTokenIssuedAt,
 		params.NewRefreshTokenExpiresAt, params.PreviousRefreshTokenValidUntil, params.ExpiresAt,
 		params.SessionID, 0, params.OldRefreshTokenHash, time.Now().UnixMilli())
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) RevokeSession(ctx context.Context, sessionID int64) error {
 	now := time.Now().UnixMilli()
-	res, err := s.q.ExecContext(ctx, RevokeSessionStatement, now, sessionID, 0)
+	tag, err := s.q.Exec(ctx, RevokeSessionStatement, now, sessionID, 0)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) RevokeUserSession(ctx context.Context, userID, sessionID int64) error {
 	now := time.Now().UnixMilli()
-	res, err := s.q.ExecContext(ctx, RevokeUserSessionStatement, now, userID, sessionID, 0)
+	tag, err := s.q.Exec(ctx, RevokeUserSessionStatement, now, userID, sessionID, 0)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) RevokeOtherSessions(ctx context.Context, userID, currentSessionID int64) (int64, error) {
 	now := time.Now().UnixMilli()
-	res, err := s.q.ExecContext(ctx, RevokeOtherSessionsStatement, now, userID, currentSessionID, 0)
+	tag, err := s.q.Exec(ctx, RevokeOtherSessionsStatement, now, userID, currentSessionID, 0)
 	if err != nil {
 		return 0, err
 	}
-	return res.RowsAffected()
+	return tag.RowsAffected(), nil
 }
 
 func (r *sessionRow) toModel() *model.Session {

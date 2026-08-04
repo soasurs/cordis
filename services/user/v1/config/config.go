@@ -1,12 +1,9 @@
 package config
 
 import (
-	"time"
-
 	"github.com/zeromicro/go-zero/zrpc"
 
 	"github.com/soasurs/cordis/pkg/database"
-	"github.com/soasurs/cordis/pkg/kafka"
 )
 
 type Config struct {
@@ -14,6 +11,7 @@ type Config struct {
 	Database database.Config
 	Kafka    KafkaConfig `json:",optional"`
 	Cursor   CursorConfig
+	Outbox   OutboxConfig
 	Services ServiceConfig
 }
 
@@ -28,21 +26,29 @@ type ServiceConfig struct {
 
 // KafkaConfig configures the optional user event stream.
 type KafkaConfig struct {
-	Seeds            []string `json:",optional"`
-	Topic            string   `json:",default=cordis.user.events.v1"`
-	PublishTimeoutMs int      `json:",default=1000"`
+	Seeds []string `json:",optional"`
+	Topic string   `json:",default=cordis.user.events.v1"`
 }
 
-func (c KafkaConfig) ProducerConfig() kafka.ProducerConfig {
-	return kafka.ProducerConfig{
-		Seeds:           c.Seeds,
-		DeliveryTimeout: c.PublishTimeout(),
+// EventTopic returns the user event topic, falling back to the canonical
+// topic when the optional Kafka section is absent so nested defaults do not
+// apply.
+func (c KafkaConfig) EventTopic() string {
+	if c.Topic == "" {
+		return "cordis.user.events.v1"
 	}
+	return c.Topic
 }
 
-func (c KafkaConfig) PublishTimeout() time.Duration {
-	if c.PublishTimeoutMs <= 0 {
-		return time.Second
+// OutboxConfig controls transactional event outbox writes.
+type OutboxConfig struct {
+	ShardCount int `json:",default=64"`
+}
+
+// Shards returns the virtual shard count for user events.
+func (c OutboxConfig) Shards() int {
+	if c.ShardCount <= 0 {
+		return 64
 	}
-	return time.Duration(c.PublishTimeoutMs) * time.Millisecond
+	return c.ShardCount
 }

@@ -1,0 +1,25 @@
+name: user-outbox-relay
+
+database:
+  dataSource: postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable
+  maxOpenConns: 20
+
+kafka:
+  seeds:
+    - 127.0.0.1:9092
+  topic: cordis.user.events.v1
+  publishTimeoutMs: 5000
+
+outbox:
+  shardCount: 64
+
+relay:
+  workers: 4
+  batchSize: 100
+  pollIntervalMs: 1000
+  timeSliceMs: 100
+  backoffMinMs: 100
+  backoffMaxMs: 60000
+  # LISTEN/NOTIFY requires PostgreSQL session pooling. With PgBouncer in
+  # transaction pooling mode, set notifyEnabled: false and rely on polling.
+  notifyEnabled: true

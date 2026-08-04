@@ -30,6 +30,13 @@ database:
   dataSource: postgres://cordis:cordis@127.0.0.1:5432/cordis?sslmode=disable
   maxOpenConns: 10
 
+kafka:
+  seeds: []
+  topic: cordis.user.events.v1
+
+outbox:
+  shardCount: 64
+
 cursor:
   secret: "${CORDIS_CURSOR_SECRET}"
 

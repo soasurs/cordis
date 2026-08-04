@@ -237,8 +237,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      kafka-init:
-        condition: service_completed_successfully
       media:
         condition: service_healthy
     healthcheck:
@@ -317,6 +315,24 @@ services:
       CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
     volumes:
       - ./config/relay.yaml:/etc/cordis/config.yaml:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kafka-init:
+        condition: service_completed_successfully
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - cordis
+
+  user-relay:
+    <<: *cordis-service
+    command: ["/app/bin/user-relay", "-c", "/etc/cordis/config.yaml"]
+    environment:
+      CORDIS_DATABASE_DSN: ${CORDIS_DATABASE_DSN:?required}
+    volumes:
+      - ./config/user-relay.yaml:/etc/cordis/config.yaml:ro
     depends_on:
       migrate:
         condition: service_completed_successfully

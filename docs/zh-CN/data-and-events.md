@@ -46,7 +46,9 @@ best-effort 数据流；详见 [mention-expansion.md](mention-expansion.md)。
 
 ## 事件发布
 
-User、Guild 和 Presence 不使用 Outbox。业务事务成功后，User 将关系和资料事件 best-effort 发布到 `cordis.user.events.v1`，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布失败只记录日志，不改变已经成功的 RPC；数据库提交与 Kafka 发布之间没有原子性。
+Guild 和 Presence 不使用 Outbox。业务事务成功后，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布失败只记录日志，不改变已经成功的 RPC；数据库提交与 Kafka 发布之间没有原子性。
+
+User 使用 PostgreSQL 事务性 Outbox。资料和关系事务与业务变更一起写入 outbox 行，由独立 relay 发布到 `cordis.user.events.v1`。所有 user 事件都使用接收者 user ID 同时作为 stream key 和 Kafka key；同一逻辑事件的 fanout 记录共享 `event_id`，用 `delivery_index` 区分。事件信封携带 `idempotency_key`（逻辑 `event_id`）、`stream_sequence` 和 `delivery_index`。
 
 Message 使用 PostgreSQL 事务性 Outbox。业务事务与消息状态变更一起写入 outbox 行，由独立 relay 发布到 `cordis.message.events.v1`。消息事件（`message.created`、`message.updated`、`message.deleted` 和 `dm.channel.created`）使用 `channel_id` 同时作为 stream key 和 Kafka key。已读事件（`message.read.updated`）使用独立的 outbox 和 stream，stream key 为 `user_id:channel_id`，Kafka key 同样为复合 key；Dispatcher 仍按 payload 的 `user_id` 路由。事件信封携带 `idempotency_key`（逻辑 `event_id`）、`stream_sequence` 和 `delivery_index`；同一逻辑事件的 fanout 记录共享 `event_id`，用 `delivery_index` 区分。
 

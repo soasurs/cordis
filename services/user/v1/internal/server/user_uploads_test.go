@@ -30,8 +30,7 @@ func TestAvatarUploadLifecycle(t *testing.T) {
 	fakeStore := newFakeStore()
 	fakeStore.profile = &model.UserProfile{UserID: 1001, Name: "user"}
 	mediaClient := &fakeMediaClient{asset: avatarAsset(7001, 1001)}
-	publisher := new(fakeUserPublisher)
-	server := newTestUserServerWithPublisher(t, fakeStore, mediaClient, publisher)
+	server := newTestUserServerWithMedia(t, fakeStore, mediaClient)
 
 	createReq := new(userv1.CreateAvatarUploadRequest)
 	createReq.SetUserId(1001)
@@ -56,7 +55,7 @@ func TestAvatarUploadLifecycle(t *testing.T) {
 	require.Equal(t, int64(7001), completeResp.GetProfile().GetAvatarAssetId())
 	require.Equal(t, int64(1001), mediaClient.completeRequest.GetActorUserId())
 	require.Equal(t, int64(7001), mediaClient.completeRequest.GetUploadId())
-	assertProfileUpdatedEvent(t, publisher, fakeStore.profile)
+	assertProfileUpdatedEvent(t, fakeStore, fakeStore.profile)
 }
 
 func TestCompleteAvatarUploadRejectsAnotherUsersAsset(t *testing.T) {

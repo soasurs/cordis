@@ -1,14 +1,12 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	"github.com/zeromicro/go-zero/core/logx"
-
 	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/services/user/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
 
@@ -22,11 +20,17 @@ type eventEnvelope[T any] struct {
 	Type           string `json:"t"`
 	Data           T      `json:"d"`
 	IdempotencyKey string `json:"idempotency_key"`
+	StreamSequence int64  `json:"stream_sequence,omitempty"`
+	DeliveryIndex  int    `json:"delivery_index,omitempty"`
 }
 
 type userEvent struct {
-	Key     []byte
-	Payload []byte
+	EventID       int64
+	DeliveryIndex int
+	StreamKey     string
+	EventType     string
+	Key           []byte
+	Payload       []byte
 }
 
 type relationshipPayload struct {
@@ -57,6 +61,7 @@ func newRelationshipUpdatedEvent(
 	relationship *model.Relationship,
 	profile *model.UserProfile,
 	idempotencyKey int64,
+	deliveryIndex int,
 ) (userEvent, error) {
 	return newUserEvent(EventTypeRelationshipUpdated, relationship.UserID, relationshipPayload{
 		UserID:    strconv.FormatInt(relationship.UserID, 10),
@@ -65,7 +70,7 @@ func newRelationshipUpdatedEvent(
 		Type:      relationship.Type,
 		CreatedAt: relationship.CreatedAt,
 		UpdatedAt: relationship.UpdatedAt,
-	}, idempotencyKey)
+	}, idempotencyKey, deliveryIndex)
 }
 
 func userProfilePayloadFromModel(profile *model.UserProfile) userProfilePayload {
@@ -83,11 +88,11 @@ func userProfilePayloadFromModel(profile *model.UserProfile) userProfilePayload 
 	}
 }
 
-func newRelationshipRemovedEvent(userID, targetID int64, idempotencyKey int64) (userEvent, error) {
+func newRelationshipRemovedEvent(userID, targetID int64, idempotencyKey int64, deliveryIndex int) (userEvent, error) {
 	return newUserEvent(EventTypeRelationshipRemoved, userID, relationshipRemovedPayload{
 		UserID:   strconv.FormatInt(userID, 10),
 		TargetID: strconv.FormatInt(targetID, 10),
-	}, idempotencyKey)
+	}, idempotencyKey, deliveryIndex)
 }
 
 func newUserProfileUpdatedEvent(profile *model.UserProfile, idempotencyKey int64) (userEvent, error) {
@@ -96,42 +101,33 @@ func newUserProfileUpdatedEvent(profile *model.UserProfile, idempotencyKey int64
 		profile.UserID,
 		userProfilePayloadFromModel(profile),
 		idempotencyKey,
+		0,
 	)
 }
 
-func (s *userServer) publishUserProfileUpdated(ctx context.Context, profile *model.UserProfile) {
-	event, err := newUserProfileUpdatedEvent(profile, s.svcCtx.Snowflake.Generate().Int64())
-	if err != nil {
-		logx.WithContext(ctx).Errorw("build user profile updated event", logx.Field("error", err))
-		return
-	}
-	s.publishEvents(ctx, event)
-}
-
-func newUserEvent[T any](eventType string, recipientID int64, data T, idempotencyKey int64) (userEvent, error) {
+func newUserEvent[T any](eventType string, recipientID int64, data T, idempotencyKey int64, deliveryIndex int) (userEvent, error) {
 	payload, err := json.Marshal(eventEnvelope[T]{Type: eventType, Data: data, IdempotencyKey: strconv.FormatInt(idempotencyKey, 10)})
 	if err != nil {
 		return userEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}
 	return userEvent{
-		Key:     strconv.AppendInt(nil, recipientID, 10),
-		Payload: payload,
+		EventID:       idempotencyKey,
+		DeliveryIndex: deliveryIndex,
+		StreamKey:     eventoutbox.StreamKey(recipientID),
+		EventType:     eventType,
+		Key:           eventoutbox.KafkaKey(recipientID),
+		Payload:       payload,
 	}, nil
 }
 
-func (s *userServer) publishEvents(ctx context.Context, events ...userEvent) {
-	if s.svcCtx.Publisher == nil {
-		return
+// finalizeEvent injects the assigned stream sequence and delivery index into
+// a draft payload while preserving the original Data bytes exactly.
+func finalizeEvent(payload []byte, streamSequence int64, deliveryIndex int) ([]byte, error) {
+	var envelope eventEnvelope[json.RawMessage]
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		return nil, err
 	}
-	publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.svcCtx.Cfg.Kafka.PublishTimeout())
-	defer cancel()
-	for _, event := range events {
-		if err := s.svcCtx.Publisher.Publish(publishCtx, event.Key, event.Payload); err != nil {
-			logx.WithContext(ctx).Errorw(
-				"publish user event",
-				logx.Field("key", string(event.Key)),
-				logx.Field("error", err),
-			)
-		}
-	}
+	envelope.StreamSequence = streamSequence
+	envelope.DeliveryIndex = deliveryIndex
+	return json.Marshal(envelope)
 }

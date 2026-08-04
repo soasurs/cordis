@@ -5,30 +5,21 @@ import (
 
 	sn "github.com/bwmarrin/snowflake"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/zrpc"
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/database"
-	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/user/v1/config"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )
 
-// EventPublisher delivers domain events to the user event stream.
-type EventPublisher interface {
-	Publish(ctx context.Context, key, payload []byte) error
-}
-
 type ServiceContext struct {
-	Cfg       config.Config
-	Store     store.Store
-	Snowflake *sn.Node
-	Cursors   *cursor.Codec
-	// Publisher is optional; events are skipped when nil.
-	Publisher   EventPublisher
+	Cfg         config.Config
+	Store       store.Store
+	Snowflake   *sn.Node
+	Cursors     *cursor.Codec
 	MediaClient mediav1.MediaServiceClient
 }
 
@@ -36,8 +27,6 @@ type Dependencies struct {
 	Store       store.Store
 	Snowflake   *sn.Node
 	Cursors     *cursor.Codec
-	Kafka       *kgo.Client
-	Publisher   EventPublisher
 	MediaClient mediav1.MediaServiceClient
 	DB          *pgxpool.Pool
 }
@@ -62,20 +51,10 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, err
 	}
 
-	var kafkaClient *kgo.Client
-	if len(cfg.Kafka.Seeds) > 0 {
-		kafkaClient, err = kafka.NewProducer(cfg.Kafka.ProducerConfig())
-		if err != nil {
-			db.Close()
-			return Dependencies{}, err
-		}
-	}
-
 	return Dependencies{
 		Store:       store.New(db),
 		Snowflake:   node,
 		Cursors:     cursors,
-		Kafka:       kafkaClient,
 		DB:          db,
 		MediaClient: mediav1.NewMediaServiceClient(mediaRPCClient.Conn()),
 	}, nil
@@ -102,16 +81,11 @@ func NewServiceContextWithDependencies(cfg config.Config, deps Dependencies) *Se
 	if deps.MediaClient == nil {
 		panic("media client is required")
 	}
-	publisher := deps.Publisher
-	if publisher == nil && deps.Kafka != nil {
-		publisher = kafka.NewPublisher(deps.Kafka, cfg.Kafka.Topic)
-	}
 	return &ServiceContext{
 		Cfg:         cfg,
 		Store:       deps.Store,
 		Snowflake:   deps.Snowflake,
 		Cursors:     deps.Cursors,
-		Publisher:   publisher,
 		MediaClient: deps.MediaClient,
 	}
 }

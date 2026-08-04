@@ -27,4 +27,10 @@ func TestLoadConfig(t *testing.T) {
 	if cfg.Cursor.Secret != "test-cursor-secret-at-least-32-bytes!" {
 		t.Fatalf("unexpected cursor secret: %q", cfg.Cursor.Secret)
 	}
+	if cfg.Kafka.EventTopic() != "cordis.user.events.v1" {
+		t.Fatalf("unexpected event topic fallback: %q", cfg.Kafka.EventTopic())
+	}
+	if cfg.Outbox.Shards() != 64 {
+		t.Fatalf("unexpected outbox shards: %+v", cfg.Outbox)
+	}
 }

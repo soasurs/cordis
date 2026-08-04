@@ -12,27 +12,17 @@ import (
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/user/v1/config"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
-	"github.com/soasurs/cordis/services/user/v1/internal/store"
 	"github.com/soasurs/cordis/services/user/v1/internal/svc"
 )
 
-func newTestUserServer(t *testing.T, store store.Store) userv1.UserServiceServer {
+func newTestUserServer(t *testing.T, store *fakeStore) userv1.UserServiceServer {
 	return newTestUserServerWithMedia(t, store, &fakeMediaClient{})
 }
 
 func newTestUserServerWithMedia(
 	t *testing.T,
-	store store.Store,
+	store *fakeStore,
 	mediaClient mediav1.MediaServiceClient,
-) userv1.UserServiceServer {
-	return newTestUserServerWithPublisher(t, store, mediaClient, nil)
-}
-
-func newTestUserServerWithPublisher(
-	t *testing.T,
-	store store.Store,
-	mediaClient mediav1.MediaServiceClient,
-	publisher svc.EventPublisher,
 ) userv1.UserServiceServer {
 	t.Helper()
 
@@ -40,23 +30,26 @@ func newTestUserServerWithPublisher(
 	require.NoError(t, err)
 
 	return New(&svc.ServiceContext{
-		Cfg:         config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
+		Cfg:         config.Config{},
 		Store:       store,
 		Snowflake:   node,
 		Cursors:     mustTestCursorCodec(t),
 		MediaClient: mediaClient,
-		Publisher:   publisher,
 	})
 }
 
-func assertProfileUpdatedEvent(t *testing.T, publisher *fakeUserPublisher, profile *model.UserProfile) {
+func assertProfileUpdatedEvent(t *testing.T, store *fakeStore, profile *model.UserProfile) {
 	t.Helper()
-	require.Len(t, publisher.records, 1)
-	require.Equal(t, "1001", publisher.records[0].key)
+	require.Len(t, store.userOutbox, 1)
+	record := store.userOutbox[0]
+	require.Equal(t, "1001", string(record.Key))
+	require.Equal(t, "1001", record.StreamKey)
 	var envelope eventEnvelope[userProfilePayload]
-	require.NoError(t, json.Unmarshal(publisher.records[0].payload, &envelope))
+	require.NoError(t, json.Unmarshal(record.Payload, &envelope))
 	require.Equal(t, EventTypeUserProfileUpdated, envelope.Type)
 	require.NotEmpty(t, envelope.IdempotencyKey)
+	require.NotZero(t, envelope.StreamSequence)
+	require.Zero(t, envelope.DeliveryIndex)
 	require.Equal(t, userProfilePayloadFromModel(profile), envelope.Data)
 }
 

@@ -33,9 +33,6 @@ func main() {
 	if deps.DB != nil {
 		defer deps.DB.Close()
 	}
-	if deps.Kafka != nil {
-		defer deps.Kafka.Close()
-	}
 	svcCtx := svc.NewServiceContextWithDependencies(*cfg, deps)
 	probeState := probe.New()
 	probeState.SetLiveness(true)

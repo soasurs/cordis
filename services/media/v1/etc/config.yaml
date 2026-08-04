@@ -24,7 +24,6 @@ middlewares:
 database:
   dataSource: "${CORDIS_MEDIA_DB_DSN}"
   maxOpenConns: 10
-  maxIdleConns: 5
 objectStore:
   backend: r2
   endpoint: "${CORDIS_MEDIA_OBJECT_STORE_ENDPOINT}"

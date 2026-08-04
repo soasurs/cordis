@@ -14,7 +14,6 @@ middlewares:
 database:
   dataSource: "${CORDIS_DATABASE_DSN}"
   maxOpenConns: 10
-  maxIdleConns: 5
 
 objectStore:
   backend: s3

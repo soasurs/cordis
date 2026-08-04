@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 )
 
 type mediaIdempotencyRow struct {
@@ -41,7 +41,7 @@ func (s *SQLStore) ClaimMediaIdempotency(
 	params ClaimMediaIdempotencyParams,
 ) (*MediaIdempotencyClaim, error) {
 	for range 3 {
-		if _, err := s.q.ExecContext(
+		if _, err := s.q.Exec(
 			ctx,
 			DeleteExpiredMediaIdempotencyStatement,
 			params.ActorUserID,
@@ -52,33 +52,19 @@ func (s *SQLStore) ClaimMediaIdempotency(
 			return nil, err
 		}
 
-		row := &mediaIdempotencyRow{}
-		rows, err := sqlx.NamedQueryContext(ctx, s.q, ClaimMediaIdempotencyQuery, map[string]any{
-			"actor_user_id":   params.ActorUserID,
-			"operation":       params.Operation,
-			"idempotency_key": params.IdempotencyKey,
-			"request_hash":    params.RequestHash,
-			"asset_id":        params.AssetID,
-			"created_at":      params.CreatedAt,
-			"expires_at":      params.ExpiresAt,
-		})
-		if err != nil {
+		row, err := scanOne(ctx, s.q, ClaimMediaIdempotencyQuery, pgx.RowToStructByNameLax[mediaIdempotencyRow],
+			params.ActorUserID,
+			params.Operation,
+			params.IdempotencyKey,
+			params.RequestHash,
+			params.AssetID,
+			params.CreatedAt,
+			params.ExpiresAt,
+		)
+		if err != nil && err != sql.ErrNoRows {
 			return nil, err
 		}
-		inserted := rows.Next()
-		if inserted {
-			err = rows.StructScan(row)
-		} else {
-			err = rows.Err()
-		}
-		closeErr := rows.Close()
-		if err != nil {
-			return nil, err
-		}
-		if closeErr != nil {
-			return nil, closeErr
-		}
-		if inserted {
+		if err == nil {
 			return &MediaIdempotencyClaim{
 				AssetID:     row.AssetID,
 				RequestHash: append([]byte(nil), row.RequestHash...),
@@ -86,26 +72,23 @@ func (s *SQLStore) ClaimMediaIdempotency(
 			}, nil
 		}
 
-		if err := sqlx.GetContext(
-			ctx,
-			s.q,
-			row,
-			GetMediaIdempotencyQuery,
+		existing, err := scanOne(ctx, s.q, GetMediaIdempotencyQuery, pgx.RowToStructByName[mediaIdempotencyRow],
 			params.ActorUserID,
 			params.Operation,
 			params.IdempotencyKey,
-		); err != nil {
+		)
+		if err != nil {
 			if err == sql.ErrNoRows {
 				continue
 			}
 			return nil, err
 		}
-		if row.ExpiresAt <= params.CreatedAt {
+		if existing.ExpiresAt <= params.CreatedAt {
 			continue
 		}
 		return &MediaIdempotencyClaim{
-			AssetID:     row.AssetID,
-			RequestHash: append([]byte(nil), row.RequestHash...),
+			AssetID:     existing.AssetID,
+			RequestHash: append([]byte(nil), existing.RequestHash...),
 		}, nil
 	}
 	return nil, sql.ErrNoRows

@@ -1,0 +1,23 @@
+name: guild-outbox-relay
+
+database:
+  dataSource: "${CORDIS_DATABASE_DSN}"
+  maxOpenConns: 20
+
+kafka:
+  seeds:
+    - kafka:29092
+  topic: cordis.guild.events.v1
+  publishTimeoutMs: 5000
+
+outbox:
+  shardCount: 64
+
+relay:
+  workers: 4
+  batchSize: 100
+  pollIntervalMs: 1000
+  timeSliceMs: 100
+  backoffMinMs: 100
+  backoffMaxMs: 60000
+  notifyEnabled: true

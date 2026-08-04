@@ -61,7 +61,7 @@ partition 一个串行 worker 和有界队列，retry 与 offset 提交状态按
 优雅关闭预算由 `shutdownTimeout` 配置；go-zero 的强制退出时间会在该预算上
 加上默认的一秒 wrap-up 阶段，为 worker 停止和最终 offset 提交预留有界时间。
 
-权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。创建频道时会写入一条空的 `@everyone` overwrite（`applies_to=ROLE`，`applies_to_id=guild_id`，allow/deny 为 0），客户端无需自行补全；该 overwrite 与默认角色均不可删除。Guild 事件直接发布到独立 topic `cordis.guild.events.v1`。
+权限使用 `uint64` 位集。Guild owner 和 `ADMINISTRATOR` 获得完整权限；频道权限在 Guild 权限上依次应用默认角色、成员角色以及成员覆盖。失去 `VIEW_CHANNEL` 时相关发送权限也被移除。创建频道时会写入一条空的 `@everyone` overwrite（`applies_to=ROLE`，`applies_to_id=guild_id`，allow/deny 为 0），客户端无需自行补全；该 overwrite 与默认角色均不可删除。Guild 事件写入事务性 outbox，由独立 relay 发布到 `cordis.guild.events.v1`。
 
 频道创建、删除、parent 移动和 reorder 使用 Guild 单调递增的
 `channel_layout_revision`。结构变更事务会先获取 Guild 频道 advisory lock，再拒绝

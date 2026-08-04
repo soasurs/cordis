@@ -16,10 +16,13 @@ import (
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	"github.com/soasurs/cordis/internal/testkit"
 	"github.com/soasurs/cordis/pkg/database"
+	cordiskafka "github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/pkg/migration"
+	"github.com/soasurs/cordis/pkg/outbox/relay"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/guild/v1/config"
 	guildmigrations "github.com/soasurs/cordis/services/guild/v1/db/migrations"
+	"github.com/soasurs/cordis/services/guild/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 	"github.com/soasurs/cordis/services/guild/v1/internal/svc"
 )
@@ -41,10 +44,10 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 
 	runID := strconv.FormatInt(time.Now().UnixNano(), 10)
 	topic := "cordis.integration.guild." + runID
-	producer, err := kgo.NewClient(kgo.SeedBrokers(kafka.Address))
+	topicClient, err := kgo.NewClient(kgo.SeedBrokers(kafka.Address))
 	require.NoError(t, err)
-	t.Cleanup(producer.Close)
-	testkit.CreateKafkaTopic(t, producer, topic)
+	testkit.CreateKafkaTopic(t, topicClient, topic)
+	topicClient.Close()
 	consumer, err := kgo.NewClient(
 		kgo.SeedBrokers(kafka.Address),
 		kgo.ConsumerGroup("cordis.integration.guild-consumer."+runID),
@@ -57,15 +60,44 @@ func TestCreateGuildPersistsAndPublishesToKafka(t *testing.T) {
 	require.NoError(t, err)
 	guildStore := store.New(db)
 	service := New(svc.NewServiceContextWithDependencies(config.Config{
-		Kafka: config.KafkaConfig{Topic: topic, PublishTimeoutMs: 5000},
+		Kafka: config.KafkaConfig{Topic: topic},
 	}, svc.Dependencies{
 		Store:       guildStore,
 		Snowflake:   node,
 		Cursors:     testCursorCodec(t),
-		Kafka:       producer,
 		UserClient:  &fakeUserClient{},
 		MediaClient: &unusedMediaClient{},
 	}))
+
+	relayProducer, err := cordiskafka.NewProducer(cordiskafka.ProducerConfig{Seeds: []string{kafka.Address}})
+	require.NoError(t, err)
+	t.Cleanup(relayProducer.Close)
+	publisher := cordiskafka.NewPublisher(relayProducer, topic)
+	relayCtx, cancelRelay := context.WithCancel(t.Context())
+	guildRelay, err := relay.New(relay.Config{
+		DB:            db,
+		Tables:        eventoutbox.Tables(),
+		Publisher:     publisher,
+		Namespace:     "cordis.integration.guild.outbox." + runID,
+		NotifyChannel: eventoutbox.GuildNotifyChannel,
+		ListenerDSN:   postgres.DSN,
+		Workers:       2,
+		BatchSize:     1,
+		PollInterval:  time.Minute,
+		TimeSlice:     time.Millisecond,
+		BackoffMin:    10 * time.Millisecond,
+		BackoffMax:    100 * time.Millisecond,
+	})
+	require.NoError(t, err)
+	relayDone := make(chan struct{})
+	go func() {
+		defer close(relayDone)
+		_ = guildRelay.Run(relayCtx)
+	}()
+	t.Cleanup(func() {
+		cancelRelay()
+		<-relayDone
+	})
 
 	req := new(guildv1.CreateGuildRequest)
 	req.SetOwnerId(1001)

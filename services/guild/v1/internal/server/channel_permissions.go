@@ -45,13 +45,18 @@ func (s *guildServer) UpsertGuildChannelPermissionOverwrite(
 			ChannelID: channel.ID, GuildID: channel.GuildID, AppliesTo: int32(req.GetAppliesTo()),
 			AppliesToID: req.GetAppliesToId(), Allow: req.GetAllow(), Deny: req.GetDeny(), CreatedAt: changedAt,
 		})
-		return err
+		if err != nil {
+			return err
+		}
+		event, err := newGuildChannelOverwriteUpdatedEvent(overwrite, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelOverwriteUpdatedEvent(overwrite, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpsertGuildChannelPermissionOverwriteResponse)
 	resp.SetOverwrite(guildChannelOverwriteToProto(overwrite))
 	return resp, nil
@@ -86,13 +91,18 @@ func (s *guildServer) DeleteGuildChannelPermissionOverwrite(
 		if err := validateOverwriteAppliesTo(ctx, txStore, authority, channel.GuildID, req.GetAppliesTo(), req.GetAppliesToId()); err != nil {
 			return err
 		}
-		return txStore.DeleteGuildChannelPermissionOverwrite(ctx, channel.ID, int32(req.GetAppliesTo()), req.GetAppliesToId())
+		if err := txStore.DeleteGuildChannelPermissionOverwrite(ctx, channel.ID, int32(req.GetAppliesTo()), req.GetAppliesToId()); err != nil {
+			return err
+		}
+		event, err := newGuildChannelOverwriteDeletedEvent(guildID, req.GetChannelId(), int32(req.GetAppliesTo()), req.GetAppliesToId(), s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildChannelOverwriteDeletedEvent(guildID, req.GetChannelId(), int32(req.GetAppliesTo()), req.GetAppliesToId(), s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.DeleteGuildChannelPermissionOverwriteResponse)
 	resp.SetOk(true)
 	return resp, nil

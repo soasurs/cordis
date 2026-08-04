@@ -5,8 +5,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/zeromicro/go-zero/core/logx"
-
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
@@ -153,44 +151,44 @@ func (s *guildServer) CreateGuildChannel(ctx context.Context, req *guildv1.Creat
 			req.GetGuildId(),
 			req.GetExpectedChannelLayoutRevision(),
 		)
-		return err
-	})
-	if err != nil {
-		return nil, mapStoreError(err)
-	}
-	if createdNewChannel {
-		events := make([]guildEvent, 0, len(shifted)+2)
-		for _, existing := range shifted {
-			event, eventErr := newGuildChannelUpdatedEvent(
-				existing,
+		if err != nil {
+			return err
+		}
+		if createdNewChannel {
+			events := make([]guildEvent, 0, len(shifted)+2)
+			for _, existing := range shifted {
+				event, err := newGuildChannelUpdatedEvent(
+					existing,
+					layoutRevision,
+					s.svcCtx.Snowflake.Generate().Int64(),
+				)
+				if err != nil {
+					return err
+				}
+				events = append(events, event)
+			}
+			event, err := newGuildChannelCreatedEvent(
+				channel,
 				layoutRevision,
 				s.svcCtx.Snowflake.Generate().Int64(),
 			)
-			if eventErr != nil {
-				logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
-				continue
+			if err != nil {
+				return err
 			}
 			events = append(events, event)
-		}
-		event, eventErr := newGuildChannelCreatedEvent(
-			channel,
-			layoutRevision,
-			s.svcCtx.Snowflake.Generate().Int64(),
-		)
-		if eventErr != nil {
-			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
-		} else {
-			events = append(events, event)
-		}
-		if everyoneOverwrite != nil {
-			event, eventErr = newGuildChannelOverwriteUpdatedEvent(everyoneOverwrite, s.svcCtx.Snowflake.Generate().Int64())
-			if eventErr != nil {
-				logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
-			} else {
+			if everyoneOverwrite != nil {
+				event, err = newGuildChannelOverwriteUpdatedEvent(everyoneOverwrite, s.svcCtx.Snowflake.Generate().Int64())
+				if err != nil {
+					return err
+				}
 				events = append(events, event)
 			}
+			return s.enqueueEvents(ctx, txStore, events)
 		}
-		s.publishEvents(ctx, events)
+		return nil
+	})
+	if err != nil {
+		return nil, mapStoreError(err)
 	}
 	resp := new(guildv1.CreateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(channel))
@@ -410,27 +408,27 @@ func (s *guildServer) UpdateGuildChannel(ctx context.Context, req *guildv1.Updat
 				channel.GuildID,
 				req.GetExpectedChannelLayoutRevision(),
 			)
-			return err
+			if err != nil {
+				return err
+			}
 		}
-		return nil
+		events := make([]guildEvent, 0, len(updatedChannels))
+		for _, channel := range updatedChannels {
+			event, err := newGuildChannelUpdatedEvent(
+				channel,
+				layoutRevision,
+				s.svcCtx.Snowflake.Generate().Int64(),
+			)
+			if err != nil {
+				return err
+			}
+			events = append(events, event)
+		}
+		return s.enqueueEvents(ctx, txStore, events)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	events := make([]guildEvent, 0, len(updatedChannels))
-	for _, channel := range updatedChannels {
-		event, eventErr := newGuildChannelUpdatedEvent(
-			channel,
-			layoutRevision,
-			s.svcCtx.Snowflake.Generate().Int64(),
-		)
-		if eventErr != nil {
-			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
-			continue
-		}
-		events = append(events, event)
-	}
-	s.publishEvents(ctx, events)
 	resp := new(guildv1.UpdateGuildChannelResponse)
 	resp.SetChannel(guildChannelToProto(updated))
 	if layoutChanged {
@@ -521,24 +519,34 @@ func (s *guildServer) DeleteGuildChannel(ctx context.Context, req *guildv1.Delet
 			channel.GuildID,
 			req.GetExpectedChannelLayoutRevision(),
 		)
-		return err
-	})
-	if err != nil {
-		return nil, mapStoreError(err)
-	}
-	event, eventErr := newGuildChannelDeletedEvent(
-		deleted,
-		layoutRevision,
-		s.svcCtx.Snowflake.Generate().Int64(),
-	)
-	s.publishEvent(ctx, event, eventErr)
-	for _, child := range movedChildren {
-		event, eventErr := newGuildChannelUpdatedEvent(
-			child,
+		if err != nil {
+			return err
+		}
+		events := make([]guildEvent, 0, 1+len(movedChildren))
+		event, err := newGuildChannelDeletedEvent(
+			deleted,
 			layoutRevision,
 			s.svcCtx.Snowflake.Generate().Int64(),
 		)
-		s.publishEvent(ctx, event, eventErr)
+		if err != nil {
+			return err
+		}
+		events = append(events, event)
+		for _, child := range movedChildren {
+			event, err := newGuildChannelUpdatedEvent(
+				child,
+				layoutRevision,
+				s.svcCtx.Snowflake.Generate().Int64(),
+			)
+			if err != nil {
+				return err
+			}
+			events = append(events, event)
+		}
+		return s.enqueueEvents(ctx, txStore, events)
+	})
+	if err != nil {
+		return nil, mapStoreError(err)
 	}
 	resp := new(guildv1.DeleteGuildChannelResponse)
 	resp.SetOk(true)

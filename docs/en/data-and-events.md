@@ -50,13 +50,19 @@ Create, delete, parent-move, and reorder events carry the committed layout
 revision in addition to each channel's own `revision`; stale structural
 requests are rejected rather than replayed.
 
-Guild and Presence do not use an outbox. After the business transaction
-commits, Guild publishes best-effort to `cordis.guild.events.v1`, and Presence
-publishes public transitions and private preference changes best-effort to
-`cordis.presence.events.v1`. Presence persists the relevant versioned state
-before publishing and uses that same version as the event idempotency key.
-Publish failure is logged and does not fail the already committed RPC, so
-database and Kafka delivery are not atomic.
+Presence does not use an outbox. After the business transaction commits,
+Presence publishes public transitions and private preference changes
+best-effort to `cordis.presence.events.v1`. Presence persists the relevant
+versioned state before publishing and uses that same version as the event
+idempotency key. Publish failure is logged and does not fail the already
+committed RPC, so database and Kafka delivery are not atomic.
+
+Guild uses a PostgreSQL transactional outbox. Guild transactions insert
+outbox rows together with the business changes, and a separate relay publishes
+them to `cordis.guild.events.v1`. Every guild event uses the guild ID as both
+the stream key and Kafka key; `access_revision` is captured inside the writing
+transaction and the envelope carries `stream_sequence` alongside the existing
+`idempotency_key`.
 
 User uses a PostgreSQL transactional outbox. Profile and relationship
 transactions insert outbox rows together with the business changes, and a

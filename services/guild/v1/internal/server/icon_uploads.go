@@ -82,14 +82,19 @@ func (s *guildServer) CompleteGuildIconUpload(
 			return permissionDenied()
 		}
 		updated, err = txStore.UpdateGuildIcon(ctx, req.GetGuildId(), mediaResp.GetAssetId())
-		return err
+		if err != nil {
+			return err
+		}
+		event, err := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.CompleteGuildIconUploadResponse)
 	resp.SetGuild(guildToProto(updated))
 	return resp, nil

@@ -46,7 +46,9 @@ best-effort 数据流；详见 [mention-expansion.md](mention-expansion.md)。
 
 ## 事件发布
 
-Guild 和 Presence 不使用 Outbox。业务事务成功后，Guild 发布到 `cordis.guild.events.v1`，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布失败只记录日志，不改变已经成功的 RPC；数据库提交与 Kafka 发布之间没有原子性。
+Presence 不使用 Outbox。业务事务成功后，Presence 将公开状态变化和私有偏好变化 best-effort 发布到 `cordis.presence.events.v1`。Presence 在发布前持久化对应的版本化状态，并把同一个 version 用作事件幂等键。发布失败只记录日志，不改变已经成功的 RPC；数据库提交与 Kafka 发布之间没有原子性。
+
+Guild 使用 PostgreSQL 事务性 Outbox。Guild 事务与业务变更一起写入 outbox 行，由独立 relay 发布到 `cordis.guild.events.v1`。所有 guild 事件都以 guild ID 同时作为 stream key 和 Kafka key；`access_revision` 在写入事务内捕获，事件信封在原有 `idempotency_key` 之外携带 `stream_sequence`。
 
 User 使用 PostgreSQL 事务性 Outbox。资料和关系事务与业务变更一起写入 outbox 行，由独立 relay 发布到 `cordis.user.events.v1`。所有 user 事件都使用接收者 user ID 同时作为 stream key 和 Kafka key；同一逻辑事件的 fanout 记录共享 `event_id`，用 `delivery_index` 区分。事件信封携带 `idempotency_key`（逻辑 `event_id`）、`stream_sequence` 和 `delivery_index`。
 

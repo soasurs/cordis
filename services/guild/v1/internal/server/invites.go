@@ -294,14 +294,18 @@ func (s *guildServer) JoinGuildByInvite(ctx context.Context, req *guildv1.JoinGu
 		if err != nil {
 			return err
 		}
-		return txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(invite.GuildID, member.Nickname, profiles[req.GetUserId()]))
+		if err := txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(invite.GuildID, member.Nickname, profiles[req.GetUserId()])); err != nil {
+			return err
+		}
+		event, err := newGuildMemberJoinedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-
-	event, eventErr := newGuildMemberJoinedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(guildv1.JoinGuildByInviteResponse)
 	resp.SetGuild(guildToProto(guild))

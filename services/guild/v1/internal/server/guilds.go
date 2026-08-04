@@ -11,10 +11,8 @@ import (
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/pkg/cursor"
-	"github.com/soasurs/cordis/pkg/kafka"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
-	"github.com/soasurs/cordis/services/guild/v1/internal/svc"
 )
 
 const (
@@ -98,7 +96,14 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 		if err := txStore.CreateDefaultRole(ctx, guildID, createdAt); err != nil {
 			return err
 		}
-		return s.createDefaultChannels(ctx, txStore, guildID, createdAt)
+		if err := s.createDefaultChannels(ctx, txStore, guildID, createdAt); err != nil {
+			return err
+		}
+		event, err := newGuildCreatedEvent(created, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
@@ -114,11 +119,6 @@ func (s *guildServer) CreateGuild(ctx context.Context, req *guildv1.CreateGuildR
 			logx.WithContext(ctx).Errorw("update guild member profile projection after guild creation",
 				logx.Field("guild_id", created.ID), logx.Field("user_id", req.GetOwnerId()), logx.Field("error", profileErr))
 		}
-	}
-
-	if createdNewGuild {
-		event, eventErr := newGuildCreatedEvent(created, s.svcCtx.Snowflake.Generate().Int64())
-		s.publishEvent(ctx, event, eventErr)
 	}
 
 	resp := new(guildv1.CreateGuildResponse)
@@ -246,14 +246,18 @@ func (s *guildServer) UpdateGuild(ctx context.Context, req *guildv1.UpdateGuildR
 			return permissionDenied()
 		}
 		updated, err = txStore.UpdateGuild(ctx, params)
-		return err
+		if err != nil {
+			return err
+		}
+		event, err := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-
-	event, eventErr := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 
 	resp := new(guildv1.UpdateGuildResponse)
 	resp.SetGuild(guildToProto(updated))
@@ -303,94 +307,22 @@ func (s *guildServer) DeleteGuild(ctx context.Context, req *guildv1.DeleteGuildR
 		if err := txStore.DeleteGuildInvites(ctx, req.GetGuildId()); err != nil {
 			return err
 		}
-		return txStore.DeleteGuildRoles(ctx, req.GetGuildId(), deletedAt)
+		if err := txStore.DeleteGuildRoles(ctx, req.GetGuildId(), deletedAt); err != nil {
+			return err
+		}
+		event, err := newGuildDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
-
 	resp := new(guildv1.DeleteGuildResponse)
 	resp.SetOk(true)
 	return resp, nil
-}
-
-func (s *guildServer) publishEvent(ctx context.Context, event guildEvent, buildErr error) {
-	if buildErr != nil {
-		logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", buildErr))
-		return
-	}
-	s.publishEvents(ctx, []guildEvent{event})
-}
-
-func (s *guildServer) publishEvents(ctx context.Context, events []guildEvent) {
-	if s.svcCtx.Publisher == nil || len(events) == 0 {
-		return
-	}
-
-	type accessRevisionResult struct {
-		value int64
-		ok    bool
-	}
-	accessRevisions := make(map[int64]accessRevisionResult)
-	prepared := make([]kafka.Record, 0, len(events))
-	for _, event := range events {
-		if event.Type != EventTypeGuildDeleted {
-			result, loaded := accessRevisions[event.GuildID]
-			if !loaded {
-				guild, err := s.svcCtx.Store.GetGuild(ctx, event.GuildID)
-				if err != nil {
-					logx.WithContext(ctx).Errorw("load guild access revision for event",
-						logx.Field("guild_id", event.GuildID),
-						logx.Field("event_type", event.Type),
-						logx.Field("error", err),
-					)
-				} else {
-					result = accessRevisionResult{value: guild.AccessRevision, ok: true}
-				}
-				accessRevisions[event.GuildID] = result
-			}
-			if result.ok {
-				payload, err := addEventAccessRevision(event.Payload, result.value)
-				if err != nil {
-					logx.WithContext(ctx).Errorw("add guild access revision to event",
-						logx.Field("guild_id", event.GuildID),
-						logx.Field("event_type", event.Type),
-						logx.Field("error", err),
-					)
-				} else {
-					event.Payload = payload
-				}
-			}
-		}
-		prepared = append(prepared, kafka.Record{Key: event.Key, Payload: event.Payload})
-	}
-
-	publishCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), s.svcCtx.Cfg.Kafka.PublishTimeout())
-	defer cancel()
-	if publisher, ok := s.svcCtx.Publisher.(svc.BatchEventPublisher); ok {
-		if err := publisher.PublishBatch(publishCtx, prepared); err != nil {
-			logx.WithContext(ctx).Errorw(
-				"publish guild events",
-				logx.Field("count", len(prepared)),
-				logx.Field("error", err),
-			)
-		}
-		return
-	}
-	for _, record := range prepared {
-		if err := s.svcCtx.Publisher.Publish(publishCtx, record.Key, record.Payload); err == nil {
-			continue
-		} else {
-			logx.WithContext(ctx).Errorw(
-				"publish guild event",
-				logx.Field("key", string(record.Key)),
-				logx.Field("error", err),
-			)
-		}
-	}
 }
 
 func addEventAccessRevision(payload []byte, accessRevision int64) ([]byte, error) {

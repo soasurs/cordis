@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
@@ -237,6 +238,10 @@ type Store interface {
 	ListGuildChannelPermissionOverwritesByChannels(ctx context.Context, channelIDs []int64) ([]*model.ChannelPermissionOverwrite, error)
 	ListGuildChannelPermissionOverwritesByGuild(ctx context.Context, guildID int64) ([]*model.ChannelPermissionOverwrite, error)
 	ListGuildChannelPermissionOverwritesByGuilds(ctx context.Context, guildIDs []int64, userID int64) ([]*model.ChannelPermissionOverwrite, error)
+	EnsureGuildStream(ctx context.Context, streamKey string, shardID int) error
+	ReserveGuildSequences(ctx context.Context, streamKey string, count int) (outbox.ReservedRange, error)
+	InsertGuildOutbox(ctx context.Context, records []outbox.Record) error
+	NotifyOutbox(ctx context.Context, channel string) error
 }
 
 type SQLStore struct {

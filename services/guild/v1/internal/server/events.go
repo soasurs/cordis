@@ -11,6 +11,7 @@ import (
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/realtime"
+	"github.com/soasurs/cordis/services/guild/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
 
@@ -38,13 +39,18 @@ type eventEnvelope[T any] struct {
 	Type           string `json:"t"`
 	Data           T      `json:"d"`
 	IdempotencyKey string `json:"idempotency_key"`
+	StreamSequence int64  `json:"stream_sequence,omitempty"`
+	DeliveryIndex  int    `json:"delivery_index,omitempty"`
 }
 
 type guildEvent struct {
-	Type    string
-	GuildID int64
-	Key     []byte
-	Payload []byte
+	EventID       int64
+	DeliveryIndex int
+	StreamKey     string
+	Type          string
+	GuildID       int64
+	Key           []byte
+	Payload       []byte
 }
 
 type guildPayload struct {
@@ -422,9 +428,24 @@ func newGuildEvent[T any](eventType string, guildID int64, data T, idempotencyKe
 		return guildEvent{}, fmt.Errorf("marshal %s event: %w", eventType, err)
 	}
 	return guildEvent{
-		Type:    eventType,
-		GuildID: guildID,
-		Key:     strconv.AppendInt(nil, guildID, 10),
-		Payload: payload,
+		EventID:       idempotencyKey,
+		DeliveryIndex: 0,
+		StreamKey:     eventoutbox.StreamKey(guildID),
+		Type:          eventType,
+		GuildID:       guildID,
+		Key:           eventoutbox.KafkaKey(guildID),
+		Payload:       payload,
 	}, nil
+}
+
+// finalizeEvent injects the assigned stream sequence and delivery index into
+// a draft payload while preserving the original Data bytes exactly.
+func finalizeEvent(payload []byte, streamSequence int64, deliveryIndex int) ([]byte, error) {
+	var envelope eventEnvelope[json.RawMessage]
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		return nil, err
+	}
+	envelope.StreamSequence = streamSequence
+	envelope.DeliveryIndex = deliveryIndex
+	return json.Marshal(envelope)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
 )
@@ -24,7 +25,11 @@ type fakeStore struct {
 	quotas       []store.ResourceQuota
 	channelLocks []int64
 
-	idempotency map[string]fakeIdempotencyClaim
+	idempotency          map[string]fakeIdempotencyClaim
+	guildOutbox          []outbox.Record
+	guildStreamSequences map[string]int64
+	outboxObserver       func([]outbox.Record)
+	outboxCalls          int
 
 	listOverwritesByChannelCalls int
 	listOverwritesByGuildCalls   int
@@ -44,15 +49,35 @@ func newFakeStore() *fakeStore {
 		defaultRoles: make(map[int64]bool),
 		bans:         make(map[int64]map[int64]*model.GuildBan),
 		invites:      make(map[string]*model.GuildInvite),
-		idempotency:  make(map[string]fakeIdempotencyClaim),
+		idempotency:          make(map[string]fakeIdempotencyClaim),
+		guildStreamSequences: make(map[string]int64),
 	}
 }
 
 func (s *fakeStore) Transact(_ context.Context, fn func(txStore store.Store) error) error {
+	outboxStart := len(s.guildOutbox)
+	callsStart := s.outboxCalls
+	sequenceSnapshot := cloneInt64Map(s.guildStreamSequences)
 	if err := fn(s); err != nil {
+		s.rollbackOutbox(outboxStart, callsStart, sequenceSnapshot)
 		return err
 	}
-	return s.transactErr
+	if s.transactErr != nil {
+		s.rollbackOutbox(outboxStart, callsStart, sequenceSnapshot)
+		return s.transactErr
+	}
+	if s.outboxObserver != nil && len(s.guildOutbox) > outboxStart {
+		s.outboxObserver(s.guildOutbox[outboxStart:])
+	}
+	return nil
+}
+
+func cloneInt64Map(source map[string]int64) map[string]int64 {
+	cloned := make(map[string]int64, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
 }
 
 func (s *fakeStore) ClaimGuildIdempotency(_ context.Context, params store.ClaimGuildIdempotencyParams) (*store.GuildIdempotencyClaim, error) {

@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 )
@@ -23,7 +23,7 @@ type registrationInviteRow struct {
 }
 
 func (s *SQLStore) CreateRegistrationInvite(ctx context.Context, invite *model.RegistrationInvite) error {
-	_, err := s.q.ExecContext(
+	_, err := s.q.Exec(
 		ctx,
 		CreateRegistrationInviteStatement,
 		invite.ID,
@@ -41,20 +41,20 @@ func (s *SQLStore) ReserveRegistrationInvite(
 	codeHash, email string,
 	now, reservedUntil int64,
 ) (*model.RegistrationInvite, error) {
-	row := new(registrationInviteRow)
-	if err := sqlx.GetContext(
+	row, err := scanOne(
 		ctx,
 		s.q,
-		row,
 		ReserveRegistrationInviteQuery,
+		pgx.RowToStructByName[registrationInviteRow],
 		email,
 		reservedUntil,
 		codeHash,
 		now,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
-	return registrationInviteFromRow(row), nil
+	return registrationInviteFromRow(&row), nil
 }
 
 func (s *SQLStore) RedeemRegistrationInvite(
@@ -63,7 +63,7 @@ func (s *SQLStore) RedeemRegistrationInvite(
 	email string,
 	userID, redeemedAt int64,
 ) error {
-	res, err := s.q.ExecContext(
+	tag, err := s.q.Exec(
 		ctx,
 		RedeemRegistrationInviteStatement,
 		userID,
@@ -74,15 +74,15 @@ func (s *SQLStore) RedeemRegistrationInvite(
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) ReleaseRegistrationInvite(ctx context.Context, inviteID int64, email string) error {
-	res, err := s.q.ExecContext(ctx, ReleaseRegistrationInviteStatement, inviteID, email)
+	tag, err := s.q.Exec(ctx, ReleaseRegistrationInviteStatement, inviteID, email)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) ListRegistrationInvites(
@@ -90,8 +90,8 @@ func (s *SQLStore) ListRegistrationInvites(
 	beforeID int64,
 	limit int,
 ) ([]*model.RegistrationInvite, error) {
-	var rows []registrationInviteRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRegistrationInvitesQuery, beforeID, limit); err != nil {
+	rows, err := scanMany(ctx, s.q, ListRegistrationInvitesQuery, pgx.RowToStructByName[registrationInviteRow], beforeID, limit)
+	if err != nil {
 		return nil, err
 	}
 	invites := make([]*model.RegistrationInvite, 0, len(rows))
@@ -102,11 +102,11 @@ func (s *SQLStore) ListRegistrationInvites(
 }
 
 func (s *SQLStore) RevokeRegistrationInvite(ctx context.Context, inviteID, revokedAt int64) error {
-	res, err := s.q.ExecContext(ctx, RevokeRegistrationInviteStatement, revokedAt, inviteID)
+	tag, err := s.q.Exec(ctx, RevokeRegistrationInviteStatement, revokedAt, inviteID)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func registrationInviteFromRow(row *registrationInviteRow) *model.RegistrationInvite {

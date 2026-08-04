@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/authenticator/v1/internal/model"
 )
@@ -44,19 +44,19 @@ func (s *SQLStore) GetTOTPFactor(ctx context.Context, userID int64, forUpdate bo
 	if forUpdate {
 		query += " FOR UPDATE"
 	}
-	row := new(totpFactorRow)
-	if err := sqlx.GetContext(ctx, s.q, row, query, userID); err != nil {
+	row, err := scanOne(ctx, s.q, query, pgx.RowToStructByName[totpFactorRow], userID)
+	if err != nil {
 		return nil, err
 	}
 	return row.toModel(), nil
 }
 
 func (s *SQLStore) CreateTOTPEnrollment(ctx context.Context, enrollment *model.TOTPEnrollment) error {
-	res, err := s.q.ExecContext(ctx, CreateTOTPEnrollmentStatement, enrollment.UserID, enrollment.TokenHash, enrollment.SecretCiphertext, enrollment.EncryptionKeyID, enrollment.CreatedAt, enrollment.ExpiresAt, enrollment.CreatedAt)
+	tag, err := s.q.Exec(ctx, CreateTOTPEnrollmentStatement, enrollment.UserID, enrollment.TokenHash, enrollment.SecretCiphertext, enrollment.EncryptionKeyID, enrollment.CreatedAt, enrollment.ExpiresAt, enrollment.CreatedAt)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) GetTOTPEnrollment(ctx context.Context, userID int64, tokenHash string, forUpdate bool) (*model.TOTPEnrollment, error) {
@@ -64,44 +64,44 @@ func (s *SQLStore) GetTOTPEnrollment(ctx context.Context, userID int64, tokenHas
 	if forUpdate {
 		query += " FOR UPDATE"
 	}
-	row := new(totpEnrollmentRow)
-	if err := sqlx.GetContext(ctx, s.q, row, query, userID, tokenHash); err != nil {
+	row, err := scanOne(ctx, s.q, query, pgx.RowToStructByName[totpEnrollmentRow], userID, tokenHash)
+	if err != nil {
 		return nil, err
 	}
 	return row.toModel(), nil
 }
 
 func (s *SQLStore) DeleteTOTPEnrollment(ctx context.Context, userID int64, tokenHash string) error {
-	res, err := s.q.ExecContext(ctx, DeleteTOTPEnrollmentStatement, userID, tokenHash)
+	tag, err := s.q.Exec(ctx, DeleteTOTPEnrollmentStatement, userID, tokenHash)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) UpsertTOTPFactor(ctx context.Context, factor *model.TOTPFactor) error {
-	_, err := s.q.ExecContext(ctx, UpsertTOTPFactorStatement, factor.UserID, factor.SecretCiphertext, factor.EncryptionKeyID, factor.LastUsedCounter, factor.EnabledAt, factor.CreatedAt, factor.UpdatedAt)
+	_, err := s.q.Exec(ctx, UpsertTOTPFactorStatement, factor.UserID, factor.SecretCiphertext, factor.EncryptionKeyID, factor.LastUsedCounter, factor.EnabledAt, factor.CreatedAt, factor.UpdatedAt)
 	return err
 }
 
 func (s *SQLStore) DeleteTOTPFactor(ctx context.Context, userID int64) error {
-	res, err := s.q.ExecContext(ctx, DeleteTOTPFactorStatement, userID)
+	tag, err := s.q.Exec(ctx, DeleteTOTPFactorStatement, userID)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) UpdateTOTPLastUsedCounter(ctx context.Context, userID, counter int64) error {
-	res, err := s.q.ExecContext(ctx, UpdateTOTPLastUsedCounterStatement, counter, time.Now().UnixMilli(), userID, counter)
+	tag, err := s.q.Exec(ctx, UpdateTOTPLastUsedCounterStatement, counter, time.Now().UnixMilli(), userID, counter)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) CreateTwoFactorLoginChallenge(ctx context.Context, challenge *model.TwoFactorLoginChallenge) error {
-	_, err := s.q.ExecContext(ctx, CreateTwoFactorLoginChallengeStatement, challenge.TokenHash, challenge.UserID, challenge.UserAgent, challenge.IP, challenge.Attempts, challenge.CreatedAt, challenge.ExpiresAt, challenge.ConsumedAt)
+	_, err := s.q.Exec(ctx, CreateTwoFactorLoginChallengeStatement, challenge.TokenHash, challenge.UserID, challenge.UserAgent, challenge.IP, challenge.Attempts, challenge.CreatedAt, challenge.ExpiresAt, challenge.ConsumedAt)
 	return err
 }
 
@@ -110,35 +110,35 @@ func (s *SQLStore) GetTwoFactorLoginChallenge(ctx context.Context, tokenHash str
 	if forUpdate {
 		query += " FOR UPDATE"
 	}
-	row := new(twoFactorLoginChallengeRow)
-	if err := sqlx.GetContext(ctx, s.q, row, query, tokenHash); err != nil {
+	row, err := scanOne(ctx, s.q, query, pgx.RowToStructByName[twoFactorLoginChallengeRow], tokenHash)
+	if err != nil {
 		return nil, err
 	}
 	return row.toModel(), nil
 }
 
 func (s *SQLStore) IncrementTwoFactorLoginChallengeAttempts(ctx context.Context, tokenHash string) error {
-	res, err := s.q.ExecContext(ctx, IncrementTwoFactorLoginChallengeAttemptsStatement, tokenHash)
+	tag, err := s.q.Exec(ctx, IncrementTwoFactorLoginChallengeAttemptsStatement, tokenHash)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) ConsumeTwoFactorLoginChallenge(ctx context.Context, tokenHash string) error {
-	res, err := s.q.ExecContext(ctx, ConsumeTwoFactorLoginChallengeStatement, time.Now().UnixMilli(), tokenHash)
+	tag, err := s.q.Exec(ctx, ConsumeTwoFactorLoginChallengeStatement, time.Now().UnixMilli(), tokenHash)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (s *SQLStore) ReplaceRecoveryCodes(ctx context.Context, userID int64, codeHashes []string) error {
-	if _, err := s.q.ExecContext(ctx, DeleteRecoveryCodesStatement, userID); err != nil {
+	if _, err := s.q.Exec(ctx, DeleteRecoveryCodesStatement, userID); err != nil {
 		return err
 	}
 	for _, codeHash := range codeHashes {
-		if _, err := s.q.ExecContext(ctx, CreateRecoveryCodeStatement, userID, codeHash, time.Now().UnixMilli(), 0); err != nil {
+		if _, err := s.q.Exec(ctx, CreateRecoveryCodeStatement, userID, codeHash, time.Now().UnixMilli(), 0); err != nil {
 			return err
 		}
 	}
@@ -146,19 +146,15 @@ func (s *SQLStore) ReplaceRecoveryCodes(ctx context.Context, userID int64, codeH
 }
 
 func (s *SQLStore) CountUnusedRecoveryCodes(ctx context.Context, userID int64) (int64, error) {
-	var count int64
-	if err := s.q.QueryRowxContext(ctx, CountUnusedRecoveryCodesQuery, userID).Scan(&count); err != nil {
-		return 0, err
-	}
-	return count, nil
+	return scanOne(ctx, s.q, CountUnusedRecoveryCodesQuery, pgx.RowTo[int64], userID)
 }
 
 func (s *SQLStore) ConsumeRecoveryCode(ctx context.Context, userID int64, codeHash string) error {
-	res, err := s.q.ExecContext(ctx, ConsumeRecoveryCodeStatement, time.Now().UnixMilli(), userID, codeHash, 0)
+	tag, err := s.q.Exec(ctx, ConsumeRecoveryCodeStatement, time.Now().UnixMilli(), userID, codeHash, 0)
 	if err != nil {
 		return err
 	}
-	return checkRowsAffected(res)
+	return checkRowsAffected(tag)
 }
 
 func (r *totpFactorRow) toModel() *model.TOTPFactor {

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -40,11 +40,14 @@ import (
 func TestAuthenticatorUserComposition(t *testing.T) {
 	compositionMailer := new(fakeMailerClient)
 	postgres := testkit.StartPostgres(t)
-	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
+	migrationDB, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
-	require.NoError(t, migration.Apply(t.Context(), db, usermigrations.Files))
-	require.NoError(t, migration.Apply(t.Context(), db, authmigrations.Files))
+	t.Cleanup(func() { require.NoError(t, migrationDB.Close()) })
+	db, err := database.NewPostgresPool(t.Context(), database.Config{DataSource: postgres.DSN})
+	require.NoError(t, err)
+	t.Cleanup(db.Close)
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, usermigrations.Files))
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, authmigrations.Files))
 
 	userAddress := startUserServiceForAuth(t, postgres.DSN)
 	userConn, err := grpc.NewClient(userAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -366,7 +369,7 @@ services:
 	return address
 }
 
-func newCompositionServiceContext(t *testing.T, db *sqlx.DB, userClient userv1.UserServiceClient, mailerClient *fakeMailerClient) *svc.ServiceContext {
+func newCompositionServiceContext(t *testing.T, db *pgxpool.Pool, userClient userv1.UserServiceClient, mailerClient *fakeMailerClient) *svc.ServiceContext {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)

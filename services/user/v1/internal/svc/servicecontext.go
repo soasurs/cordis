@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sn "github.com/bwmarrin/snowflake"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/zeromicro/go-zero/zrpc"
 
@@ -39,7 +39,7 @@ type Dependencies struct {
 	Kafka       *kgo.Client
 	Publisher   EventPublisher
 	MediaClient mediav1.MediaServiceClient
-	DB          *sqlx.DB
+	DB          *pgxpool.Pool
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -52,7 +52,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, err
 	}
 
-	db, err := database.NewPostgres(cfg.Database)
+	db, err := database.NewPostgresPool(context.Background(), cfg.Database)
 	if err != nil {
 		return Dependencies{}, err
 	}

@@ -5,7 +5,7 @@ const (
 	INSERT INTO 
 		users (user_id, email, created_at, updated_at, deleted_at)
 	VALUES 
-		(:user_id, :email, :created_at, :updated_at, :deleted_at);
+		($1, $2, $3, $4, $5);
 	`
 
 	GetUserQuery = `
@@ -97,7 +97,7 @@ const (
 	INSERT INTO
 		user_profiles (user_id, username, name, bio, avatar_asset_id, created_at, updated_at, deleted_at)
 	VALUES
-		(:user_id, :username, :name, :bio, :avatar_asset_id, :created_at, :updated_at, :deleted_at);
+		($1, $2, $3, $4, $5, $6, $7, $8);
 	`
 
 	GetUserProfileQuery = `

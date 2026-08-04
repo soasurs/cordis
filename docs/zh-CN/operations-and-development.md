@@ -23,7 +23,7 @@ API 的 `inbound` 配置同时控制 HTTP 超时和 header 限制、HTTP 总 bod
 - Kafka：Guild 与 Message 事件，Dispatcher 必须配置 broker。
 - etcd：Session 节点租约注册与发现，Gateway、Session、Dispatcher 必须配置 endpoint。
 - Redis：Presence、Session owner 和用户/Guild/频道聚合路由。
-- OpenTelemetry：RPC 服务可通过 `CORDIS_OTEL_ENDPOINT` 输出 trace。`pkg/database.NewPostgres` 使用 `github.com/XSAM/otelsql` 包装 Postgres 连接；Message 的原生 pgx pool（`pkg/database.NewPostgresPool`）使用 `github.com/exaring/otelpgx`。两条路径都会让带 request context 的 Store SQL 成为当前 RPC span 的子 span。原生 pool 保持 pgxpool 默认的空闲连接行为，不把 `MaxIdleConns` 映射为 `MinIdleConns`。
+- OpenTelemetry：RPC 服务可通过 `CORDIS_OTEL_ENDPOINT` 输出 trace。`pkg/database.NewPostgres` 使用 `github.com/XSAM/otelsql` 包装 Postgres 连接；Message 与 User 的原生 pgx pool（`pkg/database.NewPostgresPool`）使用 `github.com/exaring/otelpgx`。两条路径都会让带 request context 的 Store SQL 成为当前 RPC span 的子 span。原生 pool 保持 pgxpool 默认的空闲连接行为，不把 `MaxIdleConns` 映射为 `MinIdleConns`。
 - Authenticator 的 TOTP secret 使用独立的 `CORDIS_TOTP_ENCRYPTION_KEY` 以 AES-256-GCM 加密；该值是 Base64 编码的 32 字节随机密钥，不能与 JWT 密钥复用。
 - Guild、User、Message 使用同一 `CORDIS_CURSOR_SECRET`（至少 32 字节）对 opaque list cursor 做 HMAC 签名。
 - Prometheus：go-zero dev server 或 API 自有 observability 配置提供指标。

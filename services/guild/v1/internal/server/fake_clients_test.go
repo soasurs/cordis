@@ -10,7 +10,7 @@ import (
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
-	"github.com/soasurs/cordis/pkg/kafka"
+	"github.com/soasurs/cordis/pkg/outbox"
 )
 
 type fakeUserClient struct {
@@ -127,25 +127,16 @@ type publishedRecord struct {
 
 type fakePublisher struct {
 	records    []publishedRecord
-	err        error
 	batchCalls int
 }
 
-func (p *fakePublisher) Publish(_ context.Context, key, payload []byte) error {
-	p.records = append(p.records, publishedRecord{
-		key: append([]byte(nil), key...), payload: append([]byte(nil), payload...),
-	})
-	return p.err
-}
-
-func (p *fakePublisher) PublishBatch(_ context.Context, records []kafka.Record) error {
+func (p *fakePublisher) observe(records []outbox.Record) {
 	p.batchCalls++
 	for _, record := range records {
 		p.records = append(p.records, publishedRecord{
 			key: append([]byte(nil), record.Key...), payload: append([]byte(nil), record.Payload...),
 		})
 	}
-	return p.err
 }
 
 func (p *fakePublisher) onlyRecord(t *testing.T) publishedRecord {

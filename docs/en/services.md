@@ -162,8 +162,9 @@ role cannot be deleted. Structural channel mutations use the Guild's
 monotonic `channel_layout_revision`; the mutation transaction acquires the
 Guild channel advisory lock, rejects stale revisions without writing, and
 increments the layout revision once after a successful logical mutation.
-Guild publishes dot-separated events directly to `cordis.guild.events.v1`;
-structural channel events carry the committed layout revision.
+Guild writes dot-separated events into a transactional outbox and a separate
+relay publishes them to `cordis.guild.events.v1`; structural channel events
+carry the committed layout revision.
 
 Role member listing uses the same opaque `cursor` / `next_cursor` pagination as
 Guild member listing (ordered by `joined_at`, then `user_id` descending; omit

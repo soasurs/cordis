@@ -133,7 +133,9 @@ func TestPublishEventAddsCommittedAccessRevision(t *testing.T) {
 	event, err := newGuildRoleUpdatedEvent(&model.Role{ID: 20, GuildID: 10, Revision: 2}, 41)
 	require.NoError(t, err)
 
-	server.publishEvent(t.Context(), event, nil)
+	require.NoError(t, fakeStore.Transact(t.Context(), func(tx store.Store) error {
+		return server.enqueueEvents(t.Context(), tx, []guildEvent{event})
+	}))
 
 	var envelope struct {
 		IdempotencyKey string `json:"idempotency_key"`
@@ -146,17 +148,19 @@ func TestPublishEventAddsCommittedAccessRevision(t *testing.T) {
 	require.Equal(t, int64(37), envelope.Data.AccessRevision)
 }
 
-func TestCreateGuildPublishFailureIsBestEffort(t *testing.T) {
-	publisher := &fakePublisher{err: errors.New("kafka unavailable")}
-	server := newTestGuildServer(t, newFakeStore(), publisher)
+func TestCreateGuildOutboxFailureFailsRequest(t *testing.T) {
+	fakeStore := newFakeStore()
+	fakeStore.outboxErr = errors.New("outbox unavailable")
+	publisher := new(fakePublisher)
+	server := newTestGuildServer(t, fakeStore, publisher)
 	req := new(guildv1.CreateGuildRequest)
 	req.SetOwnerId(1001)
 	req.SetName("Cordis")
 
-	resp, err := server.CreateGuild(t.Context(), req)
-	require.NoError(t, err)
-	require.NotNil(t, resp.GetGuild())
-	require.Len(t, publisher.records, 1)
+	_, err := server.CreateGuild(t.Context(), req)
+	require.Error(t, err)
+	require.Empty(t, publisher.records)
+	require.Empty(t, fakeStore.guildOutbox)
 }
 
 func TestCreateGuildMapsResourceLimit(t *testing.T) {
@@ -438,14 +442,14 @@ func assertRejectsBadCursors(t *testing.T, expectKind string, payload any, call 
 	require.Equal(t, codes.InvalidArgument, status.Code(call(good+"x")))
 }
 
-func newTestGuildServer(t *testing.T, fakeStore store.Store, publisher svc.EventPublisher) guildv1.GuildServiceServer {
+func newTestGuildServer(t *testing.T, fakeStore store.Store, publisher *fakePublisher) guildv1.GuildServiceServer {
 	return newTestGuildServerWithMedia(t, fakeStore, publisher, &fakeMediaClient{})
 }
 
 func newTestGuildServerWithUser(
 	t *testing.T,
 	fakeStore store.Store,
-	publisher svc.EventPublisher,
+	publisher *fakePublisher,
 	userClient userv1.UserServiceClient,
 ) guildv1.GuildServiceServer {
 	return newTestGuildServerWithUserAndMedia(t, fakeStore, publisher, userClient, &fakeMediaClient{})
@@ -454,7 +458,7 @@ func newTestGuildServerWithUser(
 func newTestGuildServerWithMedia(
 	t *testing.T,
 	fakeStore store.Store,
-	publisher svc.EventPublisher,
+	publisher *fakePublisher,
 	mediaClient mediav1.MediaServiceClient,
 ) guildv1.GuildServiceServer {
 	return newTestGuildServerWithUserAndMedia(t, fakeStore, publisher, &fakeUserClient{}, mediaClient)
@@ -462,17 +466,22 @@ func newTestGuildServerWithMedia(
 
 func newTestGuildServerWithUserAndMedia(
 	t *testing.T,
-	fakeStore store.Store,
-	publisher svc.EventPublisher,
+	guildStore store.Store,
+	publisher *fakePublisher,
 	userClient userv1.UserServiceClient,
 	mediaClient mediav1.MediaServiceClient,
 ) guildv1.GuildServiceServer {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
+	if publisher != nil {
+		if fakeS, ok := guildStore.(*fakeStore); ok {
+			fakeS.outboxObserver = publisher.observe
+		}
+	}
 	return New(&svc.ServiceContext{
-		Cfg:   config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
-		Store: fakeStore, Snowflake: node, Cursors: testCursorCodec(t), Publisher: publisher,
+		Cfg:   config.Config{},
+		Store: guildStore, Snowflake: node, Cursors: testCursorCodec(t),
 		UserClient:  userClient,
 		MediaClient: mediaClient,
 	})

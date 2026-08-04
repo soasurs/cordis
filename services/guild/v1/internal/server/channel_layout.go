@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/zeromicro/go-zero/core/logx"
-
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 	"github.com/soasurs/cordis/services/guild/v1/internal/store"
@@ -109,25 +107,26 @@ func (s *guildServer) ReorderGuildChannels(ctx context.Context, req *guildv1.Reo
 			return err
 		}
 		channels, err = txStore.ListGuildChannels(ctx, req.GetGuildId())
-		return err
+		if err != nil {
+			return err
+		}
+		events := make([]guildEvent, 0, len(updated))
+		for _, channel := range updated {
+			event, err := newGuildChannelUpdatedEvent(
+				channel,
+				layoutRevision,
+				s.svcCtx.Snowflake.Generate().Int64(),
+			)
+			if err != nil {
+				return err
+			}
+			events = append(events, event)
+		}
+		return s.enqueueEvents(ctx, txStore, events)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	events := make([]guildEvent, 0, len(updated))
-	for _, channel := range updated {
-		event, eventErr := newGuildChannelUpdatedEvent(
-			channel,
-			layoutRevision,
-			s.svcCtx.Snowflake.Generate().Int64(),
-		)
-		if eventErr != nil {
-			logx.WithContext(ctx).Errorw("build guild event", logx.Field("error", eventErr))
-			continue
-		}
-		events = append(events, event)
-	}
-	s.publishEvents(ctx, events)
 	resp := new(guildv1.ReorderGuildChannelsResponse)
 	resp.SetChannels(guildChannelsToProto(channels))
 	resp.SetChannelLayoutRevision(layoutRevision)

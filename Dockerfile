@@ -19,6 +19,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/message ./services/message/v1 && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/message-relay ./services/message/v1/cmd/relay && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/user-relay ./services/user/v1/cmd/relay && \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/guild-relay ./services/guild/v1/cmd/relay && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/presence ./services/presence/v1 && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/session ./services/session/v1 && \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/user ./services/user/v1 && \

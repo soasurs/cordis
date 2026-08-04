@@ -105,14 +105,19 @@ func (s *guildServer) AddGuildMember(ctx context.Context, req *guildv1.AddGuildM
 		if err != nil {
 			return err
 		}
-		return txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(req.GetGuildId(), member.Nickname, profiles[req.GetUserId()]))
+		if err := txStore.UpsertGuildMemberProfile(ctx, guildMemberProfileFromProto(req.GetGuildId(), member.Nickname, profiles[req.GetUserId()])); err != nil {
+			return err
+		}
+		event, err := newGuildMemberJoinedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberJoinedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.AddGuildMemberResponse)
 	resp.SetMember(guildMemberToProto(member))
 	return resp, nil
@@ -195,13 +200,18 @@ func (s *guildServer) UpdateGuildMember(ctx context.Context, req *guildv1.Update
 		if err != nil {
 			return err
 		}
-		return txStore.UpdateGuildMemberProfileNickname(ctx, req.GetGuildId(), req.GetActorUserId(), member.Nickname)
+		if err := txStore.UpdateGuildMemberProfileNickname(ctx, req.GetGuildId(), req.GetActorUserId(), member.Nickname); err != nil {
+			return err
+		}
+		event, err := newGuildMemberUpdatedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberUpdatedEvent(member, profiles[member.UserID], s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpdateGuildMemberResponse)
 	resp.SetMember(guildMemberToProto(member))
 	return resp, nil
@@ -249,13 +259,18 @@ func (s *guildServer) KickGuildMember(ctx context.Context, req *guildv1.KickGuil
 		if err != nil {
 			return err
 		}
-		return txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId())
+		if err := txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+			return err
+		}
+		event, err := newGuildMemberRemovedEvent(removed, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberRemovedEvent(removed, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.KickGuildMemberResponse)
 	resp.SetOk(true)
 	return resp, nil
@@ -293,13 +308,18 @@ func (s *guildServer) LeaveGuild(ctx context.Context, req *guildv1.LeaveGuildReq
 		if err != nil {
 			return err
 		}
-		return txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId())
+		if err := txStore.DeleteGuildMemberProfile(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+			return err
+		}
+		event, err := newGuildMemberRemovedEvent(removed, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildMemberRemovedEvent(removed, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.LeaveGuildResponse)
 	resp.SetOk(true)
 	return resp, nil
@@ -333,13 +353,18 @@ func (s *guildServer) TransferGuildOwnership(ctx context.Context, req *guildv1.T
 			return err
 		}
 		updated, err = txStore.TransferGuildOwnership(ctx, req.GetGuildId(), req.GetActorUserId(), req.GetNewOwnerId())
-		return err
+		if err != nil {
+			return err
+		}
+		event, err := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.TransferGuildOwnershipResponse)
 	resp.SetGuild(guildToProto(updated))
 	return resp, nil

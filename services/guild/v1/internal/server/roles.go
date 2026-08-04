@@ -102,14 +102,20 @@ func (s *guildServer) CreateGuildRole(ctx context.Context, req *guildv1.CreateGu
 			position,
 			createdAt,
 		)
-		return err
+		if err != nil {
+			return err
+		}
+		if createdNewRole {
+			event, err := newGuildRoleCreatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
+			if err != nil {
+				return err
+			}
+			return s.enqueueEvents(ctx, txStore, []guildEvent{event})
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
-	}
-	if createdNewRole {
-		event, eventErr := newGuildRoleCreatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
-		s.publishEvent(ctx, event, eventErr)
 	}
 	resp := new(guildv1.CreateGuildRoleResponse)
 	resp.SetRole(guildRoleToProto(role))
@@ -195,13 +201,18 @@ func (s *guildServer) UpdateGuildRole(ctx context.Context, req *guildv1.UpdateGu
 			return permissionDenied()
 		}
 		updated, err = txStore.UpdateGuildRole(ctx, params)
-		return err
+		if err != nil {
+			return err
+		}
+		event, err := newGuildRoleUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildRoleUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UpdateGuildRoleResponse)
 	resp.SetRole(guildRoleToProto(updated))
 	return resp, nil
@@ -243,13 +254,18 @@ func (s *guildServer) DeleteGuildRole(ctx context.Context, req *guildv1.DeleteGu
 			return err
 		}
 		deleted, err = txStore.DeleteGuildRole(ctx, req.GetGuildId(), req.GetRoleId(), deletedAt)
-		return err
+		if err != nil {
+			return err
+		}
+		event, err := newGuildRoleDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	event, eventErr := newGuildRoleDeletedEvent(deleted, s.svcCtx.Snowflake.Generate().Int64())
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.DeleteGuildRoleResponse)
 	resp.SetOk(true)
 	return resp, nil
@@ -333,14 +349,21 @@ func (s *guildServer) ReorderGuildRoles(ctx context.Context, req *guildv1.Reorde
 			return notFound()
 		}
 		roles, err = txStore.ListGuildRoles(ctx, req.GetGuildId())
-		return err
+		if err != nil {
+			return err
+		}
+		events := make([]guildEvent, 0, len(reordered))
+		for _, role := range reordered {
+			event, err := newGuildRoleUpdatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
+			if err != nil {
+				return err
+			}
+			events = append(events, event)
+		}
+		return s.enqueueEvents(ctx, txStore, events)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
-	}
-	for _, role := range reordered {
-		event, eventErr := newGuildRoleUpdatedEvent(role, s.svcCtx.Snowflake.Generate().Int64())
-		s.publishEvent(ctx, event, eventErr)
 	}
 	resp := new(guildv1.ReorderGuildRolesResponse)
 	resp.SetRoles(guildRolesToProto(roles))
@@ -465,16 +488,20 @@ func (s *guildServer) changeGuildRoleMembers(
 			}
 			updates = append(updates, memberRolesUpdate{userID: userID, roles: roles})
 		}
-		return nil
+		events := make([]guildEvent, 0, len(updates))
+		for _, update := range updates {
+			event, err := newGuildMemberRolesUpdatedEvent(
+				guildID, update.userID, update.roles, changedAt, s.svcCtx.Snowflake.Generate().Int64(),
+			)
+			if err != nil {
+				return err
+			}
+			events = append(events, event)
+		}
+		return s.enqueueEvents(ctx, txStore, events)
 	})
 	if err != nil {
 		return mapStoreError(err)
-	}
-	for _, update := range updates {
-		event, eventErr := newGuildMemberRolesUpdatedEvent(
-			guildID, update.userID, update.roles, changedAt, s.svcCtx.Snowflake.Generate().Int64(),
-		)
-		s.publishEvent(ctx, event, eventErr)
 	}
 	return nil
 }

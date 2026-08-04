@@ -205,7 +205,7 @@ func newPostgresGuildService(t *testing.T) (store.Store, guildv1.GuildServiceSer
 	return newPostgresGuildServiceWithPublisher(t, nil)
 }
 
-func newPostgresGuildServiceWithPublisher(t *testing.T, publisher svc.EventPublisher) (store.Store, guildv1.GuildServiceServer) {
+func newPostgresGuildServiceWithPublisher(t *testing.T, publisher *fakePublisher) (store.Store, guildv1.GuildServiceServer) {
 	t.Helper()
 	postgres := testkit.StartPostgres(t)
 	migrationDB, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
@@ -218,12 +218,14 @@ func newPostgresGuildServiceWithPublisher(t *testing.T, publisher svc.EventPubli
 
 	node, err := snowflake.New()
 	require.NoError(t, err)
-	guildStore := store.New(db)
+	var guildStore store.Store = store.New(db)
+	if publisher != nil {
+		guildStore = &outboxObservingStore{Store: guildStore, observe: publisher.observe}
+	}
 	service := New(svc.NewServiceContextWithDependencies(config.Config{}, svc.Dependencies{
 		Store:       guildStore,
 		Snowflake:   node,
 		Cursors:     testCursorCodec(t),
-		Publisher:   publisher,
 		UserClient:  &fakeUserClient{},
 		MediaClient: &fakeMediaClient{},
 	}))

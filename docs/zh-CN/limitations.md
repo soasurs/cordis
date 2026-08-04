@@ -12,7 +12,7 @@ Session 状态与 2048 条回放记录只在内存中。节点故障后无法恢
 
 ## 事件可靠性
 
-Guild 事件仍在数据库事务提交后 best-effort 直写 Kafka，没有事务 Outbox，因此提交成功与事件发布之间存在丢失窗口。User 和 Message 事件使用事务 Outbox 和独立 relay，Kafka 不可用时已提交的事件不会丢失。Dispatcher 提供重试和手工 offset 提交，但没有死信队列、全局 event ID 或通用幂等去重。Session RPC 分发按节点串行执行，一个节点失败会使整条 Kafka 记录重试；该 retry 只阻塞所在 partition，其他 partition 和 topic 仍可继续消费。
+Presence 事件在状态持久化后仍 best-effort 直写 Kafka，没有事务 Outbox，因此状态持久化与事件发布之间存在丢失窗口。User、Message 和 Guild 事件使用事务 Outbox 和独立 relay，Kafka 不可用时已提交的事件不会丢失。Dispatcher 提供重试和手工 offset 提交，但没有死信队列、全局 event ID 或通用幂等去重。Session RPC 分发按节点串行执行，一个节点失败会使整条 Kafka 记录重试；该 retry 只阻塞所在 partition，其他 partition 和 topic 仍可继续消费。
 
 ## 功能缺口
 

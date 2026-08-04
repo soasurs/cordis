@@ -100,19 +100,24 @@ func (s *guildServer) BanGuildMember(ctx context.Context, req *guildv1.BanGuildM
 			GuildID: req.GetGuildId(), UserID: req.GetUserId(),
 			ActorUserID: req.GetActorUserId(), Reason: reason, CreatedAt: createdAt,
 		})
-		return err
+		if err != nil {
+			return err
+		}
+		event, err := newGuildMemberBannedEvent(
+			ban,
+			profiles[ban.UserID],
+			profiles[ban.ActorUserID],
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberBannedEvent(
-		ban,
-		profiles[ban.UserID],
-		profiles[ban.ActorUserID],
-		s.svcCtx.Snowflake.Generate().Int64(),
-	)
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.BanGuildMemberResponse)
 	resp.SetBan(guildBanToProto(ban))
 	return resp, nil
@@ -137,20 +142,25 @@ func (s *guildServer) UnbanGuildMember(ctx context.Context, req *guildv1.UnbanGu
 		if !actor.has(PermissionBanMembers) {
 			return permissionDenied()
 		}
-		return txStore.DeleteGuildBan(ctx, req.GetGuildId(), req.GetUserId())
+		if err := txStore.DeleteGuildBan(ctx, req.GetGuildId(), req.GetUserId()); err != nil {
+			return err
+		}
+		event, err := newGuildMemberUnbannedEvent(
+			req.GetGuildId(),
+			req.GetUserId(),
+			time.Now().UnixMilli(),
+			profiles[req.GetUserId()],
+			s.svcCtx.Snowflake.Generate().Int64(),
+		)
+		if err != nil {
+			return err
+		}
+		return s.enqueueEvents(ctx, txStore, []guildEvent{event})
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
 
-	event, eventErr := newGuildMemberUnbannedEvent(
-		req.GetGuildId(),
-		req.GetUserId(),
-		time.Now().UnixMilli(),
-		profiles[req.GetUserId()],
-		s.svcCtx.Snowflake.Generate().Int64(),
-	)
-	s.publishEvent(ctx, event, eventErr)
 	resp := new(guildv1.UnbanGuildMemberResponse)
 	resp.SetOk(true)
 	return resp, nil

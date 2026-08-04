@@ -43,4 +43,5 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("resource quotas", func(t *testing.T) { testResourceQuotas(t, store) })
 	t.Run("channel mutation lock", func(t *testing.T) { testGuildChannelMutationLock(t, store) })
 	t.Run("idempotency", func(t *testing.T) { testGuildIdempotency(t, store) })
+	t.Run("outbox", func(t *testing.T) { testGuildOutbox(t, store, db) })
 }

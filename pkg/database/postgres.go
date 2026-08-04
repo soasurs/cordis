@@ -77,11 +77,10 @@ func NewPostgresPool(ctx context.Context, cfg Config) (*pgxpool.Pool, error) {
 	if cfg.MaxOpenConns > 0 {
 		poolConfig.MaxConns = int32(cfg.MaxOpenConns)
 	}
-	// pgxpool has no "max idle" setting; treat the configured idle count as
-	// the number of idle connections the pool should keep available.
-	if cfg.MaxIdleConns > 0 {
-		poolConfig.MinIdleConns = int32(cfg.MaxIdleConns)
-	}
+	// MaxIdleConns is deliberately not mapped to pgxpool: database/sql treats
+	// it as an upper bound on idle connections, while pgxpool.MinIdleConns is a
+	// lower bound that would actively keep connections open. Pool warm-up
+	// should use a separate, explicit MinIdleConns setting if ever needed.
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {

@@ -42,7 +42,9 @@ connections opened by `pkg/database.NewPostgres` are instrumented with
 `github.com/XSAM/otelsql`; the Message service's native pgx pool
 (`pkg/database.NewPostgresPool`) uses `github.com/exaring/otelpgx`. Both paths
 make store calls that pass request context child spans of the active RPC trace.
-Metrics are exposed through go-zero dev servers or API observability settings.
+The native pool keeps pgxpool's default idle behavior; `MaxIdleConns` is not
+mapped to `MinIdleConns`. Metrics are exposed through go-zero dev servers or
+API observability settings.
 Authenticator encrypts TOTP secrets with AES-256-GCM using the independent
 `CORDIS_TOTP_ENCRYPTION_KEY`. It must be a Base64-encoded 32-byte random key
 and must not be reused for JWT signing. Guild, User, and Message sign opaque

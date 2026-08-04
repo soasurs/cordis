@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
@@ -23,15 +23,15 @@ func (s *SQLStore) LockRelationshipPair(ctx context.Context, userID, targetID in
 	if targetID < userID {
 		userID, targetID = targetID, userID
 	}
-	if _, err := s.q.ExecContext(ctx, LockRelationshipUserStatement, userID); err != nil {
+	if _, err := s.q.Exec(ctx, LockRelationshipUserStatement, userID); err != nil {
 		return err
 	}
-	_, err := s.q.ExecContext(ctx, LockRelationshipUserStatement, targetID)
+	_, err := s.q.Exec(ctx, LockRelationshipUserStatement, targetID)
 	return err
 }
 
 func (s *SQLStore) UpsertRelationship(ctx context.Context, relationship *model.Relationship) error {
-	_, err := s.q.ExecContext(
+	_, err := s.q.Exec(
 		ctx,
 		UpsertRelationshipStatement,
 		relationship.UserID,
@@ -43,23 +43,19 @@ func (s *SQLStore) UpsertRelationship(ctx context.Context, relationship *model.R
 }
 
 func (s *SQLStore) GetRelationship(ctx context.Context, userID, targetID int64) (*model.Relationship, error) {
-	row := new(relationshipRow)
-	if err := sqlx.GetContext(ctx, s.q, row, GetRelationshipQuery, userID, targetID); err != nil {
+	row, err := scanOne(ctx, s.q, GetRelationshipQuery, pgx.RowToStructByName[relationshipRow], userID, targetID)
+	if err != nil {
 		return nil, err
 	}
-	return relationshipFromRow(row), nil
+	return relationshipFromRow(&row), nil
 }
 
 func (s *SQLStore) DeleteRelationship(ctx context.Context, userID, targetID int64) error {
-	res, err := s.q.ExecContext(ctx, DeleteRelationshipStatement, userID, targetID)
+	tag, err := s.q.Exec(ctx, DeleteRelationshipStatement, userID, targetID)
 	if err != nil {
 		return err
 	}
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
+	if tag.RowsAffected() == 0 {
 		return sql.ErrNoRows
 	}
 	return nil
@@ -68,40 +64,40 @@ func (s *SQLStore) DeleteRelationship(ctx context.Context, userID, targetID int6
 // DeleteRelationshipExceptBlocked removes the reverse row of a mutation
 // without ever clearing the other user's block.
 func (s *SQLStore) DeleteRelationshipExceptBlocked(ctx context.Context, userID, targetID int64) error {
-	_, err := s.q.ExecContext(ctx, DeleteRelationshipExceptBlockedStatement, userID, targetID)
+	_, err := s.q.Exec(ctx, DeleteRelationshipExceptBlockedStatement, userID, targetID)
 	return err
 }
 
 func (s *SQLStore) ListRelationships(ctx context.Context, params ListRelationshipsParams) ([]*model.Relationship, error) {
-	var rows []*relationshipRow
-	if err := sqlx.SelectContext(
+	rows, err := scanMany(
 		ctx,
 		s.q,
-		&rows,
 		ListRelationshipsQuery,
+		pgx.RowToStructByName[relationshipRow],
 		params.UserID,
 		params.Type,
 		params.BeforeCreatedAt,
 		params.BeforeTargetID,
 		params.Limit,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 	relationships := make([]*model.Relationship, 0, len(rows))
-	for _, row := range rows {
-		relationships = append(relationships, relationshipFromRow(row))
+	for i := range rows {
+		relationships = append(relationships, relationshipFromRow(&rows[i]))
 	}
 	return relationships, nil
 }
 
 func (s *SQLStore) ListRelationshipsByTargets(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
-	var rows []*relationshipRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRelationshipsByTargetsQuery, userID, targetIDs); err != nil {
+	rows, err := scanMany(ctx, s.q, ListRelationshipsByTargetsQuery, pgx.RowToStructByName[relationshipRow], userID, targetIDs)
+	if err != nil {
 		return nil, err
 	}
 	relationships := make([]*model.Relationship, 0, len(rows))
-	for _, row := range rows {
-		relationships = append(relationships, relationshipFromRow(row))
+	for i := range rows {
+		relationships = append(relationships, relationshipFromRow(&rows[i]))
 	}
 	return relationships, nil
 }
@@ -110,13 +106,13 @@ func (s *SQLStore) ListRelationshipsByTargets(ctx context.Context, userID int64,
 // userID and each target from a single statement, so callers get one
 // consistent snapshot for block checks.
 func (s *SQLStore) ListRelationshipsBidirectional(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error) {
-	var rows []*relationshipRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListRelationshipsBidirectionalQuery, userID, targetIDs); err != nil {
+	rows, err := scanMany(ctx, s.q, ListRelationshipsBidirectionalQuery, pgx.RowToStructByName[relationshipRow], userID, targetIDs)
+	if err != nil {
 		return nil, err
 	}
 	relationships := make([]*model.Relationship, 0, len(rows))
-	for _, row := range rows {
-		relationships = append(relationships, relationshipFromRow(row))
+	for i := range rows {
+		relationships = append(relationships, relationshipFromRow(&rows[i]))
 	}
 	return relationships, nil
 }

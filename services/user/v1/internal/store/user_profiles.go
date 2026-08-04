@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
@@ -41,7 +41,18 @@ func (s *SQLStore) CreateUserProfile(ctx context.Context, userID int64, username
 		CreatedAt: time.Now().UnixMilli(),
 	}
 
-	_, err := sqlx.NamedExecContext(ctx, s.q, CreateUserProfileStatement, row)
+	_, err := s.q.Exec(
+		ctx,
+		CreateUserProfileStatement,
+		row.UserID,
+		row.Username,
+		row.Name,
+		row.Bio,
+		row.AvatarAssetID,
+		row.CreatedAt,
+		row.UpdatedAt,
+		row.DeletedAt,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -50,22 +61,21 @@ func (s *SQLStore) CreateUserProfile(ctx context.Context, userID int64, username
 }
 
 func (s *SQLStore) GetUserProfile(ctx context.Context, userID int64) (*model.UserProfile, error) {
-	row := new(userProfileRow)
-	err := sqlx.GetContext(ctx, s.q, row, GetUserProfileQuery, userID, 0)
+	row, err := scanOne(ctx, s.q, GetUserProfileQuery, pgx.RowToStructByName[userProfileRow], userID, 0)
 	if err != nil {
 		return nil, err
 	}
-	return profileFromRow(row), nil
+	return profileFromRow(&row), nil
 }
 
 func (s *SQLStore) ListUserProfiles(ctx context.Context, userIDs []int64) ([]*model.UserProfile, error) {
-	var rows []*userProfileRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, ListUserProfilesQuery, userIDs, 0); err != nil {
+	rows, err := scanMany(ctx, s.q, ListUserProfilesQuery, pgx.RowToStructByName[userProfileRow], userIDs, 0)
+	if err != nil {
 		return nil, err
 	}
 	profiles := make([]*model.UserProfile, 0, len(rows))
-	for _, row := range rows {
-		profiles = append(profiles, profileFromRow(row))
+	for i := range rows {
+		profiles = append(profiles, profileFromRow(&rows[i]))
 	}
 	return profiles, nil
 }
@@ -83,12 +93,11 @@ func (s *SQLStore) UpdateUserProfile(ctx context.Context, params UpdateUserProfi
 	if params.AvatarAssetID != nil {
 		avatarAssetID = *params.AvatarAssetID
 	}
-	row := new(userProfileRow)
-	err := sqlx.GetContext(
+	row, err := scanOne(
 		ctx,
 		s.q,
-		row,
 		UpdateUserProfileQuery,
+		pgx.RowToStructByName[userProfileRow],
 		params.Name != nil,
 		name,
 		params.Bio != nil,
@@ -102,45 +111,45 @@ func (s *SQLStore) UpdateUserProfile(ctx context.Context, params UpdateUserProfi
 	if err != nil {
 		return nil, err
 	}
-	return profileFromRow(row), nil
+	return profileFromRow(&row), nil
 }
 
 func (s *SQLStore) UpdateUserAvatar(ctx context.Context, userID, assetID int64) (*model.UserProfile, error) {
-	row := new(userProfileRow)
-	if err := sqlx.GetContext(
+	row, err := scanOne(
 		ctx,
 		s.q,
-		row,
 		UpdateUserAvatarQuery,
+		pgx.RowToStructByName[userProfileRow],
 		assetID,
 		time.Now().UnixMilli(),
 		userID,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
-	return profileFromRow(row), nil
+	return profileFromRow(&row), nil
 }
 
 func (s *SQLStore) GetUserProfileByUsername(ctx context.Context, username string) (*model.UserProfile, error) {
-	row := new(userProfileRow)
-	if err := sqlx.GetContext(ctx, s.q, row, GetUserProfileByUsernameQuery, username, 0); err != nil {
+	row, err := scanOne(ctx, s.q, GetUserProfileByUsernameQuery, pgx.RowToStructByName[userProfileRow], username, 0)
+	if err != nil {
 		return nil, err
 	}
-	return profileFromRow(row), nil
+	return profileFromRow(&row), nil
 }
 
 func (s *SQLStore) CheckUsernameAvailability(ctx context.Context, username string) (bool, error) {
-	var available bool
-	if err := sqlx.GetContext(ctx, s.q, &available, CheckUsernameAvailabilityQuery, username, 0); err != nil {
+	available, err := scanOne(ctx, s.q, CheckUsernameAvailabilityQuery, pgx.RowTo[bool], username, 0)
+	if err != nil {
 		return false, err
 	}
 	return available, nil
 }
 
 func (s *SQLStore) UpdateUsername(ctx context.Context, userID int64, username string) (*model.UserProfile, error) {
-	row := new(userProfileRow)
-	if err := sqlx.GetContext(ctx, s.q, row, UpdateUsernameQuery, username, time.Now().UnixMilli(), userID, 0); err != nil {
+	row, err := scanOne(ctx, s.q, UpdateUsernameQuery, pgx.RowToStructByName[userProfileRow], username, time.Now().UnixMilli(), userID, 0)
+	if err != nil {
 		return nil, err
 	}
-	return profileFromRow(row), nil
+	return profileFromRow(&row), nil
 }

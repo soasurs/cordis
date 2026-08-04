@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
@@ -28,7 +28,7 @@ func (s *SQLStore) CreateUser(ctx context.Context, userID int64, email string) (
 		DeletedAt: 0,
 	}
 
-	_, err := sqlx.NamedExecContext(ctx, s.q, CreateUserStatement, row)
+	_, err := s.q.Exec(ctx, CreateUserStatement, row.UserID, row.Email, row.CreatedAt, row.UpdatedAt, row.DeletedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -36,26 +36,23 @@ func (s *SQLStore) CreateUser(ctx context.Context, userID int64, email string) (
 }
 
 func (s *SQLStore) GetUser(ctx context.Context, userID int64) (*model.User, error) {
-	row := new(userRow)
-	err := sqlx.GetContext(ctx, s.q, row, GetUserQuery, userID, 0)
+	row, err := scanOne(ctx, s.q, GetUserQuery, pgx.RowToStructByName[userRow], userID, 0)
 	if err != nil {
 		return nil, err
 	}
-	return userFromRow(row), nil
+	return userFromRow(&row), nil
 }
 
 func (s *SQLStore) GetUserWithEmail(ctx context.Context, email string) (*model.User, error) {
-	row := new(userRow)
-	err := sqlx.GetContext(ctx, s.q, row, GetUserWithEmailQuery, email, 0)
+	row, err := scanOne(ctx, s.q, GetUserWithEmailQuery, pgx.RowToStructByName[userRow], email, 0)
 	if err != nil {
 		return nil, err
 	}
-	return userFromRow(row), nil
+	return userFromRow(&row), nil
 }
 
 func (s *SQLStore) CheckEmailAvailability(ctx context.Context, email string) (bool, error) {
-	var available bool
-	err := sqlx.GetContext(ctx, s.q, &available, CheckEmailAvailabilityQuery, email, 0)
+	available, err := scanOne(ctx, s.q, CheckEmailAvailabilityQuery, pgx.RowTo[bool], email, 0)
 	if err != nil {
 		return false, err
 	}
@@ -63,25 +60,20 @@ func (s *SQLStore) CheckEmailAvailability(ctx context.Context, email string) (bo
 }
 
 func (s *SQLStore) UpdateUserEmail(ctx context.Context, userID int64, email string) (*model.User, error) {
-	row := new(userRow)
-	err := sqlx.GetContext(ctx, s.q, row, UpdateUserEmailQuery, email, time.Now().UnixMilli(), userID, 0)
+	row, err := scanOne(ctx, s.q, UpdateUserEmailQuery, pgx.RowToStructByName[userRow], email, time.Now().UnixMilli(), userID, 0)
 	if err != nil {
 		return nil, err
 	}
-	return userFromRow(row), nil
+	return userFromRow(&row), nil
 }
 
 func (s *SQLStore) MarkUserEmailVerified(ctx context.Context, userID int64, email string, verifiedAt int64) error {
-	res, err := s.q.ExecContext(ctx, MarkUserEmailVerifiedStatement, verifiedAt, verifiedAt, userID, email, 0)
+	tag, err := s.q.Exec(ctx, MarkUserEmailVerifiedStatement, verifiedAt, verifiedAt, userID, email, 0)
 	if err != nil {
 		return err
 	}
 
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
+	if tag.RowsAffected() == 0 {
 		return sql.ErrNoRows
 	}
 	return nil

@@ -15,10 +15,13 @@ import (
 
 func TestSQLStoreWithPostgres(t *testing.T) {
 	postgres := testkit.StartPostgres(t)
-	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
+	migrationDB, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
-	require.NoError(t, migration.Apply(t.Context(), db, messagemigrations.Files))
+	t.Cleanup(func() { require.NoError(t, migrationDB.Close()) })
+	db, err := database.NewPostgresPool(t.Context(), database.Config{DataSource: postgres.DSN})
+	require.NoError(t, err)
+	t.Cleanup(db.Close)
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, messagemigrations.Files))
 
 	store := New(db)
 	t.Run("create and get", func(t *testing.T) { testCreateAndGetMessage(t, store) })

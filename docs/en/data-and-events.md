@@ -11,11 +11,14 @@ by `pkg/migration.Apply`; `*.down.sql` is skipped. Cross-table integrity is
 mostly enforced by application logic rather than foreign keys. Active soft
 deleted entities generally use `deleted_at = 0`.
 
-Stores are interfaces. SQL implementations keep both a database handle and an
-`sqlx.ExtContext`; transactions replace the executor with `*sqlx.Tx`. Postgres
-handles come from `pkg/database.NewPostgres`, which wraps `database/sql` with
-otelsql tracing. User, Guild, and Message roll back on errors and panics.
-Tests inject fake stores and other dependencies.
+Stores are interfaces. Most SQL implementations keep both a database handle
+and an `sqlx.ExtContext`; transactions replace the executor with `*sqlx.Tx`.
+The Message store uses the native pgx API (`*pgxpool.Pool` and `pgx.Tx`)
+because it shares the pgx stack with its outbox relay; its query tracing is
+provided by `otelpgx`. Postgres handles for the sqlx stores come from
+`pkg/database.NewPostgres`, which wraps `database/sql` with otelsql tracing.
+User, Guild, and Message roll back on errors and panics. Tests inject fake
+stores and other dependencies.
 
 Entity IDs use Snowflake with a 2025-01-01 epoch, a node derived from a
 non-loopback IP hash, 16 node bits, and 8 step bits. Event JSON encodes 64-bit

@@ -14,8 +14,8 @@ const (
 			message_id, created_at, expires_at
 		)
 	VALUES
-		(:actor_user_id, :operation, :idempotency_key, :request_hash,
-		 :message_id, :created_at, :expires_at)
+		(@actor_user_id, @operation, @idempotency_key, @request_hash,
+		 @message_id, @created_at, @expires_at)
 	ON CONFLICT (actor_user_id, operation, idempotency_key) DO NOTHING
 	RETURNING
 		message_id, request_hash
@@ -56,9 +56,9 @@ const (
 		)
 	VALUES
 		(
-			:id, :channel_id, :author_id, :content, :type, :flags,
-			:referenced_message_id, :referenced_channel_id, CAST(:attachments AS JSONB),
-			:edited_at, :created_at, :updated_at, :revision, :deleted_at, :mention_everyone
+			@id, @channel_id, @author_id, @content, @type, @flags,
+			@referenced_message_id, @referenced_channel_id, CAST(@attachments AS JSONB),
+			@edited_at, @created_at, @updated_at, @revision, @deleted_at, @mention_everyone
 		)
 	RETURNING
 		id, channel_id, author_id, content, type, flags, referenced_message_id,

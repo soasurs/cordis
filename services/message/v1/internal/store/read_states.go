@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -25,8 +25,8 @@ type channelReadStateRow struct {
 }
 
 func (s *SQLStore) AckMessage(ctx context.Context, userID, channelID, messageID int64) (bool, error) {
-	row := new(ackMessageRow)
-	if err := sqlx.GetContext(ctx, s.q, row, ackMessageQuery, userID, channelID, messageID, time.Now().UnixMilli()); err != nil {
+	row, err := scanOne(ctx, s.q, ackMessageQuery, pgx.RowToStructByName[ackMessageRow], userID, channelID, messageID, time.Now().UnixMilli())
+	if err != nil {
 		return false, err
 	}
 	if !row.TargetExists {
@@ -39,12 +39,13 @@ func (s *SQLStore) ListReadyChannelReadStates(ctx context.Context, userID int64,
 	if len(channelIDs) == 0 {
 		return nil, nil
 	}
-	var rows []*channelReadStateRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listReadyChannelReadStatesQuery, userID, channelIDs); err != nil {
+	rows, err := scanMany(ctx, s.q, listReadyChannelReadStatesQuery, pgx.RowToStructByName[channelReadStateRow], userID, channelIDs)
+	if err != nil {
 		return nil, err
 	}
 	states := make([]*model.ChannelReadState, 0, len(rows))
-	for _, row := range rows {
+	for i := range rows {
+		row := &rows[i]
 		states = append(states, &model.ChannelReadState{
 			UserID:            row.UserID,
 			ChannelID:         row.ChannelID,
@@ -58,8 +59,8 @@ func (s *SQLStore) ListReadyChannelReadStates(ctx context.Context, userID int64,
 }
 
 func (s *SQLStore) GetLastMessageID(ctx context.Context, channelID int64) (int64, error) {
-	var messageID int64
-	if err := sqlx.GetContext(ctx, s.q, &messageID, getLastMessageIDQuery, channelID); err != nil {
+	messageID, err := scanOne(ctx, s.q, getLastMessageIDQuery, pgx.RowTo[int64], channelID)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, nil
 		}

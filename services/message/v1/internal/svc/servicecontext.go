@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	sn "github.com/bwmarrin/snowflake"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zeromicro/go-zero/zrpc"
 
 	guildv1 "github.com/soasurs/cordis/gen/guild/v1"
@@ -43,7 +43,7 @@ type Dependencies struct {
 	UserClient        userv1.UserServiceClient
 	MediaClient       mediav1.MediaServiceClient
 	ReadStatesLimiter ConcurrencyLimiter
-	DB                *sqlx.DB
+	DB                *pgxpool.Pool
 }
 
 func NewDependencies(cfg config.Config) (Dependencies, error) {
@@ -60,7 +60,7 @@ func NewDependencies(cfg config.Config) (Dependencies, error) {
 		return Dependencies{}, err
 	}
 
-	db, err := database.NewPostgres(cfg.Database)
+	db, err := database.NewPostgresPool(context.Background(), cfg.Database)
 	if err != nil {
 		return Dependencies{}, err
 	}

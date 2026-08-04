@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 )
 
 // ErrIdempotencyContention reports that an idempotency claim could not be
@@ -26,7 +26,7 @@ func (s *SQLStore) ClaimMessageIdempotency(
 	params ClaimMessageIdempotencyParams,
 ) (*MessageIdempotencyClaim, error) {
 	for range 3 {
-		if _, err := s.q.ExecContext(
+		if _, err := s.q.Exec(
 			ctx,
 			DeleteExpiredMessageIdempotencyStatement,
 			params.ActorUserID,
@@ -37,8 +37,7 @@ func (s *SQLStore) ClaimMessageIdempotency(
 			return nil, err
 		}
 
-		row := &messageIdempotencyRow{}
-		rows, err := sqlx.NamedQueryContext(ctx, s.q, ClaimMessageIdempotencyQuery, map[string]any{
+		row, err := scanOne(ctx, s.q, ClaimMessageIdempotencyQuery, pgx.RowToStructByNameLax[messageIdempotencyRow], pgx.NamedArgs{
 			"actor_user_id":   params.ActorUserID,
 			"operation":       params.Operation,
 			"idempotency_key": params.IdempotencyKey,
@@ -47,50 +46,38 @@ func (s *SQLStore) ClaimMessageIdempotency(
 			"created_at":      params.CreatedAt,
 			"expires_at":      params.ExpiresAt,
 		})
-		if err != nil {
-			return nil, err
-		}
-		inserted := rows.Next()
-		if inserted {
-			err = rows.StructScan(row)
-		} else {
-			err = rows.Err()
-		}
-		closeErr := rows.Close()
-		if err != nil {
-			return nil, err
-		}
-		if closeErr != nil {
-			return nil, closeErr
-		}
-		if inserted {
+		if err == nil {
 			return &MessageIdempotencyClaim{
 				MessageID:   row.MessageID,
 				RequestHash: append([]byte(nil), row.RequestHash...),
 				Claimed:     true,
 			}, nil
 		}
+		if err != sql.ErrNoRows {
+			return nil, err
+		}
 
-		if err := sqlx.GetContext(
+		existing, err := scanOne(
 			ctx,
 			s.q,
-			row,
 			GetMessageIdempotencyQuery,
+			pgx.RowToStructByName[messageIdempotencyRow],
 			params.ActorUserID,
 			params.Operation,
 			params.IdempotencyKey,
-		); err != nil {
+		)
+		if err != nil {
 			if err == sql.ErrNoRows {
 				continue
 			}
 			return nil, err
 		}
-		if row.ExpiresAt <= params.CreatedAt {
+		if existing.ExpiresAt <= params.CreatedAt {
 			continue
 		}
 		return &MessageIdempotencyClaim{
-			MessageID:   row.MessageID,
-			RequestHash: append([]byte(nil), row.RequestHash...),
+			MessageID:   existing.MessageID,
+			RequestHash: append([]byte(nil), existing.RequestHash...),
 		}, nil
 	}
 	return nil, ErrIdempotencyContention

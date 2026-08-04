@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -90,25 +90,16 @@ func (s *SQLStore) CreateMessage(ctx context.Context, params CreateMessageParams
 		row.ReferencedChannelID = sql.NullInt64{Int64: params.ReferencedChannelID, Valid: true}
 	}
 
-	rows, err := sqlx.NamedQueryContext(ctx, s.q, CreateMessageQuery, row)
+	created, err := scanOne(ctx, s.q, CreateMessageQuery, pgx.RowToStructByName[messageRow], pgx.StructArgs(row))
 	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	if !rows.Next() {
-		return nil, sql.ErrNoRows
-	}
-	created := new(messageRow)
-	if err := rows.StructScan(created); err != nil {
 		return nil, err
 	}
 	return created.toModel()
 }
 
 func (s *SQLStore) GetMessage(ctx context.Context, messageID int64) (*model.Message, error) {
-	row := new(messageRow)
-	if err := sqlx.GetContext(ctx, s.q, row, GetMessageQuery, messageID, 0); err != nil {
+	row, err := scanOne(ctx, s.q, GetMessageQuery, pgx.RowToStructByName[messageRow], messageID, 0)
+	if err != nil {
 		return nil, err
 	}
 	return row.toModel()
@@ -141,8 +132,8 @@ func (s *SQLStore) UpdateMessage(ctx context.Context, params UpdateMessageParams
 		return nil, err
 	}
 
-	row := new(messageRow)
-	if err := sqlx.GetContext(ctx, s.q, row, query, args...); err != nil {
+	row, err := scanOne(ctx, s.q, query, pgx.RowToStructByName[messageRow], args...)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			if params.HasModPermission {
 				return nil, sql.ErrNoRows
@@ -200,30 +191,32 @@ func buildUpdateMessageQuery(params UpdateMessageParams, now int64) (string, []a
 
 func (s *SQLStore) DeleteMessage(ctx context.Context, messageID, actorUserID int64, hasModPermission bool) (*model.Message, error) {
 	now := time.Now().UnixMilli()
-	row := new(messageRow)
 	if hasModPermission {
-		if err := sqlx.GetContext(ctx, s.q, row, DeleteMessageModStatement, now, messageID, int64(0)); err != nil {
+		row, err := scanOne(ctx, s.q, DeleteMessageModStatement, pgx.RowToStructByName[messageRow], now, messageID, int64(0))
+		if err != nil {
 			return nil, err
 		}
+		return row.toModel()
 	} else {
-		if err := sqlx.GetContext(ctx, s.q, row, DeleteMessageStatement, now, messageID, actorUserID, int64(0)); err != nil {
+		row, err := scanOne(ctx, s.q, DeleteMessageStatement, pgx.RowToStructByName[messageRow], now, messageID, actorUserID, int64(0))
+		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, s.noRowsForActor(ctx, messageID)
 			}
 			return nil, err
 		}
+		return row.toModel()
 	}
-	return row.toModel()
 }
 
 func (s *SQLStore) ReplaceMessageMentions(ctx context.Context, messageID int64, mentions model.MessageMentions) error {
-	if _, err := s.q.ExecContext(ctx, DeleteMessageMentionsStatement, messageID); err != nil {
+	if _, err := s.q.Exec(ctx, DeleteMessageMentionsStatement, messageID); err != nil {
 		return err
 	}
-	if _, err := s.q.ExecContext(ctx, DeleteMessageRoleMentionsStatement, messageID); err != nil {
+	if _, err := s.q.Exec(ctx, DeleteMessageRoleMentionsStatement, messageID); err != nil {
 		return err
 	}
-	if _, err := s.q.ExecContext(ctx, UpdateMessageMentionEveryoneStatement, messageID, mentions.Everyone); err != nil {
+	if _, err := s.q.Exec(ctx, UpdateMessageMentionEveryoneStatement, messageID, mentions.Everyone); err != nil {
 		return err
 	}
 	if err := s.batchInsertMentions(ctx, messageID, mentions.UserIDs, 1); err != nil {
@@ -237,7 +230,7 @@ func (s *SQLStore) batchInsertMentions(ctx context.Context, messageID int64, use
 	if len(ids) == 0 {
 		return nil
 	}
-	_, err := s.q.ExecContext(ctx, InsertMessageMentionsStatement, messageID, ids, source)
+	_, err := s.q.Exec(ctx, InsertMessageMentionsStatement, messageID, ids, source)
 	return err
 }
 
@@ -246,7 +239,7 @@ func (s *SQLStore) batchInsertRoleMentions(ctx context.Context, messageID int64,
 	if len(ids) == 0 {
 		return nil
 	}
-	_, err := s.q.ExecContext(ctx, InsertMessageRoleMentionsStatement, messageID, ids)
+	_, err := s.q.Exec(ctx, InsertMessageRoleMentionsStatement, messageID, ids)
 	return err
 }
 
@@ -270,24 +263,24 @@ func (s *SQLStore) ListMessagesMentions(ctx context.Context, messageIDs []int64)
 		byMessage[messageID] = &model.MessageMentions{}
 	}
 
-	var userRows []messageMentionRow
-	if err := sqlx.SelectContext(ctx, s.q, &userRows, ListMessagesMentionsQuery, messageIDs); err != nil {
+	userRows, err := scanMany(ctx, s.q, ListMessagesMentionsQuery, pgx.RowToStructByName[messageMentionRow], messageIDs)
+	if err != nil {
 		return nil, err
 	}
 	for _, row := range userRows {
 		byMessage[row.MessageID].UserIDs = append(byMessage[row.MessageID].UserIDs, row.TargetID)
 	}
 
-	var roleRows []messageMentionRow
-	if err := sqlx.SelectContext(ctx, s.q, &roleRows, ListMessagesRoleMentionsQuery, messageIDs); err != nil {
+	roleRows, err := scanMany(ctx, s.q, ListMessagesRoleMentionsQuery, pgx.RowToStructByName[messageMentionRow], messageIDs)
+	if err != nil {
 		return nil, err
 	}
 	for _, row := range roleRows {
 		byMessage[row.MessageID].RoleIDs = append(byMessage[row.MessageID].RoleIDs, row.TargetID)
 	}
 
-	var everyoneRows []messageEveryoneRow
-	if err := sqlx.SelectContext(ctx, s.q, &everyoneRows, ListMessagesMentionEveryoneQuery, messageIDs); err != nil {
+	everyoneRows, err := scanMany(ctx, s.q, ListMessagesMentionEveryoneQuery, pgx.RowToStructByName[messageEveryoneRow], messageIDs)
+	if err != nil {
 		return nil, err
 	}
 	for _, row := range everyoneRows {
@@ -308,16 +301,16 @@ const expandedMentionInsertBatchSize = 10_000
 // was applied; a missing, deleted, or newer message is skipped without error.
 func (s *SQLStore) RebuildExpandedMessageMentions(ctx context.Context, messageID, expectedRevision int64, userIDs []int64) (bool, error) {
 	ids := uniquePositiveIDs(userIDs)
-	tx, err := s.db.BeginTxx(ctx, &sql.TxOptions{})
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return false, err
 	}
 	defer func() {
-		_ = tx.Rollback()
+		_ = tx.Rollback(ctx)
 	}()
 
 	var revision int64
-	if err := tx.GetContext(ctx, &revision, LockMessageRevisionStatement, messageID); err != nil {
+	if err := tx.QueryRow(ctx, LockMessageRevisionStatement, messageID).Scan(&revision); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
@@ -326,24 +319,24 @@ func (s *SQLStore) RebuildExpandedMessageMentions(ctx context.Context, messageID
 	if revision != expectedRevision {
 		return false, nil
 	}
-	if _, err := tx.ExecContext(ctx, DeleteExpandedMessageMentionsStatement, messageID); err != nil {
+	if _, err := tx.Exec(ctx, DeleteExpandedMessageMentionsStatement, messageID); err != nil {
 		return false, err
 	}
 	for start := 0; start < len(ids); start += expandedMentionInsertBatchSize {
 		end := min(start+expandedMentionInsertBatchSize, len(ids))
-		if _, err := tx.ExecContext(ctx, InsertExpandedMessageMentionsStatement, messageID, ids[start:end]); err != nil {
+		if _, err := tx.Exec(ctx, InsertExpandedMessageMentionsStatement, messageID, ids[start:end]); err != nil {
 			return false, err
 		}
 	}
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(ctx); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
 func (s *SQLStore) selectMessages(ctx context.Context, query string, args ...any) ([]*model.Message, error) {
-	var rows []messageRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, query, args...); err != nil {
+	rows, err := scanMany(ctx, s.q, query, pgx.RowToStructByName[messageRow], args...)
+	if err != nil {
 		return nil, err
 	}
 	return messageRowsToModels(rows)
@@ -377,8 +370,8 @@ func (s *SQLStore) listMessagesAround(ctx context.Context, params ListMessagesPa
 }
 
 func (s *SQLStore) noRowsForActor(ctx context.Context, messageID int64) error {
-	var exists bool
-	if err := sqlx.GetContext(ctx, s.q, &exists, CheckMessageExistsQuery, messageID, 0); err != nil {
+	exists, err := scanOne(ctx, s.q, CheckMessageExistsQuery, pgx.RowTo[bool], messageID, 0)
+	if err != nil {
 		return err
 	}
 	if exists {

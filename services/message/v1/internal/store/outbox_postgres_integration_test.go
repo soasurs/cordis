@@ -5,14 +5,14 @@ package store
 import (
 	"testing"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/message/v1/internal/eventoutbox"
 )
 
-func testOutbox(t *testing.T, store Store, db *sqlx.DB) {
+func testOutbox(t *testing.T, store Store, db *pgxpool.Pool) {
 	t.Helper()
 	streamKey := "channel-42"
 	require.NoError(t, store.EnsureMessageStream(t.Context(), streamKey, 3))

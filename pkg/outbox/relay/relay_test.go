@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/require"
 
 	"github.com/soasurs/cordis/pkg/kafka"
@@ -18,7 +18,7 @@ func TestNewRejectsMissingDependencies(t *testing.T) {
 
 func TestNewRequiresListenerDSNForNotifyChannel(t *testing.T) {
 	_, err := New(Config{
-		DB:            new(sqlx.DB),
+		DB:            new(pgxpool.Pool),
 		Tables:        outbox.Tables{Streams: "streams", Events: "events"},
 		Publisher:     &kafka.Publisher{},
 		Namespace:     "cordis.message.outbox",
@@ -29,7 +29,7 @@ func TestNewRequiresListenerDSNForNotifyChannel(t *testing.T) {
 
 func TestNewFillsDefaults(t *testing.T) {
 	relay, err := New(Config{
-		DB:        new(sqlx.DB),
+		DB:        new(pgxpool.Pool),
 		Tables:    outbox.Tables{Streams: "streams", Events: "events"},
 		Publisher: &kafka.Publisher{},
 		Namespace: "cordis.message.outbox",
@@ -45,7 +45,7 @@ func TestNewFillsDefaults(t *testing.T) {
 
 func TestBackoffIsBounded(t *testing.T) {
 	relay, err := New(Config{
-		DB:         new(sqlx.DB),
+		DB:         new(pgxpool.Pool),
 		Tables:     outbox.Tables{Streams: "streams", Events: "events"},
 		Publisher:  &kafka.Publisher{},
 		Namespace:  "cordis.message.outbox",
@@ -68,7 +68,7 @@ func TestHashNamespaceIsStable(t *testing.T) {
 
 func TestListenerDelayDoublesAndCaps(t *testing.T) {
 	relay, err := New(Config{
-		DB:         new(sqlx.DB),
+		DB:         new(pgxpool.Pool),
 		Tables:     outbox.Tables{Streams: "streams", Events: "events"},
 		Publisher:  &kafka.Publisher{},
 		Namespace:  "cordis.message.outbox",

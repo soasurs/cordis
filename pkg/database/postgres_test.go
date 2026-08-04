@@ -16,6 +16,13 @@ func TestNewPostgresRequiresDataSource(t *testing.T) {
 	require.EqualError(t, err, "database data source is required")
 }
 
+func TestNewPostgresPoolRequiresDataSource(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewPostgresPool(t.Context(), Config{})
+	require.EqualError(t, err, "database data source is required")
+}
+
 func TestPostgresAttributesExcludeCredentials(t *testing.T) {
 	t.Parallel()
 

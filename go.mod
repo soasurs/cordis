@@ -8,6 +8,7 @@ require (
 	github.com/bbrks/go-blurhash v1.2.0
 	github.com/bwmarrin/snowflake v0.3.0
 	github.com/coder/websocket v1.8.14
+	github.com/exaring/otelpgx v0.11.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jmoiron/sqlx v1.4.0

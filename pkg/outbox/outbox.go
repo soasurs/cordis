@@ -9,13 +9,13 @@ package outbox
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"hash/fnv"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // Tables names the outbox tables owned by one service. The names are fixed
@@ -27,13 +27,14 @@ type Tables struct {
 	Events string
 }
 
-// Querier is the query surface used by the package. *sqlx.DB, *sqlx.Tx, and
-// *sqlx.Conn all satisfy it, so writers can call these helpers inside a
-// service transaction and the relay can call them on a dedicated connection.
+// Querier is the native pgx query surface used by the package. *pgxpool.Pool,
+// *pgxpool.Conn, and pgx.Tx all satisfy it, so writers can call these helpers
+// inside a service transaction and the relay can call them on a dedicated
+// connection.
 type Querier interface {
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	QueryxContext(ctx context.Context, query string, args ...any) (*sqlx.Rows, error)
-	QueryRowxContext(ctx context.Context, query string, args ...any) *sqlx.Row
+	Exec(ctx context.Context, query string, args ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, query string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, query string, args ...any) pgx.Row
 }
 
 // ReservedRange is the sequence range assigned to one transaction.
@@ -79,16 +80,16 @@ func ShardID(streamKey string, shardCount int) int {
 }
 
 // EnsureStream inserts a stream row when missing. The caller must call
-// ReserveSequences afterwards; ReserveSequences reports sql.ErrNoRows when
-// another transaction's uncommitted insert vanished and the insert needs to
-// be retried.
+// ReserveSequences afterwards; ReserveSequences reports pgx.ErrNoRows (which
+// matches sql.ErrNoRows) when another transaction's uncommitted insert
+// vanished and the insert needs to be retried.
 func EnsureStream(ctx context.Context, q Querier, streamsTable, streamKey string, shardID int) error {
 	query := fmt.Sprintf(`
 		INSERT INTO %s (stream_key, relay_shard_id, last_sequence)
 		VALUES ($1, $2, 0)
 		ON CONFLICT (stream_key) DO NOTHING
 	`, quoteIdent(streamsTable))
-	_, err := q.ExecContext(ctx, query, streamKey, shardID)
+	_, err := q.Exec(ctx, query, streamKey, shardID)
 	return err
 }
 
@@ -109,7 +110,7 @@ func ReserveSequences(ctx context.Context, q Querier, streamsTable, streamKey st
 	`, quoteIdent(streamsTable))
 
 	var rangeValue ReservedRange
-	err := q.QueryRowxContext(ctx, query, streamKey, count).Scan(
+	err := q.QueryRow(ctx, query, streamKey, count).Scan(
 		&rangeValue.FirstSequence,
 		&rangeValue.LastSequence,
 		&rangeValue.ShardID,
@@ -163,7 +164,7 @@ func InsertBatch(ctx context.Context, q Querier, eventsTable string, records []R
 		)
 	}
 
-	_, err := q.ExecContext(ctx, builder.String(), args...)
+	_, err := q.Exec(ctx, builder.String(), args...)
 	return err
 }
 
@@ -195,16 +196,13 @@ func SelectHeads(ctx context.Context, q Querier, eventsTable string, shardID int
 		LIMIT $3
 	`, quoteIdent(eventsTable))
 
-	rows, err := q.QueryxContext(ctx, query, shardID, now, limit)
+	rows, err := q.Query(ctx, query, shardID, now, limit)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	records := make([]Record, 0)
-	for rows.Next() {
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (Record, error) {
 		var record Record
-		if err := rows.Scan(
+		err := row.Scan(
 			&record.OutboxID,
 			&record.EventID,
 			&record.DeliveryIndex,
@@ -219,12 +217,9 @@ func SelectHeads(ctx context.Context, q Querier, eventsTable string, shardID int
 			&record.Attempts,
 			&record.NextAttemptAt,
 			&record.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		records = append(records, record)
-	}
-	return records, rows.Err()
+		)
+		return record, err
+	})
 }
 
 // DeleteDelivered removes successfully published rows in one statement.
@@ -236,7 +231,7 @@ func DeleteDelivered(ctx context.Context, q Querier, eventsTable string, outboxI
 		DELETE FROM %s
 		WHERE outbox_id = ANY($1)
 	`, quoteIdent(eventsTable))
-	_, err := q.ExecContext(ctx, query, outboxIDs)
+	_, err := q.Exec(ctx, query, outboxIDs)
 	return err
 }
 
@@ -260,7 +255,7 @@ func UpdateFailed(ctx context.Context, q Querier, eventsTable string, updates []
 		FROM unnest($1::bigint[], $2::int[], $3::bigint[]) AS updates(outbox_id, attempts, next_attempt_at)
 		WHERE events.outbox_id = updates.outbox_id
 	`, quoteIdent(eventsTable))
-	_, err := q.ExecContext(ctx, query, ids, attempts, nextAttempts)
+	_, err := q.Exec(ctx, query, ids, attempts, nextAttempts)
 	return err
 }
 
@@ -273,21 +268,11 @@ func ListReadyShards(ctx context.Context, q Querier, eventsTable string, now int
 		WHERE next_attempt_at <= $1
 		ORDER BY relay_shard_id
 	`, quoteIdent(eventsTable))
-	rows, err := q.QueryxContext(ctx, query, now)
+	rows, err := q.Query(ctx, query, now)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	shards := make([]int, 0)
-	for rows.Next() {
-		var shardID int
-		if err := rows.Scan(&shardID); err != nil {
-			return nil, err
-		}
-		shards = append(shards, shardID)
-	}
-	return shards, rows.Err()
+	return pgx.CollectRows(rows, pgx.RowTo[int])
 }
 
 // Notify wakes relay listeners after a commit. Because NOTIFY is delivered
@@ -298,7 +283,7 @@ func Notify(ctx context.Context, q Querier, channel string) error {
 	if channel == "" {
 		return nil
 	}
-	_, err := q.ExecContext(ctx, "SELECT pg_notify($1, '')", channel)
+	_, err := q.Exec(ctx, "SELECT pg_notify($1, '')", channel)
 	return err
 }
 

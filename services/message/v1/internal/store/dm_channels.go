@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/message/v1/internal/model"
 )
@@ -20,7 +20,7 @@ type dmChannelRow struct {
 // reports sql.ErrNoRows when the pair lost the race so callers can reload
 // the existing channel.
 func (s *SQLStore) CreateDmChannel(ctx context.Context, channel *model.DmChannel) error {
-	res, err := s.q.ExecContext(
+	tag, err := s.q.Exec(
 		ctx,
 		createDmChannelStatement,
 		channel.ID,
@@ -31,52 +31,48 @@ func (s *SQLStore) CreateDmChannel(ctx context.Context, channel *model.DmChannel
 	if err != nil {
 		return err
 	}
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
+	if tag.RowsAffected() == 0 {
 		return sql.ErrNoRows
 	}
 	return nil
 }
 
 func (s *SQLStore) GetDmChannel(ctx context.Context, channelID int64) (*model.DmChannel, error) {
-	row := new(dmChannelRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getDmChannelQuery, channelID); err != nil {
+	row, err := scanOne(ctx, s.q, getDmChannelQuery, pgx.RowToStructByName[dmChannelRow], channelID)
+	if err != nil {
 		return nil, err
 	}
-	return dmChannelFromRow(row), nil
+	return dmChannelFromRow(&row), nil
 }
 
 func (s *SQLStore) GetDmChannelByPair(ctx context.Context, userLo, userHi int64) (*model.DmChannel, error) {
-	row := new(dmChannelRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getDmChannelByPairQuery, userLo, userHi); err != nil {
+	row, err := scanOne(ctx, s.q, getDmChannelByPairQuery, pgx.RowToStructByName[dmChannelRow], userLo, userHi)
+	if err != nil {
 		return nil, err
 	}
-	return dmChannelFromRow(row), nil
+	return dmChannelFromRow(&row), nil
 }
 
 func (s *SQLStore) ListDmChannels(ctx context.Context, params ListDmChannelsParams) ([]*model.DmChannel, error) {
-	var rows []*dmChannelRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listDmChannelsQuery, params.UserID, params.BeforeID, params.Limit); err != nil {
+	rows, err := scanMany(ctx, s.q, listDmChannelsQuery, pgx.RowToStructByName[dmChannelRow], params.UserID, params.BeforeID, params.Limit)
+	if err != nil {
 		return nil, err
 	}
 	channels := make([]*model.DmChannel, 0, len(rows))
-	for _, row := range rows {
-		channels = append(channels, dmChannelFromRow(row))
+	for i := range rows {
+		channels = append(channels, dmChannelFromRow(&rows[i]))
 	}
 	return channels, nil
 }
 
 func (s *SQLStore) ListAllDmChannels(ctx context.Context, userID int64) ([]*model.DmChannel, error) {
-	var rows []*dmChannelRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listAllDmChannelsQuery, userID); err != nil {
+	rows, err := scanMany(ctx, s.q, listAllDmChannelsQuery, pgx.RowToStructByName[dmChannelRow], userID)
+	if err != nil {
 		return nil, err
 	}
 	channels := make([]*model.DmChannel, 0, len(rows))
-	for _, row := range rows {
-		channels = append(channels, dmChannelFromRow(row))
+	for i := range rows {
+		channels = append(channels, dmChannelFromRow(&rows[i]))
 	}
 	return channels, nil
 }

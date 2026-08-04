@@ -39,9 +39,12 @@ Guild/Message events, etcd for leased Session-node registration and discovery,
 and Redis for Presence, resume ownership, and aggregate realtime routing. RPC
 services support OTLP tracing through `CORDIS_OTEL_ENDPOINT`. Postgres
 connections opened by `pkg/database.NewPostgres` are instrumented with
-`github.com/XSAM/otelsql`, so store calls that pass request context become
-child spans of the active RPC trace. Metrics are exposed through go-zero
-dev servers or API observability settings.
+`github.com/XSAM/otelsql`; the Message service's native pgx pool
+(`pkg/database.NewPostgresPool`) uses `github.com/exaring/otelpgx`. Both paths
+make store calls that pass request context child spans of the active RPC trace.
+The native pool keeps pgxpool's default idle behavior; `MaxIdleConns` is not
+mapped to `MinIdleConns`. Metrics are exposed through go-zero dev servers or
+API observability settings.
 Authenticator encrypts TOTP secrets with AES-256-GCM using the independent
 `CORDIS_TOTP_ENCRYPTION_KEY`. It must be a Base64-encoded 32-byte random key
 and must not be reused for JWT signing. Guild, User, and Message sign opaque

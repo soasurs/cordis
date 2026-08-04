@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zeromicro/go-zero/core/logx"
 
 	"github.com/soasurs/cordis/pkg/kafka"
@@ -28,7 +28,7 @@ import (
 // Config configures one outbox relay.
 type Config struct {
 	// DB is the PostgreSQL handle that owns the outbox tables.
-	DB *sqlx.DB
+	DB *pgxpool.Pool
 	// Tables identifies the stream and event tables.
 	Tables outbox.Tables
 	// Publisher is the topic-bound Kafka publisher.
@@ -40,8 +40,8 @@ type Config struct {
 	// Empty disables LISTEN/NOTIFY and relies on polling only.
 	NotifyChannel string
 	// ListenerDSN is a PostgreSQL DSN used for the dedicated LISTEN
-	// connection. It must bypass otelsql so WaitForNotification can access
-	// the underlying pgx connection directly.
+	// connection. It stays separate from the pool so WaitForNotification can
+	// block on its own connection without occupying a pool slot.
 	ListenerDSN string
 	// Workers is the number of relay workers in this process.
 	Workers int
@@ -155,11 +155,11 @@ func (r *Relay) worker(ctx context.Context) {
 }
 
 func (r *Relay) workOnce(ctx context.Context) error {
-	conn, err := r.cfg.DB.Connx(ctx)
+	conn, err := r.cfg.DB.Acquire(ctx)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer conn.Release()
 
 	shards, err := outbox.ListReadyShards(ctx, conn, r.cfg.Tables.Events, time.Now().UnixMilli())
 	if err != nil {
@@ -191,7 +191,7 @@ func (r *Relay) workOnce(ctx context.Context) error {
 // processShard drains a shard until SelectHeads returns empty or the time
 // slice expires. The boolean reports whether the slice expired with possible
 // remaining work so the caller can reschedule immediately.
-func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) (bool, error) {
+func (r *Relay) processShard(ctx context.Context, conn *pgxpool.Conn, shardID int) (bool, error) {
 	deadline := time.Now().Add(r.cfg.TimeSlice)
 	for time.Now().Before(deadline) {
 		heads, err := outbox.SelectHeads(ctx, conn, r.cfg.Tables.Events, shardID, time.Now().UnixMilli(), int64(r.cfg.BatchSize))
@@ -231,19 +231,19 @@ func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) 
 			r.metrics.Published.Add(1)
 		}
 
-		tx, err := conn.BeginTxx(ctx, nil)
+		tx, err := conn.Begin(ctx)
 		if err != nil {
 			return false, err
 		}
 		if err := outbox.DeleteDelivered(ctx, tx, r.cfg.Tables.Events, delivered); err != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback(ctx)
 			return false, err
 		}
 		if err := outbox.UpdateFailed(ctx, tx, r.cfg.Tables.Events, failed); err != nil {
-			_ = tx.Rollback()
+			_ = tx.Rollback(ctx)
 			return false, err
 		}
-		if err := tx.Commit(); err != nil {
+		if err := tx.Commit(ctx); err != nil {
 			return false, err
 		}
 		r.metrics.Deleted.Add(int64(len(delivered)))
@@ -251,9 +251,9 @@ func (r *Relay) processShard(ctx context.Context, conn *sqlx.Conn, shardID int) 
 	return true, nil
 }
 
-func (r *Relay) tryLock(ctx context.Context, conn *sqlx.Conn, shardID int) (bool, error) {
+func (r *Relay) tryLock(ctx context.Context, conn *pgxpool.Conn, shardID int) (bool, error) {
 	var acquired bool
-	err := conn.QueryRowContext(
+	err := conn.QueryRow(
 		ctx,
 		"SELECT pg_try_advisory_lock($1, $2)",
 		r.namespaceHash,
@@ -262,8 +262,8 @@ func (r *Relay) tryLock(ctx context.Context, conn *sqlx.Conn, shardID int) (bool
 	return acquired, err
 }
 
-func (r *Relay) unlock(ctx context.Context, conn *sqlx.Conn, shardID int) error {
-	_, err := conn.ExecContext(
+func (r *Relay) unlock(ctx context.Context, conn *pgxpool.Conn, shardID int) error {
+	_, err := conn.Exec(
 		ctx,
 		"SELECT pg_advisory_unlock($1, $2)",
 		r.namespaceHash,

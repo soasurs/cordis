@@ -65,7 +65,7 @@ func main() {
 	}
 	logx.MustSetup(logx.LogConf{ServiceName: cfg.Name, Level: "info"})
 
-	db, err := database.NewPostgres(cfg.Database)
+	db, err := database.NewPostgresPool(context.Background(), cfg.Database)
 	if err != nil {
 		panic(err)
 	}

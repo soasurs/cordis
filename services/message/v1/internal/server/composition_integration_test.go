@@ -41,12 +41,15 @@ type unusedMediaClient struct {
 // member verification cross real gRPC and PostgreSQL instead of fakes.
 func TestMessageGuildUserComposition(t *testing.T) {
 	postgres := testkit.StartPostgres(t)
-	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
+	migrationDB, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
-	require.NoError(t, migration.Apply(t.Context(), db, usermigrations.Files))
-	require.NoError(t, migration.Apply(t.Context(), db, guildmigrations.Files))
-	require.NoError(t, migration.Apply(t.Context(), db, messagemigrations.Files))
+	t.Cleanup(func() { require.NoError(t, migrationDB.Close()) })
+	db, err := database.NewPostgresPool(t.Context(), database.Config{DataSource: postgres.DSN})
+	require.NoError(t, err)
+	t.Cleanup(db.Close)
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, usermigrations.Files))
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, guildmigrations.Files))
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, messagemigrations.Files))
 
 	userAddress := startUserService(t, postgres.DSN)
 	guildAddress := startGuildService(t, postgres.DSN, userAddress)

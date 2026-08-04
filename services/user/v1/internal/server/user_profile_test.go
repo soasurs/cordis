@@ -77,8 +77,7 @@ func TestUpdateUserProfile(t *testing.T) {
 		CreatedAt:     10,
 		UpdatedAt:     20,
 	}
-	publisher := new(fakeUserPublisher)
-	server := newTestUserServerWithPublisher(t, store, &fakeMediaClient{}, publisher)
+	server := newTestUserServerWithMedia(t, store, &fakeMediaClient{})
 
 	req := new(userv1.UpdateUserProfileRequest)
 	req.SetUserId(1001)
@@ -89,7 +88,7 @@ func TestUpdateUserProfile(t *testing.T) {
 	require.Equal(t, "new name", resp.GetProfile().GetName())
 	require.Equal(t, "old bio", resp.GetProfile().GetBio())
 	require.Equal(t, int64(77), resp.GetProfile().GetAvatarAssetId())
-	assertProfileUpdatedEvent(t, publisher, store.profile)
+	assertProfileUpdatedEvent(t, store, store.profile)
 }
 
 func TestUpdateUserProfileBioAndAvatar(t *testing.T) {
@@ -102,8 +101,7 @@ func TestUpdateUserProfileBioAndAvatar(t *testing.T) {
 		AvatarAssetID: 77,
 	}
 	mediaClient := &fakeMediaClient{asset: avatarAsset(7001, 1001)}
-	publisher := new(fakeUserPublisher)
-	server := newTestUserServerWithPublisher(t, store, mediaClient, publisher)
+	server := newTestUserServerWithMedia(t, store, mediaClient)
 
 	req := new(userv1.UpdateUserProfileRequest)
 	req.SetUserId(1001)
@@ -117,7 +115,7 @@ func TestUpdateUserProfileBioAndAvatar(t *testing.T) {
 	require.Equal(t, int64(7001), resp.GetProfile().GetAvatarAssetId())
 	require.Equal(t, int64(1001), mediaClient.completeRequest.GetActorUserId())
 	require.Equal(t, int64(7001), mediaClient.completeRequest.GetUploadId())
-	assertProfileUpdatedEvent(t, publisher, store.profile)
+	assertProfileUpdatedEvent(t, store, store.profile)
 
 	clearReq := new(userv1.UpdateUserProfileRequest)
 	clearReq.SetUserId(1001)
@@ -212,8 +210,7 @@ func TestGetUserProfileByUsername(t *testing.T) {
 func TestUpdateUsername(t *testing.T) {
 	store := newFakeStore()
 	store.profile = &model.UserProfile{UserID: 1001, Username: "old_name", Name: "Display"}
-	publisher := new(fakeUserPublisher)
-	server := newTestUserServerWithPublisher(t, store, &fakeMediaClient{}, publisher)
+	server := newTestUserServerWithMedia(t, store, &fakeMediaClient{})
 
 	req := new(userv1.UpdateUsernameRequest)
 	req.SetUserId(1001)
@@ -222,7 +219,7 @@ func TestUpdateUsername(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "new_name42", resp.GetProfile().GetUsername())
 	require.Equal(t, "new_name42", store.profile.Username)
-	assertProfileUpdatedEvent(t, publisher, store.profile)
+	assertProfileUpdatedEvent(t, store, store.profile)
 }
 
 func TestUpdateUsernameValidationAndConflicts(t *testing.T) {

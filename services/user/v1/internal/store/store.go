@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 )
 
@@ -49,6 +50,10 @@ type Store interface {
 	ListRelationships(ctx context.Context, params ListRelationshipsParams) ([]*model.Relationship, error)
 	ListRelationshipsByTargets(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error)
 	ListRelationshipsBidirectional(ctx context.Context, userID int64, targetIDs []int64) ([]*model.Relationship, error)
+	EnsureUserStream(ctx context.Context, streamKey string, shardID int) error
+	ReserveUserSequences(ctx context.Context, streamKey string, count int) (outbox.ReservedRange, error)
+	InsertUserOutbox(ctx context.Context, records []outbox.Record) error
+	NotifyOutbox(ctx context.Context, channel string) error
 }
 
 type SQLStore struct {

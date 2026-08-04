@@ -12,6 +12,7 @@ import (
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/cursor"
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	"github.com/soasurs/cordis/services/user/v1/internal/eventoutbox"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )
@@ -27,18 +28,33 @@ type relationshipMutation struct {
 	idempotencyKey int64
 }
 
-func (m *relationshipMutation) updated(relationship *model.Relationship) {
-	event, err := newRelationshipUpdatedEvent(relationship, m.profiles[relationship.TargetID], m.idempotencyKey)
-	if err == nil {
-		m.events = append(m.events, event)
+func (m *relationshipMutation) updated(relationship *model.Relationship) error {
+	event, err := newRelationshipUpdatedEvent(relationship, m.profiles[relationship.TargetID], m.idempotencyKey, len(m.events))
+	if err != nil {
+		return err
 	}
+	m.events = append(m.events, event)
+	return nil
 }
 
-func (m *relationshipMutation) removed(userID, targetID int64) {
-	event, err := newRelationshipRemovedEvent(userID, targetID, m.idempotencyKey)
-	if err == nil {
-		m.events = append(m.events, event)
+func (m *relationshipMutation) removed(userID, targetID int64) error {
+	event, err := newRelationshipRemovedEvent(userID, targetID, m.idempotencyKey, len(m.events))
+	if err != nil {
+		return err
 	}
+	m.events = append(m.events, event)
+	return nil
+}
+
+func (s *userServer) enqueueMutation(ctx context.Context, tx store.Store, mutation *relationshipMutation) error {
+	return s.enqueueUserEvents(
+		ctx,
+		tx,
+		mutation.events,
+		s.svcCtx.Cfg.Kafka.EventTopic(),
+		s.svcCtx.Cfg.Outbox.Shards(),
+		eventoutbox.UserNotifyChannel,
+	)
 }
 
 func (s *userServer) SendFriendRequest(ctx context.Context, req *userv1.SendFriendRequestRequest) (*userv1.SendFriendRequestResponse, error) {
@@ -80,7 +96,10 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *userv1.SendFrie
 			return nil
 		case model.RelationshipIncoming:
 			// The target already asked: mutual intent becomes a friendship.
-			return acceptIntoFriendship(ctx, tx, mutation, req.GetUserId(), req.GetTargetId(), now)
+			if err := acceptIntoFriendship(ctx, tx, mutation, req.GetUserId(), req.GetTargetId(), now); err != nil {
+				return err
+			}
+			return s.enqueueMutation(ctx, tx, mutation)
 		}
 
 		ownRow := &model.Relationship{UserID: req.GetUserId(), TargetID: req.GetTargetId(), Type: model.RelationshipOutgoing, CreatedAt: now}
@@ -89,14 +108,17 @@ func (s *userServer) SendFriendRequest(ctx context.Context, req *userv1.SendFrie
 			return err
 		}
 		mutation.result = ownRow
-		mutation.updated(ownRow)
-		mutation.updated(reverseRow)
-		return nil
+		if err := mutation.updated(ownRow); err != nil {
+			return err
+		}
+		if err := mutation.updated(reverseRow); err != nil {
+			return err
+		}
+		return s.enqueueMutation(ctx, tx, mutation)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishEvents(ctx, mutation.events...)
 
 	resp := new(userv1.SendFriendRequestResponse)
 	resp.SetRelationship(relationshipToProto(mutation.result))
@@ -132,12 +154,14 @@ func (s *userServer) AcceptFriendRequest(ctx context.Context, req *userv1.Accept
 		if relationshipType(own) != model.RelationshipIncoming {
 			return relationshipNotFound()
 		}
-		return acceptIntoFriendship(ctx, tx, mutation, req.GetUserId(), req.GetTargetId(), now)
+		if err := acceptIntoFriendship(ctx, tx, mutation, req.GetUserId(), req.GetTargetId(), now); err != nil {
+			return err
+		}
+		return s.enqueueMutation(ctx, tx, mutation)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishEvents(ctx, mutation.events...)
 
 	resp := new(userv1.AcceptFriendRequestResponse)
 	resp.SetRelationship(relationshipToProto(mutation.result))
@@ -161,12 +185,14 @@ func (s *userServer) DeclineFriendRequest(ctx context.Context, req *userv1.Decli
 		if relationshipType(own) != model.RelationshipIncoming {
 			return relationshipNotFound()
 		}
-		return removePair(ctx, tx, mutation, req.GetUserId(), req.GetTargetId())
+		if err := removePair(ctx, tx, mutation, req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
+		return s.enqueueMutation(ctx, tx, mutation)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishEvents(ctx, mutation.events...)
 
 	resp := new(userv1.DeclineFriendRequestResponse)
 	resp.SetOk(true)
@@ -189,7 +215,10 @@ func (s *userServer) RemoveFriend(ctx context.Context, req *userv1.RemoveFriendR
 		}
 		switch relationshipType(own) {
 		case model.RelationshipFriend, model.RelationshipOutgoing, model.RelationshipIncoming:
-			return removePair(ctx, tx, mutation, req.GetUserId(), req.GetTargetId())
+			if err := removePair(ctx, tx, mutation, req.GetUserId(), req.GetTargetId()); err != nil {
+				return err
+			}
+			return s.enqueueMutation(ctx, tx, mutation)
 		default:
 			// Blocks are lifted through UnblockUser only.
 			return relationshipNotFound()
@@ -198,7 +227,6 @@ func (s *userServer) RemoveFriend(ctx context.Context, req *userv1.RemoveFriendR
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishEvents(ctx, mutation.events...)
 
 	resp := new(userv1.RemoveFriendResponse)
 	resp.SetOk(true)
@@ -261,17 +289,20 @@ func (s *userServer) BlockUser(ctx context.Context, req *userv1.BlockUserRequest
 
 		mutation.result = ownRow
 		// The block is private: only the blocker's devices learn the type.
-		mutation.updated(ownRow)
+		if err := mutation.updated(ownRow); err != nil {
+			return err
+		}
 		if stripReverse {
 			// The other side only sees the relationship disappear.
-			mutation.removed(req.GetTargetId(), req.GetUserId())
+			if err := mutation.removed(req.GetTargetId(), req.GetUserId()); err != nil {
+				return err
+			}
 		}
-		return nil
+		return s.enqueueMutation(ctx, tx, mutation)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishEvents(ctx, mutation.events...)
 
 	resp := new(userv1.BlockUserResponse)
 	resp.SetRelationship(relationshipToProto(mutation.result))
@@ -300,13 +331,14 @@ func (s *userServer) UnblockUser(ctx context.Context, req *userv1.UnblockUserReq
 		if err := tx.DeleteRelationship(ctx, req.GetUserId(), req.GetTargetId()); err != nil {
 			return err
 		}
-		mutation.removed(req.GetUserId(), req.GetTargetId())
-		return nil
+		if err := mutation.removed(req.GetUserId(), req.GetTargetId()); err != nil {
+			return err
+		}
+		return s.enqueueMutation(ctx, tx, mutation)
 	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishEvents(ctx, mutation.events...)
 
 	resp := new(userv1.UnblockUserResponse)
 	resp.SetOk(true)
@@ -405,8 +437,12 @@ func acceptIntoFriendship(ctx context.Context, tx store.Store, mutation *relatio
 		return err
 	}
 	mutation.result = ownRow
-	mutation.updated(ownRow)
-	mutation.updated(reverseRow)
+	if err := mutation.updated(ownRow); err != nil {
+		return err
+	}
+	if err := mutation.updated(reverseRow); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -426,8 +462,12 @@ func removePair(ctx context.Context, tx store.Store, mutation *relationshipMutat
 	if err := second(); err != nil {
 		return err
 	}
-	mutation.removed(userID, targetID)
-	mutation.removed(targetID, userID)
+	if err := mutation.removed(userID, targetID); err != nil {
+		return err
+	}
+	if err := mutation.removed(targetID, userID); err != nil {
+		return err
+	}
 	return nil
 }
 

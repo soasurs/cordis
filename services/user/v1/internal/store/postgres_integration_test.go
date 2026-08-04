@@ -38,6 +38,7 @@ func TestSQLStoreWithPostgres(t *testing.T) {
 	t.Run("email verification", func(t *testing.T) { testEmailVerification(t, store) })
 	t.Run("usernames", func(t *testing.T) { testUsernames(t, store) })
 	t.Run("relationships", func(t *testing.T) { testRelationships(t, store) })
+	t.Run("outbox", func(t *testing.T) { testOutbox(t, store, db) })
 }
 
 func testUsers(t *testing.T, store Store) {

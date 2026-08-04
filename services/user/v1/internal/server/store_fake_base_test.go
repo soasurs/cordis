@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )
@@ -21,6 +22,8 @@ type fakeStore struct {
 	usernameAvailable   bool
 	relationships       map[[2]int64]*model.Relationship
 	lockedPairs         [][2]int64
+	userOutbox          []outbox.Record
+	userStreamSequences map[string]int64
 }
 
 func (s *fakeStore) LockRelationshipPair(_ context.Context, userID, targetID int64) error {
@@ -30,8 +33,9 @@ func (s *fakeStore) LockRelationshipPair(_ context.Context, userID, targetID int
 
 func newFakeStore() *fakeStore {
 	return &fakeStore{
-		relationships: make(map[[2]int64]*model.Relationship),
-		eventProfiles: make(map[int64]*model.UserProfile),
+		relationships:       make(map[[2]int64]*model.Relationship),
+		eventProfiles:       make(map[int64]*model.UserProfile),
+		userStreamSequences: make(map[string]int64),
 	}
 }
 

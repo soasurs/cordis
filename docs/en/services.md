@@ -58,6 +58,12 @@ owned by the user, all shared-Guild members, non-blocked relationship peers,
 and existing DM peers. Session deduplicates recipients reached through more
 than one audience path.
 
+Profile and relationship writes insert outbox rows in the same database
+transaction; a separate relay (`user-relay`) publishes them to
+`cordis.user.events.v1`. Relationship fanout records for both users share the
+logical `event_id` and are distinguished by `delivery_index`; each record uses
+its recipient user ID as both the stream and Kafka key.
+
 `UpdateUserProfile` is presence-aware for `name`, `bio`, and `avatar_asset_id`.
 Avatar binaries still use `CreateAvatarUpload` → direct PUT → either
 `CompleteAvatarUpload` or `UpdateUserProfile` with the upload/asset ID.

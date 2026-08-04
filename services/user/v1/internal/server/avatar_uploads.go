@@ -8,6 +8,9 @@ import (
 
 	mediav1 "github.com/soasurs/cordis/gen/media/v1"
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
+	"github.com/soasurs/cordis/services/user/v1/internal/eventoutbox"
+	"github.com/soasurs/cordis/services/user/v1/internal/model"
+	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )
 
 func (s *userServer) GetAvatarUploadConstraints(
@@ -69,11 +72,29 @@ func (s *userServer) CompleteAvatarUpload(
 	if err != nil {
 		return nil, err
 	}
-	profile, err := s.svcCtx.Store.UpdateUserAvatar(ctx, req.GetUserId(), assetID)
+	var profile *model.UserProfile
+	err = s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		updated, err := tx.UpdateUserAvatar(ctx, req.GetUserId(), assetID)
+		if err != nil {
+			return err
+		}
+		profile = updated
+		event, err := newUserProfileUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueUserEvents(
+			ctx,
+			tx,
+			[]userEvent{event},
+			s.svcCtx.Cfg.Kafka.EventTopic(),
+			s.svcCtx.Cfg.Outbox.Shards(),
+			eventoutbox.UserNotifyChannel,
+		)
+	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishUserProfileUpdated(ctx, profile)
 	resp := new(userv1.CompleteAvatarUploadResponse)
 	resp.SetProfile(userProfileToProto(profile))
 	return resp, nil

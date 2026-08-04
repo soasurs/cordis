@@ -11,6 +11,7 @@ import (
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/cursor"
+	"github.com/soasurs/cordis/pkg/outbox"
 	"github.com/soasurs/cordis/pkg/rpcerror"
 	"github.com/soasurs/cordis/pkg/snowflake"
 	"github.com/soasurs/cordis/services/user/v1/config"
@@ -18,46 +19,24 @@ import (
 	"github.com/soasurs/cordis/services/user/v1/internal/svc"
 )
 
-type publishedUserRecord struct {
-	key     string
-	payload []byte
-}
-
-type fakeUserPublisher struct {
-	records []publishedUserRecord
-}
-
-func (p *fakeUserPublisher) Publish(_ context.Context, key, payload []byte) error {
-	p.records = append(p.records, publishedUserRecord{
-		key:     string(key),
-		payload: append([]byte(nil), payload...),
-	})
-	return nil
-}
-
-func (p *fakeUserPublisher) reset() {
-	p.records = nil
-}
-
-func decodeRelationshipEvent(t *testing.T, record publishedUserRecord) (string, relationshipPayload) {
+func decodeRelationshipEvent(t *testing.T, record outbox.Record) (string, relationshipPayload) {
 	t.Helper()
 	var envelope eventEnvelope[relationshipPayload]
-	require.NoError(t, json.Unmarshal(record.payload, &envelope))
+	require.NoError(t, json.Unmarshal(record.Payload, &envelope))
 	return envelope.Type, envelope.Data
 }
 
-func newRelationshipTestServer(t *testing.T, fake *fakeStore, publisher svc.EventPublisher) userv1.UserServiceServer {
+func newRelationshipTestServer(t *testing.T, fake *fakeStore) userv1.UserServiceServer {
 	t.Helper()
 	node, err := snowflake.New()
 	require.NoError(t, err)
 	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
 	require.NoError(t, err)
 	return New(&svc.ServiceContext{
-		Cfg:       config.Config{Kafka: config.KafkaConfig{PublishTimeoutMs: 100}},
+		Cfg:       config.Config{},
 		Store:     fake,
 		Snowflake: node,
 		Cursors:   codec,
-		Publisher: publisher,
 	})
 }
 
@@ -95,8 +74,7 @@ func pairKey(userID, targetID int64) [2]int64 {
 
 func TestSendFriendRequestCreatesPendingPair(t *testing.T) {
 	fake := relationshipTestStore()
-	publisher := new(fakeUserPublisher)
-	server := newRelationshipTestServer(t, fake, publisher)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.SendFriendRequestRequest)
 	req.SetUserId(1001)
@@ -109,26 +87,26 @@ func TestSendFriendRequestCreatesPendingPair(t *testing.T) {
 	require.Equal(t, model.RelationshipIncoming, fake.relationships[pairKey(2002, 1001)].Type)
 	require.Equal(t, [][2]int64{{1001, 2002}}, fake.lockedPairs)
 
-	require.Len(t, publisher.records, 2)
-	require.Equal(t, "1001", publisher.records[0].key)
-	eventType, payload := decodeRelationshipEvent(t, publisher.records[0])
+	require.Len(t, fake.userOutbox, 2)
+	require.Equal(t, "1001", string(fake.userOutbox[0].Key))
+	eventType, payload := decodeRelationshipEvent(t, fake.userOutbox[0])
 	require.Equal(t, EventTypeRelationshipUpdated, eventType)
 	require.Equal(t, "1001", payload.UserID)
 	require.Equal(t, "2002", payload.TargetID)
 	require.Equal(t, "2002", payload.Profile.UserID)
 	require.Equal(t, model.RelationshipOutgoing, payload.Type)
 
-	require.Equal(t, "2002", publisher.records[1].key)
-	eventType, payload = decodeRelationshipEvent(t, publisher.records[1])
+	require.Equal(t, "2002", string(fake.userOutbox[1].Key))
+	eventType, payload = decodeRelationshipEvent(t, fake.userOutbox[1])
 	require.Equal(t, EventTypeRelationshipUpdated, eventType)
 	require.Equal(t, model.RelationshipIncoming, payload.Type)
 
 	// Repeating the pending request is a silent no-op.
-	publisher.reset()
+	fake.resetOutbox()
 	resp, err = server.SendFriendRequest(context.Background(), req)
 	require.NoError(t, err)
 	require.Equal(t, userv1.RelationshipType_RELATIONSHIP_TYPE_OUTGOING, resp.GetRelationship().GetType())
-	require.Empty(t, publisher.records)
+	require.Empty(t, fake.userOutbox)
 }
 
 func TestSendFriendRequestMutualIntentBecomesFriendship(t *testing.T) {
@@ -136,8 +114,7 @@ func TestSendFriendRequestMutualIntentBecomesFriendship(t *testing.T) {
 	// The target already asked first: 1001 holds an incoming request.
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipIncoming, CreatedAt: 1}
 	fake.relationships[pairKey(2002, 1001)] = &model.Relationship{UserID: 2002, TargetID: 1001, Type: model.RelationshipOutgoing, CreatedAt: 1}
-	publisher := new(fakeUserPublisher)
-	server := newRelationshipTestServer(t, fake, publisher)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.SendFriendRequestRequest)
 	req.SetUserId(1001)
@@ -147,12 +124,12 @@ func TestSendFriendRequestMutualIntentBecomesFriendship(t *testing.T) {
 	require.Equal(t, userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND, resp.GetRelationship().GetType())
 	require.Equal(t, model.RelationshipFriend, fake.relationships[pairKey(1001, 2002)].Type)
 	require.Equal(t, model.RelationshipFriend, fake.relationships[pairKey(2002, 1001)].Type)
-	require.Len(t, publisher.records, 2)
+	require.Len(t, fake.userOutbox, 2)
 }
 
 func TestSendFriendRequestRejectsBlockedAndDuplicates(t *testing.T) {
 	fake := relationshipTestStore()
-	server := newRelationshipTestServer(t, fake, nil)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.SendFriendRequestRequest)
 	req.SetUserId(1001)
@@ -193,8 +170,7 @@ func TestAcceptFriendRequest(t *testing.T) {
 	fake := relationshipTestStore()
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipIncoming, CreatedAt: 1}
 	fake.relationships[pairKey(2002, 1001)] = &model.Relationship{UserID: 2002, TargetID: 1001, Type: model.RelationshipOutgoing, CreatedAt: 1}
-	publisher := new(fakeUserPublisher)
-	server := newRelationshipTestServer(t, fake, publisher)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.AcceptFriendRequestRequest)
 	req.SetUserId(1001)
@@ -203,7 +179,7 @@ func TestAcceptFriendRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, userv1.RelationshipType_RELATIONSHIP_TYPE_FRIEND, resp.GetRelationship().GetType())
 	require.Equal(t, model.RelationshipFriend, fake.relationships[pairKey(2002, 1001)].Type)
-	require.Len(t, publisher.records, 2)
+	require.Len(t, fake.userOutbox, 2)
 
 	// Accepting without a pending incoming request fails.
 	req.SetTargetId(2002)
@@ -217,8 +193,7 @@ func TestDeclineFriendRequestRemovesPair(t *testing.T) {
 	fake := relationshipTestStore()
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipIncoming, CreatedAt: 1}
 	fake.relationships[pairKey(2002, 1001)] = &model.Relationship{UserID: 2002, TargetID: 1001, Type: model.RelationshipOutgoing, CreatedAt: 1}
-	publisher := new(fakeUserPublisher)
-	server := newRelationshipTestServer(t, fake, publisher)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.DeclineFriendRequestRequest)
 	req.SetUserId(1001)
@@ -228,14 +203,14 @@ func TestDeclineFriendRequestRemovesPair(t *testing.T) {
 	require.True(t, resp.GetOk())
 	require.Empty(t, fake.relationships)
 
-	require.Len(t, publisher.records, 2)
-	eventType, _ := decodeRelationshipEvent(t, publisher.records[0])
+	require.Len(t, fake.userOutbox, 2)
+	eventType, _ := decodeRelationshipEvent(t, fake.userOutbox[0])
 	require.Equal(t, EventTypeRelationshipRemoved, eventType)
 }
 
 func TestRemoveFriendHandlesEveryPendingShape(t *testing.T) {
 	fake := relationshipTestStore()
-	server := newRelationshipTestServer(t, fake, nil)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.RemoveFriendRequest)
 	req.SetUserId(1001)
@@ -266,8 +241,7 @@ func TestBlockUserStripsReverseAndStaysPrivate(t *testing.T) {
 	fake := relationshipTestStore()
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipFriend, CreatedAt: 1}
 	fake.relationships[pairKey(2002, 1001)] = &model.Relationship{UserID: 2002, TargetID: 1001, Type: model.RelationshipFriend, CreatedAt: 1}
-	publisher := new(fakeUserPublisher)
-	server := newRelationshipTestServer(t, fake, publisher)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.BlockUserRequest)
 	req.SetUserId(1001)
@@ -279,27 +253,26 @@ func TestBlockUserStripsReverseAndStaysPrivate(t *testing.T) {
 	require.Nil(t, fake.relationships[pairKey(2002, 1001)])
 
 	// The blocker sees the block; the blocked side only sees a removal.
-	require.Len(t, publisher.records, 2)
-	require.Equal(t, "1001", publisher.records[0].key)
-	eventType, payload := decodeRelationshipEvent(t, publisher.records[0])
+	require.Len(t, fake.userOutbox, 2)
+	require.Equal(t, "1001", string(fake.userOutbox[0].Key))
+	eventType, payload := decodeRelationshipEvent(t, fake.userOutbox[0])
 	require.Equal(t, EventTypeRelationshipUpdated, eventType)
 	require.Equal(t, model.RelationshipBlocked, payload.Type)
-	require.Equal(t, "2002", publisher.records[1].key)
-	eventType, _ = decodeRelationshipEvent(t, publisher.records[1])
+	require.Equal(t, "2002", string(fake.userOutbox[1].Key))
+	eventType, _ = decodeRelationshipEvent(t, fake.userOutbox[1])
 	require.Equal(t, EventTypeRelationshipRemoved, eventType)
 
 	// Re-blocking is a no-op.
-	publisher.reset()
+	fake.resetOutbox()
 	_, err = server.BlockUser(context.Background(), req)
 	require.NoError(t, err)
-	require.Empty(t, publisher.records)
+	require.Empty(t, fake.userOutbox)
 }
 
 func TestBlockUserKeepsMutualBlock(t *testing.T) {
 	fake := relationshipTestStore()
 	fake.relationships[pairKey(2002, 1001)] = &model.Relationship{UserID: 2002, TargetID: 1001, Type: model.RelationshipBlocked, CreatedAt: 1}
-	publisher := new(fakeUserPublisher)
-	server := newRelationshipTestServer(t, fake, publisher)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.BlockUserRequest)
 	req.SetUserId(1001)
@@ -310,16 +283,15 @@ func TestBlockUserKeepsMutualBlock(t *testing.T) {
 	require.Equal(t, model.RelationshipBlocked, fake.relationships[pairKey(2002, 1001)].Type)
 
 	// Only the blocker learns anything.
-	require.Len(t, publisher.records, 1)
-	require.Equal(t, "1001", publisher.records[0].key)
+	require.Len(t, fake.userOutbox, 1)
+	require.Equal(t, "1001", string(fake.userOutbox[0].Key))
 }
 
 func TestUnblockUserRemovesOwnRowOnly(t *testing.T) {
 	fake := relationshipTestStore()
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipBlocked, CreatedAt: 1}
 	fake.relationships[pairKey(2002, 1001)] = &model.Relationship{UserID: 2002, TargetID: 1001, Type: model.RelationshipBlocked, CreatedAt: 1}
-	publisher := new(fakeUserPublisher)
-	server := newRelationshipTestServer(t, fake, publisher)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.UnblockUserRequest)
 	req.SetUserId(1001)
@@ -329,7 +301,7 @@ func TestUnblockUserRemovesOwnRowOnly(t *testing.T) {
 	require.True(t, resp.GetOk())
 	require.Nil(t, fake.relationships[pairKey(1001, 2002)])
 	require.Equal(t, model.RelationshipBlocked, fake.relationships[pairKey(2002, 1001)].Type)
-	require.Len(t, publisher.records, 1)
+	require.Len(t, fake.userOutbox, 1)
 
 	// Unblocking without a block fails.
 	_, err = server.UnblockUser(context.Background(), req)
@@ -341,7 +313,7 @@ func TestListRelationshipsFiltersAndPaginates(t *testing.T) {
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipFriend, CreatedAt: 1}
 	fake.relationships[pairKey(1001, 2003)] = &model.Relationship{UserID: 1001, TargetID: 2003, Type: model.RelationshipFriend, CreatedAt: 1}
 	fake.relationships[pairKey(1001, 2004)] = &model.Relationship{UserID: 1001, TargetID: 2004, Type: model.RelationshipBlocked, CreatedAt: 1}
-	server := newRelationshipTestServer(t, fake, nil)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.ListRelationshipsRequest)
 	req.SetUserId(1001)
@@ -377,7 +349,7 @@ func TestListRelationshipsPagesWithServerCursors(t *testing.T) {
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipFriend, CreatedAt: 1}
 	fake.relationships[pairKey(1001, 2003)] = &model.Relationship{UserID: 1001, TargetID: 2003, Type: model.RelationshipFriend, CreatedAt: 1}
 	fake.relationships[pairKey(1001, 2004)] = &model.Relationship{UserID: 1001, TargetID: 2004, Type: model.RelationshipFriend, CreatedAt: 1}
-	server := newRelationshipTestServer(t, fake, nil)
+	server := newRelationshipTestServer(t, fake)
 
 	seen := make([]int64, 0, 3)
 	req := new(userv1.ListRelationshipsRequest)
@@ -398,7 +370,7 @@ func TestListRelationshipsPagesWithServerCursors(t *testing.T) {
 
 func TestListRelationshipsRejectsBadCursors(t *testing.T) {
 	fake := relationshipTestStore()
-	server := newRelationshipTestServer(t, fake, nil)
+	server := newRelationshipTestServer(t, fake)
 
 	assertRejectsBadCursors(t, cursor.KindRelationships, relationshipCursorPayload{UserID: 1001, Type: 0, Time: 1, ID: 2002}, func(token string) error {
 		req := new(userv1.ListRelationshipsRequest)
@@ -411,7 +383,7 @@ func TestListRelationshipsRejectsBadCursors(t *testing.T) {
 
 func TestListRelationshipsRejectsCrossScopeCursor(t *testing.T) {
 	fake := relationshipTestStore()
-	server := newRelationshipTestServer(t, fake, nil)
+	server := newRelationshipTestServer(t, fake)
 	codec, err := cursor.NewCodec("test-cursor-secret-at-least-32-bytes!")
 	require.NoError(t, err)
 
@@ -437,7 +409,7 @@ func TestListRelationshipsRejectsCrossScopeCursor(t *testing.T) {
 func TestCheckRelationships(t *testing.T) {
 	fake := relationshipTestStore()
 	fake.relationships[pairKey(1001, 2002)] = &model.Relationship{UserID: 1001, TargetID: 2002, Type: model.RelationshipBlocked, CreatedAt: 1}
-	server := newRelationshipTestServer(t, fake, nil)
+	server := newRelationshipTestServer(t, fake)
 
 	req := new(userv1.CheckRelationshipsRequest)
 	req.SetUserId(1001)

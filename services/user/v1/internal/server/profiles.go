@@ -8,6 +8,8 @@ import (
 
 	userv1 "github.com/soasurs/cordis/gen/user/v1"
 	"github.com/soasurs/cordis/pkg/rpcerror"
+	"github.com/soasurs/cordis/services/user/v1/internal/eventoutbox"
+	"github.com/soasurs/cordis/services/user/v1/internal/model"
 	"github.com/soasurs/cordis/services/user/v1/internal/store"
 )
 
@@ -109,11 +111,29 @@ func (s *userServer) UpdateUserProfile(ctx context.Context, req *userv1.UpdateUs
 		params.AvatarAssetID = &assetID
 	}
 
-	profile, err := s.svcCtx.Store.UpdateUserProfile(ctx, params)
+	var profile *model.UserProfile
+	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		updated, err := tx.UpdateUserProfile(ctx, params)
+		if err != nil {
+			return err
+		}
+		profile = updated
+		event, err := newUserProfileUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueUserEvents(
+			ctx,
+			tx,
+			[]userEvent{event},
+			s.svcCtx.Cfg.Kafka.EventTopic(),
+			s.svcCtx.Cfg.Outbox.Shards(),
+			eventoutbox.UserNotifyChannel,
+		)
+	})
 	if err != nil {
 		return nil, mapStoreError(err)
 	}
-	s.publishUserProfileUpdated(ctx, profile)
 
 	resp := new(userv1.UpdateUserProfileResponse)
 	resp.SetProfile(userProfileToProto(profile))
@@ -129,14 +149,32 @@ func (s *userServer) UpdateUsername(ctx context.Context, req *userv1.UpdateUsern
 		return nil, err
 	}
 
-	profile, err := s.svcCtx.Store.UpdateUsername(ctx, req.GetUserId(), username)
+	var profile *model.UserProfile
+	err := s.svcCtx.Store.Transact(ctx, func(tx store.Store) error {
+		updated, err := tx.UpdateUsername(ctx, req.GetUserId(), username)
+		if err != nil {
+			return err
+		}
+		profile = updated
+		event, err := newUserProfileUpdatedEvent(updated, s.svcCtx.Snowflake.Generate().Int64())
+		if err != nil {
+			return err
+		}
+		return s.enqueueUserEvents(
+			ctx,
+			tx,
+			[]userEvent{event},
+			s.svcCtx.Cfg.Kafka.EventTopic(),
+			s.svcCtx.Cfg.Outbox.Shards(),
+			eventoutbox.UserNotifyChannel,
+		)
+	})
 	if err != nil {
 		if isUsernameViolation(err) {
 			return nil, rpcerror.New(codes.AlreadyExists, rpcerror.UserDomain, rpcerror.UserUsernameTaken, "username is already taken")
 		}
 		return nil, mapStoreError(err)
 	}
-	s.publishUserProfileUpdated(ctx, profile)
 
 	resp := new(userv1.UpdateUsernameResponse)
 	resp.SetProfile(userProfileToProto(profile))

@@ -20,6 +20,8 @@ Relationship HTTP 响应嵌入目标用户 profile。`relationship.updated` 事�
 
 名称、用户名、简介或头像修改成功后，User 发布携带完整资料快照的 `user.profile.updated`。Dispatcher 将事件投递给用户本人的全部客户端、共同 Guild 成员、非 block 的关系对端以及已有 DM 对端；同一接收者通过多个受众路径命中时由 Session 去重。
 
+资料和关系写入会在同一数据库事务内插入 outbox 行，由独立 relay（`user-relay`）发布到 `cordis.user.events.v1`。关系事件的双方 fanout 记录共享逻辑 `event_id`，用 `delivery_index` 区分；每条记录都以接收者 user ID 同时作为 stream key 和 Kafka key。
+
 `UpdateUserProfile` 对 `name`、`bio` 和 `avatar_asset_id` 采用 presence-aware 部分更新。头像二进制仍走 `CreateAvatarUpload` → 直传 PUT，随后可通过 `CompleteAvatarUpload` 或带 `avatar_asset_id` 的 `UpdateUserProfile` 挂载。保存前可用本地 blob URL 预览。显式传入 `avatar_asset_id = 0` 清除头像；被替换的旧 asset 交由 Media lifecycle 回收。`GetAvatarUploadConstraints` 经 User 读取 Media 的 `userAvatar` 图片限制档，返回最大文件大小、最大宽高、最大像素数和允许 MIME 类型。Media 为头像和公会图标持有强制执行的 `imageConstraints`；消息附件仍按不透明二进制处理，独立的 `attachmentImageInspection` 只限制尽力而为的尺寸与 blurhash 提取。头像创建与完成失败映射为稳定公开 code：`profile.avatar_file_too_large`、`profile.avatar_content_type_invalid`、`profile.avatar_dimensions_exceeded`、`profile.avatar_pixels_exceeded`。`CheckUsernameAvailability` 复用与 `UpdateUsername` 相同的规范化与校验；已占用返回 `available=false`，最终改名仍以数据库唯一约束为准。
 
 ## Authenticator

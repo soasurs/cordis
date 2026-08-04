@@ -237,8 +237,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-      kafka-init:
-        condition: service_completed_successfully
       media:
         condition: service_healthy
     healthcheck:

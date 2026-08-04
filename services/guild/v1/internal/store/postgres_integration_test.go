@@ -15,10 +15,13 @@ import (
 
 func TestSQLStoreWithPostgres(t *testing.T) {
 	postgres := testkit.StartPostgres(t)
-	db, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
+	migrationDB, err := database.NewPostgres(database.Config{DataSource: postgres.DSN})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, db.Close()) })
-	require.NoError(t, migration.Apply(t.Context(), db, guildmigrations.Files))
+	t.Cleanup(func() { require.NoError(t, migrationDB.Close()) })
+	db, err := database.NewPostgresPool(t.Context(), database.Config{DataSource: postgres.DSN})
+	require.NoError(t, err)
+	t.Cleanup(db.Close)
+	require.NoError(t, migration.Apply(t.Context(), migrationDB, guildmigrations.Files))
 
 	store := New(db)
 	t.Run("guild CRUD", func(t *testing.T) { testGuildCRUD(t, store) })

@@ -13,7 +13,7 @@ func (s *SQLStore) LockGuildChannelMutations(ctx context.Context, guildID int64)
 	if guildID <= 0 {
 		return errors.New("guild id must be positive")
 	}
-	_, err := s.q.ExecContext(ctx, lockQuotaScopeStatement, guildChannelMutationLockKey(guildID))
+	_, err := s.q.Exec(ctx, lockQuotaScopeStatement, guildChannelMutationLockKey(guildID))
 	return err
 }
 
@@ -33,7 +33,7 @@ func (s *SQLStore) CheckResourceQuota(ctx context.Context, quota ResourceQuota) 
 	if quota.Kind == QuotaGuildChannels {
 		lockKey = guildChannelMutationLockKey(quota.ScopeID)
 	}
-	if _, err := s.q.ExecContext(ctx, lockQuotaScopeStatement, lockKey); err != nil {
+	if _, err := s.q.Exec(ctx, lockQuotaScopeStatement, lockKey); err != nil {
 		return err
 	}
 	// Keep the count in a later statement: under READ COMMITTED it receives a
@@ -43,13 +43,13 @@ func (s *SQLStore) CheckResourceQuota(ctx context.Context, quota ResourceQuota) 
 	var err error
 	switch quota.Kind {
 	case QuotaOwnedGuilds:
-		err = s.q.QueryRowxContext(ctx, `
+		err = s.q.QueryRow(ctx, `
 			SELECT COUNT(*) FROM guilds
 			WHERE owner_id = $1 AND deleted_at = 0
 		`, quota.ScopeID).Scan(&count)
 	case QuotaJoinedGuilds:
 		var exists bool
-		err = s.q.QueryRowxContext(ctx, `
+		err = s.q.QueryRow(ctx, `
 			SELECT
 				EXISTS (
 					SELECT 1 FROM guild_members
@@ -66,17 +66,17 @@ func (s *SQLStore) CheckResourceQuota(ctx context.Context, quota ResourceQuota) 
 			return ErrMemberAlreadyExists
 		}
 	case QuotaGuildRoles:
-		err = s.q.QueryRowxContext(ctx, `
+		err = s.q.QueryRow(ctx, `
 			SELECT COUNT(*) FROM roles
 			WHERE guild_id = $1 AND deleted_at = 0
 		`, quota.ScopeID).Scan(&count)
 	case QuotaGuildChannels:
-		err = s.q.QueryRowxContext(ctx, `
+		err = s.q.QueryRow(ctx, `
 			SELECT COUNT(*) FROM guild_channels
 			WHERE guild_id = $1 AND deleted_at = 0
 		`, quota.ScopeID).Scan(&count)
 	case QuotaActiveInvites:
-		err = s.q.QueryRowxContext(ctx, `
+		err = s.q.QueryRow(ctx, `
 			SELECT COUNT(*) FROM guild_invites
 			WHERE guild_id = $1
 			  AND (expires_at = 0 OR expires_at > $2)
@@ -84,7 +84,7 @@ func (s *SQLStore) CheckResourceQuota(ctx context.Context, quota ResourceQuota) 
 		`, quota.ScopeID, quota.Now).Scan(&count)
 	case QuotaChannelOverwrites:
 		var exists bool
-		err = s.q.QueryRowxContext(ctx, `
+		err = s.q.QueryRow(ctx, `
 			SELECT
 				EXISTS (
 					SELECT 1 FROM guild_channel_permission_overwrites

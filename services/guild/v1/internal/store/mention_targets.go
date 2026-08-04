@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -16,22 +16,14 @@ type memberRoleRow struct {
 // ListGuildMemberIDsPage returns active member IDs ordered ascending by user
 // ID, continuing strictly after afterUserID.
 func (s *SQLStore) ListGuildMemberIDsPage(ctx context.Context, guildID, afterUserID int64, limit int) ([]int64, error) {
-	var userIDs []int64
-	if err := sqlx.SelectContext(ctx, s.q, &userIDs, listGuildMemberIDsPageQuery, guildID, afterUserID, limit); err != nil {
-		return nil, err
-	}
-	return userIDs, nil
+	return scanMany(ctx, s.q, listGuildMemberIDsPageQuery, pgx.RowTo[int64], guildID, afterUserID, limit)
 }
 
 // ListGuildRoleTargetIDsPage returns active members assigned to at least one
 // of roleIDs, ordered ascending by user ID and continuing strictly after
 // afterUserID.
 func (s *SQLStore) ListGuildRoleTargetIDsPage(ctx context.Context, guildID int64, roleIDs []int64, afterUserID int64, limit int) ([]int64, error) {
-	var userIDs []int64
-	if err := sqlx.SelectContext(ctx, s.q, &userIDs, listGuildRoleTargetIDsPageQuery, guildID, roleIDs, afterUserID, limit); err != nil {
-		return nil, err
-	}
-	return userIDs, nil
+	return scanMany(ctx, s.q, listGuildRoleTargetIDsPageQuery, pgx.RowTo[int64], guildID, roleIDs, afterUserID, limit)
 }
 
 // ListGuildMemberRolesByUsers returns the effective role set for each user,
@@ -42,12 +34,12 @@ func (s *SQLStore) ListGuildMemberRolesByUsers(ctx context.Context, guildID int6
 	if len(userIDs) == 0 {
 		return rolesByUser, nil
 	}
-	var rows []*memberRoleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberRolesByUsersQuery, guildID, userIDs); err != nil {
+	rows, err := scanMany(ctx, s.q, listGuildMemberRolesByUsersQuery, pgx.RowToStructByName[memberRoleRow], guildID, userIDs)
+	if err != nil {
 		return nil, err
 	}
-	for _, row := range rows {
-		rolesByUser[row.UserID] = append(rolesByUser[row.UserID], roleFromRow(&row.roleRow))
+	for i := range rows {
+		rolesByUser[rows[i].UserID] = append(rolesByUser[rows[i].UserID], roleFromRow(&rows[i].roleRow))
 	}
 	return rolesByUser, nil
 }

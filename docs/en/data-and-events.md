@@ -13,12 +13,12 @@ deleted entities generally use `deleted_at = 0`.
 
 Stores are interfaces. Most SQL implementations keep both a database handle
 and an `sqlx.ExtContext`; transactions replace the executor with `*sqlx.Tx`.
-The Message and User stores use the native pgx API (`*pgxpool.Pool` and
-`pgx.Tx`); the Message store shares the pgx stack with its outbox relay, and
-both native stores get query tracing from `otelpgx`. Postgres handles for the
-sqlx stores come from `pkg/database.NewPostgres`, which wraps `database/sql`
-with otelsql tracing. User, Guild, and Message roll back on errors and panics.
-Tests inject fake stores and other dependencies.
+The Message, User, Authenticator, Media, and Guild stores use the native pgx
+API (`*pgxpool.Pool` and `pgx.Tx`); the Message store shares the pgx stack with
+its outbox relay, and all native stores get query tracing from `otelpgx`.
+Postgres handles for the sqlx stores come from `pkg/database.NewPostgres`,
+which wraps `database/sql` with otelsql tracing. User, Guild, and Message roll
+back on errors and panics. Tests inject fake stores and other dependencies.
 
 Entity IDs use Snowflake with a 2025-01-01 epoch, a node derived from a
 non-loopback IP hash, 16 node bits, and 8 step bits. Event JSON encodes 64-bit

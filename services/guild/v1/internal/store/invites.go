@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -21,12 +21,8 @@ type guildInviteRow struct {
 }
 
 func (s *SQLStore) CreateGuildInvite(ctx context.Context, invite *model.GuildInvite) (*model.GuildInvite, error) {
-	row := new(guildInviteRow)
-	if err := sqlx.GetContext(
-		ctx,
-		s.q,
-		row,
-		createGuildInviteQuery,
+	row, err := scanOne(
+		ctx, s.q, createGuildInviteQuery, pgx.RowToStructByName[guildInviteRow],
 		invite.ID,
 		invite.Code,
 		invite.GuildID,
@@ -34,82 +30,75 @@ func (s *SQLStore) CreateGuildInvite(ctx context.Context, invite *model.GuildInv
 		invite.MaxUses,
 		invite.ExpiresAt,
 		invite.CreatedAt,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
-	return guildInviteFromRow(row), nil
+	return guildInviteFromRow(&row), nil
 }
 
 func (s *SQLStore) GetGuildInvite(ctx context.Context, code string) (*model.GuildInvite, error) {
-	row := new(guildInviteRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getGuildInviteQuery, code); err != nil {
+	row, err := scanOne(ctx, s.q, getGuildInviteQuery, pgx.RowToStructByName[guildInviteRow], code)
+	if err != nil {
 		return nil, err
 	}
-	return guildInviteFromRow(row), nil
+	return guildInviteFromRow(&row), nil
 }
 
 func (s *SQLStore) GetGuildInviteByID(ctx context.Context, inviteID int64) (*model.GuildInvite, error) {
-	row := new(guildInviteRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getGuildInviteByIDQuery, inviteID); err != nil {
+	row, err := scanOne(ctx, s.q, getGuildInviteByIDQuery, pgx.RowToStructByName[guildInviteRow], inviteID)
+	if err != nil {
 		return nil, err
 	}
-	return guildInviteFromRow(row), nil
+	return guildInviteFromRow(&row), nil
 }
 
 func (s *SQLStore) ListGuildInvites(ctx context.Context, params ListGuildInvitesParams) ([]*model.GuildInvite, error) {
-	var rows []*guildInviteRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildInvitesQuery, params.GuildID, params.BeforeID, params.Limit); err != nil {
+	rows, err := scanMany(ctx, s.q, listGuildInvitesQuery, pgx.RowToStructByName[guildInviteRow], params.GuildID, params.BeforeID, params.Limit)
+	if err != nil {
 		return nil, err
 	}
 	invites := make([]*model.GuildInvite, 0, len(rows))
-	for _, row := range rows {
-		invites = append(invites, guildInviteFromRow(row))
+	for i := range rows {
+		invites = append(invites, guildInviteFromRow(&rows[i]))
 	}
 	return invites, nil
 }
 
 func (s *SQLStore) ConsumeGuildInvite(ctx context.Context, code string, now int64) (*model.GuildInvite, error) {
-	row := new(guildInviteRow)
-	if err := sqlx.GetContext(ctx, s.q, row, consumeGuildInviteQuery, code, now); err != nil {
+	row, err := scanOne(ctx, s.q, consumeGuildInviteQuery, pgx.RowToStructByName[guildInviteRow], code, now)
+	if err != nil {
 		return nil, err
 	}
-	return guildInviteFromRow(row), nil
+	return guildInviteFromRow(&row), nil
 }
 
 func (s *SQLStore) DeleteGuildInvite(ctx context.Context, code string) error {
-	result, err := s.q.ExecContext(ctx, deleteGuildInviteStatement, code)
+	tag, err := s.q.Exec(ctx, deleteGuildInviteStatement, code)
 	if err != nil {
 		return err
 	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
+	if tag.RowsAffected() == 0 {
 		return sql.ErrNoRows
 	}
 	return nil
 }
 
 func (s *SQLStore) DeleteGuildInvites(ctx context.Context, guildID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildInvitesStatement, guildID)
+	_, err := s.q.Exec(ctx, deleteGuildInvitesStatement, guildID)
 	return err
 }
 
 func (s *SQLStore) GetGuild(ctx context.Context, guildID int64) (*model.Guild, error) {
-	row := new(guildRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getGuildQuery, guildID); err != nil {
+	row, err := scanOne(ctx, s.q, getGuildQuery, pgx.RowToStructByName[guildRow], guildID)
+	if err != nil {
 		return nil, err
 	}
-	return guildFromRow(row), nil
+	return guildFromRow(&row), nil
 }
 
 func (s *SQLStore) CountGuildMembers(ctx context.Context, guildID int64) (int64, error) {
-	var count int64
-	if err := sqlx.GetContext(ctx, s.q, &count, countGuildMembersQuery, guildID); err != nil {
-		return 0, err
-	}
-	return count, nil
+	return scanOne(ctx, s.q, countGuildMembersQuery, pgx.RowTo[int64], guildID)
 }
 
 func guildInviteFromRow(row *guildInviteRow) *model.GuildInvite {

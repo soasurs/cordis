@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 )
 
 // ErrIdempotencyContention reports that an idempotency claim could not be
@@ -26,7 +26,7 @@ func (s *SQLStore) ClaimGuildIdempotency(
 	params ClaimGuildIdempotencyParams,
 ) (*GuildIdempotencyClaim, error) {
 	for range 3 {
-		if _, err := s.q.ExecContext(
+		if _, err := s.q.Exec(
 			ctx,
 			deleteExpiredGuildIdempotencyStatement,
 			params.ActorUserID,
@@ -37,33 +37,19 @@ func (s *SQLStore) ClaimGuildIdempotency(
 			return nil, err
 		}
 
-		row := &guildIdempotencyRow{}
-		rows, err := sqlx.NamedQueryContext(ctx, s.q, claimGuildIdempotencyQuery, map[string]any{
-			"actor_user_id":   params.ActorUserID,
-			"operation":       params.Operation,
-			"idempotency_key": params.IdempotencyKey,
-			"request_hash":    params.RequestHash,
-			"resource_id":     params.ResourceID,
-			"created_at":      params.CreatedAt,
-			"expires_at":      params.ExpiresAt,
-		})
-		if err != nil {
+		row, err := scanOne(ctx, s.q, claimGuildIdempotencyQuery, pgx.RowToStructByNameLax[guildIdempotencyRow],
+			params.ActorUserID,
+			params.Operation,
+			params.IdempotencyKey,
+			params.RequestHash,
+			params.ResourceID,
+			params.CreatedAt,
+			params.ExpiresAt,
+		)
+		if err != nil && err != sql.ErrNoRows {
 			return nil, err
 		}
-		inserted := rows.Next()
-		if inserted {
-			err = rows.StructScan(row)
-		} else {
-			err = rows.Err()
-		}
-		closeErr := rows.Close()
-		if err != nil {
-			return nil, err
-		}
-		if closeErr != nil {
-			return nil, closeErr
-		}
-		if inserted {
+		if err == nil {
 			return &GuildIdempotencyClaim{
 				ResourceID:  row.ResourceID,
 				RequestHash: append([]byte(nil), row.RequestHash...),
@@ -71,26 +57,23 @@ func (s *SQLStore) ClaimGuildIdempotency(
 			}, nil
 		}
 
-		if err := sqlx.GetContext(
-			ctx,
-			s.q,
-			row,
-			getGuildIdempotencyQuery,
+		existing, err := scanOne(ctx, s.q, getGuildIdempotencyQuery, pgx.RowToStructByName[guildIdempotencyRow],
 			params.ActorUserID,
 			params.Operation,
 			params.IdempotencyKey,
-		); err != nil {
+		)
+		if err != nil {
 			if err == sql.ErrNoRows {
 				continue
 			}
 			return nil, err
 		}
-		if row.ExpiresAt <= params.CreatedAt {
+		if existing.ExpiresAt <= params.CreatedAt {
 			continue
 		}
 		return &GuildIdempotencyClaim{
-			ResourceID:  row.ResourceID,
-			RequestHash: append([]byte(nil), row.RequestHash...),
+			ResourceID:  existing.ResourceID,
+			RequestHash: append([]byte(nil), existing.RequestHash...),
 		}, nil
 	}
 	return nil, ErrIdempotencyContention

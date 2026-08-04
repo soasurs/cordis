@@ -3,7 +3,7 @@ package store
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -29,29 +29,29 @@ func (s *SQLStore) CreateGuildRole(
 	position int32,
 	createdAt int64,
 ) (*model.Role, error) {
-	row := new(roleRow)
-	if err := sqlx.GetContext(ctx, s.q, row, createGuildRoleQuery, roleID, guildID, name, int64(permissions), position, createdAt); err != nil {
+	row, err := scanOne(ctx, s.q, createGuildRoleQuery, pgx.RowToStructByName[roleRow], roleID, guildID, name, int64(permissions), position, createdAt)
+	if err != nil {
 		return nil, err
 	}
-	return roleFromRow(row), nil
+	return roleFromRow(&row), nil
 }
 
 func (s *SQLStore) GetGuildRole(ctx context.Context, guildID, roleID int64) (*model.Role, error) {
-	row := new(roleRow)
-	if err := sqlx.GetContext(ctx, s.q, row, getGuildRoleQuery, guildID, roleID); err != nil {
+	row, err := scanOne(ctx, s.q, getGuildRoleQuery, pgx.RowToStructByName[roleRow], guildID, roleID)
+	if err != nil {
 		return nil, err
 	}
-	return roleFromRow(row), nil
+	return roleFromRow(&row), nil
 }
 
 func (s *SQLStore) ListGuildRoles(ctx context.Context, guildID int64) ([]*model.Role, error) {
-	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildRolesQuery, guildID); err != nil {
+	rows, err := scanMany(ctx, s.q, listGuildRolesQuery, pgx.RowToStructByName[roleRow], guildID)
+	if err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))
-	for _, row := range rows {
-		roles = append(roles, roleFromRow(row))
+	for i := range rows {
+		roles = append(roles, roleFromRow(&rows[i]))
 	}
 	return roles, nil
 }
@@ -60,13 +60,13 @@ func (s *SQLStore) ListGuildRolesByGuilds(ctx context.Context, guildIDs []int64)
 	if len(guildIDs) == 0 {
 		return nil, nil
 	}
-	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildRolesByGuildsQuery, guildIDs); err != nil {
+	rows, err := scanMany(ctx, s.q, listGuildRolesByGuildsQuery, pgx.RowToStructByName[roleRow], guildIDs)
+	if err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))
-	for _, row := range rows {
-		roles = append(roles, roleFromRow(row))
+	for i := range rows {
+		roles = append(roles, roleFromRow(&rows[i]))
 	}
 	return roles, nil
 }
@@ -80,12 +80,8 @@ func (s *SQLStore) UpdateGuildRole(ctx context.Context, params UpdateGuildRolePa
 	if params.Permissions != nil {
 		permissions = *params.Permissions
 	}
-	row := new(roleRow)
-	if err := sqlx.GetContext(
-		ctx,
-		s.q,
-		row,
-		updateGuildRoleQuery,
+	row, err := scanOne(
+		ctx, s.q, updateGuildRoleQuery, pgx.RowToStructByName[roleRow],
 		params.GuildID,
 		params.RoleID,
 		params.Name != nil,
@@ -93,10 +89,11 @@ func (s *SQLStore) UpdateGuildRole(ctx context.Context, params UpdateGuildRolePa
 		params.Permissions != nil,
 		int64(permissions),
 		params.UpdatedAt,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
-	return roleFromRow(row), nil
+	return roleFromRow(&row), nil
 }
 
 func (s *SQLStore) UpdateGuildRolePosition(
@@ -105,69 +102,69 @@ func (s *SQLStore) UpdateGuildRolePosition(
 	position int32,
 	updatedAt int64,
 ) (*model.Role, error) {
-	row := new(roleRow)
-	if err := sqlx.GetContext(ctx, s.q, row, updateGuildRolePositionQuery, guildID, roleID, position, updatedAt); err != nil {
+	row, err := scanOne(ctx, s.q, updateGuildRolePositionQuery, pgx.RowToStructByName[roleRow], guildID, roleID, position, updatedAt)
+	if err != nil {
 		return nil, err
 	}
-	return roleFromRow(row), nil
+	return roleFromRow(&row), nil
 }
 
 func (s *SQLStore) UpdateGuildRolePositions(ctx context.Context, guildID int64, roleIDs []int64, positions []int32, updatedAt int64) ([]*model.Role, error) {
 	if len(roleIDs) == 0 || len(roleIDs) != len(positions) {
 		return nil, nil
 	}
-	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, updateGuildRolePositionsQuery, guildID, roleIDs, positions, updatedAt); err != nil {
+	rows, err := scanMany(ctx, s.q, updateGuildRolePositionsQuery, pgx.RowToStructByName[roleRow], guildID, roleIDs, positions, updatedAt)
+	if err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))
-	for _, row := range rows {
-		roles = append(roles, roleFromRow(row))
+	for i := range rows {
+		roles = append(roles, roleFromRow(&rows[i]))
 	}
 	return roles, nil
 }
 
 func (s *SQLStore) DeleteGuildRole(ctx context.Context, guildID, roleID, deletedAt int64) (*model.Role, error) {
-	row := new(roleRow)
-	if err := sqlx.GetContext(ctx, s.q, row, deleteGuildRoleQuery, guildID, roleID, deletedAt); err != nil {
+	row, err := scanOne(ctx, s.q, deleteGuildRoleQuery, pgx.RowToStructByName[roleRow], guildID, roleID, deletedAt)
+	if err != nil {
 		return nil, err
 	}
-	return roleFromRow(row), nil
+	return roleFromRow(&row), nil
 }
 
 func (s *SQLStore) AddGuildMemberRole(ctx context.Context, guildID, userID, roleID, createdAt int64) error {
-	_, err := s.q.ExecContext(ctx, addGuildMemberRoleStatement, guildID, userID, roleID, createdAt)
+	_, err := s.q.Exec(ctx, addGuildMemberRoleStatement, guildID, userID, roleID, createdAt)
 	return err
 }
 
 func (s *SQLStore) RemoveGuildMemberRole(ctx context.Context, guildID, userID, roleID int64) error {
-	_, err := s.q.ExecContext(ctx, removeGuildMemberRoleStatement, guildID, userID, roleID)
+	_, err := s.q.Exec(ctx, removeGuildMemberRoleStatement, guildID, userID, roleID)
 	return err
 }
 
 func (s *SQLStore) DeleteGuildMemberRoleAssignments(ctx context.Context, guildID, userID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildMemberRoleAssignmentsStatement, guildID, userID)
+	_, err := s.q.Exec(ctx, deleteGuildMemberRoleAssignmentsStatement, guildID, userID)
 	return err
 }
 
 func (s *SQLStore) DeleteGuildRoleAssignments(ctx context.Context, guildID, roleID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildRoleAssignmentsStatement, guildID, roleID)
+	_, err := s.q.Exec(ctx, deleteGuildRoleAssignmentsStatement, guildID, roleID)
 	return err
 }
 
 func (s *SQLStore) DeleteAllGuildRoleAssignments(ctx context.Context, guildID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteAllGuildRoleAssignmentsStatement, guildID)
+	_, err := s.q.Exec(ctx, deleteAllGuildRoleAssignmentsStatement, guildID)
 	return err
 }
 
 func (s *SQLStore) ListGuildMemberRoles(ctx context.Context, guildID, userID int64) ([]*model.Role, error) {
-	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberRolesQuery, guildID, userID); err != nil {
+	rows, err := scanMany(ctx, s.q, listGuildMemberRolesQuery, pgx.RowToStructByName[roleRow], guildID, userID)
+	if err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))
-	for _, row := range rows {
-		roles = append(roles, roleFromRow(row))
+	for i := range rows {
+		roles = append(roles, roleFromRow(&rows[i]))
 	}
 	return roles, nil
 }
@@ -176,13 +173,13 @@ func (s *SQLStore) ListGuildMemberRolesByGuilds(ctx context.Context, guildIDs []
 	if len(guildIDs) == 0 {
 		return nil, nil
 	}
-	var rows []*roleRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberRolesByGuildsQuery, guildIDs, userID); err != nil {
+	rows, err := scanMany(ctx, s.q, listGuildMemberRolesByGuildsQuery, pgx.RowToStructByName[roleRow], guildIDs, userID)
+	if err != nil {
 		return nil, err
 	}
 	roles := make([]*model.Role, 0, len(rows))
-	for _, row := range rows {
-		roles = append(roles, roleFromRow(row))
+	for i := range rows {
+		roles = append(roles, roleFromRow(&rows[i]))
 	}
 	return roles, nil
 }

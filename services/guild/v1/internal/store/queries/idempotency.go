@@ -9,8 +9,8 @@ const ClaimGuildIdempotencyQuery = `
 			resource_id, created_at, expires_at
 		)
 	VALUES
-		(:actor_user_id, :operation, :idempotency_key, :request_hash,
-		 :resource_id, :created_at, :expires_at)
+		($1, $2, $3, $4,
+		 $5, $6, $7)
 	ON CONFLICT (actor_user_id, operation, idempotency_key) DO NOTHING
 	RETURNING
 		resource_id, request_hash

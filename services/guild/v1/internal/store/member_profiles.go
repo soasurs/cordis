@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/soasurs/cordis/services/guild/v1/internal/model"
 )
@@ -24,8 +24,7 @@ type guildMemberProfileRow struct {
 
 func (s *SQLStore) SearchGuildMentionUsers(ctx context.Context, params SearchGuildMentionUsersParams) ([]*model.GuildMemberProfile, error) {
 	pattern := escapeLikePrefix(params.Query) + "%"
-	var rows []guildMemberProfileRow
-	if err := sqlx.SelectContext(ctx, s.q, &rows, searchGuildMentionUsersQuery,
+	rows, err := scanMany(ctx, s.q, searchGuildMentionUsersQuery, pgx.RowToStructByName[guildMemberProfileRow],
 		params.GuildID,
 		pattern,
 		params.After,
@@ -33,12 +32,13 @@ func (s *SQLStore) SearchGuildMentionUsers(ctx context.Context, params SearchGui
 		params.AfterUsername,
 		params.AfterUserID,
 		params.Limit,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 	profiles := make([]*model.GuildMemberProfile, 0, len(rows))
-	for _, row := range rows {
-		profiles = append(profiles, guildMemberProfileFromRow(&row))
+	for i := range rows {
+		profiles = append(profiles, guildMemberProfileFromRow(&rows[i]))
 	}
 	return profiles, nil
 }
@@ -47,7 +47,7 @@ func (s *SQLStore) UpsertGuildMemberProfile(ctx context.Context, profile *model.
 	if profile == nil {
 		return nil
 	}
-	_, err := s.q.ExecContext(ctx, upsertGuildMemberProfileQuery,
+	_, err := s.q.Exec(ctx, upsertGuildMemberProfileQuery,
 		profile.GuildID,
 		profile.UserID,
 		profile.Username,
@@ -66,7 +66,7 @@ func (s *SQLStore) UpdateGuildMemberProfilesByUser(ctx context.Context, profile 
 	if profile == nil {
 		return nil
 	}
-	_, err := s.q.ExecContext(ctx, updateGuildMemberProfilesByUserQuery,
+	_, err := s.q.Exec(ctx, updateGuildMemberProfilesByUserQuery,
 		profile.UserID,
 		profile.Username,
 		profile.Name,
@@ -82,7 +82,7 @@ func (s *SQLStore) UpdateGuildMemberProfilesByUserWithoutAvatar(ctx context.Cont
 	if profile == nil {
 		return nil
 	}
-	_, err := s.q.ExecContext(ctx, updateGuildMemberProfilesByUserWithoutAvatarQuery,
+	_, err := s.q.Exec(ctx, updateGuildMemberProfilesByUserWithoutAvatarQuery,
 		profile.UserID,
 		profile.Username,
 		profile.Name,
@@ -94,12 +94,12 @@ func (s *SQLStore) UpdateGuildMemberProfilesByUserWithoutAvatar(ctx context.Cont
 }
 
 func (s *SQLStore) DeleteGuildMemberProfile(ctx context.Context, guildID, userID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildMemberProfileQuery, guildID, userID)
+	_, err := s.q.Exec(ctx, deleteGuildMemberProfileQuery, guildID, userID)
 	return err
 }
 
 func (s *SQLStore) UpdateGuildMemberProfileNickname(ctx context.Context, guildID, userID int64, nickname string) error {
-	_, err := s.q.ExecContext(
+	_, err := s.q.Exec(
 		ctx,
 		updateGuildMemberProfileNicknameQuery,
 		guildID,
@@ -111,17 +111,17 @@ func (s *SQLStore) UpdateGuildMemberProfileNickname(ctx context.Context, guildID
 }
 
 func (s *SQLStore) DeleteGuildMemberProfiles(ctx context.Context, guildID int64) error {
-	_, err := s.q.ExecContext(ctx, deleteGuildMemberProfilesStatement, guildID)
+	_, err := s.q.Exec(ctx, deleteGuildMemberProfilesStatement, guildID)
 	return err
 }
 
 func (s *SQLStore) ListGuildMemberProfileKeys(ctx context.Context, params ListGuildMemberProfileKeysParams) ([]model.GuildMemberProfileKey, error) {
-	var rows []model.GuildMemberProfileKey
-	if err := sqlx.SelectContext(ctx, s.q, &rows, listGuildMemberProfileKeysQuery,
+	rows, err := scanMany(ctx, s.q, listGuildMemberProfileKeysQuery, pgx.RowToStructByName[model.GuildMemberProfileKey],
 		params.AfterGuildID,
 		params.AfterUserID,
 		params.Limit,
-	); err != nil {
+	)
+	if err != nil {
 		return nil, err
 	}
 	return rows, nil
